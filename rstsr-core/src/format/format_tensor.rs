@@ -224,7 +224,7 @@ where
 impl<S, T, B, D> Debug for TensorBase<S, D>
 where
     T: Clone + Display + Debug,
-    B: DeviceAPI<T>,
+    B: DeviceAPI<T> + Debug,
     D: DimAPI,
     S: DataAPI<Data = Storage<T, B>>,
 {

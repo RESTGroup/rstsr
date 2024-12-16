@@ -4,7 +4,7 @@ use num::{complex::ComplexFloat, Float, Num};
 // for creation, we use most of the functions from DeviceCpuSerial
 impl<T> DeviceCreationAnyAPI<T> for DeviceFaer
 where
-    T: Clone + Debug,
+    T: Clone,
     Self: DeviceRawVecAPI<T, RawVec = Vec<T>>,
 {
     unsafe fn empty_impl(&self, len: usize) -> Result<Storage<T, Self>> {
@@ -29,7 +29,7 @@ where
 
 impl<T> DeviceCreationNumAPI<T> for DeviceFaer
 where
-    T: Num + Clone + Debug,
+    T: Num + Clone,
     Self: DeviceRawVecAPI<T, RawVec = Vec<T>>,
 {
     fn zeros_impl(&self, len: usize) -> Result<Storage<T, Self>> {
@@ -50,7 +50,7 @@ where
 
 impl<T> DeviceCreationComplexFloatAPI<T> for DeviceFaer
 where
-    T: ComplexFloat + Clone + Debug + Send + Sync,
+    T: ComplexFloat + Clone + Send + Sync,
     Self: DeviceRawVecAPI<T, RawVec = Vec<T>>,
 {
     fn linspace_impl(

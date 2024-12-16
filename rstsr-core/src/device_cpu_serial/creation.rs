@@ -3,7 +3,7 @@ use num::{complex::ComplexFloat, Float, Num};
 
 impl<T> DeviceCreationAnyAPI<T> for DeviceCpuSerial
 where
-    T: Clone + Debug,
+    T: Clone,
     DeviceCpuSerial: DeviceRawVecAPI<T, RawVec = Vec<T>>,
 {
     #[allow(clippy::uninit_vec)]
@@ -32,7 +32,7 @@ where
 
 impl<T> DeviceCreationNumAPI<T> for DeviceCpuSerial
 where
-    T: Num + Clone + Debug,
+    T: Num + Clone,
     DeviceCpuSerial: DeviceRawVecAPI<T, RawVec = Vec<T>>,
 {
     fn zeros_impl(&self, len: usize) -> Result<Storage<T, DeviceCpuSerial>> {
@@ -58,7 +58,7 @@ where
 
 impl<T> DeviceCreationComplexFloatAPI<T> for DeviceCpuSerial
 where
-    T: ComplexFloat + Clone + Debug,
+    T: ComplexFloat + Clone,
     DeviceCpuSerial: DeviceRawVecAPI<T, RawVec = Vec<T>>,
 {
     fn linspace_impl(
@@ -91,13 +91,13 @@ where
 
 impl<T> DeviceCreationFloatAPI<T> for DeviceCpuSerial
 where
-    T: Float + Clone + Debug,
+    T: Float + Clone,
     DeviceCpuSerial: DeviceRawVecAPI<T, RawVec = Vec<T>>,
 {
     fn arange_impl(&self, start: T, end: T, step: T) -> Result<Storage<T, DeviceCpuSerial>> {
         rstsr_assert!(step != T::zero(), InvalidValue)?;
         let n = ((end - start) / step).ceil();
-        rstsr_pattern!(n, T::zero().., ValueOutOfRange)?;
+        rstsr_assert!(n >= T::zero(), ValueOutOfRange)?;
         let n = n.to_usize().unwrap();
 
         let mut rawvec: Vec<T> = (0..n).map(|i| start + step * T::from(i).unwrap()).collect();

@@ -89,12 +89,7 @@ where
     T: Clone,
 {
     fn asarray(input: Vec<T>) -> Result<Self> {
-        let layout = [input.len()].c();
-        let device = DeviceCpu::default();
-        let storage = Storage::new(input, device);
-        let data = DataOwned::from(storage);
-        let tensor = unsafe { Tensor::new_unchecked(data, layout) };
-        return Ok(tensor);
+        Self::asarray((input, None))
     }
 }
 
@@ -119,12 +114,69 @@ where
     T: Clone,
 {
     fn asarray(input: [T; N]) -> Result<Self> {
-        let layout = [input.len()].c();
-        let device = DeviceCpu::default();
-        let storage = Storage::new(input.into(), device);
-        let data = DataOwned::from(storage);
-        let tensor = unsafe { Tensor::new_unchecked(data, layout) };
-        return Ok(tensor);
+        Self::asarray((input, None))
+    }
+}
+
+impl<T, B> AsArrayAPI<(Vec<Vec<T>>, Option<&B>)> for Tensor<T, Ix2, B>
+where
+    T: Clone,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+{
+    fn asarray(param: (Vec<Vec<T>>, Option<&B>)) -> Result<Self> {
+        let (input, device) = param;
+        // zero rows
+        if input.is_empty() {
+            return Tensor::<T, Ix1, B>::asarray((vec![], device))?.into_shape_assume_contig([0, 0]);
+        }
+        // check columns
+        let nrow = input.len();
+        let ncol = input[0].len();
+        for idx_row in 1..input.len() {
+            if input[idx_row].len() != ncol {
+                rstsr_assert_eq!(
+                    input[idx_row].len(),
+                    ncol,
+                    InvalidLayout,
+                    "element numbers in later rows do not match the first row"
+                )?;
+            }
+        }
+        let new_vec = input.into_iter().flatten().collect::<Vec<_>>();
+        let tensor = Tensor::<T, Ix1, B>::asarray((new_vec, device))?;
+        return tensor.into_shape_assume_contig([nrow, ncol]);
+    }
+}
+
+impl<T> AsArrayAPI<Vec<Vec<T>>> for Tensor<T, Ix2, DeviceCpu>
+where
+    T: Clone,
+{
+    fn asarray(input: Vec<Vec<T>>) -> Result<Self> {
+        Self::asarray((input, None))
+    }
+}
+
+impl<T, B, const N: usize, const M: usize> AsArrayAPI<([[T; M]; N], Option<&B>)>
+    for Tensor<T, Ix2, B>
+where
+    T: Clone,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+{
+    fn asarray(param: ([[T; M]; N], Option<&B>)) -> Result<Self> {
+        let (input, device) = param;
+        let new_vec = input.iter().flatten().cloned().collect::<Vec<_>>();
+        let tensor = Tensor::<T, Ix1, B>::asarray((new_vec, device))?;
+        return tensor.into_shape_assume_contig([N, M]);
+    }
+}
+
+impl<T, const N: usize, const M: usize> AsArrayAPI<[[T; M]; N]> for Tensor<T, Ix2, DeviceCpu>
+where
+    T: Clone,
+{
+    fn asarray(input: [[T; M]; N]) -> Result<Self> {
+        Self::asarray((input, None))
     }
 }
 
@@ -149,24 +201,15 @@ where
     }
 }
 
-/* #region vector casting to tensor */
-
-/// One dimension vector can be simply casted to tensor in CPU.
-impl<T> From<Vec<T>> for Tensor<T, Ix1, DeviceCpu>
+impl<T, R, D> From<T> for TensorBase<R, D>
 where
-    T: Clone,
+    D: DimAPI,
+    TensorBase<R, D>: AsArrayAPI<T>,
 {
-    fn from(data: Vec<T>) -> Self {
-        let size = data.len();
-        let device = DeviceCpu::default();
-        let storage = Storage { rawvec: data, device };
-        let data = DataOwned { storage };
-        let layout = [size].into();
-        Tensor::new(data, layout).unwrap()
+    fn from(input: T) -> Self {
+        TensorBase::<R, D>::asarray(input).unwrap()
     }
 }
-
-/* #endregion */
 
 #[cfg(test)]
 mod tests {
