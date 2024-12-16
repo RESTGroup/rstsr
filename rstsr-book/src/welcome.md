@@ -1,1 +1,0 @@
-Welcome to RSTSR, a tensor library for rust.
