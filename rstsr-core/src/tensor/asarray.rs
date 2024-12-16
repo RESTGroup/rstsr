@@ -90,7 +90,7 @@ where
 {
     fn asarray(input: Vec<T>) -> Result<Self> {
         let layout = [input.len()].c();
-        let device = DeviceCpu {};
+        let device = DeviceCpu::default();
         let storage = Storage::new(input, device);
         let data = DataOwned::from(storage);
         let tensor = unsafe { Tensor::new_unchecked(data, layout) };
@@ -120,7 +120,7 @@ where
 {
     fn asarray(input: [T; N]) -> Result<Self> {
         let layout = [input.len()].c();
-        let device = DeviceCpu {};
+        let device = DeviceCpu::default();
         let storage = Storage::new(input.into(), device);
         let data = DataOwned::from(storage);
         let tensor = unsafe { Tensor::new_unchecked(data, layout) };
@@ -134,7 +134,7 @@ where
 {
     fn asarray(input: &'a [T]) -> Result<Self> {
         let layout = [input.len()].c();
-        let device = DeviceCpu {};
+        let device = DeviceCpu::default();
 
         let ptr = input.as_ptr();
         let len = input.len();
@@ -158,7 +158,7 @@ where
 {
     fn from(data: Vec<T>) -> Self {
         let size = data.len();
-        let device = DeviceCpu {};
+        let device = DeviceCpu::default();
         let storage = Storage { rawvec: data, device };
         let data = DataOwned { storage };
         let layout = [size].into();
@@ -198,7 +198,7 @@ mod tests {
     fn vec_cast_to_tensor() {
         use crate::layout::*;
         let a = Tensor::<f64, Ix<2>> {
-            data: Storage { rawvec: vec![1.12345, 2.0], device: DeviceCpu {} }.into(),
+            data: Storage { rawvec: vec![1.12345, 2.0], device: DeviceCpu::default() }.into(),
             layout: [1, 2].new_c_contig(None),
         };
         println!("{a:6.3?}");

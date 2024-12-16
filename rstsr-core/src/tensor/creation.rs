@@ -70,7 +70,7 @@ where
     ///
     /// [`arange`]
     pub fn arange_cpu(start: T, stop: T, step: T) -> Tensor<T, Ix1, DeviceCpu> {
-        arange(start, stop, step, &DeviceCpu {})
+        arange(start, stop, step, &DeviceCpu::default())
     }
 }
 
@@ -118,7 +118,7 @@ where
     ///
     /// [`arange_int`]
     pub fn arange_int_cpu(len: usize) -> Tensor<T, Ix1, DeviceCpu> {
-        arange_int(len, &DeviceCpu {})
+        arange_int(len, &DeviceCpu::default())
     }
 }
 
@@ -180,7 +180,7 @@ where
     ///
     /// [`empty`]
     pub unsafe fn empty_cpu(layout: impl Into<Layout<D>>) -> Tensor<T, D, DeviceCpu> {
-        empty(layout, &DeviceCpu {})
+        empty(layout, &DeviceCpu::default())
     }
 }
 
@@ -292,7 +292,7 @@ where
     ///
     /// [`eye`]
     pub fn eye_cpu(n_rows: usize) -> Self {
-        eye(n_rows, n_rows, 0, TensorOrder::default(), &DeviceCpu {})
+        eye(n_rows, n_rows, 0, TensorOrder::default(), &DeviceCpu::default())
     }
 }
 
@@ -342,7 +342,7 @@ where
     ///
     /// [`full`]
     pub fn full_cpu(layout: impl Into<Layout<D>>, fill: T) -> Tensor<T, D, DeviceCpu> {
-        full(layout, fill, &DeviceCpu {})
+        full(layout, fill, &DeviceCpu::default())
     }
 }
 
@@ -439,7 +439,7 @@ where
     ///
     /// [`linspace`]
     pub fn linspace_cpu(start: T, end: T, n: usize) -> Tensor<T, Ix1, DeviceCpu> {
-        linspace(start, end, n, true, &DeviceCpu {})
+        linspace(start, end, n, true, &DeviceCpu::default())
     }
 }
 
@@ -495,7 +495,7 @@ where
         T: Num + Clone + Debug,
         D: DimAPI,
     {
-        Tensor::ones(layout, &DeviceCpu {})
+        Tensor::ones(layout, &DeviceCpu::default())
     }
 }
 
@@ -589,7 +589,7 @@ where
     ///
     /// [`zeros`]
     pub fn zeros_cpu(layout: impl Into<Layout<D>>) -> Tensor<T, D, DeviceCpu> {
-        zeros(layout, &DeviceCpu {})
+        zeros(layout, &DeviceCpu::default())
     }
 }
 

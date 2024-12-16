@@ -586,7 +586,7 @@ mod tests {
     // }
     #[test]
     fn test_flip() {
-        let device = DeviceCpu {};
+        let device = DeviceCpu::default();
         let a = Tensor::<f64, _>::new(
             Storage::<f64, DeviceCpu>::new(
                 (0..24).map(|v| v as f64).collect::<Vec<_>>(),
