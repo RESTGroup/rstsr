@@ -1,0 +1,12 @@
+[workspace]
+resolver = "2"
+members = [
+    "listings/*/*"
+]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2021"
+
+[workspace.dependencies]
+rstsr-core = { path = "../rstsr-core" }

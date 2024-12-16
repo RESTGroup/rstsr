@@ -1,5 +1,5 @@
 [package]
-name = "rstsr"
+name = "rstsr-core"
 version = "0.1.0"
 edition = "2021"
 
@@ -21,11 +21,12 @@ ndarray = { workspace = true }
 criterion = { workspace = true }
 
 [features]
-default = ["c_prefer"]
+default = ["c_prefer", "faer", "faer_as_default"]
 std = []
 c_prefer = []
 rayon = ["dep:rayon"]
 faer = ["rayon", "dep:faer", "dep:faer-ext", "dep:faer-entity"]
+faer_as_default = []
 
 [[bench]]
 name = "faer_gemm"

@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use rstsr::prelude_dev::*;
+use rstsr_core::prelude_dev::*;
 
 pub fn bench_faer_gemm(crit: &mut Criterion) {
     let m = 4096;

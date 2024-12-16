@@ -1,0 +1,7 @@
+[package]
+name = "listing-01-vec_to_tsr"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+rstsr-core = { workspace = true }

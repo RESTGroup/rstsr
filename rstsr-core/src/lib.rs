@@ -30,6 +30,10 @@ pub mod device_cpu_serial;
 
 mod dev_utilities;
 
+#[cfg(feature = "faer_as_default")]
+pub type DeviceCpu = device_faer::device::DeviceFaer;
+
+#[cfg(not(feature = "faer_as_default"))]
 pub type DeviceCpu = device_cpu_serial::DeviceCpuSerial;
 
 pub mod doc_api_specification {

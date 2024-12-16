@@ -12,7 +12,7 @@ pub trait DimShapeAPI: DimBaseAPI {
     /// # Example
     ///
     /// ```
-    /// use rstsr::prelude_dev::*;
+    /// use rstsr_core::prelude_dev::*;
     ///
     /// let shape = [2, 3];
     /// assert_eq!(shape.shape_size(), 6);
@@ -27,7 +27,7 @@ pub trait DimShapeAPI: DimBaseAPI {
     /// # Example
     ///
     /// ```
-    /// use rstsr::prelude_dev::*;
+    /// use rstsr_core::prelude_dev::*;
     ///
     /// let stride = [2, 3, 5].stride_f_contig();
     /// assert_eq!(stride, [1, 2, 6]);
@@ -39,7 +39,7 @@ pub trait DimShapeAPI: DimBaseAPI {
     /// # Example
     ///
     /// ```
-    /// use rstsr::prelude_dev::*;
+    /// use rstsr_core::prelude_dev::*;
     ///
     /// let stride = [2, 3, 5].stride_c_contig();
     /// assert_eq!(stride, [15, 5, 1]);
