@@ -34,6 +34,26 @@ where
         self.map(move |x| f(x.clone()))
     }
 
+    /// Call `f` by reference on each element and create a new array with the
+    /// new values.
+    pub fn map_tmp<'f, TOut>(
+        &self,
+        f: impl for<'a> Fn(&'a T) -> TOut + Send + Sync + 'f,
+    ) -> Tensor<TOut, D, B>
+    where
+        B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
+        B: DeviceOp_MutA_RefB_API<TOut, T, D, dyn Fn(&mut TOut, &T) + Send + Sync + 'f>,
+    {
+        let la = self.layout();
+        let lc = layout_for_array_copy(la, TensorIterOrder::default()).unwrap();
+        let device = self.device();
+        let mut storage_c = unsafe { device.empty_impl(lc.bounds_index().unwrap().1).unwrap() };
+        let storage_a = self.data().storage();
+        let mut f_inner = move |c: &mut TOut, a: &T| *c = f(a);
+        device.op_muta_refb_func(&mut storage_c, &lc, storage_a, la, &mut f_inner).unwrap();
+        return Tensor::new(DataOwned::from(storage_c), lc).unwrap();
+    }
+
     /// Modify the array in place by calling `f` by mutable reference on each
     /// element.
     pub fn map_inplace<'f>(&mut self, mut f: impl FnMut(&mut T) + 'f)
@@ -155,8 +175,9 @@ mod tests {
 
     #[test]
     fn test_mapv() {
+        let device = DeviceCpuSerial;
         let f = |x| x * 2.0;
-        let a = Tensor::from(vec![1., 2., 3., 4.]);
+        let a = Tensor::asarray((vec![1., 2., 3., 4.], Some(&device))).unwrap();
         let b = a.mapv(f);
         assert!(allclose_f64(&b, &vec![2., 4., 6., 8.].into()));
         println!("{:?}", b);
@@ -164,10 +185,21 @@ mod tests {
 
     #[test]
     fn test_mapv_binary() {
+        let device = DeviceCpuSerial;
         let f = |x, y| 2.0 * x + 3.0 * y;
-        let a = Tensor::linspace_cpu(1., 6., 6).into_shape_assume_contig([2, 3]).unwrap();
-        let b = Tensor::linspace_cpu(1., 3., 3);
+        let a = Tensor::linspace(1., 6., 6, &device).into_shape_assume_contig([2, 3]).unwrap();
+        let b = Tensor::linspace(1., 3., 3, &device);
         let c = a.mapv_binary(&b, f);
         assert!(allclose_f64(&c, &vec![5., 10., 15., 11., 16., 21.].into()));
+    }
+
+    #[test]
+    fn test_mapv_rayon() {
+        let device = DeviceFaer::default();
+        let f = |&x: &f64| x * 2.0;
+        let a = Tensor::asarray((vec![1., 2., 3., 4.], Some(&device))).unwrap();
+        let b = a.map_tmp(f);
+        assert!(allclose_f64(&b, &vec![2., 4., 6., 8.].into()));
+        println!("{:?}", b);
     }
 }
