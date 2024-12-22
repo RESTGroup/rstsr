@@ -79,7 +79,7 @@ where
     fn tsr_view(&self) -> TensorBase<DataRef<'_, S>, D>;
 }
 
-impl<'a, R, S, D> TensorRefAPI<S, D> for &'a TensorBase<R, D>
+impl<R, S, D> TensorRefAPI<S, D> for &TensorBase<R, D>
 where
     R: DataAPI<Data = S>,
     D: DimAPI,
@@ -90,7 +90,7 @@ where
     }
 }
 
-impl<'a, S, D> TensorRefAPI<S, D> for TensorBase<DataRef<'a, S>, D>
+impl<S, D> TensorRefAPI<S, D> for TensorBase<DataRef<'_, S>, D>
 where
     S: Clone,
     D: DimAPI,
@@ -110,7 +110,7 @@ where
     fn tsr_view(&self) -> TensorBase<DataRef<'_, S>, D>;
 }
 
-impl<'a, R, S, D> TensorRefOrOwnedAPI<S, D> for &'a TensorBase<R, D>
+impl<R, S, D> TensorRefOrOwnedAPI<S, D> for &TensorBase<R, D>
 where
     R: DataAPI<Data = S>,
     D: DimAPI,
@@ -121,7 +121,7 @@ where
     }
 }
 
-impl<'a, S, D> TensorRefOrOwnedAPI<S, D> for TensorBase<DataRef<'a, S>, D>
+impl<S, D> TensorRefOrOwnedAPI<S, D> for TensorBase<DataRef<'_, S>, D>
 where
     S: Clone,
     D: DimAPI,
@@ -152,7 +152,7 @@ where
     fn tsr_view_mut(&mut self) -> TensorBase<DataRefMut<'_, S>, D>;
 }
 
-impl<'a, R, S, D> TensorRefMutAPI<S, D> for &'a mut TensorBase<R, D>
+impl<R, S, D> TensorRefMutAPI<S, D> for &mut TensorBase<R, D>
 where
     R: DataMutAPI<Data = S>,
     D: DimAPI,
@@ -163,7 +163,7 @@ where
     }
 }
 
-impl<'a, S, D> TensorRefMutAPI<S, D> for TensorBase<DataRefMut<'a, S>, D>
+impl<S, D> TensorRefMutAPI<S, D> for TensorBase<DataRefMut<'_, S>, D>
 where
     S: Clone,
     D: DimAPI,

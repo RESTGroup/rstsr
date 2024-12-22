@@ -127,15 +127,16 @@ where
         let (input, device) = param;
         // zero rows
         if input.is_empty() {
-            return Tensor::<T, Ix1, B>::asarray((vec![], device))?.into_shape_assume_contig([0, 0]);
+            return Tensor::<T, Ix1, B>::asarray((vec![], device))?
+                .into_shape_assume_contig([0, 0]);
         }
         // check columns
         let nrow = input.len();
         let ncol = input[0].len();
-        for idx_row in 1..input.len() {
-            if input[idx_row].len() != ncol {
+        for row in input.iter() {
+            if row.len() != ncol {
                 rstsr_assert_eq!(
-                    input[idx_row].len(),
+                    row.len(),
                     ncol,
                     InvalidLayout,
                     "element numbers in later rows do not match the first row"

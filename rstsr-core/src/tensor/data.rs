@@ -60,14 +60,14 @@ impl<'a, S> From<&'a S> for DataRef<'a, S> {
     }
 }
 
-impl<'a, S> DataRef<'a, S> {
+impl<S> DataRef<'_, S> {
     #[inline]
     pub fn from_manually_drop(data: ManuallyDrop<S>) -> Self {
         DataRef::ManuallyDropOwned(data)
     }
 }
 
-impl<'a, S> DataRefMut<'a, S> {
+impl<S> DataRefMut<'_, S> {
     #[inline]
     pub fn from_manually_drop(data: ManuallyDrop<S>) -> Self {
         DataRefMut::ManuallyDropOwned(data)
@@ -112,7 +112,7 @@ where
     }
 }
 
-impl<'a, S> DataAPI for DataRef<'a, S>
+impl<S> DataAPI for DataRef<'_, S>
 where
     S: Clone,
 {
@@ -146,7 +146,7 @@ where
     }
 }
 
-impl<'a, S> DataAPI for DataRefMut<'a, S>
+impl<S> DataAPI for DataRefMut<'_, S>
 where
     S: Clone,
 {
@@ -171,7 +171,7 @@ where
     }
 }
 
-impl<'a, S> DataAPI for DataCow<'a, S>
+impl<S> DataAPI for DataCow<'_, S>
 where
     S: Clone,
 {
@@ -221,7 +221,7 @@ where
     }
 }
 
-impl<'a, S> DataMutAPI for DataRefMut<'a, S>
+impl<S> DataMutAPI for DataRefMut<'_, S>
 where
     S: Clone,
 {
