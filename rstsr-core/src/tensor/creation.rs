@@ -3,8 +3,8 @@
 //! This module relates to the [Python array API standard v2023.12](https://data-apis.org/array-api/2023.12/API_specification/creation_functions.html).
 //!
 //! Todo list:
-//! - [x] `arange`: [`Tensor::arange`], [`Tensor::arange_int`]
-//! - [ ] `asarray`
+//! - [x] `arange`: [`Tensor::arange`]
+//! - [x] `asarray`: [`Tensor::asarray`] (defined elsewhere)
 //! - [x] `empty`: [`Tensor::empty`]
 //! - [x] `empty_like`: [`Tensor::empty_like`]
 //! - [ ] `eye`
@@ -22,9 +22,17 @@
 
 use crate::prelude_dev::*;
 use num::complex::ComplexFloat;
-use num::{Float, Num};
+use num::Num;
 
 /* #region arange */
+
+pub trait ArrangeAPI<Param>: Sized {
+    fn arange_f(param: Param) -> Result<Self>;
+
+    fn arange(param: Param) -> Self {
+        Self::arange_f(param).unwrap()
+    }
+}
 
 /// Evenly spaced values within the half-open interval `[start, stop)` as
 /// one-dimensional array.
@@ -32,97 +40,98 @@ use num::{Float, Num};
 /// # See also
 ///
 /// - [Python array API standard: `arange`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.arange.html)
-pub fn arange<T, B>(start: T, stop: T, step: T, device: &B) -> Tensor<T, Ix1, B>
+pub fn arange<Rhs, Param>(param: Param) -> Rhs
 where
-    T: Float,
-    B: DeviceAPI<T> + DeviceCreationFloatAPI<T>,
+    Rhs: ArrangeAPI<Param>,
 {
-    let data = B::arange_impl(device, start, stop, step).unwrap();
-    let layout = [data.len()].into();
-    unsafe { Tensor::new_unchecked(data.into(), layout) }
+    return Rhs::arange(param);
 }
 
-impl<T, B> Tensor<T, Ix1, B>
+pub fn arange_f<Rhs, Param>(param: Param) -> Result<Rhs>
 where
-    T: Float,
-    B: DeviceAPI<T> + DeviceCreationFloatAPI<T>,
+    Rhs: ArrangeAPI<Param>,
 {
-    /// Evenly spaced values within the half-open interval `[start, stop)` as
-    /// one-dimensional array.
-    ///
-    /// # See also
-    ///
-    /// [`arange`]
-    pub fn arange(start: T, stop: T, step: T, device: &B) -> Tensor<T, Ix1, B> {
-        arange(start, stop, step, device)
+    return Rhs::arange_f(param);
+}
+
+impl<T, B> ArrangeAPI<(T, T, T, &B)> for Tensor<T, Ix1, B>
+where
+    T: Num + PartialOrd,
+    B: DeviceAPI<T> + DeviceCreationPartialOrdNumAPI<T>,
+{
+    fn arange_f(param: (T, T, T, &B)) -> Result<Self> {
+        // full implementation
+        let (start, stop, step, device) = param;
+        let data = device.arange_impl(start, stop, step)?;
+        let layout = [data.len()].into();
+        unsafe { Ok(Tensor::new_unchecked(data.into(), layout)) }
     }
 }
 
-impl<T> Tensor<T, Ix1, DeviceCpu>
+impl<T, B> ArrangeAPI<(T, T, &B)> for Tensor<T, Ix1, B>
 where
-    T: Float,
-    DeviceCpu: DeviceAPI<T> + DeviceCreationFloatAPI<T>,
+    T: Num + PartialOrd,
+    B: DeviceAPI<T> + DeviceCreationPartialOrdNumAPI<T>,
 {
-    /// Evenly spaced values within the half-open interval `[start, stop)` as
-    /// one-dimensional array.
-    ///
-    /// # See also
-    ///
-    /// [`arange`]
-    pub fn arange_cpu(start: T, stop: T, step: T) -> Tensor<T, Ix1, DeviceCpu> {
-        arange(start, stop, step, &DeviceCpu::default())
+    fn arange_f(param: (T, T, &B)) -> Result<Self> {
+        // (start, stop, device) -> (start, stop, 1, device)
+        let (start, stop, device) = param;
+        let step = T::one();
+        let data = device.arange_impl(start, stop, step)?;
+        let layout = [data.len()].into();
+        unsafe { Ok(Tensor::new_unchecked(data.into(), layout)) }
+    }
+}
+
+impl<T, B> ArrangeAPI<(T, &B)> for Tensor<T, Ix1, B>
+where
+    T: Num + PartialOrd,
+    B: DeviceAPI<T> + DeviceCreationPartialOrdNumAPI<T>,
+{
+    fn arange_f(param: (T, &B)) -> Result<Self> {
+        // (stop, device) -> (0, stop, 1, device)
+        let (stop, device) = param;
+        let start = T::zero();
+        let step = T::one();
+        let data = device.arange_impl(start, stop, step)?;
+        let layout = [data.len()].into();
+        unsafe { Ok(Tensor::new_unchecked(data.into(), layout)) }
+    }
+}
+
+impl<T> ArrangeAPI<(T, T, T)> for Tensor<T, Ix1, DeviceCpu>
+where
+    T: Num + PartialOrd + Clone,
+{
+    fn arange_f(param: (T, T, T)) -> Result<Self> {
+        // full implementation
+        let (start, stop, step) = param;
+        arange_f((start, stop, step, &DeviceCpu::default()))
+    }
+}
+
+impl<T> ArrangeAPI<(T, T)> for Tensor<T, Ix1, DeviceCpu>
+where
+    T: Num + PartialOrd + Clone,
+{
+    fn arange_f(param: (T, T)) -> Result<Self> {
+        // (start, stop) -> (start, stop, 1)
+        let (start, stop) = param;
+        arange_f((start, stop, &DeviceCpu::default()))
+    }
+}
+
+impl<T> ArrangeAPI<T> for Tensor<T, Ix1, DeviceCpu>
+where
+    T: Num + PartialOrd + Clone,
+{
+    fn arange_f(stop: T) -> Result<Self> {
+        // (stop) -> (0, stop, 1)
+        arange_f((T::zero(), stop, &DeviceCpu::default()))
     }
 }
 
 /* #endregion */
-
-/* #region arange_int */
-
-/// Evenly spaced values within the half-open interval `[0, len)` as
-/// one-dimensional array, each step 1.
-pub fn arange_int<T, B>(len: usize, device: &B) -> Tensor<T, Ix1, B>
-where
-    T: Num,
-    B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
-{
-    let data = B::arange_int_impl(device, len).unwrap();
-    let layout = [data.len()].into();
-    unsafe { Tensor::new_unchecked(data.into(), layout) }
-}
-
-impl<T, B> Tensor<T, Ix1, B>
-where
-    T: Num,
-    B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
-{
-    /// Evenly spaced values within the half-open interval `[0, len)` as
-    /// one-dimensional array, each step 1.
-    ///
-    /// # See also
-    ///
-    /// [`arange_int`]
-    pub fn arange_int(len: usize, device: &B) -> Tensor<T, Ix1, B> {
-        arange_int(len, device)
-    }
-}
-
-impl<T> Tensor<T, Ix1, DeviceCpu>
-where
-    T: Num,
-    DeviceCpu: DeviceAPI<T> + DeviceCreationNumAPI<T>,
-{
-    /// Evenly spaced values within the half-open interval `[0, len)` as
-    /// one-dimensional array, each step 1.
-    ///
-    /// # See also
-    ///
-    /// [`arange_int`]
-    pub fn arange_int_cpu(len: usize) -> Tensor<T, Ix1, DeviceCpu> {
-        arange_int(len, &DeviceCpu::default())
-    }
-}
-
-/* #endregion arange_int */
 
 /* #region empty */
 
@@ -644,9 +653,9 @@ mod test {
 
     #[test]
     fn playground() {
-        let a = Tensor::arange_cpu(2.5, 3.2, 0.02);
+        let a = Tensor::arange((2.5, 3.2, 0.02));
         println!("{a:6.3?}");
-        let a = Tensor::<f64, _>::arange_int_cpu(15);
+        let a = Tensor::<f64, _>::arange(15.0);
         println!("{a:6.3?}");
         let a = unsafe { Tensor::<f64, _>::empty_cpu([15, 18].f()) };
         println!("{a:6.3?}");

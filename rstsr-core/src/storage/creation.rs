@@ -1,5 +1,5 @@
 use crate::prelude_dev::*;
-use num::{complex::ComplexFloat, Float, Num};
+use num::{complex::ComplexFloat, Num};
 
 pub trait DeviceCreationAnyAPI<T>
 where
@@ -34,9 +34,9 @@ where
         -> Result<Storage<T, Self>>;
 }
 
-pub trait DeviceCreationFloatAPI<T>
+pub trait DeviceCreationPartialOrdNumAPI<T>
 where
-    T: Float,
+    T: Num + PartialOrd,
     Self: DeviceRawVecAPI<T>,
 {
     fn arange_impl(&self, start: T, end: T, step: T) -> Result<Storage<T, Self>>;

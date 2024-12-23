@@ -1,5 +1,5 @@
 use crate::prelude_dev::*;
-use num::{complex::ComplexFloat, Float, Num};
+use num::{complex::ComplexFloat, Num};
 
 impl<T> DeviceCreationAnyAPI<T> for DeviceCpuSerial
 where
@@ -9,9 +9,7 @@ where
     #[allow(clippy::uninit_vec)]
     unsafe fn empty_impl(&self, len: usize) -> Result<Storage<T, DeviceCpuSerial>> {
         let mut rawvec: Vec<T> = Vec::with_capacity(len);
-        unsafe {
-            rawvec.set_len(len);
-        }
+        unsafe { rawvec.set_len(len) };
         Ok(Storage::<T, DeviceCpuSerial> { rawvec, device: self.clone() })
     }
 
@@ -56,6 +54,23 @@ where
     }
 }
 
+impl<T> DeviceCreationPartialOrdNumAPI<T> for DeviceCpuSerial
+where
+    T: Num + PartialOrd + Clone,
+    DeviceCpuSerial: DeviceRawVecAPI<T, RawVec = Vec<T>>,
+{
+    fn arange_impl(&self, start: T, end: T, step: T) -> Result<Storage<T, DeviceCpuSerial>> {
+        rstsr_assert!(step != T::zero(), InvalidValue)?;
+        let mut rawvec = Vec::new();
+        let mut current = start.clone();
+        while current < end {
+            rawvec.push(current.clone());
+            current = current + step.clone();
+        }
+        Ok(Storage::<T, DeviceCpuSerial> { rawvec, device: self.clone() })
+    }
+}
+
 impl<T> DeviceCreationComplexFloatAPI<T> for DeviceCpuSerial
 where
     T: ComplexFloat + Clone,
@@ -84,25 +99,6 @@ where
         for _ in 0..n {
             rawvec.push(v);
             v = v + step;
-        }
-        Ok(Storage::<T, DeviceCpuSerial> { rawvec, device: self.clone() })
-    }
-}
-
-impl<T> DeviceCreationFloatAPI<T> for DeviceCpuSerial
-where
-    T: Float + Clone,
-    DeviceCpuSerial: DeviceRawVecAPI<T, RawVec = Vec<T>>,
-{
-    fn arange_impl(&self, start: T, end: T, step: T) -> Result<Storage<T, DeviceCpuSerial>> {
-        rstsr_assert!(step != T::zero(), InvalidValue)?;
-        let n = ((end - start) / step).ceil();
-        rstsr_assert!(n >= T::zero(), ValueOutOfRange)?;
-        let n = n.to_usize().unwrap();
-
-        let mut rawvec: Vec<T> = (0..n).map(|i| start + step * T::from(i).unwrap()).collect();
-        if rawvec.last().is_some_and(|&v| v == end) {
-            rawvec.pop();
         }
         Ok(Storage::<T, DeviceCpuSerial> { rawvec, device: self.clone() })
     }

@@ -1,5 +1,5 @@
 use crate::prelude_dev::*;
-use num::{complex::ComplexFloat, Float, Num};
+use num::{complex::ComplexFloat, Num};
 
 // for creation, we use most of the functions from DeviceCpuSerial
 impl<T> DeviceCreationAnyAPI<T> for DeviceFaer
@@ -48,6 +48,17 @@ where
     }
 }
 
+impl<T> DeviceCreationPartialOrdNumAPI<T> for DeviceFaer
+where
+    T: Num + PartialOrd + Clone,
+    Self: DeviceRawVecAPI<T, RawVec = Vec<T>>,
+{
+    fn arange_impl(&self, start: T, end: T, step: T) -> Result<Storage<T, Self>> {
+        let storage = DeviceCpuSerial.arange_impl(start, end, step)?;
+        Ok(Storage::new(storage.into_rawvec(), self.clone()))
+    }
+}
+
 impl<T> DeviceCreationComplexFloatAPI<T> for DeviceFaer
 where
     T: ComplexFloat + Clone + Send + Sync,
@@ -61,17 +72,6 @@ where
         endpoint: bool,
     ) -> Result<Storage<T, Self>> {
         let storage = DeviceCpuSerial.linspace_impl(start, end, n, endpoint)?;
-        Ok(Storage::new(storage.into_rawvec(), self.clone()))
-    }
-}
-
-impl<T> DeviceCreationFloatAPI<T> for DeviceFaer
-where
-    T: Float + Clone + Debug + Send + Sync,
-    Self: DeviceRawVecAPI<T, RawVec = Vec<T>>,
-{
-    fn arange_impl(&self, start: T, end: T, step: T) -> Result<Storage<T, Self>> {
-        let storage = DeviceCpuSerial.arange_impl(start, end, step)?;
         Ok(Storage::new(storage.into_rawvec(), self.clone()))
     }
 }
