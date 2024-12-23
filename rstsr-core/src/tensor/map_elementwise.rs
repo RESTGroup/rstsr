@@ -177,7 +177,7 @@ mod tests {
     fn test_mapv() {
         let device = DeviceCpuSerial;
         let f = |x| x * 2.0;
-        let a = Tensor::asarray_f((vec![1., 2., 3., 4.], Some(&device))).unwrap();
+        let a = Tensor::asarray_f((vec![1., 2., 3., 4.], &device)).unwrap();
         let b = a.mapv(f);
         assert!(allclose_f64(&b, &vec![2., 4., 6., 8.].into()));
         println!("{:?}", b);
@@ -197,7 +197,7 @@ mod tests {
     fn test_mapv_rayon() {
         let device = DeviceFaer::default();
         let f = |&x: &f64| x * 2.0;
-        let a = Tensor::asarray_f((vec![1., 2., 3., 4.], Some(&device))).unwrap();
+        let a = Tensor::asarray_f((vec![1., 2., 3., 4.], &device)).unwrap();
         let b = a.map_tmp(f);
         assert!(allclose_f64(&b, &vec![2., 4., 6., 8.].into()));
         println!("{:?}", b);

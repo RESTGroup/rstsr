@@ -79,15 +79,13 @@ where
     }
 }
 
-impl<T, B> AsArrayAPI<(Vec<T>, Option<&B>)> for Tensor<T, Ix1, B>
+impl<T, B> AsArrayAPI<(Vec<T>, &B)> for Tensor<T, Ix1, B>
 where
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
 {
-    fn asarray_f(param: (Vec<T>, Option<&B>)) -> Result<Self> {
+    fn asarray_f(param: (Vec<T>, &B)) -> Result<Self> {
         let (input, device) = param;
         let layout = [input.len()].c();
-        let device_binding = B::default();
-        let device = device.unwrap_or(&device_binding);
         let storage = device.outof_cpu_vec(input)?;
         let data = DataOwned::from(storage);
         let tensor = unsafe { Tensor::new_unchecked(data, layout) };
@@ -100,19 +98,17 @@ where
     T: Clone,
 {
     fn asarray_f(input: Vec<T>) -> Result<Self> {
-        Self::asarray_f((input, None))
+        Self::asarray_f((input, &DeviceCpu::default()))
     }
 }
 
-impl<T, B, const N: usize> AsArrayAPI<([T; N], Option<&B>)> for Tensor<T, Ix1, B>
+impl<T, B, const N: usize> AsArrayAPI<([T; N], &B)> for Tensor<T, Ix1, B>
 where
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
 {
-    fn asarray_f(param: ([T; N], Option<&B>)) -> Result<Self> {
+    fn asarray_f(param: ([T; N], &B)) -> Result<Self> {
         let (input, device) = param;
         let layout = [input.len()].c();
-        let device_binding = B::default();
-        let device = device.unwrap_or(&device_binding);
         let storage = device.outof_cpu_vec(input.into())?;
         let data = DataOwned::from(storage);
         let tensor = unsafe { Tensor::new_unchecked(data, layout) };
@@ -125,16 +121,16 @@ where
     T: Clone,
 {
     fn asarray_f(input: [T; N]) -> Result<Self> {
-        Self::asarray_f((input, None))
+        Self::asarray_f((input, &DeviceCpu::default()))
     }
 }
 
-impl<T, B> AsArrayAPI<(Vec<Vec<T>>, Option<&B>)> for Tensor<T, Ix2, B>
+impl<T, B> AsArrayAPI<(&[Vec<T>], &B)> for Tensor<T, Ix2, B>
 where
     T: Clone,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
 {
-    fn asarray_f(param: (Vec<Vec<T>>, Option<&B>)) -> Result<Self> {
+    fn asarray_f(param: (&[Vec<T>], &B)) -> Result<Self> {
         let (input, device) = param;
         // zero rows
         if input.is_empty() {
@@ -154,28 +150,27 @@ where
                 )?;
             }
         }
-        let new_vec = input.into_iter().flatten().collect::<Vec<_>>();
+        let new_vec = input.iter().flatten().cloned().collect::<Vec<_>>();
         let tensor = Tensor::<T, Ix1, B>::asarray_f((new_vec, device))?;
         return tensor.into_shape_assume_contig_f([nrow, ncol]);
     }
 }
 
-impl<T> AsArrayAPI<Vec<Vec<T>>> for Tensor<T, Ix2, DeviceCpu>
+impl<T> AsArrayAPI<&[Vec<T>]> for Tensor<T, Ix2, DeviceCpu>
 where
     T: Clone,
 {
-    fn asarray_f(input: Vec<Vec<T>>) -> Result<Self> {
-        Self::asarray_f((input, None))
+    fn asarray_f(input: &[Vec<T>]) -> Result<Self> {
+        Self::asarray_f((input, &DeviceCpu::default()))
     }
 }
 
-impl<T, B, const N: usize, const M: usize> AsArrayAPI<([[T; M]; N], Option<&B>)>
-    for Tensor<T, Ix2, B>
+impl<T, B, const N: usize, const M: usize> AsArrayAPI<([[T; M]; N], &B)> for Tensor<T, Ix2, B>
 where
     T: Clone,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
 {
-    fn asarray_f(param: ([[T; M]; N], Option<&B>)) -> Result<Self> {
+    fn asarray_f(param: ([[T; M]; N], &B)) -> Result<Self> {
         let (input, device) = param;
         let new_vec = input.iter().flatten().cloned().collect::<Vec<_>>();
         let tensor = Tensor::<T, Ix1, B>::asarray_f((new_vec, device))?;
@@ -188,7 +183,7 @@ where
     T: Clone,
 {
     fn asarray_f(input: [[T; M]; N]) -> Result<Self> {
-        Self::asarray_f((input, None))
+        Self::asarray_f((input, &DeviceCpu::default()))
     }
 }
 
