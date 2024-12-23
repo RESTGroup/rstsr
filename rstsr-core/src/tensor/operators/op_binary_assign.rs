@@ -174,7 +174,7 @@ mod test {
         // broadcast
         // [2, 3] + [3]
         let c = Tensor::linspace_cpu(1.0, 6.0, 6);
-        let mut c = c.into_shape_assume_contig::<Ix2>([2, 3]).unwrap();
+        let mut c = c.into_shape_assume_contig_f::<Ix2>([2, 3]).unwrap();
         let b = Tensor::linspace_cpu(2.0, 6.0, 3);
         // let mut c_mut = c.view_mut();
         // c_mut += &b;
@@ -201,7 +201,7 @@ mod test {
         // broadcast
         // [2, 3] + [3]
         let c = Tensor::linspace_cpu(1.0, 6.0, 6);
-        let mut c = c.into_shape_assume_contig::<Ix2>([2, 3]).unwrap();
+        let mut c = c.into_shape_assume_contig_f::<Ix2>([2, 3]).unwrap();
         let b = Tensor::linspace_cpu(2.0, 6.0, 3);
         // let mut c_mut = c.view_mut();
         // c_mut += &b;

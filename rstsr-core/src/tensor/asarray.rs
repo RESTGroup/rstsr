@@ -139,7 +139,7 @@ where
         // zero rows
         if input.is_empty() {
             return Tensor::<T, Ix1, B>::asarray_f((vec![], device))?
-                .into_shape_assume_contig([0, 0]);
+                .into_shape_assume_contig_f([0, 0]);
         }
         // check columns
         let nrow = input.len();
@@ -156,7 +156,7 @@ where
         }
         let new_vec = input.into_iter().flatten().collect::<Vec<_>>();
         let tensor = Tensor::<T, Ix1, B>::asarray_f((new_vec, device))?;
-        return tensor.into_shape_assume_contig([nrow, ncol]);
+        return tensor.into_shape_assume_contig_f([nrow, ncol]);
     }
 }
 
@@ -179,7 +179,7 @@ where
         let (input, device) = param;
         let new_vec = input.iter().flatten().cloned().collect::<Vec<_>>();
         let tensor = Tensor::<T, Ix1, B>::asarray_f((new_vec, device))?;
-        return tensor.into_shape_assume_contig([N, M]);
+        return tensor.into_shape_assume_contig_f([N, M]);
     }
 }
 

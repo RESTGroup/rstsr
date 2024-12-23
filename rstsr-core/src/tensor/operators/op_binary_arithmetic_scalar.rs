@@ -27,7 +27,7 @@ macro_rules! impl_arithmetic_scalar_lhs {
                 let mut storage_c = unsafe { device.empty_impl(lc.bounds_index()?.1)? };
                 let storage_b = b.storage();
                 device.op_mutc_numa_refb(&mut storage_c, &lc, a, storage_b, lb)?;
-                Tensor::new(DataOwned::from(storage_c), lc)
+                Tensor::new_f(DataOwned::from(storage_c), lc)
             }
         }
 
@@ -61,7 +61,7 @@ macro_rules! impl_arithmetic_scalar_lhs {
                 let mut storage_c = unsafe { device.empty_impl(lc.bounds_index()?.1)? };
                 let storage_b = b.storage();
                 device.op_mutc_numa_refb(&mut storage_c, &lc, a, storage_b, lb)?;
-                Tensor::new(DataOwned::from(storage_c), lc)
+                Tensor::new_f(DataOwned::from(storage_c), lc)
             }
         }
 
@@ -196,7 +196,7 @@ macro_rules! impl_arithmetic_scalar_rhs {
                 let mut storage_c = unsafe { device.empty_impl(lc.bounds_index()?.1)? };
                 let storage_a = a.storage();
                 device.op_mutc_refa_numb(&mut storage_c, &lc, storage_a, la, b)?;
-                Tensor::new(DataOwned::from(storage_c), lc)
+                Tensor::new_f(DataOwned::from(storage_c), lc)
             }
         }
 
@@ -218,7 +218,7 @@ macro_rules! impl_arithmetic_scalar_rhs {
                 let mut storage_c = unsafe { device.empty_impl(lc.bounds_index()?.1)? };
                 let storage_a = a.storage();
                 device.op_mutc_refa_numb(&mut storage_c, &lc, storage_a, la, b)?;
-                Tensor::new(DataOwned::from(storage_c), lc)
+                Tensor::new_f(DataOwned::from(storage_c), lc)
             }
         }
 

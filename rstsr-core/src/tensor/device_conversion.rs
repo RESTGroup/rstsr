@@ -20,7 +20,7 @@ where
     fn into_device(self, device: &B2) -> Result<Tensor<T, D, B2>> {
         let layout = self.layout().clone();
         let storage = self.into_data().into_storage().into_device(device)?;
-        Tensor::new(DataOwned::from(storage), layout)
+        Tensor::new_f(DataOwned::from(storage), layout)
     }
 }
 

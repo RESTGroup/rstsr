@@ -78,7 +78,7 @@ macro_rules! impl_unary {
                 let mut storage_a = unsafe { device.empty_impl(la.bounds_index()?.1)? };
                 // compute and return
                 device.op_muta_refb(&mut storage_a, &la, storage_b, lb)?;
-                return Tensor::new(DataOwned::from(storage_a), la);
+                return Tensor::new_f(DataOwned::from(storage_a), la);
             }
         }
 

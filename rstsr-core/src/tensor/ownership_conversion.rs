@@ -40,6 +40,23 @@ where
     }
 }
 
+impl<R, T, D, B> TensorBase<R, D>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    R::Data: Clone,
+    D: DimAPI,
+    T: Clone,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
+{
+    pub fn into_owned(self) -> TensorBase<DataOwned<R::Data>, D> {
+        if self.layout().c_contig() || self.layout().f_contig() {
+            return self.into_owned_keep_layout();
+        } else {
+            return asarray((&self, TensorIterOrder::K));
+        }
+    }
+}
+
 /* #region DataCow */
 
 impl<S, D> From<TensorBase<DataOwned<S>, D>> for TensorBase<DataCow<'_, S>, D>

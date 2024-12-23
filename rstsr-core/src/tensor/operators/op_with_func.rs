@@ -85,7 +85,7 @@ where
     let storage_b = b.data().storage();
     device.op_mutc_refa_refb_func(&mut storage_c, &lc, storage_a, &la_b, storage_b, &lb_b, f)?;
     // return tensor
-    Tensor::new(DataOwned::from(storage_c), lc)
+    Tensor::new_f(DataOwned::from(storage_c), lc)
 }
 
 pub fn op_muta_refb_func<RA, RB, DA, DB, TA, TB, B, F>(

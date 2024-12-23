@@ -74,7 +74,7 @@ where
     B: DeviceAPI<T>,
     R: DataAPI<Data = Storage<T, B>>,
 {
-    pub fn new(data: R, layout: Layout<D>) -> Result<Self> {
+    pub fn new_f(data: R, layout: Layout<D>) -> Result<Self> {
         // check stride sanity
         layout.check_strides()?;
 
@@ -83,6 +83,10 @@ where
         let (_, idx_max) = layout.bounds_index()?;
         rstsr_pattern!(idx_max, len_data.., ValueOutOfRange)?;
         return Ok(Self { data, layout });
+    }
+
+    pub fn new(data: R, layout: Layout<D>) -> Self {
+        Self::new_f(data, layout).unwrap()
     }
 
     pub fn device<'a>(&'a self) -> &'a B

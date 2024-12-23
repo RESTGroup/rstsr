@@ -88,7 +88,7 @@ macro_rules! impl_binary_arithmetic_ref {
                     &lb_b,
                 )?;
                 // return tensor
-                Tensor::new(DataOwned::from(storage_c), lc)
+                Tensor::new_f(DataOwned::from(storage_c), lc)
             }
         }
 
@@ -460,7 +460,8 @@ mod test {
 
         // broadcast
         // [2, 3] + [3]
-        let a = Tensor::linspace_cpu(1.0, 6.0, 6).into_shape_assume_contig::<Ix2>([2, 3]).unwrap();
+        let a =
+            Tensor::linspace_cpu(1.0, 6.0, 6).into_shape_assume_contig_f::<Ix2>([2, 3]).unwrap();
         let b = Tensor::linspace_cpu(2.0, 6.0, 3);
         let c = &a + &b;
         let c_ref = vec![3., 6., 9., 6., 9., 12.].into();
@@ -471,9 +472,9 @@ mod test {
         // a = np.linspace(1, 6, 6).reshape(1, 2, 3)
         // b = np.linspace(1, 10, 10).reshape(5, 1, 2, 1)
         let a = Tensor::linspace_cpu(1.0, 6.0, 6);
-        let a = a.into_shape_assume_contig::<Ix3>([1, 2, 3]).unwrap();
+        let a = a.into_shape_assume_contig_f::<Ix3>([1, 2, 3]).unwrap();
         let b = Tensor::linspace_cpu(1.0, 10.0, 10);
-        let b = b.into_shape_assume_contig::<Ix4>([5, 1, 2, 1]).unwrap();
+        let b = b.into_shape_assume_contig_f::<Ix4>([5, 1, 2, 1]).unwrap();
         let c = &a + &b;
         let c_ref = vec![
             2., 3., 4., 6., 7., 8., 4., 5., 6., 8., 9., 10., 6., 7., 8., 10., 11., 12., 8., 9.,
@@ -484,9 +485,9 @@ mod test {
 
         // transposed
         let a = Tensor::linspace_cpu(1.0, 9.0, 9);
-        let a = a.into_shape_assume_contig::<Ix2>([3, 3]).unwrap();
+        let a = a.into_shape_assume_contig_f::<Ix2>([3, 3]).unwrap();
         let b = Tensor::linspace_cpu(2.0, 18.0, 9);
-        let b = b.into_shape_assume_contig::<Ix2>([3, 3]).unwrap().into_reverse_axes();
+        let b = b.into_shape_assume_contig_f::<Ix2>([3, 3]).unwrap().into_reverse_axes();
         let c = &a + &b;
         let c_ref = vec![3., 10., 17., 8., 15., 22., 13., 20., 27.].into();
         assert!(allclose_f64(&c, &c_ref));
@@ -552,7 +553,7 @@ mod test {
         assert!(allclose_f64(&c, &c_ref));
         assert_eq!(a_ptr, c_ptr);
         // a + &b, broadcastable
-        let a = Tensor::linspace_cpu(1.0, 10.0, 10).into_shape_assume_contig([2, 5]).unwrap();
+        let a = Tensor::linspace_cpu(1.0, 10.0, 10).into_shape_assume_contig_f([2, 5]).unwrap();
         let b = Tensor::linspace_cpu(2.0, 10.0, 5);
         let a_ptr = a.data().storage().rawvec().as_ptr();
         let c = a + &b;
@@ -562,7 +563,7 @@ mod test {
         assert_eq!(a_ptr, c_ptr);
         // a + &b, non-broadcastable
         let a = Tensor::linspace_cpu(2.0, 10.0, 5);
-        let b = Tensor::linspace_cpu(1.0, 10.0, 10).into_shape_assume_contig([2, 5]).unwrap();
+        let b = Tensor::linspace_cpu(1.0, 10.0, 10).into_shape_assume_contig_f([2, 5]).unwrap();
         let a_ptr = a.data().storage().rawvec().as_ptr();
         let c = a + &b;
         let c_ptr = c.data().storage().rawvec().as_ptr();
@@ -579,7 +580,7 @@ mod test {
         assert!(allclose_f64(&c, &c_ref));
         assert_eq!(b_ptr, c_ptr);
         // &a + b, non-broadcastable
-        let a = Tensor::linspace_cpu(1.0, 10.0, 10).into_shape_assume_contig([2, 5]).unwrap();
+        let a = Tensor::linspace_cpu(1.0, 10.0, 10).into_shape_assume_contig_f([2, 5]).unwrap();
         let b = Tensor::linspace_cpu(2.0, 10.0, 5);
         let b_ptr = b.data().storage().rawvec().as_ptr();
         let c = &a + b;

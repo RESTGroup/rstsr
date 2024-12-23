@@ -71,13 +71,13 @@ mod test {
         let device_serial = DeviceCpuSerial;
         let device_faer = DeviceFaer::default();
         let a1 = Tensor::linspace(1., 1024. * 1024., 1024 * 1024, &device_serial);
-        let a1 = a1.into_shape_assume_contig([1024, 1024]).unwrap();
+        let a1 = a1.into_shape_assume_contig_f([1024, 1024]).unwrap();
         let b1 = Tensor::linspace(1., 1024. * 1024., 1024 * 1024, &device_serial);
-        let b1 = b1.into_shape_assume_contig([1024, 1024]).unwrap().into_reverse_axes();
+        let b1 = b1.into_shape_assume_contig_f([1024, 1024]).unwrap().into_reverse_axes();
         let a2 = Tensor::linspace(1., 1024. * 1024., 1024 * 1024, &device_faer);
-        let a2 = a2.into_shape_assume_contig([1024, 1024]).unwrap();
+        let a2 = a2.into_shape_assume_contig_f([1024, 1024]).unwrap();
         let b2 = Tensor::linspace(1., 1024. * 1024., 1024 * 1024, &device_faer);
-        let b2 = b2.into_shape_assume_contig([1024, 1024]).unwrap().into_reverse_axes();
+        let b2 = b2.into_shape_assume_contig_f([1024, 1024]).unwrap().into_reverse_axes();
 
         let c1 = &a1 + &b1;
         let c2 = &a2 + &b2;

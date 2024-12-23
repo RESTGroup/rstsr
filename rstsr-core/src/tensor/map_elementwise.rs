@@ -20,7 +20,7 @@ where
         let storage_a = self.data().storage();
         let mut f_inner = move |c: &mut TOut, a: &T| *c = f(a);
         device.op_muta_refb_func(&mut storage_c, &lc, storage_a, la, &mut f_inner).unwrap();
-        return Tensor::new(DataOwned::from(storage_c), lc).unwrap();
+        return Tensor::new_f(DataOwned::from(storage_c), lc).unwrap();
     }
 
     /// Call `f` by value on each element and create a new array with the new
@@ -51,7 +51,7 @@ where
         let storage_a = self.data().storage();
         let mut f_inner = move |c: &mut TOut, a: &T| *c = f(a);
         device.op_muta_refb_func(&mut storage_c, &lc, storage_a, la, &mut f_inner).unwrap();
-        return Tensor::new(DataOwned::from(storage_c), lc).unwrap();
+        return Tensor::new_f(DataOwned::from(storage_c), lc).unwrap();
     }
 
     /// Modify the array in place by calling `f` by mutable reference on each
@@ -126,7 +126,7 @@ where
                 &mut f_inner,
             )
             .unwrap();
-        return Tensor::new(DataOwned::from(storage_c), lc).unwrap();
+        return Tensor::new_f(DataOwned::from(storage_c), lc).unwrap();
     }
 
     pub fn mapv_binary<'f, R2, T2, D2, DOut, TOut>(
@@ -187,7 +187,7 @@ mod tests {
     fn test_mapv_binary() {
         let device = DeviceCpuSerial;
         let f = |x, y| 2.0 * x + 3.0 * y;
-        let a = Tensor::linspace(1., 6., 6, &device).into_shape_assume_contig([2, 3]).unwrap();
+        let a = Tensor::linspace(1., 6., 6, &device).into_shape_assume_contig_f([2, 3]).unwrap();
         let b = Tensor::linspace(1., 3., 3, &device);
         let c = a.mapv_binary(&b, f);
         assert!(allclose_f64(&c, &vec![5., 10., 15., 11., 16., 21.].into()));
