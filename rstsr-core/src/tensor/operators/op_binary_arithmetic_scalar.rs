@@ -268,21 +268,21 @@ mod tests {
     #[test]
     fn test_add() {
         // b - &a
-        let a = Tensor::linspace_cpu(1.0, 5.0, 5);
+        let a = Tensor::linspace((1.0, 5.0, 5));
         let b = 1;
         let c = b - &a;
         let c_ref = vec![0., -1., -2., -3., -4.].into();
         assert!(allclose_f64(&c, &c_ref));
 
         // &a - b
-        let a = Tensor::linspace_cpu(1.0, 5.0, 5);
+        let a = Tensor::linspace((1.0, 5.0, 5));
         let b = 1;
         let c = &a - b;
         let c_ref = vec![0., 1., 2., 3., 4.].into();
         assert!(allclose_f64(&c, &c_ref));
 
         // b * a
-        let a = Tensor::linspace_cpu(1.0, 5.0, 5);
+        let a = Tensor::linspace((1.0, 5.0, 5));
         let a_ptr = a.data().storage().rawvec().as_ptr();
         let b = 2;
         let c: Tensor<_, _> = -b * a;

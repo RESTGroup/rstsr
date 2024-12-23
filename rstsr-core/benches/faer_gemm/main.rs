@@ -6,8 +6,8 @@ pub fn bench_faer_gemm(crit: &mut Criterion) {
     let n = 4096;
     let k = 4096;
     let device = DeviceFaer::default();
-    let a = Tensor::linspace(0.0, 1.0, m * k, &device).into_shape_assume_contig_f([m, k]).unwrap();
-    let b = Tensor::linspace(0.0, 1.0, k * n, &device).into_shape_assume_contig_f([k, n]).unwrap();
+    let a = Tensor::linspace((0.0, 1.0, m * k, &device)).into_shape_assume_contig([m, k]);
+    let b = Tensor::linspace((0.0, 1.0, k * n, &device)).into_shape_assume_contig([k, n]);
     crit.bench_function("gemm 4096", |ben| ben.iter(|| &a % &b));
     crit.bench_function("syrk 4096", |ben| ben.iter(|| &a % &a.reverse_axes()));
 }

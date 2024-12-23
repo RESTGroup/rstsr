@@ -128,7 +128,7 @@ mod test {
 
     #[test]
     fn test_neg() {
-        let a = Tensor::linspace_cpu(1.0, 5.0, 5);
+        let a = Tensor::linspace((1.0, 5.0, 5));
         let b = -&a;
         let b_ref = vec![-1., -2., -3., -4., -5.].into();
         assert!(allclose_f64(&b, &b_ref));

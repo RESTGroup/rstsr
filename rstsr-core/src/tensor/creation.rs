@@ -77,9 +77,7 @@ where
         // (start, stop, device) -> (start, stop, 1, device)
         let (start, stop, device) = param;
         let step = T::one();
-        let data = device.arange_impl(start, stop, step)?;
-        let layout = [data.len()].into();
-        unsafe { Ok(Tensor::new_unchecked(data.into(), layout)) }
+        arange_f((start, stop, step, device))
     }
 }
 
@@ -93,9 +91,7 @@ where
         let (stop, device) = param;
         let start = T::zero();
         let step = T::one();
-        let data = device.arange_impl(start, stop, step)?;
-        let layout = [data.len()].into();
-        unsafe { Ok(Tensor::new_unchecked(data.into(), layout)) }
+        arange_f((start, stop, step, device))
     }
 }
 
@@ -403,6 +399,14 @@ where
 
 /* #region linspace */
 
+pub trait LinspaceAPI<Param>: Sized {
+    fn linspace_f(param: Param) -> Result<Self>;
+
+    fn linspace(param: Param) -> Self {
+        Self::linspace_f(param).unwrap()
+    }
+}
+
 /// Evenly spaced numbers over a specified interval.
 ///
 /// For boundary condition, current implementation is similar to numpy,
@@ -412,43 +416,64 @@ where
 /// # See also
 ///
 /// - [Python array API standard: `linspace`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.linspace.html)
-pub fn linspace<T, B>(start: T, end: T, n: usize, endpoint: bool, device: &B) -> Tensor<T, Ix1, B>
+pub fn linspace<Rhs, Param>(param: Param) -> Rhs
 where
-    T: ComplexFloat,
-    B: DeviceAPI<T> + DeviceCreationComplexFloatAPI<T>,
+    Rhs: LinspaceAPI<Param>,
 {
-    let data = B::linspace_impl(device, start, end, n, endpoint).unwrap();
-    let layout = [data.len()].into();
-    unsafe { Tensor::new_unchecked(data.into(), layout) }
+    return Rhs::linspace(param);
 }
 
-impl<T, B> Tensor<T, Ix1, B>
+pub fn linspace_f<Rhs, Param>(param: Param) -> Result<Rhs>
+where
+    Rhs: LinspaceAPI<Param>,
+{
+    return Rhs::linspace_f(param);
+}
+
+impl<T, B> LinspaceAPI<(T, T, usize, bool, &B)> for Tensor<T, Ix1, B>
 where
     T: ComplexFloat,
     B: DeviceAPI<T> + DeviceCreationComplexFloatAPI<T>,
 {
-    /// Evenly spaced numbers over a specified interval.
-    ///
-    /// # See also
-    ///
-    /// [`linspace`]
-    pub fn linspace(start: T, end: T, n: usize, device: &B) -> Tensor<T, Ix1, B> {
-        linspace(start, end, n, true, device)
+    fn linspace_f(param: (T, T, usize, bool, &B)) -> Result<Self> {
+        let (start, end, n, endpoint, device) = param;
+        let data = B::linspace_impl(device, start, end, n, endpoint)?;
+        let layout = [data.len()].into();
+        unsafe { Ok(Tensor::new_unchecked(data.into(), layout)) }
     }
 }
 
-impl<T> Tensor<T, Ix1, DeviceCpu>
+impl<T, B> LinspaceAPI<(T, T, usize, &B)> for Tensor<T, Ix1, B>
 where
     T: ComplexFloat,
-    DeviceCpu: DeviceAPI<T> + DeviceCreationComplexFloatAPI<T>,
+    B: DeviceAPI<T> + DeviceCreationComplexFloatAPI<T>,
 {
-    /// Evenly spaced numbers over a specified interval.
-    ///
-    /// # See also
-    ///
-    /// [`linspace`]
-    pub fn linspace_cpu(start: T, end: T, n: usize) -> Tensor<T, Ix1, DeviceCpu> {
-        linspace(start, end, n, true, &DeviceCpu::default())
+    fn linspace_f(param: (T, T, usize, &B)) -> Result<Self> {
+        // (start, end, n, device) -> (start, end, n, true, device)
+        let (start, end, n, device) = param;
+        linspace_f((start, end, n, true, device))
+    }
+}
+
+impl<T> LinspaceAPI<(T, T, usize, bool)> for Tensor<T, Ix1, DeviceCpu>
+where
+    T: ComplexFloat + Send + Sync,
+{
+    fn linspace_f(param: (T, T, usize, bool)) -> Result<Self> {
+        // (start, end, n, endpoint) -> (start, end, n, endpoint, device)
+        let (start, end, n, endpoint) = param;
+        linspace_f((start, end, n, endpoint, &DeviceCpu::default()))
+    }
+}
+
+impl<T> LinspaceAPI<(T, T, usize)> for Tensor<T, Ix1, DeviceCpu>
+where
+    T: ComplexFloat + Send + Sync,
+{
+    fn linspace_f(param: (T, T, usize)) -> Result<Self> {
+        // (start, end, n) -> (start, end, n, true, device)
+        let (start, end, n) = param;
+        linspace_f((start, end, n, true, &DeviceCpu::default()))
     }
 }
 
@@ -671,9 +696,9 @@ mod test {
         println!("{a:6.3?}");
         let a = a.full_like(2.71);
         println!("{a:6.3?}");
-        let a = Tensor::linspace_cpu(3.2, 4.7, 12);
+        let a = Tensor::linspace((3.2, 4.7, 12));
         println!("{a:6.3?}");
-        let a = Tensor::linspace_cpu(Complex32::new(1.8, 7.5), Complex32::new(-8.9, 1.6), 12);
+        let a = Tensor::linspace((Complex32::new(1.8, 7.5), Complex32::new(-8.9, 1.6), 12));
         println!("{a:6.3?}");
         let a = Tensor::<f64, _>::ones_cpu([2, 2]);
         println!("{a:6.3?}");

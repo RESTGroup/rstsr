@@ -162,8 +162,8 @@ mod test {
     #[allow(clippy::deref_addrof)]
     fn test_add_assign() {
         // contiguous
-        let mut c = Tensor::linspace_cpu(1.0, 5.0, 5);
-        let b = Tensor::linspace_cpu(2.0, 10.0, 5);
+        let mut c = Tensor::linspace((1.0, 5.0, 5));
+        let b = Tensor::linspace((2.0, 10.0, 5));
         c += &b;
         let c_ref = vec![3., 6., 9., 12., 15.].into();
         assert!(allclose_f64(&c, &c_ref));
@@ -173,9 +173,9 @@ mod test {
 
         // broadcast
         // [2, 3] + [3]
-        let c = Tensor::linspace_cpu(1.0, 6.0, 6);
-        let mut c = c.into_shape_assume_contig_f::<Ix2>([2, 3]).unwrap();
-        let b = Tensor::linspace_cpu(2.0, 6.0, 3);
+        let c = Tensor::linspace((1.0, 6.0, 6));
+        let mut c = c.into_shape_assume_contig([2, 3]);
+        let b = Tensor::linspace((2.0, 6.0, 3));
         // let mut c_mut = c.view_mut();
         // c_mut += &b;
         *&mut c.view_mut() += &b;
@@ -192,17 +192,17 @@ mod test {
     #[allow(clippy::deref_addrof)]
     fn test_sub_assign() {
         // contiguous
-        let mut c = Tensor::linspace_cpu(1.0, 5.0, 5);
-        let b = Tensor::linspace_cpu(2.0, 10.0, 5);
+        let mut c = Tensor::linspace((1.0, 5.0, 5));
+        let b = Tensor::linspace((2.0, 10.0, 5));
         c -= &b;
         let c_ref = vec![-1., -2., -3., -4., -5.].into();
         assert!(allclose_f64(&c, &c_ref));
 
         // broadcast
         // [2, 3] + [3]
-        let c = Tensor::linspace_cpu(1.0, 6.0, 6);
-        let mut c = c.into_shape_assume_contig_f::<Ix2>([2, 3]).unwrap();
-        let b = Tensor::linspace_cpu(2.0, 6.0, 3);
+        let c = Tensor::linspace((1.0, 6.0, 6));
+        let mut c = c.into_shape_assume_contig([2, 3]);
+        let b = Tensor::linspace((2.0, 6.0, 3));
         // let mut c_mut = c.view_mut();
         // c_mut += &b;
         *&mut c.view_mut() -= &b;

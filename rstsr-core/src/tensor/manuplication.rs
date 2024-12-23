@@ -902,7 +902,7 @@ mod tests {
 
     #[test]
     fn test_to_shape_assume_contig() {
-        let a = Tensor::linspace_cpu(2.5, 3.2, 16);
+        let a = Tensor::linspace((2.5, 3.2, 16));
         let b = a.to_shape_assume_contig_f([4, 4]).unwrap();
         println!("{:.3?}", b);
     }
@@ -936,7 +936,7 @@ mod tests {
 
     #[test]
     fn test_to_shape() {
-        let a = Tensor::<f64, _>::linspace_cpu(0.0, 15.0, 16);
+        let a = Tensor::<f64, _>::linspace((0.0, 15.0, 16));
         let mut a = a.to_shape([4, 4]);
         a.layout = Layout::new([2, 2], [2, 4], 0);
         println!("{:?}", a);
@@ -946,7 +946,7 @@ mod tests {
 
     #[test]
     fn test_broadcast_to() {
-        let a = Tensor::linspace_cpu(0.0, 15.0, 16);
+        let a = Tensor::linspace((0.0, 15.0, 16));
         let a = a.into_shape_assume_contig_f([4, 1, 4]).unwrap();
         let a = a.broadcast_to_f(&[6, 4, 3, 4]).unwrap();
         assert_eq!(a.layout(), unsafe { &Layout::new_unchecked([6, 4, 3, 4], [0, 4, 0, 1], 0) });

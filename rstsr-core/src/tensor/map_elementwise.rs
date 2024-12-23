@@ -177,7 +177,7 @@ mod tests {
     fn test_mapv() {
         let device = DeviceCpuSerial;
         let f = |x| x * 2.0;
-        let a = Tensor::asarray_f((vec![1., 2., 3., 4.], &device)).unwrap();
+        let a = Tensor::asarray((vec![1., 2., 3., 4.], &device));
         let b = a.mapv(f);
         assert!(allclose_f64(&b, &vec![2., 4., 6., 8.].into()));
         println!("{:?}", b);
@@ -187,8 +187,8 @@ mod tests {
     fn test_mapv_binary() {
         let device = DeviceCpuSerial;
         let f = |x, y| 2.0 * x + 3.0 * y;
-        let a = Tensor::linspace(1., 6., 6, &device).into_shape_assume_contig_f([2, 3]).unwrap();
-        let b = Tensor::linspace(1., 3., 3, &device);
+        let a = Tensor::linspace((1., 6., 6, &device)).into_shape_assume_contig([2, 3]);
+        let b = Tensor::linspace((1., 3., 3, &device));
         let c = a.mapv_binary(&b, f);
         assert!(allclose_f64(&c, &vec![5., 10., 15., 11., 16., 21.].into()));
     }
@@ -197,7 +197,7 @@ mod tests {
     fn test_mapv_rayon() {
         let device = DeviceFaer::default();
         let f = |&x: &f64| x * 2.0;
-        let a = Tensor::asarray_f((vec![1., 2., 3., 4.], &device)).unwrap();
+        let a = Tensor::asarray((vec![1., 2., 3., 4.], &device));
         let b = a.map_tmp(f);
         assert!(allclose_f64(&b, &vec![2., 4., 6., 8.].into()));
         println!("{:?}", b);

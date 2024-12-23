@@ -83,7 +83,7 @@ mod test {
     #[test]
     fn test_linspace() {
         let device = DeviceFaer::default();
-        let a = Tensor::linspace(1.0, 5.0, 5, &device);
+        let a = Tensor::linspace((1.0, 5.0, 5, &device));
         assert_eq!(a.data().storage().rawvec(), &vec![1., 2., 3., 4., 5.]);
     }
 }

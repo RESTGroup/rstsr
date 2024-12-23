@@ -99,8 +99,8 @@ mod test {
 
     #[test]
     fn test_matmul() {
-        let a = Tensor::linspace_cpu(0.0, 14.0, 15).into_shape_assume_contig_f([3, 5]).unwrap();
-        let b = Tensor::linspace_cpu(0.0, 14.0, 15).into_shape_assume_contig_f([5, 3]).unwrap();
+        let a = Tensor::linspace((0.0, 14.0, 15)).into_shape_assume_contig([3, 5]);
+        let b = Tensor::linspace((0.0, 14.0, 15)).into_shape_assume_contig([5, 3]);
         let mut c = Tensor::<f64, Ix2>::zeros_cpu([3, 3]);
 
         op_mutc_refa_refb_matmul(&mut c, &a, &b, 1.0, 0.0).unwrap();
@@ -109,24 +109,24 @@ mod test {
         let d = &a % &b;
         println!("{d}");
 
-        let a = Tensor::linspace_cpu(0.0, 14.0, 15);
-        let b = Tensor::linspace_cpu(0.0, 14.0, 15);
+        let a = Tensor::linspace((0.0, 14.0, 15));
+        let b = Tensor::linspace((0.0, 14.0, 15));
         println!("{:}", &a % &b);
 
-        let a = Tensor::linspace_cpu(0.0, 2.0, 3);
-        let b = Tensor::linspace_cpu(0.0, 29.0, 30).into_shape_assume_contig_f([2, 3, 5]).unwrap();
+        let a = Tensor::linspace((0.0, 2.0, 3));
+        let b = Tensor::linspace((0.0, 29.0, 30)).into_shape_assume_contig([2, 3, 5]);
         println!("{:}", &a % &b);
 
-        let a = Tensor::linspace_cpu(0.0, 29.0, 30).into_shape_assume_contig_f([2, 3, 5]).unwrap();
-        let b = Tensor::linspace_cpu(0.0, 4.0, 5);
+        let a = Tensor::linspace((0.0, 29.0, 30)).into_shape_assume_contig([2, 3, 5]);
+        let b = Tensor::linspace((0.0, 4.0, 5));
         println!("{:}", &a % &b);
 
-        let a = Tensor::linspace_cpu(0.0, 14.0, 15).into_shape_assume_contig_f([5, 3]).unwrap();
-        let b = Tensor::linspace_cpu(0.0, 29.0, 30).into_shape_assume_contig_f([2, 3, 5]).unwrap();
+        let a = Tensor::linspace((0.0, 14.0, 15)).into_shape_assume_contig([5, 3]);
+        let b = Tensor::linspace((0.0, 29.0, 30)).into_shape_assume_contig([2, 3, 5]);
         println!("{:}", &a % &b);
 
-        let a = Tensor::linspace_cpu(0.0, 29.0, 30).into_shape_assume_contig_f([2, 3, 5]).unwrap();
-        let b = Tensor::linspace_cpu(0.0, 14.0, 15).into_shape_assume_contig_f([5, 3]).unwrap();
+        let a = Tensor::linspace((0.0, 29.0, 30)).into_shape_assume_contig([2, 3, 5]);
+        let b = Tensor::linspace((0.0, 14.0, 15)).into_shape_assume_contig([5, 3]);
         println!("{:}", &a % &b);
     }
 }
