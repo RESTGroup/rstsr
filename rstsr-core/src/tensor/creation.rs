@@ -241,28 +241,6 @@ where
     return Rhs::empty_like_f(param);
 }
 
-impl<R, T, D, B> TensorBase<R, D>
-where
-    R: DataAPI<Data = Storage<T, B>>,
-    D: DimAPI,
-    T: Clone,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
-{
-    /// # Safety
-    ///
-    /// This function is unsafe because it creates a tensor with uninitialized.
-    pub unsafe fn empty_like(&self) -> Tensor<T, D, B> {
-        empty_like((self, TensorIterOrder::default(), self.device()))
-    }
-
-    /// # Safety
-    ///
-    /// This function is unsafe because it creates a tensor with uninitialized.
-    pub unsafe fn empty_like_f(&self) -> Result<Tensor<T, D, B>> {
-        empty_like_f((self, TensorIterOrder::default(), self.device()))
-    }
-}
-
 impl<R, T, D, B> EmptyLikeAPI<(&TensorBase<R, D>, TensorIterOrder, &B)> for Tensor<T, D, B>
 where
     R: DataAPI<Data = Storage<T, B>>,
@@ -1013,9 +991,7 @@ mod test {
         println!("{a:6.3?}");
         let a = unsafe { Tensor::<f64, _>::empty([15, 18].f()) };
         println!("{a:6.3?}");
-        let a = unsafe { a.empty_like() };
-        println!("{a:6.3?}");
-        let a = unsafe { Tensor::empty_like(&a) };
+        let a = unsafe { Tensor::empty_like((&a, TensorIterOrder::C)) };
         println!("{a:6.3?}");
         let a = Tensor::<f64, _>::eye(3);
         println!("{a:6.3?}");

@@ -187,13 +187,15 @@ where
     }
 }
 
-impl<'a, T> AsArrayAPI<&'a [T]> for TensorView<'a, T, Ix1, DeviceCpu>
+impl<'a, T, B> AsArrayAPI<(&'a [T], &B)> for TensorView<'a, T, Ix1, B>
 where
     T: Clone,
+    B: DeviceAPI<T, RawVec = Vec<T>>,
 {
-    fn asarray_f(input: &'a [T]) -> Result<Self> {
+    fn asarray_f(input: (&'a [T], &B)) -> Result<Self> {
+        let (input, device) = input;
         let layout = [input.len()].c();
-        let device = DeviceCpu::default();
+        let device = device.clone();
 
         let ptr = input.as_ptr();
         let len = input.len();
@@ -205,6 +207,24 @@ where
         let data = DataRef::from_manually_drop(storage);
         let tensor = unsafe { TensorView::new_unchecked(data, layout) };
         return Ok(tensor);
+    }
+}
+
+impl<'a, T> AsArrayAPI<&'a [T]> for TensorView<'a, T, Ix1, DeviceCpu>
+where
+    T: Clone,
+{
+    fn asarray_f(input: &'a [T]) -> Result<Self> {
+        Self::asarray_f((input, &DeviceCpu::default()))
+    }
+}
+
+impl<'a, T> AsArrayAPI<&'a Vec<T>> for TensorView<'a, T, Ix1, DeviceCpu>
+where
+    T: Clone,
+{
+    fn asarray_f(input: &'a Vec<T>) -> Result<Self> {
+        Self::asarray_f((input.as_ref(), &DeviceCpu::default()))
     }
 }
 

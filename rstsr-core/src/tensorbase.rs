@@ -101,6 +101,18 @@ where
     }
 }
 
+impl<T, D, B, R> TensorBase<R, D>
+where
+    D: DimAPI,
+    B: DeviceAPI<T>,
+    R: DataMutAPI<Data = Storage<T, B>>,
+{
+    #[inline]
+    pub fn storage_mut(&mut self) -> &mut Storage<T, B> {
+        self.data_mut().storage_mut()
+    }
+}
+
 pub type Tensor<T, D, B = DeviceCpu> = TensorBase<DataOwned<Storage<T, B>>, D>;
 pub type TensorView<'a, T, D, B = DeviceCpu> = TensorBase<DataRef<'a, Storage<T, B>>, D>;
 pub type TensorViewMut<'a, T, D, B = DeviceCpu> = TensorBase<DataRefMut<'a, Storage<T, B>>, D>;
