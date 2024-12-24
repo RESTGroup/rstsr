@@ -4,11 +4,13 @@ use core::mem::ManuallyDrop;
 
 use crate::prelude_dev::*;
 
-pub trait AsArrayAPI<Param>: Sized {
-    fn asarray_f(param: Param) -> Result<Self>;
+pub trait AsArrayAPI<Inp>: Sized {
+    type Out;
 
-    fn asarray(param: Param) -> Self {
-        Self::asarray_f(param).unwrap()
+    fn asarray_f(self) -> Result<Self::Out>;
+
+    fn asarray(self) -> Self::Out {
+        Self::asarray_f(self).unwrap()
     }
 }
 
@@ -20,29 +22,33 @@ pub trait AsArrayAPI<Param>: Sized {
 /// # See also
 ///
 /// [Python array API: `asarray`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.asarray.html)
-pub fn asarray<Rhs, Param>(param: Param) -> Rhs
+pub fn asarray<Param, Inp, Rhs>(param: Param) -> Rhs
 where
-    Rhs: AsArrayAPI<Param>,
+    Param: AsArrayAPI<Inp, Out = Rhs>,
 {
-    return Rhs::asarray(param);
+    return AsArrayAPI::asarray(param);
 }
 
-pub fn asarray_f<Rhs, Param>(param: Param) -> Result<Rhs>
+pub fn asarray_f<Param, Inp, Rhs>(param: Param) -> Result<Rhs>
 where
-    Rhs: AsArrayAPI<Param>,
+    Param: AsArrayAPI<Inp, Out = Rhs>,
 {
-    return Rhs::asarray_f(param);
+    return AsArrayAPI::asarray_f(param);
 }
 
-impl<R, T, D, B> AsArrayAPI<(&TensorBase<R, D>, TensorIterOrder)> for Tensor<T, D, B>
+/* #region tensor input */
+
+impl<R, T, D, B> AsArrayAPI<()> for (&TensorBase<R, D>, TensorIterOrder)
 where
     R: DataAPI<Data = Storage<T, B>>,
     T: Clone,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
 {
-    fn asarray_f(param: (&TensorBase<R, D>, TensorIterOrder)) -> Result<Self> {
-        let (input, order) = param;
+    type Out = Tensor<T, D, B>;
+
+    fn asarray_f(self) -> Result<Self::Out> {
+        let (input, order) = self;
         let layout_a = input.layout();
         let storage_a = input.data().storage();
         let device = input.device();
@@ -55,14 +61,30 @@ where
     }
 }
 
-impl<T, D, B> AsArrayAPI<(Tensor<T, D, B>, TensorIterOrder)> for Tensor<T, D, B>
+impl<R, T, D, B> AsArrayAPI<()> for &TensorBase<R, D>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    T: Clone,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
+{
+    type Out = Tensor<T, D, B>;
+
+    fn asarray_f(self) -> Result<Self::Out> {
+        asarray_f((self, TensorIterOrder::default()))
+    }
+}
+
+impl<T, D, B> AsArrayAPI<()> for (Tensor<T, D, B>, TensorIterOrder)
 where
     T: Clone,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
 {
-    fn asarray_f(param: (Tensor<T, D, B>, TensorIterOrder)) -> Result<Self> {
-        let (input, order) = param;
+    type Out = Tensor<T, D, B>;
+
+    fn asarray_f(self) -> Result<Self::Out> {
+        let (input, order) = self;
         let layout_a = input.layout();
         let storage_a = input.data().storage();
         let device = input.device();
@@ -79,12 +101,31 @@ where
     }
 }
 
-impl<T, B> AsArrayAPI<(Vec<T>, &B)> for Tensor<T, Ix1, B>
+impl<T, D, B> AsArrayAPI<()> for Tensor<T, D, B>
+where
+    T: Clone,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
+{
+    type Out = Tensor<T, D, B>;
+
+    fn asarray_f(self) -> Result<Self::Out> {
+        asarray_f((self, TensorIterOrder::default()))
+    }
+}
+
+/* #endregion */
+
+/* #region vec-like input */
+
+impl<T, B> AsArrayAPI<()> for (Vec<T>, &B)
 where
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
 {
-    fn asarray_f(param: (Vec<T>, &B)) -> Result<Self> {
-        let (input, device) = param;
+    type Out = Tensor<T, Ix1, B>;
+
+    fn asarray_f(self) -> Result<Self::Out> {
+        let (input, device) = self;
         let layout = [input.len()].c();
         let storage = device.outof_cpu_vec(input)?;
         let data = DataOwned::from(storage);
@@ -93,107 +134,39 @@ where
     }
 }
 
-impl<T> AsArrayAPI<Vec<T>> for Tensor<T, Ix1, DeviceCpu>
+impl<T> AsArrayAPI<()> for Vec<T>
 where
     T: Clone,
 {
-    fn asarray_f(input: Vec<T>) -> Result<Self> {
-        Self::asarray_f((input, &DeviceCpu::default()))
+    type Out = Tensor<T, Ix1, DeviceCpu>;
+
+    fn asarray_f(self) -> Result<Self::Out> {
+        asarray_f((self, &DeviceCpu::default()))
     }
 }
 
-impl<T, B, const N: usize> AsArrayAPI<([T; N], &B)> for Tensor<T, Ix1, B>
-where
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
-{
-    fn asarray_f(param: ([T; N], &B)) -> Result<Self> {
-        let (input, device) = param;
-        let layout = [input.len()].c();
-        let storage = device.outof_cpu_vec(input.into())?;
-        let data = DataOwned::from(storage);
-        let tensor = unsafe { Tensor::new_unchecked(data, layout) };
-        return Ok(tensor);
-    }
-}
-
-impl<T, const N: usize> AsArrayAPI<[T; N]> for Tensor<T, Ix1, DeviceCpu>
+impl<T> From<Vec<T>> for Tensor<T, Ix1, DeviceCpu>
 where
     T: Clone,
 {
-    fn asarray_f(input: [T; N]) -> Result<Self> {
-        Self::asarray_f((input, &DeviceCpu::default()))
+    fn from(input: Vec<T>) -> Self {
+        asarray(input)
     }
 }
 
-impl<T, B> AsArrayAPI<(&[Vec<T>], &B)> for Tensor<T, Ix2, B>
-where
-    T: Clone,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
-{
-    fn asarray_f(param: (&[Vec<T>], &B)) -> Result<Self> {
-        let (input, device) = param;
-        // zero rows
-        if input.is_empty() {
-            return Tensor::<T, Ix1, B>::asarray_f((vec![], device))?
-                .into_shape_assume_contig_f([0, 0]);
-        }
-        // check columns
-        let nrow = input.len();
-        let ncol = input[0].len();
-        for row in input.iter() {
-            if row.len() != ncol {
-                rstsr_assert_eq!(
-                    row.len(),
-                    ncol,
-                    InvalidLayout,
-                    "element numbers in later rows do not match the first row"
-                )?;
-            }
-        }
-        let new_vec = input.iter().flatten().cloned().collect::<Vec<_>>();
-        let tensor = Tensor::<T, Ix1, B>::asarray_f((new_vec, device))?;
-        return tensor.into_shape_assume_contig_f([nrow, ncol]);
-    }
-}
+/* #endregion */
 
-impl<T> AsArrayAPI<&[Vec<T>]> for Tensor<T, Ix2, DeviceCpu>
-where
-    T: Clone,
-{
-    fn asarray_f(input: &[Vec<T>]) -> Result<Self> {
-        Self::asarray_f((input, &DeviceCpu::default()))
-    }
-}
+/* #region slice-like input */
 
-impl<T, B, const N: usize, const M: usize> AsArrayAPI<([[T; M]; N], &B)> for Tensor<T, Ix2, B>
+impl<'a, T, B> AsArrayAPI<()> for (&'a [T], &B)
 where
     T: Clone,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+    B: DeviceAPI<T, RawVec = Vec<T>> + 'a,
 {
-    fn asarray_f(param: ([[T; M]; N], &B)) -> Result<Self> {
-        let (input, device) = param;
-        let new_vec = input.iter().flatten().cloned().collect::<Vec<_>>();
-        let tensor = Tensor::<T, Ix1, B>::asarray_f((new_vec, device))?;
-        return tensor.into_shape_assume_contig_f([N, M]);
-    }
-}
+    type Out = TensorView<'a, T, Ix1, B>;
 
-impl<T, const N: usize, const M: usize> AsArrayAPI<[[T; M]; N]> for Tensor<T, Ix2, DeviceCpu>
-where
-    T: Clone,
-{
-    fn asarray_f(input: [[T; M]; N]) -> Result<Self> {
-        Self::asarray_f((input, &DeviceCpu::default()))
-    }
-}
-
-impl<'a, T, B> AsArrayAPI<(&'a [T], &B)> for TensorView<'a, T, Ix1, B>
-where
-    T: Clone,
-    B: DeviceAPI<T, RawVec = Vec<T>>,
-{
-    fn asarray_f(input: (&'a [T], &B)) -> Result<Self> {
-        let (input, device) = input;
+    fn asarray_f(self) -> Result<Self::Out> {
+        let (input, device) = self;
         let layout = [input.len()].c();
         let device = device.clone();
 
@@ -210,33 +183,60 @@ where
     }
 }
 
-impl<'a, T> AsArrayAPI<&'a [T]> for TensorView<'a, T, Ix1, DeviceCpu>
+impl<'a, T> AsArrayAPI<()> for &'a [T]
 where
     T: Clone,
 {
-    fn asarray_f(input: &'a [T]) -> Result<Self> {
-        Self::asarray_f((input, &DeviceCpu::default()))
+    type Out = TensorView<'a, T, Ix1, DeviceCpu>;
+
+    fn asarray_f(self) -> Result<Self::Out> {
+        asarray_f((self, &DeviceCpu::default()))
     }
 }
 
-impl<'a, T> AsArrayAPI<&'a Vec<T>> for TensorView<'a, T, Ix1, DeviceCpu>
+impl<'a, T, B> AsArrayAPI<()> for (&'a Vec<T>, &B)
+where
+    T: Clone,
+    B: DeviceAPI<T, RawVec = Vec<T>> + 'a,
+{
+    type Out = TensorView<'a, T, Ix1, B>;
+
+    fn asarray_f(self) -> Result<Self::Out> {
+        let (input, device) = self;
+        asarray_f((input.as_slice(), device))
+    }
+}
+
+impl<'a, T> AsArrayAPI<()> for &'a Vec<T>
 where
     T: Clone,
 {
-    fn asarray_f(input: &'a Vec<T>) -> Result<Self> {
-        Self::asarray_f((input.as_ref(), &DeviceCpu::default()))
+    type Out = TensorView<'a, T, Ix1, DeviceCpu>;
+
+    fn asarray_f(self) -> Result<Self::Out> {
+        asarray_f((self.as_slice(), &DeviceCpu::default()))
     }
 }
 
-impl<T, R, D> From<T> for TensorBase<R, D>
+impl<'a, T> From<&'a [T]> for TensorView<'a, T, Ix1, DeviceCpu>
 where
-    D: DimAPI,
-    TensorBase<R, D>: AsArrayAPI<T>,
+    T: Clone,
 {
-    fn from(input: T) -> Self {
-        TensorBase::<R, D>::asarray_f(input).unwrap()
+    fn from(input: &'a [T]) -> Self {
+        asarray(input)
     }
 }
+
+impl<'a, T> From<&'a Vec<T>> for TensorView<'a, T, Ix1, DeviceCpu>
+where
+    T: Clone,
+{
+    fn from(input: &'a Vec<T>) -> Self {
+        asarray(input)
+    }
+}
+
+/* #endregion */
 
 #[cfg(test)]
 mod tests {
@@ -245,22 +245,21 @@ mod tests {
     #[test]
     fn test_asarray() {
         let input = vec![1, 2, 3];
-        let tensor = Tensor::<_, Ix1, _>::asarray_f(input).unwrap();
+        let tensor = asarray_f(input).unwrap();
         println!("{:?}", tensor);
         let input = [1, 2, 3];
-        let tensor = Tensor::<_, Ix1, _>::asarray_f(input).unwrap();
+        let tensor = asarray_f(input.as_ref()).unwrap();
         println!("{:?}", tensor);
 
         let input = vec![1, 2, 3];
-        println!("{:?}", input.as_ptr());
-        let tensor = TensorView::asarray_f(&input).unwrap();
+        let tensor = asarray_f(&input).unwrap();
         println!("{:?}", tensor.data().storage().rawvec().as_ptr());
         println!("{:?}", tensor);
 
-        let tensor = Tensor::asarray_f((&tensor, TensorIterOrder::K)).unwrap();
+        let tensor = asarray_f((&tensor, TensorIterOrder::K)).unwrap();
         println!("{:?}", tensor);
 
-        let tensor = Tensor::asarray_f((tensor, TensorIterOrder::K)).unwrap();
+        let tensor = asarray_f((tensor, TensorIterOrder::K)).unwrap();
         println!("{:?}", tensor);
     }
 

@@ -7,7 +7,7 @@
 //! - [x] `asarray`: [`asarray`] (defined elsewhere)
 //! - [x] `empty`: [`empty`]
 //! - [x] `empty_like`: [`empty_like`]
-//! - [ ] `eye`
+//! - [x] `eye`: [`eye`]
 //! - [ ] ~`from_dlpack`~
 //! - [x] `full`: [`full`]
 //! - [x] `full_like`: [`full_like`]
@@ -26,7 +26,7 @@ use num::Num;
 
 /* #region arange */
 
-pub trait ArrangeAPI<Inp>: Sized {
+pub trait ArangeAPI<Inp>: Sized {
     type Out;
 
     fn arange_f(self) -> Result<Self::Out>;
@@ -44,19 +44,19 @@ pub trait ArrangeAPI<Inp>: Sized {
 /// - [Python array API standard: `arange`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.arange.html)
 pub fn arange<Param, Inp, Rhs>(param: Param) -> Rhs
 where
-    Param: ArrangeAPI<Inp, Out = Rhs>,
+    Param: ArangeAPI<Inp, Out = Rhs>,
 {
-    return ArrangeAPI::arange(param);
+    return ArangeAPI::arange(param);
 }
 
 pub fn arange_f<Param, Inp, Rhs>(param: Param) -> Result<Rhs>
 where
-    Param: ArrangeAPI<Inp, Out = Rhs>,
+    Param: ArangeAPI<Inp, Out = Rhs>,
 {
-    return ArrangeAPI::arange_f(param);
+    return ArangeAPI::arange_f(param);
 }
 
-impl<T, B> ArrangeAPI<(T, B)> for (T, T, T, &B)
+impl<T, B> ArangeAPI<(T, B)> for (T, T, T, &B)
 where
     T: Num + PartialOrd,
     B: DeviceAPI<T> + DeviceCreationPartialOrdNumAPI<T>,
@@ -72,7 +72,7 @@ where
     }
 }
 
-impl<T, B> ArrangeAPI<(T, B)> for (T, T, &B)
+impl<T, B> ArangeAPI<(T, B)> for (T, T, &B)
 where
     T: Num + PartialOrd,
     B: DeviceAPI<T> + DeviceCreationPartialOrdNumAPI<T>,
@@ -87,7 +87,7 @@ where
     }
 }
 
-impl<T, B> ArrangeAPI<(T, B)> for (T, &B)
+impl<T, B> ArangeAPI<(T, B)> for (T, &B)
 where
     T: Num + PartialOrd,
     B: DeviceAPI<T> + DeviceCreationPartialOrdNumAPI<T>,
@@ -103,7 +103,7 @@ where
     }
 }
 
-impl<T> ArrangeAPI<T> for (T, T, T)
+impl<T> ArangeAPI<T> for (T, T, T)
 where
     T: Num + PartialOrd + Clone + Send + Sync,
 {
@@ -116,7 +116,7 @@ where
     }
 }
 
-impl<T> ArrangeAPI<T> for (T, T)
+impl<T> ArangeAPI<T> for (T, T)
 where
     T: Num + PartialOrd + Clone,
 {
@@ -129,7 +129,7 @@ where
     }
 }
 
-impl<T> ArrangeAPI<T> for T
+impl<T> ArangeAPI<T> for T
 where
     T: Num + PartialOrd + Clone,
 {
