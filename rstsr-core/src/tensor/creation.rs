@@ -131,6 +131,20 @@ where
 
 /* #region empty */
 
+pub trait EmptyAPI<Param>: Sized {
+    /// # Safety
+    ///
+    /// This function is unsafe because it creates a tensor with uninitialized.
+    unsafe fn empty_f(param: Param) -> Result<Self>;
+
+    /// # Safety
+    ///
+    /// This function is unsafe because it creates a tensor with uninitialized.
+    unsafe fn empty(param: Param) -> Self {
+        Self::empty_f(param).unwrap()
+    }
+}
+
 /// Uninitialized tensor having a specified shape.
 ///
 /// # Safety
@@ -140,58 +154,66 @@ where
 /// # See also
 ///
 /// - [Python array API standard: `empty`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.empty.html)
-pub unsafe fn empty<T, D, B>(layout: impl Into<Layout<D>>, device: &B) -> Tensor<T, D, B>
+pub unsafe fn empty<Rhs, Param>(param: Param) -> Rhs
 where
-    D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+    Rhs: EmptyAPI<Param>,
 {
-    let layout = layout.into();
-    let (_, idx_max) = layout.bounds_index().unwrap();
-    let data: Storage<T, B> = B::empty_impl(device, idx_max).unwrap();
-    unsafe { Tensor::new_unchecked(data.into(), layout) }
+    return Rhs::empty(param);
 }
 
-impl<T, D, B> Tensor<T, D, B>
+/// # Safety
+///
+/// This function is unsafe because it creates a tensor with uninitialized.
+pub unsafe fn empty_f<Rhs, Param>(param: Param) -> Result<Rhs>
 where
+    Rhs: EmptyAPI<Param>,
+{
+    return Rhs::empty_f(param);
+}
+
+impl<T, D, B, L> EmptyAPI<(L, &B)> for Tensor<T, D, B>
+where
+    L: Into<Layout<D>>,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
 {
-    /// Uninitialized tensor having a specified shape.
-    ///
-    /// # Safety
-    ///
-    /// This function is unsafe because it creates a tensor with uninitialized.
-    ///
-    /// # See also
-    ///
-    /// [`empty`]
-    pub unsafe fn empty(layout: impl Into<Layout<D>>, device: &B) -> Tensor<T, D, B> {
-        empty(layout, device)
+    unsafe fn empty_f(param: (L, &B)) -> Result<Self> {
+        let (layout, device) = param;
+        let layout = layout.into();
+        let (_, idx_max) = layout.bounds_index()?;
+        let data: Storage<T, B> = B::empty_impl(device, idx_max)?;
+        unsafe { Ok(Tensor::new_unchecked(data.into(), layout)) }
     }
 }
 
-impl<T, D> Tensor<T, D, DeviceCpu>
+impl<T, D, L> EmptyAPI<L> for Tensor<T, D, DeviceCpu>
 where
-    T: Clone + Debug,
+    L: Into<Layout<D>>,
     D: DimAPI,
+    T: Clone,
 {
-    /// Uninitialized tensor having a specified shape.
-    ///
-    /// # Safety
-    ///
-    /// This function is unsafe because it creates a tensor with uninitialized.
-    ///
-    /// # See also
-    ///
-    /// [`empty`]
-    pub unsafe fn empty_cpu(layout: impl Into<Layout<D>>) -> Tensor<T, D, DeviceCpu> {
-        empty(layout, &DeviceCpu::default())
+    unsafe fn empty_f(layout: L) -> Result<Self> {
+        empty_f((layout, &DeviceCpu::default()))
     }
 }
 
 /* #endregion */
 
 /* #region empty_like */
+
+pub trait EmptyLikeAPI<Param>: Sized {
+    /// # Safety
+    ///
+    /// This function is unsafe because it creates a tensor with uninitialized.
+    unsafe fn empty_like_f(param: Param) -> Result<Self>;
+
+    /// # Safety
+    ///
+    /// This function is unsafe because it creates a tensor with uninitialized.
+    unsafe fn empty_like(param: Param) -> Self {
+        Self::empty_like_f(param).unwrap()
+    }
+}
 
 /// Uninitialized tensor with the same shape as an input tensor.
 ///
@@ -202,39 +224,96 @@ where
 /// # See also
 ///
 /// - [Python array API standard: `empty_like`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.empty_like.html)
-pub unsafe fn empty_like<R, T, D, B>(
-    tensor: &TensorBase<R, D>,
-    order: TensorIterOrder,
-) -> Tensor<T, D, B>
+pub unsafe fn empty_like<Rhs, Param>(param: Param) -> Rhs
 where
-    R: DataAPI<Data = Storage<T, B>>,
-    D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+    Rhs: EmptyLikeAPI<Param>,
 {
-    let layout = layout_for_array_copy(tensor.layout(), order).unwrap();
-    let idx_max = layout.size();
-    let device = tensor.data().storage().device();
-    let data: Storage<T, _> = device.empty_impl(idx_max).unwrap();
-    unsafe { Tensor::new_unchecked(data.into(), layout) }
+    return Rhs::empty_like(param);
+}
+
+/// # Safety
+///
+/// This function is unsafe because it creates a tensor with uninitialized.
+pub unsafe fn empty_like_f<Rhs, Param>(param: Param) -> Result<Rhs>
+where
+    Rhs: EmptyLikeAPI<Param>,
+{
+    return Rhs::empty_like_f(param);
 }
 
 impl<R, T, D, B> TensorBase<R, D>
 where
     R: DataAPI<Data = Storage<T, B>>,
     D: DimAPI,
+    T: Clone,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
 {
-    /// Uninitialized tensor with the same shape as an input tensor.
-    ///
     /// # Safety
     ///
-    /// This function is unsafe because it creates a tensor withuninitialized.
-    ///
-    /// # See also
-    ///
-    /// [`empty_like`]
+    /// This function is unsafe because it creates a tensor with uninitialized.
     pub unsafe fn empty_like(&self) -> Tensor<T, D, B> {
-        empty_like(self, TensorIterOrder::default())
+        empty_like((self, TensorIterOrder::default(), self.device()))
+    }
+
+    /// # Safety
+    ///
+    /// This function is unsafe because it creates a tensor with uninitialized.
+    pub unsafe fn empty_like_f(&self) -> Result<Tensor<T, D, B>> {
+        empty_like_f((self, TensorIterOrder::default(), self.device()))
+    }
+}
+
+impl<R, T, D, B> EmptyLikeAPI<(&TensorBase<R, D>, TensorIterOrder, &B)> for Tensor<T, D, B>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+{
+    unsafe fn empty_like_f(param: (&TensorBase<R, D>, TensorIterOrder, &B)) -> Result<Self> {
+        let (tensor, order, device) = param;
+        let layout = layout_for_array_copy(tensor.layout(), order)?;
+        let idx_max = layout.size();
+        let data: Storage<T, _> = device.empty_impl(idx_max)?;
+        unsafe { Ok(Tensor::new_unchecked(data.into(), layout)) }
+    }
+}
+
+impl<R, T, D, B> EmptyLikeAPI<(&TensorBase<R, D>, &B)> for Tensor<T, D, B>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+{
+    unsafe fn empty_like_f(param: (&TensorBase<R, D>, &B)) -> Result<Self> {
+        let (tensor, device) = param;
+        empty_like_f((tensor, TensorIterOrder::default(), device))
+    }
+}
+
+impl<R, T, D, B> EmptyLikeAPI<(&TensorBase<R, D>, TensorIterOrder)> for Tensor<T, D, B>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    T: Clone,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+{
+    unsafe fn empty_like_f(param: (&TensorBase<R, D>, TensorIterOrder)) -> Result<Self> {
+        let (tensor, order) = param;
+        let device = tensor.device();
+        empty_like_f((tensor, order, device))
+    }
+}
+
+impl<R, T, D, B> EmptyLikeAPI<&TensorBase<R, D>> for Tensor<T, D, B>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    T: Clone,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+{
+    unsafe fn empty_like_f(tensor: &TensorBase<R, D>) -> Result<Self> {
+        let device = tensor.device();
+        empty_like_f((tensor, TensorIterOrder::default(), device))
     }
 }
 
@@ -242,62 +321,104 @@ where
 
 /* #region eye */
 
+pub trait EyeAPI<Param>: Sized {
+    fn eye_f(param: Param) -> Result<Self>;
+
+    fn eye(param: Param) -> Self {
+        Self::eye_f(param).unwrap()
+    }
+}
+
 /// Returns a two-dimensional array with ones on the kth diagonal and zeros
 /// elsewhere.
 ///
 /// # See also
 ///
 /// - [Python array API standard: `eye`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.eye.html)
-pub fn eye<T, B>(
-    n_rows: usize,
-    n_cols: usize,
-    k: isize,
-    order: TensorOrder,
-    device: &B,
-) -> Tensor<T, Ix2, B>
+pub fn eye<Rhs, Param>(param: Param) -> Rhs
 where
-    T: Num,
-    B: DeviceAPI<T> + DeviceCreationNumAPI<T> + OpAssignAPI<T, Ix1>,
+    Rhs: EyeAPI<Param>,
 {
-    let layout = match order {
-        TensorOrder::C => [n_rows, n_cols].c(),
-        TensorOrder::F => [n_cols, n_rows].f(),
-    };
-    let mut data = device.zeros_impl(layout.size()).unwrap();
-    let layout_diag = layout.diagonal(Some(k), Some(0), Some(1)).unwrap();
-    device.fill(&mut data, &layout_diag, T::one()).unwrap();
-    unsafe { Tensor::new_unchecked(data.into(), layout) }
+    return Rhs::eye(param);
 }
 
-impl<T, B> Tensor<T, Ix2, B>
+pub fn eye_f<Rhs, Param>(param: Param) -> Result<Rhs>
+where
+    Rhs: EyeAPI<Param>,
+{
+    return Rhs::eye_f(param);
+}
+
+impl<T, B> EyeAPI<(usize, usize, isize, TensorOrder, &B)> for Tensor<T, Ix2, B>
 where
     T: Num,
     B: DeviceAPI<T> + DeviceCreationNumAPI<T> + OpAssignAPI<T, Ix1>,
 {
-    /// Returns a two-dimensional array with ones on the kth diagonal and zeros
-    /// elsewhere.
-    ///
-    /// # See also
-    ///
-    /// [`eye`]
-    pub fn eye(n_rows: usize, device: &B) -> Self {
-        eye(n_rows, n_rows, 0, TensorOrder::default(), device)
+    fn eye_f(param: (usize, usize, isize, TensorOrder, &B)) -> Result<Self> {
+        let (n_rows, n_cols, k, order, device) = param;
+        let layout = match order {
+            TensorOrder::C => [n_rows, n_cols].c(),
+            TensorOrder::F => [n_cols, n_rows].f(),
+        };
+        let mut data = device.zeros_impl(layout.size())?;
+        let layout_diag = layout.diagonal(Some(k), Some(0), Some(1))?;
+        device.fill(&mut data, &layout_diag, T::one())?;
+        unsafe { Ok(Tensor::new_unchecked(data.into(), layout)) }
     }
 }
 
-impl<T> Tensor<T, Ix2, DeviceCpu>
+impl<T, B> EyeAPI<(usize, usize, isize, &B)> for Tensor<T, Ix2, B>
 where
-    T: Num + Clone + Debug,
-    DeviceCpu: DeviceAPI<T> + DeviceCreationNumAPI<T> + OpAssignAPI<T, Ix1>,
+    T: Num,
+    B: DeviceAPI<T> + DeviceCreationNumAPI<T> + OpAssignAPI<T, Ix1>,
 {
-    /// Returns a two-dimensional array with ones on the kth diagonal and zeros
-    /// elsewhere.
-    ///
-    /// # See also
-    ///
-    /// [`eye`]
-    pub fn eye_cpu(n_rows: usize) -> Self {
-        eye(n_rows, n_rows, 0, TensorOrder::default(), &DeviceCpu::default())
+    fn eye_f(param: (usize, usize, isize, &B)) -> Result<Self> {
+        // (n_rows, n_cols, k, device) -> (n_rows, n_cols, k, C, device)
+        let (n_rows, n_cols, k, device) = param;
+        eye_f((n_rows, n_cols, k, TensorOrder::default(), device))
+    }
+}
+
+impl<T, B> EyeAPI<(usize, &B)> for Tensor<T, Ix2, B>
+where
+    T: Num,
+    B: DeviceAPI<T> + DeviceCreationNumAPI<T> + OpAssignAPI<T, Ix1>,
+{
+    fn eye_f(param: (usize, &B)) -> Result<Self> {
+        // (n_rows, n_cols, k, device) -> (n_rows, n_cols, k, C, device)
+        let (n_rows, device) = param;
+        eye_f((n_rows, n_rows, 0, TensorOrder::default(), device))
+    }
+}
+
+impl<T> EyeAPI<(usize, usize, isize, TensorOrder)> for Tensor<T, Ix2, DeviceCpu>
+where
+    T: Num + Clone + Send + Sync,
+{
+    fn eye_f(param: (usize, usize, isize, TensorOrder)) -> Result<Self> {
+        let (n_rows, n_cols, k, order) = param;
+        eye_f((n_rows, n_cols, k, order, &DeviceCpu::default()))
+    }
+}
+
+impl<T> EyeAPI<(usize, usize, isize)> for Tensor<T, Ix2, DeviceCpu>
+where
+    T: Num + Clone + Send + Sync,
+{
+    fn eye_f(param: (usize, usize, isize)) -> Result<Self> {
+        // (n_rows, n_cols, k) -> (n_rows, n_cols, k, C)
+        let (n_rows, n_cols, k) = param;
+        eye_f((n_rows, n_cols, k, TensorOrder::default(), &DeviceCpu::default()))
+    }
+}
+
+impl<T> EyeAPI<usize> for Tensor<T, Ix2, DeviceCpu>
+where
+    T: Num + Clone + Send + Sync,
+{
+    fn eye_f(n_rows: usize) -> Result<Self> {
+        // n_rows -> (n_rows, n_rows, 0, C)
+        eye_f((n_rows, n_rows, 0, TensorOrder::default(), &DeviceCpu::default()))
     }
 }
 
@@ -305,49 +426,56 @@ where
 
 /* #region full */
 
+pub trait FullAPI<Param>: Sized {
+    fn full_f(param: Param) -> Result<Self>;
+
+    fn full(param: Param) -> Self {
+        Self::full_f(param).unwrap()
+    }
+}
+
 /// New tensor having a specified shape and filled with given value.
 ///
 /// # See also
 ///
 /// - [Python array API standard: `full`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.full.html)
-pub fn full<T, D, B>(layout: impl Into<Layout<D>>, fill: T, device: &B) -> Tensor<T, D, B>
+pub fn full<Rhs, Param>(param: Param) -> Rhs
 where
-    D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+    Rhs: FullAPI<Param>,
 {
-    let layout = layout.into();
-    let idx_max = layout.size();
-    let data: Storage<T, _> = device.full_impl(idx_max, fill).unwrap();
-    unsafe { Tensor::new_unchecked(data.into(), layout) }
+    return Rhs::full(param);
 }
 
-impl<T, D, B> Tensor<T, D, B>
+pub fn full_f<Rhs, Param>(param: Param) -> Result<Rhs>
+where
+    Rhs: FullAPI<Param>,
+{
+    return Rhs::full_f(param);
+}
+
+impl<T, D, B, L> FullAPI<(L, T, &B)> for Tensor<T, D, B>
 where
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+    L: Into<Layout<D>>,
 {
-    /// New tensor having a specified shape and filled with given value.
-    ///
-    /// # See also
-    ///
-    /// [`full`]
-    pub fn full(layout: impl Into<Layout<D>>, fill: T, device: &B) -> Tensor<T, D, B> {
-        full(layout, fill, device)
+    fn full_f(param: (L, T, &B)) -> Result<Self> {
+        let (layout, fill, device) = param;
+        let layout = layout.into();
+        let idx_max = layout.size();
+        let data: Storage<T, _> = device.full_impl(idx_max, fill)?;
+        unsafe { Ok(Tensor::new_unchecked(data.into(), layout)) }
     }
 }
 
-impl<T, D> Tensor<T, D, DeviceCpu>
+impl<T, D> FullAPI<(Layout<D>, T)> for Tensor<T, D, DeviceCpu>
 where
-    T: Clone + Debug,
     D: DimAPI,
+    T: Clone,
 {
-    /// New tensor having a specified shape and filled with given value.
-    ///
-    /// # See also
-    ///
-    /// [`full`]
-    pub fn full_cpu(layout: impl Into<Layout<D>>, fill: T) -> Tensor<T, D, DeviceCpu> {
-        full(layout, fill, &DeviceCpu::default())
+    fn full_f(param: (Layout<D>, T)) -> Result<Self> {
+        let (layout, fill) = param;
+        full_f((layout, fill, &DeviceCpu::default()))
     }
 }
 
@@ -355,27 +483,32 @@ where
 
 /* #region full_like */
 
+pub trait FullLikeAPI<Param>: Sized {
+    fn full_like_f(param: Param) -> Result<Self>;
+
+    fn full_like(param: Param) -> Self {
+        Self::full_like_f(param).unwrap()
+    }
+}
+
 /// New tensor filled with given value and having the same shape as an input
 /// tensor.
 ///
 /// # See also
 ///
 /// - [Python array API standard: `full_like`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.full_like.html)
-pub fn full_like<R, T, D, B>(
-    tensor: &TensorBase<R, D>,
-    fill: T,
-    order: TensorIterOrder,
-) -> Tensor<T, D, B>
+pub fn full_like<Rhs, Param>(param: Param) -> Rhs
 where
-    R: DataAPI<Data = Storage<T, B>>,
-    D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+    Rhs: FullLikeAPI<Param>,
 {
-    let layout = layout_for_array_copy(tensor.layout(), order).unwrap();
-    let idx_max = layout.size();
-    let device = tensor.data().storage().device();
-    let data: Storage<T, _> = device.full_impl(idx_max, fill).unwrap();
-    unsafe { Tensor::new_unchecked(data.into(), layout) }
+    return Rhs::full_like(param);
+}
+
+pub fn full_like_f<Rhs, Param>(param: Param) -> Result<Rhs>
+where
+    Rhs: FullLikeAPI<Param>,
+{
+    return Rhs::full_like_f(param);
 }
 
 impl<R, T, D, B> TensorBase<R, D>
@@ -391,7 +524,60 @@ where
     ///
     /// [`full_like`]
     pub fn full_like(&self, fill: T) -> Tensor<T, D, B> {
-        full_like(self, fill, TensorIterOrder::default())
+        full_like((self, fill, TensorIterOrder::default()))
+    }
+}
+
+impl<R, T, D, B> FullLikeAPI<(&TensorBase<R, D>, T, TensorIterOrder, &B)> for Tensor<T, D, B>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+{
+    fn full_like_f(param: (&TensorBase<R, D>, T, TensorIterOrder, &B)) -> Result<Self> {
+        let (tensor, fill, order, device) = param;
+        let layout = layout_for_array_copy(tensor.layout(), order)?;
+        let idx_max = layout.size();
+        let data: Storage<T, _> = device.full_impl(idx_max, fill)?;
+        unsafe { Ok(Tensor::new_unchecked(data.into(), layout)) }
+    }
+}
+
+impl<R, T, D, B> FullLikeAPI<(&TensorBase<R, D>, T, &B)> for Tensor<T, D, B>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+{
+    fn full_like_f(param: (&TensorBase<R, D>, T, &B)) -> Result<Self> {
+        let (tensor, fill, device) = param;
+        full_like_f((tensor, fill, TensorIterOrder::default(), device))
+    }
+}
+
+impl<R, T, D, B> FullLikeAPI<(&TensorBase<R, D>, T, TensorIterOrder)> for Tensor<T, D, B>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+{
+    fn full_like_f(param: (&TensorBase<R, D>, T, TensorIterOrder)) -> Result<Self> {
+        let (tensor, fill, order) = param;
+        let device = tensor.device();
+        full_like_f((tensor, fill, order, device))
+    }
+}
+
+impl<R, T, D, B> FullLikeAPI<(&TensorBase<R, D>, T)> for Tensor<T, D, B>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+{
+    fn full_like_f(param: (&TensorBase<R, D>, T)) -> Result<Self> {
+        let (tensor, fill) = param;
+        let device = tensor.device();
+        full_like_f((tensor, fill, TensorIterOrder::default(), device))
     }
 }
 
@@ -481,55 +667,57 @@ where
 
 /* #region ones */
 
+pub trait OnesAPI<Param>: Sized {
+    fn ones_f(param: Param) -> Result<Self>;
+
+    fn ones(param: Param) -> Self {
+        Self::ones_f(param).unwrap()
+    }
+}
+
 /// New tensor filled with ones and having a specified shape.
 ///
 /// # See also
 ///
 /// - [Python array API standard: `ones`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.ones.html)
-pub fn ones<T, D, B>(layout: impl Into<Layout<D>>, device: &B) -> Tensor<T, D, B>
+pub fn ones<Rhs, Param>(param: Param) -> Rhs
 where
-    T: Num,
-    D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
+    Rhs: OnesAPI<Param>,
 {
-    let layout = layout.into();
-    let (_, idx_max) = layout.bounds_index().unwrap();
-    let data: Storage<T, _> = B::ones_impl(device, idx_max).unwrap();
-    unsafe { Tensor::new_unchecked(data.into(), layout) }
+    return Rhs::ones(param);
 }
 
-impl<T, D, B> Tensor<T, D, B>
+pub fn ones_f<Rhs, Param>(param: Param) -> Result<Rhs>
+where
+    Rhs: OnesAPI<Param>,
+{
+    return Rhs::ones_f(param);
+}
+
+impl<T, D, B, L> OnesAPI<(L, &B)> for Tensor<T, D, B>
 where
     T: Num,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
+    L: Into<Layout<D>>,
 {
-    /// New tensor filled with ones and having a specified shape.
-    ///
-    /// # See also
-    ///
-    /// [`ones`]
-    pub fn ones(layout: impl Into<Layout<D>>, device: &B) -> Tensor<T, D, B> {
-        ones(layout, device)
+    fn ones_f(param: (L, &B)) -> Result<Self> {
+        let (layout, device) = param;
+        let layout = layout.into();
+        let (_, idx_max) = layout.bounds_index()?;
+        let data: Storage<T, _> = device.ones_impl(idx_max)?;
+        unsafe { Ok(Tensor::new_unchecked(data.into(), layout)) }
     }
 }
 
-impl<T, D> Tensor<T, D, DeviceCpu>
+impl<T, D, L> OnesAPI<L> for Tensor<T, D, DeviceCpu>
 where
-    T: Num + Clone + Debug,
+    T: Num + Clone,
     D: DimAPI,
+    L: Into<Layout<D>>,
 {
-    /// New tensor filled with ones and having a specified shape.
-    ///
-    /// # See also
-    ///
-    /// [`ones`]
-    pub fn ones_cpu(layout: impl Into<Layout<D>>) -> Tensor<T, D, DeviceCpu>
-    where
-        T: Num + Clone + Debug,
-        D: DimAPI,
-    {
-        Tensor::ones(layout, &DeviceCpu::default())
+    fn ones_f(layout: L) -> Result<Self> {
+        ones_f((layout, &DeviceCpu::default()))
     }
 }
 
@@ -537,31 +725,39 @@ where
 
 /* #region ones_like */
 
+pub trait OnesLikeAPI<Param>: Sized {
+    fn ones_like_f(param: Param) -> Result<Self>;
+
+    fn ones_like(param: Param) -> Self {
+        Self::ones_like_f(param).unwrap()
+    }
+}
+
 /// New tensor filled with ones and having the same shape as an input
 /// tensor.
 ///
 /// # See also
 ///
 /// - [Python array API standard: `ones_like`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.ones_like.html)
-pub fn ones_like<R, T, D, B>(tensor: &TensorBase<R, D>, order: TensorIterOrder) -> Tensor<T, D, B>
+pub fn ones_like<Rhs, Param>(param: Param) -> Rhs
 where
-    R: DataAPI<Data = Storage<T, B>>,
-    T: Num,
-    D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
+    Rhs: OnesLikeAPI<Param>,
 {
-    let layout = layout_for_array_copy(tensor.layout(), order).unwrap();
-    let idx_max = layout.size();
-    let device = tensor.data().storage().device();
-    let data: Storage<T, B> = B::ones_impl(device, idx_max).unwrap();
-    unsafe { Tensor::new_unchecked(data.into(), layout) }
+    return Rhs::ones_like(param);
+}
+
+pub fn ones_like_f<Rhs, Param>(param: Param) -> Result<Rhs>
+where
+    Rhs: OnesLikeAPI<Param>,
+{
+    return Rhs::ones_like_f(param);
 }
 
 impl<R, T, D, B> TensorBase<R, D>
 where
     R: DataAPI<Data = Storage<T, B>>,
-    T: Num,
     D: DimAPI,
+    T: Num,
     B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
 {
     /// New tensor filled with ones and having the same shape as an input
@@ -571,7 +767,67 @@ where
     ///
     /// [`ones_like`]
     pub fn ones_like(&self) -> Tensor<T, D, B> {
-        ones_like(self, TensorIterOrder::default())
+        ones_like((self, TensorIterOrder::default(), self.device()))
+    }
+
+    pub fn ones_like_f(&self) -> Result<Tensor<T, D, B>> {
+        ones_like_f((self, TensorIterOrder::default(), self.device()))
+    }
+}
+
+impl<R, T, D, B> OnesLikeAPI<(&TensorBase<R, D>, TensorIterOrder, &B)> for Tensor<T, D, B>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    T: Num,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
+{
+    fn ones_like_f(param: (&TensorBase<R, D>, TensorIterOrder, &B)) -> Result<Self> {
+        let (tensor, order, device) = param;
+        let layout = layout_for_array_copy(tensor.layout(), order)?;
+        let idx_max = layout.size();
+        let data: Storage<T, _> = device.ones_impl(idx_max)?;
+        unsafe { Ok(Tensor::new_unchecked(data.into(), layout)) }
+    }
+}
+
+impl<R, T, D, B> OnesLikeAPI<(&TensorBase<R, D>, &B)> for Tensor<T, D, B>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    T: Num,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
+{
+    fn ones_like_f(param: (&TensorBase<R, D>, &B)) -> Result<Self> {
+        let (tensor, device) = param;
+        ones_like_f((tensor, TensorIterOrder::default(), device))
+    }
+}
+
+impl<R, T, D, B> OnesLikeAPI<(&TensorBase<R, D>, TensorIterOrder)> for Tensor<T, D, B>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    T: Num,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
+{
+    fn ones_like_f(param: (&TensorBase<R, D>, TensorIterOrder)) -> Result<Self> {
+        let (tensor, order) = param;
+        let device = tensor.device();
+        ones_like_f((tensor, order, device))
+    }
+}
+
+impl<R, T, D, B> OnesLikeAPI<&TensorBase<R, D>> for Tensor<T, D, B>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    T: Num,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
+{
+    fn ones_like_f(tensor: &TensorBase<R, D>) -> Result<Self> {
+        let device = tensor.device();
+        ones_like_f((tensor, TensorIterOrder::default(), device))
     }
 }
 
@@ -579,51 +835,57 @@ where
 
 /* #region zeros */
 
+pub trait ZerosAPI<Param>: Sized {
+    fn zeros_f(param: Param) -> Result<Self>;
+
+    fn zeros(param: Param) -> Self {
+        Self::zeros_f(param).unwrap()
+    }
+}
+
 /// New tensor filled with zeros and having a specified shape.
 ///
 /// # See also
 ///
 /// - [Python array API standard: `zeros`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.zeros.html)
-pub fn zeros<T, D, B>(layout: impl Into<Layout<D>>, device: &B) -> Tensor<T, D, B>
+pub fn zeros<Rhs, Param>(param: Param) -> Rhs
 where
-    T: Num,
-    D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
+    Rhs: ZerosAPI<Param>,
 {
-    let layout = layout.into();
-    let (_, idx_max) = layout.bounds_index().unwrap();
-    let data: Storage<T, _> = B::zeros_impl(device, idx_max).unwrap();
-    unsafe { Tensor::new_unchecked(data.into(), layout) }
+    return Rhs::zeros(param);
 }
 
-impl<T, D, B> Tensor<T, D, B>
+pub fn zeros_f<Rhs, Param>(param: Param) -> Result<Rhs>
+where
+    Rhs: ZerosAPI<Param>,
+{
+    return Rhs::zeros_f(param);
+}
+
+impl<T, D, B, L> ZerosAPI<(L, &B)> for Tensor<T, D, B>
 where
     T: Num,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
+    L: Into<Layout<D>>,
 {
-    /// New tensor filled with zeros and having a specified shape.
-    ///
-    /// # See also
-    ///
-    /// [`zeros`]
-    pub fn zeros(layout: impl Into<Layout<D>>, device: &B) -> Tensor<T, D, B> {
-        zeros(layout, device)
+    fn zeros_f(param: (L, &B)) -> Result<Self> {
+        let (layout, device) = param;
+        let layout = layout.into();
+        let (_, idx_max) = layout.bounds_index()?;
+        let data: Storage<T, _> = B::zeros_impl(device, idx_max)?;
+        unsafe { Ok(Tensor::new_unchecked(data.into(), layout)) }
     }
 }
 
-impl<T, D> Tensor<T, D, DeviceCpu>
+impl<T, D, L> ZerosAPI<L> for Tensor<T, D, DeviceCpu>
 where
-    T: Num + Clone + Debug,
+    T: Num + Clone,
     D: DimAPI,
+    L: Into<Layout<D>>,
 {
-    /// New tensor filled with zeros and having a specified shape.
-    ///
-    /// # See also
-    ///
-    /// [`zeros`]
-    pub fn zeros_cpu(layout: impl Into<Layout<D>>) -> Tensor<T, D, DeviceCpu> {
-        zeros(layout, &DeviceCpu::default())
+    fn zeros_f(layout: L) -> Result<Self> {
+        zeros_f((layout, &DeviceCpu::default()))
     }
 }
 
@@ -631,31 +893,39 @@ where
 
 /* #region zeros_like */
 
+pub trait ZerosLikeAPI<Param>: Sized {
+    fn zeros_like_f(param: Param) -> Result<Self>;
+
+    fn zeros_like(param: Param) -> Self {
+        Self::zeros_like_f(param).unwrap()
+    }
+}
+
 /// New tensor filled with zeros and having the same shape as an input
 /// tensor.
 ///
 /// # See also
 ///
 /// - [Python array API standard: `zeros_like`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.zeros_like.html)
-pub fn zeros_like<R, T, D, B>(tensor: &TensorBase<R, D>, order: TensorIterOrder) -> Tensor<T, D, B>
+pub fn zeros_like<Rhs, Param>(param: Param) -> Rhs
 where
-    R: DataAPI<Data = Storage<T, B>>,
-    T: Num,
-    D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
+    Rhs: ZerosLikeAPI<Param>,
 {
-    let layout = layout_for_array_copy(tensor.layout(), order).unwrap();
-    let idx_max = layout.size();
-    let device = tensor.data().storage().device();
-    let data: Storage<T, _> = B::zeros_impl(device, idx_max).unwrap();
-    unsafe { Tensor::new_unchecked(data.into(), layout) }
+    return Rhs::zeros_like(param);
+}
+
+pub fn zeros_like_f<Rhs, Param>(param: Param) -> Result<Rhs>
+where
+    Rhs: ZerosLikeAPI<Param>,
+{
+    return Rhs::zeros_like_f(param);
 }
 
 impl<R, T, D, B> TensorBase<R, D>
 where
     R: DataAPI<Data = Storage<T, B>>,
-    T: Num,
     D: DimAPI,
+    T: Num,
     B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
 {
     /// New tensor filled with zeros and having the same shape as an input
@@ -665,7 +935,66 @@ where
     ///
     /// [`zeros_like`]
     pub fn zeros_like(&self) -> Tensor<T, D, B> {
-        zeros_like(self, TensorIterOrder::default())
+        zeros_like((self, TensorIterOrder::default(), self.device()))
+    }
+
+    pub fn zeros_like_f(&self) -> Result<Tensor<T, D, B>> {
+        zeros_like_f((self, TensorIterOrder::default(), self.device()))
+    }
+}
+
+impl<R, T, D, B> ZerosLikeAPI<(&TensorBase<R, D>, TensorIterOrder, &B)> for Tensor<T, D, B>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    T: Num,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
+{
+    fn zeros_like_f(param: (&TensorBase<R, D>, TensorIterOrder, &B)) -> Result<Self> {
+        let (tensor, order, device) = param;
+        let layout = layout_for_array_copy(tensor.layout(), order)?;
+        let idx_max = layout.size();
+        let data: Storage<T, _> = B::zeros_impl(device, idx_max)?;
+        unsafe { Ok(Tensor::new_unchecked(data.into(), layout)) }
+    }
+}
+
+impl<R, T, D, B> ZerosLikeAPI<(&TensorBase<R, D>, &B)> for Tensor<T, D, B>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    T: Num,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
+{
+    fn zeros_like_f(param: (&TensorBase<R, D>, &B)) -> Result<Self> {
+        let (tensor, device) = param;
+        zeros_like_f((tensor, TensorIterOrder::default(), device))
+    }
+}
+
+impl<R, T, D, B> ZerosLikeAPI<(&TensorBase<R, D>, TensorIterOrder)> for Tensor<T, D, B>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    T: Num,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
+{
+    fn zeros_like_f(param: (&TensorBase<R, D>, TensorIterOrder)) -> Result<Self> {
+        let (tensor, order) = param;
+        let device = tensor.device();
+        zeros_like_f((tensor, order, device))
+    }
+}
+
+impl<R, T, D, B> ZerosLikeAPI<&TensorBase<R, D>> for Tensor<T, D, B>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    T: Num,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
+{
+    fn zeros_like_f(tensor: &TensorBase<R, D>) -> Result<Self> {
+        zeros_like_f((tensor, TensorIterOrder::default(), tensor.device()))
     }
 }
 
@@ -682,15 +1011,15 @@ mod test {
         println!("{a:6.3?}");
         let a = Tensor::<f64, _>::arange(15.0);
         println!("{a:6.3?}");
-        let a = unsafe { Tensor::<f64, _>::empty_cpu([15, 18].f()) };
+        let a = unsafe { Tensor::<f64, _>::empty([15, 18].f()) };
         println!("{a:6.3?}");
         let a = unsafe { a.empty_like() };
         println!("{a:6.3?}");
         let a = unsafe { Tensor::empty_like(&a) };
         println!("{a:6.3?}");
-        let a = Tensor::<f64, _>::eye_cpu(3);
+        let a = Tensor::<f64, _>::eye(3);
         println!("{a:6.3?}");
-        let a = Tensor::full_cpu([2, 2].f(), 3.16);
+        let a = Tensor::full(([2, 2].f(), 3.16));
         println!("{a:6.3?}");
         let a = Tensor::full_like(&a, 2.71);
         println!("{a:6.3?}");
@@ -700,11 +1029,11 @@ mod test {
         println!("{a:6.3?}");
         let a = Tensor::linspace((Complex32::new(1.8, 7.5), Complex32::new(-8.9, 1.6), 12));
         println!("{a:6.3?}");
-        let a = Tensor::<f64, _>::ones_cpu([2, 2]);
+        let a = Tensor::<f64, _>::ones([2, 2]);
         println!("{a:6.3?}");
         let a = a.ones_like();
         println!("{a:6.3?}");
-        let a = Tensor::<f64, _>::zeros_cpu([2, 2]);
+        let a = Tensor::<f64, _>::zeros([2, 2]);
         println!("{a:6.3?}");
         let a = a.zeros_like();
         println!("{a:6.3?}");
