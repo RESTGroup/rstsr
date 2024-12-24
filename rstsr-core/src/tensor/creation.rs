@@ -201,17 +201,19 @@ where
 
 /* #region empty_like */
 
-pub trait EmptyLikeAPI<Param>: Sized {
-    /// # Safety
-    ///
-    /// This function is unsafe because it creates a tensor with uninitialized.
-    unsafe fn empty_like_f(param: Param) -> Result<Self>;
+pub trait EmptyLikeAPI: Sized {
+    type Out;
 
     /// # Safety
     ///
     /// This function is unsafe because it creates a tensor with uninitialized.
-    unsafe fn empty_like(param: Param) -> Self {
-        Self::empty_like_f(param).unwrap()
+    unsafe fn empty_like_f(self) -> Result<Self::Out>;
+
+    /// # Safety
+    ///
+    /// This function is unsafe because it creates a tensor with uninitialized.
+    unsafe fn empty_like(self) -> Self::Out {
+        Self::empty_like_f(self).unwrap()
     }
 }
 
@@ -219,36 +221,38 @@ pub trait EmptyLikeAPI<Param>: Sized {
 ///
 /// # Safety
 ///
-/// This function is unsafe because it creates a tensor withuninitialized.
+/// This function is unsafe because it creates a tensor with uninitialized.
 ///
 /// # See also
 ///
 /// - [Python array API standard: `empty_like`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.empty_like.html)
-pub unsafe fn empty_like<Rhs, Param>(param: Param) -> Rhs
+pub unsafe fn empty_like<Param, Rhs>(param: Param) -> Rhs
 where
-    Rhs: EmptyLikeAPI<Param>,
+    Param: EmptyLikeAPI<Out = Rhs>,
 {
-    return Rhs::empty_like(param);
+    return EmptyLikeAPI::empty_like(param);
 }
 
 /// # Safety
 ///
 /// This function is unsafe because it creates a tensor with uninitialized.
-pub unsafe fn empty_like_f<Rhs, Param>(param: Param) -> Result<Rhs>
+pub unsafe fn empty_like_f<Param, Rhs>(param: Param) -> Result<Rhs>
 where
-    Rhs: EmptyLikeAPI<Param>,
+    Param: EmptyLikeAPI<Out = Rhs>,
 {
-    return Rhs::empty_like_f(param);
+    return EmptyLikeAPI::empty_like_f(param);
 }
 
-impl<R, T, D, B> EmptyLikeAPI<(&TensorBase<R, D>, TensorIterOrder, &B)> for Tensor<T, D, B>
+impl<R, T, D, B> EmptyLikeAPI for (&TensorBase<R, D>, TensorIterOrder, &B)
 where
     R: DataAPI<Data = Storage<T, B>>,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
 {
-    unsafe fn empty_like_f(param: (&TensorBase<R, D>, TensorIterOrder, &B)) -> Result<Self> {
-        let (tensor, order, device) = param;
+    type Out = Tensor<T, D, B>;
+
+    unsafe fn empty_like_f(self) -> Result<Self::Out> {
+        let (tensor, order, device) = self;
         let layout = layout_for_array_copy(tensor.layout(), order)?;
         let idx_max = layout.size();
         let data: Storage<T, _> = device.empty_impl(idx_max)?;
@@ -256,42 +260,47 @@ where
     }
 }
 
-impl<R, T, D, B> EmptyLikeAPI<(&TensorBase<R, D>, &B)> for Tensor<T, D, B>
+impl<R, T, D, B> EmptyLikeAPI for (&TensorBase<R, D>, &B)
 where
     R: DataAPI<Data = Storage<T, B>>,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
 {
-    unsafe fn empty_like_f(param: (&TensorBase<R, D>, &B)) -> Result<Self> {
-        let (tensor, device) = param;
-        empty_like_f((tensor, TensorIterOrder::default(), device))
+    type Out = Tensor<T, D, B>;
+
+    unsafe fn empty_like_f(self) -> Result<Self::Out> {
+        let (tensor, device) = self;
+        (tensor, TensorIterOrder::default(), device).empty_like_f()
     }
 }
 
-impl<R, T, D, B> EmptyLikeAPI<(&TensorBase<R, D>, TensorIterOrder)> for Tensor<T, D, B>
+impl<R, T, D, B> EmptyLikeAPI for (&TensorBase<R, D>, TensorIterOrder)
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+{
+    type Out = Tensor<T, D, B>;
+
+    unsafe fn empty_like_f(self) -> Result<Self::Out> {
+        let (tensor, order) = self;
+        let device = tensor.device();
+        (tensor, order, device).empty_like_f()
+    }
+}
+
+impl<R, T, D, B> EmptyLikeAPI for &TensorBase<R, D>
 where
     R: DataAPI<Data = Storage<T, B>>,
     T: Clone,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
 {
-    unsafe fn empty_like_f(param: (&TensorBase<R, D>, TensorIterOrder)) -> Result<Self> {
-        let (tensor, order) = param;
-        let device = tensor.device();
-        empty_like_f((tensor, order, device))
-    }
-}
+    type Out = Tensor<T, D, B>;
 
-impl<R, T, D, B> EmptyLikeAPI<&TensorBase<R, D>> for Tensor<T, D, B>
-where
-    R: DataAPI<Data = Storage<T, B>>,
-    T: Clone,
-    D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
-{
-    unsafe fn empty_like_f(tensor: &TensorBase<R, D>) -> Result<Self> {
-        let device = tensor.device();
-        empty_like_f((tensor, TensorIterOrder::default(), device))
+    unsafe fn empty_like_f(self) -> Result<Self::Out> {
+        let device = self.device();
+        (self, TensorIterOrder::default(), device).empty_like_f()
     }
 }
 
@@ -991,7 +1000,9 @@ mod test {
         println!("{a:6.3?}");
         let a = unsafe { Tensor::<f64, _>::empty([15, 18].f()) };
         println!("{a:6.3?}");
-        let a = unsafe { Tensor::empty_like((&a, TensorIterOrder::C)) };
+        let a = unsafe { a.empty_like() };
+        println!("{a:6.3?}");
+        let a = unsafe { empty_like((&a, TensorIterOrder::C)) };
         println!("{a:6.3?}");
         let a = Tensor::<f64, _>::eye(3);
         println!("{a:6.3?}");

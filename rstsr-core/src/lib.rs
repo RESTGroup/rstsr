@@ -4,6 +4,7 @@
 #![cfg_attr(not(test), no_std)]
 #![doc = include_str!("docs/lib.md")]
 
+pub mod prelude;
 pub mod prelude_dev;
 
 pub mod error;
