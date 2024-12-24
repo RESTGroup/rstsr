@@ -187,8 +187,8 @@ mod tests {
     fn test_mapv_binary() {
         let device = DeviceCpuSerial;
         let f = |x, y| 2.0 * x + 3.0 * y;
-        let a = Tensor::linspace((1., 6., 6, &device)).into_shape_assume_contig([2, 3]);
-        let b = Tensor::linspace((1., 3., 3, &device));
+        let a = linspace((1., 6., 6, &device)).into_shape_assume_contig([2, 3]);
+        let b = linspace((1., 3., 3, &device));
         let c = a.mapv_binary(&b, f);
         assert!(allclose_f64(&c, &vec![5., 10., 15., 11., 16., 21.].into()));
     }

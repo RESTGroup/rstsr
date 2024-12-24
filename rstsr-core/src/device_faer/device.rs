@@ -97,10 +97,10 @@ mod test {
     fn test_device_conversion() {
         let device_serial = DeviceCpuSerial {};
         let device_faer = DeviceFaer::new(0);
-        let a = Tensor::linspace((1.0, 5.0, 5, &device_serial));
+        let a = linspace((1.0, 5.0, 5, &device_serial));
         let b = a.into_device(&device_faer).unwrap();
         println!("{:?}", b);
-        let a = Tensor::linspace((1.0, 5.0, 5, &device_serial));
+        let a = linspace((1.0, 5.0, 5, &device_serial));
         let b = a.view().into_device(&device_faer).unwrap();
         println!("{:?}", b);
     }

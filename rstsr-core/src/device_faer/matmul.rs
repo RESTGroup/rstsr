@@ -284,30 +284,30 @@ mod test {
     #[test]
     fn test_matmul() {
         let device = DeviceFaer::default();
-        let a = Tensor::linspace((0.0, 14.0, 15, &device)).into_shape_assume_contig([3, 5]);
-        let b = Tensor::linspace((0.0, 14.0, 15, &device)).into_shape_assume_contig([5, 3]);
+        let a = linspace((0.0, 14.0, 15, &device)).into_shape_assume_contig([3, 5]);
+        let b = linspace((0.0, 14.0, 15, &device)).into_shape_assume_contig([5, 3]);
 
         let d = &a % &b;
         println!("{d}");
 
-        let a = Tensor::linspace((0.0, 14.0, 15, &device));
-        let b = Tensor::linspace((0.0, 14.0, 15, &device));
+        let a = linspace((0.0, 14.0, 15, &device));
+        let b = linspace((0.0, 14.0, 15, &device));
         println!("{:}", &a % &b);
 
-        let a = Tensor::linspace((0.0, 2.0, 3, &device));
-        let b = Tensor::linspace((0.0, 29.0, 30, &device)).into_shape_assume_contig([2, 3, 5]);
+        let a = linspace((0.0, 2.0, 3, &device));
+        let b = linspace((0.0, 29.0, 30, &device)).into_shape_assume_contig([2, 3, 5]);
         println!("{:}", &a % &b);
 
-        let a = Tensor::linspace((0.0, 29.0, 30, &device)).into_shape_assume_contig([2, 3, 5]);
-        let b = Tensor::linspace((0.0, 4.0, 5, &device));
+        let a = linspace((0.0, 29.0, 30, &device)).into_shape_assume_contig([2, 3, 5]);
+        let b = linspace((0.0, 4.0, 5, &device));
         println!("{:}", &a % &b);
 
-        let a = Tensor::linspace((0.0, 14.0, 15, &device)).into_shape_assume_contig([5, 3]);
-        let b = Tensor::linspace((0.0, 29.0, 30, &device)).into_shape_assume_contig([2, 3, 5]);
+        let a = linspace((0.0, 14.0, 15, &device)).into_shape_assume_contig([5, 3]);
+        let b = linspace((0.0, 29.0, 30, &device)).into_shape_assume_contig([2, 3, 5]);
         println!("{:}", &a % &b);
 
-        let a = Tensor::linspace((0.0, 29.0, 30, &device)).into_shape_assume_contig([2, 3, 5]);
-        let b = Tensor::linspace((0.0, 14.0, 15, &device)).into_shape_assume_contig([5, 3]);
+        let a = linspace((0.0, 29.0, 30, &device)).into_shape_assume_contig([2, 3, 5]);
+        let b = linspace((0.0, 14.0, 15, &device)).into_shape_assume_contig([5, 3]);
         println!("{:}", &a % &b);
     }
 }

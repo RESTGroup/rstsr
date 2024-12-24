@@ -75,7 +75,7 @@ where
         let layout_diag = tensor.layout().diagonal(Some(offset), Some(0), Some(1))?;
         let size = layout_diag.size();
         let device = tensor.device();
-        let mut result = unsafe { Tensor::empty_f(([size], device))? };
+        let mut result = unsafe { empty_f(([size], device))? };
         let layout_result = result.layout().clone();
         device.assign(result.storage_mut(), &layout_result, tensor.storage(), &layout_diag)?;
         return Ok(result);
@@ -103,7 +103,7 @@ where
         let (tensor, offset) = param;
         let layout_diag = tensor.layout().clone();
         let n_row = tensor.size() + offset.unsigned_abs();
-        let mut result = Tensor::zeros_f(([n_row, n_row], tensor.device()))?;
+        let mut result = zeros_f(([n_row, n_row], tensor.device()))?;
         let layout_result = result.layout().diagonal(Some(offset), Some(0), Some(1))?;
         let device = tensor.device();
         device.assign(result.storage_mut(), &layout_result, tensor.storage(), &layout_diag)?;
@@ -126,8 +126,6 @@ where
 
 #[cfg(test)]
 mod test {
-    use super::*;
-
     #[test]
     fn test_diag() {
         // let a = Tensor::arange(9).into_shape([3, 3]).into_owned();

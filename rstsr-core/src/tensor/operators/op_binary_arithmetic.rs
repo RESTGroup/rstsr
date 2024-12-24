@@ -446,22 +446,22 @@ mod test {
     #[test]
     fn test_add() {
         // contiguous
-        let a = Tensor::linspace((1.0, 5.0, 5));
-        let b = Tensor::linspace((2.0, 10.0, 5));
+        let a = linspace((1.0, 5.0, 5));
+        let b = linspace((2.0, 10.0, 5));
         let c = &a + &b;
         let c_ref = vec![3., 6., 9., 12., 15.].into();
         assert!(allclose_f64(&c, &c_ref));
 
-        let a = Tensor::linspace((1.0, 5.0, 5));
-        let b = Tensor::linspace((2.0, 10.0, 5));
+        let a = linspace((1.0, 5.0, 5));
+        let b = linspace((2.0, 10.0, 5));
         let c = add(&a, &b).unwrap();
         let c_ref = vec![3., 6., 9., 12., 15.].into();
         assert!(allclose_f64(&c, &c_ref));
 
         // broadcast
         // [2, 3] + [3]
-        let a = Tensor::linspace((1.0, 6.0, 6)).into_shape_assume_contig([2, 3]);
-        let b = Tensor::linspace((2.0, 6.0, 3));
+        let a = linspace((1.0, 6.0, 6)).into_shape_assume_contig([2, 3]);
+        let b = linspace((2.0, 6.0, 3));
         let c = &a + &b;
         let c_ref = vec![3., 6., 9., 6., 9., 12.].into();
         assert!(allclose_f64(&c, &c_ref));
@@ -470,9 +470,9 @@ mod test {
         // [1, 2, 3] + [5, 1, 2, 1]
         // a = np.linspace(1, 6, 6).reshape(1, 2, 3)
         // b = np.linspace(1, 10, 10).reshape(5, 1, 2, 1)
-        let a = Tensor::linspace((1.0, 6.0, 6));
+        let a = linspace((1.0, 6.0, 6));
         let a = a.into_shape_assume_contig([1, 2, 3]);
-        let b = Tensor::linspace((1.0, 10.0, 10));
+        let b = linspace((1.0, 10.0, 10));
         let b = b.into_shape_assume_contig([5, 1, 2, 1]);
         let c = &a + &b;
         let c_ref = vec![
@@ -483,38 +483,38 @@ mod test {
         assert!(allclose_f64(&c, &c_ref));
 
         // transposed
-        let a = Tensor::linspace((1.0, 9.0, 9));
+        let a = linspace((1.0, 9.0, 9));
         let a = a.into_shape_assume_contig([3, 3]);
-        let b = Tensor::linspace((2.0, 18.0, 9));
+        let b = linspace((2.0, 18.0, 9));
         let b = b.into_shape_assume_contig([3, 3]).into_reverse_axes();
         let c = &a + &b;
         let c_ref = vec![3., 10., 17., 8., 15., 22., 13., 20., 27.].into();
         assert!(allclose_f64(&c, &c_ref));
 
         // negative strides
-        let a = Tensor::linspace((1.0, 5.0, 5));
-        let b = Tensor::linspace((2.0, 10.0, 5));
+        let a = linspace((1.0, 5.0, 5));
+        let b = linspace((2.0, 10.0, 5));
         let a = a.flip(0);
         let c = &a + &b;
         let c_ref = vec![7., 8., 9., 10., 11.].into();
         assert!(allclose_f64(&c, &c_ref));
 
-        let a = Tensor::linspace((1.0, 5.0, 5));
-        let b = Tensor::linspace((2.0, 10.0, 5));
+        let a = linspace((1.0, 5.0, 5));
+        let b = linspace((2.0, 10.0, 5));
         let b = b.flip(0);
         let c = &a + &b;
         let c_ref = vec![11., 10., 9., 8., 7.].into();
         assert!(allclose_f64(&c, &c_ref));
 
         // view
-        let a = Tensor::linspace((1.0, 5.0, 5));
-        let b = Tensor::linspace((2.0, 10.0, 5));
+        let a = linspace((1.0, 5.0, 5));
+        let b = linspace((2.0, 10.0, 5));
         let c = a.view() + &b;
         let c_ref = vec![3., 6., 9., 12., 15.].into();
         assert!(allclose_f64(&c, &c_ref));
 
-        let a = Tensor::linspace((1.0, 5.0, 5));
-        let b = Tensor::linspace((2.0, 10.0, 5));
+        let a = linspace((1.0, 5.0, 5));
+        let b = linspace((2.0, 10.0, 5));
         let c = &a + b.view();
         let c_ref = vec![3., 6., 9., 12., 15.].into();
         assert!(allclose_f64(&c, &c_ref));
@@ -523,8 +523,8 @@ mod test {
     #[test]
     fn test_sub() {
         // contiguous
-        let a = Tensor::linspace((1.0, 5.0, 5));
-        let b = Tensor::linspace((2.0, 10.0, 5));
+        let a = linspace((1.0, 5.0, 5));
+        let b = linspace((2.0, 10.0, 5));
         let c = &a - &b;
         let c_ref = vec![-1., -2., -3., -4., -5.].into();
         assert!(allclose_f64(&c, &c_ref));
@@ -533,8 +533,8 @@ mod test {
     #[test]
     fn test_mul() {
         // contiguous
-        let a = Tensor::linspace((1.0, 5.0, 5));
-        let b = Tensor::linspace((2.0, 10.0, 5));
+        let a = linspace((1.0, 5.0, 5));
+        let b = linspace((2.0, 10.0, 5));
         let c = &a * &b;
         let c_ref = vec![2., 8., 18., 32., 50.].into();
         assert!(allclose_f64(&c, &c_ref));
@@ -543,8 +543,8 @@ mod test {
     #[test]
     fn test_add_consume() {
         // a + &b, same shape
-        let a = Tensor::linspace((1.0, 5.0, 5));
-        let b = Tensor::linspace((2.0, 10.0, 5));
+        let a = linspace((1.0, 5.0, 5));
+        let b = linspace((2.0, 10.0, 5));
         let a_ptr = a.data().storage().rawvec().as_ptr();
         let c = a + &b;
         let c_ptr = c.data().storage().rawvec().as_ptr();
@@ -552,8 +552,8 @@ mod test {
         assert!(allclose_f64(&c, &c_ref));
         assert_eq!(a_ptr, c_ptr);
         // a + &b, broadcastable
-        let a = Tensor::linspace((1.0, 10.0, 10)).into_shape_assume_contig([2, 5]);
-        let b = Tensor::linspace((2.0, 10.0, 5));
+        let a = linspace((1.0, 10.0, 10)).into_shape_assume_contig([2, 5]);
+        let b = linspace((2.0, 10.0, 5));
         let a_ptr = a.data().storage().rawvec().as_ptr();
         let c = a + &b;
         let c_ptr = c.data().storage().rawvec().as_ptr();
@@ -561,8 +561,8 @@ mod test {
         assert!(allclose_f64(&c, &c_ref));
         assert_eq!(a_ptr, c_ptr);
         // a + &b, non-broadcastable
-        let a = Tensor::linspace((2.0, 10.0, 5));
-        let b = Tensor::linspace((1.0, 10.0, 10)).into_shape_assume_contig([2, 5]);
+        let a = linspace((2.0, 10.0, 5));
+        let b = linspace((1.0, 10.0, 10)).into_shape_assume_contig([2, 5]);
         let a_ptr = a.data().storage().rawvec().as_ptr();
         let c = a + &b;
         let c_ptr = c.data().storage().rawvec().as_ptr();
@@ -570,8 +570,8 @@ mod test {
         assert!(allclose_f64(&c, &c_ref));
         assert_ne!(a_ptr, c_ptr);
         // &a + b
-        let a = Tensor::linspace((1.0, 5.0, 5));
-        let b = Tensor::linspace((2.0, 10.0, 5));
+        let a = linspace((1.0, 5.0, 5));
+        let b = linspace((2.0, 10.0, 5));
         let b_ptr = b.data().storage().rawvec().as_ptr();
         let c = &a + b;
         let c_ptr = c.data().storage().rawvec().as_ptr();
@@ -579,8 +579,8 @@ mod test {
         assert!(allclose_f64(&c, &c_ref));
         assert_eq!(b_ptr, c_ptr);
         // &a + b, non-broadcastable
-        let a = Tensor::linspace((1.0, 10.0, 10)).into_shape_assume_contig([2, 5]);
-        let b = Tensor::linspace((2.0, 10.0, 5));
+        let a = linspace((1.0, 10.0, 10)).into_shape_assume_contig([2, 5]);
+        let b = linspace((2.0, 10.0, 5));
         let b_ptr = b.data().storage().rawvec().as_ptr();
         let c = &a + b;
         let c_ptr = c.data().storage().rawvec().as_ptr();
@@ -588,8 +588,8 @@ mod test {
         assert!(allclose_f64(&c, &c_ref));
         assert_ne!(b_ptr, c_ptr);
         // a + b, same shape
-        let a = Tensor::linspace((1.0, 5.0, 5));
-        let b = Tensor::linspace((2.0, 10.0, 5));
+        let a = linspace((1.0, 5.0, 5));
+        let b = linspace((2.0, 10.0, 5));
         let a_ptr = a.data().storage().rawvec().as_ptr();
         let c = a + b;
         let c_ptr = c.data().storage().rawvec().as_ptr();
@@ -601,8 +601,8 @@ mod test {
     #[test]
     fn test_sub_consume() {
         // &a - b
-        let a = Tensor::linspace((1.0, 5.0, 5));
-        let b = Tensor::linspace((2.0, 10.0, 5));
+        let a = linspace((1.0, 5.0, 5));
+        let b = linspace((2.0, 10.0, 5));
         let b_ptr = b.data().storage().rawvec().as_ptr();
         let c = &a - b;
         let c_ptr = c.data().storage().rawvec().as_ptr();
@@ -610,8 +610,8 @@ mod test {
         assert!(allclose_f64(&c, &c_ref));
         assert_eq!(b_ptr, c_ptr);
         // a - &b
-        let a = Tensor::linspace((1.0, 5.0, 5));
-        let b = Tensor::linspace((2.0, 10.0, 5));
+        let a = linspace((1.0, 5.0, 5));
+        let b = linspace((2.0, 10.0, 5));
         let a_ptr = a.data().storage().rawvec().as_ptr();
         let c = a - b.view();
         let c_ptr = c.data().storage().rawvec().as_ptr();
@@ -619,8 +619,8 @@ mod test {
         assert!(allclose_f64(&c, &c_ref));
         assert_eq!(a_ptr, c_ptr);
         // a - b
-        let a = Tensor::linspace((1.0, 5.0, 5));
-        let b = Tensor::linspace((2.0, 10.0, 5));
+        let a = linspace((1.0, 5.0, 5));
+        let b = linspace((2.0, 10.0, 5));
         let a_ptr = a.data().storage().rawvec().as_ptr();
         let c = a - b;
         let c_ptr = c.data().storage().rawvec().as_ptr();

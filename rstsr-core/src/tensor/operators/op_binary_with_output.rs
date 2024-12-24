@@ -72,9 +72,9 @@ mod test {
 
     #[test]
     fn test_op_binary_with_output() {
-        let a = Tensor::linspace((1.0, 10.0, 10)).into_shape_assume_contig([2, 5]);
-        let b = Tensor::linspace((2.0, 10.0, 5));
-        let mut c = Tensor::linspace((1.0, 10.0, 10)).into_shape_assume_contig([2, 5]);
+        let a = linspace((1.0, 10.0, 10)).into_shape_assume_contig([2, 5]);
+        let b = linspace((2.0, 10.0, 5));
+        let mut c = linspace((1.0, 10.0, 10)).into_shape_assume_contig([2, 5]);
         let c_view = c.view_mut();
         add_with_output(&a, b, c_view).unwrap();
         println!("{:?}", c);
