@@ -4,6 +4,7 @@ pub mod rstsr_traits {
         ArangeAPI, EmptyAPI, EmptyLikeAPI, EyeAPI, FullAPI, FullLikeAPI, LinspaceAPI, OnesAPI,
         OnesLikeAPI, ZerosAPI, ZerosLikeAPI,
     };
+    pub use crate::tensor::creation_from_tensor::DiagAPI;
 }
 
 pub mod rstsr_structs {
@@ -24,6 +25,7 @@ pub mod rstsr_funcs {
         full_like, full_like_f, linspace, linspace_f, ones, ones_f, ones_like, ones_like_f, zeros,
         zeros_f, zeros_like, zeros_like_f,
     };
+    pub use crate::tensor::creation_from_tensor::{diag, diag_f};
 }
 
 // final re-exports
@@ -33,4 +35,5 @@ pub use rstsr_traits::*;
 pub mod rstsr {
     pub use super::rstsr_funcs::*;
     pub use super::rstsr_structs::*;
+    pub use super::rstsr_traits::*;
 }

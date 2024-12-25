@@ -134,6 +134,36 @@ where
     }
 }
 
+impl<T, B, D, L> AsArrayAPI<D> for (Vec<T>, L, &B)
+where
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+    L: Into<Layout<D>>,
+{
+    type Out = Tensor<T, D, B>;
+
+    fn asarray_f(self) -> Result<Self::Out> {
+        let (input, layout, device) = self;
+        let layout: Layout<D> = layout.into();
+        rstsr_assert_eq!(
+            layout.bounds_index()?,
+            (0, layout.size()),
+            InvalidLayout,
+            "This constructor assumes compact memory layout."
+        )?;
+        rstsr_assert_eq!(
+            layout.size(),
+            input.len(),
+            InvalidLayout,
+            "This constructor assumes that the layout size is equal to the input size."
+        )?;
+        let storage = device.outof_cpu_vec(input)?;
+        let data = DataOwned::from(storage);
+        let tensor = unsafe { Tensor::new_unchecked(data, layout) };
+        return Ok(tensor);
+    }
+}
+
 impl<T> AsArrayAPI<()> for Vec<T>
 where
     T: Clone,
@@ -142,6 +172,20 @@ where
 
     fn asarray_f(self) -> Result<Self::Out> {
         asarray_f((self, &DeviceCpu::default()))
+    }
+}
+
+impl<T, D, L> AsArrayAPI<D> for (Vec<T>, L)
+where
+    T: Clone,
+    D: DimAPI,
+    L: Into<Layout<D>>,
+{
+    type Out = Tensor<T, D, DeviceCpu>;
+
+    fn asarray_f(self) -> Result<Self::Out> {
+        let (input, layout) = self;
+        asarray_f((input, layout, &DeviceCpu::default()))
     }
 }
 

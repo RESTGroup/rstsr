@@ -18,8 +18,8 @@ where
     type DataRepr = DataOwned<Storage<T, B2>>;
     type Dim = D;
     fn into_device(self, device: &B2) -> Result<Tensor<T, D, B2>> {
-        let layout = self.layout().clone();
-        let storage = self.into_data().into_storage().into_device(device)?;
+        let (data, layout) = self.into_data_and_layout();
+        let storage = data.into_storage().into_device(device)?;
         Tensor::new_f(DataOwned::from(storage), layout)
     }
 }

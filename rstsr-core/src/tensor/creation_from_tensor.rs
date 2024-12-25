@@ -11,11 +11,13 @@ use crate::prelude_dev::*;
 
 /* #region diag */
 
-pub trait DiagAPI<Param>: Sized {
-    fn diag_f(param: Param) -> Result<Self>;
+pub trait DiagAPI<Inp>: Sized {
+    type Out;
 
-    fn diag(param: Param) -> Self {
-        Self::diag_f(param).unwrap()
+    fn diag_f(self) -> Result<Self::Out>;
+
+    fn diag(self) -> Self::Out {
+        Self::diag_f(self).unwrap()
     }
 }
 
@@ -28,50 +30,30 @@ pub trait DiagAPI<Param>: Sized {
 /// # See also
 ///
 /// - [numpy.diag](https://numpy.org/doc/stable/reference/generated/numpy.diag.html)
-pub fn diag<Rhs, Param>(param: Param) -> Rhs
+pub fn diag<Param, Inp, Rhs>(param: Param) -> Rhs
 where
-    Rhs: DiagAPI<Param>,
+    Param: DiagAPI<Inp, Out = Rhs>,
 {
-    Rhs::diag(param)
+    Param::diag(param)
 }
 
-pub fn diag_f<Rhs, Param>(param: Param) -> Result<Rhs>
+pub fn diag_f<Param, Inp, Rhs>(param: Param) -> Result<Rhs>
 where
-    Rhs: DiagAPI<Param>,
+    Param: DiagAPI<Inp, Out = Rhs>,
 {
-    Rhs::diag_f(param)
+    Param::diag_f(param)
 }
 
-impl<R, T, B> TensorBase<R, Ix1>
-where
-    R: DataAPI<Data = Storage<T, B>>,
-    T: Clone + Num,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, Ix1> + DeviceCreationNumAPI<T>,
-{
-    pub fn diag(&self) -> Tensor<T, Ix2, B> {
-        return diag(self);
-    }
-}
-
-impl<R, T, B> TensorBase<R, Ix2>
-where
-    R: DataAPI<Data = Storage<T, B>>,
-    T: Clone + Num,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, Ix1>,
-{
-    pub fn diag(&self) -> Tensor<T, Ix1, B> {
-        return diag(self);
-    }
-}
-
-impl<R, T, B> DiagAPI<(&TensorBase<R, Ix2>, isize)> for Tensor<T, Ix1, B>
+impl<R, T, B> DiagAPI<()> for (&TensorBase<R, Ix2>, isize)
 where
     R: DataAPI<Data = Storage<T, B>>,
     T: Clone,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, Ix1>,
 {
-    fn diag_f(param: (&TensorBase<R, Ix2>, isize)) -> Result<Self> {
-        let (tensor, offset) = param;
+    type Out = Tensor<T, Ix1, B>;
+
+    fn diag_f(self) -> Result<Self::Out> {
+        let (tensor, offset) = self;
         let layout_diag = tensor.layout().diagonal(Some(offset), Some(0), Some(1))?;
         let size = layout_diag.size();
         let device = tensor.device();
@@ -82,25 +64,29 @@ where
     }
 }
 
-impl<R, T, B> DiagAPI<&TensorBase<R, Ix2>> for Tensor<T, Ix1, B>
+impl<R, T, B> DiagAPI<()> for &TensorBase<R, Ix2>
 where
     R: DataAPI<Data = Storage<T, B>>,
     T: Clone,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, Ix1>,
 {
-    fn diag_f(tensor: &TensorBase<R, Ix2>) -> Result<Self> {
-        return diag_f((tensor, 0));
+    type Out = Tensor<T, Ix1, B>;
+
+    fn diag_f(self) -> Result<Self::Out> {
+        return diag_f((self, 0));
     }
 }
 
-impl<T, B, R> DiagAPI<(&TensorBase<R, Ix1>, isize)> for Tensor<T, Ix2, B>
+impl<T, B, R> DiagAPI<()> for (&TensorBase<R, Ix1>, isize)
 where
     R: DataAPI<Data = Storage<T, B>>,
     T: Clone + Num,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + DeviceCreationNumAPI<T> + OpAssignAPI<T, Ix1>,
 {
-    fn diag_f(param: (&TensorBase<R, Ix1>, isize)) -> Result<Self> {
-        let (tensor, offset) = param;
+    type Out = Tensor<T, Ix2, B>;
+
+    fn diag_f(self) -> Result<Self::Out> {
+        let (tensor, offset) = self;
         let layout_diag = tensor.layout().clone();
         let n_row = tensor.size() + offset.unsigned_abs();
         let mut result = zeros_f(([n_row, n_row], tensor.device()))?;
@@ -111,14 +97,16 @@ where
     }
 }
 
-impl<T, B, R> DiagAPI<&TensorBase<R, Ix1>> for Tensor<T, Ix2, B>
+impl<T, B, R> DiagAPI<()> for &TensorBase<R, Ix1>
 where
     R: DataAPI<Data = Storage<T, B>>,
     T: Clone + Num,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + DeviceCreationNumAPI<T> + OpAssignAPI<T, Ix1>,
 {
-    fn diag_f(tensor: &TensorBase<R, Ix1>) -> Result<Self> {
-        return diag_f((tensor, 0));
+    type Out = Tensor<T, Ix2, B>;
+
+    fn diag_f(self) -> Result<Self::Out> {
+        return diag_f((self, 0));
     }
 }
 
@@ -126,14 +114,17 @@ where
 
 #[cfg(test)]
 mod test {
+    use super::*;
+
     #[test]
     fn test_diag() {
-        // let a = Tensor::arange(9).into_shape([3, 3]).into_owned();
-        // let b = Tensor::<_, Ix2, _>::diag((&a, 0));
-        // let c = a.diag();
-        // println!("{:}", c);
-        // let c = Tensor::arange(3);
-        // let d = Tensor::diag((&c, -1));
-        // println!("{:}", d);
+        let a = arange(9).into_shape([3, 3]).into_owned();
+        let b = diag((&a, 1));
+        println!("{:}", b);
+        let c = a.diag();
+        println!("{:}", c);
+        let c = arange(3) + 1;
+        let d = diag((&c, -1));
+        println!("{:}", d);
     }
 }
