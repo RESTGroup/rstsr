@@ -58,7 +58,7 @@ where
                 - p2_prev as isize * stride[len_prev - 2];
             if shape[len_prev - 2] < max_print
                 || p2_prev + min_print >= shape[len_prev - 2]
-                || p2_prev < min_print
+                || p2_prev + 1 < min_print
             {
                 let p2 = p2_prev + 1;
                 idx_prev.push(p2);
@@ -167,7 +167,7 @@ where
                 let offset = offset as isize - p1_prev as isize * stride[len_prev - 1];
                 if shape[len_prev - 1] < max_print
                     || p1_prev + min_print >= shape[len_prev - 1]
-                    || p1_prev < min_print
+                    || p1_prev + 1 < min_print
                 {
                     let p1 = p1_prev + 1;
                     idx_prev.push(p1);
@@ -268,7 +268,7 @@ where
                 - p2_prev as isize * stride[len_prev - 2];
             if shape[len_prev - 2] < max_print
                 || p2_prev + min_print >= shape[len_prev - 2]
-                || p2_prev < min_print
+                || p2_prev + 1 < min_print
             {
                 let p2 = p2_prev + 1;
                 idx_prev.push(p2);
@@ -377,7 +377,7 @@ where
                 let offset = offset as isize - p1_prev as isize * stride[len_prev - 1];
                 if shape[len_prev - 1] < max_print
                     || p1_prev + min_print >= shape[len_prev - 1]
-                    || p1_prev < min_print
+                    || p1_prev + 1 < min_print
                 {
                     let p1 = p1_prev + 1;
                     idx_prev.push(p1);
@@ -438,7 +438,7 @@ where
         writeln!(f)?;
         let self_type = core::any::type_name::<Self>();
         writeln!(f, "Type: {}", self_type)?;
-        writeln!(f, "===========================")
+        writeln!(f, "==========================")
     }
 }
 
