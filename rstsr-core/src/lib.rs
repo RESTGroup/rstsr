@@ -1,8 +1,10 @@
-#![recursion_limit = "512"]
-#![allow(refining_impl_trait)]
-#![allow(clippy::needless_return)]
 #![cfg_attr(not(test), no_std)]
 #![doc = include_str!("docs/lib.md")]
+// This option is for myself as python-like developer.
+#![allow(clippy::needless_return)]
+// Resolution to something like `tensor.slice_mut() += scalar`.
+// This code is not allowed in rust, but `*&mut tensor.slice_mut() += scalar` is allowed.
+#![allow(clippy::deref_addrof)]
 
 pub mod prelude;
 pub mod prelude_dev;

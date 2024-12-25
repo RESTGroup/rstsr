@@ -15,7 +15,7 @@ pub enum DataRef<'a, S> {
 }
 
 #[derive(Debug)]
-pub enum DataRefMut<'a, S> {
+pub enum DataMut<'a, S> {
     TrueRef(&'a mut S),
     ManuallyDropOwned(ManuallyDrop<S>),
 }
@@ -23,7 +23,7 @@ pub enum DataRefMut<'a, S> {
 #[derive(Debug)]
 pub enum DataMutable<'a, S> {
     Owned(DataOwned<S>),
-    RefMut(DataRefMut<'a, S>),
+    RefMut(DataMut<'a, S>),
     ToBeCloned(DataRef<'a, S>, DataOwned<S>),
 }
 
@@ -36,7 +36,7 @@ pub enum DataCow<'a, S> {
 #[derive(Debug)]
 pub enum DataReference<'a, S> {
     Ref(DataRef<'a, S>),
-    RefMut(DataRefMut<'a, S>),
+    RefMut(DataMut<'a, S>),
 }
 
 impl<S> From<S> for DataOwned<S> {
@@ -67,10 +67,10 @@ impl<S> DataRef<'_, S> {
     }
 }
 
-impl<S> DataRefMut<'_, S> {
+impl<S> DataMut<'_, S> {
     #[inline]
     pub fn from_manually_drop(data: ManuallyDrop<S>) -> Self {
-        DataRefMut::ManuallyDropOwned(data)
+        DataMut::ManuallyDropOwned(data)
     }
 }
 
@@ -83,7 +83,7 @@ pub trait DataAPI {
 
 pub trait DataMutAPI: DataAPI {
     fn storage_mut(&mut self) -> &mut Self::Data;
-    fn as_ref_mut(&mut self) -> DataRefMut<Self::Data>;
+    fn as_ref_mut(&mut self) -> DataMut<Self::Data>;
 }
 
 pub trait DataOwnedAPI: DataMutAPI {}
@@ -146,7 +146,7 @@ where
     }
 }
 
-impl<S> DataAPI for DataRefMut<'_, S>
+impl<S> DataAPI for DataMut<'_, S>
 where
     S: Clone,
 {
@@ -155,8 +155,8 @@ where
     #[inline]
     fn storage(&self) -> &Self::Data {
         match self {
-            DataRefMut::TrueRef(storage) => storage,
-            DataRefMut::ManuallyDropOwned(storage) => storage,
+            DataMut::TrueRef(storage) => storage,
+            DataMut::ManuallyDropOwned(storage) => storage,
         }
     }
 
@@ -216,28 +216,28 @@ where
     }
 
     #[inline]
-    fn as_ref_mut(&mut self) -> DataRefMut<Self::Data> {
-        DataRefMut::TrueRef(&mut self.storage)
+    fn as_ref_mut(&mut self) -> DataMut<Self::Data> {
+        DataMut::TrueRef(&mut self.storage)
     }
 }
 
-impl<S> DataMutAPI for DataRefMut<'_, S>
+impl<S> DataMutAPI for DataMut<'_, S>
 where
     S: Clone,
 {
     #[inline]
     fn storage_mut(&mut self) -> &mut Self::Data {
         match self {
-            DataRefMut::TrueRef(storage) => storage,
-            DataRefMut::ManuallyDropOwned(storage) => storage,
+            DataMut::TrueRef(storage) => storage,
+            DataMut::ManuallyDropOwned(storage) => storage,
         }
     }
 
     #[inline]
-    fn as_ref_mut(&mut self) -> DataRefMut<'_, Self::Data> {
+    fn as_ref_mut(&mut self) -> DataMut<'_, Self::Data> {
         match self {
-            DataRefMut::TrueRef(storage) => DataRefMut::TrueRef(storage),
-            DataRefMut::ManuallyDropOwned(storage) => DataRefMut::TrueRef(storage),
+            DataMut::TrueRef(storage) => DataMut::TrueRef(storage),
+            DataMut::ManuallyDropOwned(storage) => DataMut::TrueRef(storage),
         }
     }
 }

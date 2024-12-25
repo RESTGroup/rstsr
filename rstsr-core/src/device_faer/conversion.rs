@@ -106,7 +106,7 @@ macro_rules! impl_into_rstsr {
                 let rawvec =
                     unsafe { Vec::from_raw_parts(ptr as *mut $ty, upper_bound, upper_bound) };
                 let storage = ManuallyDrop::new(Storage::new(rawvec, DeviceFaer::default()));
-                let data = DataRefMut::from_manually_drop(storage);
+                let data = DataMut::from_manually_drop(storage);
                 let tensor = unsafe { TensorViewMut::new_unchecked(data, layout) };
                 return tensor;
             }

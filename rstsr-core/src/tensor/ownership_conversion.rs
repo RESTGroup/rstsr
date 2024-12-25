@@ -16,7 +16,7 @@ where
     }
 
     /// Get a mutable view of tensor.
-    pub fn view_mut(&mut self) -> TensorBase<DataRefMut<'_, R::Data>, D>
+    pub fn view_mut(&mut self) -> TensorBase<DataMut<'_, R::Data>, D>
     where
         R: DataMutAPI,
     {
@@ -166,7 +166,7 @@ pub trait TensorRefMutAPI<S, D>
 where
     D: DimAPI,
 {
-    fn tsr_view_mut(&mut self) -> TensorBase<DataRefMut<'_, S>, D>;
+    fn tsr_view_mut(&mut self) -> TensorBase<DataMut<'_, S>, D>;
 }
 
 impl<R, S, D> TensorRefMutAPI<S, D> for &mut TensorBase<R, D>
@@ -175,18 +175,18 @@ where
     D: DimAPI,
 {
     #[inline]
-    fn tsr_view_mut(&mut self) -> TensorBase<DataRefMut<'_, S>, D> {
+    fn tsr_view_mut(&mut self) -> TensorBase<DataMut<'_, S>, D> {
         self.view_mut()
     }
 }
 
-impl<S, D> TensorRefMutAPI<S, D> for TensorBase<DataRefMut<'_, S>, D>
+impl<S, D> TensorRefMutAPI<S, D> for TensorBase<DataMut<'_, S>, D>
 where
     S: Clone,
     D: DimAPI,
 {
     #[inline]
-    fn tsr_view_mut(&mut self) -> TensorBase<DataRefMut<'_, S>, D> {
+    fn tsr_view_mut(&mut self) -> TensorBase<DataMut<'_, S>, D> {
         self.view_mut()
     }
 }

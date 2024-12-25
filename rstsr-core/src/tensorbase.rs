@@ -115,7 +115,7 @@ where
 
 pub type Tensor<T, D, B = DeviceCpu> = TensorBase<DataOwned<Storage<T, B>>, D>;
 pub type TensorView<'a, T, D, B = DeviceCpu> = TensorBase<DataRef<'a, Storage<T, B>>, D>;
-pub type TensorViewMut<'a, T, D, B = DeviceCpu> = TensorBase<DataRefMut<'a, Storage<T, B>>, D>;
+pub type TensorViewMut<'a, T, D, B = DeviceCpu> = TensorBase<DataMut<'a, Storage<T, B>>, D>;
 pub type TensorCow<'a, T, D, B = DeviceCpu> = TensorBase<DataCow<'a, Storage<T, B>>, D>;
 
 impl<R, D> TensorBase<R, D>
