@@ -384,7 +384,7 @@ macro_rules! slice {
 macro_rules! s {
     // basic rule
     [$($slc:expr),*] => {
-        &[$(($slc).into()),*]
+        [$(($slc).into()),*].as_ref()
     };
 }
 
