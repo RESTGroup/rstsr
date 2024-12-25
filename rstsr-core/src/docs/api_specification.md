@@ -116,7 +116,7 @@ Dropped support
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| Y | [`arange`], [`arange_int`] | [`arange`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.empty.html) | Returns evenly spaced values within the half-open interval `[start, stop)` as a one-dimensional array. |
+| Y | [`arange`] | [`arange`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.empty.html) | Returns evenly spaced values within the half-open interval `[start, stop)` as a one-dimensional array. |
 | P | [`asarray`] | [`asarray`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.asarray.html) | Convert the input to an array. |
 | Y | [`empty`] | [`empty`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.empty.html) | Returns an uninitialized array having a specified `shape`. |
 | Y | [`empty_like`] | [`empty_like`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.empty_like.html) | Returns an uninitialized array with the same `shape` as an input array `x`. |
