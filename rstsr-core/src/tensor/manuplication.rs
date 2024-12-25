@@ -13,7 +13,6 @@ use core::num::TryFromIntError;
 pub fn broadcast_arrays<R>(tensors: Vec<TensorBase<R, IxD>>) -> Vec<TensorBase<R, IxD>>
 where
     R: DataAPI,
-    IxD: DimMaxAPI<IxD>,
 {
     broadcast_arrays_f(tensors).unwrap()
 }
@@ -21,7 +20,6 @@ where
 pub fn broadcast_arrays_f<R>(tensors: Vec<TensorBase<R, IxD>>) -> Result<Vec<TensorBase<R, IxD>>>
 where
     R: DataAPI,
-    IxD: DimMaxAPI<IxD>,
 {
     // fast return if there is only zero/one tensor
     if tensors.len() <= 1 {
@@ -139,7 +137,6 @@ where
     R: DataAPI,
     D: DimAPI + DimLargerOneAPI,
     D::LargerOne: DimAPI,
-    Layout<D::LargerOne>: TryFrom<Layout<IxD>, Error = Error>,
     I: TryInto<isize, Error = TryFromIntError>,
 {
     expand_dims_f(tensor, axis).unwrap()
@@ -153,12 +150,10 @@ where
     R: DataAPI,
     D: DimAPI + DimLargerOneAPI,
     D::LargerOne: DimAPI,
-    Layout<D::LargerOne>: TryFrom<Layout<IxD>, Error = Error>,
     I: TryInto<isize, Error = TryFromIntError>,
 {
     let axis = axis.try_into()?;
     let layout = tensor.layout().dim_insert(axis)?;
-    let layout = layout.try_into()?;
     unsafe { Ok(TensorBase::new_unchecked(tensor.data, layout)) }
 }
 
@@ -168,7 +163,6 @@ where
     R: DataAPI,
     D: DimAPI + DimLargerOneAPI,
     D::LargerOne: DimAPI,
-    Layout<D::LargerOne>: TryFrom<Layout<IxD>, Error = Error>,
 {
     /// Expands the shape of an array by inserting a new axis (dimension) of
     /// size one at the position specified by `axis`.
@@ -534,7 +528,6 @@ where
     R: DataAPI,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    Layout<D::SmallerOne>: TryFrom<Layout<IxD>, Error = Error>,
     I: TryInto<isize, Error = TryFromIntError>,
 {
     squeeze_f(tensor, axis).unwrap()
@@ -545,12 +538,10 @@ where
     R: DataAPI,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    Layout<D::SmallerOne>: TryFrom<Layout<IxD>, Error = Error>,
     I: TryInto<isize, Error = TryFromIntError>,
 {
     let axis = axis.try_into()?;
     let layout = tensor.layout().dim_eliminate(axis)?;
-    let layout = layout.try_into()?;
     unsafe { Ok(TensorBase::new_unchecked(tensor.data, layout)) }
 }
 
@@ -559,7 +550,6 @@ where
     R: DataAPI,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    Layout<D::SmallerOne>: TryFrom<Layout<IxD>, Error = Error>,
 {
     /// Removes singleton dimensions (axes) from `x`.
     ///
@@ -613,7 +603,7 @@ where
     R: DataAPI,
     D: DimAPI,
     D2: DimAPI,
-    D: DimConvertAPI<D2>,
+    D: DimIntoAPI<D2>,
 {
     let layout = tensor.layout().clone().into_dim::<D2>()?;
     unsafe { Ok(TensorBase::new_unchecked(tensor.data, layout)) }
@@ -635,7 +625,7 @@ where
     pub fn to_dim<D2>(&self) -> Result<TensorBase<DataRef<'_, R::Data>, D2>>
     where
         D2: DimAPI,
-        D: DimConvertAPI<D2>,
+        D: DimIntoAPI<D2>,
     {
         into_dim(self.view())
     }
@@ -648,7 +638,7 @@ where
     pub fn into_dim<D2>(self) -> Result<TensorBase<R, D2>>
     where
         D2: DimAPI,
-        D: DimConvertAPI<D2>,
+        D: DimIntoAPI<D2>,
     {
         into_dim(self)
     }

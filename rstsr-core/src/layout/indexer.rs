@@ -11,7 +11,7 @@ pub enum Indexer {
     /// Insert dimension at index, something like unsqueeze. Currently not
     /// applied.
     Insert,
-    /// Expand dimensions. Currently not applied.
+    /// Expand dimensions.
     Ellipsis,
 }
 
@@ -47,12 +47,12 @@ macro_rules! impl_from_int_into_indexer {
 
 impl_from_int_into_indexer!(usize, isize, u8, i8, u16, i16, u32, i32, u64, i64, u128, i128);
 
-pub trait IndexerPreserve: Sized {
+pub trait IndexerPreserveAPI: Sized {
     /// Narrowing tensor by slicing at a specific axis.
     fn dim_narrow(&self, axis: isize, slice: SliceI) -> Result<Self>;
 }
 
-impl<D> IndexerPreserve for Layout<D>
+impl<D> IndexerPreserveAPI for Layout<D>
 where
     D: DimDevAPI,
 {
@@ -140,29 +140,24 @@ where
     }
 }
 
-pub trait IndexerDynamic: IndexerPreserve {
+pub trait IndexerSmallerOneAPI {
+    type DOut: DimDevAPI;
+
     /// Select dimension at index. Number of dimension will decrease by 1.
-    fn dim_select(&self, axis: isize, index: isize) -> Result<Layout<IxD>>;
-
-    /// Insert dimension after, with shape 1. Number of dimension will increase
-    /// by 1.
-    fn dim_insert(&self, axis: isize) -> Result<Layout<IxD>>;
-
-    /// Index tensor by a list of indexers.
-    fn dim_slice(&self, indexers: &[Indexer]) -> Result<Layout<IxD>>;
+    fn dim_select(&self, axis: isize, index: isize) -> Result<Layout<Self::DOut>>;
 
     /// Eliminate dimension at index. Number of dimension will decrease by 1.
-    fn dim_eliminate(&self, axis: isize) -> Result<Layout<IxD>>;
-
-    /// Split current layout into two layouts at axis, with offset unchanged.
-    fn dim_split_at(&self, axis: isize) -> Result<(Layout<IxD>, Layout<IxD>)>;
+    fn dim_eliminate(&self, axis: isize) -> Result<Layout<Self::DOut>>;
 }
 
-impl<D> IndexerDynamic for Layout<D>
+impl<D> IndexerSmallerOneAPI for Layout<D>
 where
-    D: DimDevAPI,
+    D: DimDevAPI + DimSmallerOneAPI,
+    D::SmallerOne: DimDevAPI,
 {
-    fn dim_select(&self, axis: isize, index: isize) -> Result<Layout<IxD>> {
+    type DOut = <D as DimSmallerOneAPI>::SmallerOne;
+
+    fn dim_select(&self, axis: isize, index: isize) -> Result<Layout<Self::DOut>> {
         // dimension check
         let axis = if axis < 0 { self.ndim() as isize + axis } else { axis };
         rstsr_pattern!(axis, 0..self.ndim() as isize, ValueOutOfRange)?;
@@ -190,10 +185,49 @@ where
         }
 
         let offset = offset as usize;
-        return Ok(Layout::<IxD>::new(shape_new, stride_new, offset));
+        let layout = Layout::<IxD>::new(shape_new, stride_new, offset);
+        return layout.into_dim();
     }
 
-    fn dim_insert(&self, axis: isize) -> Result<Layout<IxD>> {
+    fn dim_eliminate(&self, axis: isize) -> Result<Layout<Self::DOut>> {
+        // dimension check
+        let axis = if axis < 0 { self.ndim() as isize + axis } else { axis };
+        rstsr_pattern!(axis, 0..self.ndim() as isize, ValueOutOfRange)?;
+        let axis = axis as usize;
+
+        // get essential information
+        let mut shape = self.shape().as_ref().to_vec();
+        let mut stride = self.stride().as_ref().to_vec();
+        let offset = self.offset();
+
+        if shape[axis] != 1 {
+            rstsr_raise!(InvalidValue, "Dimension to be eliminated is not 1.")?;
+        }
+
+        shape.remove(axis);
+        stride.remove(axis);
+
+        let layout = Layout::<IxD>::new(shape, stride, offset);
+        return layout.into_dim();
+    }
+}
+
+pub trait IndexerLargerOneAPI {
+    type DOut: DimDevAPI;
+
+    /// Insert dimension after, with shape 1. Number of dimension will increase
+    /// by 1.
+    fn dim_insert(&self, axis: isize) -> Result<Layout<Self::DOut>>;
+}
+
+impl<D> IndexerLargerOneAPI for Layout<D>
+where
+    D: DimDevAPI + DimLargerOneAPI,
+    D::LargerOne: DimDevAPI,
+{
+    type DOut = <D as DimLargerOneAPI>::LargerOne;
+
+    fn dim_insert(&self, axis: isize) -> Result<Layout<Self::DOut>> {
         // dimension check
         let axis = if axis < 0 { self.ndim() as isize + axis } else { axis };
         rstsr_pattern!(axis, 0..(self.ndim() + 1) as isize, ValueOutOfRange)?;
@@ -221,9 +255,23 @@ where
             stride.insert(axis, stride[axis]);
         }
 
-        return Ok(Layout::<IxD>::new(shape, stride, offset));
+        let layout = Layout::new(shape, stride, offset);
+        return layout.into_dim();
     }
+}
 
+pub trait IndexerDynamicAPI: IndexerPreserveAPI {
+    /// Index tensor by a list of indexers.
+    fn dim_slice(&self, indexers: &[Indexer]) -> Result<Layout<IxD>>;
+
+    /// Split current layout into two layouts at axis, with offset unchanged.
+    fn dim_split_at(&self, axis: isize) -> Result<(Layout<IxD>, Layout<IxD>)>;
+}
+
+impl<D> IndexerDynamicAPI for Layout<D>
+where
+    D: DimDevAPI,
+{
     fn dim_slice(&self, indexers: &[Indexer]) -> Result<Layout<IxD>> {
         // transform any layout to dynamic layout
         let shape = self.shape().as_ref().to_vec();
@@ -295,27 +343,6 @@ where
         rstsr_assert!(cur_dim == 0, Miscellaneous, "Internal program error in indexer.")?;
 
         return Ok(layout);
-    }
-
-    fn dim_eliminate(&self, axis: isize) -> Result<Layout<IxD>> {
-        // dimension check
-        let axis = if axis < 0 { self.ndim() as isize + axis } else { axis };
-        rstsr_pattern!(axis, 0..self.ndim() as isize, ValueOutOfRange)?;
-        let axis = axis as usize;
-
-        // get essential information
-        let mut shape = self.shape().as_ref().to_vec();
-        let mut stride = self.stride().as_ref().to_vec();
-        let offset = self.offset();
-
-        if shape[axis] != 1 {
-            rstsr_raise!(InvalidValue, "Dimension to be eliminated is not 1.")?;
-        }
-
-        shape.remove(axis);
-        stride.remove(axis);
-
-        return Ok(Layout::<IxD>::new(shape, stride, offset));
     }
 
     fn dim_split_at(&self, axis: isize) -> Result<(Layout<IxD>, Layout<IxD>)> {

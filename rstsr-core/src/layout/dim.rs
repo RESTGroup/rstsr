@@ -28,6 +28,7 @@ pub trait DimBaseAPI:
     + PartialEq
     + Clone
     + TryFrom<Vec<usize>>
+    + Into<Vec<usize>>
     + Send
     + Sync
 {
@@ -37,7 +38,8 @@ pub trait DimBaseAPI:
         + Debug
         + PartialEq
         + Clone
-        + TryFrom<Vec<isize>>;
+        + TryFrom<Vec<isize>>
+        + Into<Vec<isize>>;
 
     /// Number of dimension
     fn ndim(&self) -> usize;

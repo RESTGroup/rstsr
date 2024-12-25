@@ -29,18 +29,18 @@ impl DimDevAPI for IxD {}
 
 pub trait DimAPI:
     DimDevAPI
-    + DimConvertAPI<IxD>
-    + DimConvertAPI<Ix0>
-    + DimConvertAPI<Ix1>
-    + DimConvertAPI<Ix2>
-    + DimConvertAPI<Ix3>
-    + DimConvertAPI<Ix4>
-    + DimConvertAPI<Ix5>
-    + DimConvertAPI<Ix6>
-    + DimConvertAPI<Ix7>
-    + DimConvertAPI<Ix8>
-    + DimConvertAPI<Ix9>
-    + DimConvertAPI<Self>
+    + DimIntoAPI<IxD>
+    + DimIntoAPI<Ix0>
+    + DimIntoAPI<Ix1>
+    + DimIntoAPI<Ix2>
+    + DimIntoAPI<Ix3>
+    + DimIntoAPI<Ix4>
+    + DimIntoAPI<Ix5>
+    + DimIntoAPI<Ix6>
+    + DimIntoAPI<Ix7>
+    + DimIntoAPI<Ix8>
+    + DimIntoAPI<Ix9>
+    + DimIntoAPI<Self>
 {
 }
 

@@ -320,7 +320,6 @@ where
     ) -> Result<Layout<<D as DimSmallerOneAPI>::SmallerOne>>
     where
         D: DimSmallerOneAPI,
-        IxD: DimConvertAPI<<D as DimSmallerOneAPI>::SmallerOne>,
     {
         // check if this layout is at least 2-dimension
         rstsr_assert!(self.ndim() >= 2, InvalidLayout)?;
@@ -716,31 +715,27 @@ impl DimLayoutContigAPI for IxD {}
 
 /* #region Dimension Conversion */
 
-pub trait DimConvertAPI<D>: DimBaseAPI
+pub trait DimIntoAPI<D>: DimBaseAPI
 where
     D: DimBaseAPI,
 {
     fn into_dim(layout: Layout<Self>) -> Result<Layout<D>>;
 }
 
-impl DimConvertAPI<IxD> for IxD {
-    fn into_dim(layout: Layout<IxD>) -> Result<Layout<IxD>> {
-        Ok(layout)
-    }
-}
-
-impl<const N: usize> DimConvertAPI<Ix<N>> for IxD {
-    fn into_dim(layout: Layout<IxD>) -> Result<Layout<Ix<N>>> {
-        rstsr_assert_eq!(layout.ndim(), N, InvalidLayout)?;
-        let shape = layout.shape().clone().try_into().unwrap();
-        let stride = layout.stride().clone().try_into().unwrap();
+impl<D> DimIntoAPI<D> for IxD
+where
+    D: DimBaseAPI,
+{
+    fn into_dim(layout: Layout<IxD>) -> Result<Layout<D>> {
+        let shape = layout.shape().clone().try_into().ok().unwrap();
+        let stride = layout.stride().clone().try_into().ok().unwrap();
         let offset = layout.offset();
         let size = layout.size();
         return Ok(Layout { shape, stride, offset, size });
     }
 }
 
-impl<const N: usize> DimConvertAPI<IxD> for Ix<N> {
+impl<const N: usize> DimIntoAPI<IxD> for Ix<N> {
     fn into_dim(layout: Layout<Ix<N>>) -> Result<Layout<IxD>> {
         let shape = (*layout.shape()).into();
         let stride = (*layout.stride()).into();
@@ -750,7 +745,7 @@ impl<const N: usize> DimConvertAPI<IxD> for Ix<N> {
     }
 }
 
-impl<const N: usize, const M: usize> DimConvertAPI<Ix<M>> for Ix<N> {
+impl<const N: usize, const M: usize> DimIntoAPI<Ix<M>> for Ix<N> {
     fn into_dim(layout: Layout<Ix<N>>) -> Result<Layout<Ix<M>>> {
         rstsr_assert_eq!(N, M, InvalidLayout)?;
         let shape = layout.shape().to_vec().try_into().unwrap();
@@ -769,7 +764,7 @@ where
     pub fn into_dim<D2>(self) -> Result<Layout<D2>>
     where
         D2: DimBaseAPI,
-        D: DimConvertAPI<D2>,
+        D: DimIntoAPI<D2>,
     {
         D::into_dim(self)
     }
@@ -778,7 +773,7 @@ where
     pub fn to_dim<D2>(&self) -> Result<Layout<D2>>
     where
         D2: DimBaseAPI,
-        D: DimConvertAPI<D2>,
+        D: DimIntoAPI<D2>,
     {
         D::into_dim(self.clone())
     }

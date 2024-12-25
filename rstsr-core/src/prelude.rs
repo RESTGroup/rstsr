@@ -1,6 +1,6 @@
 pub mod rstsr_traits {
     pub use crate::layout::{
-        DimAPI, DimBaseAPI, DimBroadcastableAPI, DimConvertAPI, DimDevAPI, DimLargerOneAPI,
+        DimAPI, DimBaseAPI, DimBroadcastableAPI, DimDevAPI, DimIntoAPI, DimLargerOneAPI,
         DimLayoutContigAPI, DimMaxAPI, DimShapeAPI, DimSmallerOneAPI, DimStrideAPI,
     };
     pub use crate::tensor::asarray::AsArrayAPI;

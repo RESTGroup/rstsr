@@ -192,8 +192,8 @@ macro_rules! impl_binary_lr_consume {
             B: DeviceCreationAnyAPI<TA>,
             // broadcast constraints
             DA: DimMaxAPI<DB, Max = DC>,
-            DC: DimConvertAPI<DA>,
-            DA: DimConvertAPI<DC>,
+            DC: DimIntoAPI<DA>,
+            DA: DimIntoAPI<DC>,
             // operation constraints
             TA: $Op<TB, Output = TA>,
             B: $DeviceOpAPI<TA, TB, TA, DC>,
@@ -241,8 +241,8 @@ macro_rules! impl_binary_lr_consume {
             // broadcast constraints
             DA: DimMaxAPI<DB, Max = DC>,
             DB: DimMaxAPI<DA, Max = DC>,
-            DC: DimConvertAPI<DB>,
-            DB: DimConvertAPI<DC>,
+            DC: DimIntoAPI<DB>,
+            DB: DimIntoAPI<DC>,
             // operation constraints
             TA: $Op<TB, Output = TB>,
             B: $DeviceOpAPI<TA, TB, TB, DC>,
@@ -287,8 +287,8 @@ macro_rules! impl_binary_lr_consume {
             B: DeviceCreationAnyAPI<TA>,
             // broadcast constraints
             DA: DimMaxAPI<DB, Max = DC>,
-            DC: DimConvertAPI<DA>,
-            DA: DimConvertAPI<DC>,
+            DC: DimIntoAPI<DA>,
+            DA: DimIntoAPI<DC>,
             // operation constraints
             TA: $Op<TB, Output = TA>,
             B: $DeviceOpAPI<TA, TB, TA, DC>,
@@ -312,8 +312,8 @@ macro_rules! impl_binary_lr_consume {
             // broadcast constraints
             DA: DimMaxAPI<DB, Max = DC>,
             DB: DimMaxAPI<DA, Max = DC>,
-            DC: DimConvertAPI<DB>,
-            DB: DimConvertAPI<DC>,
+            DC: DimIntoAPI<DB>,
+            DB: DimIntoAPI<DC>,
             // operation constraints
             TA: $Op<TB, Output = TB>,
             B: $DeviceOpAPI<TA, TB, TB, DC>,
@@ -334,9 +334,9 @@ macro_rules! impl_binary_lr_consume {
             B: DeviceAPI<T>,
             B: DeviceCreationAnyAPI<T>,
             // broadcast constraints
-            DA: DimMaxAPI<DB, Max = DC> + DimConvertAPI<DC>,
-            DB: DimMaxAPI<DA, Max = DC> + DimConvertAPI<DC>,
-            DC: DimConvertAPI<DA> + DimConvertAPI<DB>,
+            DA: DimMaxAPI<DB, Max = DC> + DimIntoAPI<DC>,
+            DB: DimMaxAPI<DA, Max = DC> + DimIntoAPI<DC>,
+            DC: DimIntoAPI<DA> + DimIntoAPI<DB>,
             // operation constraints
             T: $Op<T, Output = T>,
             B: $DeviceOpAPI<T, T, T, DC>,

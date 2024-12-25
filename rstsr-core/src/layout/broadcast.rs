@@ -180,7 +180,7 @@ pub fn broadcast_layout_to_first<D1, D2, D>(
 where
     D1: DimBaseAPI + DimMaxAPI<D2, Max = D>,
     D2: DimBaseAPI,
-    D: DimConvertAPI<D1>,
+    D: DimIntoAPI<D1>,
 {
     let (layout1, layout2) = broadcast_layout(layout1, layout2)?;
     let layout1 = layout1.into_dim::<D1>()?;
