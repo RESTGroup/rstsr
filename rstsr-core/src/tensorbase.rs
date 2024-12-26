@@ -145,3 +145,5 @@ pub type TensorView<'a, T, D, B = DeviceCpu> = TensorBase<DataRef<'a, Storage<T,
 pub type TensorViewMut<'a, T, D, B = DeviceCpu> = TensorBase<DataMut<'a, Storage<T, B>>, D>;
 pub type TensorCow<'a, T, D, B = DeviceCpu> = TensorBase<DataCow<'a, Storage<T, B>>, D>;
 pub type TensorArc<T, D, B = DeviceCpu> = TensorBase<DataArc<Storage<T, B>>, D>;
+pub use TensorView as TensorRef;
+pub use TensorViewMut as TensorMut;
