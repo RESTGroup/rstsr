@@ -167,7 +167,13 @@ where
 
     #[inline]
     fn into_owned(self) -> DataOwned<Self::Data> {
-        DataOwned::from(self.storage().clone())
+        match self {
+            DataMut::TrueRef(storage) => DataOwned::from(storage.clone()),
+            DataMut::ManuallyDropOwned(storage) => {
+                let v = ManuallyDrop::into_inner(storage);
+                DataOwned::from(v.clone())
+            },
+        }
     }
 }
 

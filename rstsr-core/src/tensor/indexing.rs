@@ -1,5 +1,7 @@
 // Indexing of tensors
 
+use core::ops::{Index, IndexMut};
+
 use crate::prelude_dev::*;
 
 /* #region slice */
@@ -138,6 +140,60 @@ where
 
 /* #endregion */
 
+/* #region indexing */
+
+// It seems that implementing Index for TensorBase is not possible because of
+// the lifetime issue. However, directly implementing each struct can avoid such
+// problem.
+
+macro_rules! impl_Index_for_Tensor {
+    ($tensor_struct: ty) => {
+        impl<T, D, B, I> Index<I> for $tensor_struct
+        where
+            D: DimAPI,
+            B: DeviceAPI<T, RawVec = Vec<T>>,
+            I: AsRef<[usize]>,
+        {
+            type Output = T;
+
+            fn index(&self, index: I) -> &Self::Output {
+                let index = index.as_ref().iter().map(|&v| v as isize).collect::<Vec<_>>();
+                let i = self.layout().index(index.as_ref());
+                let rawvec = self.storage().rawvec();
+                rawvec.index(i)
+            }
+        }
+    };
+}
+
+impl_Index_for_Tensor!(Tensor<T, D, B>);
+impl_Index_for_Tensor!(TensorView<'_, T, D, B>);
+impl_Index_for_Tensor!(TensorViewMut<'_, T, D, B>);
+impl_Index_for_Tensor!(TensorCow<'_, T, D, B>);
+
+macro_rules! impl_IndexMut_for_Tensor {
+    ($tensor_struct: ty) => {
+        impl<T, D, B, I> IndexMut<I> for $tensor_struct
+        where
+            D: DimAPI,
+            B: DeviceAPI<T, RawVec = Vec<T>>,
+            I: AsRef<[usize]>,
+        {
+            fn index_mut(&mut self, index: I) -> &mut Self::Output {
+                let index = index.as_ref().iter().map(|&v| v as isize).collect::<Vec<_>>();
+                let i = self.layout().index(index.as_ref());
+                let rawvec = self.storage_mut().rawvec_mut();
+                rawvec.index_mut(i)
+            }
+        }
+    };
+}
+
+impl_IndexMut_for_Tensor!(Tensor<T, D, B>);
+impl_IndexMut_for_Tensor!(TensorViewMut<'_, T, D, B>);
+
+/* #endregion */
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -159,6 +215,24 @@ mod test {
         tensor_slice += 10;
         println!("{:?}", tensor);
         *&mut tensor.slice_mut(s!(1..4)) += 10;
+        println!("{:?}", tensor);
+    }
+
+    #[test]
+    fn test_tensor_index() {
+        let mut tensor = asarray(vec![1, 2, 3, 4, 5]);
+        let value = tensor[[1]];
+        println!("{:?}", value);
+        let tensor_view = tensor.view();
+        let value = tensor_view[[2]];
+        {
+            let tensor_view = tensor.view();
+            let value = tensor_view[[3]];
+            println!("{:?}", value);
+            let mut tensor_view_mut = tensor.view_mut();
+            tensor_view_mut[[4]] += 1;
+        }
+        println!("{:?}", value);
         println!("{:?}", tensor);
     }
 }
