@@ -75,7 +75,9 @@ where
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
 {
     pub fn into_owned(self) -> TensorBase<DataOwned<R::Data>, D> {
-        if self.layout().c_contig() || self.layout().f_contig() {
+        let (idx_min, idx_max) = self.layout().bounds_index().unwrap();
+        if idx_min == 0 && idx_max == self.data().storage().len() && idx_max == self.layout().size()
+        {
             return self.into_owned_keep_layout();
         } else {
             return asarray((&self, TensorIterOrder::K));
@@ -83,7 +85,9 @@ where
     }
 
     pub fn into_shared(self) -> TensorBase<DataArc<R::Data>, D> {
-        if self.layout().c_contig() || self.layout().f_contig() {
+        let (idx_min, idx_max) = self.layout().bounds_index().unwrap();
+        if idx_min == 0 && idx_max == self.data().storage().len() && idx_max == self.layout().size()
+        {
             return self.into_shared_keep_layout();
         } else {
             return asarray((&self, TensorIterOrder::K)).into_shared();
