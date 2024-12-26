@@ -425,7 +425,7 @@ where
     S: DataAPI<Data = Storage<T, B>>,
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        writeln!(f, "=== Debug Tensor Print ===")?;
+        writeln!(f, "\n=== Debug Tensor Print ===")?;
         let vec = self.data().storage().to_cpu_vec().unwrap();
         let layout = &self.layout();
         let max_print = MAX_PRINT;
