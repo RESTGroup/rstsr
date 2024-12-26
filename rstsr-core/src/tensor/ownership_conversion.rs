@@ -21,7 +21,7 @@ where
         R: DataMutAPI,
     {
         let layout = self.layout().clone();
-        let data = self.data_mut().as_ref_mut();
+        let data = self.data_mut().as_mut();
         unsafe { TensorBase::new_unchecked(data, layout) }
     }
 
@@ -30,12 +30,38 @@ where
     /// Data is either moved or cloned.
     /// Layout is not involved; i.e. all underlying data is moved or cloned
     /// without changing layout.
+    ///
+    /// # See also
+    ///
+    /// [`Tensor::into_owned`] keep data in some conditions, otherwise clone.
+    /// This function can avoid cases where data memory bulk is large, but
+    /// tensor view is small.
     pub fn into_owned_keep_layout(self) -> TensorBase<DataOwned<R::Data>, D>
     where
         R: DataAPI,
     {
         let TensorBase { data, layout } = self;
         let data = data.into_owned();
+        unsafe { TensorBase::new_unchecked(data, layout) }
+    }
+
+    /// Convert tensor into shared tensor.
+    ///
+    /// Data is either moved or cloned.
+    /// Layout is not involved; i.e. all underlying data is moved or cloned
+    /// without changing layout.
+    ///
+    /// # See also
+    ///
+    /// [`Tensor::into_shared`] keep data in some conditions, otherwise clone.
+    /// This function can avoid cases where data memory bulk is large, but
+    /// tensor view is small.
+    pub fn into_shared_keep_layout(self) -> TensorBase<DataArc<R::Data>, D>
+    where
+        R: DataAPI,
+    {
+        let TensorBase { data, layout } = self;
+        let data = data.into_shared();
         unsafe { TensorBase::new_unchecked(data, layout) }
     }
 }
@@ -54,6 +80,18 @@ where
         } else {
             return asarray((&self, TensorIterOrder::K));
         }
+    }
+
+    pub fn into_shared(self) -> TensorBase<DataArc<R::Data>, D> {
+        if self.layout().c_contig() || self.layout().f_contig() {
+            return self.into_shared_keep_layout();
+        } else {
+            return asarray((&self, TensorIterOrder::K)).into_shared();
+        }
+    }
+
+    pub fn to_owned(&self) -> TensorBase<DataOwned<R::Data>, D> {
+        self.view().into_owned()
     }
 }
 

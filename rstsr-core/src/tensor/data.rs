@@ -1,3 +1,6 @@
+extern crate alloc;
+
+use alloc::sync::Arc;
 use core::mem::ManuallyDrop;
 
 #[derive(Debug, Clone)]
@@ -21,16 +24,24 @@ pub enum DataMut<'a, S> {
 }
 
 #[derive(Debug)]
+pub enum DataCow<'a, S> {
+    Owned(DataOwned<S>),
+    Ref(DataRef<'a, S>),
+}
+
+#[derive(Debug)]
+pub struct DataArc<S> {
+    pub(crate) storage: Arc<S>,
+}
+
+unsafe impl<S> Send for DataArc<S> where S: Send {}
+unsafe impl<S> Sync for DataArc<S> where S: Sync {}
+
+#[derive(Debug)]
 pub enum DataMutable<'a, S> {
     Owned(DataOwned<S>),
     RefMut(DataMut<'a, S>),
     ToBeCloned(DataRef<'a, S>, DataOwned<S>),
-}
-
-#[derive(Debug, Clone)]
-pub enum DataCow<'a, S> {
-    Owned(DataOwned<S>),
-    Ref(DataRef<'a, S>),
 }
 
 #[derive(Debug)]
@@ -67,6 +78,13 @@ impl<S> DataRef<'_, S> {
     }
 }
 
+impl<'a, S> From<&'a mut S> for DataMut<'a, S> {
+    #[inline]
+    fn from(data: &'a mut S) -> Self {
+        DataMut::TrueRef(data)
+    }
+}
+
 impl<S> DataMut<'_, S> {
     #[inline]
     pub fn from_manually_drop(data: ManuallyDrop<S>) -> Self {
@@ -74,16 +92,35 @@ impl<S> DataMut<'_, S> {
     }
 }
 
+impl<S> From<Arc<S>> for DataArc<S> {
+    #[inline]
+    fn from(data: Arc<S>) -> Self {
+        Self { storage: data }
+    }
+}
+
+impl<S> From<S> for DataArc<S> {
+    #[inline]
+    fn from(data: S) -> Self {
+        Self { storage: Arc::new(data) }
+    }
+}
+
 pub trait DataAPI {
     type Data: Clone;
     fn storage(&self) -> &Self::Data;
-    fn as_ref(&self) -> DataRef<Self::Data>;
     fn into_owned(self) -> DataOwned<Self::Data>;
+    fn into_shared(self) -> DataArc<Self::Data>;
+    fn as_ref(&self) -> DataRef<Self::Data> {
+        DataRef::from(self.storage())
+    }
 }
 
 pub trait DataMutAPI: DataAPI {
     fn storage_mut(&mut self) -> &mut Self::Data;
-    fn as_ref_mut(&mut self) -> DataMut<Self::Data>;
+    fn as_mut(&mut self) -> DataMut<Self::Data> {
+        DataMut::TrueRef(self.storage_mut())
+    }
 }
 
 pub trait DataOwnedAPI: DataMutAPI {}
@@ -102,13 +139,13 @@ where
     }
 
     #[inline]
-    fn as_ref(&self) -> DataRef<Self::Data> {
-        DataRef::from(&self.storage)
+    fn into_owned(self) -> DataOwned<Self::Data> {
+        self
     }
 
     #[inline]
-    fn into_owned(self) -> DataOwned<Self::Data> {
-        self
+    fn into_shared(self) -> DataArc<Self::Data> {
+        DataArc::from(self.storage)
     }
 }
 
@@ -127,20 +164,23 @@ where
     }
 
     #[inline]
-    fn as_ref(&self) -> DataRef<Self::Data> {
-        match self {
-            DataRef::TrueRef(storage) => DataRef::TrueRef(storage),
-            DataRef::ManuallyDropOwned(storage) => DataRef::TrueRef(storage),
-        }
-    }
-
-    #[inline]
     fn into_owned(self) -> DataOwned<Self::Data> {
         match self {
             DataRef::TrueRef(storage) => DataOwned::from(storage.clone()),
             DataRef::ManuallyDropOwned(storage) => {
                 let v = ManuallyDrop::into_inner(storage);
                 DataOwned::from(v.clone())
+            },
+        }
+    }
+
+    #[inline]
+    fn into_shared(self) -> DataArc<Self::Data> {
+        match self {
+            DataRef::TrueRef(storage) => DataArc::from(storage.clone()),
+            DataRef::ManuallyDropOwned(storage) => {
+                let v = ManuallyDrop::into_inner(storage);
+                DataArc::from(v.clone())
             },
         }
     }
@@ -161,17 +201,23 @@ where
     }
 
     #[inline]
-    fn as_ref(&self) -> DataRef<'_, Self::Data> {
-        DataRef::from(self.storage())
-    }
-
-    #[inline]
     fn into_owned(self) -> DataOwned<Self::Data> {
         match self {
             DataMut::TrueRef(storage) => DataOwned::from(storage.clone()),
             DataMut::ManuallyDropOwned(storage) => {
                 let v = ManuallyDrop::into_inner(storage);
                 DataOwned::from(v.clone())
+            },
+        }
+    }
+
+    #[inline]
+    fn into_shared(self) -> DataArc<Self::Data> {
+        match self {
+            DataMut::TrueRef(storage) => DataArc::from(storage.clone()),
+            DataMut::ManuallyDropOwned(storage) => {
+                let v = ManuallyDrop::into_inner(storage);
+                DataArc::from(v.clone())
             },
         }
     }
@@ -192,19 +238,41 @@ where
     }
 
     #[inline]
-    fn as_ref(&self) -> DataRef<Self::Data> {
-        match self {
-            DataCow::Owned(data) => data.as_ref(),
-            DataCow::Ref(data) => data.as_ref(),
-        }
-    }
-
-    #[inline]
     fn into_owned(self) -> DataOwned<Self::Data> {
         match self {
             DataCow::Owned(data) => data,
             DataCow::Ref(data) => data.into_owned(),
         }
+    }
+
+    #[inline]
+    fn into_shared(self) -> DataArc<Self::Data> {
+        match self {
+            DataCow::Owned(data) => DataArc::from(data.into_storage()),
+            DataCow::Ref(data) => data.into_shared(),
+        }
+    }
+}
+
+impl<S> DataAPI for DataArc<S>
+where
+    S: Clone,
+{
+    type Data = S;
+
+    #[inline]
+    fn storage(&self) -> &Self::Data {
+        &self.storage
+    }
+
+    #[inline]
+    fn into_owned(self) -> DataOwned<Self::Data> {
+        DataOwned::from(Arc::try_unwrap(self.storage).ok().unwrap())
+    }
+
+    #[inline]
+    fn into_shared(self) -> DataArc<Self::Data> {
+        self
     }
 }
 
@@ -220,11 +288,6 @@ where
     fn storage_mut(&mut self) -> &mut Self::Data {
         &mut self.storage
     }
-
-    #[inline]
-    fn as_ref_mut(&mut self) -> DataMut<Self::Data> {
-        DataMut::TrueRef(&mut self.storage)
-    }
 }
 
 impl<S> DataMutAPI for DataMut<'_, S>
@@ -238,21 +301,19 @@ where
             DataMut::ManuallyDropOwned(storage) => storage,
         }
     }
+}
 
+impl<S> DataMutAPI for DataArc<S>
+where
+    S: Clone,
+{
     #[inline]
-    fn as_ref_mut(&mut self) -> DataMut<'_, Self::Data> {
-        match self {
-            DataMut::TrueRef(storage) => DataMut::TrueRef(storage),
-            DataMut::ManuallyDropOwned(storage) => DataMut::TrueRef(storage),
-        }
+    fn storage_mut(&mut self) -> &mut Self::Data {
+        Arc::make_mut(&mut self.storage)
     }
 }
 
 /* #endregion */
-
-/* #region DataOwnedAPI */
-
-impl<S> DataOwnedAPI for DataOwned<S> where S: Clone {}
 
 /* #region DataCow */
 
