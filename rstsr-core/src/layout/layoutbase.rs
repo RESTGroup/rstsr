@@ -204,9 +204,9 @@ where
     /// Index of tensor by list of indexes to dimensions.
     ///
     /// This function does not optimized for performance.
-    pub fn try_index(&self, index: D::Stride) -> Result<usize> {
+    pub fn index_f(&self, index: &[isize]) -> Result<usize> {
+        rstsr_assert_eq!(index.len(), self.ndim(), InvalidLayout)?;
         let mut pos = self.offset() as isize;
-        let index = index.as_ref();
         let shape = self.shape.as_ref();
         let stride = self.stride.as_ref();
 
@@ -227,8 +227,8 @@ where
     /// # Panics
     ///
     /// - Index greater than shape
-    pub fn index(&self, index: D::Stride) -> usize {
-        self.try_index(index).unwrap()
+    pub fn index(&self, index: &[isize]) -> usize {
+        self.index_f(index).unwrap()
     }
 
     /// Index range bounds of current layout. This bound is [min, max), which
@@ -952,12 +952,12 @@ mod test {
         //       .reshape(9, 12, 15)[4:2:-1, 4:10, 2:10:3]
         //       .transpose(2, 0, 1)
         let layout = Layout::new([3, 2, 6], [3, -180, 15], 782);
-        assert_eq!(layout.index([0, 0, 0]), 782);
-        assert_eq!(layout.index([2, 1, 4]), 668);
-        assert_eq!(layout.index([1, -2, -3]), 830);
+        assert_eq!(layout.index(&[0, 0, 0]), 782);
+        assert_eq!(layout.index(&[2, 1, 4]), 668);
+        assert_eq!(layout.index(&[1, -2, -3]), 830);
         // zero-dim
         let layout = Layout::new([], [], 10);
-        assert_eq!(layout.index([]), 10);
+        assert_eq!(layout.index(&[]), 10);
     }
 
     #[test]
