@@ -201,9 +201,9 @@ mod test {
     #[test]
     fn test_tensor_slice() {
         let tensor = asarray(vec![1, 2, 3, 4, 5]);
-        let tensor_slice = tensor.slice(s!(1..4));
+        let tensor_slice = tensor.slice(s![1..4]);
         println!("{:?}", tensor_slice);
-        let tensor_slice = tensor.slice(s!(1..4, None));
+        let tensor_slice = tensor.slice(s![1..4, None]);
         println!("{:?}", tensor_slice);
         let tensor_slice = tensor.slice(1);
         println!("{:?}", tensor_slice);
@@ -211,10 +211,10 @@ mod test {
         println!("{:?}", tensor_slice);
 
         let mut tensor = asarray(vec![1, 2, 3, 4, 5]);
-        let mut tensor_slice = tensor.slice_mut(s!(1..4));
+        let mut tensor_slice = tensor.slice_mut(s![1..4]);
         tensor_slice += 10;
         println!("{:?}", tensor);
-        *&mut tensor.slice_mut(s!(1..4)) += 10;
+        *&mut tensor.slice_mut(s![1..4]) += 10;
         println!("{:?}", tensor);
     }
 
