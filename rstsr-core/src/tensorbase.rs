@@ -99,6 +99,14 @@ where
     pub fn storage(&self) -> &Storage<T, B> {
         self.data().storage()
     }
+
+    pub fn rawvec<'a>(&'a self) -> &'a B::RawVec
+    where
+        T: 'a,
+        B: 'a,
+    {
+        self.data().storage().rawvec()
+    }
 }
 
 impl<T, D, B, R> TensorBase<R, D>
@@ -110,6 +118,15 @@ where
     #[inline]
     pub fn storage_mut(&mut self) -> &mut Storage<T, B> {
         self.data_mut().storage_mut()
+    }
+
+    #[inline]
+    pub fn rawvec_mut<'a>(&'a mut self) -> &'a mut B::RawVec
+    where
+        T: 'a,
+        B: 'a,
+    {
+        self.data_mut().storage_mut().rawvec_mut()
     }
 }
 

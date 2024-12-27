@@ -47,7 +47,9 @@ pub use crate::feature_rayon::op_with_func::*;
 #[cfg(feature = "faer")]
 pub use crate::device_faer::device::*;
 
-pub use crate::{Tensor, TensorBase, TensorCow, TensorView, TensorViewMut};
+pub use crate::{
+    Tensor, TensorArc, TensorBase, TensorCow, TensorMut, TensorRef, TensorView, TensorViewMut,
+};
 
 pub use crate::{rstsr_assert, rstsr_assert_eq, rstsr_invalid, rstsr_pattern, rstsr_raise};
 pub use crate::{s, slice};

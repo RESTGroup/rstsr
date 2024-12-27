@@ -25,6 +25,14 @@ where
         unsafe { TensorBase::new_unchecked(data, layout) }
     }
 
+    pub fn into_cow<'a>(self) -> TensorBase<DataCow<'a, R::Data>, D>
+    where
+        Self: Into<TensorBase<DataCow<'a, R::Data>, D>>,
+        R: DataAPI,
+    {
+        self.into()
+    }
+
     /// Convert tensor into owned tensor.
     ///
     /// Data is either moved or cloned.
@@ -107,7 +115,7 @@ where
 {
     #[inline]
     fn from(tensor: TensorBase<DataOwned<S>, D>) -> Self {
-        let TensorBase { data, layout } = tensor;
+        let (data, layout) = tensor.into_data_and_layout();
         let data = DataCow::from(data);
         unsafe { TensorBase::new_unchecked(data, layout) }
     }
@@ -119,7 +127,42 @@ where
 {
     #[inline]
     fn from(tensor: TensorBase<DataRef<'a, S>, D>) -> Self {
-        let TensorBase { data, layout } = tensor;
+        let (data, layout) = tensor.into_data_and_layout();
+        let data = DataCow::from(data);
+        unsafe { TensorBase::new_unchecked(data, layout) }
+    }
+}
+
+impl<'a, S, D> From<TensorBase<DataMut<'a, S>, D>> for TensorBase<DataCow<'a, S>, D>
+where
+    D: DimAPI,
+    S: Clone,
+{
+    #[inline]
+    fn from(tensor: TensorBase<DataMut<'a, S>, D>) -> Self {
+        let (data, layout) = tensor.into_data_and_layout();
+        match data {
+            DataMut::TrueRef(data) => {
+                let data = DataCow::from(DataRef::from(&*data));
+                unsafe { TensorBase::new_unchecked(data, layout) }
+            },
+            DataMut::ManuallyDropOwned(data) => {
+                let data = DataCow::from(DataRef::from_manually_drop(data));
+                unsafe { TensorBase::new_unchecked(data, layout) }
+            },
+        }
+    }
+}
+
+impl<S, D> From<TensorBase<DataArc<S>, D>> for TensorBase<DataCow<'_, S>, D>
+where
+    D: DimAPI,
+    S: Clone,
+{
+    #[inline]
+    fn from(tensor: TensorBase<DataArc<S>, D>) -> Self {
+        let (data, layout) = tensor.into_data_and_layout();
+        let data = data.into_owned();
         let data = DataCow::from(data);
         unsafe { TensorBase::new_unchecked(data, layout) }
     }

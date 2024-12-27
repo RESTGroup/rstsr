@@ -282,6 +282,88 @@ where
 
 /* #endregion */
 
+/* #region slice-like mutable input */
+
+impl<'a, T, B> AsArrayAPI<()> for (&'a mut [T], &B)
+where
+    T: Clone,
+    B: DeviceAPI<T, RawVec = Vec<T>> + 'a,
+{
+    type Out = TensorMut<'a, T, Ix1, B>;
+
+    fn asarray_f(self) -> Result<Self::Out> {
+        let (input, device) = self;
+        let layout = [input.len()].c();
+        let device = device.clone();
+
+        let ptr = input.as_ptr();
+        let len = input.len();
+        let rawvec: Vec<T> = unsafe {
+            let ptr = ptr as *mut T;
+            Vec::from_raw_parts(ptr, len, len)
+        };
+        let storage = ManuallyDrop::new(Storage::new(rawvec, device));
+        let data = DataMut::from_manually_drop(storage);
+        let tensor = unsafe { TensorMut::new_unchecked(data, layout) };
+        return Ok(tensor);
+    }
+}
+
+impl<'a, T> AsArrayAPI<()> for &'a mut [T]
+where
+    T: Clone,
+{
+    type Out = TensorMut<'a, T, Ix1, DeviceCpu>;
+
+    fn asarray_f(self) -> Result<Self::Out> {
+        asarray_f((self, &DeviceCpu::default()))
+    }
+}
+
+impl<'a, T, B> AsArrayAPI<()> for (&'a mut Vec<T>, &B)
+where
+    T: Clone,
+    B: DeviceAPI<T, RawVec = Vec<T>> + 'a,
+{
+    type Out = TensorMut<'a, T, Ix1, B>;
+
+    fn asarray_f(self) -> Result<Self::Out> {
+        let (input, device) = self;
+        asarray_f((input.as_mut_slice(), device))
+    }
+}
+
+impl<'a, T> AsArrayAPI<()> for &'a mut Vec<T>
+where
+    T: Clone,
+{
+    type Out = TensorMut<'a, T, Ix1, DeviceCpu>;
+
+    fn asarray_f(self) -> Result<Self::Out> {
+        asarray_f((self.as_mut_slice(), &DeviceCpu::default()))
+    }
+}
+
+impl<'a, T> From<&'a mut [T]> for TensorMut<'a, T, Ix1, DeviceCpu>
+where
+    T: Clone,
+{
+    fn from(input: &'a mut [T]) -> Self {
+        asarray(input)
+    }
+}
+
+impl<'a, T> From<&'a mut Vec<T>> for TensorMut<'a, T, Ix1, DeviceCpu>
+where
+    T: Clone,
+{
+    fn from(input: &'a mut Vec<T>) -> Self {
+        asarray(input)
+    }
+}
+
+/* #endregion */
+
 #[cfg(test)]
 mod tests {
     use super::*;

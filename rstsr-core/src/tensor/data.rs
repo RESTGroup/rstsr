@@ -37,6 +37,18 @@ pub struct DataArc<S> {
 unsafe impl<S> Send for DataArc<S> where S: Send {}
 unsafe impl<S> Sync for DataArc<S> where S: Sync {}
 
+impl<S> DataArc<S> {
+    #[inline]
+    pub fn strong_count(&self) -> usize {
+        Arc::strong_count(&self.storage)
+    }
+
+    #[inline]
+    pub fn weak_count(&self) -> usize {
+        Arc::weak_count(&self.storage)
+    }
+}
+
 #[derive(Debug)]
 pub enum DataMutable<'a, S> {
     Owned(DataOwned<S>),
