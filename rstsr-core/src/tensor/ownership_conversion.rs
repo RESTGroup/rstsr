@@ -168,6 +168,85 @@ where
     }
 }
 
+/* #region to_vector */
+
+impl<R, T, B> TensorBase<R, Ix1>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    T: Clone,
+    B: DeviceAPI<T, RawVec = Vec<T>> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, Ix1>,
+{
+    pub fn to_vec_f(&self) -> Result<Vec<T>> {
+        let data = self.data().storage();
+        let layout = self.layout();
+        let device = data.device();
+        let size = layout.size();
+        let mut new_data = unsafe { device.empty_impl(size)? };
+        device.assign(&mut new_data, &[size].c(), data, layout)?;
+        Ok(new_data.into_rawvec())
+    }
+
+    pub fn to_vec(&self) -> Vec<T> {
+        self.to_vec_f().unwrap()
+    }
+}
+
+impl<T, B> Tensor<T, Ix1, B>
+where
+    T: Clone,
+    B: DeviceAPI<T, RawVec = Vec<T>> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, Ix1>,
+{
+    pub fn into_vec_f(self) -> Result<Vec<T>> {
+        let layout = self.layout();
+        let (idx_min, idx_max) = layout.bounds_index()?;
+        if idx_min == 0
+            && idx_max == self.data.storage.len()
+            && idx_max == layout.size()
+            && layout.stride()[0] > 0
+        {
+            return Ok(self.data.storage.into_rawvec());
+        } else {
+            return self.to_vec_f();
+        }
+    }
+
+    pub fn into_vec(self) -> Vec<T> {
+        self.into_vec_f().unwrap()
+    }
+}
+
+impl<T, D, B> Tensor<T, D, B>
+where
+    D: DimAPI,
+    B: DeviceAPI<T, RawVec = Vec<T>>,
+{
+    pub fn into_rawvec(self) -> B::RawVec {
+        self.data.storage.into_rawvec()
+    }
+}
+
+/* #endregion */
+
+/* #region as_ptr */
+
+impl<R, T, D, B> TensorBase<R, D>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    D: DimAPI,
+    B: DeviceAPI<T, RawVec = Vec<T>>,
+{
+    pub fn as_ptr(&self) -> *const T {
+        unsafe { self.rawvec().as_ptr().add(self.layout().offset()) }
+    }
+
+    pub fn as_mut_ptr(&mut self) -> *mut T
+    where
+        R: DataMutAPI,
+    {
+        unsafe { self.rawvec_mut().as_mut_ptr().add(self.layout().offset()) }
+    }
+}
+
 /* #endregion */
 
 /* #region operation API */
