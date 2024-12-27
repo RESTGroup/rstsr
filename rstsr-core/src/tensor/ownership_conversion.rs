@@ -1,5 +1,26 @@
 use crate::prelude_dev::*;
 
+pub trait ViewAPI<R, D>
+where
+    R: DataAPI,
+    D: DimAPI,
+{
+    /// Get a view of tensor.
+    fn view(&self) -> TensorBase<DataRef<'_, R::Data>, D>;
+}
+
+impl<R, D> ViewAPI<R, D> for TensorBase<R, D>
+where
+    R: DataAPI,
+    D: DimAPI,
+{
+    fn view(&self) -> TensorBase<DataRef<'_, R::Data>, D> {
+        let data = self.data().as_ref();
+        let layout = self.layout().clone();
+        unsafe { TensorBase::new_unchecked(data, layout) }
+    }
+}
+
 /// Methods for tensor ownership conversion.
 impl<R, D> TensorBase<R, D>
 where
