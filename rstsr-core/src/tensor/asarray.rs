@@ -202,6 +202,44 @@ where
 
 /* #region slice-like input */
 
+impl<'a, T, B, D, L> AsArrayAPI<D> for (&'a [T], L, &B)
+where
+    T: Clone,
+    B: DeviceAPI<T, RawVec = Vec<T>> + 'a,
+    D: DimAPI,
+    L: Into<Layout<D>>,
+{
+    type Out = TensorView<'a, T, D, B>;
+
+    fn asarray_f(self) -> Result<Self::Out> {
+        let (input, layout, device) = self;
+        let layout: Layout<D> = layout.into();
+        rstsr_assert_eq!(
+            layout.bounds_index()?,
+            (0, layout.size()),
+            InvalidLayout,
+            "This constructor assumes compact memory layout."
+        )?;
+        rstsr_assert_eq!(
+            layout.size(),
+            input.len(),
+            InvalidLayout,
+            "This constructor assumes that the layout size is equal to the input size."
+        )?;
+        let ptr = input.as_ptr();
+        let len = input.len();
+        let rawvec = unsafe {
+            let ptr = ptr as *mut T;
+            Vec::from_raw_parts(ptr, len, len)
+        };
+        let device = device.clone();
+        let storage = ManuallyDrop::new(Storage::new(rawvec, device));
+        let data = DataRef::from_manually_drop(storage);
+        let tensor = unsafe { TensorView::new_unchecked(data, layout) };
+        return Ok(tensor);
+    }
+}
+
 impl<'a, T, B> AsArrayAPI<()> for (&'a [T], &B)
 where
     T: Clone,
@@ -216,7 +254,7 @@ where
 
         let ptr = input.as_ptr();
         let len = input.len();
-        let rawvec: Vec<T> = unsafe {
+        let rawvec = unsafe {
             let ptr = ptr as *mut T;
             Vec::from_raw_parts(ptr, len, len)
         };
@@ -224,6 +262,20 @@ where
         let data = DataRef::from_manually_drop(storage);
         let tensor = unsafe { TensorView::new_unchecked(data, layout) };
         return Ok(tensor);
+    }
+}
+
+impl<'a, T, D, L> AsArrayAPI<D> for (&'a [T], L)
+where
+    T: Clone,
+    D: DimAPI,
+    L: Into<Layout<D>>,
+{
+    type Out = TensorView<'a, T, D, DeviceCpu>;
+
+    fn asarray_f(self) -> Result<Self::Out> {
+        let (input, layout) = self;
+        asarray_f((input, layout, &DeviceCpu::default()))
     }
 }
 
@@ -238,6 +290,21 @@ where
     }
 }
 
+impl<'a, T, B, D, L> AsArrayAPI<D> for (&'a Vec<T>, L, &B)
+where
+    T: Clone,
+    B: DeviceAPI<T, RawVec = Vec<T>> + 'a,
+    D: DimAPI,
+    L: Into<Layout<D>>,
+{
+    type Out = TensorView<'a, T, D, B>;
+
+    fn asarray_f(self) -> Result<Self::Out> {
+        let (input, layout, device) = self;
+        asarray_f((input.as_slice(), layout, device))
+    }
+}
+
 impl<'a, T, B> AsArrayAPI<()> for (&'a Vec<T>, &B)
 where
     T: Clone,
@@ -248,6 +315,20 @@ where
     fn asarray_f(self) -> Result<Self::Out> {
         let (input, device) = self;
         asarray_f((input.as_slice(), device))
+    }
+}
+
+impl<'a, T, D, L> AsArrayAPI<D> for (&'a Vec<T>, L)
+where
+    T: Clone,
+    D: DimAPI,
+    L: Into<Layout<D>>,
+{
+    type Out = TensorView<'a, T, D, DeviceCpu>;
+
+    fn asarray_f(self) -> Result<Self::Out> {
+        let (input, layout) = self;
+        asarray_f((input.as_slice(), layout, &DeviceCpu::default()))
     }
 }
 
@@ -284,6 +365,44 @@ where
 
 /* #region slice-like mutable input */
 
+impl<'a, T, B, D, L> AsArrayAPI<D> for (&'a mut [T], L, &B)
+where
+    T: Clone,
+    B: DeviceAPI<T, RawVec = Vec<T>> + 'a,
+    D: DimAPI,
+    L: Into<Layout<D>>,
+{
+    type Out = TensorMut<'a, T, D, B>;
+
+    fn asarray_f(self) -> Result<Self::Out> {
+        let (input, layout, device) = self;
+        let layout: Layout<D> = layout.into();
+        rstsr_assert_eq!(
+            layout.bounds_index()?,
+            (0, layout.size()),
+            InvalidLayout,
+            "This constructor assumes compact memory layout."
+        )?;
+        rstsr_assert_eq!(
+            layout.size(),
+            input.len(),
+            InvalidLayout,
+            "This constructor assumes that the layout size is equal to the input size."
+        )?;
+        let ptr = input.as_ptr();
+        let len = input.len();
+        let rawvec = unsafe {
+            let ptr = ptr as *mut T;
+            Vec::from_raw_parts(ptr, len, len)
+        };
+        let device = device.clone();
+        let storage = ManuallyDrop::new(Storage::new(rawvec, device));
+        let data = DataMut::from_manually_drop(storage);
+        let tensor = unsafe { TensorMut::new_unchecked(data, layout) };
+        return Ok(tensor);
+    }
+}
+
 impl<'a, T, B> AsArrayAPI<()> for (&'a mut [T], &B)
 where
     T: Clone,
@@ -298,7 +417,7 @@ where
 
         let ptr = input.as_ptr();
         let len = input.len();
-        let rawvec: Vec<T> = unsafe {
+        let rawvec = unsafe {
             let ptr = ptr as *mut T;
             Vec::from_raw_parts(ptr, len, len)
         };
@@ -306,6 +425,20 @@ where
         let data = DataMut::from_manually_drop(storage);
         let tensor = unsafe { TensorMut::new_unchecked(data, layout) };
         return Ok(tensor);
+    }
+}
+
+impl<'a, T, D, L> AsArrayAPI<D> for (&'a mut [T], L)
+where
+    T: Clone,
+    D: DimAPI,
+    L: Into<Layout<D>>,
+{
+    type Out = TensorMut<'a, T, D, DeviceCpu>;
+
+    fn asarray_f(self) -> Result<Self::Out> {
+        let (input, layout) = self;
+        asarray_f((input, layout, &DeviceCpu::default()))
     }
 }
 
@@ -320,6 +453,21 @@ where
     }
 }
 
+impl<'a, T, B, D, L> AsArrayAPI<D> for (&'a mut Vec<T>, L, &B)
+where
+    T: Clone,
+    B: DeviceAPI<T, RawVec = Vec<T>> + 'a,
+    D: DimAPI,
+    L: Into<Layout<D>>,
+{
+    type Out = TensorMut<'a, T, D, B>;
+
+    fn asarray_f(self) -> Result<Self::Out> {
+        let (input, layout, device) = self;
+        asarray_f((input.as_mut_slice(), layout, device))
+    }
+}
+
 impl<'a, T, B> AsArrayAPI<()> for (&'a mut Vec<T>, &B)
 where
     T: Clone,
@@ -330,6 +478,20 @@ where
     fn asarray_f(self) -> Result<Self::Out> {
         let (input, device) = self;
         asarray_f((input.as_mut_slice(), device))
+    }
+}
+
+impl<'a, T, D, L> AsArrayAPI<D> for (&'a mut Vec<T>, L)
+where
+    T: Clone,
+    D: DimAPI,
+    L: Into<Layout<D>>,
+{
+    type Out = TensorMut<'a, T, D, DeviceCpu>;
+
+    fn asarray_f(self) -> Result<Self::Out> {
+        let (input, layout) = self;
+        asarray_f((input.as_mut_slice(), layout, &DeviceCpu::default()))
     }
 }
 
