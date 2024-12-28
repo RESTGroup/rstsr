@@ -36,6 +36,7 @@ pub use crate::tensor::device_conversion::*;
 pub use crate::tensor::ext_conversion::*;
 pub use crate::tensor::manuplication::*;
 pub use crate::tensor::ownership_conversion::*;
+pub use crate::tensor::util::*;
 
 #[cfg(feature = "rayon")]
 pub use crate::feature_rayon::assignment::*;

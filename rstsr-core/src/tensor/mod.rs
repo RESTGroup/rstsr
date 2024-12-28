@@ -11,5 +11,6 @@ pub mod map_elementwise;
 pub mod matmul;
 pub mod operators;
 pub mod ownership_conversion;
+pub mod util;
 
 pub use data::*;
