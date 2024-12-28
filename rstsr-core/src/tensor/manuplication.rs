@@ -33,7 +33,7 @@ where
     }
     let mut tensors_new = Vec::with_capacity(tensors.len());
     for tensor in tensors {
-        let tensor = broadcast_to_f(tensor, &shape_b)?;
+        let tensor = into_broadcast_f(tensor, shape_b.clone())?;
         tensors_new.push(tensor);
     }
     return Ok(tensors_new);
@@ -43,21 +43,7 @@ where
 
 /* #region broadcast_to */
 
-/// Broadcasts an array to a specified shape.
-///
-/// # See also
-///
-/// [Python Array API standard: `broadcast_to`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.broadcast_to.html)
-pub fn broadcast_to<R, D, D2>(tensor: TensorBase<R, D>, shape: &D2) -> TensorBase<R, D2>
-where
-    R: DataAPI,
-    D: DimAPI + DimMaxAPI<D2, Max = D2>,
-    D2: DimAPI,
-{
-    broadcast_to_f(tensor, shape).unwrap()
-}
-
-pub fn broadcast_to_f<R, D, D2>(tensor: TensorBase<R, D>, shape: &D2) -> Result<TensorBase<R, D2>>
+pub fn into_broadcast_f<R, D, D2>(tensor: TensorBase<R, D>, shape: D2) -> Result<TensorBase<R, D2>>
 where
     R: DataAPI,
     D: DimAPI + DimMaxAPI<D2, Max = D2>,
@@ -70,6 +56,44 @@ where
     unsafe { Ok(TensorBase::new_unchecked(tensor.data, layout)) }
 }
 
+/// Broadcasts an array to a specified shape.
+///
+/// # See also
+///
+/// [Python Array API standard: `broadcast_to`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.broadcast_to.html)
+pub fn to_broadcast<R, D, D2>(
+    tensor: &TensorBase<R, D>,
+    shape: D2,
+) -> TensorBase<DataRef<'_, R::Data>, D2>
+where
+    R: DataAPI,
+    D: DimAPI + DimMaxAPI<D2, Max = D2>,
+    D2: DimAPI,
+{
+    into_broadcast_f(tensor.view(), shape).unwrap()
+}
+
+pub fn to_broadcast_f<R, D, D2>(
+    tensor: &TensorBase<R, D>,
+    shape: D2,
+) -> Result<TensorBase<DataRef<'_, R::Data>, D2>>
+where
+    R: DataAPI,
+    D: DimAPI + DimMaxAPI<D2, Max = D2>,
+    D2: DimAPI,
+{
+    into_broadcast_f(tensor.view(), shape)
+}
+
+pub fn into_broadcast<R, D, D2>(tensor: TensorBase<R, D>, shape: D2) -> TensorBase<R, D2>
+where
+    R: DataAPI,
+    D: DimAPI + DimMaxAPI<D2, Max = D2>,
+    D2: DimAPI,
+{
+    into_broadcast_f(tensor, shape).unwrap()
+}
+
 impl<R, D> TensorBase<R, D>
 where
     R: DataAPI,
@@ -80,20 +104,20 @@ where
     /// # See also
     ///
     /// [`broadcast_to`]
-    pub fn broadcast_to<D2>(&self, shape: &D2) -> TensorBase<DataRef<'_, R::Data>, D2>
+    pub fn to_broadcast<D2>(&self, shape: D2) -> TensorBase<DataRef<'_, R::Data>, D2>
     where
         D2: DimAPI,
         D: DimMaxAPI<D2, Max = D2>,
     {
-        broadcast_to(self.view(), shape)
+        to_broadcast(self, shape)
     }
 
-    pub fn broadcast_to_f<D2>(&self, shape: &D2) -> Result<TensorBase<DataRef<'_, R::Data>, D2>>
+    pub fn to_broadcast_f<D2>(&self, shape: D2) -> Result<TensorBase<DataRef<'_, R::Data>, D2>>
     where
         D2: DimAPI,
         D: DimMaxAPI<D2, Max = D2>,
     {
-        broadcast_to_f(self.view(), shape)
+        to_broadcast_f(self, shape)
     }
 
     /// Broadcasts an array to a specified shape.
@@ -101,26 +125,41 @@ where
     /// # See also
     ///
     /// [`broadcast_to`]
-    pub fn into_broadcast_to<D2>(self, shape: &D2) -> TensorBase<R, D2>
+    pub fn into_broadcast<D2>(self, shape: D2) -> TensorBase<R, D2>
     where
         D2: DimAPI,
         D: DimMaxAPI<D2, Max = D2>,
     {
-        broadcast_to(self, shape)
+        into_broadcast(self, shape)
     }
 
-    pub fn broadcast_into_f<D2>(self, shape: &D2) -> Result<TensorBase<R, D2>>
+    pub fn into_broadcast_f<D2>(self, shape: D2) -> Result<TensorBase<R, D2>>
     where
         D2: DimAPI,
         D: DimMaxAPI<D2, Max = D2>,
     {
-        broadcast_to_f(self, shape)
+        into_broadcast_f(self, shape)
     }
 }
 
 /* #endregion */
 
 /* #region expand_dims */
+
+pub fn into_expand_dims_f<I, R, D>(
+    tensor: TensorBase<R, D>,
+    axis: I,
+) -> Result<TensorBase<R, D::LargerOne>>
+where
+    R: DataAPI,
+    D: DimAPI + DimLargerOneAPI,
+    D::LargerOne: DimAPI,
+    I: TryInto<isize>,
+{
+    let axis = axis.try_into().map_err(|_| Error::TryFromIntError(String::new()))?;
+    let layout = tensor.layout().dim_insert(axis)?;
+    unsafe { Ok(TensorBase::new_unchecked(tensor.data, layout)) }
+}
 
 /// Expands the shape of an array by inserting a new axis (dimension) of size
 /// one at the position specified by `axis`.
@@ -132,32 +171,42 @@ where
 /// # See also
 ///
 /// [Python Array API standard: `expand_dims`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.expand_dims.html)
-pub fn expand_dims<I, R, D>(tensor: TensorBase<R, D>, axis: I) -> TensorBase<R, D::LargerOne>
+pub fn expand_dims<I, R, D>(
+    tensor: &TensorBase<R, D>,
+    axis: I,
+) -> TensorBase<DataRef<'_, R::Data>, D::LargerOne>
 where
     R: DataAPI,
     D: DimAPI + DimLargerOneAPI,
     D::LargerOne: DimAPI,
-    I: TryInto<isize, Error = TryFromIntError>,
+    I: TryInto<isize>,
 {
-    expand_dims_f(tensor, axis).unwrap()
+    into_expand_dims_f(tensor.view(), axis).unwrap()
 }
 
 pub fn expand_dims_f<I, R, D>(
-    tensor: TensorBase<R, D>,
+    tensor: &TensorBase<R, D>,
     axis: I,
-) -> Result<TensorBase<R, D::LargerOne>>
+) -> Result<TensorBase<DataRef<'_, R::Data>, D::LargerOne>>
 where
     R: DataAPI,
     D: DimAPI + DimLargerOneAPI,
     D::LargerOne: DimAPI,
-    I: TryInto<isize, Error = TryFromIntError>,
+    I: TryInto<isize>,
 {
-    let axis = axis.try_into()?;
-    let layout = tensor.layout().dim_insert(axis)?;
-    unsafe { Ok(TensorBase::new_unchecked(tensor.data, layout)) }
+    into_expand_dims_f(tensor.view(), axis)
 }
 
-/// Methods for tensor manipulation (dimension expanded).
+pub fn into_expand_dims<I, R, D>(tensor: TensorBase<R, D>, axis: I) -> TensorBase<R, D::LargerOne>
+where
+    R: DataAPI,
+    D: DimAPI + DimLargerOneAPI,
+    D::LargerOne: DimAPI,
+    I: TryInto<isize>,
+{
+    into_expand_dims_f(tensor, axis).unwrap()
+}
+
 impl<R, D> TensorBase<R, D>
 where
     R: DataAPI,
@@ -172,9 +221,9 @@ where
     /// [`expand_dims`]
     pub fn expand_dims<I>(&self, axis: I) -> TensorBase<DataRef<'_, R::Data>, D::LargerOne>
     where
-        I: TryInto<isize, Error = TryFromIntError>,
+        I: TryInto<isize>,
     {
-        expand_dims(self.view(), axis)
+        into_expand_dims(self.view(), axis)
     }
 
     pub fn expand_dims_f<I>(
@@ -182,9 +231,9 @@ where
         axis: I,
     ) -> Result<TensorBase<DataRef<'_, R::Data>, D::LargerOne>>
     where
-        I: TryInto<isize, Error = TryFromIntError>,
+        I: TryInto<isize>,
     {
-        expand_dims_f(self.view(), axis)
+        into_expand_dims_f(self.view(), axis)
     }
 
     /// Expands the shape of an array by inserting a new axis (dimension) of
@@ -195,22 +244,43 @@ where
     /// [`expand_dims`]
     pub fn into_expand_dims<I>(self, axis: I) -> TensorBase<R, D::LargerOne>
     where
-        I: TryInto<isize, Error = TryFromIntError>,
+        I: TryInto<isize>,
     {
-        expand_dims(self, axis)
+        into_expand_dims(self, axis)
     }
 
     pub fn into_expand_dims_f<I>(self, axis: I) -> Result<TensorBase<R, D::LargerOne>>
     where
-        I: TryInto<isize, Error = TryFromIntError>,
+        I: TryInto<isize>,
     {
-        expand_dims_f(self, axis)
+        into_expand_dims_f(self, axis)
     }
 }
 
 /* #endregion */
 
 /* #region flip */
+
+pub fn into_flip_f<I, R, D>(tensor: TensorBase<R, D>, axes: I) -> Result<TensorBase<R, D>>
+where
+    R: DataAPI,
+    D: DimAPI,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
+{
+    let mut layout = tensor.layout().clone();
+    let axes = axes.try_into()?;
+    match axes {
+        AxesIndex::Val(axis) => {
+            layout = layout.dim_narrow(axis, slice!(None, None, -1))?;
+        },
+        AxesIndex::Vec(axes) => {
+            for &axis in axes.iter() {
+                layout = layout.dim_narrow(axis, slice!(None, None, -1))?;
+            }
+        },
+    }
+    unsafe { Ok(TensorBase::new_unchecked(tensor.data, layout)) }
+}
 
 /// Reverses the order of elements in an array along the given axis.
 ///
@@ -222,27 +292,34 @@ where
 /// # See also
 ///
 /// [Python array API standard: `flip`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.flip.html)
-pub fn flip<I, R, D>(tensor: TensorBase<R, D>, axes: &[I]) -> TensorBase<R, D>
+pub fn flip<I, R, D>(tensor: &TensorBase<R, D>, axes: I) -> TensorBase<DataRef<'_, R::Data>, D>
 where
     R: DataAPI,
     D: DimAPI,
-    I: TryInto<isize, Error = TryFromIntError> + Copy,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
 {
-    flip_f(tensor, axes).unwrap()
+    into_flip_f(tensor.view(), axes).unwrap()
 }
 
-pub fn flip_f<I, R, D>(tensor: TensorBase<R, D>, axes: &[I]) -> Result<TensorBase<R, D>>
+pub fn flip_f<I, R, D>(
+    tensor: &TensorBase<R, D>,
+    axes: I,
+) -> Result<TensorBase<DataRef<'_, R::Data>, D>>
 where
     R: DataAPI,
     D: DimAPI,
-    I: TryInto<isize, Error = TryFromIntError> + Copy,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
 {
-    let mut layout = tensor.layout().clone();
-    for &axis in axes.iter() {
-        let axis = axis.try_into()?;
-        layout = layout.dim_narrow(axis, slice!(None, None, -1))?;
-    }
-    unsafe { Ok(TensorBase::new_unchecked(tensor.data, layout)) }
+    into_flip_f(tensor.view(), axes)
+}
+
+pub fn into_flip<I, R, D>(tensor: TensorBase<R, D>, axes: I) -> TensorBase<R, D>
+where
+    R: DataAPI,
+    D: DimAPI,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
+{
+    into_flip_f(tensor, axes).unwrap()
 }
 
 impl<R, D> TensorBase<R, D>
@@ -257,16 +334,16 @@ where
     /// [`flip`]
     pub fn flip<I>(&self, axis: I) -> TensorBase<DataRef<'_, R::Data>, D>
     where
-        I: TryInto<isize, Error = TryFromIntError> + Copy,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
-        flip(self.view(), &[axis])
+        flip(self, axis)
     }
 
     pub fn flip_f<I>(&self, axis: I) -> Result<TensorBase<DataRef<'_, R::Data>, D>>
     where
-        I: TryInto<isize, Error = TryFromIntError> + Copy,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
-        flip_f(self.view(), &[axis])
+        flip_f(self, axis)
     }
 
     /// Reverses the order of elements in an array along the given axis.
@@ -276,16 +353,16 @@ where
     /// [`flip`]
     pub fn into_flip<I>(self, axis: I) -> TensorBase<R, D>
     where
-        I: TryInto<isize, Error = TryFromIntError> + Copy,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
-        flip(self, &[axis])
+        into_flip(self, axis)
     }
 
     pub fn into_flip_f<I>(self, axis: I) -> Result<TensorBase<R, D>>
     where
-        I: TryInto<isize, Error = TryFromIntError> + Copy,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
-        flip_f(self, &[axis])
+        into_flip_f(self, axis)
     }
 }
 
@@ -887,7 +964,6 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::storage::Storage;
     use crate::Tensor;
 
     #[test]
@@ -897,29 +973,22 @@ mod tests {
         println!("{:.3?}", b);
     }
 
-    // fn test_expand_dims() {
-    //     let a = Tensor::<f64, _>::zeros([4, 9, 8]);
-    //     let b = a.expand_dims(2);
-    //     assert_eq!(b.shape(), &[4, 9, 1, 8]);
-    // }
+    #[test]
+    fn test_expand_dims() {
+        let a: Tensor<f64, _> = zeros([4, 9, 8]);
+        let b = a.expand_dims(2);
+        assert_eq!(b.shape(), &[4, 9, 1, 8]);
+    }
+
     #[test]
     fn test_flip() {
-        let device = DeviceCpu::default();
-        let a = Tensor::<f64, _>::new_f(
-            Storage::<f64, DeviceCpu>::new(
-                (0..24).map(|v| v as f64).collect::<Vec<_>>(),
-                device.clone(),
-            )
-            .into(),
-            [2, 3, 4].c(),
-        )
-        .unwrap();
+        let a = arange(24.0).into_shape([2, 3, 4]).into_owned();
         println!("{:?}", a);
 
         let b = a.flip(1);
         println!("{:?}", b);
         assert_eq!(b.shape(), &[2, 3, 4]);
-        let c = a.flip(2);
+        let c = a.flip([0, -1]);
         println!("{:?}", c);
         assert_eq!(c.shape(), &[2, 3, 4]);
     }
@@ -938,7 +1007,7 @@ mod tests {
     fn test_broadcast_to() {
         let a = linspace((0.0, 15.0, 16));
         let a = a.into_shape_assume_contig_f([4, 1, 4]).unwrap();
-        let a = a.broadcast_to_f(&[6, 4, 3, 4]).unwrap();
+        let a = a.to_broadcast_f([6, 4, 3, 4]).unwrap();
         assert_eq!(a.layout(), unsafe { &Layout::new_unchecked([6, 4, 3, 4], [0, 4, 0, 1], 0) });
         println!("{:?}", a);
     }
