@@ -52,5 +52,7 @@ pub use crate::{
     Tensor, TensorArc, TensorBase, TensorCow, TensorMut, TensorRef, TensorView, TensorViewMut,
 };
 
-pub use crate::{rstsr_assert, rstsr_assert_eq, rstsr_invalid, rstsr_pattern, rstsr_raise};
+pub use crate::{
+    rstsr_assert, rstsr_assert_eq, rstsr_error, rstsr_invalid, rstsr_pattern, rstsr_raise,
+};
 pub use crate::{s, slice};

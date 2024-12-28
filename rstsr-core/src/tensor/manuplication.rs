@@ -156,7 +156,7 @@ where
     D::LargerOne: DimAPI,
     I: TryInto<isize>,
 {
-    let axis = axis.try_into().map_err(|_| Error::TryFromIntError(String::new()))?;
+    let axis = axis.try_into().map_err(|_| rstsr_error!(TryFromIntError))?;
     let layout = tensor.layout().dim_insert(axis)?;
     unsafe { Ok(TensorBase::new_unchecked(tensor.data, layout)) }
 }
@@ -370,32 +370,56 @@ where
 
 /* #region permute_dims */
 
+pub fn into_transpose_f<I, R, D>(tensor: TensorBase<R, D>, axes: I) -> Result<TensorBase<R, D>>
+where
+    R: DataAPI,
+    D: DimAPI,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
+{
+    let axes = axes.try_into()?;
+    let layout = tensor.layout().transpose(axes.as_ref())?;
+    unsafe { Ok(TensorBase::new_unchecked(tensor.data, layout)) }
+}
+
 /// Permutes the axes (dimensions) of an array `x`.
 ///
 /// # See also
 ///
 /// - [Python array API standard: `permute_dims`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.permute_dims.html)
-pub fn transpose<I, R, D>(tensor: TensorBase<R, D>, axes: &[I]) -> TensorBase<R, D>
+pub fn transpose<I, R, D>(tensor: &TensorBase<R, D>, axes: I) -> TensorBase<DataRef<'_, R::Data>, D>
 where
     R: DataAPI,
     D: DimAPI,
-    I: TryInto<isize, Error = TryFromIntError> + Copy,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
 {
-    transpose_f(tensor, axes).unwrap()
+    into_transpose_f(tensor.view(), axes).unwrap()
 }
 
-pub fn transpose_f<I, R, D>(tensor: TensorBase<R, D>, axes: &[I]) -> Result<TensorBase<R, D>>
+pub fn transpose_f<I, R, D>(
+    tensor: &TensorBase<R, D>,
+    axes: I,
+) -> Result<TensorBase<DataRef<'_, R::Data>, D>>
 where
     R: DataAPI,
     D: DimAPI,
-    I: TryInto<isize, Error = TryFromIntError> + Copy,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
 {
-    let axes: Vec<isize> = axes.iter().map(|&x| x.try_into()).try_collect()?;
-    let layout = tensor.layout().transpose(&axes)?;
-    unsafe { Ok(TensorBase::new_unchecked(tensor.data, layout)) }
+    into_transpose_f(tensor.view(), axes)
 }
 
-pub use transpose_f as permute_dims;
+pub fn into_transpose<I, R, D>(tensor: TensorBase<R, D>, axes: I) -> TensorBase<R, D>
+where
+    R: DataAPI,
+    D: DimAPI,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
+{
+    into_transpose_f(tensor, axes).unwrap()
+}
+
+pub use into_transpose as into_permute_dims;
+pub use into_transpose_f as into_permute_dims_f;
+pub use transpose as permute_dims;
+pub use transpose_f as permute_dims_f;
 
 impl<R, D> TensorBase<R, D>
 where
@@ -407,35 +431,16 @@ where
     /// # See also
     ///
     /// [`transpose`]
-    pub fn transpose<I>(&self, axes: &[I]) -> TensorBase<DataRef<'_, R::Data>, D>
+    pub fn transpose<I>(&self, axes: I) -> TensorBase<DataRef<'_, R::Data>, D>
     where
-        I: TryInto<isize, Error = TryFromIntError> + Copy,
-    {
-        transpose(self.view(), axes)
-    }
-
-    pub fn transpose_f<I>(&self, axes: &[I]) -> Result<TensorBase<DataRef<'_, R::Data>, D>>
-    where
-        I: TryInto<isize, Error = TryFromIntError> + Copy,
-    {
-        transpose_f(self.view(), axes)
-    }
-
-    /// Permutes the axes (dimensions) of an array `x`.
-    ///
-    /// # See also
-    ///
-    /// [`transpose`]
-    pub fn into_transpose<I>(self, axes: &[I]) -> TensorBase<R, D>
-    where
-        I: TryInto<isize, Error = TryFromIntError> + Copy,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         transpose(self, axes)
     }
 
-    pub fn into_transpose_f<I>(self, axes: &[I]) -> Result<TensorBase<R, D>>
+    pub fn transpose_f<I>(&self, axes: I) -> Result<TensorBase<DataRef<'_, R::Data>, D>>
     where
-        I: TryInto<isize, Error = TryFromIntError> + Copy,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         transpose_f(self, axes)
     }
@@ -445,18 +450,18 @@ where
     /// # See also
     ///
     /// [`transpose`]
-    pub fn permute_dims<I>(&self, axes: &[I]) -> TensorBase<DataRef<'_, R::Data>, D>
+    pub fn into_transpose<I>(self, axes: I) -> TensorBase<R, D>
     where
-        I: TryInto<isize, Error = TryFromIntError> + Copy,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
-        transpose(self.view(), axes)
+        into_transpose(self, axes)
     }
 
-    pub fn permute_dims_f<I>(&self, axes: &[I]) -> Result<TensorBase<DataRef<'_, R::Data>, D>>
+    pub fn into_transpose_f<I>(self, axes: I) -> Result<TensorBase<R, D>>
     where
-        I: TryInto<isize, Error = TryFromIntError> + Copy,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
-        transpose_f(self.view(), axes)
+        into_transpose_f(self, axes)
     }
 
     /// Permutes the axes (dimensions) of an array `x`.
@@ -464,18 +469,37 @@ where
     /// # See also
     ///
     /// [`transpose`]
-    pub fn into_permute_dims<I>(self, axes: &[I]) -> TensorBase<R, D>
+    pub fn permute_dims<I>(&self, axes: I) -> TensorBase<DataRef<'_, R::Data>, D>
     where
-        I: TryInto<isize, Error = TryFromIntError> + Copy,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         transpose(self, axes)
     }
 
-    pub fn into_permute_dims_f<I>(self, axes: &[I]) -> Result<TensorBase<R, D>>
+    pub fn permute_dims_f<I>(&self, axes: I) -> Result<TensorBase<DataRef<'_, R::Data>, D>>
     where
-        I: TryInto<isize, Error = TryFromIntError> + Copy,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         transpose_f(self, axes)
+    }
+
+    /// Permutes the axes (dimensions) of an array `x`.
+    ///
+    /// # See also
+    ///
+    /// [`transpose`]
+    pub fn into_permute_dims<I>(self, axes: I) -> TensorBase<R, D>
+    where
+        I: TryInto<AxesIndex<isize>, Error = Error>,
+    {
+        into_transpose(self, axes)
+    }
+
+    pub fn into_permute_dims_f<I>(self, axes: I) -> Result<TensorBase<R, D>>
+    where
+        I: TryInto<AxesIndex<isize>, Error = Error>,
+    {
+        into_transpose_f(self, axes)
     }
 }
 
@@ -484,13 +508,21 @@ where
 /* #region reverse_axes */
 
 /// Reverse the order of elements in an array along the given axis.
-pub fn reverse_axes<R, D>(tensor: TensorBase<R, D>) -> TensorBase<R, D>
+pub fn into_reverse_axes<R, D>(tensor: TensorBase<R, D>) -> TensorBase<R, D>
 where
     R: DataAPI,
     D: DimAPI,
 {
     let layout = tensor.layout().reverse_axes();
     unsafe { TensorBase::new_unchecked(tensor.data, layout) }
+}
+
+pub fn reverse_axes<R, D>(tensor: &TensorBase<R, D>) -> TensorBase<DataRef<'_, R::Data>, D>
+where
+    R: DataAPI,
+    D: DimAPI,
+{
+    into_reverse_axes(tensor.view())
 }
 
 impl<R, D> TensorBase<R, D>
@@ -504,7 +536,7 @@ where
     ///
     /// [`reverse_axes`]
     pub fn reverse_axes(&self) -> TensorBase<DataRef<'_, R::Data>, D> {
-        reverse_axes(self.view())
+        into_reverse_axes(self.view())
     }
 
     /// Reverse the order of elements in an array along the given axis.
@@ -513,7 +545,7 @@ where
     ///
     /// [`reverse_axes`]
     pub fn into_reverse_axes(self) -> TensorBase<R, D> {
-        reverse_axes(self)
+        into_reverse_axes(self)
     }
 }
 
@@ -521,30 +553,60 @@ where
 
 /* #region swapaxes */
 
+pub fn into_swapaxes_f<I, R, D>(
+    tensor: TensorBase<R, D>,
+    axis1: I,
+    axis2: I,
+) -> Result<TensorBase<R, D>>
+where
+    R: DataAPI,
+    D: DimAPI,
+    I: TryInto<isize>,
+{
+    let axis1 = axis1.try_into().map_err(|_| rstsr_error!(TryFromIntError))?;
+    let axis2 = axis2.try_into().map_err(|_| rstsr_error!(TryFromIntError))?;
+    let layout = tensor.layout().swapaxes(axis1, axis2)?;
+    unsafe { Ok(TensorBase::new_unchecked(tensor.data, layout)) }
+}
+
 /// Interchange two axes of an array.
 ///
 /// # See also
 ///
 /// - [numpy `swapaxes`](https://numpy.org/doc/stable/reference/generated/numpy.swapaxes.html)
-pub fn swapaxes<I, R, D>(tensor: TensorBase<R, D>, axis1: I, axis2: I) -> TensorBase<R, D>
+pub fn swapaxes<I, R, D>(
+    tensor: &TensorBase<R, D>,
+    axis1: I,
+    axis2: I,
+) -> TensorBase<DataRef<'_, R::Data>, D>
 where
     R: DataAPI,
     D: DimAPI,
-    I: TryInto<isize, Error = TryFromIntError>,
+    I: TryInto<isize>,
 {
-    swapaxes_f(tensor, axis1, axis2).unwrap()
+    into_swapaxes_f(tensor.view(), axis1, axis2).unwrap()
 }
 
-pub fn swapaxes_f<I, R, D>(tensor: TensorBase<R, D>, axis1: I, axis2: I) -> Result<TensorBase<R, D>>
+pub fn swapaxes_f<I, R, D>(
+    tensor: &TensorBase<R, D>,
+    axis1: I,
+    axis2: I,
+) -> Result<TensorBase<DataRef<'_, R::Data>, D>>
 where
     R: DataAPI,
     D: DimAPI,
-    I: TryInto<isize, Error = TryFromIntError>,
+    I: TryInto<isize>,
 {
-    let axis1 = axis1.try_into()?;
-    let axis2 = axis2.try_into()?;
-    let layout = tensor.layout().swapaxes(axis1, axis2)?;
-    unsafe { Ok(TensorBase::new_unchecked(tensor.data, layout)) }
+    into_swapaxes_f(tensor.view(), axis1, axis2)
+}
+
+pub fn into_swapaxes<I, R, D>(tensor: TensorBase<R, D>, axis1: I, axis2: I) -> TensorBase<R, D>
+where
+    R: DataAPI,
+    D: DimAPI,
+    I: TryInto<isize>,
+{
+    into_swapaxes_f(tensor, axis1, axis2).unwrap()
 }
 
 impl<R, D> TensorBase<R, D>
@@ -559,16 +621,16 @@ where
     /// [`swapaxes`]
     pub fn swapaxes<I>(&self, axis1: I, axis2: I) -> TensorBase<DataRef<'_, R::Data>, D>
     where
-        I: TryInto<isize, Error = TryFromIntError>,
+        I: TryInto<isize>,
     {
-        swapaxes(self.view(), axis1, axis2)
+        swapaxes(self, axis1, axis2)
     }
 
     pub fn swapaxes_f<I>(&self, axis1: I, axis2: I) -> Result<TensorBase<DataRef<'_, R::Data>, D>>
     where
-        I: TryInto<isize, Error = TryFromIntError>,
+        I: TryInto<isize>,
     {
-        swapaxes_f(self.view(), axis1, axis2)
+        swapaxes_f(self, axis1, axis2)
     }
 
     /// Interchange two axes of an array.
@@ -578,16 +640,16 @@ where
     /// [`swapaxes`]
     pub fn into_swapaxes<I>(self, axis1: I, axis2: I) -> TensorBase<R, D>
     where
-        I: TryInto<isize, Error = TryFromIntError>,
+        I: TryInto<isize>,
     {
-        swapaxes(self, axis1, axis2)
+        into_swapaxes(self, axis1, axis2)
     }
 
     pub fn into_swapaxes_f<I>(self, axis1: I, axis2: I) -> Result<TensorBase<R, D>>
     where
-        I: TryInto<isize, Error = TryFromIntError>,
+        I: TryInto<isize>,
     {
-        swapaxes_f(self, axis1, axis2)
+        into_swapaxes_f(self, axis1, axis2)
     }
 }
 
@@ -991,6 +1053,16 @@ mod tests {
         let c = a.flip([0, -1]);
         println!("{:?}", c);
         assert_eq!(c.shape(), &[2, 3, 4]);
+    }
+
+    #[test]
+    fn test_swapaxes() {
+        let a = arange(24.0).into_shape([2, 3, 4]).into_owned();
+        println!("{:?}", a);
+
+        let b = a.swapaxes(0, 1);
+        println!("{:?}", b);
+        assert_eq!(b.shape(), &[3, 2, 4]);
     }
 
     #[test]

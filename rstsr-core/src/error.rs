@@ -152,7 +152,34 @@ macro_rules! rstsr_invalid {
 }
 
 #[macro_export]
+macro_rules! rstsr_error {
+    ($errtype:ident) => {{
+        use $crate::prelude_dev::*;
+        let mut s = String::new();
+        write!(s, concat!(file!(), ":", line!(), ": ")).unwrap();
+        write!(s, concat!("Error::", stringify!($errtype))).unwrap();
+        Error::$errtype(s)
+    }};
+    ($errtype:ident, $($arg:tt)*) => {{
+        use $crate::prelude_dev::*;
+        let mut s = String::new();
+        write!(s, concat!(file!(), ":", line!(), ": ")).unwrap();
+        write!(s, concat!("Error::", stringify!($errtype))).unwrap();
+        write!(s, " : ").unwrap();
+        write!(s, $($arg)*).unwrap();
+        Error::$errtype(s)
+    }};
+}
+
+#[macro_export]
 macro_rules! rstsr_raise {
+    ($errtype:ident) => {{
+        use $crate::prelude_dev::*;
+        let mut s = String::new();
+        write!(s, concat!(file!(), ":", line!(), ": ")).unwrap();
+        write!(s, concat!("Error::", stringify!($errtype))).unwrap();
+        Err(Error::$errtype(s))
+    }};
     ($errtype:ident, $($arg:tt)*) => {{
         use $crate::prelude_dev::*;
         let mut s = String::new();
