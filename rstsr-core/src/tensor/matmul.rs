@@ -93,6 +93,75 @@ where
     }
 }
 
+impl<RA, RB, TA, TB, TC, DA, DB, DC, B> Rem<&TensorBase<RB, DB>> for TensorBase<RA, DA>
+where
+    // storage
+    RA: DataAPI<Data = Storage<TA, B>>,
+    RB: DataAPI<Data = Storage<TB, B>>,
+    // dimension
+    DA: DimAPI,
+    DB: DimAPI,
+    DC: DimAPI,
+    // operation specific
+    TA: Mul<TB, Output = TC>,
+    TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + One,
+    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<TC>,
+    B: DeviceCreationAnyAPI<TC>,
+    LayoutMatMulConfig<DA, DB>: LayoutMatMulAPI<DA, DB, DC = DC>,
+    B: DeviceMatMulAPI<TA, TB, TC, DA, DB, DC>,
+{
+    type Output = Tensor<TC, DC, B>;
+    fn rem(self, rhs: &TensorBase<RB, DB>) -> Self::Output {
+        op_refa_refb_matmul(&self, rhs, TC::one()).unwrap()
+    }
+}
+
+impl<RA, RB, TA, TB, TC, DA, DB, DC, B> Rem<TensorBase<RB, DB>> for &TensorBase<RA, DA>
+where
+    // storage
+    RA: DataAPI<Data = Storage<TA, B>>,
+    RB: DataAPI<Data = Storage<TB, B>>,
+    // dimension
+    DA: DimAPI,
+    DB: DimAPI,
+    DC: DimAPI,
+    // operation specific
+    TA: Mul<TB, Output = TC>,
+    TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + One,
+    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<TC>,
+    B: DeviceCreationAnyAPI<TC>,
+    LayoutMatMulConfig<DA, DB>: LayoutMatMulAPI<DA, DB, DC = DC>,
+    B: DeviceMatMulAPI<TA, TB, TC, DA, DB, DC>,
+{
+    type Output = Tensor<TC, DC, B>;
+    fn rem(self, rhs: TensorBase<RB, DB>) -> Self::Output {
+        op_refa_refb_matmul(self, &rhs, TC::one()).unwrap()
+    }
+}
+
+impl<RA, RB, TA, TB, TC, DA, DB, DC, B> Rem<TensorBase<RB, DB>> for TensorBase<RA, DA>
+where
+    // storage
+    RA: DataAPI<Data = Storage<TA, B>>,
+    RB: DataAPI<Data = Storage<TB, B>>,
+    // dimension
+    DA: DimAPI,
+    DB: DimAPI,
+    DC: DimAPI,
+    // operation specific
+    TA: Mul<TB, Output = TC>,
+    TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + One,
+    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<TC>,
+    B: DeviceCreationAnyAPI<TC>,
+    LayoutMatMulConfig<DA, DB>: LayoutMatMulAPI<DA, DB, DC = DC>,
+    B: DeviceMatMulAPI<TA, TB, TC, DA, DB, DC>,
+{
+    type Output = Tensor<TC, DC, B>;
+    fn rem(self, rhs: TensorBase<RB, DB>) -> Self::Output {
+        op_refa_refb_matmul(&self, &rhs, TC::one()).unwrap()
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

@@ -34,12 +34,25 @@ pub mod rstsr_funcs {
     pub use crate::tensor::creation_from_tensor::{diag, diag_f};
 }
 
+pub mod rstsr_macros {
+    pub use crate::{
+        rstsr_assert, rstsr_assert_eq, rstsr_error, rstsr_invalid, rstsr_pattern, rstsr_raise,
+    };
+    pub use crate::{s, slice};
+}
+
 // final re-exports
 
 pub use rstsr_traits::*;
 
 pub mod rstsr {
+    pub use super::rstsr_funcs;
+    pub use super::rstsr_macros;
+    pub use super::rstsr_structs;
+    pub use super::rstsr_traits;
+
     pub use super::rstsr_funcs::*;
+    pub use super::rstsr_macros::*;
     pub use super::rstsr_structs::*;
     pub use super::rstsr_traits::*;
 }

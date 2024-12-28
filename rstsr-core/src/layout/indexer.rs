@@ -369,15 +369,18 @@ where
 /// Generate slice with into support and optional parameters.
 #[macro_export]
 macro_rules! slice {
-    ($stop:expr) => {
+    ($stop:expr) => {{
+        use $crate::layout::slice::Slice;
         Slice::<isize>::from(Slice { start: None, stop: $stop.into(), step: None })
-    };
-    ($start:expr, $stop:expr) => {
+    }};
+    ($start:expr, $stop:expr) => {{
+        use $crate::layout::slice::Slice;
         Slice::<isize>::from(Slice { start: $start.into(), stop: $stop.into(), step: None })
-    };
-    ($start:expr, $stop:expr, $step:expr) => {
+    }};
+    ($start:expr, $stop:expr, $step:expr) => {{
+        use $crate::layout::slice::Slice;
         Slice::<isize>::from(Slice { start: $start.into(), stop: $stop.into(), step: $step.into() })
-    };
+    }};
 }
 
 #[macro_export]
