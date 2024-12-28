@@ -1160,6 +1160,139 @@ where
 
 /* #endregion */
 
+/* #region to_layout */
+
+pub fn into_layout_f<'a, R, T, D, B, D2>(
+    tensor: TensorBase<R, D>,
+    layout: Layout<D2>,
+) -> Result<TensorBase<DataCow<'a, R::Data>, D2>>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    D: DimAPI,
+    D2: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D>,
+    DataCow<'a, Storage<T, B>>: From<R>,
+{
+    let shape = layout.shape();
+    rstsr_assert_eq!(tensor.size(), shape.shape_size(), InvalidLayout)?;
+    let same_layout = tensor.layout().to_dim::<IxD>()? == layout.to_dim::<IxD>()?;
+    let contig_c = tensor.layout().c_contig()
+        && layout.c_contig()
+        && tensor.layout().offset() == layout.offset();
+    let contig_f = tensor.layout().f_contig()
+        && layout.f_contig()
+        && tensor.layout().offset() == layout.offset();
+    if same_layout || contig_c || contig_f {
+        // no data cloned
+        let data = tensor.data.into();
+        return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
+    } else {
+        // layout changed, or not c and f contiguous with same layout
+        // clone data by assign
+        let device = tensor.data.storage().device();
+        let (_, idx_max) = layout.bounds_index()?;
+        let mut storage_new = unsafe { device.empty_impl(idx_max)? };
+        device.assign_arbitary(&mut storage_new, &layout, tensor.storage(), tensor.layout())?;
+        let data_new = DataCow::Owned(storage_new.into());
+        return unsafe { Ok(TensorBase::new_unchecked(data_new, layout)) };
+    }
+}
+
+/// Convert layout to another layout.
+pub fn to_layout<R, T, D, B, D2>(
+    tensor: &TensorBase<R, D>,
+    layout: Layout<D2>,
+) -> TensorBase<DataCow<'_, R::Data>, D2>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    D: DimAPI,
+    D2: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D>,
+{
+    into_layout_f(tensor.view(), layout).unwrap()
+}
+
+pub fn to_layout_f<R, T, D, B, D2>(
+    tensor: &TensorBase<R, D>,
+    layout: Layout<D2>,
+) -> Result<TensorBase<DataCow<'_, R::Data>, D2>>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    D: DimAPI,
+    D2: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D>,
+{
+    into_layout_f(tensor.view(), layout)
+}
+
+pub fn into_layout<'a, R, T, D, B, D2>(
+    tensor: TensorBase<R, D>,
+    layout: Layout<D2>,
+) -> TensorBase<DataCow<'a, R::Data>, D2>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    D: DimAPI,
+    D2: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D>,
+    DataCow<'a, Storage<T, B>>: From<R>,
+{
+    into_layout_f(tensor, layout).unwrap()
+}
+
+impl<R, T, D, B> TensorBase<R, D>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+{
+    /// Convert layout to another layout.
+    ///
+    /// # See also
+    ///
+    /// [`to_layout`]
+    pub fn to_layout<D2>(&self, layout: Layout<D2>) -> TensorBase<DataCow<'_, R::Data>, D2>
+    where
+        D2: DimAPI,
+        B: OpAssignArbitaryAPI<T, D2, D>,
+    {
+        into_layout(self.view(), layout)
+    }
+
+    pub fn to_layout_f<D2>(
+        &self,
+        layout: Layout<D2>,
+    ) -> Result<TensorBase<DataCow<'_, R::Data>, D2>>
+    where
+        D2: DimAPI,
+        B: OpAssignArbitaryAPI<T, D2, D>,
+    {
+        into_layout_f(self.view(), layout)
+    }
+
+    pub fn into_layout<'a, D2>(self, layout: Layout<D2>) -> TensorBase<DataCow<'a, R::Data>, D2>
+    where
+        D2: DimAPI,
+        B: OpAssignArbitaryAPI<T, D2, D>,
+        DataCow<'a, Storage<T, B>>: From<R>,
+    {
+        into_layout(self, layout)
+    }
+
+    pub fn into_layout_f<'a, D2>(
+        self,
+        layout: Layout<D2>,
+    ) -> Result<TensorBase<DataCow<'a, R::Data>, D2>>
+    where
+        D2: DimAPI,
+        B: OpAssignArbitaryAPI<T, D2, D>,
+        DataCow<'a, Storage<T, B>>: From<R>,
+    {
+        into_layout_f(self, layout)
+    }
+}
+
+/* #endregion */
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1235,6 +1368,14 @@ mod tests {
         let a = a.into_shape_assume_contig_f([4, 1, 4]).unwrap();
         let a = a.to_broadcast_f([6, 4, 3, 4]).unwrap();
         assert_eq!(a.layout(), unsafe { &Layout::new_unchecked([6, 4, 3, 4], [0, 4, 0, 1], 0) });
+        println!("{:?}", a);
+    }
+
+    #[test]
+    fn test_to_layout() {
+        let a = linspace((0.0, 15.0, 16));
+        let a = a.into_shape([4, 4]);
+        let a = a.into_layout(Layout::new([2, 8], [12, 120], 8));
         println!("{:?}", a);
     }
 }
