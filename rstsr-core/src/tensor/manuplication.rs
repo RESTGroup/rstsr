@@ -814,6 +814,22 @@ where
     into_dim_f(tensor).unwrap()
 }
 
+pub fn to_dyn<R, D>(tensor: &TensorBase<R, D>) -> TensorBase<DataRef<'_, R::Data>, IxD>
+where
+    R: DataAPI,
+    D: DimAPI,
+{
+    into_dim_f(tensor.view()).unwrap()
+}
+
+pub fn into_dyn<R, D>(tensor: TensorBase<R, D>) -> TensorBase<R, IxD>
+where
+    R: DataAPI,
+    D: DimAPI,
+{
+    into_dim_f(tensor).unwrap()
+}
+
 impl<R, D> TensorBase<R, D>
 where
     R: DataAPI,
@@ -862,6 +878,16 @@ where
         D: DimIntoAPI<D2>,
     {
         into_dim_f(self)
+    }
+
+    /// Convert layout to dynamic dimension.
+    pub fn to_dyn(&self) -> TensorBase<DataRef<'_, R::Data>, IxD> {
+        to_dyn(self)
+    }
+
+    /// Convert layout to dynamic dimension.
+    pub fn into_dyn(self) -> TensorBase<R, IxD> {
+        into_dyn(self)
     }
 }
 
