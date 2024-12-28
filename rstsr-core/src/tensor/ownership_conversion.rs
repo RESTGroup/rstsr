@@ -197,19 +197,26 @@ where
 
 /* #region to_vector */
 
-impl<R, T, B> TensorBase<R, Ix1>
+impl<R, T, D, B> TensorBase<R, D>
 where
     R: DataAPI<Data = Storage<T, B>>,
     T: Clone,
+    D: DimAPI,
     B: DeviceAPI<T, RawVec = Vec<T>> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, Ix1>,
 {
     pub fn to_vec_f(&self) -> Result<Vec<T>> {
+        rstsr_assert_eq!(
+            self.ndim(),
+            1,
+            InvalidLayout,
+            "to_vec currently only support 1-D tensor"
+        )?;
         let data = self.data().storage();
-        let layout = self.layout();
+        let layout = self.layout().to_dim::<Ix1>()?;
         let device = data.device();
         let size = layout.size();
         let mut new_data = unsafe { device.empty_impl(size)? };
-        device.assign(&mut new_data, &[size].c(), data, layout)?;
+        device.assign(&mut new_data, &[size].c(), data, &layout)?;
         Ok(new_data.into_rawvec())
     }
 
@@ -218,12 +225,19 @@ where
     }
 }
 
-impl<T, B> Tensor<T, Ix1, B>
+impl<T, D, B> Tensor<T, D, B>
 where
     T: Clone,
+    D: DimAPI,
     B: DeviceAPI<T, RawVec = Vec<T>> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, Ix1>,
 {
     pub fn into_vec_f(self) -> Result<Vec<T>> {
+        rstsr_assert_eq!(
+            self.ndim(),
+            1,
+            InvalidLayout,
+            "to_vec currently only support 1-D tensor"
+        )?;
         let layout = self.layout();
         let (idx_min, idx_max) = layout.bounds_index()?;
         if idx_min == 0
