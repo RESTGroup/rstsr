@@ -146,18 +146,25 @@ where
 
 /* #region expand_dims */
 
-pub fn into_expand_dims_f<I, R, D>(
-    tensor: TensorBase<R, D>,
-    axis: I,
-) -> Result<TensorBase<R, D::LargerOne>>
+pub fn into_expand_dims_f<I, R, D>(tensor: TensorBase<R, D>, axes: I) -> Result<TensorBase<R, IxD>>
 where
     R: DataAPI,
-    D: DimAPI + DimLargerOneAPI,
-    D::LargerOne: DimAPI,
-    I: TryInto<isize>,
+    D: DimAPI,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
 {
-    let axis = axis.try_into().map_err(|_| rstsr_error!(TryFromIntError))?;
-    let layout = tensor.layout().dim_insert(axis)?;
+    // convert axis to negative indexes and sort
+    let ndim: isize = tensor.ndim().try_into()?;
+    let mut layout = tensor.layout().clone().into_dim::<IxD>()?;
+    let mut axes = axes
+        .try_into()?
+        .as_ref()
+        .iter()
+        .map(|&v| if v >= 0 { v - ndim - 1 } else { v })
+        .collect::<Vec<isize>>();
+    axes.sort();
+    for &axis in axes.iter() {
+        layout = layout.dim_insert(axis)?;
+    }
     unsafe { Ok(TensorBase::new_unchecked(tensor.data, layout)) }
 }
 
@@ -173,45 +180,41 @@ where
 /// [Python Array API standard: `expand_dims`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.expand_dims.html)
 pub fn expand_dims<I, R, D>(
     tensor: &TensorBase<R, D>,
-    axis: I,
-) -> TensorBase<DataRef<'_, R::Data>, D::LargerOne>
+    axes: I,
+) -> TensorBase<DataRef<'_, R::Data>, IxD>
 where
     R: DataAPI,
-    D: DimAPI + DimLargerOneAPI,
-    D::LargerOne: DimAPI,
-    I: TryInto<isize>,
+    D: DimAPI,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
 {
-    into_expand_dims_f(tensor.view(), axis).unwrap()
+    into_expand_dims_f(tensor.view(), axes).unwrap()
 }
 
 pub fn expand_dims_f<I, R, D>(
     tensor: &TensorBase<R, D>,
-    axis: I,
-) -> Result<TensorBase<DataRef<'_, R::Data>, D::LargerOne>>
+    axes: I,
+) -> Result<TensorBase<DataRef<'_, R::Data>, IxD>>
 where
     R: DataAPI,
-    D: DimAPI + DimLargerOneAPI,
-    D::LargerOne: DimAPI,
-    I: TryInto<isize>,
+    D: DimAPI,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
 {
-    into_expand_dims_f(tensor.view(), axis)
+    into_expand_dims_f(tensor.view(), axes)
 }
 
-pub fn into_expand_dims<I, R, D>(tensor: TensorBase<R, D>, axis: I) -> TensorBase<R, D::LargerOne>
+pub fn into_expand_dims<I, R, D>(tensor: TensorBase<R, D>, axes: I) -> TensorBase<R, IxD>
 where
     R: DataAPI,
-    D: DimAPI + DimLargerOneAPI,
-    D::LargerOne: DimAPI,
-    I: TryInto<isize>,
+    D: DimAPI,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
 {
-    into_expand_dims_f(tensor, axis).unwrap()
+    into_expand_dims_f(tensor, axes).unwrap()
 }
 
 impl<R, D> TensorBase<R, D>
 where
     R: DataAPI,
-    D: DimAPI + DimLargerOneAPI,
-    D::LargerOne: DimAPI,
+    D: DimAPI,
 {
     /// Expands the shape of an array by inserting a new axis (dimension) of
     /// size one at the position specified by `axis`.
@@ -219,21 +222,18 @@ where
     /// # See also
     ///
     /// [`expand_dims`]
-    pub fn expand_dims<I>(&self, axis: I) -> TensorBase<DataRef<'_, R::Data>, D::LargerOne>
+    pub fn expand_dims<I>(&self, axes: I) -> TensorBase<DataRef<'_, R::Data>, IxD>
     where
-        I: TryInto<isize>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
-        into_expand_dims(self.view(), axis)
+        into_expand_dims(self.view(), axes)
     }
 
-    pub fn expand_dims_f<I>(
-        &self,
-        axis: I,
-    ) -> Result<TensorBase<DataRef<'_, R::Data>, D::LargerOne>>
+    pub fn expand_dims_f<I>(&self, axes: I) -> Result<TensorBase<DataRef<'_, R::Data>, IxD>>
     where
-        I: TryInto<isize>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
-        into_expand_dims_f(self.view(), axis)
+        into_expand_dims_f(self.view(), axes)
     }
 
     /// Expands the shape of an array by inserting a new axis (dimension) of
@@ -242,18 +242,18 @@ where
     /// # See also
     ///
     /// [`expand_dims`]
-    pub fn into_expand_dims<I>(self, axis: I) -> TensorBase<R, D::LargerOne>
+    pub fn into_expand_dims<I>(self, axes: I) -> TensorBase<R, IxD>
     where
-        I: TryInto<isize>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
-        into_expand_dims(self, axis)
+        into_expand_dims(self, axes)
     }
 
-    pub fn into_expand_dims_f<I>(self, axis: I) -> Result<TensorBase<R, D::LargerOne>>
+    pub fn into_expand_dims_f<I>(self, axes: I) -> Result<TensorBase<R, IxD>>
     where
-        I: TryInto<isize>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
-        into_expand_dims_f(self, axis)
+        into_expand_dims_f(self, axes)
     }
 }
 
@@ -377,6 +377,9 @@ where
     I: TryInto<AxesIndex<isize>, Error = Error>,
 {
     let axes = axes.try_into()?;
+    if axes.as_ref().is_empty() {
+        return Ok(into_reverse_axes(tensor));
+    }
     let layout = tensor.layout().transpose(axes.as_ref())?;
     unsafe { Ok(TensorBase::new_unchecked(tensor.data, layout)) }
 }
@@ -1040,6 +1043,12 @@ mod tests {
         let a: Tensor<f64, _> = zeros([4, 9, 8]);
         let b = a.expand_dims(2);
         assert_eq!(b.shape(), &[4, 9, 1, 8]);
+        let b = a.expand_dims([1, 3]);
+        assert_eq!(b.shape(), &[4, 1, 9, 8, 1]);
+        let b = a.expand_dims([1, -1]);
+        assert_eq!(b.shape(), &[4, 1, 9, 8, 1]);
+        let b = a.expand_dims([-1, -4, 1, 0]);
+        assert_eq!(b.shape(), &[1, 1, 4, 1, 9, 8, 1]);
     }
 
     #[test]
