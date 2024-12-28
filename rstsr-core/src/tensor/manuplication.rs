@@ -1025,15 +1025,17 @@ where
     DataCow<'a, Storage<T, B>>: From<R>,
 {
     rstsr_assert_eq!(tensor.size(), shape.shape_size(), InvalidLayout)?;
+    let same_shape = tensor.shape().as_ref().to_vec() == shape.as_ref().to_vec();
     let contig = tensor.layout().c_contig() || tensor.layout().f_contig();
-    if contig {
-        // contiguous, no data cloned
+    if contig || same_shape {
+        // no data cloned
         let result = tensor.into_shape_assume_contig_f(shape.clone())?;
         let layout = result.layout().clone();
         let data = result.data.into();
         return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
     } else {
-        // non-contiguous, clone data by assign
+        // not contiguous, and shape changed
+        // clone data by assign
         let device = tensor.data.storage().device();
         let layout_new = shape.new_contig(None);
         let mut storage_new = unsafe { device.empty_impl(layout_new.size())? };
