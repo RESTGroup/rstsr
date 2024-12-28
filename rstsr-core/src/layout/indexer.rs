@@ -229,7 +229,7 @@ where
 
     fn dim_insert(&self, axis: isize) -> Result<Layout<Self::DOut>> {
         // dimension check
-        let axis = if axis < 0 { self.ndim() as isize + axis } else { axis };
+        let axis = if axis < 0 { self.ndim() as isize + axis + 1 } else { axis };
         rstsr_pattern!(axis, 0..(self.ndim() + 1) as isize, ValueOutOfRange)?;
         let axis = axis as usize;
 
@@ -419,5 +419,20 @@ mod tests {
         let l4 = l.dim_slice(s![Indexer::Ellipsis, 1..3, None, 2]).unwrap();
         let l4 = l4.into_dim::<Ix3>().unwrap();
         println!("{:?}", l4);
+    }
+
+    #[test]
+    fn test_expand_dims() {
+        let l = Layout::<Ix3>::new([2, 3, 4], [1, 10, 100], 0);
+        let l1 = l.dim_insert(0).unwrap();
+        println!("{:?}", l1);
+        let l2 = l.dim_insert(1).unwrap();
+        println!("{:?}", l2);
+        let l3 = l.dim_insert(3).unwrap();
+        println!("{:?}", l3);
+        let l4 = l.dim_insert(-1).unwrap();
+        println!("{:?}", l4);
+        let l5 = l.dim_insert(-4).unwrap();
+        println!("{:?}", l5);
     }
 }
