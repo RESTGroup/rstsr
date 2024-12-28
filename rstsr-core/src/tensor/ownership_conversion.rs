@@ -1,5 +1,7 @@
 use crate::prelude_dev::*;
 
+/* #region basic conversion */
+
 pub trait ViewAPI<R, D>
 where
     R: DataAPI,
@@ -128,6 +130,8 @@ where
     }
 }
 
+/* #endregion */
+
 /* #region DataCow */
 
 impl<S, D> From<TensorBase<DataOwned<S>, D>> for TensorBase<DataCow<'_, S>, D>
@@ -189,6 +193,8 @@ where
     }
 }
 
+/* #endregion */
+
 /* #region to_vector */
 
 impl<R, T, B> TensorBase<R, Ix1>
@@ -243,6 +249,30 @@ where
 {
     pub fn into_rawvec(self) -> B::RawVec {
         self.data.storage.into_rawvec()
+    }
+}
+
+/* #endregion */
+
+/* #region to_scalar */
+
+impl<R, T, D, B> TensorBase<R, D>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    T: Clone,
+    D: DimAPI,
+    B: DeviceAPI<T>,
+{
+    pub fn to_scalar_f(&self) -> Result<T> {
+        let layout = self.layout();
+        rstsr_assert_eq!(layout.size(), 1, InvalidLayout)?;
+        let data = self.data().storage();
+        let vec = data.to_cpu_vec()?;
+        Ok(vec[0].clone())
+    }
+
+    pub fn to_scalar(&self) -> T {
+        self.to_scalar_f().unwrap()
     }
 }
 
