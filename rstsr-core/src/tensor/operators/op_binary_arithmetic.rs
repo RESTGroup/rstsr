@@ -221,7 +221,7 @@ macro_rules! impl_binary_lr_consume {
                         let storage_b = b.data().storage();
                         device.op_muta_refb(&mut storage_a, &la_b, storage_b, &lb_b)?;
                         let c = unsafe { Tensor::new_unchecked(DataOwned::from(storage_a), la_b) };
-                        c.into_dim::<DC>()
+                        c.into_dim_f::<DC>()
                     }
                 }
             }
@@ -270,7 +270,7 @@ macro_rules! impl_binary_lr_consume {
                         let storage_a = a.data().storage();
                         device.op_muta_refb(&mut storage_b, &lb_b, storage_a, &la_b)?;
                         let c = unsafe { Tensor::new_unchecked(DataOwned::from(storage_b), lb_b) };
-                        c.into_dim::<DC>()
+                        c.into_dim_f::<DC>()
                     }
                 }
             }

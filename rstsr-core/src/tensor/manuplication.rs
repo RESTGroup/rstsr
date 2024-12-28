@@ -1,7 +1,6 @@
 //! This module handles tensor data manipulation.
 
 use crate::prelude_dev::*;
-use core::num::TryFromIntError;
 
 /* #region broadcast_arrays */
 
@@ -510,7 +509,6 @@ where
 
 /* #region reverse_axes */
 
-/// Reverse the order of elements in an array along the given axis.
 pub fn into_reverse_axes<R, D>(tensor: TensorBase<R, D>) -> TensorBase<R, D>
 where
     R: DataAPI,
@@ -520,6 +518,7 @@ where
     unsafe { TensorBase::new_unchecked(tensor.data, layout) }
 }
 
+/// Reverse the order of elements in an array along the given axis.
 pub fn reverse_axes<R, D>(tensor: &TensorBase<R, D>) -> TensorBase<DataRef<'_, R::Data>, D>
 where
     R: DataAPI,
@@ -660,56 +659,90 @@ where
 
 /* #region squeeze */
 
+pub fn into_squeeze_f<I, R, D>(tensor: TensorBase<R, D>, axes: I) -> Result<TensorBase<R, IxD>>
+where
+    R: DataAPI,
+    D: DimAPI,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
+{
+    // convert axis to positive indexes and (reversed) sort
+    let ndim: isize = tensor.ndim().try_into()?;
+    let mut layout = tensor.layout().clone().into_dim::<IxD>()?;
+    let mut axes = axes
+        .try_into()?
+        .as_ref()
+        .iter()
+        .map(|&v| if v >= 0 { v } else { v + ndim })
+        .collect::<Vec<isize>>();
+    axes.sort_by(|a, b| b.cmp(a));
+    // check no two axis are the same
+    for i in 0..axes.len() - 1 {
+        rstsr_assert!(axes[i] != axes[i + 1], InvalidValue)?;
+    }
+    // perform squeeze
+    for &axis in axes.iter() {
+        layout = layout.dim_eliminate(axis)?;
+    }
+    unsafe { Ok(TensorBase::new_unchecked(tensor.data, layout)) }
+}
+
 /// Removes singleton dimensions (axes) from `x`.
 ///
 /// # See also
 ///
 /// [Python array API standard: `squeeze`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.squeeze.html)
-pub fn squeeze<I, R, D>(tensor: TensorBase<R, D>, axis: I) -> TensorBase<R, D::SmallerOne>
+pub fn squeeze<I, R, D>(tensor: &TensorBase<R, D>, axes: I) -> TensorBase<DataRef<'_, R::Data>, IxD>
 where
     R: DataAPI,
-    D: DimAPI + DimSmallerOneAPI,
-    D::SmallerOne: DimAPI,
-    I: TryInto<isize, Error = TryFromIntError>,
+    D: DimAPI,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
 {
-    squeeze_f(tensor, axis).unwrap()
+    into_squeeze_f(tensor.view(), axes).unwrap()
 }
 
-pub fn squeeze_f<I, R, D>(tensor: TensorBase<R, D>, axis: I) -> Result<TensorBase<R, D::SmallerOne>>
+pub fn squeeze_f<I, R, D>(
+    tensor: &TensorBase<R, D>,
+    axes: I,
+) -> Result<TensorBase<DataRef<'_, R::Data>, IxD>>
 where
     R: DataAPI,
-    D: DimAPI + DimSmallerOneAPI,
-    D::SmallerOne: DimAPI,
-    I: TryInto<isize, Error = TryFromIntError>,
+    D: DimAPI,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
 {
-    let axis = axis.try_into()?;
-    let layout = tensor.layout().dim_eliminate(axis)?;
-    unsafe { Ok(TensorBase::new_unchecked(tensor.data, layout)) }
+    into_squeeze_f(tensor.view(), axes)
+}
+
+pub fn into_squeeze<I, R, D>(tensor: TensorBase<R, D>, axes: I) -> TensorBase<R, IxD>
+where
+    R: DataAPI,
+    D: DimAPI,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
+{
+    into_squeeze_f(tensor, axes).unwrap()
 }
 
 impl<R, D> TensorBase<R, D>
 where
     R: DataAPI,
-    D: DimAPI + DimSmallerOneAPI,
-    D::SmallerOne: DimAPI,
+    D: DimAPI,
 {
     /// Removes singleton dimensions (axes) from `x`.
     ///
     /// # See also
     ///
     /// [`squeeze`]
-    pub fn squeeze<I>(&self, axis: I) -> TensorBase<DataRef<'_, R::Data>, D::SmallerOne>
+    pub fn squeeze<I>(&self, axis: I) -> TensorBase<DataRef<'_, R::Data>, IxD>
     where
-        I: TryInto<isize, Error = TryFromIntError>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
-        squeeze(self.view(), axis)
+        squeeze(self, axis)
     }
 
-    pub fn squeeze_f<I>(&self, axis: I) -> Result<TensorBase<DataRef<'_, R::Data>, D::SmallerOne>>
+    pub fn squeeze_f<I>(&self, axis: I) -> Result<TensorBase<DataRef<'_, R::Data>, IxD>>
     where
-        I: TryInto<isize, Error = TryFromIntError>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
-        squeeze_f(self.view(), axis)
+        squeeze_f(self, axis)
     }
 
     /// Removes singleton dimensions (axes) from `x`.
@@ -717,18 +750,18 @@ where
     /// # See also
     ///
     /// [`squeeze`]
-    pub fn into_squeeze<I>(self, axis: I) -> TensorBase<R, D::SmallerOne>
+    pub fn into_squeeze<I>(self, axis: I) -> TensorBase<R, IxD>
     where
-        I: TryInto<isize, Error = TryFromIntError>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
-        squeeze(self, axis)
+        into_squeeze(self, axis)
     }
 
-    pub fn into_squeeze_f<I>(self, axis: I) -> Result<TensorBase<R, D::SmallerOne>>
+    pub fn into_squeeze_f<I>(self, axis: I) -> Result<TensorBase<R, IxD>>
     where
-        I: TryInto<isize, Error = TryFromIntError>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
-        squeeze_f(self, axis)
+        into_squeeze_f(self, axis)
     }
 }
 
@@ -736,11 +769,7 @@ where
 
 /* #region into_dim */
 
-/// Convert layout to another dimension.
-///
-/// This is mostly used when converting static dimension to dynamic
-/// dimension or vice versa.
-pub fn into_dim<R, D, D2>(tensor: TensorBase<R, D>) -> Result<TensorBase<R, D2>>
+pub fn into_dim_f<R, D, D2>(tensor: TensorBase<R, D>) -> Result<TensorBase<R, D2>>
 where
     R: DataAPI,
     D: DimAPI,
@@ -749,6 +778,40 @@ where
 {
     let layout = tensor.layout().clone().into_dim::<D2>()?;
     unsafe { Ok(TensorBase::new_unchecked(tensor.data, layout)) }
+}
+
+/// Convert layout to another dimension.
+///
+/// This is mostly used when converting static dimension to dynamic
+/// dimension or vice versa.
+pub fn to_dim<R, D, D2>(tensor: &TensorBase<R, D>) -> TensorBase<DataRef<'_, R::Data>, D2>
+where
+    R: DataAPI,
+    D: DimAPI,
+    D2: DimAPI,
+    D: DimIntoAPI<D2>,
+{
+    into_dim_f(tensor.view()).unwrap()
+}
+
+pub fn to_dim_f<R, D, D2>(tensor: &TensorBase<R, D>) -> Result<TensorBase<DataRef<'_, R::Data>, D2>>
+where
+    R: DataAPI,
+    D: DimAPI,
+    D2: DimAPI,
+    D: DimIntoAPI<D2>,
+{
+    into_dim_f(tensor.view())
+}
+
+pub fn into_dim<R, D, D2>(tensor: TensorBase<R, D>) -> TensorBase<R, D2>
+where
+    R: DataAPI,
+    D: DimAPI,
+    D2: DimAPI,
+    D: DimIntoAPI<D2>,
+{
+    into_dim_f(tensor).unwrap()
 }
 
 impl<R, D> TensorBase<R, D>
@@ -764,12 +827,20 @@ where
     /// # See also
     ///
     /// [`into_dim`]
-    pub fn to_dim<D2>(&self) -> Result<TensorBase<DataRef<'_, R::Data>, D2>>
+    pub fn to_dim<D2>(&self) -> TensorBase<DataRef<'_, R::Data>, D2>
     where
         D2: DimAPI,
         D: DimIntoAPI<D2>,
     {
-        into_dim(self.view())
+        to_dim(self)
+    }
+
+    pub fn to_dim_f<D2>(&self) -> Result<TensorBase<DataRef<'_, R::Data>, D2>>
+    where
+        D2: DimAPI,
+        D: DimIntoAPI<D2>,
+    {
+        to_dim_f(self)
     }
 
     /// Convert layout to another dimension.
@@ -777,12 +848,20 @@ where
     /// # See also
     ///
     /// [`into_dim`]
-    pub fn into_dim<D2>(self) -> Result<TensorBase<R, D2>>
+    pub fn into_dim<D2>(self) -> TensorBase<R, D2>
     where
         D2: DimAPI,
         D: DimIntoAPI<D2>,
     {
         into_dim(self)
+    }
+
+    pub fn into_dim_f<D2>(self) -> Result<TensorBase<R, D2>>
+    where
+        D2: DimAPI,
+        D: DimIntoAPI<D2>,
+    {
+        into_dim_f(self)
     }
 }
 
@@ -790,29 +869,7 @@ where
 
 /* #region reshape_assume_contig */
 
-/// Assuming contiguous array, reshapes an array without changing its data.
-///
-/// This function may return c-contiguous or f-contiguous array:
-/// - If input array is both c-contiguous and f-contiguous (especially case of
-///   1-D), the output array will be chosen as default contiguous.
-/// - If input array is c-contiguous but not f-contiguous, the output array will
-///   be c-contiguous.
-/// - If input array is f-contiguous but not c-contiguous, the output array will
-///   be f-contiguous.
-///
-/// # See also
-///
-/// [Python array API standard: `reshape`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.reshape.html)
-pub fn reshape_assume_contig<R, D, D2>(tensor: TensorBase<R, D>, shape: D2) -> TensorBase<R, D2>
-where
-    R: DataAPI,
-    D: DimAPI,
-    D2: DimAPI,
-{
-    reshape_assume_contig_f(tensor, shape).unwrap()
-}
-
-pub fn reshape_assume_contig_f<R, D, D2>(
+pub fn into_shape_assume_contig_f<R, D, D2>(
     tensor: TensorBase<R, D>,
     shape: D2,
 ) -> Result<TensorBase<R, D2>>
@@ -844,6 +901,55 @@ where
     unsafe { Ok(TensorBase::new_unchecked(tensor.data, new_layout)) }
 }
 
+/// Assuming contiguous array, reshapes an array without changing its data.
+///
+/// This function may return c-contiguous or f-contiguous array:
+/// - If input array is both c-contiguous and f-contiguous (especially case of
+///   1-D), the output array will be chosen as default contiguous.
+/// - If input array is c-contiguous but not f-contiguous, the output array will
+///   be c-contiguous.
+/// - If input array is f-contiguous but not c-contiguous, the output array will
+///   be f-contiguous.
+///
+/// # See also
+///
+/// [Python array API standard: `reshape`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.reshape.html)
+pub fn to_shape_assume_contig<R, D, D2>(
+    tensor: &TensorBase<R, D>,
+    shape: D2,
+) -> TensorBase<DataRef<'_, R::Data>, D2>
+where
+    R: DataAPI,
+    D: DimAPI,
+    D2: DimAPI,
+{
+    into_shape_assume_contig_f(tensor.view(), shape).unwrap()
+}
+
+pub fn to_shape_assume_contig_f<R, D, D2>(
+    tensor: TensorBase<R, D>,
+    shape: D2,
+) -> Result<TensorBase<R, D2>>
+where
+    R: DataAPI,
+    D: DimAPI,
+    D2: DimAPI,
+{
+    into_shape_assume_contig_f(tensor, shape)
+}
+
+pub fn into_shape_assume_contig<R, D, D2>(tensor: TensorBase<R, D>, shape: D2) -> TensorBase<R, D2>
+where
+    R: DataAPI,
+    D: DimAPI,
+    D2: DimAPI,
+{
+    into_shape_assume_contig_f(tensor, shape).unwrap()
+}
+
+pub use to_shape_assume_contig as reshape_assume_contig;
+pub use to_shape_assume_contig_f as reshape_assume_contig_f;
+
 impl<R, D> TensorBase<R, D>
 where
     R: DataAPI,
@@ -858,7 +964,7 @@ where
     where
         D2: DimAPI,
     {
-        reshape_assume_contig(self.view(), shape)
+        into_shape_assume_contig(self.view(), shape)
     }
 
     pub fn reshape_assume_contig_f<D2>(
@@ -868,14 +974,14 @@ where
     where
         D2: DimAPI,
     {
-        reshape_assume_contig_f(self.view(), shape)
+        into_shape_assume_contig_f(self.view(), shape)
     }
 
     pub fn to_shape_assume_contig<D2>(&self, shape: D2) -> TensorBase<DataRef<'_, R::Data>, D2>
     where
         D2: DimAPI,
     {
-        reshape_assume_contig(self.view(), shape)
+        into_shape_assume_contig(self.view(), shape)
     }
 
     pub fn to_shape_assume_contig_f<D2>(
@@ -885,21 +991,21 @@ where
     where
         D2: DimAPI,
     {
-        reshape_assume_contig_f(self.view(), shape)
+        into_shape_assume_contig_f(self.view(), shape)
     }
 
     pub fn into_shape_assume_contig<D2>(self, shape: D2) -> TensorBase<R, D2>
     where
         D2: DimAPI,
     {
-        reshape_assume_contig(self, shape)
+        into_shape_assume_contig(self, shape)
     }
 
     pub fn into_shape_assume_contig_f<D2>(self, shape: D2) -> Result<TensorBase<R, D2>>
     where
         D2: DimAPI,
     {
-        reshape_assume_contig_f(self, shape)
+        into_shape_assume_contig_f(self, shape)
     }
 }
 
@@ -907,32 +1013,7 @@ where
 
 /* #region reshape */
 
-/// Reshapes an array without changing its data.
-///
-/// # Todo
-///
-/// Current implementation only prohibits memory copy when the input tensor is
-/// c-contiguous or f-contiguous. However, it is also possible in some other
-/// cases, and we haven't implement that way.
-///
-/// # See also
-///
-/// [Python array API standard: `reshape`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.reshape.html)
-pub fn reshape<'a, R, T, D, B, D2>(
-    tensor: TensorBase<R, D>,
-    shape: D2,
-) -> TensorBase<DataCow<'a, R::Data>, D2>
-where
-    R: DataAPI<Data = Storage<T, B>>,
-    D: DimAPI,
-    D2: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D>,
-    DataCow<'a, Storage<T, B>>: From<R>,
-{
-    reshape_f(tensor, shape).unwrap()
-}
-
-pub fn reshape_f<'a, R, T, D, B, D2>(
+pub fn into_shape_f<'a, R, T, D, B, D2>(
     tensor: TensorBase<R, D>,
     shape: D2,
 ) -> Result<TensorBase<DataCow<'a, R::Data>, D2>>
@@ -962,6 +1043,57 @@ where
     }
 }
 
+/// Reshapes an array without changing its data.
+///
+/// # Todo
+///
+/// Current implementation only prohibits memory copy when the input tensor is
+/// c-contiguous or f-contiguous. However, it is also possible in some other
+/// cases, and we haven't implement that way.
+///
+/// # See also
+///
+/// [Python array API standard: `reshape`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.reshape.html)
+pub fn to_shape<R, T, D, B, D2>(
+    tensor: &TensorBase<R, D>,
+    shape: D2,
+) -> TensorBase<DataCow<'_, R::Data>, D2>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    D: DimAPI,
+    D2: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D>,
+{
+    into_shape_f(tensor.view(), shape).unwrap()
+}
+
+pub fn to_shape_f<R, T, D, B, D2>(
+    tensor: &TensorBase<R, D>,
+    shape: D2,
+) -> Result<TensorBase<DataCow<'_, R::Data>, D2>>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    D: DimAPI,
+    D2: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D>,
+{
+    into_shape_f(tensor.view(), shape)
+}
+
+pub fn into_shape<'a, R, T, D, B, D2>(
+    tensor: TensorBase<R, D>,
+    shape: D2,
+) -> TensorBase<DataCow<'a, R::Data>, D2>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    D: DimAPI,
+    D2: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D>,
+    DataCow<'a, Storage<T, B>>: From<R>,
+{
+    into_shape_f(tensor, shape).unwrap()
+}
+
 impl<R, T, D, B> TensorBase<R, D>
 where
     R: DataAPI<Data = Storage<T, B>>,
@@ -978,7 +1110,7 @@ where
         D2: DimAPI,
         B: OpAssignArbitaryAPI<T, D2, D>,
     {
-        reshape(self.view(), shape)
+        into_shape(self.view(), shape)
     }
 
     pub fn reshape_f<D2>(&self, shape: D2) -> Result<TensorBase<DataCow<'_, R::Data>, D2>>
@@ -986,7 +1118,7 @@ where
         D2: DimAPI,
         B: OpAssignArbitaryAPI<T, D2, D>,
     {
-        reshape_f(self.view(), shape)
+        into_shape_f(self.view(), shape)
     }
 
     pub fn to_shape<D2>(&self, shape: D2) -> TensorBase<DataCow<'_, R::Data>, D2>
@@ -994,7 +1126,7 @@ where
         D2: DimAPI,
         B: OpAssignArbitaryAPI<T, D2, D>,
     {
-        reshape(self.view(), shape)
+        into_shape(self.view(), shape)
     }
 
     pub fn to_shape_f<D2>(&self, shape: D2) -> Result<TensorBase<DataCow<'_, R::Data>, D2>>
@@ -1002,7 +1134,7 @@ where
         D2: DimAPI,
         B: OpAssignArbitaryAPI<T, D2, D>,
     {
-        reshape_f(self.view(), shape)
+        into_shape_f(self.view(), shape)
     }
 
     pub fn into_shape<'a, D2>(self, shape: D2) -> TensorBase<DataCow<'a, R::Data>, D2>
@@ -1011,7 +1143,7 @@ where
         B: OpAssignArbitaryAPI<T, D2, D>,
         DataCow<'a, Storage<T, B>>: From<R>,
     {
-        reshape(self, shape)
+        into_shape(self, shape)
     }
 
     pub fn into_shape_f<'a, D2>(self, shape: D2) -> Result<TensorBase<DataCow<'a, R::Data>, D2>>
@@ -1020,7 +1152,7 @@ where
         B: OpAssignArbitaryAPI<T, D2, D>,
         DataCow<'a, Storage<T, B>>: From<R>,
     {
-        reshape_f(self, shape)
+        into_shape_f(self, shape)
     }
 }
 
@@ -1049,6 +1181,17 @@ mod tests {
         assert_eq!(b.shape(), &[4, 1, 9, 8, 1]);
         let b = a.expand_dims([-1, -4, 1, 0]);
         assert_eq!(b.shape(), &[1, 1, 4, 1, 9, 8, 1]);
+    }
+
+    #[test]
+    fn test_squeeze() {
+        let a: Tensor<f64, _> = zeros([4, 1, 9, 1, 8, 1]);
+        let b = a.squeeze(3);
+        assert_eq!(b.shape(), &[4, 1, 9, 8, 1]);
+        let b = a.squeeze([1, 3]);
+        assert_eq!(b.shape(), &[4, 9, 8, 1]);
+        let b = a.squeeze([1, -1]);
+        assert_eq!(b.shape(), &[4, 9, 1, 8]);
     }
 
     #[test]
