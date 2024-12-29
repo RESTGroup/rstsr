@@ -15,6 +15,8 @@ pub enum Indexer {
     Ellipsis,
 }
 
+/* #region into Indexer */
+
 impl<R> From<R> for Indexer
 where
     R: Into<SliceI>,
@@ -46,6 +48,12 @@ macro_rules! impl_from_int_into_indexer {
 }
 
 impl_from_int_into_indexer!(usize, isize, u8, i8, u16, i16, u32, i32, u64, i64, u128, i128);
+
+/* #endregion */
+
+/* #region into AxesIndex<Indexer> */
+
+/* #endregion */
 
 pub trait IndexerPreserveAPI: Sized {
     /// Narrowing tensor by slicing at a specific axis.
@@ -371,15 +379,15 @@ where
 macro_rules! slice {
     ($stop:expr) => {{
         use $crate::layout::slice::Slice;
-        Slice::<isize>::from(Slice { start: None, stop: $stop.into(), step: None })
+        Slice::<isize>::from(Slice::new(None, $stop, None))
     }};
     ($start:expr, $stop:expr) => {{
         use $crate::layout::slice::Slice;
-        Slice::<isize>::from(Slice { start: $start.into(), stop: $stop.into(), step: None })
+        Slice::<isize>::from(Slice::new($start, $stop, None))
     }};
     ($start:expr, $stop:expr, $step:expr) => {{
         use $crate::layout::slice::Slice;
-        Slice::<isize>::from(Slice { start: $start.into(), stop: $stop.into(), step: $step.into() })
+        Slice::<isize>::from(Slice::new($start, $stop, $step))
     }};
 }
 

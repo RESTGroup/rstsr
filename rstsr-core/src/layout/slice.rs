@@ -6,9 +6,9 @@ pub struct Slice<T>
 where
     T: Integer + Clone,
 {
-    pub start: Option<T>,
-    pub stop: Option<T>,
-    pub step: Option<T>,
+    pub(crate) start: Option<T>,
+    pub(crate) stop: Option<T>,
+    pub(crate) step: Option<T>,
 }
 
 /// In most cases, we will use isize for indexing.
