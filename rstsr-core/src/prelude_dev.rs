@@ -52,6 +52,7 @@ pub use crate::{
     Tensor, TensorArc, TensorBase, TensorCow, TensorMut, TensorRef, TensorView, TensorViewMut,
 };
 
+pub use crate::impl_from_tuple_to_axes_index;
 pub use crate::{
     rstsr_assert, rstsr_assert_eq, rstsr_error, rstsr_invalid, rstsr_pattern, rstsr_raise,
 };

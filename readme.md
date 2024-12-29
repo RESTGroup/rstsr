@@ -24,9 +24,9 @@ Some requirements in [Python array API](https://data-apis.org/array-api/latest/)
 - [x] broadcasting
 - [x] creation functions
 - [x] element-wise basic arithmetics (+, -, *, /, etc)
-- [ ] element-wise functions (sin, abs, floor, etc)
+- [ ] element-wise functions (sin, abs, floor, etc) (map utilities is constructing)
 - [ ] statistical (reduction) functions (sum, norm, std, etc)
-- [ ] basic indexing (partially done)
+- [x] basic indexing
 - [x] matmul
 - [ ] searching functions
 - [ ] manuplication functions (partially done)

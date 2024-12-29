@@ -15,6 +15,9 @@ pub enum Indexer {
     Ellipsis,
 }
 
+pub use Indexer::Ellipsis;
+pub use Indexer::Insert as NewAxis;
+
 /* #region into Indexer */
 
 impl<R> From<R> for Indexer
@@ -85,8 +88,12 @@ impl_into_axes_index!(
     core::ops::Range<isize>,
     core::ops::RangeFrom<isize>,
     core::ops::Range<usize>,
-    core::ops::RangeFrom<usize>
+    core::ops::RangeFrom<usize>,
+    core::ops::Range<i32>,
+    core::ops::RangeFrom<i32>
 );
+
+impl_from_tuple_to_axes_index!(Indexer);
 
 /* #endregion */
 
@@ -176,7 +183,7 @@ where
             }
 
             let offset = (self.offset() as isize + stride[axis] * start) as usize;
-            shape[axis] = ((stop - start - step - 1) / step).max(0) as usize;
+            shape[axis] = ((stop - start + step + 1) / step).max(0) as usize;
             stride[axis] *= step;
             return Ok(Self::new(shape, stride, offset));
         }
@@ -473,6 +480,19 @@ mod tests {
         println!("{:?}", l5);
         assert_eq!(l5.shape(), &[1, 1, 2, 4]);
         assert_eq!(l5.offset(), 110);
+    }
+
+    #[test]
+    fn test_slice_with_stride() {
+        let l = Layout::new([24], [1], 0);
+        let b = l.dim_narrow(0, slice!(5, 15, 2)).unwrap();
+        assert_eq!(b, Layout::new([5], [2], 5));
+        let b = l.dim_narrow(0, slice!(5, 16, 2)).unwrap();
+        assert_eq!(b, Layout::new([6], [2], 5));
+        let b = l.dim_narrow(0, slice!(15, 5, -2)).unwrap();
+        assert_eq!(b, Layout::new([5], [-2], 15));
+        let b = l.dim_narrow(0, slice!(15, 4, -2)).unwrap();
+        assert_eq!(b, Layout::new([6], [-2], 15));
     }
 
     #[test]
