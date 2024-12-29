@@ -53,6 +53,41 @@ impl_from_int_into_indexer!(usize, isize, u8, i8, u16, i16, u32, i32, u64, i64, 
 
 /* #region into AxesIndex<Indexer> */
 
+macro_rules! impl_into_axes_index {
+    ($($t:ty),*) => {
+        $(
+            impl From<$t> for AxesIndex<Indexer> {
+                fn from(index: $t) -> Self {
+                    AxesIndex::Val(index.into())
+                }
+            }
+
+            impl<const N: usize> From<[$t; N]> for AxesIndex<Indexer> {
+                fn from(index: [$t; N]) -> Self {
+                    let index = index.iter().map(|v| v.clone().into()).collect::<Vec<_>>();
+                    AxesIndex::Vec(index)
+                }
+            }
+
+            impl From<Vec<$t>> for AxesIndex<Indexer> {
+                fn from(index: Vec<$t>) -> Self {
+                    let index = index.iter().map(|v| v.clone().into()).collect::<Vec<_>>();
+                    AxesIndex::Vec(index)
+                }
+            }
+        )*
+    };
+}
+
+impl_into_axes_index!(usize, isize, u8, i8, u16, i16, u32, i32, u64, i64, u128, i128);
+impl_into_axes_index!(
+    Slice<isize>,
+    core::ops::Range<isize>,
+    core::ops::RangeFrom<isize>,
+    core::ops::Range<usize>,
+    core::ops::RangeFrom<usize>
+);
+
 /* #endregion */
 
 pub trait IndexerPreserveAPI: Sized {
@@ -75,7 +110,7 @@ where
         let mut stride = self.stride().clone();
 
         // fast return if slice is empty
-        if slice == (Slice { start: None, stop: None, step: None }) {
+        if slice == Slice::new(None, None, None) {
             return Ok(self.clone());
         }
 
@@ -314,16 +349,16 @@ where
             if let Some(idx) = idx_ellipsis {
                 indexers.remove(idx);
             }
-        } else {
-            let idx_ellipsis = idx_ellipsis.unwrap_or(indexers.len());
-            indexers[idx_ellipsis] = SliceI { start: None, stop: None, step: None }.into();
+        } else if let Some(idx_ellipsis) = idx_ellipsis {
+            indexers[idx_ellipsis] = SliceI::new(None, None, None).into();
             if n_ellipsis > 1 {
                 for _ in 1..n_ellipsis {
-                    indexers.insert(
-                        idx_ellipsis,
-                        SliceI { start: None, stop: None, step: None }.into(),
-                    );
+                    indexers.insert(idx_ellipsis, SliceI::new(None, None, None).into());
                 }
+            }
+        } else {
+            for _ in 0..n_ellipsis {
+                indexers.push(SliceI::new(None, None, None).into());
             }
         }
 
@@ -430,6 +465,14 @@ mod tests {
         let l4 = l.dim_slice(s![Indexer::Ellipsis, 1..3, None, 2]).unwrap();
         let l4 = l4.into_dim::<Ix3>().unwrap();
         println!("{:?}", l4);
+        assert_eq!(l4.shape(), &[2, 2, 1]);
+        assert_eq!(l4.offset(), 12);
+
+        let l5 = l.dim_slice(s![None, 1, None, 1..3]).unwrap();
+        let l5 = l5.into_dim::<Ix4>().unwrap();
+        println!("{:?}", l5);
+        assert_eq!(l5.shape(), &[1, 1, 2, 4]);
+        assert_eq!(l5.offset(), 110);
     }
 
     #[test]

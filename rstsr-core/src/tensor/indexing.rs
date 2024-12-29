@@ -14,57 +14,28 @@ pub trait TensorSliceAPI<'a, Idx> {
     fn slice(&'a self, index: Idx) -> Self::Out {
         Self::slice_f(self, index).unwrap()
     }
-}
 
-impl<'a, R, D> TensorSliceAPI<'a, &[Indexer]> for TensorBase<R, D>
-where
-    R: DataAPI,
-    D: DimAPI,
-    R::Data: 'a,
-{
-    type Out = TensorBase<DataRef<'a, R::Data>, IxD>;
+    fn i_f(&'a self, index: Idx) -> Result<Self::Out> {
+        Self::slice_f(self, index)
+    }
 
-    fn slice_f(&'a self, index: &[Indexer]) -> Result<Self::Out> {
-        let layout = self.layout().dim_slice(index)?;
-        let data = self.view().into_data();
-        return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
+    fn i(&'a self, index: Idx) -> Self::Out {
+        Self::slice(self, index)
     }
 }
 
-macro_rules! impl_TensorSliceAPI {
-    ($($type:ty),*) => {
-        $(
-            impl<'a, R, D> TensorSliceAPI<'a, $type> for TensorBase<R, D>
-            where
-                R: DataAPI,
-                D: DimAPI + DimSmallerOneAPI,
-                R::Data: 'a,
-                D::SmallerOne: DimAPI,
-            {
-                type Out = TensorBase<DataRef<'a, R::Data>, D::SmallerOne>;
-
-                fn slice_f(&'a self, index: $type) -> Result<Self::Out> {
-                    let layout = self.layout().dim_select(0, index as isize)?;
-                    let data = self.view().into_data();
-                    return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
-                }
-            }
-        )*
-    };
-}
-
-impl_TensorSliceAPI!(usize, isize, u8, i8, u16, i16, u32, i32, u64, i64, u128, i128);
-
-impl<'a, R, D> TensorSliceAPI<'a, SliceI> for TensorBase<R, D>
+impl<'a, R, D, I> TensorSliceAPI<'a, I> for TensorBase<R, D>
 where
     R: DataAPI,
     D: DimAPI,
     R::Data: 'a,
+    I: Into<AxesIndex<Indexer>>,
 {
-    type Out = TensorBase<DataRef<'a, R::Data>, D>;
+    type Out = TensorBase<DataRef<'a, R::Data>, IxD>;
 
-    fn slice_f(&'a self, index: SliceI) -> Result<Self::Out> {
-        let layout = self.layout().dim_narrow(0, index)?;
+    fn slice_f(&'a self, index: I) -> Result<Self::Out> {
+        let index = index.into();
+        let layout = self.layout().dim_slice(index.as_ref())?;
         let data = self.view().into_data();
         return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
     }
@@ -72,7 +43,7 @@ where
 
 /* #endregion */
 
-/* #region slice */
+/* #region slice mut */
 
 pub trait TensorSliceMutAPI<'a, Idx> {
     type Out;
@@ -82,57 +53,28 @@ pub trait TensorSliceMutAPI<'a, Idx> {
     fn slice_mut(&'a mut self, index: Idx) -> Self::Out {
         Self::slice_mut_f(self, index).unwrap()
     }
-}
 
-impl<'a, R, D> TensorSliceMutAPI<'a, &[Indexer]> for TensorBase<R, D>
-where
-    R: DataMutAPI,
-    D: DimAPI,
-    R::Data: 'a,
-{
-    type Out = TensorBase<DataMut<'a, R::Data>, IxD>;
+    fn i_mut_f(&'a mut self, index: Idx) -> Result<Self::Out> {
+        Self::slice_mut_f(self, index)
+    }
 
-    fn slice_mut_f(&'a mut self, index: &[Indexer]) -> Result<Self::Out> {
-        let layout = self.layout().dim_slice(index)?;
-        let data = self.view_mut().into_data();
-        return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
+    fn i_mut(&'a mut self, index: Idx) -> Self::Out {
+        Self::slice_mut(self, index)
     }
 }
 
-macro_rules! impl_TensorSliceMutAPI {
-    ($($type:ty),*) => {
-        $(
-            impl<'a, R, D> TensorSliceMutAPI<'a, $type> for TensorBase<R, D>
-            where
-                R: DataMutAPI,
-                D: DimAPI + DimSmallerOneAPI,
-                R::Data: 'a,
-                D::SmallerOne: DimAPI,
-            {
-                type Out = TensorBase<DataMut<'a, R::Data>, D::SmallerOne>;
-
-                fn slice_mut_f(&'a mut self, index: $type) -> Result<Self::Out> {
-                    let layout = self.layout().dim_select(0, index as isize)?;
-                    let data = self.view_mut().into_data();
-                    return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
-                }
-            }
-        )*
-    };
-}
-
-impl_TensorSliceMutAPI!(usize, isize, u8, i8, u16, i16, u32, i32, u64, i64, u128, i128);
-
-impl<'a, R, D> TensorSliceMutAPI<'a, SliceI> for TensorBase<R, D>
+impl<'a, R, D, I> TensorSliceMutAPI<'a, I> for TensorBase<R, D>
 where
     R: DataMutAPI,
     D: DimAPI,
     R::Data: 'a,
+    I: Into<AxesIndex<Indexer>>,
 {
-    type Out = TensorBase<DataMut<'a, R::Data>, D>;
+    type Out = TensorBase<DataMut<'a, R::Data>, IxD>;
 
-    fn slice_mut_f(&'a mut self, index: SliceI) -> Result<Self::Out> {
-        let layout = self.layout().dim_narrow(0, index)?;
+    fn slice_mut_f(&'a mut self, index: I) -> Result<Self::Out> {
+        let index = index.into();
+        let layout = self.layout().dim_slice(index.as_ref())?;
         let data = self.view_mut().into_data();
         return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
     }
@@ -199,7 +141,7 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_tensor_slice() {
+    fn test_tensor_slice_1d() {
         let tensor = asarray(vec![1, 2, 3, 4, 5]);
         let tensor_slice = tensor.slice(s![1..4]);
         println!("{:?}", tensor_slice);
@@ -219,6 +161,15 @@ mod test {
     }
 
     #[test]
+    fn test_tensor_nd() {
+        let tensor = arange(24.0).into_shape([2, 3, 4]);
+        let tensor_slice = tensor.slice(s![1..2, 1..3, 1..4]);
+        println!("{:?}", tensor_slice);
+        let tensor_slice = tensor.slice(s![1]);
+        println!("{:?}", tensor_slice);
+    }
+
+    #[test]
     fn test_tensor_index() {
         let mut tensor = asarray(vec![1, 2, 3, 4, 5]);
         let value = tensor[[1]];
@@ -231,6 +182,7 @@ mod test {
             println!("{:?}", value);
             let mut tensor_view_mut = tensor.view_mut();
             tensor_view_mut[[4]] += 1;
+            *&mut tensor_view_mut.slice_mut(4) += 1;
         }
         println!("{:?}", value);
         println!("{:?}", tensor);

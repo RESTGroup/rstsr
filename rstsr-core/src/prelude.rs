@@ -9,6 +9,7 @@ pub mod rstsr_traits {
         OnesLikeAPI, ZerosAPI, ZerosLikeAPI,
     };
     pub use crate::tensor::creation_from_tensor::DiagAPI;
+    pub use crate::tensor::indexing::{TensorSliceAPI, TensorSliceMutAPI};
 }
 
 pub mod rstsr_structs {
@@ -56,3 +57,5 @@ pub mod rstsr {
     pub use super::rstsr_structs::*;
     pub use super::rstsr_traits::*;
 }
+
+pub use rstsr as rt;
