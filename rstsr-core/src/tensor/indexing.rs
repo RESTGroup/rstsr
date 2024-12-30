@@ -98,10 +98,11 @@ macro_rules! impl_Index_for_Tensor {
         {
             type Output = T;
 
+            #[inline]
             fn index(&self, index: I) -> &Self::Output {
                 let index = index.as_ref().iter().map(|&v| v as isize).collect::<Vec<_>>();
                 let i = self.layout().index(index.as_ref());
-                let rawvec = self.storage().rawvec();
+                let rawvec = self.rawvec();
                 rawvec.index(i)
             }
         }
@@ -121,10 +122,11 @@ macro_rules! impl_IndexMut_for_Tensor {
             B: DeviceAPI<T, RawVec = Vec<T>>,
             I: AsRef<[usize]>,
         {
+            #[inline]
             fn index_mut(&mut self, index: I) -> &mut Self::Output {
                 let index = index.as_ref().iter().map(|&v| v as isize).collect::<Vec<_>>();
                 let i = self.layout().index(index.as_ref());
-                let rawvec = self.storage_mut().rawvec_mut();
+                let rawvec = self.rawvec_mut();
                 rawvec.index_mut(i)
             }
         }
@@ -133,6 +135,67 @@ macro_rules! impl_IndexMut_for_Tensor {
 
 impl_IndexMut_for_Tensor!(Tensor<T, D, B>);
 impl_IndexMut_for_Tensor!(TensorViewMut<'_, T, D, B>);
+
+/* #endregion */
+
+/* #region indexing (unchecked) */
+
+macro_rules! impl_IndexUncheck_for_Tensor {
+    ($tensor_struct: ty) => {
+        impl<T, D, B> $tensor_struct
+        where
+            D: DimAPI,
+            B: DeviceAPI<T, RawVec = Vec<T>>,
+        {
+            /// # Safety
+            ///
+            /// This function is unsafe because it does not check the validity of the
+            /// index.
+            #[inline]
+            pub unsafe fn index_uncheck<I>(&self, index: I) -> &T
+            where
+                I: AsRef<[usize]>,
+            {
+                let index = index.as_ref();
+                let i = unsafe { self.layout().index_uncheck(index) } as usize;
+                let rawvec = self.rawvec();
+                rawvec.index(i)
+            }
+        }
+    };
+}
+
+impl_IndexUncheck_for_Tensor!(Tensor<T, D, B>);
+impl_IndexUncheck_for_Tensor!(TensorView<'_, T, D, B>);
+impl_IndexUncheck_for_Tensor!(TensorViewMut<'_, T, D, B>);
+impl_IndexUncheck_for_Tensor!(TensorCow<'_, T, D, B>);
+
+macro_rules! impl_IndexMutUncheck_for_Tensor {
+    ($tensor_struct: ty) => {
+        impl<T, D, B> $tensor_struct
+        where
+            D: DimAPI,
+            B: DeviceAPI<T, RawVec = Vec<T>>,
+        {
+            /// # Safety
+            ///
+            /// This function is unsafe because it does not check the validity of the
+            /// index.
+            #[inline]
+            pub unsafe fn index_mut_uncheck<I>(&mut self, index: I) -> &mut T
+            where
+                I: AsRef<[usize]>,
+            {
+                let index = index.as_ref();
+                let i = unsafe { self.layout().index_uncheck(index) } as usize;
+                let rawvec = self.rawvec_mut();
+                rawvec.index_mut(i)
+            }
+        }
+    };
+}
+impl_IndexMutUncheck_for_Tensor!(Tensor<T, D, B>);
+impl_IndexMutUncheck_for_Tensor!(TensorViewMut<'_, T, D, B>);
 
 /* #endregion */
 
