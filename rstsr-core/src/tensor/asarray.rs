@@ -526,6 +526,42 @@ where
 
 /* #endregion */
 
+/* #region scalar input */
+
+macro_rules! impl_asarray_scalar {
+    ($($t:ty),*) => {
+        $(
+            impl<B> AsArrayAPI<()> for ($t, &B)
+            where
+                B: DeviceAPI<$t> + DeviceCreationAnyAPI<$t>,
+            {
+                type Out = Tensor<$t, Ix0, B>;
+
+                fn asarray_f(self) -> Result<Self::Out> {
+                    let (input, device) = self;
+                    let layout = Layout::new([], [], 0);
+                    let storage = device.outof_cpu_vec(vec![input])?;
+                    let data = DataOwned::from(storage);
+                    let tensor = unsafe { Tensor::new_unchecked(data, layout) };
+                    return Ok(tensor);
+                }
+            }
+
+            impl AsArrayAPI<()> for $t {
+                type Out = Tensor<$t, Ix0, DeviceCpu>;
+
+                fn asarray_f(self) -> Result<Self::Out> {
+                    asarray_f((self, &DeviceCpu::default()))
+                }
+            }
+        )*
+    };
+}
+
+impl_asarray_scalar!(i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize, f32, f64);
+
+/* #endregion */
+
 #[cfg(test)]
 mod tests {
     use super::*;
