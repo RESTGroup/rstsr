@@ -549,6 +549,15 @@ where
     pub fn into_reverse_axes(self) -> TensorBase<R, D> {
         into_reverse_axes(self)
     }
+
+    /// Reverse the order of elements in an array along the given axis.
+    ///
+    /// # See also
+    ///
+    /// [`reverse_axes`]
+    pub fn t(&self) -> TensorBase<DataRef<'_, R::Data>, D> {
+        into_reverse_axes(self.view())
+    }
 }
 
 /* #endregion */
