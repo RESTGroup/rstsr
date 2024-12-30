@@ -174,6 +174,10 @@ macro_rules! impl_dim_max_dyn {
             impl DimMaxAPI<IxD> for Ix<$N> {
                 type Max = IxD;
             }
+
+            impl DimMaxAPI<Ix<$N>> for IxD {
+                type Max = IxD;
+            }
         )*
     };
 }
