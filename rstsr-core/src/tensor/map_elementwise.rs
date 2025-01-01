@@ -1,5 +1,9 @@
 use crate::prelude_dev::*;
 
+/* #region map_fnmut */
+
+// map, mapv, mapi, mapvi
+
 impl<R, T, D, B> TensorBase<R, D>
 where
     R: DataAPI<Data = Storage<T, B>>,
@@ -8,55 +12,62 @@ where
 {
     /// Call `f` by reference on each element and create a new array with the
     /// new values.
-    pub fn map<'f, TOut>(&self, mut f: impl FnMut(&T) -> TOut + 'f) -> Tensor<TOut, D, B>
+    pub fn map_fnmut_f<'f, TOut>(
+        &self,
+        mut f: impl FnMut(&T) -> TOut + 'f,
+    ) -> Result<Tensor<TOut, D, B>>
     where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
         B: DeviceOp_MutA_RefB_API<TOut, T, D, dyn FnMut(&mut TOut, &T) + 'f>,
     {
         let la = self.layout();
-        let lc = layout_for_array_copy(la, TensorIterOrder::default()).unwrap();
+        let lc = layout_for_array_copy(la, TensorIterOrder::default())?;
         let device = self.device();
-        let mut storage_c = unsafe { device.empty_impl(lc.bounds_index().unwrap().1).unwrap() };
+        let mut storage_c = unsafe { device.empty_impl(lc.bounds_index()?.1)? };
         let storage_a = self.data().storage();
         let mut f_inner = move |c: &mut TOut, a: &T| *c = f(a);
-        device.op_muta_refb_func(&mut storage_c, &lc, storage_a, la, &mut f_inner).unwrap();
-        return Tensor::new_f(DataOwned::from(storage_c), lc).unwrap();
+        device.op_muta_refb_func(&mut storage_c, &lc, storage_a, la, &mut f_inner)?;
+        return Tensor::new_f(DataOwned::from(storage_c), lc);
+    }
+
+    /// Call `f` by reference on each element and create a new array with the
+    /// new values.
+    pub fn map_fnmut<'f, TOut>(&self, f: impl FnMut(&T) -> TOut + 'f) -> Tensor<TOut, D, B>
+    where
+        B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
+        B: DeviceOp_MutA_RefB_API<TOut, T, D, dyn FnMut(&mut TOut, &T) + 'f>,
+    {
+        self.map_fnmut_f(f).unwrap()
     }
 
     /// Call `f` by value on each element and create a new array with the new
     /// values.
-    pub fn mapv<'f, TOut>(&self, mut f: impl FnMut(T) -> TOut + 'f) -> Tensor<TOut, D, B>
+    pub fn mapv_fnmut_f<'f, TOut>(
+        &self,
+        mut f: impl FnMut(T) -> TOut + 'f,
+    ) -> Result<Tensor<TOut, D, B>>
     where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
         T: Clone,
         B: DeviceOp_MutA_RefB_API<TOut, T, D, dyn FnMut(&mut TOut, &T) + 'f>,
     {
-        self.map(move |x| f(x.clone()))
+        self.map_fnmut_f(move |x| f(x.clone()))
     }
 
-    /// Call `f` by reference on each element and create a new array with the
-    /// new values.
-    pub fn map_tmp<'f, TOut>(
-        &self,
-        f: impl for<'a> Fn(&'a T) -> TOut + Send + Sync + 'f,
-    ) -> Tensor<TOut, D, B>
+    /// Call `f` by value on each element and create a new array with the new
+    /// values.
+    pub fn mapv_fnmut<'f, TOut>(&self, mut f: impl FnMut(T) -> TOut + 'f) -> Tensor<TOut, D, B>
     where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
-        B: DeviceOp_MutA_RefB_API<TOut, T, D, dyn Fn(&mut TOut, &T) + Send + Sync + 'f>,
+        T: Clone,
+        B: DeviceOp_MutA_RefB_API<TOut, T, D, dyn FnMut(&mut TOut, &T) + 'f>,
     {
-        let la = self.layout();
-        let lc = layout_for_array_copy(la, TensorIterOrder::default()).unwrap();
-        let device = self.device();
-        let mut storage_c = unsafe { device.empty_impl(lc.bounds_index().unwrap().1).unwrap() };
-        let storage_a = self.data().storage();
-        let mut f_inner = move |c: &mut TOut, a: &T| *c = f(a);
-        device.op_muta_refb_func(&mut storage_c, &lc, storage_a, la, &mut f_inner).unwrap();
-        return Tensor::new_f(DataOwned::from(storage_c), lc).unwrap();
+        self.map_fnmut_f(move |x| f(x.clone())).unwrap()
     }
 
     /// Modify the array in place by calling `f` by mutable reference on each
     /// element.
-    pub fn map_inplace<'f>(&mut self, mut f: impl FnMut(&mut T) + 'f)
+    pub fn mapi_fnmut_f<'f>(&mut self, mut f: impl FnMut(&mut T) + 'f) -> Result<()>
     where
         R: DataMutAPI<Data = Storage<T, B>>,
         B: DeviceOp_MutA_API<T, D, dyn FnMut(&mut T) + 'f>,
@@ -64,25 +75,56 @@ where
         let (la, _) = greedy_layout(self.layout(), false);
         let device = self.device().clone();
         let storage_a = self.data_mut().storage_mut();
-        device.op_muta_func(storage_a, &la, &mut f).unwrap();
+        device.op_muta_func(storage_a, &la, &mut f)
     }
 
     /// Modify the array in place by calling `f` by mutable reference on each
     /// element.
-    pub fn mapv_inplace<'f>(&mut self, mut f: impl FnMut(T) -> T + 'f)
+    pub fn mapi_fnmut<'f>(&mut self, f: impl FnMut(&mut T) + 'f)
+    where
+        R: DataMutAPI<Data = Storage<T, B>>,
+        B: DeviceOp_MutA_API<T, D, dyn FnMut(&mut T) + 'f>,
+    {
+        self.mapi_fnmut_f(f).unwrap()
+    }
+
+    /// Modify the array in place by calling `f` by value on each
+    /// element.
+    pub fn mapvi_fnmut_f<'f>(&mut self, mut f: impl FnMut(T) -> T + 'f) -> Result<()>
     where
         R: DataMutAPI<Data = Storage<T, B>>,
         T: Clone,
         B: DeviceOp_MutA_API<T, D, dyn FnMut(&mut T) + 'f>,
     {
-        self.map_inplace(move |x| *x = f(x.clone()));
+        self.mapi_fnmut_f(move |x| *x = f(x.clone()))
     }
 
-    pub fn map_binary<'f, R2, T2, D2, DOut, TOut>(
+    /// Modify the array in place by calling `f` by value on each
+    /// element.
+    pub fn mapvi_fnmut<'f>(&mut self, f: impl FnMut(T) -> T + 'f)
+    where
+        R: DataMutAPI<Data = Storage<T, B>>,
+        T: Clone,
+        B: DeviceOp_MutA_API<T, D, dyn FnMut(&mut T) + 'f>,
+    {
+        self.mapvi_fnmut_f(f).unwrap()
+    }
+}
+
+// map_binary, mapv_binary
+
+impl<R, T, D, B> TensorBase<R, D>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    D: DimAPI,
+    B: DeviceAPI<T>,
+    T: Clone,
+{
+    pub fn mapb_fnmut_f<'f, R2, T2, D2, DOut, TOut>(
         &self,
         other: &TensorBase<R2, D2>,
         mut f: impl FnMut(&T, &T2) -> TOut + 'f,
-    ) -> Tensor<TOut, DOut, B>
+    ) -> Result<Tensor<TOut, DOut, B>>
     where
         R2: DataAPI<Data = Storage<T2, B>>,
         D2: DimAPI,
@@ -95,13 +137,13 @@ where
         let a = self.view();
         let b = other.view();
         // check device and layout
-        rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch).unwrap();
+        rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch)?;
         let la = a.layout();
         let lb = b.layout();
-        let (la_b, lb_b) = broadcast_layout(la, lb).unwrap();
+        let (la_b, lb_b) = broadcast_layout(la, lb)?;
         // generate output layout
-        let lc_from_a = layout_for_array_copy(&la_b, TensorIterOrder::default()).unwrap();
-        let lc_from_b = layout_for_array_copy(&lb_b, TensorIterOrder::default()).unwrap();
+        let lc_from_a = layout_for_array_copy(&la_b, TensorIterOrder::default())?;
+        let lc_from_b = layout_for_array_copy(&lb_b, TensorIterOrder::default())?;
         let lc = if lc_from_a == lc_from_b {
             lc_from_a
         } else {
@@ -111,25 +153,57 @@ where
             }
         };
         let device = self.device();
-        let mut storage_c = unsafe { device.empty_impl(lc.bounds_index().unwrap().1).unwrap() };
+        let mut storage_c = unsafe { device.empty_impl(lc.bounds_index()?.1)? };
         let storage_a = self.data().storage();
         let storage_b = other.data().storage();
         let mut f_inner = move |c: &mut TOut, a: &T, b: &T2| *c = f(a, b);
-        device
-            .op_mutc_refa_refb_func(
-                &mut storage_c,
-                &lc,
-                storage_a,
-                &la_b,
-                storage_b,
-                &lb_b,
-                &mut f_inner,
-            )
-            .unwrap();
-        return Tensor::new_f(DataOwned::from(storage_c), lc).unwrap();
+        device.op_mutc_refa_refb_func(
+            &mut storage_c,
+            &lc,
+            storage_a,
+            &la_b,
+            storage_b,
+            &lb_b,
+            &mut f_inner,
+        )?;
+        Tensor::new_f(DataOwned::from(storage_c), lc)
     }
 
-    pub fn mapv_binary<'f, R2, T2, D2, DOut, TOut>(
+    pub fn mapb_fnmut<'f, R2, T2, D2, DOut, TOut>(
+        &self,
+        other: &TensorBase<R2, D2>,
+        f: impl FnMut(&T, &T2) -> TOut + 'f,
+    ) -> Tensor<TOut, DOut, B>
+    where
+        R2: DataAPI<Data = Storage<T2, B>>,
+        D2: DimAPI,
+        DOut: DimAPI,
+        D: DimMaxAPI<D2, Max = DOut>,
+        B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
+        B: DeviceOp_MutC_RefA_RefB_API<T, T2, TOut, DOut, dyn FnMut(&mut TOut, &T, &T2) + 'f>,
+    {
+        self.mapb_fnmut_f(other, f).unwrap()
+    }
+
+    pub fn mapvb_fnmut_f<'f, R2, T2, D2, DOut, TOut>(
+        &self,
+        other: &TensorBase<R2, D2>,
+        mut f: impl FnMut(T, T2) -> TOut + 'f,
+    ) -> Result<Tensor<TOut, DOut, B>>
+    where
+        R2: DataAPI<Data = Storage<T2, B>>,
+        D2: DimAPI,
+        DOut: DimAPI,
+        D: DimMaxAPI<D2, Max = DOut>,
+        T: Clone,
+        T2: Clone,
+        B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
+        B: DeviceOp_MutC_RefA_RefB_API<T, T2, TOut, DOut, dyn FnMut(&mut TOut, &T, &T2) + 'f>,
+    {
+        self.mapb_fnmut_f(other, move |x, y| f(x.clone(), y.clone()))
+    }
+
+    pub fn mapvb_fnmut<'f, R2, T2, D2, DOut, TOut>(
         &self,
         other: &TensorBase<R2, D2>,
         mut f: impl FnMut(T, T2) -> TOut + 'f,
@@ -144,40 +218,303 @@ where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
         B: DeviceOp_MutC_RefA_RefB_API<T, T2, TOut, DOut, dyn FnMut(&mut TOut, &T, &T2) + 'f>,
     {
-        self.map_binary(other, move |x, y| f(x.clone(), y.clone()))
+        self.mapb_fnmut_f(other, move |x, y| f(x.clone(), y.clone())).unwrap()
     }
 }
 
-impl<T, D, B> Tensor<T, D, B>
+/* #endregion */
+
+/* #region map sync */
+
+// map, mapv, mapi, mapvi
+
+impl<R, T, D, B> TensorBase<R, D>
 where
+    R: DataAPI<Data = Storage<T, B>>,
     D: DimAPI,
     B: DeviceAPI<T>,
 {
-    /// Call `f` by value on each element, update the array with the new values
-    /// and return it.
-    pub fn mapv_into<'f>(mut self, mut f: impl FnMut(T) -> T + 'f) -> Tensor<T, D, B>
+    /// Call `f` by reference on each element and create a new array with the
+    /// new values.
+    pub fn map_f<'f, TOut>(
+        &self,
+        f: impl Fn(&T) -> TOut + Send + Sync + 'f,
+    ) -> Result<Tensor<TOut, D, B>>
     where
+        B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
+        B: DeviceOp_MutA_RefB_API<TOut, T, D, dyn Fn(&mut TOut, &T) + Send + Sync + 'f>,
+    {
+        let la = self.layout();
+        let lc = layout_for_array_copy(la, TensorIterOrder::default())?;
+        let device = self.device();
+        let mut storage_c = unsafe { device.empty_impl(lc.bounds_index()?.1)? };
+        let storage_a = self.data().storage();
+        let mut f_inner = move |c: &mut TOut, a: &T| *c = f(a);
+        device.op_muta_refb_func(&mut storage_c, &lc, storage_a, la, &mut f_inner)?;
+        return Tensor::new_f(DataOwned::from(storage_c), lc);
+    }
+
+    /// Call `f` by reference on each element and create a new array with the
+    /// new values.
+    pub fn map<'f, TOut>(&self, f: impl Fn(&T) -> TOut + Send + Sync + 'f) -> Tensor<TOut, D, B>
+    where
+        B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
+        B: DeviceOp_MutA_RefB_API<TOut, T, D, dyn Fn(&mut TOut, &T) + Send + Sync + 'f>,
+    {
+        self.map_f(f).unwrap()
+    }
+
+    /// Call `f` by value on each element and create a new array with the new
+    /// values.
+    pub fn mapv_f<'f, TOut>(
+        &self,
+        f: impl Fn(T) -> TOut + Send + Sync + 'f,
+    ) -> Result<Tensor<TOut, D, B>>
+    where
+        B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
         T: Clone,
-        B: DeviceOp_MutA_API<T, D, dyn FnMut(&mut T) + 'f>,
+        B: DeviceOp_MutA_RefB_API<TOut, T, D, dyn Fn(&mut TOut, &T) + Send + Sync + 'f>,
+    {
+        self.map_f(move |x| f(x.clone()))
+    }
+
+    /// Call `f` by value on each element and create a new array with the new
+    /// values.
+    pub fn mapv<'f, TOut>(&self, f: impl Fn(T) -> TOut + Send + Sync + 'f) -> Tensor<TOut, D, B>
+    where
+        B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
+        T: Clone,
+        B: DeviceOp_MutA_RefB_API<TOut, T, D, dyn Fn(&mut TOut, &T) + Send + Sync + 'f>,
+    {
+        self.map_f(move |x| f(x.clone())).unwrap()
+    }
+
+    /// Modify the array in place by calling `f` by mutable reference on each
+    /// element.
+    pub fn mapi_f<'f>(&mut self, mut f: impl Fn(&mut T) + Send + Sync + 'f) -> Result<()>
+    where
+        R: DataMutAPI<Data = Storage<T, B>>,
+        B: DeviceOp_MutA_API<T, D, dyn Fn(&mut T) + Send + Sync + 'f>,
     {
         let (la, _) = greedy_layout(self.layout(), false);
         let device = self.device().clone();
         let storage_a = self.data_mut().storage_mut();
-        let mut f_inner = move |x: &mut T| *x = f(x.clone());
-        device.op_muta_func(storage_a, &la, &mut f_inner).unwrap();
-        return self;
+        device.op_muta_func(storage_a, &la, &mut f)
+    }
+
+    /// Modify the array in place by calling `f` by mutable reference on each
+    /// element.
+    pub fn mapi<'f>(&mut self, f: impl Fn(&mut T) + Send + Sync + 'f)
+    where
+        R: DataMutAPI<Data = Storage<T, B>>,
+        B: DeviceOp_MutA_API<T, D, dyn Fn(&mut T) + Send + Sync + 'f>,
+    {
+        self.mapi_f(f).unwrap()
+    }
+
+    /// Modify the array in place by calling `f` by value on each
+    /// element.
+    pub fn mapvi_f<'f>(&mut self, f: impl Fn(T) -> T + Send + Sync + 'f) -> Result<()>
+    where
+        R: DataMutAPI<Data = Storage<T, B>>,
+        T: Clone,
+        B: DeviceOp_MutA_API<T, D, dyn Fn(&mut T) + Send + Sync + 'f>,
+    {
+        self.mapi_f(move |x| *x = f(x.clone()))
+    }
+
+    /// Modify the array in place by calling `f` by value on each
+    /// element.
+    pub fn mapvi<'f>(&mut self, f: impl Fn(T) -> T + Send + Sync + 'f)
+    where
+        R: DataMutAPI<Data = Storage<T, B>>,
+        T: Clone,
+        B: DeviceOp_MutA_API<T, D, dyn Fn(&mut T) + Send + Sync + 'f>,
+    {
+        self.mapvi_f(f).unwrap()
     }
 }
 
+// map_binary, mapv_binary
+
+impl<R, T, D, B> TensorBase<R, D>
+where
+    R: DataAPI<Data = Storage<T, B>>,
+    D: DimAPI,
+    B: DeviceAPI<T>,
+    T: Clone,
+{
+    pub fn mapb_f<'f, R2, T2, D2, DOut, TOut>(
+        &self,
+        other: &TensorBase<R2, D2>,
+        f: impl Fn(&T, &T2) -> TOut + Send + Sync + 'f,
+    ) -> Result<Tensor<TOut, DOut, B>>
+    where
+        R2: DataAPI<Data = Storage<T2, B>>,
+        D2: DimAPI,
+        DOut: DimAPI,
+        D: DimMaxAPI<D2, Max = DOut>,
+        B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
+        B: DeviceOp_MutC_RefA_RefB_API<
+            T,
+            T2,
+            TOut,
+            DOut,
+            dyn Fn(&mut TOut, &T, &T2) + Send + Sync + 'f,
+        >,
+    {
+        // get tensor views
+        let a = self.view();
+        let b = other.view();
+        // check device and layout
+        rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch)?;
+        let la = a.layout();
+        let lb = b.layout();
+        let (la_b, lb_b) = broadcast_layout(la, lb)?;
+        // generate output layout
+        let lc_from_a = layout_for_array_copy(&la_b, TensorIterOrder::default())?;
+        let lc_from_b = layout_for_array_copy(&lb_b, TensorIterOrder::default())?;
+        let lc = if lc_from_a == lc_from_b {
+            lc_from_a
+        } else {
+            match TensorOrder::default() {
+                TensorOrder::C => la_b.shape().c(),
+                TensorOrder::F => la_b.shape().f(),
+            }
+        };
+        let device = self.device();
+        let mut storage_c = unsafe { device.empty_impl(lc.bounds_index()?.1)? };
+        let storage_a = self.data().storage();
+        let storage_b = other.data().storage();
+        let mut f_inner = move |c: &mut TOut, a: &T, b: &T2| *c = f(a, b);
+        device.op_mutc_refa_refb_func(
+            &mut storage_c,
+            &lc,
+            storage_a,
+            &la_b,
+            storage_b,
+            &lb_b,
+            &mut f_inner,
+        )?;
+        Tensor::new_f(DataOwned::from(storage_c), lc)
+    }
+
+    pub fn mapb<'f, R2, T2, D2, DOut, TOut>(
+        &self,
+        other: &TensorBase<R2, D2>,
+        f: impl Fn(&T, &T2) -> TOut + Send + Sync + 'f,
+    ) -> Tensor<TOut, DOut, B>
+    where
+        R2: DataAPI<Data = Storage<T2, B>>,
+        D2: DimAPI,
+        DOut: DimAPI,
+        D: DimMaxAPI<D2, Max = DOut>,
+        B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
+        B: DeviceOp_MutC_RefA_RefB_API<
+            T,
+            T2,
+            TOut,
+            DOut,
+            dyn Fn(&mut TOut, &T, &T2) + Send + Sync + 'f,
+        >,
+    {
+        self.mapb_f(other, f).unwrap()
+    }
+
+    pub fn mapvb_f<'f, R2, T2, D2, DOut, TOut>(
+        &self,
+        other: &TensorBase<R2, D2>,
+        f: impl Fn(T, T2) -> TOut + Send + Sync + 'f,
+    ) -> Result<Tensor<TOut, DOut, B>>
+    where
+        R2: DataAPI<Data = Storage<T2, B>>,
+        D2: DimAPI,
+        DOut: DimAPI,
+        D: DimMaxAPI<D2, Max = DOut>,
+        T: Clone,
+        T2: Clone,
+        B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
+        B: DeviceOp_MutC_RefA_RefB_API<
+            T,
+            T2,
+            TOut,
+            DOut,
+            dyn Fn(&mut TOut, &T, &T2) + Send + Sync + 'f,
+        >,
+    {
+        self.mapb_f(other, move |x, y| f(x.clone(), y.clone()))
+    }
+
+    pub fn mapvb<'f, R2, T2, D2, DOut, TOut>(
+        &self,
+        other: &TensorBase<R2, D2>,
+        f: impl Fn(T, T2) -> TOut + Send + Sync + 'f,
+    ) -> Tensor<TOut, DOut, B>
+    where
+        R2: DataAPI<Data = Storage<T2, B>>,
+        D2: DimAPI,
+        DOut: DimAPI,
+        D: DimMaxAPI<D2, Max = DOut>,
+        T: Clone,
+        T2: Clone,
+        B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
+        B: DeviceOp_MutC_RefA_RefB_API<
+            T,
+            T2,
+            TOut,
+            DOut,
+            dyn Fn(&mut TOut, &T, &T2) + Send + Sync + 'f,
+        >,
+    {
+        self.mapb_f(other, move |x, y| f(x.clone(), y.clone())).unwrap()
+    }
+}
+
+/* #endregion */
+
 #[cfg(test)]
-mod tests {
+mod tests_fnmut {
     use super::*;
 
     #[test]
     fn test_mapv() {
         let device = DeviceCpuSerial;
-        let f = |x| x * 2.0;
+        let mut i = 0;
+        let f = |x| {
+            i += 1;
+            x * 2.0
+        };
         let a = asarray((vec![1., 2., 3., 4.], &device));
+        let b = a.mapv_fnmut(f);
+        assert!(allclose_f64(&b, &vec![2., 4., 6., 8.].into()));
+        assert_eq!(i, 4);
+        println!("{:?}", b);
+    }
+
+    #[test]
+    fn test_mapv_binary() {
+        let device = DeviceCpuSerial;
+        let mut i = 0;
+        let f = |x, y| {
+            i += 1;
+            2.0 * x + 3.0 * y
+        };
+        let a = linspace((1., 6., 6, &device)).into_shape_assume_contig([2, 3]);
+        let b = linspace((1., 3., 3, &device));
+        let c = a.mapvb_fnmut(&b, f);
+        assert!(allclose_f64(&c, &vec![5., 10., 15., 11., 16., 21.].into()));
+        assert_eq!(i, 6);
+    }
+}
+
+#[cfg(test)]
+mod tests_sync {
+    use super::*;
+
+    #[test]
+    fn test_mapv() {
+        let f = |x| x * 2.0;
+        let a = asarray(vec![1., 2., 3., 4.]);
         let b = a.mapv(f);
         assert!(allclose_f64(&b, &vec![2., 4., 6., 8.].into()));
         println!("{:?}", b);
@@ -185,21 +522,10 @@ mod tests {
 
     #[test]
     fn test_mapv_binary() {
-        let device = DeviceCpuSerial;
         let f = |x, y| 2.0 * x + 3.0 * y;
-        let a = linspace((1., 6., 6, &device)).into_shape_assume_contig([2, 3]);
-        let b = linspace((1., 3., 3, &device));
-        let c = a.mapv_binary(&b, f);
+        let a = linspace((1., 6., 6)).into_shape_assume_contig([2, 3]);
+        let b = linspace((1., 3., 3));
+        let c = a.mapvb(&b, f);
         assert!(allclose_f64(&c, &vec![5., 10., 15., 11., 16., 21.].into()));
-    }
-
-    #[test]
-    fn test_mapv_rayon() {
-        let device = DeviceFaer::default();
-        let f = |&x: &f64| x * 2.0;
-        let a = asarray((vec![1., 2., 3., 4.], &device));
-        let b = a.map_tmp(f);
-        assert!(allclose_f64(&b, &vec![2., 4., 6., 8.].into()));
-        println!("{:?}", b);
     }
 }
