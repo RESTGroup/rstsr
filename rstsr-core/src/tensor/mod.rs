@@ -8,7 +8,6 @@ pub mod indexing;
 pub mod iterator;
 pub mod manuplication;
 pub mod map_elementwise;
-pub mod matmul;
 pub mod operators;
 pub mod ownership_conversion;
 pub mod util;
