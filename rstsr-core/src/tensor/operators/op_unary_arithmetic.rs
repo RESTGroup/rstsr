@@ -2,17 +2,24 @@ use crate::prelude_dev::*;
 use core::ops::*;
 
 macro_rules! trait_unary {
-    ($op: ident, $TensorOpAPI: ident) => {
+    ($op: ident, $op_f: ident, $TensorOpAPI: ident) => {
         pub trait $TensorOpAPI {
             type Output;
             fn $op(self) -> Result<Self::Output>;
         }
 
-        pub fn $op<TRA, TRB>(a: TRA) -> Result<TRB>
+        pub fn $op_f<TRA, TRB>(a: TRA) -> Result<TRB>
         where
             TRA: $TensorOpAPI<Output = TRB>,
         {
             TRA::$op(a)
+        }
+
+        pub fn $op<TRA, TRB>(a: TRA) -> TRB
+        where
+            TRA: $TensorOpAPI<Output = TRB>,
+        {
+            TRA::$op(a).unwrap()
         }
     };
 }
@@ -20,8 +27,8 @@ macro_rules! trait_unary {
 #[rustfmt::skip]
 mod trait_unary {
     use super::*;
-    trait_unary!(neg, TensorNegAPI);
-    trait_unary!(not, TensorNotAPI);
+    trait_unary!(neg, neg_f, TensorNegAPI);
+    trait_unary!(not, not_f, TensorNotAPI);
 }
 pub use trait_unary::*;
 

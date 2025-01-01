@@ -2,16 +2,23 @@ use crate::prelude_dev::*;
 use core::ops::*;
 
 macro_rules! trait_binary_assign {
-    ($op: ident, $TensorOpAPI: ident) => {
+    ($op: ident, $op_f: ident, $TensorOpAPI: ident) => {
         pub trait $TensorOpAPI<TRB> {
             fn $op(a: Self, b: TRB) -> Result<()>;
         }
 
-        pub fn $op<TRA, TRB>(a: TRA, b: TRB) -> Result<()>
+        pub fn $op_f<TRA, TRB>(a: TRA, b: TRB) -> Result<()>
         where
             TRA: $TensorOpAPI<TRB>,
         {
             TRA::$op(a, b)
+        }
+
+        pub fn $op<TRA, TRB>(a: TRA, b: TRB)
+        where
+            TRA: $TensorOpAPI<TRB>,
+        {
+            TRA::$op(a, b).unwrap()
         }
     };
 }
@@ -19,16 +26,16 @@ macro_rules! trait_binary_assign {
 #[rustfmt::skip]
 mod trait_binary_assign {
     use super::*;
-    trait_binary_assign!(add_assign   , TensorAddAssignAPI   );
-    trait_binary_assign!(sub_assign   , TensorSubAssignAPI   );
-    trait_binary_assign!(mul_assign   , TensorMulAssignAPI   );
-    trait_binary_assign!(div_assign   , TensorDivAssignAPI   );
-    trait_binary_assign!(rem_assign   , TensorRemAssignAPI   );
-    trait_binary_assign!(bitor_assign , TensorBitOrAssignAPI );
-    trait_binary_assign!(bitand_assign, TensorBitAndAssignAPI);
-    trait_binary_assign!(bitxor_assign, TensorBitXorAssignAPI);
-    trait_binary_assign!(shl_assign   , TensorShlAssignAPI   );
-    trait_binary_assign!(shr_assign   , TensorShrAssignAPI   );
+    trait_binary_assign!(add_assign   , add_assign_f   , TensorAddAssignAPI   );
+    trait_binary_assign!(sub_assign   , sub_assign_f   , TensorSubAssignAPI   );
+    trait_binary_assign!(mul_assign   , mul_assign_f   , TensorMulAssignAPI   );
+    trait_binary_assign!(div_assign   , div_assign_f   , TensorDivAssignAPI   );
+    trait_binary_assign!(rem_assign   , rem_assign_f   , TensorRemAssignAPI   );
+    trait_binary_assign!(bitor_assign , bitor_assign_f , TensorBitOrAssignAPI );
+    trait_binary_assign!(bitand_assign, bitand_assign_f, TensorBitAndAssignAPI);
+    trait_binary_assign!(bitxor_assign, bitxor_assign_f, TensorBitXorAssignAPI);
+    trait_binary_assign!(shl_assign   , shl_assign_f   , TensorShlAssignAPI   );
+    trait_binary_assign!(shr_assign   , shr_assign_f   , TensorShrAssignAPI   );
 }
 pub use trait_binary_assign::*;
 
