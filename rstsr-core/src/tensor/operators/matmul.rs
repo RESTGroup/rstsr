@@ -4,6 +4,8 @@ use crate::prelude_dev::*;
 use core::ops::{Add, Mul, Rem};
 use num::{One, Zero};
 
+/* #region matmul by function */
+
 pub fn op_mutc_refa_refb_matmul<RA, RB, RC, TA, TB, TC, DA, DB, DC, B>(
     c: &mut TensorBase<RC, DC>,
     a: &TensorBase<RA, DA>,
@@ -69,6 +71,99 @@ where
     op_mutc_refa_refb_matmul(&mut c, a, b, alpha, TC::zero())?;
     return Ok(c);
 }
+
+pub fn matmul_with_output_f<RA, RB, RC, TA, TB, TC, DA, DB, DC, B>(
+    a: &TensorBase<RA, DA>,
+    b: &TensorBase<RB, DB>,
+    c: &mut TensorBase<RC, DC>,
+) -> Result<()>
+where
+    // storage
+    RC: DataMutAPI<Data = Storage<TC, B>>,
+    RA: DataAPI<Data = Storage<TA, B>>,
+    RB: DataAPI<Data = Storage<TB, B>>,
+    // dimension
+    DA: DimAPI,
+    DB: DimAPI,
+    DC: DimAPI,
+    // operation specific
+    TA: Mul<TB, Output = TC>,
+    TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + One,
+    B: DeviceMatMulAPI<TA, TB, TC, DA, DB, DC>,
+{
+    op_mutc_refa_refb_matmul(c, a, b, TC::one(), TC::zero())
+}
+
+pub fn matmul_with_output<RA, RB, RC, TA, TB, TC, DA, DB, DC, B>(
+    a: &TensorBase<RA, DA>,
+    b: &TensorBase<RB, DB>,
+    c: &mut TensorBase<RC, DC>,
+) where
+    // storage
+    RC: DataMutAPI<Data = Storage<TC, B>>,
+    RA: DataAPI<Data = Storage<TA, B>>,
+    RB: DataAPI<Data = Storage<TB, B>>,
+    // dimension
+    DA: DimAPI,
+    DB: DimAPI,
+    DC: DimAPI,
+    // operation specific
+    TA: Mul<TB, Output = TC>,
+    TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + One,
+    B: DeviceMatMulAPI<TA, TB, TC, DA, DB, DC>,
+{
+    op_mutc_refa_refb_matmul(c, a, b, TC::one(), TC::zero()).unwrap()
+}
+
+pub fn matmul_f<RA, RB, TA, TB, TC, DA, DB, DC, B>(
+    a: &TensorBase<RA, DA>,
+    b: &TensorBase<RB, DB>,
+) -> Result<Tensor<TC, DC, B>>
+where
+    // storage
+    RA: DataAPI<Data = Storage<TA, B>>,
+    RB: DataAPI<Data = Storage<TB, B>>,
+    // dimension
+    DA: DimAPI,
+    DB: DimAPI,
+    DC: DimAPI,
+    // operation specific
+    TA: Mul<TB, Output = TC>,
+    TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + One,
+    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<TC>,
+    B: DeviceCreationAnyAPI<TC>,
+    LayoutMatMulConfig<DA, DB>: LayoutMatMulAPI<DA, DB, DC = DC>,
+    B: DeviceMatMulAPI<TA, TB, TC, DA, DB, DC>,
+{
+    op_refa_refb_matmul(a, b, TC::one())
+}
+
+pub fn matmul<RA, RB, TA, TB, TC, DA, DB, DC, B>(
+    a: &TensorBase<RA, DA>,
+    b: &TensorBase<RB, DB>,
+) -> Tensor<TC, DC, B>
+where
+    // storage
+    RA: DataAPI<Data = Storage<TA, B>>,
+    RB: DataAPI<Data = Storage<TB, B>>,
+    // dimension
+    DA: DimAPI,
+    DB: DimAPI,
+    DC: DimAPI,
+    // operation specific
+    TA: Mul<TB, Output = TC>,
+    TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + One,
+    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<TC>,
+    B: DeviceCreationAnyAPI<TC>,
+    LayoutMatMulConfig<DA, DB>: LayoutMatMulAPI<DA, DB, DC = DC>,
+    B: DeviceMatMulAPI<TA, TB, TC, DA, DB, DC>,
+{
+    op_refa_refb_matmul(a, b, TC::one()).unwrap()
+}
+
+/* #endregion */
+
+/* #region matmul implementation to core ops */
 
 impl<RA, RB, TA, TB, TC, DA, DB, DC, B> Rem<&TensorBase<RB, DB>> for &TensorBase<RA, DA>
 where
@@ -161,6 +256,30 @@ where
         op_refa_refb_matmul(&self, &rhs, TC::one()).unwrap()
     }
 }
+
+/* #endregion */
+
+/* #region matmul tensor trait */
+
+// this trait is to make a.matmul(b) be possible
+// however, a.rem(b) works the same to a.matmul(b), not rem(a, b)
+
+pub trait TensorMatMulAPI<TRB> {
+    type Output;
+    fn matmul(self, rhs: TRB) -> Self::Output;
+}
+
+impl<TRA, TRB> TensorMatMulAPI<TRB> for TRA
+where
+    TRA: Rem<TRB>,
+{
+    type Output = <Self as Rem<TRB>>::Output;
+    fn matmul(self, rhs: TRB) -> Self::Output {
+        self.rem(rhs)
+    }
+}
+
+/* #endregion */
 
 #[cfg(test)]
 mod test {

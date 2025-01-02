@@ -461,8 +461,8 @@ mod impl_binary_lr_consume {
 /* #region binary with output implementation */
 
 macro_rules! impl_binary_with_output {
-    ($op: ident, $DeviceOpAPI: ident, $Op: ident) => {
-        pub fn $op<TRA, TRB, TRC, TA, TB, TC, DA, DB, DC, B>(
+    ($op: ident, $op_f: ident, $DeviceOpAPI: ident, $Op: ident) => {
+        pub fn $op_f<TRA, TRB, TRC, TA, TB, TC, DA, DB, DC, B>(
             a: TRA,
             b: TRB,
             mut c: TRC,
@@ -506,6 +506,26 @@ macro_rules! impl_binary_with_output {
             let storage_b = b.data().storage();
             device.op_mutc_refa_refb(storage_c, &lc_b, storage_a, &la_b, storage_b, &lb_b)
         }
+
+        pub fn $op<TRA, TRB, TRC, TA, TB, TC, DA, DB, DC, B>(a: TRA, b: TRB, c: TRC)
+        where
+            // tensor types
+            TRA: TensorRefOrOwnedAPI<Storage<TA, B>, DA>,
+            TRB: TensorRefOrOwnedAPI<Storage<TB, B>, DB>,
+            TRC: TensorRefMutAPI<Storage<TC, B>, DC>,
+            // data constraints
+            DA: DimAPI,
+            DB: DimAPI,
+            DC: DimAPI,
+            B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<TC>,
+            // broadcast constraints
+            DC: DimMaxAPI<DA, Max = DC> + DimMaxAPI<DB, Max = DC>,
+            // operation constraints
+            TA: $Op<TB, Output = TC>,
+            B: $DeviceOpAPI<TA, TB, TC, DC>,
+        {
+            $op_f(a, b, c).unwrap()
+        }
     };
 }
 
@@ -513,16 +533,16 @@ macro_rules! impl_binary_with_output {
 mod impl_binary_with_output{
     use super::*;
     use core::ops::*;
-    impl_binary_with_output!(   add_with_output, DeviceAddAPI   , Add   );
-    impl_binary_with_output!(   sub_with_output, DeviceSubAPI   , Sub   );
-    impl_binary_with_output!(   mul_with_output, DeviceMulAPI   , Mul   );
-    impl_binary_with_output!(   div_with_output, DeviceDivAPI   , Div   );
-    impl_binary_with_output!(   rem_with_output, DeviceRemAPI   , Rem   );
-    impl_binary_with_output!( bitor_with_output, DeviceBitOrAPI , BitOr );
-    impl_binary_with_output!(bitand_with_output, DeviceBitAndAPI, BitAnd);
-    impl_binary_with_output!(bitxor_with_output, DeviceBitXorAPI, BitXor);
-    impl_binary_with_output!(   shl_with_output, DeviceShlAPI   , Shl   );
-    impl_binary_with_output!(   shr_with_output, DeviceShrAPI   , Shr   );
+    impl_binary_with_output!(   add_with_output,    add_with_output_f, DeviceAddAPI   , Add   );
+    impl_binary_with_output!(   sub_with_output,    sub_with_output_f, DeviceSubAPI   , Sub   );
+    impl_binary_with_output!(   mul_with_output,    mul_with_output_f, DeviceMulAPI   , Mul   );
+    impl_binary_with_output!(   div_with_output,    div_with_output_f, DeviceDivAPI   , Div   );
+    impl_binary_with_output!(   rem_with_output,    rem_with_output_f, DeviceRemAPI   , Rem   );
+    impl_binary_with_output!( bitor_with_output,  bitor_with_output_f, DeviceBitOrAPI , BitOr );
+    impl_binary_with_output!(bitand_with_output, bitand_with_output_f, DeviceBitAndAPI, BitAnd);
+    impl_binary_with_output!(bitxor_with_output, bitxor_with_output_f, DeviceBitXorAPI, BitXor);
+    impl_binary_with_output!(   shl_with_output,    shl_with_output_f, DeviceShlAPI   , Shl   );
+    impl_binary_with_output!(   shr_with_output,    shr_with_output_f, DeviceShrAPI   , Shr   );
 }
 pub use impl_binary_with_output::*;
 
@@ -993,7 +1013,7 @@ mod test_with_output {
         let b = linspace((2.0, 10.0, 5));
         let mut c = linspace((1.0, 10.0, 10)).into_shape_assume_contig([2, 5]);
         let c_view = c.view_mut();
-        add_with_output(&a, b, c_view).unwrap();
+        add_with_output(&a, b, c_view);
         println!("{:?}", c);
     }
 }
