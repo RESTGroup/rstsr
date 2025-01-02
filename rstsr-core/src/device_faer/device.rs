@@ -13,16 +13,18 @@ impl DeviceFaer {
     pub fn var_num_threads(&self) -> usize {
         self.base.var_num_threads()
     }
+}
 
-    pub fn set_num_threads(&mut self, num_threads: usize) {
+impl DeviceRayonAPI for DeviceFaer {
+    fn set_num_threads(&mut self, num_threads: usize) {
         self.base.set_num_threads(num_threads);
     }
 
-    pub fn get_num_threads(&self) -> usize {
+    fn get_num_threads(&self) -> usize {
         self.base.get_num_threads()
     }
 
-    pub fn get_pool(&self, n: usize) -> Result<rayon::ThreadPool> {
+    fn get_pool(&self, n: usize) -> Result<rayon::ThreadPool> {
         self.base.get_pool(n)
     }
 }
