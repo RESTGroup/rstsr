@@ -18,12 +18,7 @@ macro_rules! impl_op_muta_refb_assign {
                 self.op_muta_refb_func(a, la, b, lb, &mut $func)
             }
 
-            fn op_muta_numb(
-                &self,
-                a: &mut Storage<TA, Self>,
-                la: &Layout<D>,
-                b: TB,
-            ) -> Result<()> {
+            fn op_muta_numb(&self, a: &mut Storage<TA, Self>, la: &Layout<D>, b: TB) -> Result<()> {
                 self.op_muta_numb_func(a, la, b, &mut $func)
             }
         }
@@ -64,12 +59,7 @@ macro_rules! impl_op_muta_refb_l_consume {
                 self.op_muta_refb_func(a, la, b, lb, &mut $func)
             }
 
-            fn op_muta_numb(
-                &self,
-                a: &mut Storage<TA, Self>,
-                la: &Layout<D>,
-                b: TB,
-            ) -> Result<()> {
+            fn op_muta_numb(&self, a: &mut Storage<TA, Self>, la: &Layout<D>, b: TB) -> Result<()> {
                 self.op_muta_numb_func(a, la, b, &mut $func)
             }
         }
@@ -110,12 +100,7 @@ macro_rules! impl_op_muta_refb_r_consume {
                 self.op_muta_refb_func(b, lb, a, la, &mut $func)
             }
 
-            fn op_muta_numb(
-                &self,
-                b: &mut Storage<TB, Self>,
-                lb: &Layout<D>,
-                a: TA,
-            ) -> Result<()> {
+            fn op_muta_numb(&self, b: &mut Storage<TB, Self>, lb: &Layout<D>, a: TA) -> Result<()> {
                 self.op_muta_numb_func(b, lb, a, &mut $func)
             }
         }
@@ -139,7 +124,7 @@ mod impl_op_muta_refb_r_consume {
 }
 
 macro_rules! impl_op_muta_refb_unary {
-    ($DeviceOpAPI:ident, $Op:ident, $op_muta_refb_func:ident, $func:expr, $func_inplace:expr) => {
+    ($DeviceOpAPI:ident, $Op:ident, $func:expr, $func_inplace:expr) => {
         impl<TA, TB, D> $DeviceOpAPI<TA, TB, D> for DeviceCpuSerial
         where
             TA: Clone,
@@ -173,6 +158,6 @@ macro_rules! impl_op_muta_refb_unary {
 mod impl_op_muta_refb_unary {
     use super::*;
     use core::ops::*;
-    impl_op_muta_refb_unary!(DeviceNegAPI, Neg, op_muta_refb_neg, |a, b| *a = -b.clone(), |a| *a = -a.clone());
-    impl_op_muta_refb_unary!(DeviceNotAPI, Not, op_muta_refb_not, |a, b| *a = !b.clone(), |a| *a = !a.clone());
+    impl_op_muta_refb_unary!(DeviceNegAPI, Neg, |a, b| *a = -b.clone(), |a| *a = -a.clone());
+    impl_op_muta_refb_unary!(DeviceNotAPI, Not, |a, b| *a = !b.clone(), |a| *a = !a.clone());
 }
