@@ -1,6 +1,6 @@
 use crate::prelude_dev::*;
 use num::complex::{Complex, ComplexFloat};
-use num::{Num, Zero};
+use num::{Bounded, Float, Num, Signed, Zero};
 
 // TODO: log1p
 
@@ -35,7 +35,8 @@ macro_rules! impl_same_type {
 #[rustfmt::skip]
 mod impl_same_type {
     use super::*;
-    use num::{Float, Num};
+    trait BoundedZero: Bounded + Zero {}
+
     impl_same_type!(DeviceAcosAPI         , ComplexFloat , |a, b| *a = b.acos()              , |a| *a = a.acos()             );
     impl_same_type!(DeviceAcoshAPI        , ComplexFloat , |a, b| *a = b.acosh()             , |a| *a = a.acosh()            );
     impl_same_type!(DeviceAsinAPI         , ComplexFloat , |a, b| *a = b.asin()              , |a| *a = a.asin()             );
@@ -61,6 +62,27 @@ mod impl_same_type {
     impl_same_type!(DeviceTanAPI          , ComplexFloat , |a, b| *a = b.tan()               , |a| *a = a.tan()              );
     impl_same_type!(DeviceTanhAPI         , ComplexFloat , |a, b| *a = b.tanh()              , |a| *a = a.tanh()             );
     impl_same_type!(DeviceTruncAPI        , Float        , |a, b| *a = b.trunc()             , |a| *a = a.trunc()            );
+
+    impl_same_type!(DeviceRealAbsAPI      , Signed       , |a, b| *a = b.abs()               , |a| *a = a.abs()              );
+    impl_same_type!(DeviceRealImagAPI     , BoundedZero  , |a, _| *a = T::zero()             , |a| *a = T::zero()            );
+    impl_same_type!(DeviceRealRealAPI     , Bounded      , |a, b| *a = b.clone()             , |_| {}                        );
+
+    impl_same_type!(
+        DeviceRealSignAPI,
+        Signed,
+        |a, b| {
+            if *b == T::zero() {
+                *a = T::zero();
+            } else {
+                *a = T::signum(b);
+            }
+        },
+        |a| {
+            if *a != T::zero() {
+                *a = T::signum(a);
+            }
+        }
+    );
 }
 
 /* #endregion */
@@ -106,84 +128,50 @@ mod impl_bool_output{
 
 /* #endregion */
 
-/* #region complex Imag, Real, Abs, Sign */
+/* #region complex specific implementation */
 
-impl<T, D> DeviceImagAPI<Complex<T>, D> for DeviceFaer
-where
-    Complex<T>: Clone + Send + Sync,
-    T: Clone + Send + Sync,
-    D: DimAPI,
-{
-    type TOut = T;
+macro_rules! impl_complex_diff_type {
+    ($DeviceOpAPI: ident, $NumTrait: ident, $func:expr) => {
+        impl<T, D> $DeviceOpAPI<Complex<T>, D> for DeviceFaer
+        where
+            T: Clone + Send + Sync + $NumTrait,
+            D: DimAPI,
+        {
+            type TOut = T;
 
-    fn op_muta_refb(
-        &self,
-        a: &mut Storage<T, Self>,
-        la: &Layout<D>,
-        b: &Storage<Complex<T>, Self>,
-        lb: &Layout<D>,
-    ) -> Result<()> {
-        self.op_muta_refb_func(a, la, b, lb, &mut |a, b| *a = b.im.clone())
-    }
+            fn op_muta_refb(
+                &self,
+                a: &mut Storage<T, Self>,
+                la: &Layout<D>,
+                b: &Storage<Complex<T>, Self>,
+                lb: &Layout<D>,
+            ) -> Result<()> {
+                self.op_muta_refb_func(a, la, b, lb, &mut $func)
+            }
 
-    fn op_muta(&self, _a: &mut Storage<T, Self>, _la: &Layout<D>) -> Result<()> {
-        let type_b = core::any::type_name::<Complex<T>>();
-        unreachable!("{:?} is not supported in this function", type_b);
-    }
+            fn op_muta(&self, _a: &mut Storage<T, Self>, _la: &Layout<D>) -> Result<()> {
+                let type_b = core::any::type_name::<Complex<T>>();
+                let type_a = core::any::type_name::<T>();
+                unreachable!(
+                    "{:?} is not supported in this function, where out type is {:?}.",
+                    type_b, type_a
+                );
+            }
+        }
+    };
 }
 
-impl<T, D> DeviceRealAPI<Complex<T>, D> for DeviceFaer
-where
-    Complex<T>: Clone + Send + Sync,
-    T: Clone + Send + Sync,
-    D: DimAPI,
-{
-    type TOut = T;
-
-    fn op_muta_refb(
-        &self,
-        a: &mut Storage<T, Self>,
-        la: &Layout<D>,
-        b: &Storage<Complex<T>, Self>,
-        lb: &Layout<D>,
-    ) -> Result<()> {
-        self.op_muta_refb_func(a, la, b, lb, &mut |a, b| *a = b.re.clone())
-    }
-
-    fn op_muta(&self, _a: &mut Storage<T, Self>, _la: &Layout<D>) -> Result<()> {
-        let type_b = core::any::type_name::<Complex<T>>();
-        unreachable!("{:?} is not supported in this function", type_b);
-    }
+#[rustfmt::skip]
+mod impl_complex_diff_type {
+    use super::*;
+    impl_complex_diff_type!(DeviceComplexAbsAPI  , Float , |a, b| *a = b.norm() );
+    impl_complex_diff_type!(DeviceComplexImagAPI , Clone , |a, b| *a = b.im.clone() );
+    impl_complex_diff_type!(DeviceComplexRealAPI , Clone , |a, b| *a = b.re.clone() );
 }
 
-impl<T, D> DeviceAbsAPI<Complex<T>, D> for DeviceFaer
+impl<T, D> DeviceComplexSignAPI<Complex<T>, D> for DeviceFaer
 where
-    Complex<T>: Clone + Send + Sync + ComplexFloat<Real = T>,
-    T: Clone + Send + Sync,
-    D: DimAPI,
-{
-    type TOut = T;
-
-    fn op_muta_refb(
-        &self,
-        a: &mut Storage<T, Self>,
-        la: &Layout<D>,
-        b: &Storage<Complex<T>, Self>,
-        lb: &Layout<D>,
-    ) -> Result<()> {
-        self.op_muta_refb_func(a, la, b, lb, &mut |a, b| *a = b.abs())
-    }
-
-    fn op_muta(&self, _a: &mut Storage<T, Self>, _la: &Layout<D>) -> Result<()> {
-        let type_b = core::any::type_name::<Complex<T>>();
-        unreachable!("{:?} is not supported in this function", type_b);
-    }
-}
-
-impl<T, D> DeviceSignAPI<Complex<T>, D> for DeviceFaer
-where
-    Complex<T>: Clone + Send + Sync + Num + ComplexFloat<Real = T>,
-    T: Clone + Send + Sync + Zero + Num,
+    T: Clone + Send + Sync + Float,
     D: DimAPI,
 {
     type TOut = Complex<T>;
@@ -195,132 +183,12 @@ where
         b: &Storage<Complex<T>, Self>,
         lb: &Layout<D>,
     ) -> Result<()> {
-        self.op_muta_refb_func(a, la, b, lb, &mut |a, b| {
-            if *b == Complex::from(T::zero()) {
-                *a = Complex::from(T::zero());
-            } else {
-                *a = b / Complex::<T>::new(b.abs(), T::zero());
-            }
-        })
+        self.op_muta_refb_func(a, la, b, lb, &mut |a, b| *a = b / b.norm())
     }
 
     fn op_muta(&self, a: &mut Storage<Complex<T>, Self>, la: &Layout<D>) -> Result<()> {
-        self.op_muta_func(a, la, &mut |a| {
-            if *a == Complex::from(T::zero()) {
-                *a = Complex::from(T::zero());
-            } else {
-                *a = *a / Complex::<T>::new(a.abs(), T::zero());
-            }
-        })
+        self.op_muta_func(a, la, &mut |a| *a = *a / a.norm())
     }
 }
-
-/* #endregion */
-
-/* #region real Imag, Real, Abs, Sign */
-
-macro_rules! impl_real_specialized {
-    ($($t: ty),*) => {
-        $(
-            impl<D> DeviceImagAPI<$t, D> for DeviceFaer
-            where
-                $t: Clone + Send + Sync,
-                D: DimAPI,
-            {
-                type TOut = $t;
-
-                fn op_muta_refb(
-                    &self,
-                    a: &mut Storage<$t, Self>,
-                    la: &Layout<D>,
-                    b: &Storage<$t, Self>,
-                    lb: &Layout<D>,
-                ) -> Result<()> {
-                    self.op_muta_refb_func(a, la, b, lb, &mut |a, b| *a = b.clone())
-                }
-
-                fn op_muta(&self, _a: &mut Storage<$t, Self>, _la: &Layout<D>) -> Result<()> {
-                    Ok(())
-                }
-            }
-
-            impl<D> DeviceRealAPI<$t, D> for DeviceFaer
-            where
-                $t: Clone + Send + Sync,
-                D: DimAPI,
-            {
-                type TOut = $t;
-
-                fn op_muta_refb(
-                    &self,
-                    a: &mut Storage<$t, Self>,
-                    la: &Layout<D>,
-                    b: &Storage<$t, Self>,
-                    lb: &Layout<D>,
-                ) -> Result<()> {
-                    self.op_muta_refb_func(a, la, b, lb, &mut |a, b| *a = b.clone())
-                }
-
-                fn op_muta(&self, _a: &mut Storage<$t, Self>, _la: &Layout<D>) -> Result<()> {
-                    Ok(())
-                }
-            }
-
-            impl<D> DeviceAbsAPI<$t, D> for DeviceFaer
-            where
-                D: DimAPI,
-            {
-                type TOut = $t;
-
-                fn op_muta_refb(
-                    &self,
-                    a: &mut Storage<$t, Self>,
-                    la: &Layout<D>,
-                    b: &Storage<$t, Self>,
-                    lb: &Layout<D>,
-                ) -> Result<()> {
-                    self.op_muta_refb_func(a, la, b, lb, &mut |a, b| *a = b.abs())
-                }
-
-                fn op_muta(&self, a: &mut Storage<$t, Self>, la: &Layout<D>) -> Result<()> {
-                    self.op_muta_func(a, la, &mut |a| *a = a.abs())
-                }
-            }
-
-            impl<D> DeviceSignAPI<$t, D> for DeviceFaer
-            where
-                D: DimAPI,
-            {
-                type TOut = $t;
-
-                fn op_muta_refb(
-                    &self,
-                    a: &mut Storage<$t, Self>,
-                    la: &Layout<D>,
-                    b: &Storage<$t, Self>,
-                    lb: &Layout<D>,
-                ) -> Result<()> {
-                    self.op_muta_refb_func(a, la, b, lb, &mut |a, b| {
-                        if *b == <$t>::zero() {
-                            *a = <$t>::zero();
-                        } else {
-                            *a = <$t>::signum(*b);
-                        }
-                    })
-                }
-
-                fn op_muta(&self, a: &mut Storage<$t, Self>, la: &Layout<D>) -> Result<()> {
-                    self.op_muta_func(a, la, &mut |a| {
-                        if *a != <$t>::zero() {
-                            *a = <$t>::signum(*a);
-                        }
-                    })
-                }
-            }
-        )*
-    };
-}
-
-impl_real_specialized!(f32, f64, half::bf16, half::f16, i8, i16, i32, i64, i128, isize);
 
 /* #endregion */

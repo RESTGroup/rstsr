@@ -33,7 +33,6 @@ macro_rules! trait_definition {
 // DevicePositiveAPI, (not implemented)
 
 trait_definition!(
-    DeviceAbsAPI,
     DeviceAcosAPI,
     DeviceAcoshAPI,
     DeviceAsinAPI,
@@ -48,12 +47,14 @@ trait_definition!(
     DeviceExpm1API,
     DeviceFloorAPI,
     DeviceInvAPI,
+    DeviceIsFiniteAPI,
+    DeviceIsInfAPI,
+    DeviceIsNanAPI,
     DeviceLogAPI,
     DeviceLog1pAPI,
     DeviceLog2API,
     DeviceLog10API,
     DeviceRoundAPI,
-    DeviceSignAPI,
     DeviceSignBitAPI,
     DeviceSinAPI,
     DeviceSinhAPI,
@@ -64,4 +65,13 @@ trait_definition!(
     DeviceTruncAPI
 );
 
-trait_definition!(DeviceImagAPI, DeviceIsFiniteAPI, DeviceIsInfAPI, DeviceIsNanAPI, DeviceRealAPI);
+trait_definition!(
+    DeviceRealAbsAPI,
+    DeviceRealImagAPI,
+    DeviceRealRealAPI,
+    DeviceRealSignAPI,
+    DeviceComplexAbsAPI,
+    DeviceComplexImagAPI,
+    DeviceComplexRealAPI,
+    DeviceComplexSignAPI
+);

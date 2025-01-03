@@ -43,11 +43,22 @@ macro_rules! trait_unary {
     };
 }
 
+macro_rules! trait_unary_without_func {
+    ($op: ident, $op_f: ident, $TensorOpAPI: ident) => {
+        pub trait $TensorOpAPI: Sized {
+            type Output;
+            fn $op_f(self) -> Result<Self::Output>;
+            fn $op(self) -> Self::Output {
+                self.$op_f().unwrap()
+            }
+        }
+    };
+}
+
 #[rustfmt::skip]
 #[allow(clippy::wrong_self_convention)]
 mod trait_unary {
     use super::*;
-    trait_unary!(abs       , abs_f       , TensorAbsAPI      );
     trait_unary!(acos      , acos_f      , TensorAcosAPI     );
     trait_unary!(acosh     , acosh_f     , TensorAcoshAPI    );
     trait_unary!(asin      , asin_f      , TensorAsinAPI     );
@@ -67,7 +78,6 @@ mod trait_unary {
     trait_unary!(log2      , log2_f      , TensorLog2API     );
     trait_unary!(log10     , log10_f     , TensorLog10API    );
     trait_unary!(round     , round_f     , TensorRoundAPI    );
-    trait_unary!(sign      , sign_f      , TensorSignAPI     );
     trait_unary!(signbit   , signbit_f   , TensorSignBitAPI  );
     trait_unary!(sin       , sin_f       , TensorSinAPI      );
     trait_unary!(sinh      , sinh_f      , TensorSinhAPI     );
@@ -76,11 +86,18 @@ mod trait_unary {
     trait_unary!(tan       , tan_f       , TensorTanAPI      );
     trait_unary!(tanh      , tanh_f      , TensorTanhAPI     );
     trait_unary!(trunc     , trunc_f     , TensorTruncAPI    );
-    trait_unary!(imag      , imag_f      , TensorImagAPI     );
     trait_unary!(is_finite , is_finite_f , TensorIsFiniteAPI );
     trait_unary!(is_inf    , is_inf_f    , TensorIsInfAPI    );
     trait_unary!(is_nan    , is_nan_f    , TensorIsNanAPI    );
-    trait_unary!(real      , real_f      , TensorRealAPI     );
+
+    trait_unary_without_func!(abs  , abs_f  , TensorRealAbsAPI     );
+    trait_unary_without_func!(real , real_f , TensorRealRealAPI    );
+    trait_unary_without_func!(imag , imag_f , TensorRealImagAPI    );
+    trait_unary_without_func!(sign , sign_f , TensorRealSignAPI    );
+    trait_unary_without_func!(abs  , abs_f  , TensorComplexAbsAPI  );
+    trait_unary_without_func!(real , real_f , TensorComplexRealAPI );
+    trait_unary_without_func!(imag , imag_f , TensorComplexImagAPI );
+    trait_unary_without_func!(sign , sign_f , TensorComplexSignAPI );
 }
 
 pub use trait_unary::*;
@@ -148,9 +165,8 @@ macro_rules! impl_tensor_unary_common {
 
 #[rustfmt::skip]
 #[allow(clippy::wrong_self_convention)]
-mod impl_same_type {
+mod impl_tensor_unary_common {
     use super::*;
-    impl_tensor_unary_common!(abs_f       , TensorAbsAPI      , DeviceAbsAPI      );
     impl_tensor_unary_common!(acos_f      , TensorAcosAPI     , DeviceAcosAPI     );
     impl_tensor_unary_common!(acosh_f     , TensorAcoshAPI    , DeviceAcoshAPI    );
     impl_tensor_unary_common!(asin_f      , TensorAsinAPI     , DeviceAsinAPI     );
@@ -164,7 +180,6 @@ mod impl_same_type {
     impl_tensor_unary_common!(exp_f       , TensorExpAPI      , DeviceExpAPI      );
     impl_tensor_unary_common!(expm1_f     , TensorExpm1API    , DeviceExpm1API    );
     impl_tensor_unary_common!(floor_f     , TensorFloorAPI    , DeviceFloorAPI    );
-    impl_tensor_unary_common!(imag_f      , TensorImagAPI     , DeviceImagAPI     );
     impl_tensor_unary_common!(inv_f       , TensorInvAPI      , DeviceInvAPI      );
     impl_tensor_unary_common!(is_finite_f , TensorIsFiniteAPI , DeviceIsFiniteAPI );
     impl_tensor_unary_common!(is_inf_f    , TensorIsInfAPI    , DeviceIsInfAPI    );
@@ -173,9 +188,7 @@ mod impl_same_type {
     impl_tensor_unary_common!(log1p_f     , TensorLog1pAPI    , DeviceLog1pAPI    );
     impl_tensor_unary_common!(log2_f      , TensorLog2API     , DeviceLog2API     );
     impl_tensor_unary_common!(log10_f     , TensorLog10API    , DeviceLog10API    );
-    impl_tensor_unary_common!(real_f      , TensorRealAPI     , DeviceRealAPI     );
     impl_tensor_unary_common!(round_f     , TensorRoundAPI    , DeviceRoundAPI    );
-    impl_tensor_unary_common!(sign_f      , TensorSignAPI     , DeviceSignAPI     );
     impl_tensor_unary_common!(signbit_f   , TensorSignBitAPI  , DeviceSignBitAPI  );
     impl_tensor_unary_common!(sin_f       , TensorSinAPI      , DeviceSinAPI      );
     impl_tensor_unary_common!(sinh_f      , TensorSinhAPI     , DeviceSinhAPI     );
@@ -184,6 +197,15 @@ mod impl_same_type {
     impl_tensor_unary_common!(tan_f       , TensorTanAPI      , DeviceTanAPI      );
     impl_tensor_unary_common!(tanh_f      , TensorTanhAPI     , DeviceTanhAPI     );
     impl_tensor_unary_common!(trunc_f     , TensorTruncAPI    , DeviceTruncAPI    );
+
+    impl_tensor_unary_common!(abs_f       , TensorRealAbsAPI     , DeviceRealAbsAPI     );
+    impl_tensor_unary_common!(imag_f      , TensorRealImagAPI    , DeviceRealImagAPI    );
+    impl_tensor_unary_common!(real_f      , TensorRealRealAPI    , DeviceRealRealAPI    );
+    impl_tensor_unary_common!(sign_f      , TensorRealSignAPI    , DeviceRealSignAPI    );
+    impl_tensor_unary_common!(abs_f       , TensorComplexAbsAPI  , DeviceComplexAbsAPI  );
+    impl_tensor_unary_common!(imag_f      , TensorComplexImagAPI , DeviceComplexImagAPI );
+    impl_tensor_unary_common!(real_f      , TensorComplexRealAPI , DeviceComplexRealAPI );
+    impl_tensor_unary_common!(sign_f      , TensorComplexSignAPI , DeviceComplexSignAPI );
 }
 
 /* #endregion */
@@ -210,7 +232,7 @@ mod test {
     fn test_sign() {
         use num::complex::c64;
         let a = linspace((c64(1.0, 2.0), c64(5.0, 6.0), 6)).into_shape([2, 3]);
-        let b = sign(&a);
+        let b = (&a).sign();
         let vec_b = b.reshape([6]).to_vec();
         let b_abs_sum = vec_b.iter().map(|x| x.norm()).sum::<f64>();
         println!("{:}", b);
@@ -240,7 +262,7 @@ mod test {
     fn test_hetrogeneous_type() {
         use num::complex::c32;
         let a = linspace((c32(1.0, 2.0), c32(5.0, 6.0), 6)).into_shape([2, 3]).into_owned();
-        let b = imag(&a);
+        let b = (&a).imag();
         println!("{:}", b);
     }
 
