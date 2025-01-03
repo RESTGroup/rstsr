@@ -712,6 +712,8 @@ mod impl_arithmetic_scalar_lhs {
     impl_arithmetic_scalar_lhs_float!(f16);
     impl_arithmetic_scalar_lhs_float!(f32);
     impl_arithmetic_scalar_lhs_float!(f64);
+    impl_arithmetic_scalar_lhs_float!(Complex<bf16>);
+    impl_arithmetic_scalar_lhs_float!(Complex<f16>);
     impl_arithmetic_scalar_lhs_float!(Complex<f32>);
     impl_arithmetic_scalar_lhs_float!(Complex<f64>);
 }
