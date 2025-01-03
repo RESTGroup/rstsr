@@ -1062,7 +1062,13 @@ where
     rstsr_assert_eq!(tensor.size(), shape.shape_size(), InvalidLayout)?;
     let same_shape = tensor.shape().as_ref().to_vec() == shape.as_ref().to_vec();
     let contig = tensor.layout().c_contig() || tensor.layout().f_contig();
-    if contig || same_shape {
+    if same_shape {
+        // same shape, do nothing but make layout to D2
+        let (data, layout) = tensor.into_data_and_layout();
+        let data = data.into();
+        let layout = layout.into_dim::<IxD>()?.into_dim::<D2>()?;
+        return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
+    } else if contig {
         // no data cloned
         let result = tensor.into_shape_assume_contig_f(shape.clone())?;
         let layout = result.layout().clone();

@@ -727,8 +727,8 @@ where
     D: DimBaseAPI,
 {
     fn into_dim(layout: Layout<IxD>) -> Result<Layout<D>> {
-        let shape = layout.shape().clone().try_into().ok().unwrap();
-        let stride = layout.stride().clone().try_into().ok().unwrap();
+        let shape = layout.shape().clone().try_into().map_err(|_| rstsr_error!(InvalidLayout))?;
+        let stride = layout.stride().clone().try_into().map_err(|_| rstsr_error!(InvalidLayout))?;
         let offset = layout.offset();
         let size = layout.size();
         return Ok(Layout { shape, stride, offset, size });
