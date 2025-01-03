@@ -19,7 +19,6 @@ pub mod rstsr_structs {
     pub use crate::device_faer::device::DeviceFaer;
     pub use crate::DeviceCpu;
 
-    pub use crate::error::{Error, Result};
     pub use crate::layout::indexer::{Ellipsis, NewAxis};
     pub use crate::layout::{Ix, Ix1, Ix2, Ix3, Ix4, Ix5, Ix6, Ix7, Ix8, Ix9, IxD, IxDyn, Layout};
     pub use crate::{
@@ -67,7 +66,6 @@ pub mod rstsr_macros {
 
 // final re-exports
 
-pub use rstsr_funcs::*;
 pub use rstsr_macros::*;
 pub use rstsr_structs::*;
 pub use rstsr_traits::*;
@@ -82,6 +80,8 @@ pub mod rstsr {
     pub use super::rstsr_macros::*;
     pub use super::rstsr_structs::*;
     pub use super::rstsr_traits::*;
+
+    pub use crate::error::{Error, Result};
 }
 
 pub use rstsr as rt;
