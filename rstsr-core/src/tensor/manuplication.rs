@@ -1048,16 +1048,15 @@ where
 
 /* #region reshape */
 
-pub fn into_shape_f<'a, R, T, D, B, D2>(
+pub fn change_shape_f<'a, R, T, D, B, D2>(
     tensor: TensorBase<R, D>,
     shape: D2,
 ) -> Result<TensorBase<DataCow<'a, R::Data>, D2>>
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = Storage<T, B>> + DataIntoCowAPI<'a>,
     D: DimAPI,
     D2: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D>,
-    DataCow<'a, Storage<T, B>>: From<R>,
 {
     rstsr_assert_eq!(tensor.size(), shape.shape_size(), InvalidLayout)?;
     let same_shape = tensor.shape().as_ref().to_vec() == shape.as_ref().to_vec();
@@ -1065,14 +1064,14 @@ where
     if same_shape {
         // same shape, do nothing but make layout to D2
         let (data, layout) = tensor.into_data_and_layout();
-        let data = data.into();
+        let data = data.into_cow();
         let layout = layout.into_dim::<IxD>()?.into_dim::<D2>()?;
         return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
     } else if contig {
         // no data cloned
         let result = tensor.into_shape_assume_contig_f(shape.clone())?;
         let layout = result.layout().clone();
-        let data = result.data.into();
+        let data = result.data.into_cow();
         return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
     } else {
         // not contiguous, and shape changed
@@ -1107,7 +1106,7 @@ where
     D2: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D>,
 {
-    into_shape_f(tensor.view(), shape).unwrap()
+    change_shape_f(tensor.view(), shape).unwrap()
 }
 
 pub fn to_shape_f<R, T, D, B, D2>(
@@ -1120,21 +1119,50 @@ where
     D2: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D>,
 {
-    into_shape_f(tensor.view(), shape)
+    change_shape_f(tensor.view(), shape)
+}
+
+pub fn into_shape_f<'a, R, T, D, B, D2>(
+    tensor: TensorBase<R, D>,
+    shape: D2,
+) -> Result<TensorBase<DataOwned<R::Data>, D2>>
+where
+    R: DataAPI<Data = Storage<T, B>> + DataIntoCowAPI<'a>,
+    T: Clone + 'a,
+    D: DimAPI,
+    D2: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D> + OpAssignAPI<T, D2>,
+    B: 'a,
+{
+    change_shape_f(tensor, shape).map(|t| t.into_owned())
 }
 
 pub fn into_shape<'a, R, T, D, B, D2>(
     tensor: TensorBase<R, D>,
     shape: D2,
+) -> TensorBase<DataOwned<R::Data>, D2>
+where
+    R: DataAPI<Data = Storage<T, B>> + DataIntoCowAPI<'a>,
+    T: Clone + 'a,
+    D: DimAPI,
+    D2: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D> + OpAssignAPI<T, D2>,
+    B: 'a,
+{
+    into_shape_f(tensor, shape).unwrap()
+}
+
+pub fn change_shape<'a, R, T, D, B, D2>(
+    tensor: TensorBase<R, D>,
+    shape: D2,
 ) -> TensorBase<DataCow<'a, R::Data>, D2>
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = Storage<T, B>> + DataIntoCowAPI<'a>,
     D: DimAPI,
     D2: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D>,
-    DataCow<'a, Storage<T, B>>: From<R>,
 {
-    into_shape_f(tensor, shape).unwrap()
+    change_shape_f(tensor, shape).unwrap()
 }
 
 impl<R, T, D, B> TensorBase<R, D>
@@ -1153,7 +1181,7 @@ where
         D2: DimAPI,
         B: OpAssignArbitaryAPI<T, D2, D>,
     {
-        into_shape(self.view(), shape)
+        change_shape(self.view(), shape)
     }
 
     pub fn reshape_f<D2>(&self, shape: D2) -> Result<TensorBase<DataCow<'_, R::Data>, D2>>
@@ -1161,7 +1189,7 @@ where
         D2: DimAPI,
         B: OpAssignArbitaryAPI<T, D2, D>,
     {
-        into_shape_f(self.view(), shape)
+        change_shape_f(self.view(), shape)
     }
 
     pub fn to_shape<D2>(&self, shape: D2) -> TensorBase<DataCow<'_, R::Data>, D2>
@@ -1169,7 +1197,7 @@ where
         D2: DimAPI,
         B: OpAssignArbitaryAPI<T, D2, D>,
     {
-        into_shape(self.view(), shape)
+        change_shape(self.view(), shape)
     }
 
     pub fn to_shape_f<D2>(&self, shape: D2) -> Result<TensorBase<DataCow<'_, R::Data>, D2>>
@@ -1177,25 +1205,45 @@ where
         D2: DimAPI,
         B: OpAssignArbitaryAPI<T, D2, D>,
     {
-        into_shape_f(self.view(), shape)
+        change_shape_f(self.view(), shape)
     }
 
-    pub fn into_shape<'a, D2>(self, shape: D2) -> TensorBase<DataCow<'a, R::Data>, D2>
+    pub fn into_shape_f<'a, D2>(self, shape: D2) -> Result<TensorBase<DataOwned<R::Data>, D2>>
     where
+        R: DataIntoCowAPI<'a>,
+        T: Clone + 'a,
         D2: DimAPI,
-        B: OpAssignArbitaryAPI<T, D2, D>,
-        DataCow<'a, Storage<T, B>>: From<R>,
+        B: OpAssignArbitaryAPI<T, D2, D> + OpAssignAPI<T, D2> + 'a,
+    {
+        into_shape_f(self, shape)
+    }
+
+    pub fn into_shape<'a, D2>(self, shape: D2) -> TensorBase<DataOwned<R::Data>, D2>
+    where
+        R: DataIntoCowAPI<'a>,
+        T: Clone + 'a,
+        D2: DimAPI,
+        B: OpAssignArbitaryAPI<T, D2, D> + OpAssignAPI<T, D2> + 'a,
     {
         into_shape(self, shape)
     }
 
-    pub fn into_shape_f<'a, D2>(self, shape: D2) -> Result<TensorBase<DataCow<'a, R::Data>, D2>>
+    pub fn change_shape<'a, D2>(self, shape: D2) -> TensorBase<DataCow<'a, R::Data>, D2>
     where
+        R: DataIntoCowAPI<'a>,
         D2: DimAPI,
         B: OpAssignArbitaryAPI<T, D2, D>,
-        DataCow<'a, Storage<T, B>>: From<R>,
     {
-        into_shape_f(self, shape)
+        change_shape(self, shape)
+    }
+
+    pub fn change_shape_f<'a, D2>(self, shape: D2) -> Result<TensorBase<DataCow<'a, R::Data>, D2>>
+    where
+        R: DataIntoCowAPI<'a>,
+        D2: DimAPI,
+        B: OpAssignArbitaryAPI<T, D2, D>,
+    {
+        change_shape_f(self, shape)
     }
 }
 
@@ -1203,16 +1251,15 @@ where
 
 /* #region to_layout */
 
-pub fn into_layout_f<'a, R, T, D, B, D2>(
+pub fn change_layout_f<'a, R, T, D, B, D2>(
     tensor: TensorBase<R, D>,
     layout: Layout<D2>,
 ) -> Result<TensorBase<DataCow<'a, R::Data>, D2>>
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = Storage<T, B>> + DataIntoCowAPI<'a>,
     D: DimAPI,
     D2: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D>,
-    DataCow<'a, Storage<T, B>>: From<R>,
 {
     let shape = layout.shape();
     rstsr_assert_eq!(tensor.size(), shape.shape_size(), InvalidLayout)?;
@@ -1225,7 +1272,7 @@ where
         && tensor.layout().offset() == layout.offset();
     if same_layout || contig_c || contig_f {
         // no data cloned
-        let data = tensor.data.into();
+        let data = tensor.data.into_cow();
         return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
     } else {
         // layout changed, or not c and f contiguous with same layout
@@ -1250,7 +1297,7 @@ where
     D2: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D>,
 {
-    into_layout_f(tensor.view(), layout).unwrap()
+    change_layout_f(tensor.view(), layout).unwrap()
 }
 
 pub fn to_layout_f<R, T, D, B, D2>(
@@ -1263,21 +1310,50 @@ where
     D2: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D>,
 {
-    into_layout_f(tensor.view(), layout)
+    change_layout_f(tensor.view(), layout)
 }
 
 pub fn into_layout<'a, R, T, D, B, D2>(
     tensor: TensorBase<R, D>,
     layout: Layout<D2>,
+) -> TensorBase<DataOwned<R::Data>, D2>
+where
+    T: Clone + 'a,
+    R: DataAPI<Data = Storage<T, B>> + DataIntoCowAPI<'a>,
+    D: DimAPI,
+    D2: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D> + OpAssignAPI<T, D2>,
+    B: 'a,
+{
+    change_layout_f(tensor, layout).map(|t| t.into_owned()).unwrap()
+}
+
+pub fn into_layout_f<'a, R, T, D, B, D2>(
+    tensor: TensorBase<R, D>,
+    layout: Layout<D2>,
+) -> Result<TensorBase<DataOwned<R::Data>, D2>>
+where
+    T: Clone + 'a,
+    R: DataAPI<Data = Storage<T, B>> + DataIntoCowAPI<'a>,
+    D: DimAPI,
+    D2: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D> + OpAssignAPI<T, D2>,
+    B: 'a,
+{
+    change_layout_f(tensor, layout).map(|t| t.into_owned())
+}
+
+pub fn change_layout<'a, R, T, D, B, D2>(
+    tensor: TensorBase<R, D>,
+    layout: Layout<D2>,
 ) -> TensorBase<DataCow<'a, R::Data>, D2>
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = Storage<T, B>> + DataIntoCowAPI<'a>,
     D: DimAPI,
     D2: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D>,
-    DataCow<'a, Storage<T, B>>: From<R>,
 {
-    into_layout_f(tensor, layout).unwrap()
+    change_layout_f(tensor, layout).unwrap()
 }
 
 impl<R, T, D, B> TensorBase<R, D>
@@ -1296,7 +1372,7 @@ where
         D2: DimAPI,
         B: OpAssignArbitaryAPI<T, D2, D>,
     {
-        into_layout(self.view(), layout)
+        change_layout(self.view(), layout)
     }
 
     pub fn to_layout_f<D2>(
@@ -1307,14 +1383,36 @@ where
         D2: DimAPI,
         B: OpAssignArbitaryAPI<T, D2, D>,
     {
-        into_layout_f(self.view(), layout)
+        change_layout_f(self.view(), layout)
     }
 
-    pub fn into_layout<'a, D2>(self, layout: Layout<D2>) -> TensorBase<DataCow<'a, R::Data>, D2>
+    pub fn change_layout_f<'a, D2>(
+        self,
+        layout: Layout<D2>,
+    ) -> Result<TensorBase<DataCow<'a, R::Data>, D2>>
     where
+        R: DataIntoCowAPI<'a>,
         D2: DimAPI,
         B: OpAssignArbitaryAPI<T, D2, D>,
-        DataCow<'a, Storage<T, B>>: From<R>,
+    {
+        change_layout_f(self, layout)
+    }
+
+    pub fn change_layout<'a, D2>(self, layout: Layout<D2>) -> TensorBase<DataCow<'a, R::Data>, D2>
+    where
+        R: DataIntoCowAPI<'a>,
+        D2: DimAPI,
+        B: OpAssignArbitaryAPI<T, D2, D>,
+    {
+        change_layout(self, layout)
+    }
+
+    pub fn into_layout<'a, D2>(self, layout: Layout<D2>) -> TensorBase<DataOwned<R::Data>, D2>
+    where
+        R: DataIntoCowAPI<'a>,
+        T: Clone + 'a,
+        D2: DimAPI,
+        B: OpAssignArbitaryAPI<T, D2, D> + OpAssignAPI<T, D2> + 'a,
     {
         into_layout(self, layout)
     }
@@ -1322,11 +1420,12 @@ where
     pub fn into_layout_f<'a, D2>(
         self,
         layout: Layout<D2>,
-    ) -> Result<TensorBase<DataCow<'a, R::Data>, D2>>
+    ) -> Result<TensorBase<DataOwned<R::Data>, D2>>
     where
+        R: DataIntoCowAPI<'a>,
+        T: Clone + 'a,
         D2: DimAPI,
-        B: OpAssignArbitaryAPI<T, D2, D>,
-        DataCow<'a, Storage<T, B>>: From<R>,
+        B: OpAssignArbitaryAPI<T, D2, D> + OpAssignAPI<T, D2> + 'a,
     {
         into_layout_f(self, layout)
     }
@@ -1415,7 +1514,7 @@ mod tests {
     #[test]
     fn test_to_layout() {
         let a = linspace((0.0, 15.0, 16));
-        let a = a.into_shape([4, 4]);
+        let a = a.change_shape([4, 4]);
         let a = a.into_layout(Layout::new([2, 8], [12, 120], 8));
         println!("{:?}", a);
     }

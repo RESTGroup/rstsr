@@ -50,10 +50,11 @@ where
 
     pub fn into_cow<'a>(self) -> TensorBase<DataCow<'a, R::Data>, D>
     where
-        Self: Into<TensorBase<DataCow<'a, R::Data>, D>>,
-        R: DataAPI,
+        R: DataAPI + DataIntoCowAPI<'a>,
     {
-        self.into()
+        let (data, layout) = self.into_data_and_layout();
+        let data = data.into_cow();
+        unsafe { TensorBase::new_unchecked(data, layout) }
     }
 
     /// Convert tensor into owned tensor.
@@ -127,69 +128,6 @@ where
 
     pub fn to_owned(&self) -> TensorBase<DataOwned<R::Data>, D> {
         self.view().into_owned()
-    }
-}
-
-/* #endregion */
-
-/* #region DataCow */
-
-impl<S, D> From<TensorBase<DataOwned<S>, D>> for TensorBase<DataCow<'_, S>, D>
-where
-    D: DimAPI,
-{
-    #[inline]
-    fn from(tensor: TensorBase<DataOwned<S>, D>) -> Self {
-        let (data, layout) = tensor.into_data_and_layout();
-        let data = DataCow::from(data);
-        unsafe { TensorBase::new_unchecked(data, layout) }
-    }
-}
-
-impl<'a, S, D> From<TensorBase<DataRef<'a, S>, D>> for TensorBase<DataCow<'a, S>, D>
-where
-    D: DimAPI,
-{
-    #[inline]
-    fn from(tensor: TensorBase<DataRef<'a, S>, D>) -> Self {
-        let (data, layout) = tensor.into_data_and_layout();
-        let data = DataCow::from(data);
-        unsafe { TensorBase::new_unchecked(data, layout) }
-    }
-}
-
-impl<'a, S, D> From<TensorBase<DataMut<'a, S>, D>> for TensorBase<DataCow<'a, S>, D>
-where
-    D: DimAPI,
-    S: Clone,
-{
-    #[inline]
-    fn from(tensor: TensorBase<DataMut<'a, S>, D>) -> Self {
-        let (data, layout) = tensor.into_data_and_layout();
-        match data {
-            DataMut::TrueRef(data) => {
-                let data = DataCow::from(DataRef::from(&*data));
-                unsafe { TensorBase::new_unchecked(data, layout) }
-            },
-            DataMut::ManuallyDropOwned(data) => {
-                let data = DataCow::from(DataRef::from_manually_drop(data));
-                unsafe { TensorBase::new_unchecked(data, layout) }
-            },
-        }
-    }
-}
-
-impl<S, D> From<TensorBase<DataArc<S>, D>> for TensorBase<DataCow<'_, S>, D>
-where
-    D: DimAPI,
-    S: Clone,
-{
-    #[inline]
-    fn from(tensor: TensorBase<DataArc<S>, D>) -> Self {
-        let (data, layout) = tensor.into_data_and_layout();
-        let data = data.into_owned();
-        let data = DataCow::from(data);
-        unsafe { TensorBase::new_unchecked(data, layout) }
     }
 }
 
@@ -421,3 +359,27 @@ where
 }
 
 /* #endregion */
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_into_cow() {
+        let mut a = arange(3);
+        let ptr_a = a.rawvec().as_ptr();
+
+        let a_mut = a.view_mut();
+        let a_cow = a_mut.into_cow();
+        println!("{:?}", a_cow);
+
+        let a_ref = a.view();
+        let a_cow = a_ref.into_cow();
+        println!("{:?}", a_cow);
+
+        let a_cow = a.into_cow();
+        println!("{:?}", a_cow);
+        let ptr_a_cow = a_cow.rawvec().as_ptr();
+        assert_eq!(ptr_a, ptr_a_cow);
+    }
+}

@@ -4,10 +4,7 @@ use alloc::sync::Arc;
 use core::mem::ManuallyDrop;
 
 #[derive(Debug, Clone)]
-pub struct DataOwned<S>
-where
-    S: Sized,
-{
+pub struct DataOwned<S> {
     pub(crate) storage: S,
 }
 
@@ -88,6 +85,16 @@ impl<S> DataRef<'_, S> {
     pub fn from_manually_drop(data: ManuallyDrop<S>) -> Self {
         DataRef::ManuallyDropOwned(data)
     }
+
+    #[inline]
+    pub fn is_true_ref(&self) -> bool {
+        matches!(self, DataRef::TrueRef(_))
+    }
+
+    #[inline]
+    pub fn is_manually_drop_owned(&self) -> bool {
+        matches!(self, DataRef::ManuallyDropOwned(_))
+    }
 }
 
 impl<'a, S> From<&'a mut S> for DataMut<'a, S> {
@@ -101,6 +108,28 @@ impl<S> DataMut<'_, S> {
     #[inline]
     pub fn from_manually_drop(data: ManuallyDrop<S>) -> Self {
         DataMut::ManuallyDropOwned(data)
+    }
+
+    #[inline]
+    pub fn is_true_ref(&self) -> bool {
+        matches!(self, DataMut::TrueRef(_))
+    }
+
+    #[inline]
+    pub fn is_manually_drop_owned(&self) -> bool {
+        matches!(self, DataMut::ManuallyDropOwned(_))
+    }
+}
+
+impl<S> DataCow<'_, S> {
+    #[inline]
+    pub fn is_owned(&self) -> bool {
+        matches!(self, DataCow::Owned(_))
+    }
+
+    #[inline]
+    pub fn is_ref(&self) -> bool {
+        matches!(self, DataCow::Ref(_))
     }
 }
 
@@ -329,17 +358,60 @@ where
 
 /* #region DataCow */
 
-impl<S> From<DataOwned<S>> for DataCow<'_, S> {
+pub trait DataIntoCowAPI<'a>: DataAPI {
+    fn into_cow(self) -> DataCow<'a, Self::Data>;
+}
+
+impl<'a, S> DataIntoCowAPI<'a> for DataOwned<S>
+where
+    S: Clone,
+{
     #[inline]
-    fn from(data: DataOwned<S>) -> Self {
-        DataCow::Owned(data)
+    fn into_cow(self) -> DataCow<'a, S> {
+        DataCow::Owned(self)
     }
 }
 
-impl<'a, S> From<DataRef<'a, S>> for DataCow<'a, S> {
+impl<'a, S> DataIntoCowAPI<'a> for DataRef<'a, S>
+where
+    S: Clone,
+{
     #[inline]
-    fn from(data: DataRef<'a, S>) -> Self {
-        DataCow::Ref(data)
+    fn into_cow(self) -> DataCow<'a, S> {
+        DataCow::Ref(self)
+    }
+}
+
+impl<'a, S> DataIntoCowAPI<'a> for DataMut<'a, S>
+where
+    S: Clone,
+{
+    #[inline]
+    fn into_cow(self) -> DataCow<'a, S> {
+        match self {
+            DataMut::TrueRef(data) => DataRef::from(&*data).into_cow(),
+            DataMut::ManuallyDropOwned(data) => DataRef::from_manually_drop(data).into_cow(),
+        }
+    }
+}
+
+impl<'a, S> DataIntoCowAPI<'a> for DataCow<'a, S>
+where
+    S: Clone,
+{
+    #[inline]
+    fn into_cow(self) -> DataCow<'a, S> {
+        self
+    }
+}
+
+impl<'a, S> DataIntoCowAPI<'a> for DataArc<S>
+where
+    S: Clone,
+{
+    #[inline]
+    fn into_cow(self) -> DataCow<'a, S> {
+        DataCow::Owned(self.into_owned())
     }
 }
 

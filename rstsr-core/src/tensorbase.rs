@@ -143,6 +143,19 @@ where
     }
 }
 
+impl<S, D> TensorBase<DataCow<'_, S>, D>
+where
+    D: DimAPI,
+{
+    pub fn is_owned(&self) -> bool {
+        self.data().is_owned()
+    }
+
+    pub fn is_ref(&self) -> bool {
+        self.data().is_ref()
+    }
+}
+
 unsafe impl<R, D> Send for TensorBase<R, D>
 where
     D: DimAPI,
