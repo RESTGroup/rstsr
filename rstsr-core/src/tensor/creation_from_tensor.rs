@@ -118,7 +118,7 @@ mod test {
 
     #[test]
     fn test_diag() {
-        let a = arange(9).into_shape([3, 3]).into_owned();
+        let a = arange(9).into_shape([3, 3]);
         let b = diag((&a, 1));
         println!("{:}", b);
         let c = a.diag();

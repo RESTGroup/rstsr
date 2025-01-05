@@ -1048,24 +1048,58 @@ where
 
 /* #region reshape */
 
-pub fn change_shape_f<'a, R, T, D, B, D2>(
+pub fn change_shape_inner_f<'a, R, T, D, B>(
     tensor: TensorBase<R, D>,
-    shape: D2,
-) -> Result<TensorBase<DataCow<'a, R::Data>, D2>>
+    shape: AxesIndex<isize>,
+) -> Result<TensorBase<DataCow<'a, R::Data>, IxD>>
 where
     R: DataAPI<Data = Storage<T, B>> + DataIntoCowAPI<'a>,
     D: DimAPI,
-    D2: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D>,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
 {
-    rstsr_assert_eq!(tensor.size(), shape.shape_size(), InvalidLayout)?;
-    let same_shape = tensor.shape().as_ref().to_vec() == shape.as_ref().to_vec();
+    // own shape, this is cheap operation
+    let mut shape = shape.as_ref().to_vec();
+
+    // check negative indexes
+    let mut idx_neg1: Option<usize> = None;
+    for (i, &v) in shape.iter().enumerate() {
+        match v {
+            -1 => match idx_neg1 {
+                Some(_) => rstsr_raise!(InvalidValue, "Only one -1 is allowed in shape.")?,
+                None => idx_neg1 = Some(i),
+            },
+            ..-1 => {
+                rstsr_raise!(InvalidValue, "Negative index must be -1.")?;
+            },
+            _ => (),
+        }
+    }
+
+    // substitute negative index
+    if let Some(idx_neg1) = idx_neg1 {
+        let size_known = tensor.layout().size() as isize;
+        let size_unknown = shape.iter().fold(1, |acc, &v| if v == -1 { acc } else { acc * v });
+        if size_known % size_unknown != 0 {
+            rstsr_raise!(
+                InvalidValue,
+                "Shape -1 in {:?} could not be determined to original tensor shape {:?}",
+                shape,
+                tensor.shape()
+            )?;
+        } else {
+            shape[idx_neg1] = size_known / size_unknown;
+        }
+    }
+    let shape = shape.iter().map(|&v| v as usize).collect::<Vec<usize>>();
+
+    // avoid memory copy if possible
+    let same_shape = tensor.shape().as_ref().to_vec() == shape;
     let contig = tensor.layout().c_contig() || tensor.layout().f_contig();
     if same_shape {
         // same shape, do nothing but make layout to D2
         let (data, layout) = tensor.into_data_and_layout();
         let data = data.into_cow();
-        let layout = layout.into_dim::<IxD>()?.into_dim::<D2>()?;
+        let layout = layout.into_dim::<IxD>()?.into_dim::<IxD>()?;
         return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
     } else if contig {
         // no data cloned
@@ -1085,165 +1119,177 @@ where
     }
 }
 
-/// Reshapes an array without changing its data.
-///
-/// # Todo
-///
-/// Current implementation only prohibits memory copy when the input tensor is
-/// c-contiguous or f-contiguous. However, it is also possible in some other
-/// cases, and we haven't implement that way.
-///
-/// # See also
-///
-/// [Python array API standard: `reshape`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.reshape.html)
-pub fn to_shape<R, T, D, B, D2>(
-    tensor: &TensorBase<R, D>,
-    shape: D2,
-) -> TensorBase<DataCow<'_, R::Data>, D2>
-where
-    R: DataAPI<Data = Storage<T, B>>,
-    D: DimAPI,
-    D2: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D>,
-{
-    change_shape_f(tensor.view(), shape).unwrap()
-}
+pub trait TensorChangeShape<'l, I>: Sized {
+    type OutCow;
+    type OutOwned;
 
-pub fn to_shape_f<R, T, D, B, D2>(
-    tensor: &TensorBase<R, D>,
-    shape: D2,
-) -> Result<TensorBase<DataCow<'_, R::Data>, D2>>
-where
-    R: DataAPI<Data = Storage<T, B>>,
-    D: DimAPI,
-    D2: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D>,
-{
-    change_shape_f(tensor.view(), shape)
-}
+    fn change_shape_f(&'l self, shape: I) -> Result<Self::OutCow>;
+    fn into_shape_f(self, shape: I) -> Result<Self::OutOwned>;
 
-pub fn into_shape_f<'a, R, T, D, B, D2>(
-    tensor: TensorBase<R, D>,
-    shape: D2,
-) -> Result<TensorBase<DataOwned<R::Data>, D2>>
-where
-    R: DataAPI<Data = Storage<T, B>> + DataIntoCowAPI<'a>,
-    T: Clone + 'a,
-    D: DimAPI,
-    D2: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D> + OpAssignAPI<T, D2>,
-    B: 'a,
-{
-    change_shape_f(tensor, shape).map(|t| t.into_owned())
-}
+    fn change_shape(&'l self, shape: I) -> Self::OutCow {
+        self.change_shape_f(shape).unwrap()
+    }
 
-pub fn into_shape<'a, R, T, D, B, D2>(
-    tensor: TensorBase<R, D>,
-    shape: D2,
-) -> TensorBase<DataOwned<R::Data>, D2>
-where
-    R: DataAPI<Data = Storage<T, B>> + DataIntoCowAPI<'a>,
-    T: Clone + 'a,
-    D: DimAPI,
-    D2: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D> + OpAssignAPI<T, D2>,
-    B: 'a,
-{
-    into_shape_f(tensor, shape).unwrap()
-}
+    fn to_shape_f(&'l self, shape: I) -> Result<Self::OutCow> {
+        self.change_shape_f(shape)
+    }
 
-pub fn change_shape<'a, R, T, D, B, D2>(
-    tensor: TensorBase<R, D>,
-    shape: D2,
-) -> TensorBase<DataCow<'a, R::Data>, D2>
-where
-    R: DataAPI<Data = Storage<T, B>> + DataIntoCowAPI<'a>,
-    D: DimAPI,
-    D2: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D>,
-{
-    change_shape_f(tensor, shape).unwrap()
-}
+    fn to_shape(&'l self, shape: I) -> Self::OutCow {
+        self.change_shape_f(shape).unwrap()
+    }
 
-impl<R, T, D, B> TensorBase<R, D>
-where
-    R: DataAPI<Data = Storage<T, B>>,
-    D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
-{
+    fn into_shape(self, shape: I) -> Self::OutOwned {
+        self.into_shape_f(shape).unwrap()
+    }
+
+    fn reshape_f(&'l self, shape: I) -> Result<Self::OutCow> {
+        self.change_shape_f(shape)
+    }
+
     /// Reshapes an array without changing its data.
+    ///
+    /// # Todo
+    ///
+    /// Current implementation only prohibits memory copy when the input tensor
+    /// is c-contiguous or f-contiguous. However, it is also possible in
+    /// some other cases, and we haven't implement that way.
     ///
     /// # See also
     ///
-    /// [`reshape`]
-    pub fn reshape<D2>(&self, shape: D2) -> TensorBase<DataCow<'_, R::Data>, D2>
-    where
-        D2: DimAPI,
-        B: OpAssignArbitaryAPI<T, D2, D>,
-    {
-        change_shape(self.view(), shape)
+    /// [Python array API standard: `reshape`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.reshape.html)
+    fn reshape(&'l self, shape: I) -> Self::OutCow {
+        self.change_shape_f(shape).unwrap()
+    }
+}
+
+pub fn change_shape_f<'l, Inp, I>(inp: &'l Inp, shape: I) -> Result<Inp::OutCow>
+where
+    Inp: TensorChangeShape<'l, I>,
+{
+    inp.change_shape_f(shape)
+}
+
+pub fn change_shape<'l, Inp, I>(inp: &'l Inp, shape: I) -> Inp::OutCow
+where
+    Inp: TensorChangeShape<'l, I>,
+{
+    inp.change_shape(shape)
+}
+
+pub fn into_shape_f<'l, Inp, I>(inp: Inp, shape: I) -> Result<Inp::OutOwned>
+where
+    Inp: TensorChangeShape<'l, I>,
+{
+    inp.into_shape_f(shape)
+}
+
+pub fn into_shape<'l, Inp, I>(inp: Inp, shape: I) -> Inp::OutOwned
+where
+    Inp: TensorChangeShape<'l, I>,
+{
+    inp.into_shape(shape)
+}
+
+pub fn to_shape_f<'l, Inp, I>(inp: &'l Inp, shape: I) -> Result<Inp::OutCow>
+where
+    Inp: TensorChangeShape<'l, I>,
+{
+    inp.to_shape_f(shape)
+}
+
+pub fn to_shape<'l, Inp, I>(inp: &'l Inp, shape: I) -> Inp::OutCow
+where
+    Inp: TensorChangeShape<'l, I>,
+{
+    inp.to_shape(shape)
+}
+
+pub fn reshape_f<'l, Inp, I>(inp: &'l Inp, shape: I) -> Result<Inp::OutCow>
+where
+    Inp: TensorChangeShape<'l, I> + 'l,
+{
+    inp.reshape_f(shape)
+}
+
+pub fn reshape<'l, Inp, I>(inp: &'l Inp, shape: I) -> Inp::OutCow
+where
+    Inp: TensorChangeShape<'l, I> + 'l,
+{
+    inp.reshape(shape)
+}
+
+impl<'a, R, T, D, B, I, const N: usize> TensorChangeShape<'a, [I; N]> for TensorBase<R, D>
+where
+    R: DataAPI<Data = Storage<T, B>> + DataIntoCowAPI<'a>,
+    T: Clone + 'a,
+    D: DimAPI,
+    B: DeviceAPI<T>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignArbitaryAPI<T, IxD, D>
+        + OpAssignAPI<T, IxD>
+        + 'a,
+    I: TryInto<isize> + Copy,
+{
+    type OutCow = TensorBase<DataCow<'a, R::Data>, Ix<N>>;
+    type OutOwned = TensorBase<DataOwned<R::Data>, Ix<N>>;
+
+    fn change_shape_f(&'a self, shape: [I; N]) -> Result<Self::OutCow> {
+        let shape = shape.iter().map(|&v| v.try_into().ok().unwrap()).collect::<Vec<isize>>();
+        change_shape_inner_f(self.view(), shape.into())?.into_dim_f()
     }
 
-    pub fn reshape_f<D2>(&self, shape: D2) -> Result<TensorBase<DataCow<'_, R::Data>, D2>>
-    where
-        D2: DimAPI,
-        B: OpAssignArbitaryAPI<T, D2, D>,
-    {
-        change_shape_f(self.view(), shape)
+    fn into_shape_f(self, shape: [I; N]) -> Result<Self::OutOwned> {
+        let shape = shape.iter().map(|&v| v.try_into().ok().unwrap()).collect::<Vec<isize>>();
+        change_shape_inner_f(self, shape.into()).map(|t| t.into_owned())?.into_dim_f()
+    }
+}
+
+impl<'a, R, T, D, B, I> TensorChangeShape<'a, Vec<I>> for TensorBase<R, D>
+where
+    R: DataAPI<Data = Storage<T, B>> + DataIntoCowAPI<'a>,
+    T: Clone + 'a,
+    D: DimAPI,
+    B: DeviceAPI<T>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignArbitaryAPI<T, IxD, D>
+        + OpAssignAPI<T, IxD>
+        + 'a,
+    I: TryInto<isize> + Copy,
+{
+    type OutCow = TensorBase<DataCow<'a, R::Data>, IxD>;
+    type OutOwned = TensorBase<DataOwned<R::Data>, IxD>;
+
+    fn change_shape_f(&'a self, shape: Vec<I>) -> Result<Self::OutCow> {
+        let shape = shape.iter().map(|&v| v.try_into().ok().unwrap()).collect::<Vec<isize>>();
+        change_shape_inner_f(self.view(), shape.into())?.into_dim_f()
     }
 
-    pub fn to_shape<D2>(&self, shape: D2) -> TensorBase<DataCow<'_, R::Data>, D2>
-    where
-        D2: DimAPI,
-        B: OpAssignArbitaryAPI<T, D2, D>,
-    {
-        change_shape(self.view(), shape)
+    fn into_shape_f(self, shape: Vec<I>) -> Result<Self::OutOwned> {
+        let shape = shape.iter().map(|&v| v.try_into().ok().unwrap()).collect::<Vec<isize>>();
+        change_shape_inner_f(self, shape.into()).map(|t| t.into_owned())?.into_dim_f()
+    }
+}
+
+impl<'a, R, T, D, B> TensorChangeShape<'a, isize> for TensorBase<R, D>
+where
+    R: DataAPI<Data = Storage<T, B>> + DataIntoCowAPI<'a>,
+    T: Clone + 'a,
+    D: DimAPI,
+    B: DeviceAPI<T>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignArbitaryAPI<T, IxD, D>
+        + OpAssignAPI<T, IxD>
+        + 'a,
+{
+    type OutCow = TensorBase<DataCow<'a, R::Data>, Ix1>;
+    type OutOwned = TensorBase<DataOwned<R::Data>, Ix1>;
+
+    fn change_shape_f(&'a self, shape: isize) -> Result<Self::OutCow> {
+        change_shape_inner_f(self.view(), [shape].into())?.into_dim_f()
     }
 
-    pub fn to_shape_f<D2>(&self, shape: D2) -> Result<TensorBase<DataCow<'_, R::Data>, D2>>
-    where
-        D2: DimAPI,
-        B: OpAssignArbitaryAPI<T, D2, D>,
-    {
-        change_shape_f(self.view(), shape)
-    }
-
-    pub fn into_shape_f<'a, D2>(self, shape: D2) -> Result<TensorBase<DataOwned<R::Data>, D2>>
-    where
-        R: DataIntoCowAPI<'a>,
-        T: Clone + 'a,
-        D2: DimAPI,
-        B: OpAssignArbitaryAPI<T, D2, D> + OpAssignAPI<T, D2> + 'a,
-    {
-        into_shape_f(self, shape)
-    }
-
-    pub fn into_shape<'a, D2>(self, shape: D2) -> TensorBase<DataOwned<R::Data>, D2>
-    where
-        R: DataIntoCowAPI<'a>,
-        T: Clone + 'a,
-        D2: DimAPI,
-        B: OpAssignArbitaryAPI<T, D2, D> + OpAssignAPI<T, D2> + 'a,
-    {
-        into_shape(self, shape)
-    }
-
-    pub fn change_shape<'a, D2>(self, shape: D2) -> TensorBase<DataCow<'a, R::Data>, D2>
-    where
-        R: DataIntoCowAPI<'a>,
-        D2: DimAPI,
-        B: OpAssignArbitaryAPI<T, D2, D>,
-    {
-        change_shape(self, shape)
-    }
-
-    pub fn change_shape_f<'a, D2>(self, shape: D2) -> Result<TensorBase<DataCow<'a, R::Data>, D2>>
-    where
-        R: DataIntoCowAPI<'a>,
-        D2: DimAPI,
-        B: OpAssignArbitaryAPI<T, D2, D>,
-    {
-        change_shape_f(self, shape)
+    fn into_shape_f(self, shape: isize) -> Result<Self::OutOwned> {
+        change_shape_inner_f(self, [shape].into()).map(|t| t.into_owned())?.into_dim_f()
     }
 }
 
@@ -1500,6 +1546,13 @@ mod tests {
         println!("{:?}", a);
         let b = a.to_shape([2, 2]);
         println!("{:?}", b);
+
+        let c = a.to_shape([2, -1]);
+        println!("{:?}", c);
+        assert_eq!(c.shape(), &[2, 2]);
+
+        let d = a.to_shape_f([3, -1]);
+        assert!(d.is_err());
     }
 
     #[test]

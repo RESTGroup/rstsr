@@ -167,7 +167,7 @@ mod test {
 
     #[test]
     fn test_pow() {
-        let a = arange(6u32).change_shape([2, 3]);
+        let a = arange(6u32).into_shape([2, 3]);
         let b = arange(3u32);
         let c = pow(&a, &b);
         println!("{:?}", c);
@@ -188,7 +188,7 @@ mod test {
 
     #[test]
     fn test_floor_divide() {
-        let a = arange(6u32).change_shape([2, 3]);
+        let a = arange(6u32).into_shape([2, 3]);
         let b = asarray(vec![1, 2, 2]);
         let c = a.floor_divide(&b);
         println!("{:?}", c);

@@ -231,7 +231,7 @@ mod test {
     #[test]
     fn test_sign() {
         use num::complex::c64;
-        let a = linspace((c64(1.0, 2.0), c64(5.0, 6.0), 6)).change_shape([2, 3]);
+        let a = linspace((c64(1.0, 2.0), c64(5.0, 6.0), 6)).into_shape([2, 3]);
         let b = (&a).sign();
         let vec_b = b.reshape([6]).to_vec();
         let b_abs_sum = vec_b.iter().map(|x| x.norm()).sum::<f64>();
@@ -242,7 +242,7 @@ mod test {
     #[test]
     fn test_abs() {
         use num::complex::c32;
-        let a = linspace((c32(1.0, 2.0), c32(5.0, 6.0), 6)).change_shape([2, 3]);
+        let a = linspace((c32(1.0, 2.0), c32(5.0, 6.0), 6)).into_shape([2, 3]);
         let ptr_a = a.rawvec().as_ptr();
         let b = a.abs();
         let ptr_b = b.rawvec().as_ptr();
@@ -250,7 +250,7 @@ mod test {
         println!("{:?}", ptr_a);
         println!("{:?}", ptr_b);
 
-        let a = linspace((-3.0f64, 3.0f64, 6)).change_shape([2, 3]).into_owned();
+        let a = linspace((-3.0f64, 3.0f64, 6)).into_shape([2, 3]);
         let ptr_a = a.rawvec().as_ptr();
         let b = a.abs();
         let ptr_b = b.rawvec().as_ptr();
@@ -261,7 +261,7 @@ mod test {
     #[test]
     fn test_hetrogeneous_type() {
         use num::complex::c32;
-        let a = linspace((c32(1.0, 2.0), c32(5.0, 6.0), 6)).change_shape([2, 3]).into_owned();
+        let a = linspace((c32(1.0, 2.0), c32(5.0, 6.0), 6)).into_shape([2, 3]);
         let b = (&a).imag();
         println!("{:}", b);
     }
