@@ -536,31 +536,31 @@ mod test_fixed {
         let la = [5].c();
         let lb = [3, 4, 5, 6].f().swapaxes(0, 1).unwrap();
         let config = LayoutMatMulConfig::layout_matmul(&la, &lb, Order::K).unwrap();
-        assert_eq!(config.lc, Layout::new([4, 3, 6], [3, 1, 12], 0));
+        assert_eq!(config.lc, Layout::new([4, 3, 6], [3, 1, 12], 0).unwrap());
 
         let la = [3, 4, 5, 6].f().swapaxes(0, 1).unwrap();
         let lb = [6].c();
         let config = LayoutMatMulConfig::layout_matmul(&la, &lb, Order::K).unwrap();
-        assert_eq!(config.lc, Layout::new([4, 3, 5], [3, 1, 12], 0));
+        assert_eq!(config.lc, Layout::new([4, 3, 5], [3, 1, 12], 0).unwrap());
 
         let la = [7, 6].c();
         let lb = [2, 3, 4, 5, 6].f().swapaxes(-1, -2).unwrap();
         let config = LayoutMatMulConfig::layout_matmul(&la, &lb, Order::K).unwrap();
-        assert_eq!(config.lc, Layout::new([2, 3, 4, 7, 5], [1, 2, 6, 120, 24], 0));
+        assert_eq!(config.lc, Layout::new([2, 3, 4, 7, 5], [1, 2, 6, 120, 24], 0).unwrap());
 
         let la = [2, 3, 4, 5, 6].f().swapaxes(-1, -2).unwrap();
         let lb = [5, 7].c();
         let config = LayoutMatMulConfig::layout_matmul(&la, &lb, Order::K).unwrap();
-        assert_eq!(config.lc, Layout::new([2, 3, 4, 6, 7], [1, 2, 6, 168, 24], 0));
+        assert_eq!(config.lc, Layout::new([2, 3, 4, 6, 7], [1, 2, 6, 168, 24], 0).unwrap());
 
         let la = [4, 1, 2, 5, 6].f().swapaxes(0, 2).unwrap();
         let lb = [4, 3, 1, 6, 7].f().swapaxes(0, 2).unwrap();
         let config = LayoutMatMulConfig::layout_matmul(&la, &lb, Order::K).unwrap();
-        assert_eq!(config.lc, Layout::new([2, 3, 4, 5, 7], [420, 140, 35, 7, 1], 0));
+        assert_eq!(config.lc, Layout::new([2, 3, 4, 5, 7], [420, 140, 35, 7, 1], 0).unwrap());
 
         let la = [4, 3, 2, 5, 6].f().swapaxes(0, 2).unwrap();
         let lb = [4, 3, 2, 6, 7].f().swapaxes(0, 2).unwrap();
         let config = LayoutMatMulConfig::layout_matmul(&la, &lb, Order::K).unwrap();
-        assert_eq!(config.lc, Layout::new([2, 3, 4, 5, 7], [12, 4, 1, 24, 120], 0));
+        assert_eq!(config.lc, Layout::new([2, 3, 4, 5, 7], [12, 4, 1, 24, 120], 0).unwrap());
     }
 }

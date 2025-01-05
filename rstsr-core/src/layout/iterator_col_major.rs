@@ -308,7 +308,7 @@ mod test {
         //       .reshape(9, 12, 15)[4:2:-1, 4:10, 2:10:3]
         //       .transpose(2, 0, 1)
         // a = np.asfortranarray(a)
-        let layout = Layout::new([3, 2, 6], [3, -180, 15], 782);
+        let layout = Layout::new([3, 2, 6], [3, -180, 15], 782).unwrap();
         // np.array(np.nditer(a, order="C"))
         let layout_trans = translate_to_col_major_unary(&layout, Order::C).unwrap();
         let iter = IterLayoutColMajor::new(&layout_trans).unwrap();
@@ -352,7 +352,7 @@ mod test {
 
     #[test]
     fn test_iter_back() {
-        let layout = Layout::new([10, 10, 10], [10, 1, 100], 0);
+        let layout = Layout::new([10, 10, 10], [10, 1, 100], 0).unwrap();
         // np.array(np.nditer(a, order="C"))
         let layout_trans = translate_to_col_major_unary(&layout, Order::C).unwrap();
         println!("{:?}", unsafe { layout.unravel_index_f(100) });
@@ -365,7 +365,7 @@ mod test {
 
     #[test]
     fn test_iter_back_empty() {
-        let layout = Layout::new([3, 2, 6], [3, -180, 15], 782);
+        let layout = Layout::new([3, 2, 6], [3, -180, 15], 782).unwrap();
         // np.array(np.nditer(a, order="C"))
         let layout_trans = translate_to_col_major_unary(&layout, Order::C).unwrap();
         let iter = IterLayoutColMajor::new(&layout_trans).unwrap();
@@ -373,7 +373,7 @@ mod test {
         let vec_back = iter.clone().rev().collect::<Vec<_>>();
         assert_eq!(vec_next, vec_back.iter().rev().copied().collect::<Vec<_>>());
 
-        let layout = Layout::new([10], [10], 10);
+        let layout = Layout::new([10], [10], 10).unwrap();
         // np.array(np.nditer(a, order="C"))
         let layout_trans = translate_to_col_major_unary(&layout, Order::C).unwrap();
         let iter = IterLayoutColMajor::new(&layout_trans).unwrap();

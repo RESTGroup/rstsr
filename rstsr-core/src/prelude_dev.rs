@@ -19,6 +19,7 @@ pub use crate::storage::creation::*;
 pub use crate::storage::device::*;
 pub use crate::storage::matmul::*;
 pub use crate::storage::operators::*;
+pub use crate::storage::reduction::*;
 
 pub use crate::device_cpu_serial::assignment::*;
 pub use crate::device_cpu_serial::device::*;

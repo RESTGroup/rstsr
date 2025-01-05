@@ -159,7 +159,7 @@ where
             let offset = (self.offset() as isize + stride[axis] * start) as usize;
             shape[axis] = ((stop - start + step - 1) / step).max(0) as usize;
             stride[axis] *= step;
-            return Ok(Self::new(shape, stride, offset));
+            return Self::new(shape, stride, offset);
         } else {
             // step < 0
             // default start = len_prev - 1 and stop = -1
@@ -186,7 +186,7 @@ where
             let offset = (self.offset() as isize + stride[axis] * start) as usize;
             shape[axis] = ((stop - start + step + 1) / step).max(0) as usize;
             stride[axis] *= step;
-            return Ok(Self::new(shape, stride, offset));
+            return Self::new(shape, stride, offset);
         }
     }
 }
@@ -236,7 +236,7 @@ where
         }
 
         let offset = offset as usize;
-        let layout = Layout::<IxD>::new(shape_new, stride_new, offset);
+        let layout = Layout::<IxD>::new(shape_new, stride_new, offset)?;
         return layout.into_dim();
     }
 
@@ -258,7 +258,7 @@ where
         shape.remove(axis);
         stride.remove(axis);
 
-        let layout = Layout::<IxD>::new(shape, stride, offset);
+        let layout = Layout::<IxD>::new(shape, stride, offset)?;
         return layout.into_dim();
     }
 }
@@ -306,7 +306,7 @@ where
             stride.insert(axis, stride[axis]);
         }
 
-        let layout = Layout::new(shape, stride, offset);
+        let layout = Layout::new(shape, stride, offset)?;
         return layout.into_dim();
     }
 }
@@ -317,6 +317,8 @@ pub trait IndexerDynamicAPI: IndexerPreserveAPI {
 
     /// Split current layout into two layouts at axis, with offset unchanged.
     fn dim_split_at(&self, axis: isize) -> Result<(Layout<IxD>, Layout<IxD>)>;
+
+    fn dim_split_axes(&self, axes: &[isize]) -> Result<(Layout<IxD>, Layout<IxD>)>;
 }
 
 impl<D> IndexerDynamicAPI for Layout<D>
@@ -327,7 +329,7 @@ where
         // transform any layout to dynamic layout
         let shape = self.shape().as_ref().to_vec();
         let stride = self.stride().as_ref().to_vec();
-        let mut layout = Layout::new(shape, stride, self.offset);
+        let mut layout = Layout::new(shape, stride, self.offset)?;
 
         // clone indexers to vec to make it changeable
         let mut indexers = indexers.to_vec();
@@ -415,6 +417,47 @@ where
         let layout2 = unsafe { Layout::new_unchecked(shape2.to_vec(), stride2.to_vec(), offset) };
         return Ok((layout1, layout2));
     }
+
+    fn dim_split_axes(&self, axes: &[isize]) -> Result<(Layout<IxD>, Layout<IxD>)> {
+        // returned layouts will be
+        // (layout_axes, layout_rest)
+
+        // axes to usize
+        let mut axes_update: Vec<usize> = vec![];
+        for &axis in axes {
+            let axis = if axis < 0 { self.ndim() as isize + axis } else { axis };
+            rstsr_pattern!(axis, 0..self.ndim() as isize, ValueOutOfRange)?;
+            axes_update.push(axis as usize);
+        }
+
+        // check same values
+        let axes_check = axes_update.clone();
+        axes_update.sort();
+        axes_update.dedup();
+        rstsr_assert_eq!(
+            axes_update.len(),
+            axes_check.len(),
+            InvalidLayout,
+            "Same axis is not allowed for this function."
+        )?;
+
+        // rest of axes
+        // this is not the most efficient way, but low cost when dimension is small
+        let axes_rest =
+            (0..self.ndim()).filter(|&axis| !axes_update.contains(&axis)).collect::<Vec<_>>();
+
+        // split layouts for axes
+        let offset = self.offset();
+        let shape_axes = axes_update.iter().map(|&axis| self.shape()[axis]).collect::<Vec<_>>();
+        let strides_axes = axes_update.iter().map(|&axis| self.stride()[axis]).collect::<Vec<_>>();
+        let layout_axes = Layout::new(shape_axes, strides_axes, offset)?;
+
+        let shape_rest = axes_rest.iter().map(|&axis| self.shape()[axis]).collect::<Vec<_>>();
+        let strides_rest = axes_rest.iter().map(|&axis| self.stride()[axis]).collect::<Vec<_>>();
+        let layout_rest = Layout::new(shape_rest, strides_rest, offset)?;
+
+        return Ok((layout_axes, layout_rest));
+    }
 }
 
 /// Generate slice with into support and optional parameters.
@@ -457,7 +500,7 @@ mod tests {
 
     #[test]
     fn test_slice_at_dim() {
-        let l = Layout::<Ix3>::new([2, 3, 4], [1, 10, 100], 0);
+        let l = Layout::new([2, 3, 4], [1, 10, 100], 0).unwrap();
         let s = slice!(10, 1, -1);
         let l1 = l.dim_narrow(1, s).unwrap();
         println!("{:?}", l1);
@@ -466,7 +509,7 @@ mod tests {
         let l3 = l.dim_insert(1).unwrap();
         println!("{:?}", l3);
 
-        let l = Layout::<Ix3>::new([2, 3, 4], [100, 10, 1], 0);
+        let l = Layout::new([2, 3, 4], [100, 10, 1], 0).unwrap();
         let l3 = l.dim_insert(1).unwrap();
         println!("{:?}", l3);
 
@@ -485,20 +528,20 @@ mod tests {
 
     #[test]
     fn test_slice_with_stride() {
-        let l = Layout::new([24], [1], 0);
+        let l = Layout::new([24], [1], 0).unwrap();
         let b = l.dim_narrow(0, slice!(5, 15, 2)).unwrap();
-        assert_eq!(b, Layout::new([5], [2], 5));
+        assert_eq!(b, Layout::new([5], [2], 5).unwrap());
         let b = l.dim_narrow(0, slice!(5, 16, 2)).unwrap();
-        assert_eq!(b, Layout::new([6], [2], 5));
+        assert_eq!(b, Layout::new([6], [2], 5).unwrap());
         let b = l.dim_narrow(0, slice!(15, 5, -2)).unwrap();
-        assert_eq!(b, Layout::new([5], [-2], 15));
+        assert_eq!(b, Layout::new([5], [-2], 15).unwrap());
         let b = l.dim_narrow(0, slice!(15, 4, -2)).unwrap();
-        assert_eq!(b, Layout::new([6], [-2], 15));
+        assert_eq!(b, Layout::new([6], [-2], 15).unwrap());
     }
 
     #[test]
     fn test_expand_dims() {
-        let l = Layout::<Ix3>::new([2, 3, 4], [1, 10, 100], 0);
+        let l = Layout::<Ix3>::new([2, 3, 4], [1, 10, 100], 0).unwrap();
         let l1 = l.dim_insert(0).unwrap();
         println!("{:?}", l1);
         let l2 = l.dim_insert(1).unwrap();

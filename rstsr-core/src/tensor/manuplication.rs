@@ -1542,7 +1542,7 @@ mod tests {
     fn test_to_shape() {
         let a = linspace((0.0, 15.0, 16));
         let mut a = a.to_shape([4, 4]);
-        a.layout = Layout::new([2, 2], [2, 4], 0);
+        a.layout = Layout::new([2, 2], [2, 4], 0).unwrap();
         println!("{:?}", a);
         let b = a.to_shape([2, 2]);
         println!("{:?}", b);
@@ -1568,7 +1568,7 @@ mod tests {
     fn test_to_layout() {
         let a = linspace((0.0, 15.0, 16));
         let a = a.change_shape([4, 4]);
-        let a = a.into_layout(Layout::new([2, 8], [12, 120], 8));
+        let a = a.into_layout(Layout::new([2, 8], [12, 120], 8).unwrap());
         println!("{:?}", a);
     }
 }

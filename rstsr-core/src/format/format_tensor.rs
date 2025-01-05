@@ -500,7 +500,7 @@ mod playground {
         */
         s.clear();
         let vec = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-        let layout = Layout::<Ix2>::new([2, 3], [2, -4], 10);
+        let layout = Layout::<Ix2>::new([2, 3], [2, -4], 10).unwrap();
         println!("{:}", VL(vec, layout));
 
         /* Python code
@@ -510,7 +510,7 @@ mod playground {
         */
         s.clear();
         let vec = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-        let layout = Layout::<Ix2>::new([4, 3], [1, -4], 10);
+        let layout = Layout::<Ix2>::new([4, 3], [1, -4], 10).unwrap();
         println!("{:}", VL(vec, layout));
 
         /* Python code
@@ -520,12 +520,12 @@ mod playground {
         */
         s.clear();
         let vec = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
-        let layout = Layout::<Ix2>::new([4, 3], [1, -4], 10);
+        let layout = Layout::<Ix2>::new([4, 3], [1, -4], 10).unwrap();
         println!("{:}", VL(vec, layout));
 
         s.clear();
         let vec = (0..1800).collect::<Vec<usize>>();
-        let layout = Layout::<Ix3>::new([15, 12, 10], [1, 150, 15], 0);
+        let layout = Layout::<Ix3>::new([15, 12, 10], [1, 150, 15], 0).unwrap();
         println!("{:4}", VL(vec, layout));
     }
 }

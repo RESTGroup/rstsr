@@ -81,7 +81,7 @@ macro_rules! impl_into_rstsr {
                 let col_stride = self.col_stride();
                 let ptr = self.as_ptr();
 
-                let layout = Layout::new([nrows, ncols], [row_stride, col_stride], 0);
+                let layout = Layout::new([nrows, ncols], [row_stride, col_stride], 0).unwrap();
                 let (_, upper_bound) = layout.bounds_index().unwrap();
                 let rawvec =
                     unsafe { Vec::from_raw_parts(ptr as *mut $ty, upper_bound, upper_bound) };
@@ -91,6 +91,7 @@ macro_rules! impl_into_rstsr {
                 return tensor;
             }
         }
+
         impl<'a> IntoRSTSR for MatMut<'a, $ty_faer> {
             type RSTSR = TensorViewMut<'a, $ty, Ix2, DeviceFaer>;
 
@@ -101,7 +102,7 @@ macro_rules! impl_into_rstsr {
                 let col_stride = self.col_stride();
                 let ptr = self.as_ptr();
 
-                let layout = Layout::new([nrows, ncols], [row_stride, col_stride], 0);
+                let layout = Layout::new([nrows, ncols], [row_stride, col_stride], 0).unwrap();
                 let (_, upper_bound) = layout.bounds_index().unwrap();
                 let rawvec =
                     unsafe { Vec::from_raw_parts(ptr as *mut $ty, upper_bound, upper_bound) };

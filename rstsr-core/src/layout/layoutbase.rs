@@ -366,7 +366,7 @@ where
         }
         shape_diag.push(d_diag);
         stride_diag.push(t_diag);
-        let layout_diag = Layout::new(shape_diag, stride_diag, offset_diag);
+        let layout_diag = Layout::new(shape_diag, stride_diag, offset_diag)?;
         return layout_diag.into_dim::<<D as DimSmallerOneAPI>::SmallerOne>();
     }
 }
@@ -379,20 +379,20 @@ where
 {
     /// Generate new layout by providing everything.
     ///
-    /// # Panics
+    /// # Error when
     ///
     /// - Shape and stride length mismatch
     /// - Strides is correct (no elements can overlap)
     /// - Minimum bound is not negative
     #[inline]
-    pub fn new(shape: D, stride: D::Stride, offset: usize) -> Self
+    pub fn new(shape: D, stride: D::Stride, offset: usize) -> Result<Self>
     where
         D: DimShapeAPI + DimStrideAPI,
     {
         let layout = unsafe { Layout::new_unchecked(shape, stride, offset) };
-        layout.bounds_index().unwrap();
-        layout.check_strides().unwrap();
-        return layout;
+        layout.bounds_index()?;
+        layout.check_strides()?;
+        return Ok(layout);
     }
 
     /// Generate new layout by providing everything, without checking bounds and
@@ -807,7 +807,7 @@ mod test {
         // a successful layout new
         let shape = [3, 2, 6];
         let stride = [3, -300, 15];
-        let layout = Layout::new(shape, stride, 917);
+        let layout = Layout::new(shape, stride, 917).unwrap();
         assert_eq!(layout.shape(), &[3, 2, 6]);
         assert_eq!(layout.stride(), &[3, -300, 15]);
         assert_eq!(layout.offset(), 917);
@@ -858,26 +858,26 @@ mod test {
     fn test_is_f_prefer() {
         // general case
         let shape = [3, 5, 7];
-        let layout = Layout::new(shape, [1, 10, 100], 0);
+        let layout = Layout::new(shape, [1, 10, 100], 0).unwrap();
         assert!(layout.f_prefer());
-        let layout = Layout::new(shape, [1, 3, 15], 0);
+        let layout = Layout::new(shape, [1, 3, 15], 0).unwrap();
         assert!(layout.f_prefer());
-        let layout = Layout::new(shape, [1, 3, -15], 1000);
+        let layout = Layout::new(shape, [1, 3, -15], 1000).unwrap();
         assert!(!layout.f_prefer());
-        let layout = Layout::new(shape, [1, 21, 3], 0);
+        let layout = Layout::new(shape, [1, 21, 3], 0).unwrap();
         assert!(!layout.f_prefer());
-        let layout = Layout::new(shape, [35, 7, 1], 0);
+        let layout = Layout::new(shape, [35, 7, 1], 0).unwrap();
         assert!(!layout.f_prefer());
-        let layout = Layout::new(shape, [2, 6, 30], 0);
+        let layout = Layout::new(shape, [2, 6, 30], 0).unwrap();
         assert!(!layout.f_prefer());
         // zero dimension
-        let layout = Layout::new([], [], 0);
+        let layout = Layout::new([], [], 0).unwrap();
         assert!(layout.f_prefer());
         // zero size
-        let layout = Layout::new([2, 0, 4], [1, 10, 100], 0);
+        let layout = Layout::new([2, 0, 4], [1, 10, 100], 0).unwrap();
         assert!(layout.f_prefer());
         // shape with 1
-        let layout = Layout::new([2, 1, 4], [1, 1, 2], 0);
+        let layout = Layout::new([2, 1, 4], [1, 1, 2], 0).unwrap();
         assert!(layout.f_prefer());
     }
 
@@ -885,26 +885,26 @@ mod test {
     fn test_is_c_prefer() {
         // general case
         let shape = [3, 5, 7];
-        let layout = Layout::new(shape, [100, 10, 1], 0);
+        let layout = Layout::new(shape, [100, 10, 1], 0).unwrap();
         assert!(layout.c_prefer());
-        let layout = Layout::new(shape, [35, 7, 1], 0);
+        let layout = Layout::new(shape, [35, 7, 1], 0).unwrap();
         assert!(layout.c_prefer());
-        let layout = Layout::new(shape, [-35, 7, 1], 1000);
+        let layout = Layout::new(shape, [-35, 7, 1], 1000).unwrap();
         assert!(!layout.c_prefer());
-        let layout = Layout::new(shape, [7, 21, 1], 0);
+        let layout = Layout::new(shape, [7, 21, 1], 0).unwrap();
         assert!(!layout.c_prefer());
-        let layout = Layout::new(shape, [1, 3, 15], 0);
+        let layout = Layout::new(shape, [1, 3, 15], 0).unwrap();
         assert!(!layout.c_prefer());
-        let layout = Layout::new(shape, [70, 14, 2], 0);
+        let layout = Layout::new(shape, [70, 14, 2], 0).unwrap();
         assert!(!layout.c_prefer());
         // zero dimension
-        let layout = Layout::new([], [], 0);
+        let layout = Layout::new([], [], 0).unwrap();
         assert!(layout.c_prefer());
         // zero size
-        let layout = Layout::new([2, 0, 4], [1, 10, 100], 0);
+        let layout = Layout::new([2, 0, 4], [1, 10, 100], 0).unwrap();
         assert!(layout.c_prefer());
         // shape with 1
-        let layout = Layout::new([2, 1, 4], [4, 1, 1], 0);
+        let layout = Layout::new([2, 1, 4], [4, 1, 1], 0).unwrap();
         assert!(layout.c_prefer());
     }
 
@@ -912,18 +912,18 @@ mod test {
     fn test_is_f_contig() {
         // general case
         let shape = [3, 5, 7];
-        let layout = Layout::new(shape, [1, 3, 15], 0);
+        let layout = Layout::new(shape, [1, 3, 15], 0).unwrap();
         assert!(layout.f_contig());
-        let layout = Layout::new(shape, [1, 4, 20], 0);
+        let layout = Layout::new(shape, [1, 4, 20], 0).unwrap();
         assert!(!layout.f_contig());
         // zero dimension
-        let layout = Layout::new([], [], 0);
+        let layout = Layout::new([], [], 0).unwrap();
         assert!(layout.f_contig());
         // zero size
-        let layout = Layout::new([2, 0, 4], [1, 10, 100], 0);
+        let layout = Layout::new([2, 0, 4], [1, 10, 100], 0).unwrap();
         assert!(layout.f_contig());
         // shape with 1
-        let layout = Layout::new([2, 1, 4], [1, 1, 2], 0);
+        let layout = Layout::new([2, 1, 4], [1, 1, 2], 0).unwrap();
         assert!(layout.f_contig());
     }
 
@@ -931,18 +931,18 @@ mod test {
     fn test_is_c_contig() {
         // general case
         let shape = [3, 5, 7];
-        let layout = Layout::new(shape, [35, 7, 1], 0);
+        let layout = Layout::new(shape, [35, 7, 1], 0).unwrap();
         assert!(layout.c_contig());
-        let layout = Layout::new(shape, [36, 7, 1], 0);
+        let layout = Layout::new(shape, [36, 7, 1], 0).unwrap();
         assert!(!layout.c_contig());
         // zero dimension
-        let layout = Layout::new([], [], 0);
+        let layout = Layout::new([], [], 0).unwrap();
         assert!(layout.c_contig());
         // zero size
-        let layout = Layout::new([2, 0, 4], [1, 10, 100], 0);
+        let layout = Layout::new([2, 0, 4], [1, 10, 100], 0).unwrap();
         assert!(layout.c_contig());
         // shape with 1
-        let layout = Layout::new([2, 1, 4], [4, 1, 1], 0);
+        let layout = Layout::new([2, 1, 4], [4, 1, 1], 0).unwrap();
         assert!(layout.c_contig());
     }
 
@@ -951,12 +951,12 @@ mod test {
         // a = np.arange(9 * 12 * 15)
         //       .reshape(9, 12, 15)[4:2:-1, 4:10, 2:10:3]
         //       .transpose(2, 0, 1)
-        let layout = Layout::new([3, 2, 6], [3, -180, 15], 782);
+        let layout = Layout::new([3, 2, 6], [3, -180, 15], 782).unwrap();
         assert_eq!(layout.index(&[0, 0, 0]), 782);
         assert_eq!(layout.index(&[2, 1, 4]), 668);
         assert_eq!(layout.index(&[1, -2, -3]), 830);
         // zero-dim
-        let layout = Layout::new([], [], 10);
+        let layout = Layout::new([], [], 10).unwrap();
         assert_eq!(layout.index(&[]), 10);
     }
 
@@ -966,20 +966,20 @@ mod test {
         //       .reshape(9, 12, 15)[4:2:-1, 4:10, 2:10:3]
         //       .transpose(2, 0, 1)
         // a.min() = 602, a.max() = 863
-        let layout = Layout::new([3, 2, 6], [3, -180, 15], 782);
+        let layout = Layout::new([3, 2, 6], [3, -180, 15], 782).unwrap();
         assert_eq!(layout.bounds_index().unwrap(), (602, 864));
         // situation that fails
         let layout = unsafe { Layout::new_unchecked([3, 2, 6], [3, -180, 15], 15) };
         assert!(layout.bounds_index().is_err());
         // zero-dim
-        let layout = Layout::new([], [], 10);
+        let layout = Layout::new([], [], 10).unwrap();
         assert_eq!(layout.bounds_index().unwrap(), (10, 11));
     }
 
     #[test]
     fn test_transpose() {
         // general
-        let layout = Layout::new([3, 2, 6], [3, -180, 15], 782);
+        let layout = Layout::new([3, 2, 6], [3, -180, 15], 782).unwrap();
         let trans = layout.transpose(&[2, 0, 1]).unwrap();
         assert_eq!(trans.shape(), &[6, 3, 2]);
         assert_eq!(trans.stride(), &[15, 3, -180]);
@@ -998,7 +998,7 @@ mod test {
         let trans = layout.transpose(&[1, 0]);
         assert!(trans.is_err());
         // zero-dim
-        let layout = Layout::new([], [], 0);
+        let layout = Layout::new([], [], 0).unwrap();
         let trans = layout.transpose(&[]);
         assert!(trans.is_ok());
     }
@@ -1006,12 +1006,12 @@ mod test {
     #[test]
     fn test_reverse_axes() {
         // general
-        let layout = Layout::new([3, 2, 6], [3, -180, 15], 782);
+        let layout = Layout::new([3, 2, 6], [3, -180, 15], 782).unwrap();
         let trans = layout.reverse_axes();
         assert_eq!(trans.shape(), &[6, 2, 3]);
         assert_eq!(trans.stride(), &[15, -180, 3]);
         // zero-dim
-        let layout = Layout::new([], [], 782);
+        let layout = Layout::new([], [], 782).unwrap();
         let trans = layout.reverse_axes();
         assert_eq!(trans.shape(), &[]);
         assert_eq!(trans.stride(), &[]);
@@ -1020,12 +1020,12 @@ mod test {
     #[test]
     fn test_swapaxes() {
         // general
-        let layout = Layout::new([3, 2, 6], [3, -180, 15], 782);
+        let layout = Layout::new([3, 2, 6], [3, -180, 15], 782).unwrap();
         let trans = layout.swapaxes(-1, -2).unwrap();
         assert_eq!(trans.shape(), &[3, 6, 2]);
         assert_eq!(trans.stride(), &[3, 15, -180]);
         // same index is allowed
-        let layout = Layout::new([3, 2, 6], [3, -180, 15], 782);
+        let layout = Layout::new([3, 2, 6], [3, -180, 15], 782).unwrap();
         let trans = layout.swapaxes(-1, -1).unwrap();
         assert_eq!(trans.shape(), &[3, 2, 6]);
         assert_eq!(trans.stride(), &[3, -180, 15]);
@@ -1038,15 +1038,15 @@ mod test {
         //       .transpose(2, 0, 1)
         unsafe {
             // fixed dim
-            let layout = Layout::new([3, 2, 6], [3, -180, 15], 782);
+            let layout = Layout::new([3, 2, 6], [3, -180, 15], 782).unwrap();
             assert_eq!(layout.index_uncheck(&[0, 0, 0]), 782);
             assert_eq!(layout.index_uncheck(&[2, 1, 4]), 668);
             // dynamic dim
-            let layout = Layout::new(vec![3, 2, 6], vec![3, -180, 15], 782);
+            let layout = Layout::new(vec![3, 2, 6], vec![3, -180, 15], 782).unwrap();
             assert_eq!(layout.index_uncheck(&[0, 0, 0]), 782);
             assert_eq!(layout.index_uncheck(&[2, 1, 4]), 668);
             // zero-dim
-            let layout = Layout::new([], [], 10);
+            let layout = Layout::new([], [], 10).unwrap();
             assert_eq!(layout.index_uncheck(&[]), 10);
         }
     }
@@ -1055,11 +1055,11 @@ mod test {
     fn test_diagonal() {
         let layout = [2, 3, 4].c();
         let diag = layout.diagonal(None, None, None).unwrap();
-        assert_eq!(diag, Layout::new([4, 2], [1, 16], 0));
+        assert_eq!(diag, Layout::new([4, 2], [1, 16], 0).unwrap());
         let diag = layout.diagonal(Some(-1), Some(-2), Some(-1)).unwrap();
-        assert_eq!(diag, Layout::new([2, 2], [12, 5], 0));
+        assert_eq!(diag, Layout::new([2, 2], [12, 5], 0).unwrap());
         let diag = layout.diagonal(Some(-4), Some(-2), Some(-1)).unwrap();
-        assert_eq!(diag, Layout::new([2, 0], [12, 5], 0));
+        assert_eq!(diag, Layout::new([2, 0], [12, 5], 0).unwrap());
     }
 
     #[test]

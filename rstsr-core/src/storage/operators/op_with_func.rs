@@ -1,5 +1,4 @@
 use crate::prelude_dev::*;
-use num::Zero;
 
 /* #region op_func */
 
@@ -103,12 +102,3 @@ where
 }
 
 /* #endregion */
-
-pub trait OpSumAPI<T, D>
-where
-    T: Zero + core::ops::Add<Output = T>,
-    D: DimAPI,
-    Self: DeviceAPI<T>,
-{
-    fn sum(&self, a: &Storage<T, Self>, la: &Layout<D>) -> Result<T>;
-}

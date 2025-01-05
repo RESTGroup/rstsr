@@ -295,7 +295,7 @@ mod test {
 
     #[test]
     fn test_iter_next() {
-        let layout = Layout::new([3, 2, 6], [3, -180, 15], 782);
+        let layout = Layout::new([3, 2, 6], [3, -180, 15], 782).unwrap();
         // np.array(np.nditer(a, order="C"))
         let iter = IterLayoutRowMajor::new(&layout).unwrap();
         let vec = iter.collect::<Vec<_>>();

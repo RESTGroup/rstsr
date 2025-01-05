@@ -539,7 +539,7 @@ macro_rules! impl_asarray_scalar {
 
                 fn asarray_f(self) -> Result<Self::Out> {
                     let (input, device) = self;
-                    let layout = Layout::new([], [], 0);
+                    let layout = Layout::new([], [], 0)?;
                     let storage = device.outof_cpu_vec(vec![input])?;
                     let data = DataOwned::from(storage);
                     let tensor = unsafe { Tensor::new_unchecked(data, layout) };
