@@ -21,9 +21,19 @@ fn rstsr_4096(criterion: &mut Criterion) {
 
     let vec_b: Vec<f64> = (0..4 * n * n).map(|_| rng.gen()).collect::<_>();
     let b_full = rt::asarray((vec_b, [2 * n, 2 * n].f(), &DeviceCpuSerial));
-    let b = b_full.slice([0..n, 0..n]);
 
+    // contiguous slice
+    let b = b_full.slice([0..n, 0..n]);
     criterion.bench_function("rstsr simple sum 4096 slice", |bencher| {
+        bencher.iter(|| {
+            let c = b.sum_all();
+            black_box(c);
+        })
+    });
+
+    // strided
+    let b = b_full.slice([slice!(0, 2 * n, 2), slice!(0, 2 * n, 2)]);
+    criterion.bench_function("rstsr simple sum 4096 strided", |bencher| {
         bencher.iter(|| {
             let c = b.sum_all();
             black_box(c);
@@ -49,9 +59,19 @@ fn ndarray_4096(criterion: &mut Criterion) {
 
     let vec_b: Vec<f64> = (0..4 * n * n).map(|_| rng.gen()).collect::<_>();
     let b_full = Array2::from_shape_vec((2 * n, 2 * n), vec_b).unwrap();
-    let b = b_full.slice(s![..n, ..n]);
 
+    // contiguous slice
+    let b = b_full.slice(s![..n, ..n]);
     criterion.bench_function("ndarray simple sum 4096 slice", |bencher| {
+        bencher.iter(|| {
+            let c = b.sum();
+            black_box(c);
+        })
+    });
+
+    // strided
+    let b = b_full.slice(s![..;2, ..;2]);
+    criterion.bench_function("ndarray simple sum 4096 strided", |bencher| {
         bencher.iter(|| {
             let c = b.sum();
             black_box(c);
