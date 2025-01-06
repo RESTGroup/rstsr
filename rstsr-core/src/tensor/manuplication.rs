@@ -149,12 +149,13 @@ pub fn into_expand_dims_f<I, R, D>(tensor: TensorBase<R, D>, axes: I) -> Result<
 where
     R: DataAPI,
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>>,
+    Error: From<I::Error>,
 {
     // convert axis to negative indexes and sort
-    let ndim: isize = tensor.ndim().try_into()?;
+    let ndim: isize = TryInto::<isize>::try_into(tensor.ndim())?;
     let mut layout = tensor.layout().clone().into_dim::<IxD>()?;
-    let mut axes = axes
+    let mut axes: Vec<isize> = axes
         .try_into()?
         .as_ref()
         .iter()
@@ -184,7 +185,8 @@ pub fn expand_dims<I, R, D>(
 where
     R: DataAPI,
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>>,
+    Error: From<I::Error>,
 {
     into_expand_dims_f(tensor.view(), axes).unwrap()
 }
@@ -196,7 +198,8 @@ pub fn expand_dims_f<I, R, D>(
 where
     R: DataAPI,
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>>,
+    Error: From<I::Error>,
 {
     into_expand_dims_f(tensor.view(), axes)
 }
@@ -205,7 +208,8 @@ pub fn into_expand_dims<I, R, D>(tensor: TensorBase<R, D>, axes: I) -> TensorBas
 where
     R: DataAPI,
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>>,
+    Error: From<I::Error>,
 {
     into_expand_dims_f(tensor, axes).unwrap()
 }
@@ -223,14 +227,16 @@ where
     /// [`expand_dims`]
     pub fn expand_dims<I>(&self, axes: I) -> TensorBase<DataRef<'_, R::Data>, IxD>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
     {
         into_expand_dims(self.view(), axes)
     }
 
     pub fn expand_dims_f<I>(&self, axes: I) -> Result<TensorBase<DataRef<'_, R::Data>, IxD>>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
     {
         into_expand_dims_f(self.view(), axes)
     }
@@ -243,14 +249,16 @@ where
     /// [`expand_dims`]
     pub fn into_expand_dims<I>(self, axes: I) -> TensorBase<R, IxD>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
     {
         into_expand_dims(self, axes)
     }
 
     pub fn into_expand_dims_f<I>(self, axes: I) -> Result<TensorBase<R, IxD>>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
     {
         into_expand_dims_f(self, axes)
     }
@@ -264,7 +272,8 @@ pub fn into_flip_f<I, R, D>(tensor: TensorBase<R, D>, axes: I) -> Result<TensorB
 where
     R: DataAPI,
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>>,
+    Error: From<I::Error>,
 {
     let mut layout = tensor.layout().clone();
     let axes = axes.try_into()?;
@@ -295,7 +304,8 @@ pub fn flip<I, R, D>(tensor: &TensorBase<R, D>, axes: I) -> TensorBase<DataRef<'
 where
     R: DataAPI,
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>>,
+    Error: From<I::Error>,
 {
     into_flip_f(tensor.view(), axes).unwrap()
 }
@@ -307,7 +317,8 @@ pub fn flip_f<I, R, D>(
 where
     R: DataAPI,
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>>,
+    Error: From<I::Error>,
 {
     into_flip_f(tensor.view(), axes)
 }
@@ -316,7 +327,8 @@ pub fn into_flip<I, R, D>(tensor: TensorBase<R, D>, axes: I) -> TensorBase<R, D>
 where
     R: DataAPI,
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>>,
+    Error: From<I::Error>,
 {
     into_flip_f(tensor, axes).unwrap()
 }
@@ -333,14 +345,16 @@ where
     /// [`flip`]
     pub fn flip<I>(&self, axis: I) -> TensorBase<DataRef<'_, R::Data>, D>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
     {
         flip(self, axis)
     }
 
     pub fn flip_f<I>(&self, axis: I) -> Result<TensorBase<DataRef<'_, R::Data>, D>>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
     {
         flip_f(self, axis)
     }
@@ -352,14 +366,16 @@ where
     /// [`flip`]
     pub fn into_flip<I>(self, axis: I) -> TensorBase<R, D>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
     {
         into_flip(self, axis)
     }
 
     pub fn into_flip_f<I>(self, axis: I) -> Result<TensorBase<R, D>>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
     {
         into_flip_f(self, axis)
     }
@@ -373,7 +389,8 @@ pub fn into_transpose_f<I, R, D>(tensor: TensorBase<R, D>, axes: I) -> Result<Te
 where
     R: DataAPI,
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>>,
+    Error: From<I::Error>,
 {
     let axes = axes.try_into()?;
     if axes.as_ref().is_empty() {
@@ -392,7 +409,8 @@ pub fn transpose<I, R, D>(tensor: &TensorBase<R, D>, axes: I) -> TensorBase<Data
 where
     R: DataAPI,
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>>,
+    Error: From<I::Error>,
 {
     into_transpose_f(tensor.view(), axes).unwrap()
 }
@@ -404,7 +422,8 @@ pub fn transpose_f<I, R, D>(
 where
     R: DataAPI,
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>>,
+    Error: From<I::Error>,
 {
     into_transpose_f(tensor.view(), axes)
 }
@@ -413,7 +432,8 @@ pub fn into_transpose<I, R, D>(tensor: TensorBase<R, D>, axes: I) -> TensorBase<
 where
     R: DataAPI,
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>>,
+    Error: From<I::Error>,
 {
     into_transpose_f(tensor, axes).unwrap()
 }
@@ -435,14 +455,16 @@ where
     /// [`transpose`]
     pub fn transpose<I>(&self, axes: I) -> TensorBase<DataRef<'_, R::Data>, D>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
     {
         transpose(self, axes)
     }
 
     pub fn transpose_f<I>(&self, axes: I) -> Result<TensorBase<DataRef<'_, R::Data>, D>>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
     {
         transpose_f(self, axes)
     }
@@ -454,14 +476,16 @@ where
     /// [`transpose`]
     pub fn into_transpose<I>(self, axes: I) -> TensorBase<R, D>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
     {
         into_transpose(self, axes)
     }
 
     pub fn into_transpose_f<I>(self, axes: I) -> Result<TensorBase<R, D>>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
     {
         into_transpose_f(self, axes)
     }
@@ -473,14 +497,16 @@ where
     /// [`transpose`]
     pub fn permute_dims<I>(&self, axes: I) -> TensorBase<DataRef<'_, R::Data>, D>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
     {
         transpose(self, axes)
     }
 
     pub fn permute_dims_f<I>(&self, axes: I) -> Result<TensorBase<DataRef<'_, R::Data>, D>>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
     {
         transpose_f(self, axes)
     }
@@ -492,14 +518,16 @@ where
     /// [`transpose`]
     pub fn into_permute_dims<I>(self, axes: I) -> TensorBase<R, D>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
     {
         into_transpose(self, axes)
     }
 
     pub fn into_permute_dims_f<I>(self, axes: I) -> Result<TensorBase<R, D>>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
     {
         into_transpose_f(self, axes)
     }
@@ -672,10 +700,11 @@ pub fn into_squeeze_f<I, R, D>(tensor: TensorBase<R, D>, axes: I) -> Result<Tens
 where
     R: DataAPI,
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>>,
+    Error: From<I::Error>,
 {
     // convert axis to positive indexes and (reversed) sort
-    let ndim: isize = tensor.ndim().try_into()?;
+    let ndim: isize = TryInto::<isize>::try_into(tensor.ndim())?;
     let mut layout = tensor.layout().clone().into_dim::<IxD>()?;
     let mut axes = axes
         .try_into()?
@@ -704,7 +733,8 @@ pub fn squeeze<I, R, D>(tensor: &TensorBase<R, D>, axes: I) -> TensorBase<DataRe
 where
     R: DataAPI,
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>>,
+    Error: From<I::Error>,
 {
     into_squeeze_f(tensor.view(), axes).unwrap()
 }
@@ -716,7 +746,8 @@ pub fn squeeze_f<I, R, D>(
 where
     R: DataAPI,
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>>,
+    Error: From<I::Error>,
 {
     into_squeeze_f(tensor.view(), axes)
 }
@@ -725,7 +756,8 @@ pub fn into_squeeze<I, R, D>(tensor: TensorBase<R, D>, axes: I) -> TensorBase<R,
 where
     R: DataAPI,
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>>,
+    Error: From<I::Error>,
 {
     into_squeeze_f(tensor, axes).unwrap()
 }
@@ -742,14 +774,16 @@ where
     /// [`squeeze`]
     pub fn squeeze<I>(&self, axis: I) -> TensorBase<DataRef<'_, R::Data>, IxD>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
     {
         squeeze(self, axis)
     }
 
     pub fn squeeze_f<I>(&self, axis: I) -> Result<TensorBase<DataRef<'_, R::Data>, IxD>>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
     {
         squeeze_f(self, axis)
     }
@@ -761,14 +795,16 @@ where
     /// [`squeeze`]
     pub fn into_squeeze<I>(self, axis: I) -> TensorBase<R, IxD>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
     {
         into_squeeze(self, axis)
     }
 
     pub fn into_squeeze_f<I>(self, axis: I) -> Result<TensorBase<R, IxD>>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
     {
         into_squeeze_f(self, axis)
     }

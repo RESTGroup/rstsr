@@ -18,7 +18,8 @@ where
     R: DataAPI<Data = Storage<T, B>>,
     D: DimAPI,
     B: OpSumAPI<T, D> + DeviceAPI<T> + DeviceCreationAnyAPI<T>,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>>,
+    Error: From<I::Error>,
 {
     let axes = axes.try_into()?;
     let storage = tensor.storage();
@@ -52,7 +53,8 @@ where
     R: DataAPI<Data = Storage<T, B>>,
     D: DimAPI,
     B: OpSumAPI<T, D> + DeviceCreationAnyAPI<T>,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>>,
+    Error: From<I::Error>,
 {
     sum_f(tensor, axes).unwrap()
 }
@@ -73,16 +75,18 @@ where
 
     pub fn sum_f<I>(&self, axes: I) -> Result<Tensor<T, IxD, B>>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
         B: DeviceCreationAnyAPI<T>,
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
     {
         sum_f(self, axes)
     }
 
     pub fn sum<I>(&self, axes: I) -> Tensor<T, IxD, B>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
         B: DeviceCreationAnyAPI<T>,
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
     {
         sum(self, axes)
     }
