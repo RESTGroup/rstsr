@@ -1155,7 +1155,7 @@ where
     }
 }
 
-pub trait TensorChangeShape<'l, I>: Sized {
+pub trait TensorChangeShapeAPI<'l, I>: Sized {
     type OutCow;
     type OutOwned;
 
@@ -1200,61 +1200,61 @@ pub trait TensorChangeShape<'l, I>: Sized {
 
 pub fn change_shape_f<'l, Inp, I>(inp: &'l Inp, shape: I) -> Result<Inp::OutCow>
 where
-    Inp: TensorChangeShape<'l, I>,
+    Inp: TensorChangeShapeAPI<'l, I>,
 {
     inp.change_shape_f(shape)
 }
 
 pub fn change_shape<'l, Inp, I>(inp: &'l Inp, shape: I) -> Inp::OutCow
 where
-    Inp: TensorChangeShape<'l, I>,
+    Inp: TensorChangeShapeAPI<'l, I>,
 {
     inp.change_shape(shape)
 }
 
 pub fn into_shape_f<'l, Inp, I>(inp: Inp, shape: I) -> Result<Inp::OutOwned>
 where
-    Inp: TensorChangeShape<'l, I>,
+    Inp: TensorChangeShapeAPI<'l, I>,
 {
     inp.into_shape_f(shape)
 }
 
 pub fn into_shape<'l, Inp, I>(inp: Inp, shape: I) -> Inp::OutOwned
 where
-    Inp: TensorChangeShape<'l, I>,
+    Inp: TensorChangeShapeAPI<'l, I>,
 {
     inp.into_shape(shape)
 }
 
 pub fn to_shape_f<'l, Inp, I>(inp: &'l Inp, shape: I) -> Result<Inp::OutCow>
 where
-    Inp: TensorChangeShape<'l, I>,
+    Inp: TensorChangeShapeAPI<'l, I>,
 {
     inp.to_shape_f(shape)
 }
 
 pub fn to_shape<'l, Inp, I>(inp: &'l Inp, shape: I) -> Inp::OutCow
 where
-    Inp: TensorChangeShape<'l, I>,
+    Inp: TensorChangeShapeAPI<'l, I>,
 {
     inp.to_shape(shape)
 }
 
 pub fn reshape_f<'l, Inp, I>(inp: &'l Inp, shape: I) -> Result<Inp::OutCow>
 where
-    Inp: TensorChangeShape<'l, I> + 'l,
+    Inp: TensorChangeShapeAPI<'l, I> + 'l,
 {
     inp.reshape_f(shape)
 }
 
 pub fn reshape<'l, Inp, I>(inp: &'l Inp, shape: I) -> Inp::OutCow
 where
-    Inp: TensorChangeShape<'l, I> + 'l,
+    Inp: TensorChangeShapeAPI<'l, I> + 'l,
 {
     inp.reshape(shape)
 }
 
-impl<'a, R, T, D, B, I, const N: usize> TensorChangeShape<'a, [I; N]> for TensorBase<R, D>
+impl<'a, R, T, D, B, I, const N: usize> TensorChangeShapeAPI<'a, [I; N]> for TensorBase<R, D>
 where
     R: DataAPI<Data = Storage<T, B>> + DataIntoCowAPI<'a>,
     T: Clone + 'a,
@@ -1280,7 +1280,7 @@ where
     }
 }
 
-impl<'a, R, T, D, B, I> TensorChangeShape<'a, Vec<I>> for TensorBase<R, D>
+impl<'a, R, T, D, B, I> TensorChangeShapeAPI<'a, Vec<I>> for TensorBase<R, D>
 where
     R: DataAPI<Data = Storage<T, B>> + DataIntoCowAPI<'a>,
     T: Clone + 'a,
@@ -1306,7 +1306,7 @@ where
     }
 }
 
-impl<'a, R, T, D, B> TensorChangeShape<'a, isize> for TensorBase<R, D>
+impl<'a, R, T, D, B> TensorChangeShapeAPI<'a, isize> for TensorBase<R, D>
 where
     R: DataAPI<Data = Storage<T, B>> + DataIntoCowAPI<'a>,
     T: Clone + 'a,

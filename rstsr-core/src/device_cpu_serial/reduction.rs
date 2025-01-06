@@ -2,7 +2,7 @@ use crate::prelude_dev::*;
 use num::Zero;
 
 // this value is used to determine whether to use contiguous inner iteration
-const CONTIG_SWITCH: usize = 16;
+const CONTIG_SWITCH: usize = 128;
 
 /// Fold over the manually unrolled `xs` with `f`
 ///
@@ -93,32 +93,58 @@ where
     // generate layout for result (from layout_rest)
     let layout_out = layout_for_array_copy(&layout_rest, TensorIterOrder::default())?;
 
-    // generate vector for output
-    let len_out = layout_out.size();
-    let mut out = Vec::with_capacity(len_out);
-    unsafe { out.set_len(len_out) };
+    // use contiguous reduce_all only when size of contiguous part is large enough
+    let (_, size_contig) = translate_to_col_major_with_contig(&[&layout_axes]);
+    if size_contig >= CONTIG_SWITCH {
+        // generate layouts for actual evaluation
+        let layouts_swapped =
+            translate_to_col_major(&[&layout_out, &layout_rest], TensorIterOrder::default())?;
+        let layout_out_swapped = &layouts_swapped[0];
+        let layout_rest_swapped = &layouts_swapped[1];
 
-    // generate layouts for actual evaluation
-    let layouts_swapped =
-        translate_to_col_major(&[&layout_out, &layout_rest], TensorIterOrder::default())?;
-    let layout_out_swapped = &layouts_swapped[0];
-    let layout_rest_swapped = &layouts_swapped[1];
+        // iterate both layout_rest and layout_out
+        let iter_out_swapped = IterLayoutRowMajor::new(layout_out_swapped)?;
+        let iter_rest_swapped = IterLayoutRowMajor::new(layout_rest_swapped)?;
 
-    // iterate both layout_rest and layout_out
-    let iter_out_swapped = IterLayoutRowMajor::new(layout_out_swapped)?;
-    let iter_rest_swapped = IterLayoutRowMajor::new(layout_rest_swapped)?;
-    izip!(iter_out_swapped, iter_rest_swapped).try_for_each(
-        |(idx_out, idx_rest)| -> Result<()> {
-            let mut layout_inner = layout_axes.clone();
-            unsafe { layout_inner.set_offset(idx_rest) };
-            let acc = reduce_all_cpu_serial(a, &layout_inner, &init, &f)?;
-            out[idx_out] = acc;
-            Ok(())
-        },
-    )?;
+        // inner layout is axes to be summed
+        let mut layout_inner = layout_axes.clone();
 
-    // return result
-    Ok((out, layout_out))
+        // prepare output
+        let len_out = layout_out.size();
+        let mut out = Vec::with_capacity(len_out);
+        unsafe { out.set_len(len_out) };
+
+        // actual evaluation
+        izip!(iter_out_swapped, iter_rest_swapped).try_for_each(
+            |(idx_out, idx_rest)| -> Result<()> {
+                unsafe { layout_inner.set_offset(idx_rest) };
+                let acc = reduce_all_cpu_serial(a, &layout_inner, &init, &f)?;
+                out[idx_out] = acc;
+                Ok(())
+            },
+        )?;
+        return Ok((out, layout_out));
+    } else {
+        // iterate layout_axes
+        let iter_layout_axes = IterLayoutRowMajor::new(&layout_axes)?;
+
+        // inner layout is axes not to be summed
+        let mut layout_inner = layout_rest.clone();
+
+        // prepare output
+        let len_out = layout_out.size();
+        let init_val = init();
+        let mut out = vec![init_val; len_out];
+
+        // closure for adding to mutable reference
+        let f_add = |a: &mut T, b: &T| *a = f(a.clone(), b.clone());
+
+        for idx_axes in iter_layout_axes {
+            unsafe { layout_inner.set_offset(idx_axes) };
+            op_muta_refb_func_cpu_serial(&mut out, &layout_out, a, &layout_inner, f_add)?;
+        }
+        return Ok((out, layout_out));
+    }
 }
 
 impl<T, D> OpSumAPI<T, D> for DeviceCpuSerial
