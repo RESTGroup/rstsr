@@ -29,5 +29,5 @@ faer = ["rayon", "dep:faer", "dep:faer-ext", "dep:faer-entity"]
 faer_as_default = []
 
 [[bench]]
-name = "faer_gemm"
+name = "main"
 harness = false

@@ -1,5 +1,6 @@
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{black_box, criterion_group, Criterion};
 use rstsr_core::prelude_dev::*;
+use std::time::Duration;
 
 pub fn bench_faer_gemm(crit: &mut Criterion) {
     let m = 4096;
@@ -8,13 +9,12 @@ pub fn bench_faer_gemm(crit: &mut Criterion) {
     let device = DeviceFaer::default();
     let a = linspace((0.0, 1.0, m * k, &device)).into_shape_assume_contig([m, k]);
     let b = linspace((0.0, 1.0, k * n, &device)).into_shape_assume_contig([k, n]);
-    crit.bench_function("gemm 4096", |ben| ben.iter(|| &a % &b));
-    crit.bench_function("syrk 4096", |ben| ben.iter(|| &a % &a.reverse_axes()));
+    crit.bench_function("gemm 4096", |ben| ben.iter(|| black_box(&a % &b)));
+    crit.bench_function("syrk 4096", |ben| ben.iter(|| black_box(&a % &a.reverse_axes())));
 }
 
 criterion_group! {
-    name = benches;
-    config = Criterion::default().sample_size(20);
+    name = bench;
+    config = Criterion::default().warm_up_time(Duration::from_secs(1)).measurement_time(Duration::from_secs(10));
     targets = bench_faer_gemm
 }
-criterion_main!(benches);
