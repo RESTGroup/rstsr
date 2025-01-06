@@ -96,8 +96,6 @@ where
 
 #[cfg(test)]
 mod test {
-    use crate::prelude::TensorSliceAPI;
-
     use super::*;
 
     #[test]

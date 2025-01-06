@@ -6,39 +6,103 @@ use crate::prelude_dev::*;
 
 /* #region slice */
 
-pub trait TensorSliceAPI<'a, Idx> {
-    type Out;
-
-    fn slice_f(&'a self, index: Idx) -> Result<Self::Out>;
-
-    fn slice(&'a self, index: Idx) -> Self::Out {
-        Self::slice_f(self, index).unwrap()
-    }
-
-    fn i_f(&'a self, index: Idx) -> Result<Self::Out> {
-        Self::slice_f(self, index)
-    }
-
-    fn i(&'a self, index: Idx) -> Self::Out {
-        Self::slice(self, index)
-    }
-}
-
-impl<'a, R, D, I> TensorSliceAPI<'a, I> for TensorBase<R, D>
+pub fn into_slice_f<R, D, I>(tensor: TensorBase<R, D>, index: I) -> Result<TensorBase<R, IxD>>
 where
     R: DataAPI,
     D: DimAPI,
-    R::Data: 'a,
     I: TryInto<AxesIndex<Indexer>>,
     Error: From<I::Error>,
 {
-    type Out = TensorBase<DataRef<'a, R::Data>, IxD>;
+    let (data, layout) = tensor.into_data_and_layout();
+    let index = index.try_into()?;
+    let layout = layout.dim_slice(index.as_ref())?;
+    return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
+}
 
-    fn slice_f(&'a self, index: I) -> Result<Self::Out> {
-        let index = index.try_into()?;
-        let layout = self.layout().dim_slice(index.as_ref())?;
-        let data = self.view().into_data();
-        return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
+pub fn into_slice<R, D, I>(tensor: TensorBase<R, D>, index: I) -> TensorBase<R, IxD>
+where
+    R: DataAPI,
+    D: DimAPI,
+    I: TryInto<AxesIndex<Indexer>>,
+    Error: From<I::Error>,
+{
+    into_slice_f(tensor, index).unwrap()
+}
+
+pub fn slice_f<R, D, I>(
+    tensor: &TensorBase<R, D>,
+    index: I,
+) -> Result<TensorBase<DataRef<'_, R::Data>, IxD>>
+where
+    R: DataAPI,
+    D: DimAPI,
+    I: TryInto<AxesIndex<Indexer>>,
+    Error: From<I::Error>,
+{
+    into_slice_f(tensor.view(), index)
+}
+
+pub fn slice<R, D, I>(tensor: &TensorBase<R, D>, index: I) -> TensorBase<DataRef<'_, R::Data>, IxD>
+where
+    R: DataAPI,
+    D: DimAPI,
+    I: TryInto<AxesIndex<Indexer>>,
+    Error: From<I::Error>,
+{
+    slice_f(tensor, index).unwrap()
+}
+
+impl<R, D> TensorBase<R, D>
+where
+    R: DataAPI,
+    D: DimAPI,
+{
+    pub fn into_slice_f<I>(self, index: I) -> Result<TensorBase<R, IxD>>
+    where
+        I: TryInto<AxesIndex<Indexer>>,
+        Error: From<I::Error>,
+    {
+        into_slice_f(self, index)
+    }
+
+    pub fn into_slice<I>(self, index: I) -> TensorBase<R, IxD>
+    where
+        I: TryInto<AxesIndex<Indexer>>,
+        Error: From<I::Error>,
+    {
+        into_slice(self, index)
+    }
+
+    pub fn slice_f<I>(&self, index: I) -> Result<TensorBase<DataRef<'_, R::Data>, IxD>>
+    where
+        I: TryInto<AxesIndex<Indexer>>,
+        Error: From<I::Error>,
+    {
+        slice_f(self, index)
+    }
+
+    pub fn slice<I>(&self, index: I) -> TensorBase<DataRef<'_, R::Data>, IxD>
+    where
+        I: TryInto<AxesIndex<Indexer>>,
+        Error: From<I::Error>,
+    {
+        slice(self, index)
+    }
+
+    pub fn i_f<I>(&self, index: I) -> Result<TensorBase<DataRef<'_, R::Data>, IxD>>
+    where
+        I: TryInto<AxesIndex<Indexer>>,
+        Error: From<I::Error>,
+    {
+        slice_f(self, index)
+    }
+
+    pub fn i<I>(&self, index: I) -> TensorBase<DataRef<'_, R::Data>, IxD>
+    where
+        I: TryInto<AxesIndex<Indexer>>,
+        Error: From<I::Error>,
+    {
+        slice(self, index)
     }
 }
 
@@ -46,39 +110,106 @@ where
 
 /* #region slice mut */
 
-pub trait TensorSliceMutAPI<'a, Idx> {
-    type Out;
-
-    fn slice_mut_f(&'a mut self, index: Idx) -> Result<Self::Out>;
-
-    fn slice_mut(&'a mut self, index: Idx) -> Self::Out {
-        Self::slice_mut_f(self, index).unwrap()
-    }
-
-    fn i_mut_f(&'a mut self, index: Idx) -> Result<Self::Out> {
-        Self::slice_mut_f(self, index)
-    }
-
-    fn i_mut(&'a mut self, index: Idx) -> Self::Out {
-        Self::slice_mut(self, index)
-    }
-}
-
-impl<'a, R, D, I> TensorSliceMutAPI<'a, I> for TensorBase<R, D>
+pub fn into_slice_mut_f<R, D, I>(tensor: TensorBase<R, D>, index: I) -> Result<TensorBase<R, IxD>>
 where
     R: DataMutAPI,
     D: DimAPI,
-    R::Data: 'a,
     I: TryInto<AxesIndex<Indexer>>,
     Error: From<I::Error>,
 {
-    type Out = TensorBase<DataMut<'a, R::Data>, IxD>;
+    let (data, layout) = tensor.into_data_and_layout();
+    let index = index.try_into()?;
+    let layout = layout.dim_slice(index.as_ref())?;
+    return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
+}
 
-    fn slice_mut_f(&'a mut self, index: I) -> Result<Self::Out> {
-        let index = index.try_into().map_err(Into::into)?;
-        let layout = self.layout().dim_slice(index.as_ref())?;
-        let data = self.view_mut().into_data();
-        return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
+pub fn into_slice_mut<R, D, I>(tensor: TensorBase<R, D>, index: I) -> TensorBase<R, IxD>
+where
+    R: DataMutAPI,
+    D: DimAPI,
+    I: TryInto<AxesIndex<Indexer>>,
+    Error: From<I::Error>,
+{
+    into_slice_mut_f(tensor, index).unwrap()
+}
+
+pub fn slice_mut_f<R, D, I>(
+    tensor: &mut TensorBase<R, D>,
+    index: I,
+) -> Result<TensorBase<DataMut<'_, R::Data>, IxD>>
+where
+    R: DataMutAPI,
+    D: DimAPI,
+    I: TryInto<AxesIndex<Indexer>>,
+    Error: From<I::Error>,
+{
+    into_slice_mut_f(tensor.view_mut(), index)
+}
+
+pub fn slice_mut<R, D, I>(
+    tensor: &mut TensorBase<R, D>,
+    index: I,
+) -> TensorBase<DataMut<'_, R::Data>, IxD>
+where
+    R: DataMutAPI,
+    D: DimAPI,
+    I: TryInto<AxesIndex<Indexer>>,
+    Error: From<I::Error>,
+{
+    slice_mut_f(tensor, index).unwrap()
+}
+
+impl<R, D> TensorBase<R, D>
+where
+    R: DataMutAPI,
+    D: DimAPI,
+{
+    pub fn into_slice_mut_f<I>(self, index: I) -> Result<TensorBase<R, IxD>>
+    where
+        I: TryInto<AxesIndex<Indexer>>,
+        Error: From<I::Error>,
+    {
+        into_slice_mut_f(self, index)
+    }
+
+    pub fn into_slice_mut<I>(self, index: I) -> TensorBase<R, IxD>
+    where
+        I: TryInto<AxesIndex<Indexer>>,
+        Error: From<I::Error>,
+    {
+        into_slice_mut(self, index)
+    }
+
+    pub fn slice_mut_f<I>(&mut self, index: I) -> Result<TensorBase<DataMut<'_, R::Data>, IxD>>
+    where
+        I: TryInto<AxesIndex<Indexer>>,
+        Error: From<I::Error>,
+    {
+        slice_mut_f(self, index)
+    }
+
+    pub fn slice_mut<I>(&mut self, index: I) -> TensorBase<DataMut<'_, R::Data>, IxD>
+    where
+        I: TryInto<AxesIndex<Indexer>>,
+        Error: From<I::Error>,
+    {
+        slice_mut(self, index)
+    }
+
+    pub fn i_mut_f<I>(&mut self, index: I) -> Result<TensorBase<DataMut<'_, R::Data>, IxD>>
+    where
+        I: TryInto<AxesIndex<Indexer>>,
+        Error: From<I::Error>,
+    {
+        slice_mut_f(self, index)
+    }
+
+    pub fn i_mut<I>(&mut self, index: I) -> TensorBase<DataMut<'_, R::Data>, IxD>
+    where
+        I: TryInto<AxesIndex<Indexer>>,
+        Error: From<I::Error>,
+    {
+        slice_mut(self, index)
     }
 }
 
