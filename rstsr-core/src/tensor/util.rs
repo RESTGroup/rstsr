@@ -395,7 +395,14 @@ impl_from_tuple_to_axes_index!(usize);
 
 #[derive(Clone, Copy)]
 pub struct ThreadedRawPtr<T: ?Sized>(pub *mut T);
+
 unsafe impl<T: ?Sized> Send for ThreadedRawPtr<T> {}
 unsafe impl<T: ?Sized> Sync for ThreadedRawPtr<T> {}
+
+impl<T: ?Sized> ThreadedRawPtr<T> {
+    pub fn get(&self) -> *mut T {
+        self.0
+    }
+}
 
 /* #endregion */

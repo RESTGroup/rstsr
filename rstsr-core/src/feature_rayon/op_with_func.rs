@@ -6,7 +6,8 @@ const CONTIG_SWITCH: usize = 16;
 // This value is used to determine when to use parallel iteration.
 // Actual switch value is PARALLEL_SWITCH * RAYON_NUM_THREADS.
 // Since current task is not intensive to each element, this value is large.
-const PARALLEL_SWITCH: usize = 64;
+// 64 kB for f64
+const PARALLEL_SWITCH: usize = 8192;
 // Currently, we do not make contiguous parts to be parallel. Only outer
 // iteration is parallelized.
 

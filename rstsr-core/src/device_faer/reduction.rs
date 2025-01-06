@@ -1,4 +1,4 @@
-use crate::feature_rayon::reduce_all_cpu_rayon;
+use crate::feature_rayon::reduction::{reduce_all_cpu_rayon, reduce_axes_cpu_rayon};
 use crate::prelude_dev::*;
 use core::ops::Add;
 use num::Zero;
@@ -9,17 +9,25 @@ where
     D: DimAPI,
 {
     fn sum_all(&self, a: &Storage<T, Self>, la: &Layout<D>) -> Result<T> {
-        let a = a.rawvec();
         let nthreads = self.get_num_threads();
-        reduce_all_cpu_rayon(a, la, T::zero, |acc, x| acc + x, nthreads)
+        reduce_all_cpu_rayon(a.rawvec(), la, T::zero, |acc, x| acc + x, nthreads)
     }
 
     fn sum(
         &self,
-        _a: &Storage<T, Self>,
-        _la: &Layout<D>,
-        _axes: &[isize],
+        a: &Storage<T, Self>,
+        la: &Layout<D>,
+        axes: &[isize],
     ) -> Result<(Storage<T, Self>, Layout<IxD>)> {
-        unimplemented!()
+        let nthreads = self.get_num_threads();
+        let (out, layout_out) = reduce_axes_cpu_rayon(
+            a.rawvec(),
+            &la.to_dim()?,
+            axes,
+            T::zero,
+            |acc, x| acc + x,
+            nthreads,
+        )?;
+        Ok((Storage::new(out, self.clone()), layout_out))
     }
 }

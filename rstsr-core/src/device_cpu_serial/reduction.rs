@@ -91,6 +91,7 @@ where
 {
     // split the layout into axes (to be summed) and the rest
     let (layout_axes, layout_rest) = la.dim_split_axes(axes)?;
+    let layout_axes = translate_to_col_major_unary(&layout_axes, TensorIterOrder::default())?;
 
     // generate layout for result (from layout_rest)
     let layout_out = layout_for_array_copy(&layout_rest, TensorIterOrder::default())?;

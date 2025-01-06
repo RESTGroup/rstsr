@@ -49,6 +49,15 @@ fn rstsr_serial_4096(criterion: &mut Criterion) {
             black_box(c);
         })
     });
+
+    // add last dimension
+    let b = b_full.reshape([4, n, n]);
+    criterion.bench_function("rstsr serial simple sum 4096 last dimension", |bencher| {
+        bencher.iter(|| {
+            let c = b.sum([-1, -2]);
+            black_box(c);
+        })
+    });
 }
 
 fn rstsr_rayon_4096(criterion: &mut Criterion) {
@@ -89,14 +98,23 @@ fn rstsr_rayon_4096(criterion: &mut Criterion) {
     });
 
     // add leading dimension
-    // let b = b_full.reshape([4, n, n]);
-    // criterion.bench_function("rstsr serial simple sum 4096 leading
-    // dimension", |bencher| {     bencher.iter(|| {
-    //         // let c = b.i(0) + b.i(1) + b.i(2) + b.i(3);
-    //         let c = b.sum(0);
-    //         black_box(c);
-    //     })
-    // });
+    let b = b_full.reshape([4, n, n]);
+    criterion.bench_function("rstsr rayon simple sum 4096 leading dimension", |bencher| {
+        bencher.iter(|| {
+            // let c = b.i(0) + b.i(1) + b.i(2) + b.i(3);
+            let c = b.sum(0);
+            black_box(c);
+        })
+    });
+
+    // add last dimension
+    let b = b_full.reshape([4, n, n]);
+    criterion.bench_function("rstsr serial simple sum 4096 last dimension", |bencher| {
+        bencher.iter(|| {
+            let c = b.sum([-1, -2]);
+            black_box(c);
+        })
+    });
 }
 
 fn ndarray_4096(criterion: &mut Criterion) {
@@ -141,6 +159,15 @@ fn ndarray_4096(criterion: &mut Criterion) {
     criterion.bench_function("ndarray simple sum 4096 leading dimension", |bencher| {
         bencher.iter(|| {
             let c = b.sum_axis(Axis(0));
+            black_box(c);
+        })
+    });
+
+    // add last dimension
+    let b = b_full.to_shape((4, n * n)).unwrap();
+    criterion.bench_function("ndarray simple sum 4096 last dimension", |bencher| {
+        bencher.iter(|| {
+            let c = b.sum_axis(Axis(1));
             black_box(c);
         })
     });
