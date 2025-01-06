@@ -17,12 +17,22 @@ pub fn sum_f<R, T, B, D, I>(tensor: &TensorBase<R, D>, axes: I) -> Result<Tensor
 where
     R: DataAPI<Data = Storage<T, B>>,
     D: DimAPI,
-    B: OpSumAPI<T, D>,
+    B: OpSumAPI<T, D> + DeviceAPI<T> + DeviceCreationAnyAPI<T>,
     I: TryInto<AxesIndex<isize>, Error = Error>,
 {
     let axes = axes.try_into()?;
     let storage = tensor.storage();
     let layout = tensor.layout();
+
+    // special case for summing all axes
+    if axes.as_ref().is_empty() {
+        let sum = tensor.device().sum_all(storage, layout)?;
+        let storage = tensor.device().outof_cpu_vec(vec![sum])?;
+        let data = DataOwned::from(storage);
+        let layout = Layout::new(vec![], vec![], 0)?;
+        return Tensor::new_f(data, layout);
+    }
+
     let (storage, layout) = tensor.device().sum(storage, layout, axes.as_ref())?;
     let data = DataOwned::from(storage);
     Tensor::new_f(data, layout)
@@ -41,7 +51,7 @@ pub fn sum<R, T, B, D, I>(tensor: &TensorBase<R, D>, axes: I) -> Tensor<T, IxD, 
 where
     R: DataAPI<Data = Storage<T, B>>,
     D: DimAPI,
-    B: OpSumAPI<T, D>,
+    B: OpSumAPI<T, D> + DeviceCreationAnyAPI<T>,
     I: TryInto<AxesIndex<isize>, Error = Error>,
 {
     sum_f(tensor, axes).unwrap()
@@ -64,6 +74,7 @@ where
     pub fn sum_f<I>(&self, axes: I) -> Result<Tensor<T, IxD, B>>
     where
         I: TryInto<AxesIndex<isize>, Error = Error>,
+        B: DeviceCreationAnyAPI<T>,
     {
         sum_f(self, axes)
     }
@@ -71,6 +82,7 @@ where
     pub fn sum<I>(&self, axes: I) -> Tensor<T, IxD, B>
     where
         I: TryInto<AxesIndex<isize>, Error = Error>,
+        B: DeviceCreationAnyAPI<T>,
     {
         sum(self, axes)
     }
@@ -92,12 +104,15 @@ mod test {
 
         // np.arange(3240).reshape(12, 15, 18)
         //   .swapaxes(-1, -2)[2:-3, 1:-4:2, -1:3:-2].sum()
-        let s = arange((3240, &DeviceCpuSerial))
-            .into_shape([12, 15, 18])
-            .swapaxes(-1, -2)
-            .i((slice!(2, -3), slice!(1, -4, 2), slice!(-1, 3, -2)))
-            .sum_all();
+        let a_owned =
+            arange((3240, &DeviceCpuSerial)).into_shape([12, 15, 18]).into_swapaxes(-1, -2);
+        let a = a_owned.i((slice!(2, -3), slice!(1, -4, 2), slice!(-1, 3, -2)));
+        let s = a.sum_all();
         assert_eq!(s, 446586);
+
+        let empty: [isize; 0] = [];
+        let s = a.sum(empty);
+        println!("{:?}", s);
     }
 
     #[test]

@@ -1235,12 +1235,12 @@ where
 
     fn change_shape_f(&'a self, shape: [I; N]) -> Result<Self::OutCow> {
         let shape = shape.iter().map(|&v| v.try_into().ok().unwrap()).collect::<Vec<isize>>();
-        change_shape_inner_f(self.view(), shape.into())?.into_dim_f()
+        change_shape_inner_f(self.view(), shape.try_into()?)?.into_dim_f()
     }
 
     fn into_shape_f(self, shape: [I; N]) -> Result<Self::OutOwned> {
         let shape = shape.iter().map(|&v| v.try_into().ok().unwrap()).collect::<Vec<isize>>();
-        change_shape_inner_f(self, shape.into()).map(|t| t.into_owned())?.into_dim_f()
+        change_shape_inner_f(self, shape.try_into()?).map(|t| t.into_owned())?.into_dim_f()
     }
 }
 
@@ -1261,12 +1261,12 @@ where
 
     fn change_shape_f(&'a self, shape: Vec<I>) -> Result<Self::OutCow> {
         let shape = shape.iter().map(|&v| v.try_into().ok().unwrap()).collect::<Vec<isize>>();
-        change_shape_inner_f(self.view(), shape.into())?.into_dim_f()
+        change_shape_inner_f(self.view(), shape.try_into()?)?.into_dim_f()
     }
 
     fn into_shape_f(self, shape: Vec<I>) -> Result<Self::OutOwned> {
         let shape = shape.iter().map(|&v| v.try_into().ok().unwrap()).collect::<Vec<isize>>();
-        change_shape_inner_f(self, shape.into()).map(|t| t.into_owned())?.into_dim_f()
+        change_shape_inner_f(self, shape.try_into()?).map(|t| t.into_owned())?.into_dim_f()
     }
 }
 
@@ -1285,11 +1285,11 @@ where
     type OutOwned = TensorBase<DataOwned<R::Data>, Ix1>;
 
     fn change_shape_f(&'a self, shape: isize) -> Result<Self::OutCow> {
-        change_shape_inner_f(self.view(), [shape].into())?.into_dim_f()
+        change_shape_inner_f(self.view(), [shape].try_into()?)?.into_dim_f()
     }
 
     fn into_shape_f(self, shape: isize) -> Result<Self::OutOwned> {
-        change_shape_inner_f(self, [shape].into()).map(|t| t.into_owned())?.into_dim_f()
+        change_shape_inner_f(self, [shape].try_into()?).map(|t| t.into_owned())?.into_dim_f()
     }
 }
 

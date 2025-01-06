@@ -34,51 +34,71 @@ where
     }
 }
 
-impl<T> From<Vec<T>> for AxesIndex<T> {
-    fn from(value: Vec<T>) -> Self {
-        AxesIndex::Vec(value)
+impl<T> TryFrom<Vec<T>> for AxesIndex<T> {
+    type Error = Error;
+
+    fn try_from(value: Vec<T>) -> Result<Self> {
+        Ok(AxesIndex::Vec(value))
     }
 }
 
-impl<T, const N: usize> From<[T; N]> for AxesIndex<T>
+impl<T, const N: usize> TryFrom<[T; N]> for AxesIndex<T>
 where
     T: Clone,
 {
-    fn from(value: [T; N]) -> Self {
-        AxesIndex::Vec(value.to_vec())
+    type Error = Error;
+
+    fn try_from(value: [T; N]) -> Result<Self> {
+        Ok(AxesIndex::Vec(value.to_vec()))
     }
 }
 
-impl<T> From<&Vec<T>> for AxesIndex<T>
+impl<T> TryFrom<&Vec<T>> for AxesIndex<T>
 where
     T: Clone,
 {
-    fn from(value: &Vec<T>) -> Self {
-        AxesIndex::Vec(value.clone())
+    type Error = Error;
+
+    fn try_from(value: &Vec<T>) -> Result<Self> {
+        Ok(AxesIndex::Vec(value.clone()))
     }
 }
 
-impl<T> From<&[T]> for AxesIndex<T>
+impl<T> TryFrom<&[T]> for AxesIndex<T>
 where
     T: Clone,
 {
-    fn from(value: &[T]) -> Self {
-        AxesIndex::Vec(value.to_vec())
+    type Error = Error;
+
+    fn try_from(value: &[T]) -> Result<Self> {
+        Ok(AxesIndex::Vec(value.to_vec()))
     }
 }
 
-impl<T, const N: usize> From<&[T; N]> for AxesIndex<T>
+impl<T, const N: usize> TryFrom<&[T; N]> for AxesIndex<T>
 where
     T: Clone,
 {
-    fn from(value: &[T; N]) -> Self {
-        AxesIndex::Vec(value.to_vec())
+    type Error = Error;
+
+    fn try_from(value: &[T; N]) -> Result<Self> {
+        Ok(AxesIndex::Vec(value.to_vec()))
     }
 }
 
-impl From<()> for AxesIndex<usize> {
-    fn from(_: ()) -> Self {
-        AxesIndex::Vec(vec![])
+impl TryFrom<()> for AxesIndex<usize> {
+    type Error = Error;
+
+    fn try_from(_: ()) -> Result<Self> {
+        Ok(AxesIndex::Vec(vec![]))
+    }
+}
+
+impl TryFrom<()> for AxesIndex<isize> {
+    type Error = Error;
+
+    fn try_from(_: ()) -> Result<Self> {
+        Ok(AxesIndex::Vec(vec![]))
     }
 }
 
@@ -165,77 +185,87 @@ impl_try_from_axes_index!(isize, usize, u8, u16, u32, u64, u128, i8, i16, i32, i
 #[macro_export]
 macro_rules! impl_from_tuple_to_axes_index {
     ($t: ty) => {
-        impl<F1, F2> From<(F1, F2)> for AxesIndex<$t>
+        impl<F1, F2> TryFrom<(F1, F2)> for AxesIndex<$t>
         where
             $t: TryFrom<F1> + TryFrom<F2>,
         {
-            fn from(value: (F1, F2)) -> Self {
-                AxesIndex::Vec(vec![
+            type Error = Error;
+
+            fn try_from(value: (F1, F2)) -> Result<Self> {
+                Ok(AxesIndex::Vec(vec![
                     value.0.try_into().ok().unwrap(),
                     value.1.try_into().ok().unwrap(),
-                ])
+                ]))
             }
         }
 
-        impl<F1, F2, F3> From<(F1, F2, F3)> for AxesIndex<$t>
+        impl<F1, F2, F3> TryFrom<(F1, F2, F3)> for AxesIndex<$t>
         where
             $t: TryFrom<F1> + TryFrom<F2> + TryFrom<F3>,
         {
-            fn from(value: (F1, F2, F3)) -> Self {
-                AxesIndex::Vec(vec![
+            type Error = Error;
+
+            fn try_from(value: (F1, F2, F3)) -> Result<Self> {
+                Ok(AxesIndex::Vec(vec![
                     value.0.try_into().ok().unwrap(),
                     value.1.try_into().ok().unwrap(),
                     value.2.try_into().ok().unwrap(),
-                ])
+                ]))
             }
         }
 
-        impl<F1, F2, F3, F4> From<(F1, F2, F3, F4)> for AxesIndex<$t>
+        impl<F1, F2, F3, F4> TryFrom<(F1, F2, F3, F4)> for AxesIndex<$t>
         where
             $t: TryFrom<F1> + TryFrom<F2> + TryFrom<F3> + TryFrom<F4>,
         {
-            fn from(value: (F1, F2, F3, F4)) -> Self {
-                AxesIndex::Vec(vec![
+            type Error = Error;
+
+            fn try_from(value: (F1, F2, F3, F4)) -> Result<Self> {
+                Ok(AxesIndex::Vec(vec![
                     value.0.try_into().ok().unwrap(),
                     value.1.try_into().ok().unwrap(),
                     value.2.try_into().ok().unwrap(),
                     value.3.try_into().ok().unwrap(),
-                ])
+                ]))
             }
         }
 
-        impl<F1, F2, F3, F4, F5> From<(F1, F2, F3, F4, F5)> for AxesIndex<$t>
+        impl<F1, F2, F3, F4, F5> TryFrom<(F1, F2, F3, F4, F5)> for AxesIndex<$t>
         where
             $t: TryFrom<F1> + TryFrom<F2> + TryFrom<F3> + TryFrom<F4> + TryFrom<F5>,
         {
-            fn from(value: (F1, F2, F3, F4, F5)) -> Self {
-                AxesIndex::Vec(vec![
+            type Error = Error;
+
+            fn try_from(value: (F1, F2, F3, F4, F5)) -> Result<Self> {
+                Ok(AxesIndex::Vec(vec![
                     value.0.try_into().ok().unwrap(),
                     value.1.try_into().ok().unwrap(),
                     value.2.try_into().ok().unwrap(),
                     value.3.try_into().ok().unwrap(),
                     value.4.try_into().ok().unwrap(),
-                ])
+                ]))
             }
         }
 
-        impl<F1, F2, F3, F4, F5, F6> From<(F1, F2, F3, F4, F5, F6)> for AxesIndex<$t>
+        impl<F1, F2, F3, F4, F5, F6> TryFrom<(F1, F2, F3, F4, F5, F6)> for AxesIndex<$t>
         where
             $t: TryFrom<F1> + TryFrom<F2> + TryFrom<F3> + TryFrom<F4> + TryFrom<F5> + TryFrom<F6>,
         {
-            fn from(value: (F1, F2, F3, F4, F5, F6)) -> Self {
-                AxesIndex::Vec(vec![
+            type Error = Error;
+
+            fn try_from(value: (F1, F2, F3, F4, F5, F6)) -> Result<Self> {
+                Ok(AxesIndex::Vec(vec![
                     value.0.try_into().ok().unwrap(),
                     value.1.try_into().ok().unwrap(),
                     value.2.try_into().ok().unwrap(),
                     value.3.try_into().ok().unwrap(),
                     value.4.try_into().ok().unwrap(),
                     value.5.try_into().ok().unwrap(),
-                ])
+                ]))
             }
         }
 
-        impl<F1, F2, F3, F4, F5, F6, F7> From<(F1, F2, F3, F4, F5, F6, F7)> for AxesIndex<$t>
+        impl<F1, F2, F3, F4, F5, F6, F7> TryFrom<(F1, F2, F3, F4, F5, F6, F7)> for AxesIndex<$t>
         where
             $t: TryFrom<F1>
                 + TryFrom<F2>
@@ -245,8 +275,10 @@ macro_rules! impl_from_tuple_to_axes_index {
                 + TryFrom<F6>
                 + TryFrom<F7>,
         {
-            fn from(value: (F1, F2, F3, F4, F5, F6, F7)) -> Self {
-                AxesIndex::Vec(vec![
+            type Error = Error;
+
+            fn try_from(value: (F1, F2, F3, F4, F5, F6, F7)) -> Result<Self> {
+                Ok(AxesIndex::Vec(vec![
                     value.0.try_into().ok().unwrap(),
                     value.1.try_into().ok().unwrap(),
                     value.2.try_into().ok().unwrap(),
@@ -254,11 +286,11 @@ macro_rules! impl_from_tuple_to_axes_index {
                     value.4.try_into().ok().unwrap(),
                     value.5.try_into().ok().unwrap(),
                     value.6.try_into().ok().unwrap(),
-                ])
+                ]))
             }
         }
 
-        impl<F1, F2, F3, F4, F5, F6, F7, F8> From<(F1, F2, F3, F4, F5, F6, F7, F8)>
+        impl<F1, F2, F3, F4, F5, F6, F7, F8> TryFrom<(F1, F2, F3, F4, F5, F6, F7, F8)>
             for AxesIndex<$t>
         where
             $t: TryFrom<F1>
@@ -270,8 +302,10 @@ macro_rules! impl_from_tuple_to_axes_index {
                 + TryFrom<F7>
                 + TryFrom<F8>,
         {
-            fn from(value: (F1, F2, F3, F4, F5, F6, F7, F8)) -> Self {
-                AxesIndex::Vec(vec![
+            type Error = Error;
+
+            fn try_from(value: (F1, F2, F3, F4, F5, F6, F7, F8)) -> Result<Self> {
+                Ok(AxesIndex::Vec(vec![
                     value.0.try_into().ok().unwrap(),
                     value.1.try_into().ok().unwrap(),
                     value.2.try_into().ok().unwrap(),
@@ -280,11 +314,11 @@ macro_rules! impl_from_tuple_to_axes_index {
                     value.5.try_into().ok().unwrap(),
                     value.6.try_into().ok().unwrap(),
                     value.7.try_into().ok().unwrap(),
-                ])
+                ]))
             }
         }
 
-        impl<F1, F2, F3, F4, F5, F6, F7, F8, F9> From<(F1, F2, F3, F4, F5, F6, F7, F8, F9)>
+        impl<F1, F2, F3, F4, F5, F6, F7, F8, F9> TryFrom<(F1, F2, F3, F4, F5, F6, F7, F8, F9)>
             for AxesIndex<$t>
         where
             $t: TryFrom<F1>
@@ -297,8 +331,10 @@ macro_rules! impl_from_tuple_to_axes_index {
                 + TryFrom<F8>
                 + TryFrom<F9>,
         {
-            fn from(value: (F1, F2, F3, F4, F5, F6, F7, F8, F9)) -> Self {
-                AxesIndex::Vec(vec![
+            type Error = Error;
+
+            fn try_from(value: (F1, F2, F3, F4, F5, F6, F7, F8, F9)) -> Result<Self> {
+                Ok(AxesIndex::Vec(vec![
                     value.0.try_into().ok().unwrap(),
                     value.1.try_into().ok().unwrap(),
                     value.2.try_into().ok().unwrap(),
@@ -308,12 +344,12 @@ macro_rules! impl_from_tuple_to_axes_index {
                     value.6.try_into().ok().unwrap(),
                     value.7.try_into().ok().unwrap(),
                     value.8.try_into().ok().unwrap(),
-                ])
+                ]))
             }
         }
 
         impl<F1, F2, F3, F4, F5, F6, F7, F8, F9, F10>
-            From<(F1, F2, F3, F4, F5, F6, F7, F8, F9, F10)> for AxesIndex<$t>
+            TryFrom<(F1, F2, F3, F4, F5, F6, F7, F8, F9, F10)> for AxesIndex<$t>
         where
             $t: TryFrom<F1>
                 + TryFrom<F2>
@@ -326,8 +362,10 @@ macro_rules! impl_from_tuple_to_axes_index {
                 + TryFrom<F9>
                 + TryFrom<F10>,
         {
-            fn from(value: (F1, F2, F3, F4, F5, F6, F7, F8, F9, F10)) -> Self {
-                AxesIndex::Vec(vec![
+            type Error = Error;
+
+            fn try_from(value: (F1, F2, F3, F4, F5, F6, F7, F8, F9, F10)) -> Result<Self> {
+                Ok(AxesIndex::Vec(vec![
                     value.0.try_into().ok().unwrap(),
                     value.1.try_into().ok().unwrap(),
                     value.2.try_into().ok().unwrap(),
@@ -338,7 +376,7 @@ macro_rules! impl_from_tuple_to_axes_index {
                     value.7.try_into().ok().unwrap(),
                     value.8.try_into().ok().unwrap(),
                     value.9.try_into().ok().unwrap(),
-                ])
+                ]))
             }
         }
     };

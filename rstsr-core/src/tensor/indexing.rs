@@ -29,12 +29,13 @@ where
     R: DataAPI,
     D: DimAPI,
     R::Data: 'a,
-    I: Into<AxesIndex<Indexer>>,
+    I: TryInto<AxesIndex<Indexer>>,
+    Error: From<I::Error>,
 {
     type Out = TensorBase<DataRef<'a, R::Data>, IxD>;
 
     fn slice_f(&'a self, index: I) -> Result<Self::Out> {
-        let index = index.into();
+        let index = index.try_into()?;
         let layout = self.layout().dim_slice(index.as_ref())?;
         let data = self.view().into_data();
         return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
@@ -68,12 +69,13 @@ where
     R: DataMutAPI,
     D: DimAPI,
     R::Data: 'a,
-    I: Into<AxesIndex<Indexer>>,
+    I: TryInto<AxesIndex<Indexer>>,
+    Error: From<I::Error>,
 {
     type Out = TensorBase<DataMut<'a, R::Data>, IxD>;
 
     fn slice_mut_f(&'a mut self, index: I) -> Result<Self::Out> {
-        let index = index.into();
+        let index = index.try_into().map_err(Into::into)?;
         let layout = self.layout().dim_slice(index.as_ref())?;
         let data = self.view_mut().into_data();
         return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
