@@ -3,7 +3,7 @@ use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 use std::time::Duration;
 
-fn rstsr_4096(criterion: &mut Criterion) {
+fn rstsr_serial_4096(criterion: &mut Criterion) {
     use rstsr_core::prelude::*;
 
     let n = 4096;
@@ -12,7 +12,7 @@ fn rstsr_4096(criterion: &mut Criterion) {
     let vec_a: Vec<f64> = (0..n * n).map(|_| rng.gen()).collect::<_>();
     let a = rt::asarray((vec_a, [n, n], &DeviceCpuSerial));
 
-    criterion.bench_function("rstsr simple sum 4096", |bencher| {
+    criterion.bench_function("rstsr serial simple sum 4096", |bencher| {
         bencher.iter(|| {
             let c = a.sum_all();
             black_box(c);
@@ -24,7 +24,7 @@ fn rstsr_4096(criterion: &mut Criterion) {
 
     // contiguous slice
     let b = b_full.slice([0..n, 0..n]);
-    criterion.bench_function("rstsr simple sum 4096 slice", |bencher| {
+    criterion.bench_function("rstsr serial simple sum 4096 slice", |bencher| {
         bencher.iter(|| {
             let c = b.sum_all();
             black_box(c);
@@ -33,7 +33,7 @@ fn rstsr_4096(criterion: &mut Criterion) {
 
     // strided
     let b = b_full.slice([slice!(0, 2 * n, 2), slice!(0, 2 * n, 2)]);
-    criterion.bench_function("rstsr simple sum 4096 strided", |bencher| {
+    criterion.bench_function("rstsr serial simple sum 4096 strided", |bencher| {
         bencher.iter(|| {
             let c = b.sum_all();
             black_box(c);
@@ -42,13 +42,61 @@ fn rstsr_4096(criterion: &mut Criterion) {
 
     // add leading dimension
     let b = b_full.reshape([4, n, n]);
-    criterion.bench_function("rstsr simple sum 4096 leading dimension", |bencher| {
+    criterion.bench_function("rstsr serial simple sum 4096 leading dimension", |bencher| {
         bencher.iter(|| {
             // let c = b.i(0) + b.i(1) + b.i(2) + b.i(3);
             let c = b.sum(0);
             black_box(c);
         })
     });
+}
+
+fn rstsr_rayon_4096(criterion: &mut Criterion) {
+    use rstsr_core::prelude::*;
+
+    let n = 4096;
+    let mut rng = StdRng::seed_from_u64(42);
+
+    let vec_a: Vec<f64> = (0..n * n).map(|_| rng.gen()).collect::<_>();
+    let a = rt::asarray((vec_a, [n, n]));
+
+    criterion.bench_function("rstsr rayon simple sum 4096", |bencher| {
+        bencher.iter(|| {
+            let c = a.sum_all();
+            black_box(c);
+        })
+    });
+
+    let vec_b: Vec<f64> = (0..4 * n * n).map(|_| rng.gen()).collect::<_>();
+    let b_full = rt::asarray((vec_b, [2 * n, 2 * n]));
+
+    // contiguous slice
+    let b = b_full.slice([0..n, 0..n]);
+    criterion.bench_function("rstsr rayon simple sum 4096 slice", |bencher| {
+        bencher.iter(|| {
+            let c = b.sum_all();
+            black_box(c);
+        })
+    });
+
+    // strided
+    let b = b_full.slice([slice!(0, 2 * n, 2), slice!(0, 2 * n, 2)]);
+    criterion.bench_function("rstsr rayon simple sum 4096 strided", |bencher| {
+        bencher.iter(|| {
+            let c = b.sum_all();
+            black_box(c);
+        })
+    });
+
+    // add leading dimension
+    // let b = b_full.reshape([4, n, n]);
+    // criterion.bench_function("rstsr serial simple sum 4096 leading
+    // dimension", |bencher| {     bencher.iter(|| {
+    //         // let c = b.i(0) + b.i(1) + b.i(2) + b.i(3);
+    //         let c = b.sum(0);
+    //         black_box(c);
+    //     })
+    // });
 }
 
 fn ndarray_4096(criterion: &mut Criterion) {
@@ -101,5 +149,5 @@ fn ndarray_4096(criterion: &mut Criterion) {
 criterion_group! {
     name = bench;
     config = Criterion::default().warm_up_time(Duration::from_millis(200)).measurement_time(Duration::from_millis(2000)).sample_size(10);
-    targets = rstsr_4096, ndarray_4096
+    targets = rstsr_serial_4096, rstsr_rayon_4096, ndarray_4096
 }

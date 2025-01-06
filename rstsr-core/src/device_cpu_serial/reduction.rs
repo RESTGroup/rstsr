@@ -1,8 +1,9 @@
 use crate::prelude_dev::*;
+use core::ops::Add;
 use num::Zero;
 
 // this value is used to determine whether to use contiguous inner iteration
-const CONTIG_SWITCH: usize = 128;
+const CONTIG_SWITCH: usize = 32;
 
 /// Fold over the manually unrolled `xs` with `f`
 ///
@@ -55,6 +56,7 @@ where
     I: Fn() -> T,
     F: Fn(T, T) -> T,
 {
+    // re-align layout
     let layout = translate_to_col_major_unary(la, TensorIterOrder::K)?;
     let (layout_contig, size_contig) = translate_to_col_major_with_contig(&[&layout]);
 
@@ -149,7 +151,7 @@ where
 
 impl<T, D> OpSumAPI<T, D> for DeviceCpuSerial
 where
-    T: Zero + core::ops::Add<Output = T> + Clone,
+    T: Zero + Add<Output = T> + Clone,
     D: DimAPI,
 {
     fn sum_all(&self, a: &Storage<T, Self>, la: &Layout<D>) -> Result<T> {
