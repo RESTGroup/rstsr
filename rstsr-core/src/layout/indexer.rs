@@ -50,7 +50,7 @@ macro_rules! impl_from_int_into_indexer {
     };
 }
 
-impl_from_int_into_indexer!(usize, isize, u8, i8, u16, i16, u32, i32, u64, i64, u128, i128);
+impl_from_int_into_indexer!(usize, isize, u32, i32, u64, i64);
 
 /* #endregion */
 
@@ -82,7 +82,7 @@ macro_rules! impl_into_axes_index {
     };
 }
 
-impl_into_axes_index!(usize, isize, u8, i8, u16, i16, u32, i32, u64, i64, u128, i128);
+impl_into_axes_index!(usize, isize, u32, i32, u64, i64);
 impl_into_axes_index!(Option<usize>);
 impl_into_axes_index!(
     Slice<isize>,

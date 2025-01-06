@@ -815,38 +815,38 @@ mod test {
         // unsuccessful layout new (offset underflow)
         let shape = [3, 2, 6];
         let stride = [3, -300, 15];
-        let r = catch_unwind(|| Layout::new(shape, stride, 0));
-        assert!(r.is_err());
+        let layout = Layout::new(shape, stride, 0);
+        assert!(layout.is_err());
         // unsuccessful layout new (zero stride for non-0/1 shape)
         let shape = [3, 2, 6];
         let stride = [3, -300, 0];
-        let r = catch_unwind(|| Layout::new(shape, stride, 1000));
-        assert!(r.is_err());
+        let layout = Layout::new(shape, stride, 1000);
+        assert!(layout.is_err());
         // unsuccessful layout new (stride too small)
         let shape = [3, 2, 6];
         let stride = [3, 4, 7];
-        let r = catch_unwind(|| Layout::new(shape, stride, 1000));
-        assert!(r.is_err());
+        let layout = Layout::new(shape, stride, 1000);
+        assert!(layout.is_err());
         // successful layout new (zero dim)
         let shape = [];
         let stride = [];
-        let r = catch_unwind(|| Layout::new(shape, stride, 1000));
-        assert!(r.is_ok());
+        let layout = Layout::new(shape, stride, 1000);
+        assert!(layout.is_ok());
         // successful layout new (stride 0 for 1-shape)
         let shape = [3, 1, 5];
         let stride = [1, 0, 15];
-        let r = catch_unwind(|| Layout::new(shape, stride, 1));
-        assert!(r.is_ok());
+        let layout = Layout::new(shape, stride, 1);
+        assert!(layout.is_ok());
         // successful layout new (stride 0 for 1-shape)
         let shape = [3, 1, 5];
         let stride = [1, 0, 15];
-        let r = catch_unwind(|| Layout::new(shape, stride, 1));
-        assert!(r.is_ok());
+        let layout = Layout::new(shape, stride, 1);
+        assert!(layout.is_ok());
         // successful layout new (zero-size tensor)
         let shape = [3, 0, 5];
         let stride = [-1, -2, -3];
-        let r = catch_unwind(|| Layout::new(shape, stride, 1));
-        assert!(r.is_ok());
+        let layout = Layout::new(shape, stride, 1);
+        assert!(layout.is_ok());
         // anyway, if one need custom layout, use new_unchecked
         let shape = [3, 2, 6];
         let stride = [3, -300, 0];

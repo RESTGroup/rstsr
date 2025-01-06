@@ -55,7 +55,7 @@ macro_rules! impl_from_slice {
     };
 }
 
-impl_from_slice!(usize, u8, i8, u16, i16, u32, i32, u64, i64, u128, i128);
+impl_from_slice!(usize, u32, i32, u64, i64);
 
 impl<T> From<core::ops::Range<T>> for SliceI
 where

@@ -172,8 +172,8 @@ macro_rules! impl_try_from_axes_index {
     };
 }
 
-impl_try_from_axes_index!(usize, isize, u8, u16, u32, u64, u128, i8, i16, i32, i64, i128);
-impl_try_from_axes_index!(isize, usize, u8, u16, u32, u64, u128, i8, i16, i32, i64, i128);
+impl_try_from_axes_index!(usize, isize, u32, u64, i32, i64);
+impl_try_from_axes_index!(isize, usize, u32, u64, i32, i64);
 
 /* #endregion AxisIndex other-type from */
 
