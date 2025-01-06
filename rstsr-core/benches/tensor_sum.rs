@@ -20,7 +20,7 @@ fn rstsr_4096(criterion: &mut Criterion) {
     });
 
     let vec_b: Vec<f64> = (0..4 * n * n).map(|_| rng.gen()).collect::<_>();
-    let b_full = rt::asarray((vec_b, [2 * n, 2 * n].f(), &DeviceCpuSerial));
+    let b_full = rt::asarray((vec_b, [2 * n, 2 * n], &DeviceCpuSerial));
 
     // contiguous slice
     let b = b_full.slice([0..n, 0..n]);
@@ -36,6 +36,16 @@ fn rstsr_4096(criterion: &mut Criterion) {
     criterion.bench_function("rstsr simple sum 4096 strided", |bencher| {
         bencher.iter(|| {
             let c = b.sum_all();
+            black_box(c);
+        })
+    });
+
+    // add leading dimension
+    let b = b_full.reshape([4, n, n]);
+    criterion.bench_function("rstsr simple sum 4096 leading dimension", |bencher| {
+        bencher.iter(|| {
+            // let c = b.i(0) + b.i(1) + b.i(2) + b.i(3);
+            let c = b.sum(0);
             black_box(c);
         })
     });
@@ -77,10 +87,19 @@ fn ndarray_4096(criterion: &mut Criterion) {
             black_box(c);
         })
     });
+
+    // add leading dimension
+    let b = b_full.to_shape((4, n, n)).unwrap();
+    criterion.bench_function("ndarray simple sum 4096 leading dimension", |bencher| {
+        bencher.iter(|| {
+            let c = b.sum_axis(Axis(0));
+            black_box(c);
+        })
+    });
 }
 
 criterion_group! {
     name = bench;
-    config = Criterion::default().warm_up_time(Duration::from_millis(200)).measurement_time(Duration::from_millis(2000));
+    config = Criterion::default().warm_up_time(Duration::from_millis(200)).measurement_time(Duration::from_millis(2000)).sample_size(10);
     targets = rstsr_4096, ndarray_4096
 }

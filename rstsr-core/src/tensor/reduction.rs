@@ -114,9 +114,9 @@ mod test {
         let s = a.sum_all();
         assert_eq!(s, 446586);
 
-        let empty: [isize; 0] = [];
-        let s = a.sum(empty);
+        let s = a.sum(());
         println!("{:?}", s);
+        assert_eq!(s.to_scalar(), 446586);
     }
 
     #[test]
