@@ -388,3 +388,14 @@ impl_from_tuple_to_axes_index!(usize);
 /* #endregion AxisIndex tuple-type from */
 
 /* #endregion */
+
+/* #region ThreadedRawPtr */
+
+// https://stackoverflow.com/a/78555116/7740992
+
+#[derive(Clone, Copy)]
+pub struct ThreadedRawPtr<T: ?Sized>(pub *mut T);
+unsafe impl<T: ?Sized> Send for ThreadedRawPtr<T> {}
+unsafe impl<T: ?Sized> Sync for ThreadedRawPtr<T> {}
+
+/* #endregion */

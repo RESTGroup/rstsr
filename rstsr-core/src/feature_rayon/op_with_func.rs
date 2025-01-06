@@ -6,7 +6,7 @@ const CONTIG_SWITCH: usize = 16;
 // This value is used to determine when to use parallel iteration.
 // Actual switch value is PARALLEL_SWITCH * RAYON_NUM_THREADS.
 // Since current task is not intensive to each element, this value is large.
-const PARALLEL_SWITCH: usize = 256;
+const PARALLEL_SWITCH: usize = 128;
 // Currently, we do not make contiguous parts to be parallel. Only outer
 // iteration is parallelized.
 
@@ -48,14 +48,32 @@ where
         let iter_c = IterLayoutColMajor::new(&layouts_outer[0])?;
         let iter_a = IterLayoutColMajor::new(&layouts_outer[1])?;
         let iter_b = IterLayoutColMajor::new(&layouts_outer[2])?;
-        pool.install(|| {
-            (iter_c, iter_a, iter_b).into_par_iter().for_each(|(idx_c, idx_a, idx_b)| unsafe {
-                let c_ptr = c.as_ptr().add(idx_c) as *mut TC;
-                (0..size_contig).for_each(|idx| {
-                    f(&mut *c_ptr.add(idx), &a[idx_a + idx], &b[idx_b + idx]);
+        if size_contig < PARALLEL_SWITCH * nthreads {
+            // not parallel inner iteration
+            pool.install(|| {
+                (iter_c, iter_a, iter_b).into_par_iter().for_each(|(idx_c, idx_a, idx_b)| unsafe {
+                    let c_ptr = c.as_ptr().add(idx_c) as *mut TC;
+                    (0..size_contig).for_each(|idx| {
+                        f(&mut *c_ptr.add(idx), &a[idx_a + idx], &b[idx_b + idx]);
+                    });
                 });
             });
-        });
+        } else {
+            // parallel inner iteration
+            pool.install(|| {
+                (iter_c, iter_a, iter_b).into_par_iter().for_each(|(idx_c, idx_a, idx_b)| unsafe {
+                    let c_ptr = c.as_ptr().add(idx_c) as *mut TC;
+                    let c_ptr = ThreadedRawPtr(c_ptr);
+                    (0..size_contig).into_par_iter().with_min_len(PARALLEL_SWITCH).for_each(
+                        |idx| {
+                            let c_ptr = &c_ptr;
+                            let c_ptr = c_ptr.0;
+                            f(&mut *c_ptr.add(idx), &a[idx_a + idx], &b[idx_b + idx]);
+                        },
+                    );
+                });
+            });
+        }
     } else {
         // not possible for contiguous assign
         let iter_c = IterLayoutColMajor::new(&layouts_full[0])?;
@@ -104,14 +122,32 @@ where
         // parallel for outer iteration
         let iter_c = IterLayoutColMajor::new(&layouts_outer[0])?;
         let iter_a = IterLayoutColMajor::new(&layouts_outer[1])?;
-        pool.install(|| {
-            (iter_c, iter_a).into_par_iter().for_each(|(idx_c, idx_a)| unsafe {
-                let c_ptr = c.as_ptr().add(idx_c) as *mut TC;
-                (0..size_contig).for_each(|idx| {
-                    f(&mut *c_ptr.add(idx), &a[idx_a + idx], &b);
+        if size_contig < PARALLEL_SWITCH * nthreads {
+            // not parallel inner iteration
+            pool.install(|| {
+                (iter_c, iter_a).into_par_iter().for_each(|(idx_c, idx_a)| unsafe {
+                    let c_ptr = c.as_ptr().add(idx_c) as *mut TC;
+                    (0..size_contig).for_each(|idx| {
+                        f(&mut *c_ptr.add(idx), &a[idx_a + idx], &b);
+                    });
                 });
             });
-        });
+        } else {
+            // parallel inner iteration
+            pool.install(|| {
+                (iter_c, iter_a).into_par_iter().for_each(|(idx_c, idx_a)| unsafe {
+                    let c_ptr = c.as_ptr().add(idx_c) as *mut TC;
+                    let c_ptr = ThreadedRawPtr(c_ptr);
+                    (0..size_contig).into_par_iter().with_min_len(PARALLEL_SWITCH).for_each(
+                        |idx| {
+                            let c_ptr = &c_ptr;
+                            let c_ptr = c_ptr.0;
+                            f(&mut *c_ptr.add(idx), &a[idx_a + idx], &b);
+                        },
+                    );
+                });
+            });
+        }
     } else {
         // not possible for contiguous assign
         let iter_c = IterLayoutColMajor::new(&layouts_full[0])?;
@@ -159,14 +195,32 @@ where
         // parallel for outer iteration
         let iter_c = IterLayoutColMajor::new(&layouts_outer[0])?;
         let iter_b = IterLayoutColMajor::new(&layouts_outer[1])?;
-        pool.install(|| {
-            (iter_c, iter_b).into_par_iter().for_each(|(idx_c, idx_b)| unsafe {
-                let c_ptr = c.as_ptr().add(idx_c) as *mut TC;
-                (0..size_contig).for_each(|idx| {
-                    f(&mut *c_ptr.add(idx), &a, &b[idx_b + idx]);
+        if size_contig < PARALLEL_SWITCH * nthreads {
+            // not parallel inner iteration
+            pool.install(|| {
+                (iter_c, iter_b).into_par_iter().for_each(|(idx_c, idx_b)| unsafe {
+                    let c_ptr = c.as_ptr().add(idx_c) as *mut TC;
+                    (0..size_contig).for_each(|idx| {
+                        f(&mut *c_ptr.add(idx), &a, &b[idx_b + idx]);
+                    });
                 });
             });
-        });
+        } else {
+            // parallel inner iteration
+            pool.install(|| {
+                (iter_c, iter_b).into_par_iter().for_each(|(idx_c, idx_b)| unsafe {
+                    let c_ptr = c.as_ptr().add(idx_c) as *mut TC;
+                    let c_ptr = ThreadedRawPtr(c_ptr);
+                    (0..size_contig).into_par_iter().with_min_len(PARALLEL_SWITCH).for_each(
+                        |idx| {
+                            let c_ptr = &c_ptr;
+                            let c_ptr = c_ptr.0;
+                            f(&mut *c_ptr.add(idx), &a, &b[idx_b + idx]);
+                        },
+                    );
+                });
+            });
+        }
     } else {
         // not possible for contiguous assign
         let iter_c = IterLayoutColMajor::new(&layouts_full[0])?;
@@ -212,14 +266,32 @@ where
         // parallel for outer iteration
         let iter_a = IterLayoutColMajor::new(&layouts_outer[0])?;
         let iter_b = IterLayoutColMajor::new(&layouts_outer[1])?;
-        pool.install(|| {
-            (iter_a, iter_b).into_par_iter().for_each(|(idx_a, idx_b)| unsafe {
-                let a_ptr = a.as_ptr().add(idx_a) as *mut TA;
-                (0..size_contig).for_each(|idx| {
-                    f(&mut *a_ptr.add(idx), &b[idx_b + idx]);
+        if size_contig < PARALLEL_SWITCH * nthreads {
+            // not parallel inner iteration
+            pool.install(|| {
+                (iter_a, iter_b).into_par_iter().for_each(|(idx_a, idx_b)| unsafe {
+                    let a_ptr = a.as_ptr().add(idx_a) as *mut TA;
+                    (0..size_contig).for_each(|idx| {
+                        f(&mut *a_ptr.add(idx), &b[idx_b + idx]);
+                    });
                 });
             });
-        });
+        } else {
+            // parallel inner iteration
+            pool.install(|| {
+                (iter_a, iter_b).into_par_iter().for_each(|(idx_a, idx_b)| unsafe {
+                    let a_ptr = a.as_ptr().add(idx_a) as *mut TA;
+                    let a_ptr = ThreadedRawPtr(a_ptr);
+                    (0..size_contig).into_par_iter().with_min_len(PARALLEL_SWITCH).for_each(
+                        |idx| {
+                            let a_ptr = &a_ptr;
+                            let a_ptr = a_ptr.0;
+                            f(&mut *a_ptr.add(idx), &b[idx_b + idx]);
+                        },
+                    );
+                });
+            });
+        }
     } else {
         // not possible for contiguous assign
         let iter_a = IterLayoutColMajor::new(&layouts_full[0])?;
@@ -262,14 +334,32 @@ where
     if size_contig >= CONTIG_SWITCH {
         // parallel for outer iteration
         let iter_a = IterLayoutColMajor::new(&layout_contig[0])?;
-        pool.install(|| {
-            iter_a.into_par_iter().for_each(|idx_a| unsafe {
-                let a_ptr = a.as_ptr().add(idx_a) as *mut TA;
-                (0..size_contig).for_each(|idx| {
-                    f(&mut *a_ptr.add(idx), &b);
+        if size_contig < PARALLEL_SWITCH * nthreads {
+            // not parallel inner iteration
+            pool.install(|| {
+                iter_a.into_par_iter().for_each(|idx_a| unsafe {
+                    let a_ptr = a.as_ptr().add(idx_a) as *mut TA;
+                    (0..size_contig).for_each(|idx| {
+                        f(&mut *a_ptr.add(idx), &b);
+                    });
                 });
             });
-        });
+        } else {
+            // parallel inner iteration
+            pool.install(|| {
+                iter_a.into_par_iter().for_each(|idx_a| unsafe {
+                    let a_ptr = a.as_ptr().add(idx_a) as *mut TA;
+                    let a_ptr = ThreadedRawPtr(a_ptr);
+                    (0..size_contig).into_par_iter().with_min_len(PARALLEL_SWITCH).for_each(
+                        |idx| {
+                            let a_ptr = &a_ptr;
+                            let a_ptr = a_ptr.0;
+                            f(&mut *a_ptr.add(idx), &b);
+                        },
+                    );
+                });
+            });
+        }
     } else {
         // not possible for contiguous assign
         let iter_a = IterLayoutColMajor::new(&layout)?;
@@ -308,14 +398,32 @@ where
     let pool = DeviceCpuRayon::new(nthreads).get_pool(nthreads)?;
     if size_contig >= CONTIG_SWITCH {
         let iter_a = IterLayoutColMajor::new(&layout_contig[0])?;
-        pool.install(|| {
-            iter_a.into_par_iter().for_each(|idx_a| unsafe {
-                let a_ptr = a.as_ptr().add(idx_a) as *mut T;
-                (0..size_contig).for_each(|idx| {
-                    f(&mut *a_ptr.add(idx));
+        if size_contig < PARALLEL_SWITCH * nthreads {
+            // not parallel inner iteration
+            pool.install(|| {
+                iter_a.into_par_iter().for_each(|idx_a| unsafe {
+                    let a_ptr = a.as_ptr().add(idx_a) as *mut T;
+                    (0..size_contig).for_each(|idx| {
+                        f(&mut *a_ptr.add(idx));
+                    });
                 });
             });
-        });
+        } else {
+            // parallel inner iteration
+            pool.install(|| {
+                iter_a.into_par_iter().for_each(|idx_a| unsafe {
+                    let a_ptr = a.as_ptr().add(idx_a) as *mut T;
+                    let a_ptr = ThreadedRawPtr(a_ptr);
+                    (0..size_contig).into_par_iter().with_min_len(PARALLEL_SWITCH).for_each(
+                        |idx| {
+                            let a_ptr = &a_ptr;
+                            let a_ptr = a_ptr.0;
+                            f(&mut *a_ptr.add(idx));
+                        },
+                    );
+                });
+            });
+        }
     } else {
         let iter_a = IterLayoutColMajor::new(&layout)?;
         pool.install(|| {
