@@ -9,8 +9,6 @@ mod test {
 
     #[test]
     fn test_tensor_sum_leading() {
-        use rstsr_core::prelude::rstsr_traits::*;
-
         let n = 512;
         let time = Instant::now();
         let t_rstsr = {
@@ -67,8 +65,6 @@ mod test {
 
     #[test]
     fn test_tensor_sum_last() {
-        use rstsr_core::prelude::rstsr_traits::*;
-
         let n = 512;
         let time = Instant::now();
         let t_rstsr = {

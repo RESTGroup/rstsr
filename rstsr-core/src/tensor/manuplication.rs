@@ -1159,18 +1159,11 @@ pub trait TensorChangeShapeAPI<'l, I>: Sized {
     type OutCow;
     type OutOwned;
 
-    fn change_shape_f(&'l self, shape: I) -> Result<Self::OutCow>;
+    fn change_shape_f(self, shape: I) -> Result<Self::OutCow>;
     fn into_shape_f(self, shape: I) -> Result<Self::OutOwned>;
+    fn to_shape_f(&'l self, shape: I) -> Result<Self::OutCow>;
 
-    fn change_shape(&'l self, shape: I) -> Self::OutCow {
-        self.change_shape_f(shape).unwrap()
-    }
-
-    fn to_shape_f(&'l self, shape: I) -> Result<Self::OutCow> {
-        self.change_shape_f(shape)
-    }
-
-    fn to_shape(&'l self, shape: I) -> Self::OutCow {
+    fn change_shape(self, shape: I) -> Self::OutCow {
         self.change_shape_f(shape).unwrap()
     }
 
@@ -1178,8 +1171,12 @@ pub trait TensorChangeShapeAPI<'l, I>: Sized {
         self.into_shape_f(shape).unwrap()
     }
 
+    fn to_shape(&'l self, shape: I) -> Self::OutCow {
+        self.to_shape_f(shape).unwrap()
+    }
+
     fn reshape_f(&'l self, shape: I) -> Result<Self::OutCow> {
-        self.change_shape_f(shape)
+        self.to_shape_f(shape)
     }
 
     /// Reshapes an array without changing its data.
@@ -1194,64 +1191,82 @@ pub trait TensorChangeShapeAPI<'l, I>: Sized {
     ///
     /// [Python array API standard: `reshape`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.reshape.html)
     fn reshape(&'l self, shape: I) -> Self::OutCow {
-        self.change_shape_f(shape).unwrap()
+        self.to_shape(shape)
     }
 }
 
-pub fn change_shape_f<'l, Inp, I>(inp: &'l Inp, shape: I) -> Result<Inp::OutCow>
+impl<R, D> TensorBase<R, D>
 where
-    Inp: TensorChangeShapeAPI<'l, I>,
+    R: DataAPI,
+    D: DimAPI,
 {
-    inp.change_shape_f(shape)
-}
+    pub fn change_shape_f<'l, I>(
+        self,
+        shape: I,
+    ) -> Result<<Self as TensorChangeShapeAPI<'l, I>>::OutCow>
+    where
+        Self: TensorChangeShapeAPI<'l, I>,
+    {
+        TensorChangeShapeAPI::change_shape_f(self, shape)
+    }
 
-pub fn change_shape<'l, Inp, I>(inp: &'l Inp, shape: I) -> Inp::OutCow
-where
-    Inp: TensorChangeShapeAPI<'l, I>,
-{
-    inp.change_shape(shape)
-}
+    pub fn change_shape<'l, I>(self, shape: I) -> <Self as TensorChangeShapeAPI<'l, I>>::OutOwned
+    where
+        Self: TensorChangeShapeAPI<'l, I>,
+    {
+        TensorChangeShapeAPI::into_shape(self, shape)
+    }
 
-pub fn into_shape_f<'l, Inp, I>(inp: Inp, shape: I) -> Result<Inp::OutOwned>
-where
-    Inp: TensorChangeShapeAPI<'l, I>,
-{
-    inp.into_shape_f(shape)
-}
+    pub fn into_shape_f<'l, I>(
+        self,
+        shape: I,
+    ) -> Result<<Self as TensorChangeShapeAPI<'l, I>>::OutOwned>
+    where
+        Self: TensorChangeShapeAPI<'l, I>,
+    {
+        TensorChangeShapeAPI::into_shape_f(self, shape)
+    }
 
-pub fn into_shape<'l, Inp, I>(inp: Inp, shape: I) -> Inp::OutOwned
-where
-    Inp: TensorChangeShapeAPI<'l, I>,
-{
-    inp.into_shape(shape)
-}
+    pub fn into_shape<'l, I>(self, shape: I) -> <Self as TensorChangeShapeAPI<'l, I>>::OutOwned
+    where
+        Self: TensorChangeShapeAPI<'l, I>,
+    {
+        TensorChangeShapeAPI::into_shape(self, shape)
+    }
 
-pub fn to_shape_f<'l, Inp, I>(inp: &'l Inp, shape: I) -> Result<Inp::OutCow>
-where
-    Inp: TensorChangeShapeAPI<'l, I>,
-{
-    inp.to_shape_f(shape)
-}
+    pub fn to_shape_f<'l, I>(
+        &'l self,
+        shape: I,
+    ) -> Result<<Self as TensorChangeShapeAPI<'l, I>>::OutCow>
+    where
+        Self: TensorChangeShapeAPI<'l, I>,
+    {
+        TensorChangeShapeAPI::to_shape_f(self, shape)
+    }
 
-pub fn to_shape<'l, Inp, I>(inp: &'l Inp, shape: I) -> Inp::OutCow
-where
-    Inp: TensorChangeShapeAPI<'l, I>,
-{
-    inp.to_shape(shape)
-}
+    pub fn to_shape<'l, I>(&'l self, shape: I) -> <Self as TensorChangeShapeAPI<'l, I>>::OutCow
+    where
+        Self: TensorChangeShapeAPI<'l, I>,
+    {
+        TensorChangeShapeAPI::to_shape(self, shape)
+    }
 
-pub fn reshape_f<'l, Inp, I>(inp: &'l Inp, shape: I) -> Result<Inp::OutCow>
-where
-    Inp: TensorChangeShapeAPI<'l, I> + 'l,
-{
-    inp.reshape_f(shape)
-}
+    pub fn reshape_f<'l, I>(
+        &'l self,
+        shape: I,
+    ) -> Result<<Self as TensorChangeShapeAPI<'l, I>>::OutCow>
+    where
+        Self: TensorChangeShapeAPI<'l, I>,
+    {
+        TensorChangeShapeAPI::reshape_f(self, shape)
+    }
 
-pub fn reshape<'l, Inp, I>(inp: &'l Inp, shape: I) -> Inp::OutCow
-where
-    Inp: TensorChangeShapeAPI<'l, I> + 'l,
-{
-    inp.reshape(shape)
+    pub fn reshape<'l, I>(&'l self, shape: I) -> <Self as TensorChangeShapeAPI<'l, I>>::OutCow
+    where
+        Self: TensorChangeShapeAPI<'l, I>,
+    {
+        TensorChangeShapeAPI::reshape(self, shape)
+    }
 }
 
 impl<'a, R, T, D, B, I, const N: usize> TensorChangeShapeAPI<'a, [I; N]> for TensorBase<R, D>
@@ -1262,21 +1277,24 @@ where
     B: DeviceAPI<T>
         + DeviceCreationAnyAPI<T>
         + OpAssignArbitaryAPI<T, IxD, D>
-        + OpAssignAPI<T, IxD>
+        + OpAssignAPI<T, Ix<N>>
         + 'a,
     I: TryInto<isize> + Copy,
 {
     type OutCow = TensorBase<DataCow<'a, R::Data>, Ix<N>>;
     type OutOwned = TensorBase<DataOwned<R::Data>, Ix<N>>;
 
-    fn change_shape_f(&'a self, shape: [I; N]) -> Result<Self::OutCow> {
+    fn change_shape_f(self, shape: [I; N]) -> Result<Self::OutCow> {
         let shape = shape.iter().map(|&v| v.try_into().ok().unwrap()).collect::<Vec<isize>>();
-        change_shape_inner_f(self.view(), shape.try_into()?)?.into_dim_f()
+        change_shape_inner_f(self, shape.try_into()?)?.into_dim_f()
     }
 
     fn into_shape_f(self, shape: [I; N]) -> Result<Self::OutOwned> {
-        let shape = shape.iter().map(|&v| v.try_into().ok().unwrap()).collect::<Vec<isize>>();
-        change_shape_inner_f(self, shape.try_into()?).map(|t| t.into_owned())?.into_dim_f()
+        self.change_shape_f(shape).map(|t| t.into_owned())
+    }
+
+    fn to_shape_f(&'a self, shape: [I; N]) -> Result<Self::OutCow> {
+        self.view().change_shape_f(shape)
     }
 }
 
@@ -1295,14 +1313,17 @@ where
     type OutCow = TensorBase<DataCow<'a, R::Data>, IxD>;
     type OutOwned = TensorBase<DataOwned<R::Data>, IxD>;
 
-    fn change_shape_f(&'a self, shape: Vec<I>) -> Result<Self::OutCow> {
+    fn change_shape_f(self, shape: Vec<I>) -> Result<Self::OutCow> {
         let shape = shape.iter().map(|&v| v.try_into().ok().unwrap()).collect::<Vec<isize>>();
-        change_shape_inner_f(self.view(), shape.try_into()?)?.into_dim_f()
+        change_shape_inner_f(self, shape.try_into()?)?.into_dim_f()
     }
 
     fn into_shape_f(self, shape: Vec<I>) -> Result<Self::OutOwned> {
-        let shape = shape.iter().map(|&v| v.try_into().ok().unwrap()).collect::<Vec<isize>>();
-        change_shape_inner_f(self, shape.try_into()?).map(|t| t.into_owned())?.into_dim_f()
+        self.change_shape_f(shape).map(|t| t.into_owned())
+    }
+
+    fn to_shape_f(&'a self, shape: Vec<I>) -> Result<Self::OutCow> {
+        self.view().change_shape_f(shape)
     }
 }
 
@@ -1314,18 +1335,22 @@ where
     B: DeviceAPI<T>
         + DeviceCreationAnyAPI<T>
         + OpAssignArbitaryAPI<T, IxD, D>
-        + OpAssignAPI<T, IxD>
+        + OpAssignAPI<T, Ix1>
         + 'a,
 {
     type OutCow = TensorBase<DataCow<'a, R::Data>, Ix1>;
     type OutOwned = TensorBase<DataOwned<R::Data>, Ix1>;
 
-    fn change_shape_f(&'a self, shape: isize) -> Result<Self::OutCow> {
-        change_shape_inner_f(self.view(), [shape].try_into()?)?.into_dim_f()
+    fn change_shape_f(self, shape: isize) -> Result<Self::OutCow> {
+        change_shape_inner_f(self, [shape].try_into()?)?.into_dim_f()
     }
 
     fn into_shape_f(self, shape: isize) -> Result<Self::OutOwned> {
-        change_shape_inner_f(self, [shape].try_into()?).map(|t| t.into_owned())?.into_dim_f()
+        self.change_shape_f(shape).map(|t| t.into_owned())
+    }
+
+    fn to_shape_f(&'a self, shape: isize) -> Result<Self::OutCow> {
+        self.view().change_shape_f(shape)
     }
 }
 
