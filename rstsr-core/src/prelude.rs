@@ -10,6 +10,22 @@ pub mod rstsr_traits {
     };
     pub use crate::tensor::creation_from_tensor::DiagAPI;
     pub use crate::tensor::manuplication::TensorChangeShapeAPI;
+    pub use crate::tensor::operators::op_binary_common::{
+        TensorATan2API, TensorCopySignAPI, TensorEqualAPI, TensorFloatFloorDivideAPI,
+        TensorGreaterAPI, TensorGreaterEqualAPI, TensorHypotAPI, TensorIntFloorDivideAPI,
+        TensorLessAPI, TensorLessEqualAPI, TensorLogAddExpAPI, TensorMaximumAPI, TensorMinimumAPI,
+        TensorNotEqualAPI, TensorPowAPI,
+    };
+    pub use crate::tensor::operators::op_unary_common::{
+        TensorAcosAPI, TensorAcoshAPI, TensorAsinAPI, TensorAsinhAPI, TensorAtanAPI,
+        TensorAtanhAPI, TensorCeilAPI, TensorComplexAbsAPI, TensorComplexImagAPI,
+        TensorComplexRealAPI, TensorComplexSignAPI, TensorConjAPI, TensorCosAPI, TensorCoshAPI,
+        TensorExpAPI, TensorExpm1API, TensorFloorAPI, TensorInvAPI, TensorIsFiniteAPI,
+        TensorIsInfAPI, TensorIsNanAPI, TensorLog10API, TensorLog2API, TensorLogAPI,
+        TensorRealAbsAPI, TensorRealImagAPI, TensorRealRealAPI, TensorRealSignAPI, TensorRoundAPI,
+        TensorSignBitAPI, TensorSinAPI, TensorSinhAPI, TensorSqrtAPI, TensorSquareAPI,
+        TensorTanAPI, TensorTanhAPI, TensorTruncAPI,
+    };
     pub use core::ops::*;
 }
 
