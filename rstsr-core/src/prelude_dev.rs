@@ -49,9 +49,7 @@ pub use crate::feature_rayon::op_with_func::*;
 #[cfg(feature = "faer")]
 pub use crate::device_faer::device::*;
 
-pub use crate::{
-    Tensor, TensorArc, TensorBase, TensorCow, TensorMut, TensorRef, TensorView, TensorViewMut,
-};
+pub use crate::tensorbase::*;
 
 pub use crate::impl_from_tuple_to_axes_index;
 pub use crate::{
