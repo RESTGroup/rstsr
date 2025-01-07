@@ -5,7 +5,6 @@ edition = "2021"
 
 [dependencies]
 num = { workspace = true }
-thiserror = { workspace = true }
 itertools = { workspace = true }
 half = { workspace = true }
 rayon = { workspace = true, optional = true }
