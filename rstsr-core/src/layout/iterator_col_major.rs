@@ -22,15 +22,15 @@ pub struct IterLayoutColMajor<D>
 where
     D: DimDevAPI,
 {
-    layout: Layout<D>,
+    pub(crate) layout: Layout<D>,
 
-    index_start: D, // this is not used for buffer-order
-    iter_start: usize,
-    offset_start: isize,
+    pub(crate) index_start: D, // this is not used for buffer-order
+    pub(crate) iter_start: usize,
+    pub(crate) offset_start: isize,
 
-    index_end: D, // this is not used for buffer-order
-    iter_end: usize,
-    offset_end: isize,
+    pub(crate) index_end: D, // this is not used for buffer-order
+    pub(crate) iter_end: usize,
+    pub(crate) offset_end: isize,
 }
 
 impl<D> IterLayoutColMajor<D>
