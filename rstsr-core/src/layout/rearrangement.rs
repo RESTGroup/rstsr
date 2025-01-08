@@ -168,7 +168,7 @@ pub fn translate_to_col_major_unary<D>(
     order: TensorIterOrder,
 ) -> Result<Layout<D>>
 where
-    D: DimAPI,
+    D: DimDevAPI,
 {
     let fn_c = |l: &Layout<D>| Ok(l.reverse_axes());
     let fn_f = |l: &Layout<D>| Ok(l.clone());
