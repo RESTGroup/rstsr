@@ -1,4 +1,5 @@
 use crate::prelude_dev::*;
+use core::mem::transmute;
 
 /* #region vec view iterator */
 
@@ -39,6 +40,18 @@ where
     }
 }
 
+impl<T, D> IterSplitAtAPI for IterVecView<'_, T, D>
+where
+    D: DimDevAPI,
+{
+    fn split_at(self, mid: usize) -> (Self, Self) {
+        let (lhs, rhs) = self.layout_iter.split_at(mid);
+        let lhs = IterVecView { layout_iter: lhs, view: self.view };
+        let rhs = IterVecView { layout_iter: rhs, view: self.view };
+        (lhs, rhs)
+    }
+}
+
 impl<'a, R, T, D, B> TensorBase<R, D>
 where
     R: DataAPI<Data = Storage<T, B>>,
@@ -52,7 +65,7 @@ where
         // SAFETY: The lifetime of `rawvec` is guaranteed to be at least `'a`.
         // transmute is to change the lifetime, not for type casting.
         let iter = IterVecView { layout_iter, view: rawvec };
-        unsafe { core::mem::transmute(iter) }
+        unsafe { transmute(iter) }
     }
 
     pub fn iter(&self) -> IterVecView<'a, T, D> {
@@ -83,9 +96,7 @@ where
     type Item = &'a mut T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.layout_iter
-            .next()
-            .map(|offset| unsafe { core::mem::transmute(&mut self.view[offset]) })
+        self.layout_iter.next().map(|offset| unsafe { transmute(&mut self.view[offset]) })
     }
 }
 
@@ -94,9 +105,7 @@ where
     D: DimDevAPI,
 {
     fn next_back(&mut self) -> Option<Self::Item> {
-        self.layout_iter
-            .next_back()
-            .map(|offset| unsafe { core::mem::transmute(&mut self.view[offset]) })
+        self.layout_iter.next_back().map(|offset| unsafe { transmute(&mut self.view[offset]) })
     }
 }
 
@@ -106,6 +115,25 @@ where
 {
     fn len(&self) -> usize {
         self.layout_iter.len()
+    }
+}
+
+impl<T, D> IterSplitAtAPI for IterVecMut<'_, T, D>
+where
+    D: DimDevAPI,
+{
+    fn split_at(self, mid: usize) -> (Self, Self) {
+        // we do not split &mut [T], but split the layout iterator
+        // so we use unsafe code to generate two same &mut [T] views
+        let (lhs, rhs) = self.layout_iter.split_at(mid);
+        let cloned_view = unsafe {
+            let len = self.view.len();
+            let ptr = self.view.as_mut_ptr();
+            core::slice::from_raw_parts_mut(ptr, len)
+        };
+        let lhs = IterVecMut { layout_iter: lhs, view: cloned_view };
+        let rhs = IterVecMut { layout_iter: rhs, view: self.view };
+        (lhs, rhs)
     }
 }
 
@@ -122,7 +150,7 @@ where
         // SAFETY: The lifetime of `rawvec` is guaranteed to be at least `'a`.
         // transmute is to change the lifetime, not for type casting.
         let iter = IterVecMut { layout_iter, view: rawvec };
-        unsafe { core::mem::transmute(iter) }
+        unsafe { transmute(iter) }
     }
 
     pub fn iter_mut(&mut self) -> IterVecMut<'a, T, D> {
@@ -183,6 +211,18 @@ where
     }
 }
 
+impl<T, D> IterSplitAtAPI for IndexedIterVecView<'_, T, D>
+where
+    D: DimDevAPI,
+{
+    fn split_at(self, mid: usize) -> (Self, Self) {
+        let (lhs, rhs) = self.layout_iter.split_at(mid);
+        let lhs = IndexedIterVecView { layout_iter: lhs, view: self.view };
+        let rhs = IndexedIterVecView { layout_iter: rhs, view: self.view };
+        (lhs, rhs)
+    }
+}
+
 impl<'a, R, T, D, B> TensorBase<R, D>
 where
     R: DataAPI<Data = Storage<T, B>>,
@@ -204,7 +244,7 @@ where
         // SAFETY: The lifetime of `rawvec` is guaranteed to be at least `'a`.
         // transmute is to change the lifetime, not for type casting.
         let iter = IndexedIterVecView { layout_iter, view: rawvec };
-        unsafe { core::mem::transmute(iter) }
+        unsafe { transmute(iter) }
     }
 }
 
@@ -230,9 +270,9 @@ where
             IterLayout::ColMajor(iter_inner) => iter_inner.index_start.clone(),
             IterLayout::RowMajor(iter_inner) => iter_inner.index_start.clone(),
         };
-        self.layout_iter.next().map(|offset| {
-            (index, unsafe { core::mem::transmute::<&mut T, &mut T>(&mut self.view[offset]) })
-        })
+        self.layout_iter
+            .next()
+            .map(|offset| (index, unsafe { transmute::<&mut T, &mut T>(&mut self.view[offset]) }))
     }
 }
 
@@ -245,9 +285,9 @@ where
             IterLayout::ColMajor(iter_inner) => iter_inner.index_start.clone(),
             IterLayout::RowMajor(iter_inner) => iter_inner.index_start.clone(),
         };
-        self.layout_iter.next_back().map(|offset| {
-            (index, unsafe { core::mem::transmute::<&mut T, &mut T>(&mut self.view[offset]) })
-        })
+        self.layout_iter
+            .next_back()
+            .map(|offset| (index, unsafe { transmute::<&mut T, &mut T>(&mut self.view[offset]) }))
     }
 }
 
@@ -257,6 +297,23 @@ where
 {
     fn len(&self) -> usize {
         self.layout_iter.len()
+    }
+}
+
+impl<T, D> IterSplitAtAPI for IndexedIterVecMut<'_, T, D>
+where
+    D: DimDevAPI,
+{
+    fn split_at(self, mid: usize) -> (Self, Self) {
+        let (lhs, rhs) = self.layout_iter.split_at(mid);
+        let cloned_view = unsafe {
+            let len = self.view.len();
+            let ptr = self.view.as_mut_ptr();
+            core::slice::from_raw_parts_mut(ptr, len)
+        };
+        let lhs = IndexedIterVecMut { layout_iter: lhs, view: cloned_view };
+        let rhs = IndexedIterVecMut { layout_iter: rhs, view: self.view };
+        (lhs, rhs)
     }
 }
 
@@ -284,14 +341,14 @@ where
         // SAFETY: The lifetime of `rawvec` is guaranteed to be at least `'a`.
         // transmute is to change the lifetime, not for type casting.
         let iter = IndexedIterVecMut { layout_iter, view: rawvec };
-        unsafe { core::mem::transmute(iter) }
+        unsafe { transmute(iter) }
     }
 }
 
 /* #endregion */
 
 #[cfg(test)]
-mod tests {
+mod tests_serial {
     use super::*;
 
     #[test]
@@ -339,5 +396,34 @@ mod tests {
             ([1, 1], &3),
             ([1, 2], &5)
         ]);
+    }
+}
+
+#[cfg(test)]
+mod tests_parallel {
+    use super::*;
+    use rayon::prelude::*;
+
+    #[test]
+    fn test_iter() {
+        let a = arange(16384).into_shape([128, 128]);
+        let iter = a.iter().into_par_iter();
+        let vec = iter.collect::<Vec<_>>();
+        assert_eq!(vec[..6], vec![&0, &1, &2, &3, &4, &5]);
+
+        let iter_t = a.t().iter().into_par_iter();
+        let vec_t = iter_t.collect::<Vec<_>>();
+        assert_eq!(vec_t[..6], vec![&0, &128, &256, &384, &512, &640]);
+    }
+
+    #[test]
+    fn test_mut_iter() {
+        let mut a = arange(16384).into_shape([128, 128]);
+        let b = &a + 1;
+
+        let iter = a.iter_mut().into_par_iter();
+        iter.for_each(|x| *x += 1);
+
+        assert_eq!(a.reshape(-1).to_vec(), b.reshape(-1).to_vec());
     }
 }

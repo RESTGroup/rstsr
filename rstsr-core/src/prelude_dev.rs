@@ -35,6 +35,7 @@ pub use crate::tensor::creation_from_tensor::*;
 pub use crate::tensor::data::*;
 pub use crate::tensor::device_conversion::*;
 pub use crate::tensor::ext_conversion::*;
+pub use crate::tensor::iterator::*;
 pub use crate::tensor::manuplication::*;
 pub use crate::tensor::ownership_conversion::*;
 pub use crate::tensor::util::*;

@@ -297,6 +297,15 @@ where
     }
 }
 
+impl<D> IterSplitAtAPI for IterLayoutColMajor<D>
+where
+    D: DimDevAPI,
+{
+    fn split_at(self, index: usize) -> (Self, Self) {
+        Self::split_at(&self, index).unwrap()
+    }
+}
+
 /* #endregion */
 
 /* #region row-major */
@@ -588,6 +597,15 @@ where
     }
 }
 
+impl<D> IterSplitAtAPI for IterLayoutRowMajor<D>
+where
+    D: DimDevAPI,
+{
+    fn split_at(self, index: usize) -> (Self, Self) {
+        Self::split_at(&self, index).unwrap()
+    }
+}
+
 /* #endregion */
 
 /* #region enum of layout iterator */
@@ -670,6 +688,24 @@ where
         match self {
             Self::RowMajor(iter) => iter.len(),
             Self::ColMajor(iter) => iter.len(),
+        }
+    }
+}
+
+impl<D> IterSplitAtAPI for IterLayout<D>
+where
+    D: DimDevAPI,
+{
+    fn split_at(self, index: usize) -> (Self, Self) {
+        match self {
+            Self::RowMajor(iter) => {
+                let (lhs, rhs) = iter.split_at(index);
+                (Self::RowMajor(lhs), Self::RowMajor(rhs))
+            },
+            Self::ColMajor(iter) => {
+                let (lhs, rhs) = iter.split_at(index);
+                (Self::ColMajor(lhs), Self::ColMajor(rhs))
+            },
         }
     }
 }

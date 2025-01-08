@@ -1,56 +1,41 @@
 //! Layout parallel iterator
 
 use crate::prelude_dev::*;
-use rayon::{
-    iter::plumbing::{bridge, Consumer, Producer, ProducerCallback, UnindexedConsumer},
-    prelude::*,
-};
+use rayon::iter::plumbing::{bridge, Consumer, Producer, ProducerCallback, UnindexedConsumer};
+use rayon::prelude::*;
 
-/* #region layout iterator (col-major) */
+/* #region template for parallel iterator in RSTSR */
 
-pub struct ParIterLayoutColMajor<D>
-where
-    D: DimDevAPI,
-{
-    pub layout_iter: IterLayoutColMajor<D>,
+pub struct ParIterRSTSR<It> {
+    pub iter: It,
 }
 
-impl<D> IntoParallelIterator for IterLayoutColMajor<D>
+impl<It> Producer for ParIterRSTSR<It>
 where
-    D: DimDevAPI,
+    It: Iterator + DoubleEndedIterator + ExactSizeIterator + IterSplitAtAPI + Send,
+    It::Item: Send,
 {
-    type Item = usize;
-    type Iter = ParIterLayoutColMajor<D>;
-
-    fn into_par_iter(self) -> Self::Iter {
-        ParIterLayoutColMajor::<D> { layout_iter: self }
-    }
-}
-
-impl<D> Producer for ParIterLayoutColMajor<D>
-where
-    D: DimDevAPI,
-{
-    type Item = usize;
-    type IntoIter = IterLayoutColMajor<D>;
+    type Item = It::Item;
+    type IntoIter = It;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.layout_iter
+        self.iter
     }
 
     fn split_at(self, index: usize) -> (Self, Self) {
-        let (lhs, rhs) = self.layout_iter.split_at(index).unwrap();
-        let lhs = ParIterLayoutColMajor::<D> { layout_iter: lhs };
-        let rhs = ParIterLayoutColMajor::<D> { layout_iter: rhs };
+        let (lhs, rhs) = self.iter.split_at(index);
+        let lhs = ParIterRSTSR::<It> { iter: lhs };
+        let rhs = ParIterRSTSR::<It> { iter: rhs };
         return (lhs, rhs);
     }
 }
 
-impl<D> ParallelIterator for ParIterLayoutColMajor<D>
+impl<It> ParallelIterator for ParIterRSTSR<It>
 where
-    D: DimDevAPI,
+    It: Iterator + DoubleEndedIterator + ExactSizeIterator + IterSplitAtAPI + Send,
+    It::Item: Send,
 {
-    type Item = usize;
+    type Item = It::Item;
 
     fn drive_unindexed<C>(self, consumer: C) -> C::Result
     where
@@ -60,16 +45,17 @@ where
     }
 
     fn opt_len(&self) -> Option<usize> {
-        Some(self.layout_iter.len())
+        Some(self.iter.len())
     }
 }
 
-impl<D> IndexedParallelIterator for ParIterLayoutColMajor<D>
+impl<It> IndexedParallelIterator for ParIterRSTSR<It>
 where
-    D: DimDevAPI,
+    It: Iterator + DoubleEndedIterator + ExactSizeIterator + IterSplitAtAPI + Send,
+    It::Item: Send,
 {
     fn len(&self) -> usize {
-        self.layout_iter.len()
+        self.iter.len()
     }
 
     fn drive<C: Consumer<Self::Item>>(self, consumer: C) -> C::Result {
@@ -83,80 +69,53 @@ where
 
 /* #endregion */
 
-/* #region layout iterator (row-major) */
+/* #region layout iterator */
 
-pub struct ParIterLayoutRowMajor<D>
-where
-    D: DimDevAPI,
-{
-    pub layout_iter: IterLayoutRowMajor<D>,
+macro_rules! impl_par_iter_layout {
+    ($IterLayout: ident) => {
+        impl<D> IntoParallelIterator for $IterLayout<D>
+        where
+            D: DimDevAPI,
+        {
+            type Item = usize;
+            type Iter = ParIterRSTSR<Self>;
+
+            fn into_par_iter(self) -> Self::Iter {
+                Self::Iter { iter: self }
+            }
+        }
+    };
 }
 
-impl<D> IntoParallelIterator for IterLayoutRowMajor<D>
-where
-    D: DimDevAPI,
-{
-    type Item = usize;
-    type Iter = ParIterLayoutRowMajor<D>;
+impl_par_iter_layout!(IterLayoutColMajor);
+impl_par_iter_layout!(IterLayoutRowMajor);
+impl_par_iter_layout!(IterLayout);
 
-    fn into_par_iter(self) -> Self::Iter {
-        ParIterLayoutRowMajor::<D> { layout_iter: self }
-    }
+/* #endregion */
+
+/* #region tensor iterator */
+
+macro_rules! impl_par_iter_tensor {
+    ($IterTensor: ident, $item_type: ty) => {
+        impl<'a, T, D> IntoParallelIterator for $IterTensor<'a, T, D>
+        where
+            D: DimDevAPI,
+            T: Send + Sync,
+        {
+            type Item = $item_type;
+            type Iter = ParIterRSTSR<Self>;
+
+            fn into_par_iter(self) -> Self::Iter {
+                Self::Iter { iter: self }
+            }
+        }
+    };
 }
 
-impl<D> Producer for ParIterLayoutRowMajor<D>
-where
-    D: DimDevAPI,
-{
-    type Item = usize;
-    type IntoIter = IterLayoutRowMajor<D>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.layout_iter
-    }
-
-    fn split_at(self, index: usize) -> (Self, Self) {
-        let (lhs, rhs) = self.layout_iter.split_at(index).unwrap();
-        let lhs = ParIterLayoutRowMajor::<D> { layout_iter: lhs };
-        let rhs = ParIterLayoutRowMajor::<D> { layout_iter: rhs };
-        return (lhs, rhs);
-    }
-}
-
-impl<D> ParallelIterator for ParIterLayoutRowMajor<D>
-where
-    D: DimDevAPI,
-{
-    type Item = usize;
-
-    fn drive_unindexed<C>(self, consumer: C) -> C::Result
-    where
-        C: UnindexedConsumer<Self::Item>,
-    {
-        bridge(self, consumer)
-    }
-
-    fn opt_len(&self) -> Option<usize> {
-        Some(self.layout_iter.len())
-    }
-}
-
-impl<D> IndexedParallelIterator for ParIterLayoutRowMajor<D>
-where
-    D: DimDevAPI,
-{
-    fn len(&self) -> usize {
-        self.layout_iter.len()
-    }
-
-    fn drive<C: Consumer<Self::Item>>(self, consumer: C) -> C::Result {
-        bridge(self, consumer)
-    }
-
-    fn with_producer<CB: ProducerCallback<Self::Item>>(self, callback: CB) -> CB::Output {
-        callback.callback(self)
-    }
-}
+impl_par_iter_tensor!(IterVecView, &'a T);
+impl_par_iter_tensor!(IterVecMut, &'a mut T);
+impl_par_iter_tensor!(IndexedIterVecView, (D, &'a T));
+impl_par_iter_tensor!(IndexedIterVecMut, (D, &'a mut T));
 
 /* #endregion */
 
