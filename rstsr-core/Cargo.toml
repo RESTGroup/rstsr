@@ -18,6 +18,7 @@ itertools = { workspace = true }
 approx = { workspace = true }
 ndarray = { workspace = true }
 criterion = { workspace = true }
+cpu-time = { workspace = true }
 
 [features]
 default = ["c_prefer", "faer", "faer_as_default"]

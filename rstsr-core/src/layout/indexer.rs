@@ -88,10 +88,14 @@ impl_into_axes_index!(
     Slice<isize>,
     core::ops::Range<isize>,
     core::ops::RangeFrom<isize>,
+    core::ops::RangeTo<isize>,
     core::ops::Range<usize>,
     core::ops::RangeFrom<usize>,
+    core::ops::RangeTo<usize>,
     core::ops::Range<i32>,
-    core::ops::RangeFrom<i32>
+    core::ops::RangeFrom<i32>,
+    core::ops::RangeTo<i32>,
+    core::ops::RangeFull
 );
 
 impl_from_tuple_to_axes_index!(Indexer);

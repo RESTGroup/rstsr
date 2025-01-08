@@ -25,6 +25,7 @@ rand = { version = "0.8" }
 approx = { version = "0.5" }
 ndarray = { version = "0.15" }
 criterion = { version = "0.5" }
+cpu-time = { version = "1.0" }
 
 [profile.dev]
 opt-level = 2
