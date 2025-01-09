@@ -706,16 +706,15 @@ where
     // convert axis to positive indexes and (reversed) sort
     let ndim: isize = TryInto::<isize>::try_into(tensor.ndim())?;
     let mut layout = tensor.layout().clone().into_dim::<IxD>()?;
-    let mut axes = axes
-        .try_into()?
-        .as_ref()
-        .iter()
-        .map(|&v| if v >= 0 { v } else { v + ndim })
-        .collect::<Vec<isize>>();
+    let mut axes: Vec<isize> =
+        axes.try_into()?.as_ref().iter().map(|&v| if v >= 0 { v } else { v + ndim }).collect::<_>();
     axes.sort_by(|a, b| b.cmp(a));
+    if axes.first().is_some_and(|&v| v < 0) {
+        return Err(rstsr_error!(InvalidValue, "Some negative index is too small."));
+    }
     // check no two axis are the same
     for i in 0..axes.len() - 1 {
-        rstsr_assert!(axes[i] != axes[i + 1], InvalidValue)?;
+        rstsr_assert!(axes[i] != axes[i + 1], InvalidValue, "Same axes is not allowed here.")?;
     }
     // perform squeeze
     for &axis in axes.iter() {
@@ -1574,6 +1573,8 @@ mod tests {
         assert_eq!(b.shape(), &[4, 9, 8, 1]);
         let b = a.squeeze([1, -1]);
         assert_eq!(b.shape(), &[4, 9, 1, 8]);
+        let b = a.squeeze_f(-7);
+        assert!(b.is_err());
     }
 
     #[test]

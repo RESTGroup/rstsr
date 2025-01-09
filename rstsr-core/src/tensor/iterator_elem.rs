@@ -1,7 +1,7 @@
 use crate::prelude_dev::*;
 use core::mem::transmute;
 
-/* #region vec view iterator */
+/* #region elem view iterator */
 
 pub struct IterVecView<'a, T, D>
 where
@@ -79,7 +79,7 @@ where
 
 /* #endregion */
 
-/* #region vec mut iterator */
+/* #region elem mut iterator */
 
 pub struct IterVecMut<'a, T, D>
 where
@@ -164,7 +164,7 @@ where
 
 /* #endregion */
 
-/* #region vec view indexed iterator */
+/* #region elem view indexed iterator */
 
 pub struct IndexedIterVecView<'a, T, D>
 where
@@ -250,7 +250,7 @@ where
 
 /* #endregion */
 
-/* #region vec mut col iterator */
+/* #region elem mut col iterator */
 pub struct IndexedIterVecMut<'a, T, D>
 where
     D: DimDevAPI,
