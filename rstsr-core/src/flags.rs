@@ -168,3 +168,21 @@ pub enum TensorDiag {
 }
 
 /* #endregion */
+
+/* #region symm-flags */
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TensorSymm {
+    /// Symmetric matrix
+    Sy,
+    /// Hermitian matrix
+    He,
+    /// Anti-symmetric matrix
+    Ay,
+    /// Anti-Hermitian matrix
+    Ah,
+    /// Non-symmetric matrix
+    N,
+}
+
+/* #endregion */
