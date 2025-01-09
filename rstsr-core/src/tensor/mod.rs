@@ -1,4 +1,5 @@
 pub mod asarray;
+pub mod assignment;
 pub mod creation;
 pub mod creation_from_tensor;
 pub mod data;

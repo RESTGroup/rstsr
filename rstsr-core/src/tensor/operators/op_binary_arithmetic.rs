@@ -471,9 +471,9 @@ macro_rules! impl_binary_with_output {
         ) -> Result<()>
         where
             // tensor types
-            TRA: TensorRefOrOwnedAPI<Storage<TA, B>, DA>,
-            TRB: TensorRefOrOwnedAPI<Storage<TB, B>, DB>,
-            TRC: TensorRefMutAPI<Storage<TC, B>, DC>,
+            TRA: TensorViewAPI<Storage<TA, B>, DA>,
+            TRB: TensorViewAPI<Storage<TB, B>, DB>,
+            TRC: TensorViewMutAPI<Storage<TC, B>, DC>,
             // data constraints
             DA: DimAPI,
             DB: DimAPI,
@@ -486,9 +486,9 @@ macro_rules! impl_binary_with_output {
             B: $DeviceOpAPI<TA, TB, TC, DC>,
         {
             // get tensor views
-            let a = a.tsr_view();
-            let b = b.tsr_view();
-            let mut c = c.tsr_view_mut();
+            let a = a.view();
+            let b = b.view();
+            let mut c = c.view_mut();
             // check device
             rstsr_assert!(c.device().same_device(a.device()), DeviceMismatch)?;
             rstsr_assert!(c.device().same_device(b.device()), DeviceMismatch)?;
@@ -512,9 +512,9 @@ macro_rules! impl_binary_with_output {
         pub fn $op<TRA, TRB, TRC, TA, TB, TC, DA, DB, DC, B>(a: TRA, b: TRB, c: TRC)
         where
             // tensor types
-            TRA: TensorRefOrOwnedAPI<Storage<TA, B>, DA>,
-            TRB: TensorRefOrOwnedAPI<Storage<TB, B>, DB>,
-            TRC: TensorRefMutAPI<Storage<TC, B>, DC>,
+            TRA: TensorViewAPI<Storage<TA, B>, DA>,
+            TRB: TensorViewAPI<Storage<TB, B>, DB>,
+            TRC: TensorViewMutAPI<Storage<TC, B>, DC>,
             // data constraints
             DA: DimAPI,
             DB: DimAPI,

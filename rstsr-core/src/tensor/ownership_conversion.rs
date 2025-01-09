@@ -2,27 +2,6 @@ use crate::prelude_dev::*;
 
 /* #region basic conversion */
 
-pub trait ViewAPI<R, D>
-where
-    R: DataAPI,
-    D: DimAPI,
-{
-    /// Get a view of tensor.
-    fn view(&self) -> TensorBase<DataRef<'_, R::Data>, D>;
-}
-
-impl<R, D> ViewAPI<R, D> for TensorBase<R, D>
-where
-    R: DataAPI,
-    D: DimAPI,
-{
-    fn view(&self) -> TensorBase<DataRef<'_, R::Data>, D> {
-        let data = self.data().as_ref();
-        let layout = self.layout().clone();
-        unsafe { TensorBase::new_unchecked(data, layout) }
-    }
-}
-
 /// Methods for tensor ownership conversion.
 impl<R, D> TensorBase<R, D>
 where
@@ -252,110 +231,100 @@ where
 
 /* #endregion */
 
-/* #region operation API */
+/* #region view API */
 
-/// This trait is used for implementing operations that involves view-only
-/// input.
-pub trait TensorRefAPI<S, D>
+pub trait TensorViewAPI<S, D>
 where
     D: DimAPI,
 {
-    fn tsr_view(&self) -> TensorBase<DataRef<'_, S>, D>;
+    /// Get a view of tensor.
+    fn view(&self) -> TensorBase<DataRef<'_, S>, D>;
 }
 
-impl<R, S, D> TensorRefAPI<S, D> for &TensorBase<R, D>
+impl<R, D> TensorViewAPI<R::Data, D> for TensorBase<R, D>
 where
-    R: DataAPI<Data = S>,
+    R: DataAPI,
     D: DimAPI,
 {
-    #[inline]
-    fn tsr_view(&self) -> TensorBase<DataRef<'_, S>, D> {
-        self.view()
+    fn view(&self) -> TensorBase<DataRef<'_, R::Data>, D> {
+        let data = self.data().as_ref();
+        let layout = self.layout().clone();
+        unsafe { TensorBase::new_unchecked(data, layout) }
     }
 }
 
-impl<S, D> TensorRefAPI<S, D> for TensorBase<DataRef<'_, S>, D>
+impl<R, D> TensorViewAPI<R::Data, D> for &TensorBase<R, D>
 where
-    S: Clone,
+    R: DataAPI,
     D: DimAPI,
 {
-    #[inline]
-    fn tsr_view(&self) -> TensorBase<DataRef<'_, S>, D> {
-        self.view()
+    fn view(&self) -> TensorBase<DataRef<'_, R::Data>, D> {
+        (*self).view()
     }
 }
 
-/// This trait is used for implementing operations that involves view-only
-/// operation, but input can be view-only or owned.
-pub trait TensorRefOrOwnedAPI<S, D>
+pub trait TensorViewMutAPI<S, D>
 where
     D: DimAPI,
 {
-    fn tsr_view(&self) -> TensorBase<DataRef<'_, S>, D>;
+    /// Get a mutable view of tensor.
+    fn view_mut(&mut self) -> TensorBase<DataMut<'_, S>, D>;
 }
 
-impl<R, S, D> TensorRefOrOwnedAPI<S, D> for &TensorBase<R, D>
+impl<R, D> TensorViewMutAPI<R::Data, D> for TensorBase<R, D>
 where
-    R: DataAPI<Data = S>,
+    R: DataMutAPI,
     D: DimAPI,
 {
-    #[inline]
-    fn tsr_view(&self) -> TensorBase<DataRef<'_, S>, D> {
-        self.view()
+    fn view_mut(&mut self) -> TensorBase<DataMut<'_, R::Data>, D> {
+        let layout = self.layout().clone();
+        let data = self.data_mut().as_mut();
+        unsafe { TensorBase::new_unchecked(data, layout) }
     }
 }
 
-impl<S, D> TensorRefOrOwnedAPI<S, D> for TensorBase<DataRef<'_, S>, D>
+impl<R, D> TensorViewMutAPI<R::Data, D> for &mut TensorBase<R, D>
 where
-    S: Clone,
+    R: DataMutAPI,
     D: DimAPI,
 {
-    #[inline]
-    fn tsr_view(&self) -> TensorBase<DataRef<'_, S>, D> {
-        self.view()
+    fn view_mut(&mut self) -> TensorBase<DataMut<'_, R::Data>, D> {
+        (*self).view_mut()
     }
 }
 
-impl<S, D> TensorRefOrOwnedAPI<S, D> for TensorBase<DataOwned<S>, D>
+/* #endregion */
+
+/* #region tensor prop for computation */
+
+pub trait TensorRefAPI {}
+impl<R, D> TensorRefAPI for &TensorBase<R, D>
 where
-    S: Clone,
     D: DimAPI,
+    R: DataAPI,
+    Self: TensorViewAPI<R::Data, D>,
 {
-    #[inline]
-    fn tsr_view(&self) -> TensorBase<DataRef<'_, S>, D> {
-        self.view()
-    }
+}
+impl<S, D> TensorRefAPI for TensorBase<DataRef<'_, S>, D>
+where
+    D: DimAPI,
+    Self: TensorViewAPI<S, D>,
+{
 }
 
-/// This trait is used for implementing operations that involves view-mut
-/// input.
-pub trait TensorRefMutAPI<S, D>
+pub trait TensorRefMutAPI {}
+impl<R, D> TensorRefMutAPI for &mut TensorBase<R, D>
 where
+    R: DataAPI,
     D: DimAPI,
+    Self: TensorViewMutAPI<R::Data, D>,
 {
-    fn tsr_view_mut(&mut self) -> TensorBase<DataMut<'_, S>, D>;
 }
-
-impl<R, S, D> TensorRefMutAPI<S, D> for &mut TensorBase<R, D>
+impl<S, D> TensorRefMutAPI for TensorBase<DataMut<'_, S>, D>
 where
-    R: DataMutAPI<Data = S>,
     D: DimAPI,
+    Self: TensorViewMutAPI<S, D>,
 {
-    #[inline]
-    fn tsr_view_mut(&mut self) -> TensorBase<DataMut<'_, S>, D> {
-        self.view_mut()
-    }
-}
-
-impl<S, D> TensorRefMutAPI<S, D> for TensorBase<DataMut<'_, S>, D>
-where
-    S: Clone,
-    D: DimAPI,
-{
-    #[inline]
-    fn tsr_view_mut(&mut self) -> TensorBase<DataMut<'_, S>, D> {
-        self.view_mut()
-    }
 }
 
 /* #endregion */
