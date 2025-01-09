@@ -8,7 +8,6 @@ where
     R: DataAPI,
 {
     axes_iter: IterLayout<IxD>,
-    layout_inner: Layout<IxD>,
     view: TensorBase<DataRef<'a, R::Data>, IxD>,
 }
 
@@ -17,8 +16,7 @@ where
     R: DataAPI,
 {
     pub fn update_offset(&mut self, offset: usize) {
-        let layout = unsafe { self.layout_inner.set_offset(offset) };
-        self.view.layout = layout.clone();
+        unsafe { self.view.layout.set_offset(offset) };
     }
 }
 
@@ -63,16 +61,8 @@ where
 {
     fn split_at(self, index: usize) -> (Self, Self) {
         let (lhs_axes_iter, rhs_axes_iter) = self.axes_iter.split_at(index);
-        let lhs = IterAxesView {
-            axes_iter: lhs_axes_iter,
-            layout_inner: self.layout_inner.clone(),
-            view: self.view.clone(),
-        };
-        let rhs = IterAxesView {
-            axes_iter: rhs_axes_iter,
-            layout_inner: self.layout_inner,
-            view: self.view,
-        };
+        let lhs = IterAxesView { axes_iter: lhs_axes_iter, view: self.view.clone() };
+        let rhs = IterAxesView { axes_iter: rhs_axes_iter, view: self.view };
         return (lhs, rhs);
     }
 }
@@ -142,12 +132,10 @@ where
 
         // create axes iter
         let axes_iter = IterLayout::<IxD>::new(&layout_axes, order)?;
+        let mut view = self.view().into_dyn();
+        view.layout = layout_inner.clone();
         #[allow(clippy::missing_transmute_annotations)]
-        let iter = IterAxesView {
-            axes_iter,
-            layout_inner,
-            view: unsafe { transmute(self.view().to_dyn()) },
-        };
+        let iter = IterAxesView { axes_iter, view: unsafe { transmute(view) } };
         Ok(iter)
     }
 
@@ -178,6 +166,205 @@ where
 
 /* #endregion */
 
+/* #region axes iter mut iterator */
+
+pub struct IterAxesMut<'a, R>
+where
+    R: DataAPI,
+{
+    axes_iter: IterLayout<IxD>,
+    view: TensorBase<DataMut<'a, R::Data>, IxD>,
+}
+
+impl<R> IterAxesMut<'_, R>
+where
+    R: DataAPI,
+{
+    pub fn update_offset(&mut self, offset: usize) {
+        unsafe { self.view.layout.set_offset(offset) };
+    }
+
+    unsafe fn view_clone(&mut self) -> TensorBase<DataMut<'_, R::Data>, IxD> {
+        let layout = self.view.layout().clone();
+        let mut_ref = match &mut self.view.data {
+            DataMut::TrueRef(storage) => storage,
+            DataMut::ManuallyDropOwned(_) => unreachable!(),
+        };
+        // unsafely clone mut_ref without clone trait
+        let mut_other = &mut *(*mut_ref as *mut _);
+        let data_other = DataMut::TrueRef(mut_other);
+        TensorBase::new_unchecked(data_other, layout)
+    }
+}
+
+impl<'a, R> Iterator for IterAxesMut<'a, R>
+where
+    R: DataAPI,
+{
+    type Item = TensorBase<DataMut<'a, R::Data>, IxD>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.axes_iter.next().map(|offset| {
+            self.update_offset(offset);
+            unsafe { transmute(self.view_clone()) }
+        })
+    }
+}
+
+impl<R> DoubleEndedIterator for IterAxesMut<'_, R>
+where
+    R: DataAPI,
+{
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.axes_iter.next_back().map(|offset| {
+            self.update_offset(offset);
+            unsafe { transmute(self.view_clone()) }
+        })
+    }
+}
+
+impl<R> ExactSizeIterator for IterAxesMut<'_, R>
+where
+    R: DataAPI,
+{
+    fn len(&self) -> usize {
+        self.axes_iter.len()
+    }
+}
+
+impl<R> IterSplitAtAPI for IterAxesMut<'_, R>
+where
+    R: DataAPI,
+{
+    fn split_at(mut self, index: usize) -> (Self, Self) {
+        let (lhs_axes_iter, rhs_axes_iter) = self.axes_iter.clone().split_at(index);
+        #[allow(clippy::missing_transmute_annotations)]
+        let view_lhs = unsafe { transmute(self.view_clone()) };
+        let lhs = IterAxesMut { axes_iter: lhs_axes_iter, view: view_lhs };
+        let rhs = IterAxesMut { axes_iter: rhs_axes_iter, view: self.view };
+        return (lhs, rhs);
+    }
+}
+
+impl<'a, R, T, D, B> TensorBase<R, D>
+where
+    R: DataMutAPI<Data = Storage<T, B>>,
+    D: DimAPI,
+    B: DeviceAPI<T, RawVec = Vec<T>> + 'a,
+{
+    /// # Safety
+    ///
+    /// `iter_a = a.iter_mut` will generate mutable views of tensor,
+    /// both `iter_a` and `a` are mutable, which is not safe in rust.
+    pub unsafe fn axes_iter_mut_with_order_f<I>(
+        &mut self,
+        axes: I,
+        order: TensorIterOrder,
+    ) -> Result<IterAxesMut<'a, R>>
+    where
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
+    {
+        // convert axis to negative indexes and sort
+        let ndim: isize = TryInto::<isize>::try_into(self.ndim())?;
+        let axes: Vec<isize> = axes
+            .try_into()?
+            .as_ref()
+            .iter()
+            .map(|&v| if v >= 0 { v } else { v + ndim })
+            .collect::<Vec<isize>>();
+        let mut axes_check = axes.clone();
+        axes_check.sort();
+        // check no two axis are the same, and no negative index too small
+        if axes.first().is_some_and(|&v| v < 0) {
+            return Err(rstsr_error!(InvalidValue, "Some negative index is too small."));
+        }
+        for i in 0..axes_check.len() - 1 {
+            rstsr_assert!(
+                axes_check[i] != axes_check[i + 1],
+                InvalidValue,
+                "Same axes is not allowed here."
+            )?;
+        }
+
+        // get full layout
+        let layout = self.layout().to_dim::<IxD>()?;
+        let shape_full = layout.shape();
+        let stride_full = layout.stride();
+        let offset = layout.offset();
+
+        // get layout for axes_iter
+        let mut shape_axes = vec![];
+        let mut stride_axes = vec![];
+        for &idx in &axes {
+            shape_axes.push(shape_full[idx as usize]);
+            stride_axes.push(stride_full[idx as usize]);
+        }
+        let layout_axes = unsafe { Layout::new_unchecked(shape_axes, stride_axes, offset) };
+
+        // get layout for inner view
+        let mut shape_inner = vec![];
+        let mut stride_inner = vec![];
+        for idx in 0..ndim {
+            if !axes.contains(&idx) {
+                shape_inner.push(shape_full[idx as usize]);
+                stride_inner.push(stride_full[idx as usize]);
+            }
+        }
+        let layout_inner = unsafe { Layout::new_unchecked(shape_inner, stride_inner, offset) };
+
+        // create axes iter
+        let axes_iter = IterLayout::<IxD>::new(&layout_axes, order)?;
+        let mut view = self.view_mut().into_dyn();
+        view.layout = layout_inner.clone();
+        #[allow(clippy::missing_transmute_annotations)]
+        let iter = IterAxesMut { axes_iter, view: unsafe { transmute(view) } };
+        Ok(iter)
+    }
+
+    /// # Safety
+    ///
+    /// `iter_a = a.iter_mut` will generate mutable views of tensor,
+    /// both `iter_a` and `a` are mutable, which is not safe in rust.
+    pub unsafe fn axes_iter_mut_f<I>(&mut self, axes: I) -> Result<IterAxesMut<'a, R>>
+    where
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
+    {
+        self.axes_iter_mut_with_order_f(axes, TensorIterOrder::default())
+    }
+
+    /// # Safety
+    ///
+    /// `iter_a = a.iter_mut` will generate mutable views of tensor,
+    /// both `iter_a` and `a` are mutable, which is not safe in rust.
+    pub unsafe fn axes_iter_mut_with_order<I>(
+        &mut self,
+        axes: I,
+        order: TensorIterOrder,
+    ) -> IterAxesMut<'a, R>
+    where
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
+    {
+        self.axes_iter_mut_with_order_f(axes, order).unwrap()
+    }
+
+    /// # Safety
+    ///
+    /// `iter_a = a.iter_mut` will generate mutable views of tensor,
+    /// both `iter_a` and `a` are mutable, which is not safe in rust.
+    pub unsafe fn axes_iter_mut<I>(&mut self, axes: I) -> IterAxesMut<'a, R>
+    where
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
+    {
+        self.axes_iter_mut_f(axes).unwrap()
+    }
+}
+
+/* #endregion */
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -194,5 +381,21 @@ mod test {
             })
             .collect::<Vec<_>>();
         assert_eq!(res, vec![22, 27, 32, 37, 82, 87, 92, 97]);
+    }
+
+    #[test]
+    fn test_axes_iter_mut() {
+        let mut a = arange(120).into_shape([2, 3, 4, 5]);
+        let iter = unsafe { a.axes_iter_mut_with_order_f([0, 2], TensorIterOrder::C).unwrap() };
+
+        let res = iter
+            .map(|mut view| {
+                view += 1;
+                println!("{:3}", view);
+                view[[1, 2]]
+            })
+            .collect::<Vec<_>>();
+        println!("{:?}", res);
+        assert_eq!(res, vec![23, 28, 33, 38, 83, 88, 93, 98]);
     }
 }
