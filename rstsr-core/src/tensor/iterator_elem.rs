@@ -143,7 +143,11 @@ where
     D: DimAPI,
     B: DeviceAPI<T, RawVec = Vec<T>> + 'a,
 {
-    pub fn iter_mut_with_order(&mut self, order: TensorIterOrder) -> IterVecMut<'a, T, D> {
+    /// # Safety
+    ///
+    /// `iter_a = a.iter_mut` will generate mutable views of tensor,
+    /// both `iter_a` and `a` are mutable, which is not safe in rust.
+    pub unsafe fn iter_mut_with_order(&mut self, order: TensorIterOrder) -> IterVecMut<'a, T, D> {
         let layout_iter = IterLayout::new(self.layout(), order).unwrap();
         let rawvec = self.rawvec_mut().as_mut();
 
@@ -153,7 +157,11 @@ where
         unsafe { transmute(iter) }
     }
 
-    pub fn iter_mut(&mut self) -> IterVecMut<'a, T, D> {
+    /// # Safety
+    ///
+    /// `iter_a = a.iter_mut` will generate mutable views of tensor,
+    /// both `iter_a` and `a` are mutable, which is not safe in rust.
+    pub unsafe fn iter_mut(&mut self) -> IterVecMut<'a, T, D> {
         let order = match TensorOrder::default() {
             TensorOrder::C => TensorIterOrder::C,
             TensorOrder::F => TensorIterOrder::F,
@@ -323,7 +331,11 @@ where
     D: DimAPI,
     B: DeviceAPI<T, RawVec = Vec<T>> + 'a,
 {
-    pub fn indexed_iter_mut_with_order(
+    /// # Safety
+    ///
+    /// `iter_a = a.iter_mut` will generate mutable views of tensor,
+    /// both `iter_a` and `a` are mutable, which is not safe in rust.
+    pub unsafe fn indexed_iter_mut_with_order(
         &mut self,
         order: TensorIterOrder,
     ) -> IndexedIterVecMut<'a, T, D> {
@@ -341,7 +353,7 @@ where
         // SAFETY: The lifetime of `rawvec` is guaranteed to be at least `'a`.
         // transmute is to change the lifetime, not for type casting.
         let iter = IndexedIterVecMut { layout_iter, view: rawvec };
-        unsafe { transmute(iter) }
+        transmute(iter)
     }
 }
 
@@ -366,7 +378,7 @@ mod tests_serial {
     #[test]
     fn test_mut_iter() {
         let mut a = arange(6usize).into_shape([3, 2]);
-        let iter = a.iter_mut();
+        let iter = unsafe { a.iter_mut() };
         iter.for_each(|x| *x = 0);
         let a = a.reshape(-1).to_vec();
         assert_eq!(a, vec![0, 0, 0, 0, 0, 0]);
@@ -421,7 +433,7 @@ mod tests_parallel {
         let mut a = arange(16384).into_shape([128, 128]);
         let b = &a + 1;
 
-        let iter = a.iter_mut().into_par_iter();
+        let iter = unsafe { a.iter_mut().into_par_iter() };
         iter.for_each(|x| *x += 1);
 
         assert_eq!(a.reshape(-1).to_vec(), b.reshape(-1).to_vec());

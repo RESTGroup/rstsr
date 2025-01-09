@@ -117,6 +117,36 @@ impl_par_iter_tensor!(IterVecMut, &'a mut T);
 impl_par_iter_tensor!(IndexedIterVecView, (D, &'a T));
 impl_par_iter_tensor!(IndexedIterVecMut, (D, &'a mut T));
 
+macro_rules! impl_par_axes_iter_tensor {
+    ($IterTensor: ident, $TraitBound: ident, $item_type: ty) => {
+        impl<'a, R> IntoParallelIterator for $IterTensor<'a, R>
+        where
+            R: $TraitBound,
+            R::Data: Send,
+        {
+            type Item = $item_type;
+            type Iter = ParIterRSTSR<Self>;
+
+            fn into_par_iter(self) -> Self::Iter {
+                Self::Iter { iter: self }
+            }
+        }
+    };
+}
+
+impl_par_axes_iter_tensor!(IterAxesView, DataAPI, TensorBase<DataRef<'a, R::Data>, IxD>);
+impl_par_axes_iter_tensor!(IterAxesMut, DataMutAPI, TensorBase<DataMut<'a, R::Data>, IxD>);
+impl_par_axes_iter_tensor!(
+    IndexedIterAxesView,
+    DataAPI,
+    (IxD, TensorBase<DataRef<'a, R::Data>, IxD>)
+);
+impl_par_axes_iter_tensor!(
+    IndexedIterAxesMut,
+    DataMutAPI,
+    (IxD, TensorBase<DataMut<'a, R::Data>, IxD>)
+);
+
 /* #endregion */
 
 #[cfg(test)]
