@@ -7,7 +7,7 @@ const CONTIG_SWITCH: usize = 16;
 // Actual switch value is PARALLEL_SWITCH * RAYON_NUM_THREADS.
 // Since current task is not intensive to each element, this value is large.
 // 64 kB for f64
-const PARALLEL_SWITCH: usize = 8192;
+const PARALLEL_SWITCH: usize = 1024;
 // Currently, we do not make contiguous parts to be parallel. Only outer
 // iteration is parallelized.
 

@@ -6,7 +6,8 @@ const CONTIG_SWITCH: usize = 16;
 // This value is used to determine when to use parallel iteration.
 // Actual switch value is PARALLEL_SWITCH * RAYON_NUM_THREADS.
 // Since current task is not intensive to each element, this value is large.
-const PARALLEL_SWITCH: usize = 256;
+// 64 kB for f64
+const PARALLEL_SWITCH: usize = 1024;
 // For assignment, it is fully memory bounded; contiguous assignment is better
 // handled by serial code. So we only do parallel in outer iteration
 // (non-contiguous part).
@@ -30,7 +31,6 @@ where
     }
 
     // actual parallel iteration
-    let pool = DeviceCpuRayon::new(nthreads).get_pool(nthreads)?;
     if lc.c_contig() && la.c_contig() || lc.f_contig() && la.f_contig() {
         // contiguous case
         // we do not perform parallel for this case
@@ -58,6 +58,7 @@ where
         let iter_c = IterLayoutColMajor::new(&lc)?;
         let iter_a = IterLayoutColMajor::new(&la)?;
         // iterate and assign
+        let pool = DeviceCpuRayon::new(nthreads).get_pool(nthreads)?;
         pool.install(|| {
             (iter_c, iter_a).into_par_iter().for_each(|(idx_c, idx_a)| unsafe {
                 let c_ptr = c.as_ptr() as *mut T;

@@ -4,7 +4,7 @@ use crate::prelude_dev::*;
 use num::complex::Complex;
 use rayon::prelude::*;
 
-const PARALLEL_SWITCH: usize = 256;
+const PARALLEL_SWITCH: usize = 1024;
 
 /* #region gemm */
 
