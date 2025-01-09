@@ -31,6 +31,9 @@ pub struct DataArc<S> {
     pub(crate) storage: Arc<S>,
 }
 
+unsafe impl<S> Send for DataRef<'_, S> where S: Send {}
+unsafe impl<S> Sync for DataRef<'_, S> where S: Sync {}
+unsafe impl<S> Send for DataMut<'_, S> where S: Send {}
 unsafe impl<S> Send for DataArc<S> where S: Send {}
 unsafe impl<S> Sync for DataArc<S> where S: Sync {}
 
