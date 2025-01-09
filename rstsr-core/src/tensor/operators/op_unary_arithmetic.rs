@@ -3,23 +3,26 @@ use core::ops::*;
 
 macro_rules! trait_unary {
     ($op: ident, $op_f: ident, $TensorOpAPI: ident) => {
-        pub trait $TensorOpAPI {
+        pub trait $TensorOpAPI: Sized {
             type Output;
-            fn $op(self) -> Result<Self::Output>;
+            fn $op_f(self) -> Result<Self::Output>;
+            fn $op(self) -> Self::Output {
+                Self::$op_f(self).unwrap()
+            }
         }
 
         pub fn $op_f<TRA, TRB>(a: TRA) -> Result<TRB>
         where
             TRA: $TensorOpAPI<Output = TRB>,
         {
-            TRA::$op(a)
+            TRA::$op_f(a)
         }
 
         pub fn $op<TRA, TRB>(a: TRA) -> TRB
         where
             TRA: $TensorOpAPI<Output = TRB>,
         {
-            TRA::$op(a).unwrap()
+            TRA::$op(a)
         }
     };
 }
@@ -41,7 +44,7 @@ macro_rules! impl_unary_core_ops {
         {
             type Output = <Self as $TensorOpAPI>::Output;
             fn $op(self) -> Self::Output {
-                $TensorOpAPI::$op(self).unwrap()
+                $TensorOpAPI::$op(self)
             }
         }
 
@@ -52,7 +55,7 @@ macro_rules! impl_unary_core_ops {
         {
             type Output = <Self as $TensorOpAPI>::Output;
             fn $op(self) -> Self::Output {
-                $TensorOpAPI::$op(self).unwrap()
+                $TensorOpAPI::$op(self)
             }
         }
     };
@@ -66,7 +69,7 @@ mod impl_unary_core_ops {
 }
 
 macro_rules! impl_unary {
-    ($op: ident, $Op: ident, $TensorOpAPI: ident, $DeviceOpAPI: ident) => {
+    ($op_f: ident, $Op: ident, $TensorOpAPI: ident, $DeviceOpAPI: ident) => {
         impl<R, T, TB, D, B> $TensorOpAPI for &TensorBase<R, D>
         where
             D: DimAPI,
@@ -76,7 +79,7 @@ macro_rules! impl_unary {
             B: $DeviceOpAPI<T, TB, D> + DeviceCreationAnyAPI<T>,
         {
             type Output = Tensor<T, D, B>;
-            fn $op(self) -> Result<Self::Output> {
+            fn $op_f(self) -> Result<Self::Output> {
                 let lb = self.layout();
                 let storage_b = self.data().storage();
                 // generate empty output tensor
@@ -97,8 +100,8 @@ macro_rules! impl_unary {
             B: $DeviceOpAPI<T, TB, D> + DeviceCreationAnyAPI<T>,
         {
             type Output = Tensor<T, D, B>;
-            fn $op(self) -> Result<Self::Output> {
-                $TensorOpAPI::$op(&self)
+            fn $op_f(self) -> Result<Self::Output> {
+                $TensorOpAPI::$op_f(&self)
             }
         }
 
@@ -110,7 +113,7 @@ macro_rules! impl_unary {
             B: $DeviceOpAPI<T, T, D> + DeviceCreationAnyAPI<T>,
         {
             type Output = Tensor<T, D, B>;
-            fn $op(mut self) -> Result<Self::Output> {
+            fn $op_f(mut self) -> Result<Self::Output> {
                 let layout = self.layout().clone();
                 let device = self.device().clone();
                 let storage = self.data_mut().storage_mut();
@@ -125,8 +128,8 @@ macro_rules! impl_unary {
 #[rustfmt::skip]
 mod impl_unary {
     use super::*;
-    impl_unary!(neg, Neg, TensorNegAPI, DeviceNegAPI);
-    impl_unary!(not, Not, TensorNotAPI, DeviceNotAPI);
+    impl_unary!(neg_f, Neg, TensorNegAPI, DeviceNegAPI);
+    impl_unary!(not_f, Not, TensorNotAPI, DeviceNotAPI);
 }
 
 #[cfg(test)]

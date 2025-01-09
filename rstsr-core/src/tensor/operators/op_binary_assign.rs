@@ -3,22 +3,25 @@ use core::ops::*;
 
 macro_rules! trait_binary_assign {
     ($op: ident, $op_f: ident, $TensorOpAPI: ident) => {
-        pub trait $TensorOpAPI<TRB> {
-            fn $op(a: Self, b: TRB) -> Result<()>;
+        pub trait $TensorOpAPI<TRB>: Sized {
+            fn $op_f(a: Self, b: TRB) -> Result<()>;
+            fn $op(a: Self, b: TRB) {
+                Self::$op_f(a, b).unwrap()
+            }
         }
 
         pub fn $op_f<TRA, TRB>(a: TRA, b: TRB) -> Result<()>
         where
             TRA: $TensorOpAPI<TRB>,
         {
-            TRA::$op(a, b)
+            TRA::$op_f(a, b)
         }
 
         pub fn $op<TRA, TRB>(a: TRA, b: TRB)
         where
             TRA: $TensorOpAPI<TRB>,
         {
-            TRA::$op(a, b).unwrap()
+            TRA::$op(a, b)
         }
     };
 }
@@ -49,7 +52,7 @@ macro_rules! impl_assign_ops {
             for<'a> &'a mut Self: $TensorOpAPI<TRB>,
         {
             fn $op(&mut self, b: TRB) -> () {
-                $TensorOpAPI::$op(self, b).unwrap()
+                $TensorOpAPI::$op(self, b)
             }
         }
     };
@@ -71,7 +74,7 @@ mod impl_assign_ops {
 }
 
 macro_rules! impl_binary_assign {
-    ($op: ident, $TensorOpAPI: ident, $Op: ident, $DeviceOpAPI: ident) => {
+    ($op_f: ident, $TensorOpAPI: ident, $Op: ident, $DeviceOpAPI: ident) => {
         impl<RA, RB, TA, TB, DA, DB, B> $TensorOpAPI<&TensorBase<RB, DB>>
             for &mut TensorBase<RA, DA>
         where
@@ -88,7 +91,7 @@ macro_rules! impl_binary_assign {
             TA: $Op<TB>,
             B: $DeviceOpAPI<TA, TB, DA>,
         {
-            fn $op(a: Self, b: &TensorBase<RB, DB>) -> Result<()> {
+            fn $op_f(a: Self, b: &TensorBase<RB, DB>) -> Result<()> {
                 rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch)?;
                 let la = a.layout();
                 let lb = b.layout();
@@ -118,8 +121,8 @@ macro_rules! impl_binary_assign {
             TA: $Op<TB>,
             B: $DeviceOpAPI<TA, TB, DA>,
         {
-            fn $op(a: Self, b: TensorBase<RB, DB>) -> Result<()> {
-                $TensorOpAPI::$op(a, &b)
+            fn $op_f(a: Self, b: TensorBase<RB, DB>) -> Result<()> {
+                $TensorOpAPI::$op_f(a, &b)
             }
         }
 
@@ -136,7 +139,7 @@ macro_rules! impl_binary_assign {
             // this constraint prohibits confliting impl to TensorBase<RB, D>
             TB: num::Num,
         {
-            fn $op(a: Self, b: TB) -> Result<()> {
+            fn $op_f(a: Self, b: TB) -> Result<()> {
                 let la = a.layout().clone();
                 let device = a.device().clone();
                 let storage_a = a.data_mut().storage_mut();
@@ -149,16 +152,16 @@ macro_rules! impl_binary_assign {
 #[rustfmt::skip]
 mod impl_binary_assign {
     use super::*;
-    impl_binary_assign!(add_assign   , TensorAddAssignAPI   , AddAssign   , DeviceAddAssignAPI   );
-    impl_binary_assign!(sub_assign   , TensorSubAssignAPI   , SubAssign   , DeviceSubAssignAPI   );
-    impl_binary_assign!(mul_assign   , TensorMulAssignAPI   , MulAssign   , DeviceMulAssignAPI   );
-    impl_binary_assign!(div_assign   , TensorDivAssignAPI   , DivAssign   , DeviceDivAssignAPI   );
-    impl_binary_assign!(rem_assign   , TensorRemAssignAPI   , RemAssign   , DeviceRemAssignAPI   );
-    impl_binary_assign!(bitor_assign , TensorBitOrAssignAPI , BitOrAssign , DeviceBitOrAssignAPI );
-    impl_binary_assign!(bitand_assign, TensorBitAndAssignAPI, BitAndAssign, DeviceBitAndAssignAPI);
-    impl_binary_assign!(bitxor_assign, TensorBitXorAssignAPI, BitXorAssign, DeviceBitXorAssignAPI);
-    impl_binary_assign!(shl_assign   , TensorShlAssignAPI   , ShlAssign   , DeviceShlAssignAPI   );
-    impl_binary_assign!(shr_assign   , TensorShrAssignAPI   , ShrAssign   , DeviceShrAssignAPI   );
+    impl_binary_assign!(add_assign_f   , TensorAddAssignAPI   , AddAssign   , DeviceAddAssignAPI   );
+    impl_binary_assign!(sub_assign_f   , TensorSubAssignAPI   , SubAssign   , DeviceSubAssignAPI   );
+    impl_binary_assign!(mul_assign_f   , TensorMulAssignAPI   , MulAssign   , DeviceMulAssignAPI   );
+    impl_binary_assign!(div_assign_f   , TensorDivAssignAPI   , DivAssign   , DeviceDivAssignAPI   );
+    impl_binary_assign!(rem_assign_f   , TensorRemAssignAPI   , RemAssign   , DeviceRemAssignAPI   );
+    impl_binary_assign!(bitor_assign_f , TensorBitOrAssignAPI , BitOrAssign , DeviceBitOrAssignAPI );
+    impl_binary_assign!(bitand_assign_f, TensorBitAndAssignAPI, BitAndAssign, DeviceBitAndAssignAPI);
+    impl_binary_assign!(bitxor_assign_f, TensorBitXorAssignAPI, BitXorAssign, DeviceBitXorAssignAPI);
+    impl_binary_assign!(shl_assign_f   , TensorShlAssignAPI   , ShlAssign   , DeviceShlAssignAPI   );
+    impl_binary_assign!(shr_assign_f   , TensorShrAssignAPI   , ShrAssign   , DeviceShrAssignAPI   );
 }
 
 #[cfg(test)]
