@@ -1,6 +1,5 @@
-use num::ToPrimitive;
-
 use crate::prelude_dev::*;
+use num::ToPrimitive;
 
 /* #region pack_tri */
 
@@ -90,6 +89,12 @@ where
         // check last two dimensions are equal
         let n_tp: usize = lb_inner.shape()[0];
         let n: usize = (2 * n_tp).to_f64().unwrap().sqrt().floor().to_usize().unwrap();
+        rstsr_assert_eq!(
+            n * (n + 1) / 2,
+            n_tp,
+            InvalidLayout,
+            "Last dimension should be triangular number for unpack_tri."
+        )?;
 
         // layouts for output
         let mut la_shape = lb_rest.shape().to_vec();
