@@ -145,7 +145,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_pack_tri_f() {
+    fn test_pack_tri() {
         let a = arange((48., &DeviceCpuSerial)).into_layout([3, 4, 4].f());
         let a_triu = a.pack_tril();
         println!("{:?}", a_triu);
@@ -156,5 +156,16 @@ mod tests {
         let b = a_triu.unpack_tril(TensorSymm::Sy);
         println!("{:?}", b);
         assert_eq!(b.slice((0, 1)).to_vec(), [3., 15., 18., 21.]);
+    }
+
+    #[test]
+    fn test_par_pack_tril_compiles() {
+        use num::complex::c64;
+        let a = linspace((c64(-2.0, 1.5), c64(1.7, -2.3), 256 * 256 * 256))
+            .into_layout([4, 64, 256, 256].f());
+        let a_tril = a.pack_tril();
+        println!("{:20.5}", a_tril);
+        let b = a_tril.unpack_tril(TensorSymm::Ah);
+        println!("{:20.5}", b);
     }
 }
