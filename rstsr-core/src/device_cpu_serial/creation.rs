@@ -112,13 +112,13 @@ mod test {
         use num::Complex;
 
         let device = DeviceCpuSerial {};
-        let storage: Storage<f64> = device.zeros_impl(10).unwrap();
+        let storage: Storage<f64, _> = device.zeros_impl(10).unwrap();
         println!("{:?}", storage);
-        let storage: Storage<f64> = device.ones_impl(10).unwrap();
+        let storage: Storage<f64, _> = device.ones_impl(10).unwrap();
         println!("{:?}", storage);
-        let storage: Storage<f64> = device.arange_int_impl(10).unwrap();
+        let storage: Storage<f64, _> = device.arange_int_impl(10).unwrap();
         println!("{:?}", storage);
-        let storage: Storage<f64> = unsafe { device.empty_impl(10).unwrap() };
+        let storage: Storage<f64, _> = unsafe { device.empty_impl(10).unwrap() };
         println!("{:?}", storage);
         let storage = device.from_cpu_vec(&[1.0; 10]).unwrap();
         println!("{:?}", storage);

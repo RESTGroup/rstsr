@@ -1,3 +1,5 @@
+#![allow(clippy::missing_transmute_annotations)]
+
 use crate::prelude_dev::*;
 use core::mem::transmute;
 
@@ -29,7 +31,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         self.axes_iter.next().map(|offset| {
             self.update_offset(offset);
-            self.view.clone()
+            unsafe { transmute(self.view.view()) }
         })
     }
 }
@@ -41,7 +43,7 @@ where
     fn next_back(&mut self) -> Option<Self::Item> {
         self.axes_iter.next_back().map(|offset| {
             self.update_offset(offset);
-            self.view.clone()
+            unsafe { transmute(self.view.view()) }
         })
     }
 }
@@ -61,7 +63,8 @@ where
 {
     fn split_at(self, index: usize) -> (Self, Self) {
         let (lhs_axes_iter, rhs_axes_iter) = self.axes_iter.split_at(index);
-        let lhs = IterAxesView { axes_iter: lhs_axes_iter, view: self.view.clone() };
+        let view_lhs = unsafe { transmute(self.view.view()) };
+        let lhs = IterAxesView { axes_iter: lhs_axes_iter, view: view_lhs };
         let rhs = IterAxesView { axes_iter: rhs_axes_iter, view: self.view };
         return (lhs, rhs);
     }
@@ -134,7 +137,6 @@ where
         let axes_iter = IterLayout::<IxD>::new(&layout_axes, order)?;
         let mut view = self.view().into_dyn();
         view.layout = layout_inner.clone();
-        #[allow(clippy::missing_transmute_annotations)]
         let iter = IterAxesView { axes_iter, view: unsafe { transmute(view) } };
         Ok(iter)
     }
@@ -183,18 +185,6 @@ where
     pub fn update_offset(&mut self, offset: usize) {
         unsafe { self.view.layout.set_offset(offset) };
     }
-
-    unsafe fn view_clone(&mut self) -> TensorBase<DataMut<'_, R::Data>, IxD> {
-        let layout = self.view.layout().clone();
-        let mut_ref = match &mut self.view.data {
-            DataMut::TrueRef(storage) => storage,
-            DataMut::ManuallyDropOwned(_) => unreachable!(),
-        };
-        // unsafely clone mut_ref without clone trait
-        let mut_other = &mut *(*mut_ref as *mut _);
-        let data_other = DataMut::TrueRef(mut_other);
-        TensorBase::new_unchecked(data_other, layout)
-    }
 }
 
 impl<'a, R> Iterator for IterAxesMut<'a, R>
@@ -206,7 +196,7 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         self.axes_iter.next().map(|offset| {
             self.update_offset(offset);
-            unsafe { transmute(self.view_clone()) }
+            unsafe { transmute(self.view.view_mut()) }
         })
     }
 }
@@ -218,7 +208,7 @@ where
     fn next_back(&mut self) -> Option<Self::Item> {
         self.axes_iter.next_back().map(|offset| {
             self.update_offset(offset);
-            unsafe { transmute(self.view_clone()) }
+            unsafe { transmute(self.view.view_mut()) }
         })
     }
 }
@@ -238,8 +228,7 @@ where
 {
     fn split_at(mut self, index: usize) -> (Self, Self) {
         let (lhs_axes_iter, rhs_axes_iter) = self.axes_iter.clone().split_at(index);
-        #[allow(clippy::missing_transmute_annotations)]
-        let view_lhs = unsafe { transmute(self.view_clone()) };
+        let view_lhs = unsafe { transmute(self.view.view_mut()) };
         let lhs = IterAxesMut { axes_iter: lhs_axes_iter, view: view_lhs };
         let rhs = IterAxesMut { axes_iter: rhs_axes_iter, view: self.view };
         return (lhs, rhs);
@@ -317,7 +306,6 @@ where
         let axes_iter = IterLayout::<IxD>::new(&layout_axes, order)?;
         let mut view = self.view_mut().into_dyn();
         view.layout = layout_inner.clone();
-        #[allow(clippy::missing_transmute_annotations)]
         let iter = IterAxesMut { axes_iter, view: unsafe { transmute(view) } };
         Ok(iter)
     }
@@ -397,7 +385,7 @@ where
         };
         self.axes_iter.next().map(|offset| {
             self.update_offset(offset);
-            (index, self.view.clone())
+            (index, unsafe { transmute(self.view.view()) })
         })
     }
 }
@@ -413,7 +401,7 @@ where
         };
         self.axes_iter.next_back().map(|offset| {
             self.update_offset(offset);
-            (index, self.view.clone())
+            (index, unsafe { transmute(self.view.view()) })
         })
     }
 }
@@ -433,7 +421,8 @@ where
 {
     fn split_at(self, index: usize) -> (Self, Self) {
         let (lhs_axes_iter, rhs_axes_iter) = self.axes_iter.split_at(index);
-        let lhs = IndexedIterAxesView { axes_iter: lhs_axes_iter, view: self.view.clone() };
+        let view_lhs = unsafe { transmute(self.view.view()) };
+        let lhs = IndexedIterAxesView { axes_iter: lhs_axes_iter, view: view_lhs };
         let rhs = IndexedIterAxesView { axes_iter: rhs_axes_iter, view: self.view };
         return (lhs, rhs);
     }
@@ -514,7 +503,6 @@ where
         let axes_iter = IterLayout::<IxD>::new(&layout_axes, order)?;
         let mut view = self.view().into_dyn();
         view.layout = layout_inner.clone();
-        #[allow(clippy::missing_transmute_annotations)]
         let iter = IndexedIterAxesView { axes_iter, view: unsafe { transmute(view) } };
         Ok(iter)
     }
@@ -571,18 +559,6 @@ where
     pub fn update_offset(&mut self, offset: usize) {
         unsafe { self.view.layout.set_offset(offset) };
     }
-
-    unsafe fn view_clone(&mut self) -> TensorBase<DataMut<'_, R::Data>, IxD> {
-        let layout = self.view.layout().clone();
-        let mut_ref = match &mut self.view.data {
-            DataMut::TrueRef(storage) => storage,
-            DataMut::ManuallyDropOwned(_) => unreachable!(),
-        };
-        // unsafely clone mut_ref without clone trait
-        let mut_other = &mut *(*mut_ref as *mut _);
-        let data_other = DataMut::TrueRef(mut_other);
-        TensorBase::new_unchecked(data_other, layout)
-    }
 }
 
 impl<'a, R> Iterator for IndexedIterAxesMut<'a, R>
@@ -598,7 +574,7 @@ where
         };
         self.axes_iter.next().map(|offset| {
             self.update_offset(offset);
-            unsafe { transmute((index, self.view_clone())) }
+            unsafe { transmute((index, self.view.view_mut())) }
         })
     }
 }
@@ -614,7 +590,7 @@ where
         };
         self.axes_iter.next_back().map(|offset| {
             self.update_offset(offset);
-            unsafe { transmute((index, self.view_clone())) }
+            unsafe { transmute((index, self.view.view_mut())) }
         })
     }
 }
@@ -634,8 +610,7 @@ where
 {
     fn split_at(mut self, index: usize) -> (Self, Self) {
         let (lhs_axes_iter, rhs_axes_iter) = self.axes_iter.clone().split_at(index);
-        #[allow(clippy::missing_transmute_annotations)]
-        let view_lhs = unsafe { transmute(self.view_clone()) };
+        let view_lhs = unsafe { transmute(self.view.view_mut()) };
         let lhs = IndexedIterAxesMut { axes_iter: lhs_axes_iter, view: view_lhs };
         let rhs = IndexedIterAxesMut { axes_iter: rhs_axes_iter, view: self.view };
         return (lhs, rhs);
@@ -713,7 +688,6 @@ where
         let axes_iter = IterLayout::<IxD>::new(&layout_axes, order)?;
         let mut view = self.view_mut().into_dyn();
         view.layout = layout_inner.clone();
-        #[allow(clippy::missing_transmute_annotations)]
         let iter = IndexedIterAxesMut { axes_iter, view: unsafe { transmute(view) } };
         Ok(iter)
     }

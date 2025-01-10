@@ -8,7 +8,7 @@ pub struct DataOwned<S> {
     pub(crate) storage: S,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum DataRef<'a, S> {
     TrueRef(&'a S),
     ManuallyDropOwned(ManuallyDrop<S>),
