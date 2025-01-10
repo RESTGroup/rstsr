@@ -1,4 +1,8 @@
-use crate::prelude_dev::*;
+#[macro_export]
+macro_rules! macro_impl_rayon_op_binary_common {
+    ($Device: ident) => {
+
+use $crate::prelude_dev::*;
 use num::complex::{Complex, ComplexFloat};
 use num::{Bounded, Float, Num, Signed, Zero};
 
@@ -8,7 +12,7 @@ use num::{Bounded, Float, Num, Signed, Zero};
 
 macro_rules! impl_same_type {
     ($DeviceOpAPI: ident, $NumTrait: ident, $func:expr, $func_inplace:expr) => {
-        impl<T, D> $DeviceOpAPI<T, D> for DeviceFaer
+        impl<T, D> $DeviceOpAPI<T, D> for $Device
         where
             T: Clone + Send + Sync + $NumTrait,
             D: DimAPI,
@@ -91,7 +95,7 @@ mod impl_same_type {
 
 macro_rules! impl_boolean_output {
     ($DeviceOpAPI: ident, $NumTrait: ident, $func:expr) => {
-        impl<T, D> $DeviceOpAPI<T, D> for DeviceFaer
+        impl<T, D> $DeviceOpAPI<T, D> for $Device
         where
             T: Clone + Send + Sync + $NumTrait,
             D: DimAPI,
@@ -132,7 +136,7 @@ mod impl_bool_output{
 
 macro_rules! impl_complex_diff_type {
     ($DeviceOpAPI: ident, $NumTrait: ident, $func:expr) => {
-        impl<T, D> $DeviceOpAPI<Complex<T>, D> for DeviceFaer
+        impl<T, D> $DeviceOpAPI<Complex<T>, D> for $Device
         where
             T: Clone + Send + Sync + $NumTrait,
             D: DimAPI,
@@ -169,7 +173,7 @@ mod impl_complex_diff_type {
     impl_complex_diff_type!(DeviceComplexRealAPI , Clone , |a, b| *a = b.re.clone() );
 }
 
-impl<T, D> DeviceComplexSignAPI<Complex<T>, D> for DeviceFaer
+impl<T, D> DeviceComplexSignAPI<Complex<T>, D> for $Device
 where
     T: Clone + Send + Sync + Float,
     D: DimAPI,
@@ -192,3 +196,6 @@ where
 }
 
 /* #endregion */
+
+    };
+}

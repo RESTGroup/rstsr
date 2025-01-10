@@ -1,4 +1,5 @@
 use crate::device_cpu_serial::reduction::*;
+use crate::feature_rayon::*;
 use crate::prelude_dev::*;
 use rayon::prelude::*;
 

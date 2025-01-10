@@ -1,8 +1,12 @@
-use crate::prelude_dev::*;
+#[macro_export]
+macro_rules! macro_impl_rayon_op_binary_arithmetic {
+    ($Device: ident) => {
+
+use $crate::prelude_dev::*;
 
 macro_rules! impl_op_muta_refb_assign {
     ($DeviceOpAPI:ident, $Op:ident, $func:expr) => {
-        impl<TA, TB, D> $DeviceOpAPI<TA, TB, D> for DeviceFaer
+        impl<TA, TB, D> $DeviceOpAPI<TA, TB, D> for $Device
         where
             TA: Clone + Send + Sync + $Op<TB>,
             TB: Clone + Send + Sync,
@@ -43,7 +47,7 @@ mod impl_op_muta_refb_assign {
 
 macro_rules! impl_op_muta_refb_l_consume {
     ($DeviceOpAPI:ident, $Op:ident, $func:expr) => {
-        impl<TA, TB, D> $DeviceOpAPI<TA, TB, D> for DeviceFaer
+        impl<TA, TB, D> $DeviceOpAPI<TA, TB, D> for $Device
         where
             TA: Clone + Send + Sync + $Op<TB, Output = TA>,
             TB: Clone + Send + Sync,
@@ -84,7 +88,7 @@ mod impl_op_muta_refb_l_consume {
 
 macro_rules! impl_op_muta_refb_r_consume {
     ($DeviceOpAPI:ident, $Op:ident, $func:expr) => {
-        impl<TA, TB, D> $DeviceOpAPI<TA, TB, D> for DeviceFaer
+        impl<TA, TB, D> $DeviceOpAPI<TA, TB, D> for $Device
         where
             TA: Clone + Send + Sync + $Op<TB, Output = TB>,
             TB: Clone + Send + Sync,
@@ -125,7 +129,7 @@ mod impl_op_muta_refb_r_consume {
 
 macro_rules! impl_op_muta_refb_unary {
     ($DeviceOpAPI:ident, $Op:ident, $op_muta_refb_func:ident, $func:expr, $func_inplace:expr) => {
-        impl<TA, TB, D> $DeviceOpAPI<TA, TB, D> for DeviceFaer
+        impl<TA, TB, D> $DeviceOpAPI<TA, TB, D> for $Device
         where
             TA: Clone + Send + Sync,
             TB: Clone + Send + Sync,
@@ -160,4 +164,7 @@ mod impl_op_muta_refb_unary {
     use core::ops::*;
     impl_op_muta_refb_unary!(DeviceNegAPI, Neg, op_muta_refb_neg, |a, b| *a = -b.clone(), |a| *a = -a.clone());
     impl_op_muta_refb_unary!(DeviceNotAPI, Not, op_muta_refb_not, |a, b| *a = !b.clone(), |a| *a = !a.clone());
+}
+
+    };
 }

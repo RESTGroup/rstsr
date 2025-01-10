@@ -1,10 +1,14 @@
-use crate::prelude_dev::*;
+#[macro_export]
+macro_rules! macro_impl_rayon_op_ternary_common {
+    ($Device: ident) => {
+
+use $crate::prelude_dev::*;
 use core::cmp::Ord;
 use num::{pow::Pow, Float, Integer};
 
 macro_rules! impl_same_binary {
     ($DeviceOpAPI: ident, $TOut: ident, $TraitT: ident, $func:expr) => {
-        impl<T, D> $DeviceOpAPI<T, T, D> for DeviceFaer
+        impl<T, D> $DeviceOpAPI<T, T, D> for $Device
         where
             T: Clone + Send + Sync + $TraitT,
             D: DimAPI,
@@ -47,7 +51,7 @@ mod impl_same_binary {
     impl_same_binary!(DeviceIntFloorDivideAPI   , T    , Integer    , |c,  a,  b| *c = a.div_floor(b)           );
 }
 
-impl<TA, TB, D> DevicePowAPI<TA, TB, D> for DeviceFaer
+impl<TA, TB, D> DevicePowAPI<TA, TB, D> for $Device
 where
     TA: Clone + Send + Sync,
     TB: Clone + Send + Sync,
@@ -70,4 +74,6 @@ where
             *c = a.clone().pow(b.clone())
         })
     }
+}
+    };
 }
