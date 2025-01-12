@@ -2,6 +2,8 @@
 resolver = "2"
 members = [
     "rstsr-core",
+    "rstsr-openblas",
+    "rstsr-openblas-ffi",
 ]
 
 [workspace.package]
@@ -9,6 +11,8 @@ version = "0.1.0"
 edition = "2021"
 
 [workspace.dependencies]
+# members
+rstsr-core = { path = "./rstsr-core" }
 # basic dependencies
 num = { version = "0.4" }
 thiserror = { version = "1.0" }

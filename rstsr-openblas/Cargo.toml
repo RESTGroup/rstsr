@@ -1,0 +1,9 @@
+[package]
+name = "rstsr-openblas"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+rayon = { workspace = true }
+num = { workspace = true }
+rstsr-core = { workspace = true }

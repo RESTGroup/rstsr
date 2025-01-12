@@ -6,7 +6,7 @@ macro_rules! macro_impl_rayon_reduction {
         use $crate::feature_rayon::*;
         use $crate::prelude_dev::*;
 
-        impl<T, D> OpSumAPI<T, D> for DeviceFaer
+        impl<T, D> OpSumAPI<T, D> for $Device
         where
             T: Zero + Add<Output = T> + Clone + Send + Sync,
             D: DimAPI,

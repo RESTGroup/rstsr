@@ -1,0 +1,6 @@
+[package]
+name = "rstsr-openblas-ffi"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]

@@ -65,15 +65,17 @@ mod impl_op_mutc_refa_refb_operator {
     impl_op_mutc_refa_refb_operator!(DeviceShlAPI   , Shl   , |c, a, b| *c = a.clone() << b.clone());
     impl_op_mutc_refa_refb_operator!(DeviceShrAPI   , Shr   , |c, a, b| *c = a.clone() >> b.clone());
 }
+    };
+}
 
 #[cfg(test)]
 mod test {
-    use super::*;
+    use crate::prelude_dev::*;
 
     #[test]
     fn test_add() {
         let device_serial = DeviceCpuSerial;
-        let device_faer = $Device::default();
+        let device_faer = DeviceFaer::default();
         let a1 = linspace((1., 1024. * 1024., 1024 * 1024, &device_serial));
         let a1 = a1.into_shape_assume_contig_f([1024, 1024]).unwrap();
         let b1 = linspace((1., 1024. * 1024., 1024 * 1024, &device_serial));
@@ -87,6 +89,4 @@ mod test {
         let c2 = &a2 + &b2;
         assert!(allclose_f64(&c1, &c2));
     }
-}
-    };
 }
