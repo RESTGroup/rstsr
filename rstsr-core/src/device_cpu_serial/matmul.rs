@@ -16,17 +16,20 @@ where
     DC: DimAPI,
     TA: Mul<TB, Output = TC>,
     TC: Mul<TC, Output = TC> + Add<TC, Output = TC>,
-    Self: DeviceGEMMAPI<TA, TB, TC>,
-    Self: DeviceGEMVAPI<TA, TB, TC>,
-    Self: DeviceInnerDotAPI<TA, TB, TC>,
+    Self: DeviceGEMMAPI<TA, TB, TC>
+        + DeviceGEMVAPI<TA, TB, TC>
+        + DeviceInnerDotAPI<TA, TB, TC>
+        + DeviceAPI<TA, Raw = Vec<TA>>
+        + DeviceAPI<TB, Raw = Vec<TB>>
+        + DeviceAPI<TC, Raw = Vec<TC>>,
 {
     fn matmul(
         &self,
-        c: &mut Storage<TC, Self>,
+        c: &mut Vec<TC>,
         lc: &Layout<DC>,
-        a: &Storage<TA, Self>,
+        a: &Vec<TA>,
         la: &Layout<DA>,
-        b: &Storage<TB, Self>,
+        b: &Vec<TB>,
         lb: &Layout<DB>,
         alpha: TC,
         beta: TC,
@@ -192,11 +195,11 @@ where
 {
     fn gemm(
         &self,
-        c: &mut Storage<TC, Self>,
+        c: &mut Vec<TC>,
         lc: &Layout<Ix2>,
-        a: &Storage<TA, Self>,
+        a: &Vec<TA>,
         la: &Layout<Ix2>,
-        b: &Storage<TB, Self>,
+        b: &Vec<TB>,
         lb: &Layout<Ix2>,
         alpha: TC,
         beta: TC,
@@ -211,22 +214,19 @@ where
         let (m, n, k) = (sc[0], sc[1], sa[1]);
 
         // naive iteration: assuming c-prefer
-        let vc = c.rawvec_mut();
-        let va = a.rawvec();
-        let vb = b.rawvec();
         unsafe {
             for i_n in 0..m {
                 for i_m in 0..n {
                     let idx_c = lc.index_uncheck(&[i_m, i_n]) as usize;
-                    vc[idx_c] = beta.clone() * vc[idx_c].clone();
+                    c[idx_c] = beta.clone() * c[idx_c].clone();
                 }
                 for i_k in 0..k {
                     let idx_b = lb.index_uncheck(&[i_k, i_n]) as usize;
                     for i_m in 0..n {
                         let idx_c = lc.index_uncheck(&[i_m, i_n]) as usize;
                         let idx_a = la.index_uncheck(&[i_m, i_k]) as usize;
-                        vc[idx_c] = alpha.clone() * (va[idx_a].clone() * vb[idx_b].clone())
-                            + vc[idx_c].clone();
+                        c[idx_c] = alpha.clone() * (a[idx_a].clone() * b[idx_b].clone())
+                            + c[idx_c].clone();
                     }
                 }
             }
@@ -245,11 +245,11 @@ where
 {
     fn gemv(
         &self,
-        c: &mut Storage<TC, Self>,
+        c: &mut Vec<TC>,
         lc: &Layout<Ix1>,
-        a: &Storage<TA, Self>,
+        a: &Vec<TA>,
         la: &Layout<Ix2>,
-        b: &Storage<TB, Self>,
+        b: &Vec<TB>,
         lb: &Layout<Ix1>,
         alpha: TC,
         beta: TC,
@@ -263,18 +263,15 @@ where
         let (n, k) = (sa[0], sa[1]);
 
         // naive iteration: assuming c-prefer
-        let vc = c.rawvec_mut();
-        let va = a.rawvec();
-        let vb = b.rawvec();
         unsafe {
             for i_n in 0..n {
                 let idx_c = lc.index_uncheck(&[i_n]) as usize;
-                vc[idx_c] = beta.clone() * vc[idx_c].clone();
+                c[idx_c] = beta.clone() * c[idx_c].clone();
                 for i_k in 0..k {
                     let idx_a = la.index_uncheck(&[i_n, i_k]) as usize;
                     let idx_b = lb.index_uncheck(&[i_k]) as usize;
-                    vc[idx_c] =
-                        alpha.clone() * (va[idx_a].clone() * vb[idx_b].clone()) + vc[idx_c].clone();
+                    c[idx_c] =
+                        alpha.clone() * (a[idx_a].clone() * b[idx_b].clone()) + c[idx_c].clone();
                 }
             }
         }
@@ -283,11 +280,11 @@ where
 
     fn gevm(
         &self,
-        c: &mut Storage<TC, Self>,
+        c: &mut Vec<TC>,
         lc: &Layout<Ix1>,
-        a: &Storage<TA, Self>,
+        a: &Vec<TA>,
         la: &Layout<Ix1>,
-        b: &Storage<TB, Self>,
+        b: &Vec<TB>,
         lb: &Layout<Ix2>,
         alpha: TC,
         beta: TC,
@@ -301,18 +298,15 @@ where
         let (n, k) = (sb[1], sb[0]);
 
         // naive iteration: assuming c-prefer
-        let vc = c.rawvec_mut();
-        let va = a.rawvec();
-        let vb = b.rawvec();
         unsafe {
             for i_n in 0..n {
                 let idx_c = lc.index_uncheck(&[i_n]) as usize;
-                vc[idx_c] = beta.clone() * vc[idx_c].clone();
+                c[idx_c] = beta.clone() * c[idx_c].clone();
                 for i_k in 0..k {
                     let idx_a = la.index_uncheck(&[i_k]) as usize;
                     let idx_b = lb.index_uncheck(&[i_k, i_n]) as usize;
-                    vc[idx_c] =
-                        alpha.clone() * (va[idx_a].clone() * vb[idx_b].clone()) + vc[idx_c].clone();
+                    c[idx_c] =
+                        alpha.clone() * (a[idx_a].clone() * b[idx_b].clone()) + c[idx_c].clone();
                 }
             }
         }
@@ -330,11 +324,11 @@ where
 {
     fn inner_dot(
         &self,
-        c: &mut Storage<TC, Self>,
+        c: &mut Vec<TC>,
         lc: &Layout<Ix0>,
-        a: &Storage<TA, Self>,
+        a: &Vec<TA>,
         la: &Layout<Ix1>,
-        b: &Storage<TB, Self>,
+        b: &Vec<TB>,
         lb: &Layout<Ix1>,
         alpha: TC,
         beta: TC,
@@ -346,18 +340,15 @@ where
         let n = sa[0];
 
         // naive iteration
-        let vc = c.rawvec_mut();
-        let va = a.rawvec();
-        let vb = b.rawvec();
         unsafe {
             let idx_c = lc.index_uncheck(&[]) as usize;
-            let mut sum = beta * vc[idx_c].clone();
+            let mut sum = beta * c[idx_c].clone();
             for i in 0..n {
                 let idx_a = la.index_uncheck(&[i]) as usize;
                 let idx_b = lb.index_uncheck(&[i]) as usize;
-                sum = sum + alpha.clone() * (va[idx_a].clone() * vb[idx_b].clone());
+                sum = sum + alpha.clone() * (a[idx_a].clone() * b[idx_b].clone());
             }
-            vc[0] = sum;
+            c[0] = sum;
         }
         return Ok(());
     }

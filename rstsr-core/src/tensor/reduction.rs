@@ -2,55 +2,49 @@ use crate::prelude_dev::*;
 
 /* #region sum */
 
-pub fn sum_all_f<R, T, B, D>(tensor: &TensorBase<R, D>) -> Result<T>
+pub fn sum_all_f<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> Result<T>
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     D: DimAPI,
     B: OpSumAPI<T, D>,
 {
-    let storage = tensor.storage();
-    let layout = tensor.layout();
-    tensor.device().sum_all(storage, layout)
+    tensor.device().sum_all(tensor.raw(), tensor.layout())
 }
 
-pub fn sum_f<R, T, B, D, I>(tensor: &TensorBase<R, D>, axes: I) -> Result<Tensor<T, IxD, B>>
+pub fn sum_f<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, axes: I) -> Result<Tensor<T, B, IxD>>
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     D: DimAPI,
     B: OpSumAPI<T, D> + DeviceAPI<T> + DeviceCreationAnyAPI<T>,
     I: TryInto<AxesIndex<isize>>,
     Error: From<I::Error>,
 {
     let axes = axes.try_into()?;
-    let storage = tensor.storage();
-    let layout = tensor.layout();
 
     // special case for summing all axes
     if axes.as_ref().is_empty() {
-        let sum = tensor.device().sum_all(storage, layout)?;
+        let sum = tensor.device().sum_all(tensor.raw(), tensor.layout())?;
         let storage = tensor.device().outof_cpu_vec(vec![sum])?;
-        let data = DataOwned::from(storage);
         let layout = Layout::new(vec![], vec![], 0)?;
-        return Tensor::new_f(data, layout);
+        return Tensor::new_f(storage, layout);
     }
 
-    let (storage, layout) = tensor.device().sum(storage, layout, axes.as_ref())?;
-    let data = DataOwned::from(storage);
-    Tensor::new_f(data, layout)
+    let (storage, layout) = tensor.device().sum(tensor.raw(), tensor.layout(), axes.as_ref())?;
+    Tensor::new_f(storage, layout)
 }
 
-pub fn sum_all<R, T, B, D>(tensor: &TensorBase<R, D>) -> T
+pub fn sum_all<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> T
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     D: DimAPI,
     B: OpSumAPI<T, D>,
 {
     sum_all_f(tensor).unwrap()
 }
 
-pub fn sum<R, T, B, D, I>(tensor: &TensorBase<R, D>, axes: I) -> Tensor<T, IxD, B>
+pub fn sum<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, axes: I) -> Tensor<T, B, IxD>
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     D: DimAPI,
     B: OpSumAPI<T, D> + DeviceCreationAnyAPI<T>,
     I: TryInto<AxesIndex<isize>>,
@@ -59,9 +53,9 @@ where
     sum_f(tensor, axes).unwrap()
 }
 
-impl<R, T, B, D> TensorBase<R, D>
+impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     D: DimAPI,
     B: OpSumAPI<T, D>,
 {
@@ -73,7 +67,7 @@ where
         sum_all(self)
     }
 
-    pub fn sum_f<I>(&self, axes: I) -> Result<Tensor<T, IxD, B>>
+    pub fn sum_f<I>(&self, axes: I) -> Result<Tensor<T, B, IxD>>
     where
         B: DeviceCreationAnyAPI<T>,
         I: TryInto<AxesIndex<isize>>,
@@ -82,7 +76,7 @@ where
         sum_f(self, axes)
     }
 
-    pub fn sum<I>(&self, axes: I) -> Tensor<T, IxD, B>
+    pub fn sum<I>(&self, axes: I) -> Tensor<T, B, IxD>
     where
         B: DeviceCreationAnyAPI<T>,
         I: TryInto<AxesIndex<isize>>,

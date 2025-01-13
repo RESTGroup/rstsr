@@ -10,29 +10,29 @@ macro_rules! impl_op_mutc_refa_refb_operator {
         {
             fn op_mutc_refa_refb(
                 &self,
-                c: &mut Storage<TC, Self>,
+                c: &mut <Self as DeviceRawAPI<TC>>::Raw,
                 lc: &Layout<D>,
-                a: &Storage<TA, Self>,
+                a: &<Self as DeviceRawAPI<TA>>::Raw,
                 la: &Layout<D>,
-                b: &Storage<TB, Self>,
+                b: &<Self as DeviceRawAPI<TB>>::Raw,
                 lb: &Layout<D>,
             ) -> Result<()>;
 
             fn op_mutc_refa_numb(
                 &self,
-                c: &mut Storage<TC, Self>,
+                c: &mut <Self as DeviceRawAPI<TC>>::Raw,
                 lc: &Layout<D>,
-                a: &Storage<TA, Self>,
+                a: &<Self as DeviceRawAPI<TA>>::Raw,
                 la: &Layout<D>,
                 b: TB,
             ) -> Result<()>;
 
             fn op_mutc_numa_refb(
                 &self,
-                c: &mut Storage<TC, Self>,
+                c: &mut <Self as DeviceRawAPI<TC>>::Raw,
                 lc: &Layout<D>,
                 a: TA,
-                b: &Storage<TB, Self>,
+                b: &<Self as DeviceRawAPI<TB>>::Raw,
                 lb: &Layout<D>,
             ) -> Result<()>;
         }

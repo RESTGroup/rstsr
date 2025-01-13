@@ -20,11 +20,11 @@ fn same_type<A: 'static, B: 'static>() -> bool {
 
 #[allow(clippy::too_many_arguments)]
 pub fn gemm_faer_dispatch<TA, TB, TC>(
-    c: &mut Storage<TC, DeviceFaer>,
+    c: &mut [TC],
     lc: &Layout<Ix2>,
-    a: &Storage<TA, DeviceFaer>,
+    a: &[TA],
     la: &Layout<Ix2>,
-    b: &Storage<TB, DeviceFaer>,
+    b: &[TB],
     lb: &Layout<Ix2>,
     alpha: TC,
     beta: TC,
@@ -40,8 +40,8 @@ where
     // check if syrk could be applicable
     let able_syrk = if same_type::<TA, TC>() && same_type::<TB, TC>() {
         unsafe {
-            let a_ptr = a.rawvec().as_ptr().add(la.offset()) as *const TC;
-            let b_ptr = b.rawvec().as_ptr().add(lb.offset()) as *const TC;
+            let a_ptr = a.as_ptr().add(la.offset()) as *const TC;
+            let b_ptr = b.as_ptr().add(lb.offset()) as *const TC;
             let equal_ptr = a_ptr == b_ptr;
             let equal_shape = la.shape() == lb.reverse_axes().shape();
             let equal_stride = la.stride() == lb.reverse_axes().stride();
@@ -55,10 +55,9 @@ where
     macro_rules! impl_gemm_dispatch {
         ($ty: ty, $fn_gemm_name: ident, $fn_syrk_name: ident) => {
             if (same_type::<TA, $ty>() && same_type::<TB, $ty>() && same_type::<TC, $ty>()) {
-                let a_slice = unsafe { from_raw_parts(a.rawvec().as_ptr() as *const $ty, a.len()) };
-                let b_slice = unsafe { from_raw_parts(b.rawvec().as_ptr() as *const $ty, b.len()) };
-                let c_slice =
-                    unsafe { from_raw_parts_mut(c.rawvec_mut().as_mut_ptr() as *mut $ty, c.len()) };
+                let a_slice = unsafe { from_raw_parts(a.as_ptr() as *const $ty, a.len()) };
+                let b_slice = unsafe { from_raw_parts(b.as_ptr() as *const $ty, b.len()) };
+                let c_slice = unsafe { from_raw_parts_mut(c.as_mut_ptr() as *mut $ty, c.len()) };
                 let alpha = unsafe { *(&alpha as *const TC as *const $ty) };
                 let beta = unsafe { *(&beta as *const TC as *const $ty) };
                 if able_syrk {
@@ -78,9 +77,9 @@ where
 
     // not able to be accelarated by faer
     // fallback to naive implementation
-    let c_slice = c.rawvec_mut();
-    let a_slice = a.rawvec();
-    let b_slice = b.rawvec();
+    let c_slice = c;
+    let a_slice = a;
+    let b_slice = b;
     return gemm_naive_rayon(c_slice, lc, a_slice, la, b_slice, lb, alpha, beta, nthreads);
 }
 
@@ -95,35 +94,30 @@ where
     DC: DimAPI,
     TA: Mul<TB, Output = TC>,
     TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero,
-    Self: DeviceAPI<TA, RawVec = Vec<TA>>,
-    Self: DeviceAPI<TB, RawVec = Vec<TB>>,
-    Self: DeviceAPI<TC, RawVec = Vec<TC>>,
+    Self: DeviceAPI<TA, Raw = Vec<TA>>,
+    Self: DeviceAPI<TB, Raw = Vec<TB>>,
+    Self: DeviceAPI<TC, Raw = Vec<TC>>,
 {
     fn matmul(
         &self,
-        c: &mut Storage<TC, Self>,
+        c: &mut Vec<TC>,
         lc: &Layout<DC>,
-        a: &Storage<TA, Self>,
+        a: &Vec<TA>,
         la: &Layout<DA>,
-        b: &Storage<TB, Self>,
+        b: &Vec<TB>,
         lb: &Layout<DB>,
         alpha: TC,
         beta: TC,
     ) -> Result<()> {
         let nthreads = self.get_num_threads();
-        rstsr_assert!(c.device().same_device(a.device()), DeviceMismatch)?;
-        rstsr_assert!(c.device().same_device(b.device()), DeviceMismatch)?;
-        let c_slice = c.rawvec_mut().as_mut_slice();
-        let a_slice = a.rawvec().as_slice();
-        let b_slice = b.rawvec().as_slice();
         match (la.ndim(), lb.ndim(), lc.ndim()) {
             (1, 1, 0) => {
                 // rule 1: vector inner dot
                 let la = &la.clone().into_dim::<Ix1>().unwrap();
                 let lb = &lb.clone().into_dim::<Ix1>().unwrap();
                 let lc = &lc.clone().into_dim::<Ix0>().unwrap();
-                let c_num = &mut c_slice[lc.offset()];
-                inner_dot_naive_rayon(c_num, a_slice, la, b_slice, lb, alpha, beta, nthreads)?;
+                let c_num = &mut c[lc.offset()];
+                inner_dot_naive_rayon(c_num, a, la, b, lb, alpha, beta, nthreads)?;
             },
             (2, 2, 2) => {
                 // rule 2: matrix multiplication
@@ -236,13 +230,12 @@ where
                                     lc_m.set_offset(ic_rest);
                                 }
                                 // move mutable reference into parallel closure
-                                let c_rawvec = unsafe {
-                                    let c_ptr = c_slice.as_ptr() as *mut TC;
-                                    let c_len = c_slice.len();
+                                let c_raw = unsafe {
+                                    let c_ptr = c.as_ptr() as *mut TC;
+                                    let c_len = c.len();
                                     Vec::from_raw_parts(c_ptr, c_len, c_len)
                                 };
-                                let c = Storage::new(c_rawvec, a.device().clone());
-                                let mut c = ManuallyDrop::new(c);
+                                let mut c = ManuallyDrop::new(c_raw);
                                 // clone alpha and beta
                                 let alpha = alpha.clone();
                                 let beta = beta.clone();

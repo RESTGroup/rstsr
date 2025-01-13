@@ -10,13 +10,18 @@ macro_rules! trait_op_assign_api {
         {
             fn op_muta_refb(
                 &self,
-                a: &mut Storage<TA, Self>,
+                a: &mut <Self as DeviceRawAPI<TA>>::Raw,
                 la: &Layout<D>,
-                b: &Storage<TB, Self>,
+                b: &<Self as DeviceRawAPI<TB>>::Raw,
                 lb: &Layout<D>,
             ) -> Result<()>;
 
-            fn op_muta_numb(&self, a: &mut Storage<TA, Self>, la: &Layout<D>, b: TB) -> Result<()>;
+            fn op_muta_numb(
+                &self,
+                a: &mut <Self as DeviceRawAPI<TA>>::Raw,
+                la: &Layout<D>,
+                b: TB,
+            ) -> Result<()>;
         }
     };
 }
@@ -48,13 +53,18 @@ macro_rules! trait_op_l_consume_api {
         {
             fn op_muta_refb(
                 &self,
-                a: &mut Storage<TA, Self>,
+                a: &mut <Self as DeviceRawAPI<TA>>::Raw,
                 la: &Layout<D>,
-                b: &Storage<TB, Self>,
+                b: &<Self as DeviceRawAPI<TB>>::Raw,
                 lb: &Layout<D>,
             ) -> Result<()>;
 
-            fn op_muta_numb(&self, a: &mut Storage<TA, Self>, la: &Layout<D>, b: TB) -> Result<()>;
+            fn op_muta_numb(
+                &self,
+                a: &mut <Self as DeviceRawAPI<TA>>::Raw,
+                la: &Layout<D>,
+                b: TB,
+            ) -> Result<()>;
         }
     };
 }
@@ -86,13 +96,18 @@ macro_rules! trait_op_r_consume_api {
         {
             fn op_muta_refb(
                 &self,
-                b: &mut Storage<TB, Self>,
+                b: &mut <Self as DeviceRawAPI<TB>>::Raw,
                 lb: &Layout<D>,
-                a: &Storage<TA, Self>,
+                a: &<Self as DeviceRawAPI<TA>>::Raw,
                 la: &Layout<D>,
             ) -> Result<()>;
 
-            fn op_muta_numb(&self, b: &mut Storage<TB, Self>, lb: &Layout<D>, a: TA) -> Result<()>;
+            fn op_muta_numb(
+                &self,
+                b: &mut <Self as DeviceRawAPI<TB>>::Raw,
+                lb: &Layout<D>,
+                a: TA,
+            ) -> Result<()>;
         }
     };
 }
@@ -123,15 +138,19 @@ macro_rules! trait_op_unary_api {
         {
             fn op_muta_refb(
                 &self,
-                a: &mut Storage<TA, Self>,
+                a: &mut <Self as DeviceRawAPI<TA>>::Raw,
                 la: &Layout<D>,
-                b: &Storage<TB, Self>,
+                b: &<Self as DeviceRawAPI<TB>>::Raw,
                 lb: &Layout<D>,
             ) -> Result<()>
             where
                 TB: $Op<Output = TA>;
 
-            fn op_muta(&self, a: &mut Storage<TA, Self>, la: &Layout<D>) -> Result<()>
+            fn op_muta(
+                &self,
+                a: &mut <Self as DeviceRawAPI<TA>>::Raw,
+                la: &Layout<D>,
+            ) -> Result<()>
             where
                 TA: $Op<Output = TA>;
         }

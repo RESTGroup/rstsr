@@ -52,19 +52,19 @@ where
     }
 }
 
-impl<'a, R, T, D, B> TensorBase<R, D>
+impl<'a, R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     D: DimAPI,
-    B: DeviceAPI<T, RawVec = Vec<T>> + 'a,
+    B: DeviceAPI<T, Raw = Vec<T>> + 'a,
 {
     pub fn iter_with_order(&self, order: TensorIterOrder) -> IterVecView<'a, T, D> {
         let layout_iter = IterLayout::new(self.layout(), order).unwrap();
-        let rawvec = self.rawvec().as_ref();
+        let raw = self.raw().as_ref();
 
-        // SAFETY: The lifetime of `rawvec` is guaranteed to be at least `'a`.
+        // SAFETY: The lifetime of `raw` is guaranteed to be at least `'a`.
         // transmute is to change the lifetime, not for type casting.
-        let iter = IterVecView { layout_iter, view: rawvec };
+        let iter = IterVecView { layout_iter, view: raw };
         unsafe { transmute(iter) }
     }
 
@@ -137,11 +137,11 @@ where
     }
 }
 
-impl<'a, R, T, D, B> TensorBase<R, D>
+impl<'a, R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataMutAPI<Data = Storage<T, B>>,
+    R: DataMutAPI<Data = B::Raw>,
     D: DimAPI,
-    B: DeviceAPI<T, RawVec = Vec<T>> + 'a,
+    B: DeviceAPI<T, Raw = Vec<T>> + 'a,
 {
     /// # Safety
     ///
@@ -149,11 +149,11 @@ where
     /// both `iter_a` and `a` are mutable, which is not safe in rust.
     pub unsafe fn iter_mut_with_order(&mut self, order: TensorIterOrder) -> IterVecMut<'a, T, D> {
         let layout_iter = IterLayout::new(self.layout(), order).unwrap();
-        let rawvec = self.rawvec_mut().as_mut();
+        let raw = self.raw_mut().as_mut();
 
-        // SAFETY: The lifetime of `rawvec` is guaranteed to be at least `'a`.
+        // SAFETY: The lifetime of `raw` is guaranteed to be at least `'a`.
         // transmute is to change the lifetime, not for type casting.
-        let iter = IterVecMut { layout_iter, view: rawvec };
+        let iter = IterVecMut { layout_iter, view: raw };
         unsafe { transmute(iter) }
     }
 
@@ -231,11 +231,11 @@ where
     }
 }
 
-impl<'a, R, T, D, B> TensorBase<R, D>
+impl<'a, R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     D: DimAPI,
-    B: DeviceAPI<T, RawVec = Vec<T>> + 'a,
+    B: DeviceAPI<T, Raw = Vec<T>> + 'a,
 {
     pub fn indexed_iter_with_order(&self, order: TensorIterOrder) -> IndexedIterVecView<'a, T, D> {
         use TensorIterOrder::*;
@@ -247,11 +247,11 @@ where
             },
         };
         let layout_iter = IterLayout::<D>::new(self.layout(), order).unwrap();
-        let rawvec = self.rawvec().as_ref();
+        let raw = self.raw().as_ref();
 
-        // SAFETY: The lifetime of `rawvec` is guaranteed to be at least `'a`.
+        // SAFETY: The lifetime of `raw` is guaranteed to be at least `'a`.
         // transmute is to change the lifetime, not for type casting.
-        let iter = IndexedIterVecView { layout_iter, view: rawvec };
+        let iter = IndexedIterVecView { layout_iter, view: raw };
         unsafe { transmute(iter) }
     }
 }
@@ -325,11 +325,11 @@ where
     }
 }
 
-impl<'a, R, T, D, B> TensorBase<R, D>
+impl<'a, R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataMutAPI<Data = Storage<T, B>>,
+    R: DataMutAPI<Data = B::Raw>,
     D: DimAPI,
-    B: DeviceAPI<T, RawVec = Vec<T>> + 'a,
+    B: DeviceAPI<T, Raw = Vec<T>> + 'a,
 {
     /// # Safety
     ///
@@ -348,11 +348,11 @@ where
             },
         };
         let layout_iter = IterLayout::<D>::new(self.layout(), order).unwrap();
-        let rawvec = self.rawvec_mut().as_mut();
+        let raw = self.raw_mut().as_mut();
 
-        // SAFETY: The lifetime of `rawvec` is guaranteed to be at least `'a`.
+        // SAFETY: The lifetime of `raw` is guaranteed to be at least `'a`.
         // transmute is to change the lifetime, not for type casting.
-        let iter = IndexedIterVecMut { layout_iter, view: rawvec };
+        let iter = IndexedIterVecMut { layout_iter, view: raw };
         transmute(iter)
     }
 }
@@ -386,7 +386,7 @@ mod tests_serial {
 
     #[test]
     fn test_indexed_c_iter() {
-        let a = arange(6).into_shape([3, 2]);
+        let a = arange(6).into_layout([3, 2].c());
         let iter = a.indexed_iter_with_order(TensorIterOrder::C);
         let vec = iter.collect::<Vec<_>>();
         assert_eq!(vec, vec![

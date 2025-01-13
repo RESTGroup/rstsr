@@ -118,11 +118,12 @@ impl_par_iter_tensor!(IndexedIterVecView, (D, &'a T));
 impl_par_iter_tensor!(IndexedIterVecMut, (D, &'a mut T));
 
 macro_rules! impl_par_axes_iter_tensor {
-    ($IterTensor: ident, $TraitBound: ident, $item_type: ty) => {
-        impl<'a, R> IntoParallelIterator for $IterTensor<'a, R>
+    ($IterTensor: ident, $item_type: ty) => {
+        impl<'a, T, B> IntoParallelIterator for $IterTensor<'a, T, B>
         where
-            R: $TraitBound,
-            R::Data: Send,
+            T: Send + Sync,
+            B::Raw: Send,
+            B: DeviceAPI<T> + Send,
         {
             type Item = $item_type;
             type Iter = ParIterRSTSR<Self>;
@@ -134,18 +135,10 @@ macro_rules! impl_par_axes_iter_tensor {
     };
 }
 
-impl_par_axes_iter_tensor!(IterAxesView, DataAPI, TensorBase<DataRef<'a, R::Data>, IxD>);
-impl_par_axes_iter_tensor!(IterAxesMut, DataMutAPI, TensorBase<DataMut<'a, R::Data>, IxD>);
-impl_par_axes_iter_tensor!(
-    IndexedIterAxesView,
-    DataAPI,
-    (IxD, TensorBase<DataRef<'a, R::Data>, IxD>)
-);
-impl_par_axes_iter_tensor!(
-    IndexedIterAxesMut,
-    DataMutAPI,
-    (IxD, TensorBase<DataMut<'a, R::Data>, IxD>)
-);
+impl_par_axes_iter_tensor!(IterAxesView, TensorView<'a, T, B, IxD>);
+impl_par_axes_iter_tensor!(IterAxesMut, TensorMut<'a, T, B, IxD>);
+impl_par_axes_iter_tensor!(IndexedIterAxesView, (IxD, TensorView<'a, T, B, IxD>));
+impl_par_axes_iter_tensor!(IndexedIterAxesMut, (IxD, TensorMut<'a, T, B, IxD>));
 
 /* #endregion */
 

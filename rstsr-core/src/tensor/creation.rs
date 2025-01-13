@@ -61,13 +61,13 @@ where
     T: Num + PartialOrd,
     B: DeviceAPI<T> + DeviceCreationPartialOrdNumAPI<T>,
 {
-    type Out = Tensor<T, Ix1, B>;
+    type Out = Tensor<T, B, IxD>;
 
     fn arange_f(self) -> Result<Self::Out> {
         // full implementation
         let (start, stop, step, device) = self;
         let data = device.arange_impl(start, stop, step)?;
-        let layout = [data.len()].into();
+        let layout = vec![data.len()].into();
         unsafe { Ok(Tensor::new_unchecked(data.into(), layout)) }
     }
 }
@@ -77,7 +77,7 @@ where
     T: Num + PartialOrd,
     B: DeviceAPI<T> + DeviceCreationPartialOrdNumAPI<T>,
 {
-    type Out = Tensor<T, Ix1, B>;
+    type Out = Tensor<T, B, IxD>;
 
     fn arange_f(self) -> Result<Self::Out> {
         // (start, stop, device) -> (start, stop, 1, device)
@@ -92,7 +92,7 @@ where
     T: Num + PartialOrd,
     B: DeviceAPI<T> + DeviceCreationPartialOrdNumAPI<T>,
 {
-    type Out = Tensor<T, Ix1, B>;
+    type Out = Tensor<T, B, IxD>;
 
     fn arange_f(self) -> Result<Self::Out> {
         // (stop, device) -> (0, stop, 1, device)
@@ -107,7 +107,7 @@ impl<T> ArangeAPI<T> for (T, T, T)
 where
     T: Num + PartialOrd + Clone + Send + Sync,
 {
-    type Out = Tensor<T, Ix1, DeviceCpu>;
+    type Out = Tensor<T, DeviceCpu, IxD>;
 
     fn arange_f(self) -> Result<Self::Out> {
         // full implementation
@@ -120,7 +120,7 @@ impl<T> ArangeAPI<T> for (T, T)
 where
     T: Num + PartialOrd + Clone,
 {
-    type Out = Tensor<T, Ix1, DeviceCpu>;
+    type Out = Tensor<T, DeviceCpu, IxD>;
 
     fn arange_f(self) -> Result<Self::Out> {
         // (start, stop) -> (start, stop, 1)
@@ -133,7 +133,7 @@ impl<T> ArangeAPI<T> for T
 where
     T: Num + PartialOrd + Clone,
 {
-    type Out = Tensor<T, Ix1, DeviceCpu>;
+    type Out = Tensor<T, DeviceCpu, IxD>;
 
     fn arange_f(self) -> Result<Self::Out> {
         // (stop) -> (0, stop, 1)
@@ -193,14 +193,14 @@ where
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
 {
-    type Out = Tensor<T, D, B>;
+    type Out = Tensor<T, B, IxD>;
 
     unsafe fn empty_f(self) -> Result<Self::Out> {
         let (layout, device) = self;
         let layout = layout.into();
         let (_, idx_max) = layout.bounds_index()?;
-        let data: Storage<T, B> = B::empty_impl(device, idx_max)?;
-        unsafe { Ok(Tensor::new_unchecked(data.into(), layout)) }
+        let storage = B::empty_impl(device, idx_max)?;
+        unsafe { Ok(Tensor::new_unchecked(storage, layout.into_dim()?)) }
     }
 }
 
@@ -210,7 +210,7 @@ where
     D: DimAPI,
     T: Clone,
 {
-    type Out = Tensor<T, D, DeviceCpu>;
+    type Out = Tensor<T, DeviceCpu, IxD>;
 
     unsafe fn empty_f(self) -> Result<Self::Out> {
         empty_f((self, &DeviceCpu::default()))
@@ -263,30 +263,30 @@ where
     return EmptyLikeAPI::empty_like_f(param);
 }
 
-impl<R, T, D, B> EmptyLikeAPI<()> for (&TensorBase<R, D>, TensorIterOrder, &B)
+impl<R, T, B, D> EmptyLikeAPI<()> for (&TensorAny<R, T, B, D>, TensorIterOrder, &B)
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
 {
-    type Out = Tensor<T, D, B>;
+    type Out = Tensor<T, B, D>;
 
     unsafe fn empty_like_f(self) -> Result<Self::Out> {
         let (tensor, order, device) = self;
         let layout = layout_for_array_copy(tensor.layout(), order)?;
         let idx_max = layout.size();
-        let data: Storage<T, _> = device.empty_impl(idx_max)?;
-        unsafe { Ok(Tensor::new_unchecked(data.into(), layout)) }
+        let storage = device.empty_impl(idx_max)?;
+        unsafe { Ok(Tensor::new_unchecked(storage.into(), layout)) }
     }
 }
 
-impl<R, T, D, B> EmptyLikeAPI<()> for (&TensorBase<R, D>, &B)
+impl<R, T, B, D> EmptyLikeAPI<()> for (&TensorAny<R, T, B, D>, &B)
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
 {
-    type Out = Tensor<T, D, B>;
+    type Out = Tensor<T, B, D>;
 
     unsafe fn empty_like_f(self) -> Result<Self::Out> {
         let (tensor, device) = self;
@@ -294,13 +294,13 @@ where
     }
 }
 
-impl<R, T, D, B> EmptyLikeAPI<()> for (&TensorBase<R, D>, TensorIterOrder)
+impl<R, T, B, D> EmptyLikeAPI<()> for (&TensorAny<R, T, B, D>, TensorIterOrder)
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
 {
-    type Out = Tensor<T, D, B>;
+    type Out = Tensor<T, B, D>;
 
     unsafe fn empty_like_f(self) -> Result<Self::Out> {
         let (tensor, order) = self;
@@ -309,14 +309,14 @@ where
     }
 }
 
-impl<R, T, D, B> EmptyLikeAPI<()> for &TensorBase<R, D>
+impl<R, T, B, D> EmptyLikeAPI<()> for &TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     T: Clone,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
 {
-    type Out = Tensor<T, D, B>;
+    type Out = Tensor<T, B, D>;
 
     unsafe fn empty_like_f(self) -> Result<Self::Out> {
         let device = self.device();
@@ -363,7 +363,7 @@ where
     T: Num,
     B: DeviceAPI<T> + DeviceCreationNumAPI<T> + OpAssignAPI<T, Ix1>,
 {
-    type Out = Tensor<T, Ix2, B>;
+    type Out = Tensor<T, B, IxD>;
 
     fn eye_f(self) -> Result<Self::Out> {
         let (n_rows, n_cols, k, order, device) = self;
@@ -371,10 +371,10 @@ where
             TensorOrder::C => [n_rows, n_cols].c(),
             TensorOrder::F => [n_cols, n_rows].f(),
         };
-        let mut data = device.zeros_impl(layout.size())?;
+        let mut storage = device.zeros_impl(layout.size())?;
         let layout_diag = layout.diagonal(Some(k), Some(0), Some(1))?;
-        device.fill(&mut data, &layout_diag, T::one())?;
-        unsafe { Ok(Tensor::new_unchecked(data.into(), layout)) }
+        device.fill(storage.raw_mut(), &layout_diag, T::one())?;
+        unsafe { Ok(Tensor::new_unchecked(storage.into(), layout.into_dim()?)) }
     }
 }
 
@@ -383,7 +383,7 @@ where
     T: Num,
     B: DeviceAPI<T> + DeviceCreationNumAPI<T> + OpAssignAPI<T, Ix1>,
 {
-    type Out = Tensor<T, Ix2, B>;
+    type Out = Tensor<T, B, IxD>;
 
     fn eye_f(self) -> Result<Self::Out> {
         // (n_rows, n_cols, k, device) -> (n_rows, n_cols, k, C, device)
@@ -397,7 +397,7 @@ where
     T: Num,
     B: DeviceAPI<T> + DeviceCreationNumAPI<T> + OpAssignAPI<T, Ix1>,
 {
-    type Out = Tensor<T, Ix2, B>;
+    type Out = Tensor<T, B, IxD>;
 
     fn eye_f(self) -> Result<Self::Out> {
         // (n_rows, n_cols, k, device) -> (n_rows, n_cols, k, C, device)
@@ -410,7 +410,7 @@ impl<T> EyeAPI<T> for (usize, usize, isize, TensorOrder)
 where
     T: Num + Clone + Send + Sync,
 {
-    type Out = Tensor<T, Ix2, DeviceCpu>;
+    type Out = Tensor<T, DeviceCpu, IxD>;
 
     fn eye_f(self) -> Result<Self::Out> {
         let (n_rows, n_cols, k, order) = self;
@@ -422,7 +422,7 @@ impl<T> EyeAPI<T> for (usize, usize, isize)
 where
     T: Num + Clone + Send + Sync,
 {
-    type Out = Tensor<T, Ix2, DeviceCpu>;
+    type Out = Tensor<T, DeviceCpu, IxD>;
 
     fn eye_f(self) -> Result<Self::Out> {
         // (n_rows, n_cols, k) -> (n_rows, n_cols, k, C)
@@ -435,7 +435,7 @@ impl<T> EyeAPI<T> for usize
 where
     T: Num + Clone + Send + Sync,
 {
-    type Out = Tensor<T, Ix2, DeviceCpu>;
+    type Out = Tensor<T, DeviceCpu, IxD>;
 
     fn eye_f(self) -> Result<Self::Out> {
         // n_rows -> (n_rows, n_rows, 0, C)
@@ -482,14 +482,14 @@ where
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
     L: Into<Layout<D>>,
 {
-    type Out = Tensor<T, D, B>;
+    type Out = Tensor<T, B, IxD>;
 
     fn full_f(self) -> Result<Self::Out> {
         let (layout, fill, device) = self;
         let layout = layout.into();
         let idx_max = layout.size();
-        let data: Storage<T, _> = device.full_impl(idx_max, fill)?;
-        unsafe { Ok(Tensor::new_unchecked(data.into(), layout)) }
+        let storage = device.full_impl(idx_max, fill)?;
+        unsafe { Ok(Tensor::new_unchecked(storage, layout.into_dim()?)) }
     }
 }
 
@@ -499,7 +499,7 @@ where
     T: Clone,
     L: Into<Layout<D>>,
 {
-    type Out = Tensor<T, D, DeviceCpu>;
+    type Out = Tensor<T, DeviceCpu, IxD>;
 
     fn full_f(self) -> Result<Self::Out> {
         let (layout, fill) = self;
@@ -541,30 +541,30 @@ where
     return FullLikeAPI::full_like_f(param);
 }
 
-impl<R, T, D, B> FullLikeAPI<()> for (&TensorBase<R, D>, T, TensorIterOrder, &B)
+impl<R, T, B, D> FullLikeAPI<()> for (&TensorAny<R, T, B, D>, T, TensorIterOrder, &B)
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
 {
-    type Out = Tensor<T, D, B>;
+    type Out = Tensor<T, B, D>;
 
     fn full_like_f(self) -> Result<Self::Out> {
         let (tensor, fill, order, device) = self;
         let layout = layout_for_array_copy(tensor.layout(), order)?;
         let idx_max = layout.size();
-        let data: Storage<T, _> = device.full_impl(idx_max, fill)?;
-        unsafe { Ok(Tensor::new_unchecked(data.into(), layout)) }
+        let storage = device.full_impl(idx_max, fill)?;
+        unsafe { Ok(Tensor::new_unchecked(storage, layout)) }
     }
 }
 
-impl<R, T, D, B> FullLikeAPI<()> for (&TensorBase<R, D>, T, &B)
+impl<R, T, B, D> FullLikeAPI<()> for (&TensorAny<R, T, B, D>, T, &B)
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
 {
-    type Out = Tensor<T, D, B>;
+    type Out = Tensor<T, B, D>;
 
     fn full_like_f(self) -> Result<Self::Out> {
         let (tensor, fill, device) = self;
@@ -572,13 +572,13 @@ where
     }
 }
 
-impl<R, T, D, B> FullLikeAPI<()> for (&TensorBase<R, D>, T, TensorIterOrder)
+impl<R, T, B, D> FullLikeAPI<()> for (&TensorAny<R, T, B, D>, T, TensorIterOrder)
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
 {
-    type Out = Tensor<T, D, B>;
+    type Out = Tensor<T, B, D>;
 
     fn full_like_f(self) -> Result<Self::Out> {
         let (tensor, fill, order) = self;
@@ -587,13 +587,13 @@ where
     }
 }
 
-impl<R, T, D, B> FullLikeAPI<()> for (&TensorBase<R, D>, T)
+impl<R, T, B, D> FullLikeAPI<()> for (&TensorAny<R, T, B, D>, T)
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
 {
-    type Out = Tensor<T, D, B>;
+    type Out = Tensor<T, B, D>;
 
     fn full_like_f(self) -> Result<Self::Out> {
         let (tensor, fill) = self;
@@ -602,18 +602,18 @@ where
     }
 }
 
-impl<R, T, D, B> TensorBase<R, D>
+impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     T: Clone,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
 {
-    pub fn full_like(&self, fill: T) -> Tensor<T, D, B> {
+    pub fn full_like(&self, fill: T) -> Tensor<T, B, D> {
         full_like((self, fill))
     }
 
-    pub fn full_like_f(&self, fill: T) -> Result<Tensor<T, D, B>> {
+    pub fn full_like_f(&self, fill: T) -> Result<Tensor<T, B, D>> {
         full_like_f((self, fill))
     }
 }
@@ -660,12 +660,12 @@ where
     T: ComplexFloat,
     B: DeviceAPI<T> + DeviceCreationComplexFloatAPI<T>,
 {
-    type Out = Tensor<T, Ix1, B>;
+    type Out = Tensor<T, B, IxD>;
 
     fn linspace_f(self) -> Result<Self::Out> {
         let (start, end, n, endpoint, device) = self;
         let data = B::linspace_impl(device, start, end, n, endpoint)?;
-        let layout = [data.len()].into();
+        let layout = vec![data.len()].into();
         unsafe { Ok(Tensor::new_unchecked(data.into(), layout)) }
     }
 }
@@ -675,7 +675,7 @@ where
     T: ComplexFloat,
     B: DeviceAPI<T> + DeviceCreationComplexFloatAPI<T>,
 {
-    type Out = Tensor<T, Ix1, B>;
+    type Out = Tensor<T, B, IxD>;
 
     fn linspace_f(self) -> Result<Self::Out> {
         // (start, end, n, device) -> (start, end, n, true, device)
@@ -688,7 +688,7 @@ impl<T> LinspaceAPI<T> for (T, T, usize, bool)
 where
     T: ComplexFloat + Send + Sync,
 {
-    type Out = Tensor<T, Ix1, DeviceCpu>;
+    type Out = Tensor<T, DeviceCpu, IxD>;
 
     fn linspace_f(self) -> Result<Self::Out> {
         // (start, end, n, endpoint) -> (start, end, n, endpoint, device)
@@ -701,7 +701,7 @@ impl<T> LinspaceAPI<T> for (T, T, usize)
 where
     T: ComplexFloat + Send + Sync,
 {
-    type Out = Tensor<T, Ix1, DeviceCpu>;
+    type Out = Tensor<T, DeviceCpu, IxD>;
 
     fn linspace_f(self) -> Result<Self::Out> {
         // (start, end, n) -> (start, end, n, true, device)
@@ -750,14 +750,14 @@ where
     B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
     L: Into<Layout<D>>,
 {
-    type Out = Tensor<T, D, B>;
+    type Out = Tensor<T, B, IxD>;
 
     fn ones_f(self) -> Result<Self::Out> {
         let (layout, device) = self;
         let layout = layout.into();
         let (_, idx_max) = layout.bounds_index()?;
-        let data: Storage<T, _> = device.ones_impl(idx_max)?;
-        unsafe { Ok(Tensor::new_unchecked(data.into(), layout)) }
+        let storage = device.ones_impl(idx_max)?;
+        unsafe { Ok(Tensor::new_unchecked(storage, layout.into_dim()?)) }
     }
 }
 
@@ -767,7 +767,7 @@ where
     D: DimAPI,
     L: Into<Layout<D>>,
 {
-    type Out = Tensor<T, D, DeviceCpu>;
+    type Out = Tensor<T, DeviceCpu, IxD>;
 
     fn ones_f(self) -> Result<Self::Out> {
         ones_f((self, &DeviceCpu::default()))
@@ -808,32 +808,32 @@ where
     return OnesLikeAPI::ones_like_f(param);
 }
 
-impl<R, T, D, B> OnesLikeAPI<()> for (&TensorBase<R, D>, TensorIterOrder, &B)
+impl<R, T, B, D> OnesLikeAPI<()> for (&TensorAny<R, T, B, D>, TensorIterOrder, &B)
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     T: Num,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
 {
-    type Out = Tensor<T, D, B>;
+    type Out = Tensor<T, B, D>;
 
     fn ones_like_f(self) -> Result<Self::Out> {
         let (tensor, order, device) = self;
         let layout = layout_for_array_copy(tensor.layout(), order)?;
         let idx_max = layout.size();
-        let data: Storage<T, _> = device.ones_impl(idx_max)?;
-        unsafe { Ok(Tensor::new_unchecked(data.into(), layout)) }
+        let storage = device.ones_impl(idx_max)?;
+        unsafe { Ok(Tensor::new_unchecked(storage, layout)) }
     }
 }
 
-impl<R, T, D, B> OnesLikeAPI<()> for (&TensorBase<R, D>, &B)
+impl<R, T, B, D> OnesLikeAPI<()> for (&TensorAny<R, T, B, D>, &B)
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     T: Num,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
 {
-    type Out = Tensor<T, D, B>;
+    type Out = Tensor<T, B, D>;
 
     fn ones_like_f(self) -> Result<Self::Out> {
         let (tensor, device) = self;
@@ -841,14 +841,14 @@ where
     }
 }
 
-impl<R, T, D, B> OnesLikeAPI<()> for (&TensorBase<R, D>, TensorIterOrder)
+impl<R, T, B, D> OnesLikeAPI<()> for (&TensorAny<R, T, B, D>, TensorIterOrder)
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     T: Num,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
 {
-    type Out = Tensor<T, D, B>;
+    type Out = Tensor<T, B, D>;
 
     fn ones_like_f(self) -> Result<Self::Out> {
         let (tensor, order) = self;
@@ -857,14 +857,14 @@ where
     }
 }
 
-impl<R, T, D, B> OnesLikeAPI<()> for &TensorBase<R, D>
+impl<R, T, B, D> OnesLikeAPI<()> for &TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     T: Num,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
 {
-    type Out = Tensor<T, D, B>;
+    type Out = Tensor<T, B, D>;
 
     fn ones_like_f(self) -> Result<Self::Out> {
         let device = self.device();
@@ -872,9 +872,9 @@ where
     }
 }
 
-impl<R, T, D, B> TensorBase<R, D>
+impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     D: DimAPI,
     T: Num,
     B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
@@ -885,11 +885,11 @@ where
     /// # See also
     ///
     /// [`ones_like`]
-    pub fn ones_like(&self) -> Tensor<T, D, B> {
+    pub fn ones_like(&self) -> Tensor<T, B, D> {
         ones_like((self, TensorIterOrder::default(), self.device()))
     }
 
-    pub fn ones_like_f(&self) -> Result<Tensor<T, D, B>> {
+    pub fn ones_like_f(&self) -> Result<Tensor<T, B, D>> {
         ones_like_f((self, TensorIterOrder::default(), self.device()))
     }
 }
@@ -934,14 +934,14 @@ where
     B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
     L: Into<Layout<D>>,
 {
-    type Out = Tensor<T, D, B>;
+    type Out = Tensor<T, B, IxD>;
 
     fn zeros_f(self) -> Result<Self::Out> {
         let (layout, device) = self;
-        let layout = layout.into();
+        let layout: Layout<D> = layout.into();
         let (_, idx_max) = layout.bounds_index()?;
-        let data: Storage<T, _> = B::zeros_impl(device, idx_max)?;
-        unsafe { Ok(Tensor::new_unchecked(data.into(), layout)) }
+        let storage = B::zeros_impl(device, idx_max)?;
+        unsafe { Ok(Tensor::new_unchecked(storage, layout.into_dim()?)) }
     }
 }
 
@@ -951,7 +951,7 @@ where
     D: DimAPI,
     L: Into<Layout<D>>,
 {
-    type Out = Tensor<T, D, DeviceCpu>;
+    type Out = Tensor<T, DeviceCpu, IxD>;
 
     fn zeros_f(self) -> Result<Self::Out> {
         zeros_f((self, &DeviceCpu::default()))
@@ -992,32 +992,32 @@ where
     return ZerosLikeAPI::zeros_like_f(param);
 }
 
-impl<R, T, D, B> ZerosLikeAPI<()> for (&TensorBase<R, D>, TensorIterOrder, &B)
+impl<R, T, B, D> ZerosLikeAPI<()> for (&TensorAny<R, T, B, D>, TensorIterOrder, &B)
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     T: Num,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
 {
-    type Out = Tensor<T, D, B>;
+    type Out = Tensor<T, B, D>;
 
     fn zeros_like_f(self) -> Result<Self::Out> {
         let (tensor, order, device) = self;
         let layout = layout_for_array_copy(tensor.layout(), order)?;
         let idx_max = layout.size();
-        let data: Storage<T, _> = B::zeros_impl(device, idx_max)?;
-        unsafe { Ok(Tensor::new_unchecked(data.into(), layout)) }
+        let storage = B::zeros_impl(device, idx_max)?;
+        unsafe { Ok(Tensor::new_unchecked(storage, layout)) }
     }
 }
 
-impl<R, T, D, B> ZerosLikeAPI<()> for (&TensorBase<R, D>, &B)
+impl<R, T, B, D> ZerosLikeAPI<()> for (&TensorAny<R, T, B, D>, &B)
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     T: Num,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
 {
-    type Out = Tensor<T, D, B>;
+    type Out = Tensor<T, B, D>;
 
     fn zeros_like_f(self) -> Result<Self::Out> {
         let (tensor, device) = self;
@@ -1025,14 +1025,14 @@ where
     }
 }
 
-impl<R, T, D, B> ZerosLikeAPI<()> for (&TensorBase<R, D>, TensorIterOrder)
+impl<R, T, B, D> ZerosLikeAPI<()> for (&TensorAny<R, T, B, D>, TensorIterOrder)
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     T: Num,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
 {
-    type Out = Tensor<T, D, B>;
+    type Out = Tensor<T, B, D>;
 
     fn zeros_like_f(self) -> Result<Self::Out> {
         let (tensor, order) = self;
@@ -1041,23 +1041,23 @@ where
     }
 }
 
-impl<R, T, D, B> ZerosLikeAPI<()> for &TensorBase<R, D>
+impl<R, T, B, D> ZerosLikeAPI<()> for &TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     T: Num,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
 {
-    type Out = Tensor<T, D, B>;
+    type Out = Tensor<T, B, D>;
 
     fn zeros_like_f(self) -> Result<Self::Out> {
         zeros_like_f((self, TensorIterOrder::default(), self.device()))
     }
 }
 
-impl<R, T, D, B> TensorBase<R, D>
+impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     D: DimAPI,
     T: Num,
     B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
@@ -1068,11 +1068,11 @@ where
     /// # See also
     ///
     /// [`zeros_like`]
-    pub fn zeros_like(&self) -> Tensor<T, D, B> {
+    pub fn zeros_like(&self) -> Tensor<T, B, D> {
         zeros_like((self, TensorIterOrder::default(), self.device()))
     }
 
-    pub fn zeros_like_f(&self) -> Result<Tensor<T, D, B>> {
+    pub fn zeros_like_f(&self) -> Result<Tensor<T, B, D>> {
         zeros_like_f((self, TensorIterOrder::default(), self.device()))
     }
 }
@@ -1092,7 +1092,7 @@ mod test {
         println!("{a:6.3?}");
         let a = arange((15.0, &DeviceCpu::default()));
         println!("{a:6.3?}");
-        let a: Tensor<f64, _, _> = unsafe { empty(([15, 18].f(), &DeviceCpuSerial)) };
+        let a: Tensor<f64, _> = unsafe { empty(([15, 18].f(), &DeviceCpuSerial)) };
         println!("{a:6.3?}");
         let a = unsafe { a.empty_like() };
         println!("{a:6.3?}");
@@ -1110,11 +1110,13 @@ mod test {
         println!("{a:6.3?}");
         let a = linspace((Complex32::new(1.8, 7.5), Complex32::new(-8.9, 1.6), 12));
         println!("{a:6.3?}");
-        let a: Tensor<f64, _> = ones([2, 2]);
+        let a: Tensor<f64> = ones(vec![2, 2]);
         println!("{a:6.3?}");
         let a = a.ones_like();
         println!("{a:6.3?}");
-        let a: Tensor<f64, _> = zeros([2, 2]);
+        let a: Tensor<f64> = zeros([2, 2]);
+        println!("{a:6.3?}");
+        let a: Tensor<f64, _> = zeros(([2, 2], &DeviceCpuSerial));
         println!("{a:6.3?}");
         let a = a.zeros_like();
         println!("{a:6.3?}");

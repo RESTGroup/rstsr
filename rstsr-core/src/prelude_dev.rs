@@ -16,6 +16,7 @@ pub use crate::layout::*;
 
 pub use crate::storage::assignment::*;
 pub use crate::storage::creation::*;
+pub use crate::storage::data::*;
 pub use crate::storage::device::*;
 pub use crate::storage::matmul::*;
 pub use crate::storage::operators::*;
@@ -32,7 +33,6 @@ pub(crate) use crate::dev_utilities::*;
 pub use crate::tensor::asarray::*;
 pub use crate::tensor::creation::*;
 pub use crate::tensor::creation_from_tensor::*;
-pub use crate::tensor::data::*;
 pub use crate::tensor::device_conversion::*;
 pub use crate::tensor::ext_conversion::*;
 pub use crate::tensor::iterator_axes::*;

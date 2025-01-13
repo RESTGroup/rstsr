@@ -556,14 +556,12 @@ where
 {
     fn pack_tri(
         &self,
-        a: &mut Storage<T, Self>,
+        a: &mut Vec<T>,
         la: &Layout<IxD>,
-        b: &Storage<T, Self>,
+        b: &Vec<T>,
         lb: &Layout<IxD>,
         uplo: TensorUpLo,
     ) -> Result<()> {
-        let a = a.rawvec_mut();
-        let b = b.rawvec();
         pack_tri_cpu_serial(a, la, b, lb, uplo)
     }
 }
@@ -574,15 +572,13 @@ where
 {
     fn unpack_tri(
         &self,
-        a: &mut Storage<T, Self>,
+        a: &mut Vec<T>,
         la: &Layout<IxD>,
-        b: &Storage<T, Self>,
+        b: &Vec<T>,
         lb: &Layout<IxD>,
         uplo: TensorUpLo,
         symm: TensorSymm,
     ) -> Result<()> {
-        let a = a.rawvec_mut();
-        let b = b.rawvec();
         unpack_tri_cpu_serial(a, la, b, lb, uplo, symm)
     }
 }

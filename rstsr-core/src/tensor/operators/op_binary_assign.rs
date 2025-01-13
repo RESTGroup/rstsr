@@ -44,9 +44,9 @@ pub use trait_binary_assign::*;
 
 macro_rules! impl_assign_ops {
     ($op: ident, $TensorOpAPI: ident, $Op: ident) => {
-        impl<TRB, RA, TA, DA, B> $Op<TRB> for TensorBase<RA, DA>
+        impl<TRB, RA, TA, DA, B> $Op<TRB> for TensorAny<RA, TA, B, DA>
         where
-            RA: DataMutAPI<Data = Storage<TA, B>>,
+            RA: DataMutAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
             DA: DimAPI,
             B: DeviceAPI<TA>,
             for<'a> &'a mut Self: $TensorOpAPI<TRB>,
@@ -75,42 +75,40 @@ mod impl_assign_ops {
 
 macro_rules! impl_binary_assign {
     ($op_f: ident, $TensorOpAPI: ident, $Op: ident, $DeviceOpAPI: ident) => {
-        impl<RA, RB, TA, TB, DA, DB, B> $TensorOpAPI<&TensorBase<RB, DB>>
-            for &mut TensorBase<RA, DA>
+        impl<RA, RB, TA, TB, DA, DB, B> $TensorOpAPI<&TensorAny<RB, TB, B, DB>>
+            for &mut TensorAny<RA, TA, B, DA>
         where
             // tensor types
-            RA: DataMutAPI<Data = Storage<TA, B>>,
-            RB: DataAPI<Data = Storage<TB, B>>,
+            RA: DataMutAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
+            RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
             // data constraints
             DA: DimAPI,
             DB: DimAPI,
             B: DeviceAPI<TA> + DeviceAPI<TB>,
-            // broadcast constraints
-            DA: DimMaxAPI<DB, Max = DA>,
             // operation constraints
             TA: $Op<TB>,
             B: $DeviceOpAPI<TA, TB, DA>,
         {
-            fn $op_f(a: Self, b: &TensorBase<RB, DB>) -> Result<()> {
+            fn $op_f(a: Self, b: &TensorAny<RB, TB, B, DB>) -> Result<()> {
                 rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch)?;
                 let la = a.layout();
                 let lb = b.layout();
                 // check layout broadcast
-                let (la_b, lb_b) = broadcast_layout_to_first(la, lb)?;
-                rstsr_assert_eq!(la_b, *la, InvalidLayout)?;
+                let (la_b, lb_b) =
+                    broadcast_layout_to_first(&la.to_dim::<IxD>()?, &lb.to_dim::<IxD>()?)?;
+                rstsr_assert_eq!(la_b, la.to_dim::<IxD>()?, InvalidLayout)?;
                 // op provided by device
                 let device = a.device().clone();
-                let storage_a = a.data_mut().storage_mut();
-                let storage_b = b.data().storage();
-                device.op_muta_refb(storage_a, &la_b, storage_b, &lb_b)
+                device.op_muta_refb(a.raw_mut(), &la_b.to_dim()?, b.raw(), &lb_b.to_dim()?)
             }
         }
 
-        impl<RA, RB, TA, TB, DA, DB, B> $TensorOpAPI<TensorBase<RB, DB>> for &mut TensorBase<RA, DA>
+        impl<RA, RB, TA, TB, DA, DB, B> $TensorOpAPI<TensorAny<RB, TB, B, DB>>
+            for &mut TensorAny<RA, TA, B, DA>
         where
             // tensor types
-            RA: DataMutAPI<Data = Storage<TA, B>>,
-            RB: DataAPI<Data = Storage<TB, B>>,
+            RA: DataMutAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
+            RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
             // data constraints
             DA: DimAPI,
             DB: DimAPI,
@@ -121,15 +119,15 @@ macro_rules! impl_binary_assign {
             TA: $Op<TB>,
             B: $DeviceOpAPI<TA, TB, DA>,
         {
-            fn $op_f(a: Self, b: TensorBase<RB, DB>) -> Result<()> {
+            fn $op_f(a: Self, b: TensorAny<RB, TB, B, DB>) -> Result<()> {
                 $TensorOpAPI::$op_f(a, &b)
             }
         }
 
-        impl<RA, TA, TB, D, B> $TensorOpAPI<TB> for &mut TensorBase<RA, D>
+        impl<RA, TA, TB, D, B> $TensorOpAPI<TB> for &mut TensorAny<RA, TA, B, D>
         where
             // tensor types
-            RA: DataMutAPI<Data = Storage<TA, B>>,
+            RA: DataMutAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
             // data constraints
             D: DimAPI,
             B: DeviceAPI<TA>,
@@ -142,8 +140,7 @@ macro_rules! impl_binary_assign {
             fn $op_f(a: Self, b: TB) -> Result<()> {
                 let la = a.layout().clone();
                 let device = a.device().clone();
-                let storage_a = a.data_mut().storage_mut();
-                device.op_muta_numb(storage_a, &la, b)
+                device.op_muta_numb(a.raw_mut(), &la, b)
             }
         }
     };

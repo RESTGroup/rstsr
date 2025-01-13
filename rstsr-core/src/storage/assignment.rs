@@ -12,9 +12,9 @@ where
     /// input layouts are broadcastable.
     fn assign_arbitary(
         &self,
-        c: &mut Storage<T, Self>,
+        c: &mut <Self as DeviceRawAPI<T>>::Raw,
         lc: &Layout<DC>,
-        a: &Storage<T, Self>,
+        a: &<Self as DeviceRawAPI<T>>::Raw,
         la: &Layout<DA>,
     ) -> Result<()>;
 }
@@ -27,11 +27,11 @@ where
     /// Element-wise assignment for same layout arrays.
     fn assign(
         &self,
-        c: &mut Storage<T, Self>,
+        c: &mut <Self as DeviceRawAPI<T>>::Raw,
         lc: &Layout<D>,
-        a: &Storage<T, Self>,
+        a: &<Self as DeviceRawAPI<T>>::Raw,
         la: &Layout<D>,
     ) -> Result<()>;
 
-    fn fill(&self, c: &mut Storage<T, Self>, lc: &Layout<D>, fill: T) -> Result<()>;
+    fn fill(&self, c: &mut <Self as DeviceRawAPI<T>>::Raw, lc: &Layout<D>, fill: T) -> Result<()>;
 }

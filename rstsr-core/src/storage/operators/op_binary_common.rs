@@ -12,13 +12,13 @@ macro_rules! trait_definition {
 
                 fn op_muta_refb(
                     &self,
-                    a: &mut Storage<Self::TOut, Self>,
+                    a: &mut <Self as DeviceRawAPI<Self::TOut>>::Raw,
                     la: &Layout<D>,
-                    b: &Storage<T, Self>,
+                    b: &<Self as DeviceRawAPI<T>>::Raw,
                     lb: &Layout<D>,
                 ) -> Result<()>;
 
-                fn op_muta(&self, a: &mut Storage<Self::TOut, Self>, la: &Layout<D>) -> Result<()>;
+                fn op_muta(&self, a: &mut <Self as DeviceRawAPI<Self::TOut>>::Raw, la: &Layout<D>) -> Result<()>;
             }
         )*
     };

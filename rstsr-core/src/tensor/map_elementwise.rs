@@ -4,9 +4,9 @@ use crate::prelude_dev::*;
 
 // map, mapv, mapi, mapvi
 
-impl<R, T, D, B> TensorBase<R, D>
+impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     D: DimAPI,
     B: DeviceAPI<T>,
 {
@@ -15,7 +15,7 @@ where
     pub fn map_fnmut_f<'f, TOut>(
         &self,
         mut f: impl FnMut(&T) -> TOut + 'f,
-    ) -> Result<Tensor<TOut, D, B>>
+    ) -> Result<Tensor<TOut, B, D>>
     where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
         B: DeviceOp_MutA_RefB_API<TOut, T, D, dyn FnMut(&mut TOut, &T) + 'f>,
@@ -24,15 +24,14 @@ where
         let lc = layout_for_array_copy(la, TensorIterOrder::default())?;
         let device = self.device();
         let mut storage_c = unsafe { device.empty_impl(lc.bounds_index()?.1)? };
-        let storage_a = self.data().storage();
         let mut f_inner = move |c: &mut TOut, a: &T| *c = f(a);
-        device.op_muta_refb_func(&mut storage_c, &lc, storage_a, la, &mut f_inner)?;
-        return Tensor::new_f(DataOwned::from(storage_c), lc);
+        device.op_muta_refb_func(storage_c.raw_mut(), &lc, self.raw(), la, &mut f_inner)?;
+        return Tensor::new_f(storage_c, lc);
     }
 
     /// Call `f` by reference on each element and create a new array with the
     /// new values.
-    pub fn map_fnmut<'f, TOut>(&self, f: impl FnMut(&T) -> TOut + 'f) -> Tensor<TOut, D, B>
+    pub fn map_fnmut<'f, TOut>(&self, f: impl FnMut(&T) -> TOut + 'f) -> Tensor<TOut, B, D>
     where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
         B: DeviceOp_MutA_RefB_API<TOut, T, D, dyn FnMut(&mut TOut, &T) + 'f>,
@@ -45,7 +44,7 @@ where
     pub fn mapv_fnmut_f<'f, TOut>(
         &self,
         mut f: impl FnMut(T) -> TOut + 'f,
-    ) -> Result<Tensor<TOut, D, B>>
+    ) -> Result<Tensor<TOut, B, D>>
     where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
         T: Clone,
@@ -56,7 +55,7 @@ where
 
     /// Call `f` by value on each element and create a new array with the new
     /// values.
-    pub fn mapv_fnmut<'f, TOut>(&self, mut f: impl FnMut(T) -> TOut + 'f) -> Tensor<TOut, D, B>
+    pub fn mapv_fnmut<'f, TOut>(&self, mut f: impl FnMut(T) -> TOut + 'f) -> Tensor<TOut, B, D>
     where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
         T: Clone,
@@ -69,20 +68,19 @@ where
     /// element.
     pub fn mapi_fnmut_f<'f>(&mut self, mut f: impl FnMut(&mut T) + 'f) -> Result<()>
     where
-        R: DataMutAPI<Data = Storage<T, B>>,
+        R: DataMutAPI<Data = B::Raw>,
         B: DeviceOp_MutA_API<T, D, dyn FnMut(&mut T) + 'f>,
     {
         let (la, _) = greedy_layout(self.layout(), false);
         let device = self.device().clone();
-        let storage_a = self.data_mut().storage_mut();
-        device.op_muta_func(storage_a, &la, &mut f)
+        device.op_muta_func(self.raw_mut(), &la, &mut f)
     }
 
     /// Modify the array in place by calling `f` by mutable reference on each
     /// element.
     pub fn mapi_fnmut<'f>(&mut self, f: impl FnMut(&mut T) + 'f)
     where
-        R: DataMutAPI<Data = Storage<T, B>>,
+        R: DataMutAPI<Data = B::Raw>,
         B: DeviceOp_MutA_API<T, D, dyn FnMut(&mut T) + 'f>,
     {
         self.mapi_fnmut_f(f).unwrap()
@@ -92,7 +90,7 @@ where
     /// element.
     pub fn mapvi_fnmut_f<'f>(&mut self, mut f: impl FnMut(T) -> T + 'f) -> Result<()>
     where
-        R: DataMutAPI<Data = Storage<T, B>>,
+        R: DataMutAPI<Data = B::Raw>,
         T: Clone,
         B: DeviceOp_MutA_API<T, D, dyn FnMut(&mut T) + 'f>,
     {
@@ -103,7 +101,7 @@ where
     /// element.
     pub fn mapvi_fnmut<'f>(&mut self, f: impl FnMut(T) -> T + 'f)
     where
-        R: DataMutAPI<Data = Storage<T, B>>,
+        R: DataMutAPI<Data = B::Raw>,
         T: Clone,
         B: DeviceOp_MutA_API<T, D, dyn FnMut(&mut T) + 'f>,
     {
@@ -113,20 +111,20 @@ where
 
 // map_binary, mapv_binary
 
-impl<R, T, D, B> TensorBase<R, D>
+impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     D: DimAPI,
     B: DeviceAPI<T>,
     T: Clone,
 {
     pub fn mapb_fnmut_f<'f, R2, T2, D2, DOut, TOut>(
         &self,
-        other: &TensorBase<R2, D2>,
+        other: &TensorAny<R2, T2, B, D2>,
         mut f: impl FnMut(&T, &T2) -> TOut + 'f,
-    ) -> Result<Tensor<TOut, DOut, B>>
+    ) -> Result<Tensor<TOut, B, DOut>>
     where
-        R2: DataAPI<Data = Storage<T2, B>>,
+        R2: DataAPI<Data = <B as DeviceRawAPI<T2>>::Raw>,
         D2: DimAPI,
         DOut: DimAPI,
         D: DimMaxAPI<D2, Max = DOut>,
@@ -154,28 +152,26 @@ where
         };
         let device = self.device();
         let mut storage_c = unsafe { device.empty_impl(lc.bounds_index()?.1)? };
-        let storage_a = self.data().storage();
-        let storage_b = other.data().storage();
         let mut f_inner = move |c: &mut TOut, a: &T, b: &T2| *c = f(a, b);
         device.op_mutc_refa_refb_func(
-            &mut storage_c,
+            storage_c.raw_mut(),
             &lc,
-            storage_a,
+            self.raw(),
             &la_b,
-            storage_b,
+            other.raw(),
             &lb_b,
             &mut f_inner,
         )?;
-        Tensor::new_f(DataOwned::from(storage_c), lc)
+        Tensor::new_f(storage_c, lc)
     }
 
     pub fn mapb_fnmut<'f, R2, T2, D2, DOut, TOut>(
         &self,
-        other: &TensorBase<R2, D2>,
+        other: &TensorAny<R2, T2, B, D2>,
         f: impl FnMut(&T, &T2) -> TOut + 'f,
-    ) -> Tensor<TOut, DOut, B>
+    ) -> Tensor<TOut, B, DOut>
     where
-        R2: DataAPI<Data = Storage<T2, B>>,
+        R2: DataAPI<Data = <B as DeviceRawAPI<T2>>::Raw>,
         D2: DimAPI,
         DOut: DimAPI,
         D: DimMaxAPI<D2, Max = DOut>,
@@ -187,11 +183,11 @@ where
 
     pub fn mapvb_fnmut_f<'f, R2, T2, D2, DOut, TOut>(
         &self,
-        other: &TensorBase<R2, D2>,
+        other: &TensorAny<R2, T2, B, D2>,
         mut f: impl FnMut(T, T2) -> TOut + 'f,
-    ) -> Result<Tensor<TOut, DOut, B>>
+    ) -> Result<Tensor<TOut, B, DOut>>
     where
-        R2: DataAPI<Data = Storage<T2, B>>,
+        R2: DataAPI<Data = <B as DeviceRawAPI<T2>>::Raw>,
         D2: DimAPI,
         DOut: DimAPI,
         D: DimMaxAPI<D2, Max = DOut>,
@@ -205,11 +201,11 @@ where
 
     pub fn mapvb_fnmut<'f, R2, T2, D2, DOut, TOut>(
         &self,
-        other: &TensorBase<R2, D2>,
+        other: &TensorAny<R2, T2, B, D2>,
         mut f: impl FnMut(T, T2) -> TOut + 'f,
-    ) -> Tensor<TOut, DOut, B>
+    ) -> Tensor<TOut, B, DOut>
     where
-        R2: DataAPI<Data = Storage<T2, B>>,
+        R2: DataAPI<Data = <B as DeviceRawAPI<T2>>::Raw>,
         D2: DimAPI,
         DOut: DimAPI,
         D: DimMaxAPI<D2, Max = DOut>,
@@ -228,9 +224,9 @@ where
 
 // map, mapv, mapi, mapvi
 
-impl<R, T, D, B> TensorBase<R, D>
+impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     D: DimAPI,
     B: DeviceAPI<T>,
 {
@@ -239,7 +235,7 @@ where
     pub fn map_f<'f, TOut>(
         &self,
         f: impl Fn(&T) -> TOut + Send + Sync + 'f,
-    ) -> Result<Tensor<TOut, D, B>>
+    ) -> Result<Tensor<TOut, B, D>>
     where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
         B: DeviceOp_MutA_RefB_API<TOut, T, D, dyn Fn(&mut TOut, &T) + Send + Sync + 'f>,
@@ -248,15 +244,14 @@ where
         let lc = layout_for_array_copy(la, TensorIterOrder::default())?;
         let device = self.device();
         let mut storage_c = unsafe { device.empty_impl(lc.bounds_index()?.1)? };
-        let storage_a = self.data().storage();
         let mut f_inner = move |c: &mut TOut, a: &T| *c = f(a);
-        device.op_muta_refb_func(&mut storage_c, &lc, storage_a, la, &mut f_inner)?;
-        return Tensor::new_f(DataOwned::from(storage_c), lc);
+        device.op_muta_refb_func(storage_c.raw_mut(), &lc, self.raw(), la, &mut f_inner)?;
+        return Tensor::new_f(storage_c, lc);
     }
 
     /// Call `f` by reference on each element and create a new array with the
     /// new values.
-    pub fn map<'f, TOut>(&self, f: impl Fn(&T) -> TOut + Send + Sync + 'f) -> Tensor<TOut, D, B>
+    pub fn map<'f, TOut>(&self, f: impl Fn(&T) -> TOut + Send + Sync + 'f) -> Tensor<TOut, B, D>
     where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
         B: DeviceOp_MutA_RefB_API<TOut, T, D, dyn Fn(&mut TOut, &T) + Send + Sync + 'f>,
@@ -269,7 +264,7 @@ where
     pub fn mapv_f<'f, TOut>(
         &self,
         f: impl Fn(T) -> TOut + Send + Sync + 'f,
-    ) -> Result<Tensor<TOut, D, B>>
+    ) -> Result<Tensor<TOut, B, D>>
     where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
         T: Clone,
@@ -280,7 +275,7 @@ where
 
     /// Call `f` by value on each element and create a new array with the new
     /// values.
-    pub fn mapv<'f, TOut>(&self, f: impl Fn(T) -> TOut + Send + Sync + 'f) -> Tensor<TOut, D, B>
+    pub fn mapv<'f, TOut>(&self, f: impl Fn(T) -> TOut + Send + Sync + 'f) -> Tensor<TOut, B, D>
     where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
         T: Clone,
@@ -293,20 +288,19 @@ where
     /// element.
     pub fn mapi_f<'f>(&mut self, mut f: impl Fn(&mut T) + Send + Sync + 'f) -> Result<()>
     where
-        R: DataMutAPI<Data = Storage<T, B>>,
+        R: DataMutAPI<Data = B::Raw>,
         B: DeviceOp_MutA_API<T, D, dyn Fn(&mut T) + Send + Sync + 'f>,
     {
         let (la, _) = greedy_layout(self.layout(), false);
         let device = self.device().clone();
-        let storage_a = self.data_mut().storage_mut();
-        device.op_muta_func(storage_a, &la, &mut f)
+        device.op_muta_func(self.raw_mut(), &la, &mut f)
     }
 
     /// Modify the array in place by calling `f` by mutable reference on each
     /// element.
     pub fn mapi<'f>(&mut self, f: impl Fn(&mut T) + Send + Sync + 'f)
     where
-        R: DataMutAPI<Data = Storage<T, B>>,
+        R: DataMutAPI<Data = B::Raw>,
         B: DeviceOp_MutA_API<T, D, dyn Fn(&mut T) + Send + Sync + 'f>,
     {
         self.mapi_f(f).unwrap()
@@ -316,7 +310,7 @@ where
     /// element.
     pub fn mapvi_f<'f>(&mut self, f: impl Fn(T) -> T + Send + Sync + 'f) -> Result<()>
     where
-        R: DataMutAPI<Data = Storage<T, B>>,
+        R: DataMutAPI<Data = B::Raw>,
         T: Clone,
         B: DeviceOp_MutA_API<T, D, dyn Fn(&mut T) + Send + Sync + 'f>,
     {
@@ -327,7 +321,7 @@ where
     /// element.
     pub fn mapvi<'f>(&mut self, f: impl Fn(T) -> T + Send + Sync + 'f)
     where
-        R: DataMutAPI<Data = Storage<T, B>>,
+        R: DataMutAPI<Data = B::Raw>,
         T: Clone,
         B: DeviceOp_MutA_API<T, D, dyn Fn(&mut T) + Send + Sync + 'f>,
     {
@@ -337,20 +331,20 @@ where
 
 // map_binary, mapv_binary
 
-impl<R, T, D, B> TensorBase<R, D>
+impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     D: DimAPI,
     B: DeviceAPI<T>,
     T: Clone,
 {
     pub fn mapb_f<'f, R2, T2, D2, DOut, TOut>(
         &self,
-        other: &TensorBase<R2, D2>,
+        other: &TensorAny<R2, T2, B, D2>,
         f: impl Fn(&T, &T2) -> TOut + Send + Sync + 'f,
-    ) -> Result<Tensor<TOut, DOut, B>>
+    ) -> Result<Tensor<TOut, B, DOut>>
     where
-        R2: DataAPI<Data = Storage<T2, B>>,
+        R2: DataAPI<Data = <B as DeviceRawAPI<T2>>::Raw>,
         D2: DimAPI,
         DOut: DimAPI,
         D: DimMaxAPI<D2, Max = DOut>,
@@ -384,28 +378,26 @@ where
         };
         let device = self.device();
         let mut storage_c = unsafe { device.empty_impl(lc.bounds_index()?.1)? };
-        let storage_a = self.data().storage();
-        let storage_b = other.data().storage();
         let mut f_inner = move |c: &mut TOut, a: &T, b: &T2| *c = f(a, b);
         device.op_mutc_refa_refb_func(
-            &mut storage_c,
+            storage_c.raw_mut(),
             &lc,
-            storage_a,
+            self.raw(),
             &la_b,
-            storage_b,
+            other.raw(),
             &lb_b,
             &mut f_inner,
         )?;
-        Tensor::new_f(DataOwned::from(storage_c), lc)
+        Tensor::new_f(storage_c, lc)
     }
 
     pub fn mapb<'f, R2, T2, D2, DOut, TOut>(
         &self,
-        other: &TensorBase<R2, D2>,
+        other: &TensorAny<R2, T2, B, D2>,
         f: impl Fn(&T, &T2) -> TOut + Send + Sync + 'f,
-    ) -> Tensor<TOut, DOut, B>
+    ) -> Tensor<TOut, B, DOut>
     where
-        R2: DataAPI<Data = Storage<T2, B>>,
+        R2: DataAPI<Data = <B as DeviceRawAPI<T2>>::Raw>,
         D2: DimAPI,
         DOut: DimAPI,
         D: DimMaxAPI<D2, Max = DOut>,
@@ -423,11 +415,11 @@ where
 
     pub fn mapvb_f<'f, R2, T2, D2, DOut, TOut>(
         &self,
-        other: &TensorBase<R2, D2>,
+        other: &TensorAny<R2, T2, B, D2>,
         f: impl Fn(T, T2) -> TOut + Send + Sync + 'f,
-    ) -> Result<Tensor<TOut, DOut, B>>
+    ) -> Result<Tensor<TOut, B, DOut>>
     where
-        R2: DataAPI<Data = Storage<T2, B>>,
+        R2: DataAPI<Data = <B as DeviceRawAPI<T2>>::Raw>,
         D2: DimAPI,
         DOut: DimAPI,
         D: DimMaxAPI<D2, Max = DOut>,
@@ -447,11 +439,11 @@ where
 
     pub fn mapvb<'f, R2, T2, D2, DOut, TOut>(
         &self,
-        other: &TensorBase<R2, D2>,
+        other: &TensorAny<R2, T2, B, D2>,
         f: impl Fn(T, T2) -> TOut + Send + Sync + 'f,
-    ) -> Tensor<TOut, DOut, B>
+    ) -> Tensor<TOut, B, DOut>
     where
-        R2: DataAPI<Data = Storage<T2, B>>,
+        R2: DataAPI<Data = <B as DeviceRawAPI<T2>>::Raw>,
         D2: DimAPI,
         DOut: DimAPI,
         D: DimMaxAPI<D2, Max = DOut>,

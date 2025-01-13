@@ -105,13 +105,11 @@ where
 {
     fn assign_arbitary(
         &self,
-        c: &mut Storage<T, Self>,
+        c: &mut Vec<T>,
         lc: &Layout<DC>,
-        a: &Storage<T, Self>,
+        a: &Vec<T>,
         la: &Layout<DA>,
     ) -> Result<()> {
-        let c = c.rawvec_mut();
-        let a = a.rawvec();
         return assign_arbitary_cpu_serial(c, lc, a, la);
     }
 }
@@ -121,20 +119,11 @@ where
     T: Clone,
     D: DimAPI,
 {
-    fn assign(
-        &self,
-        c: &mut Storage<T, Self>,
-        lc: &Layout<D>,
-        a: &Storage<T, Self>,
-        la: &Layout<D>,
-    ) -> Result<()> {
-        let c = c.rawvec_mut();
-        let a = a.rawvec();
+    fn assign(&self, c: &mut Vec<T>, lc: &Layout<D>, a: &Vec<T>, la: &Layout<D>) -> Result<()> {
         return assign_cpu_serial(c, lc, a, la);
     }
 
-    fn fill(&self, c: &mut Storage<T, Self>, lc: &Layout<D>, fill: T) -> Result<()> {
-        let c = c.rawvec_mut();
+    fn fill(&self, c: &mut Vec<T>, lc: &Layout<D>, fill: T) -> Result<()> {
         return fill_cpu_serial(c, lc, fill);
     }
 }

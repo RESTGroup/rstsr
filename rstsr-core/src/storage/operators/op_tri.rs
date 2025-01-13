@@ -6,9 +6,9 @@ where
 {
     fn pack_tri(
         &self,
-        a: &mut Storage<T, Self>,
+        a: &mut <Self as DeviceRawAPI<T>>::Raw,
         la: &Layout<IxD>,
-        b: &Storage<T, Self>,
+        b: &<Self as DeviceRawAPI<T>>::Raw,
         lb: &Layout<IxD>,
         uplo: TensorUpLo,
     ) -> Result<()>;
@@ -20,9 +20,9 @@ where
 {
     fn unpack_tri(
         &self,
-        a: &mut Storage<T, Self>,
+        a: &mut <Self as DeviceRawAPI<T>>::Raw,
         la: &Layout<IxD>,
-        b: &Storage<T, Self>,
+        b: &<Self as DeviceRawAPI<T>>::Raw,
         lb: &Layout<IxD>,
         uplo: TensorUpLo,
         symm: TensorSymm,

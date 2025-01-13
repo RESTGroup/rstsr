@@ -41,55 +41,103 @@ impl DeviceBaseAPI for DeviceFaer {
     }
 }
 
-impl<T> DeviceRawVecAPI<T> for DeviceFaer
+impl<T> DeviceRawAPI<T> for DeviceFaer
 where
     T: Clone,
 {
-    type RawVec = Vec<T>;
+    type Raw = Vec<T>;
 }
 
 impl<T> DeviceStorageAPI<T> for DeviceFaer
 where
     T: Clone,
 {
-    fn new(vector: Self::RawVec, device: Self) -> Storage<T, Self> {
-        Storage::<T, Self> { rawvec: vector, device }
+    fn len<R>(storage: &Storage<R, T, Self>) -> usize
+    where
+        R: DataAPI<Data = Self::Raw>,
+    {
+        storage.raw().len()
     }
 
-    fn len(storage: &Storage<T, Self>) -> usize {
-        storage.rawvec.len()
+    fn to_cpu_vec<R>(storage: &Storage<R, T, Self>) -> Result<Vec<T>>
+    where
+        R: DataAPI<Data = Self::Raw>,
+    {
+        Ok(storage.raw().clone())
     }
 
-    fn to_cpu_vec(storage: &Storage<T, Self>) -> Result<Vec<T>> {
-        Ok(storage.rawvec.clone())
-    }
-
-    fn into_cpu_vec(storage: Storage<T, Self>) -> Result<Vec<T>> {
-        Ok(storage.rawvec)
-    }
-
-    #[inline]
-    fn get_index(storage: &Storage<T, Self>, index: usize) -> T {
-        storage.rawvec[index].clone()
-    }
-
-    #[inline]
-    fn get_index_ptr(storage: &Storage<T, Self>, index: usize) -> *const T {
-        &storage.rawvec[index] as *const T
+    fn into_cpu_vec<R>(storage: Storage<R, T, Self>) -> Result<Vec<T>>
+    where
+        R: DataAPI<Data = Self::Raw>,
+    {
+        let (raw, _) = storage.into_raw_parts();
+        Ok(raw.into_owned().into_raw())
     }
 
     #[inline]
-    fn get_index_mut_ptr(storage: &mut Storage<T, Self>, index: usize) -> *mut T {
-        &mut storage.rawvec[index] as *mut T
+    fn get_index<R>(storage: &Storage<R, T, Self>, index: usize) -> T
+    where
+        R: DataAPI<Data = Self::Raw>,
+    {
+        storage.raw()[index].clone()
     }
 
     #[inline]
-    fn set_index(storage: &mut Storage<T, Self>, index: usize, value: T) {
-        storage.rawvec[index] = value;
+    fn get_index_ptr<R>(storage: &Storage<R, T, Self>, index: usize) -> *const T
+    where
+        R: DataAPI<Data = Self::Raw>,
+    {
+        &storage.raw()[index] as *const T
+    }
+
+    #[inline]
+    fn get_index_mut_ptr<R>(storage: &mut Storage<R, T, Self>, index: usize) -> *mut T
+    where
+        R: DataMutAPI<Data = Self::Raw>,
+    {
+        storage.raw_mut().get_mut(index).unwrap() as *mut T
+    }
+
+    #[inline]
+    fn set_index<R>(storage: &mut Storage<R, T, Self>, index: usize, value: T)
+    where
+        R: DataMutAPI<Data = Self::Raw>,
+    {
+        storage.raw_mut()[index] = value;
     }
 }
 
 impl<T> DeviceAPI<T> for DeviceFaer where T: Clone {}
+
+impl<R, T> DeviceStorageConversionAPI<R, T, DeviceCpuSerial> for DeviceFaer
+where
+    R: DataAPI<Data = Vec<T>>,
+    T: Clone,
+{
+    fn into_device(
+        storage: Storage<R, T, Self>,
+        device: &DeviceCpuSerial,
+    ) -> Result<Storage<R, T, DeviceCpuSerial>> {
+        let (data, _) = storage.into_raw_parts();
+        let new_storage = Storage::new(data, device.clone());
+        Ok(new_storage)
+    }
+}
+
+impl<R, T> DeviceStorageConversionAPI<R, T, DeviceFaer> for DeviceCpuSerial
+where
+    R: DataAPI<Data = Vec<T>>,
+    T: Clone,
+{
+    fn into_device(
+        storage: Storage<R, T, Self>,
+        device: &DeviceFaer,
+    ) -> Result<Storage<R, T, DeviceFaer>> {
+        let (data, _) = storage.into_raw_parts();
+        let new_storage = Storage::new(data, device.clone());
+        Ok(new_storage)
+    }
+}
 
 #[cfg(test)]
 mod test {

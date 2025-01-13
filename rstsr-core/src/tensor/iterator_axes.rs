@@ -5,28 +5,28 @@ use core::mem::transmute;
 
 /* #region axes iter view iterator */
 
-pub struct IterAxesView<'a, R>
+pub struct IterAxesView<'a, T, B>
 where
-    R: DataAPI,
+    B: DeviceAPI<T>,
 {
     axes_iter: IterLayout<IxD>,
-    view: TensorBase<DataRef<'a, R::Data>, IxD>,
+    view: TensorView<'a, T, B, IxD>,
 }
 
-impl<R> IterAxesView<'_, R>
+impl<T, B> IterAxesView<'_, T, B>
 where
-    R: DataAPI,
+    B: DeviceAPI<T>,
 {
     pub fn update_offset(&mut self, offset: usize) {
         unsafe { self.view.layout.set_offset(offset) };
     }
 }
 
-impl<'a, R> Iterator for IterAxesView<'a, R>
+impl<'a, T, B> Iterator for IterAxesView<'a, T, B>
 where
-    R: DataAPI,
+    B: DeviceAPI<T>,
 {
-    type Item = TensorBase<DataRef<'a, R::Data>, IxD>;
+    type Item = TensorView<'a, T, B, IxD>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.axes_iter.next().map(|offset| {
@@ -36,9 +36,9 @@ where
     }
 }
 
-impl<R> DoubleEndedIterator for IterAxesView<'_, R>
+impl<T, B> DoubleEndedIterator for IterAxesView<'_, T, B>
 where
-    R: DataAPI,
+    B: DeviceAPI<T>,
 {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.axes_iter.next_back().map(|offset| {
@@ -48,18 +48,18 @@ where
     }
 }
 
-impl<R> ExactSizeIterator for IterAxesView<'_, R>
+impl<T, B> ExactSizeIterator for IterAxesView<'_, T, B>
 where
-    R: DataAPI,
+    B: DeviceAPI<T>,
 {
     fn len(&self) -> usize {
         self.axes_iter.len()
     }
 }
 
-impl<R> IterSplitAtAPI for IterAxesView<'_, R>
+impl<T, B> IterSplitAtAPI for IterAxesView<'_, T, B>
 where
-    R: DataAPI,
+    B: DeviceAPI<T>,
 {
     fn split_at(self, index: usize) -> (Self, Self) {
         let (lhs_axes_iter, rhs_axes_iter) = self.axes_iter.split_at(index);
@@ -70,17 +70,18 @@ where
     }
 }
 
-impl<'a, R, T, D, B> TensorBase<R, D>
+impl<'a, R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    T: Clone,
+    R: DataAPI<Data = B::Raw>,
     D: DimAPI,
-    B: DeviceAPI<T, RawVec = Vec<T>> + 'a,
+    B: DeviceAPI<T, Raw = Vec<T>> + 'a,
 {
     pub fn axes_iter_with_order_f<I>(
         &self,
         axes: I,
         order: TensorIterOrder,
-    ) -> Result<IterAxesView<'a, R>>
+    ) -> Result<IterAxesView<'a, T, B>>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -141,7 +142,7 @@ where
         Ok(iter)
     }
 
-    pub fn axes_iter_f<I>(&self, axes: I) -> Result<IterAxesView<'a, R>>
+    pub fn axes_iter_f<I>(&self, axes: I) -> Result<IterAxesView<'a, T, B>>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -149,7 +150,7 @@ where
         self.axes_iter_with_order_f(axes, TensorIterOrder::default())
     }
 
-    pub fn axes_iter_with_order<I>(&self, axes: I, order: TensorIterOrder) -> IterAxesView<'a, R>
+    pub fn axes_iter_with_order<I>(&self, axes: I, order: TensorIterOrder) -> IterAxesView<'a, T, B>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -157,7 +158,7 @@ where
         self.axes_iter_with_order_f(axes, order).unwrap()
     }
 
-    pub fn axes_iter<I>(&self, axes: I) -> IterAxesView<'a, R>
+    pub fn axes_iter<I>(&self, axes: I) -> IterAxesView<'a, T, B>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -170,28 +171,28 @@ where
 
 /* #region axes iter mut iterator */
 
-pub struct IterAxesMut<'a, R>
+pub struct IterAxesMut<'a, T, B>
 where
-    R: DataAPI,
+    B: DeviceAPI<T>,
 {
     axes_iter: IterLayout<IxD>,
-    view: TensorBase<DataMut<'a, R::Data>, IxD>,
+    view: TensorMut<'a, T, B, IxD>,
 }
 
-impl<R> IterAxesMut<'_, R>
+impl<T, B> IterAxesMut<'_, T, B>
 where
-    R: DataAPI,
+    B: DeviceAPI<T>,
 {
     pub fn update_offset(&mut self, offset: usize) {
         unsafe { self.view.layout.set_offset(offset) };
     }
 }
 
-impl<'a, R> Iterator for IterAxesMut<'a, R>
+impl<'a, T, B> Iterator for IterAxesMut<'a, T, B>
 where
-    R: DataAPI,
+    B: DeviceAPI<T>,
 {
-    type Item = TensorBase<DataMut<'a, R::Data>, IxD>;
+    type Item = TensorMut<'a, T, B, IxD>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.axes_iter.next().map(|offset| {
@@ -201,9 +202,9 @@ where
     }
 }
 
-impl<R> DoubleEndedIterator for IterAxesMut<'_, R>
+impl<T, B> DoubleEndedIterator for IterAxesMut<'_, T, B>
 where
-    R: DataAPI,
+    B: DeviceAPI<T>,
 {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.axes_iter.next_back().map(|offset| {
@@ -213,18 +214,18 @@ where
     }
 }
 
-impl<R> ExactSizeIterator for IterAxesMut<'_, R>
+impl<T, B> ExactSizeIterator for IterAxesMut<'_, T, B>
 where
-    R: DataAPI,
+    B: DeviceAPI<T>,
 {
     fn len(&self) -> usize {
         self.axes_iter.len()
     }
 }
 
-impl<R> IterSplitAtAPI for IterAxesMut<'_, R>
+impl<T, B> IterSplitAtAPI for IterAxesMut<'_, T, B>
 where
-    R: DataAPI,
+    B: DeviceAPI<T>,
 {
     fn split_at(mut self, index: usize) -> (Self, Self) {
         let (lhs_axes_iter, rhs_axes_iter) = self.axes_iter.clone().split_at(index);
@@ -235,11 +236,12 @@ where
     }
 }
 
-impl<'a, R, T, D, B> TensorBase<R, D>
+impl<'a, R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataMutAPI<Data = Storage<T, B>>,
+    T: Clone,
+    R: DataMutAPI<Data = B::Raw>,
     D: DimAPI,
-    B: DeviceAPI<T, RawVec = Vec<T>> + 'a,
+    B: DeviceAPI<T, Raw = Vec<T>> + 'a,
 {
     /// # Safety
     ///
@@ -249,7 +251,7 @@ where
         &mut self,
         axes: I,
         order: TensorIterOrder,
-    ) -> Result<IterAxesMut<'a, R>>
+    ) -> Result<IterAxesMut<'a, T, B>>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -314,7 +316,7 @@ where
     ///
     /// `iter_a = a.iter_mut` will generate mutable views of tensor,
     /// both `iter_a` and `a` are mutable, which is not safe in rust.
-    pub unsafe fn axes_iter_mut_f<I>(&mut self, axes: I) -> Result<IterAxesMut<'a, R>>
+    pub unsafe fn axes_iter_mut_f<I>(&mut self, axes: I) -> Result<IterAxesMut<'a, T, B>>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -330,7 +332,7 @@ where
         &mut self,
         axes: I,
         order: TensorIterOrder,
-    ) -> IterAxesMut<'a, R>
+    ) -> IterAxesMut<'a, T, B>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -342,7 +344,7 @@ where
     ///
     /// `iter_a = a.iter_mut` will generate mutable views of tensor,
     /// both `iter_a` and `a` are mutable, which is not safe in rust.
-    pub unsafe fn axes_iter_mut<I>(&mut self, axes: I) -> IterAxesMut<'a, R>
+    pub unsafe fn axes_iter_mut<I>(&mut self, axes: I) -> IterAxesMut<'a, T, B>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -355,28 +357,28 @@ where
 
 /* #region indexed axes iter view iterator */
 
-pub struct IndexedIterAxesView<'a, R>
+pub struct IndexedIterAxesView<'a, T, B>
 where
-    R: DataAPI,
+    B: DeviceAPI<T>,
 {
     axes_iter: IterLayout<IxD>,
-    view: TensorBase<DataRef<'a, R::Data>, IxD>,
+    view: TensorView<'a, T, B, IxD>,
 }
 
-impl<R> IndexedIterAxesView<'_, R>
+impl<T, B> IndexedIterAxesView<'_, T, B>
 where
-    R: DataAPI,
+    B: DeviceAPI<T>,
 {
     pub fn update_offset(&mut self, offset: usize) {
         unsafe { self.view.layout.set_offset(offset) };
     }
 }
 
-impl<'a, R> Iterator for IndexedIterAxesView<'a, R>
+impl<'a, T, B> Iterator for IndexedIterAxesView<'a, T, B>
 where
-    R: DataAPI,
+    B: DeviceAPI<T>,
 {
-    type Item = (IxD, TensorBase<DataRef<'a, R::Data>, IxD>);
+    type Item = (IxD, TensorView<'a, T, B, IxD>);
 
     fn next(&mut self) -> Option<Self::Item> {
         let index = match &self.axes_iter {
@@ -390,9 +392,9 @@ where
     }
 }
 
-impl<R> DoubleEndedIterator for IndexedIterAxesView<'_, R>
+impl<T, B> DoubleEndedIterator for IndexedIterAxesView<'_, T, B>
 where
-    R: DataAPI,
+    B: DeviceAPI<T>,
 {
     fn next_back(&mut self) -> Option<Self::Item> {
         let index = match &self.axes_iter {
@@ -406,18 +408,18 @@ where
     }
 }
 
-impl<R> ExactSizeIterator for IndexedIterAxesView<'_, R>
+impl<T, B> ExactSizeIterator for IndexedIterAxesView<'_, T, B>
 where
-    R: DataAPI,
+    B: DeviceAPI<T>,
 {
     fn len(&self) -> usize {
         self.axes_iter.len()
     }
 }
 
-impl<R> IterSplitAtAPI for IndexedIterAxesView<'_, R>
+impl<T, B> IterSplitAtAPI for IndexedIterAxesView<'_, T, B>
 where
-    R: DataAPI,
+    B: DeviceAPI<T>,
 {
     fn split_at(self, index: usize) -> (Self, Self) {
         let (lhs_axes_iter, rhs_axes_iter) = self.axes_iter.split_at(index);
@@ -428,17 +430,18 @@ where
     }
 }
 
-impl<'a, R, T, D, B> TensorBase<R, D>
+impl<'a, R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    T: Clone,
+    R: DataAPI<Data = B::Raw>,
     D: DimAPI,
-    B: DeviceAPI<T, RawVec = Vec<T>> + 'a,
+    B: DeviceAPI<T, Raw = Vec<T>> + 'a,
 {
     pub fn indexed_axes_iter_with_order_f<I>(
         &self,
         axes: I,
         order: TensorIterOrder,
-    ) -> Result<IndexedIterAxesView<'a, R>>
+    ) -> Result<IndexedIterAxesView<'a, T, B>>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -507,7 +510,7 @@ where
         Ok(iter)
     }
 
-    pub fn indexed_axes_iter_f<I>(&self, axes: I) -> Result<IndexedIterAxesView<'a, R>>
+    pub fn indexed_axes_iter_f<I>(&self, axes: I) -> Result<IndexedIterAxesView<'a, T, B>>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -523,7 +526,7 @@ where
         &self,
         axes: I,
         order: TensorIterOrder,
-    ) -> IndexedIterAxesView<'a, R>
+    ) -> IndexedIterAxesView<'a, T, B>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -531,7 +534,7 @@ where
         self.indexed_axes_iter_with_order_f(axes, order).unwrap()
     }
 
-    pub fn indexed_axes_iter<I>(&self, axes: I) -> IndexedIterAxesView<'a, R>
+    pub fn indexed_axes_iter<I>(&self, axes: I) -> IndexedIterAxesView<'a, T, B>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -544,28 +547,28 @@ where
 
 /* #region axes iter mut iterator */
 
-pub struct IndexedIterAxesMut<'a, R>
+pub struct IndexedIterAxesMut<'a, T, B>
 where
-    R: DataAPI,
+    B: DeviceAPI<T>,
 {
     axes_iter: IterLayout<IxD>,
-    view: TensorBase<DataMut<'a, R::Data>, IxD>,
+    view: TensorMut<'a, T, B, IxD>,
 }
 
-impl<R> IndexedIterAxesMut<'_, R>
+impl<T, B> IndexedIterAxesMut<'_, T, B>
 where
-    R: DataAPI,
+    B: DeviceAPI<T>,
 {
     pub fn update_offset(&mut self, offset: usize) {
         unsafe { self.view.layout.set_offset(offset) };
     }
 }
 
-impl<'a, R> Iterator for IndexedIterAxesMut<'a, R>
+impl<'a, T, B> Iterator for IndexedIterAxesMut<'a, T, B>
 where
-    R: DataAPI,
+    B: DeviceAPI<T>,
 {
-    type Item = (IxD, TensorBase<DataMut<'a, R::Data>, IxD>);
+    type Item = (IxD, TensorMut<'a, T, B, IxD>);
 
     fn next(&mut self) -> Option<Self::Item> {
         let index = match &self.axes_iter {
@@ -579,9 +582,9 @@ where
     }
 }
 
-impl<R> DoubleEndedIterator for IndexedIterAxesMut<'_, R>
+impl<T, B> DoubleEndedIterator for IndexedIterAxesMut<'_, T, B>
 where
-    R: DataAPI,
+    B: DeviceAPI<T>,
 {
     fn next_back(&mut self) -> Option<Self::Item> {
         let index = match &self.axes_iter {
@@ -595,18 +598,18 @@ where
     }
 }
 
-impl<R> ExactSizeIterator for IndexedIterAxesMut<'_, R>
+impl<T, B> ExactSizeIterator for IndexedIterAxesMut<'_, T, B>
 where
-    R: DataAPI,
+    B: DeviceAPI<T>,
 {
     fn len(&self) -> usize {
         self.axes_iter.len()
     }
 }
 
-impl<R> IterSplitAtAPI for IndexedIterAxesMut<'_, R>
+impl<T, B> IterSplitAtAPI for IndexedIterAxesMut<'_, T, B>
 where
-    R: DataAPI,
+    B: DeviceAPI<T>,
 {
     fn split_at(mut self, index: usize) -> (Self, Self) {
         let (lhs_axes_iter, rhs_axes_iter) = self.axes_iter.clone().split_at(index);
@@ -617,11 +620,12 @@ where
     }
 }
 
-impl<'a, R, T, D, B> TensorBase<R, D>
+impl<'a, R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataMutAPI<Data = Storage<T, B>>,
+    T: Clone,
+    R: DataMutAPI<Data = B::Raw>,
     D: DimAPI,
-    B: DeviceAPI<T, RawVec = Vec<T>> + 'a,
+    B: DeviceAPI<T, Raw = Vec<T>> + 'a,
 {
     /// # Safety
     ///
@@ -631,7 +635,7 @@ where
         &mut self,
         axes: I,
         order: TensorIterOrder,
-    ) -> Result<IndexedIterAxesMut<'a, R>>
+    ) -> Result<IndexedIterAxesMut<'a, T, B>>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -699,7 +703,7 @@ where
     pub unsafe fn indexed_axes_iter_mut_f<I>(
         &mut self,
         axes: I,
-    ) -> Result<IndexedIterAxesMut<'a, R>>
+    ) -> Result<IndexedIterAxesMut<'a, T, B>>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -719,7 +723,7 @@ where
         &mut self,
         axes: I,
         order: TensorIterOrder,
-    ) -> IndexedIterAxesMut<'a, R>
+    ) -> IndexedIterAxesMut<'a, T, B>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -731,7 +735,7 @@ where
     ///
     /// `iter_a = a.iter_mut` will generate mutable views of tensor,
     /// both `iter_a` and `a` are mutable, which is not safe in rust.
-    pub unsafe fn indexed_axes_iter_mut<I>(&mut self, axes: I) -> IndexedIterAxesMut<'a, R>
+    pub unsafe fn indexed_axes_iter_mut<I>(&mut self, axes: I) -> IndexedIterAxesMut<'a, T, B>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,

@@ -29,19 +29,19 @@ macro_rules! trait_binary {
             )*
         }
 
-        impl<RA, TA, DA, RB, TB, DB, B> $TensorOpAPI<TensorBase<RB, DB>> for TensorBase<RA, DA>
+        impl<RA, TA, DA, RB, TB, DB, B> $TensorOpAPI<TensorAny<RB, TB, B, DB>> for TensorAny<RA, TA, B, DA>
         where
-            RA: DataAPI<Data = Storage<TA, B>>,
-            RB: DataAPI<Data = Storage<TB, B>>,
+            RA: DataAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
+            RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
             DA: DimAPI + DimMaxAPI<DB>,
             DB: DimAPI,
             DA::Max: DimAPI,
             B: $DeviceOpAPI<TA, TB, DA::Max>,
             B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<B::TOut> + DeviceCreationAnyAPI<B::TOut>,
         {
-            type Output = Tensor<B::TOut, DA::Max, B>;
+            type Output = Tensor<B::TOut, B, DA::Max>;
 
-            fn $op_f(&self, b: &TensorBase<RB, DB>) -> Result<Self::Output> {
+            fn $op_f(&self, b: &TensorAny<RB, TB, B, DB>) -> Result<Self::Output> {
                 // check device
                 rstsr_assert!(self.device().same_device(b.device()), DeviceMismatch)?;
 
@@ -63,17 +63,15 @@ macro_rules! trait_binary {
                 // perform operation and return
                 let device = self.device();
                 let mut storage_c = unsafe { device.empty_impl(lc.bounds_index()?.1)? };
-                let storage_a = self.data().storage();
-                let storage_b = b.data().storage();
                 device.op_mutc_refa_refb(
-                    &mut storage_c,
+                    storage_c.raw_mut(),
                     &lc,
-                    storage_a,
+                    self.raw(),
                     &la_b,
-                    storage_b,
+                    b.raw(),
                     &lb_b,
                 )?;
-                Tensor::new_f(DataOwned::from(storage_c), lc)
+                Tensor::new_f(storage_c, lc)
             }
         }
     };

@@ -207,15 +207,15 @@ where
     print_vec_with_layout_dfs(&mut config)
 }
 
-impl<S, T, B, D> Display for TensorBase<S, D>
+impl<R, T, B, D> Display for TensorAny<R, T, B, D>
 where
     T: Clone + Display,
     B: DeviceAPI<T>,
     D: DimAPI,
-    S: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        let vec = self.data().storage().to_cpu_vec().unwrap();
+        let vec = self.storage().to_cpu_vec().unwrap();
         let layout = &self.layout();
         let max_print = MAX_PRINT;
         let min_print = MIN_PRINT;
@@ -417,22 +417,22 @@ where
     print_vec_with_layout_dfs_debug(&mut config)
 }
 
-impl<S, T, B, D> Debug for TensorBase<S, D>
+impl<R, T, B, D> Debug for TensorAny<R, T, B, D>
 where
     T: Clone + Debug,
     B: DeviceAPI<T> + Debug,
     D: DimAPI,
-    S: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         writeln!(f, "\n=== Debug Tensor Print ===")?;
-        let vec = self.data().storage().to_cpu_vec().unwrap();
+        let vec = self.storage().to_cpu_vec().unwrap();
         let layout = &self.layout();
         let max_print = MAX_PRINT;
         let min_print = MIN_PRINT;
         print_vec_with_layout_debug(f, &vec, layout, max_print, min_print)?;
         writeln!(f)?;
-        Debug::fmt(&self.data().storage().device(), f)?;
+        Debug::fmt(&self.device(), f)?;
         writeln!(f)?;
         Debug::fmt(&self.layout(), f)?;
         writeln!(f)?;

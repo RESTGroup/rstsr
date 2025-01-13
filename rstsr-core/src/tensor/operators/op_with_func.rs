@@ -3,16 +3,16 @@ use crate::prelude_dev::*;
 /* #region op_func */
 
 pub fn op_mutc_refa_refb_func<RA, RB, RC, DA, DB, DC, TA, TB, TC, B, F>(
-    c: &mut TensorBase<RC, DC>,
-    a: &TensorBase<RA, DA>,
-    b: &TensorBase<RB, DB>,
+    c: &mut TensorAny<RC, TC, B, DC>,
+    a: &TensorAny<RA, TA, B, DA>,
+    b: &TensorAny<RB, TB, B, DB>,
     f: &mut F,
 ) -> Result<()>
 where
     // lifetime and data constraints
-    RA: DataAPI<Data = Storage<TA, B>>,
-    RB: DataAPI<Data = Storage<TB, B>>,
-    RC: DataMutAPI<Data = Storage<TC, B>>,
+    RA: DataAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
+    RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
+    RC: DataMutAPI<Data = <B as DeviceRawAPI<TC>>::Raw>,
     DA: DimAPI,
     DB: DimAPI,
     DC: DimAPI,
@@ -36,21 +36,18 @@ where
     rstsr_assert_eq!(lc_b, *lc, InvalidLayout)?;
     // op provided by device
     let device = c.device().clone();
-    let storage_c = c.data_mut().storage_mut();
-    let storage_a = a.data().storage();
-    let storage_b = b.data().storage();
-    device.op_mutc_refa_refb_func(storage_c, &lc_b, storage_a, &la_b, storage_b, &lb_b, f)
+    device.op_mutc_refa_refb_func(c.raw_mut(), &lc_b, a.raw(), &la_b, b.raw(), &lb_b, f)
 }
 
 pub fn op_refa_refb_func<RA, RB, DA, DB, DC, TA, TB, TC, B, F>(
-    a: &TensorBase<RA, DA>,
-    b: &TensorBase<RB, DB>,
+    a: &TensorAny<RA, TA, B, DA>,
+    b: &TensorAny<RB, TB, B, DB>,
     f: &mut F,
-) -> Result<Tensor<TC, DC, B>>
+) -> Result<Tensor<TC, B, DC>>
 where
     // lifetime and data constraints
-    RA: DataAPI<Data = Storage<TA, B>>,
-    RB: DataAPI<Data = Storage<TB, B>>,
+    RA: DataAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
+    RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
     DA: DimAPI,
     DB: DimAPI,
     DC: DimAPI,
@@ -81,22 +78,20 @@ where
     let device = a.device();
     let mut storage_c = unsafe { device.empty_impl(lc.bounds_index()?.1)? };
     // add provided by device
-    let storage_a = a.data().storage();
-    let storage_b = b.data().storage();
-    device.op_mutc_refa_refb_func(&mut storage_c, &lc, storage_a, &la_b, storage_b, &lb_b, f)?;
+    device.op_mutc_refa_refb_func(storage_c.raw_mut(), &lc, a.raw(), &la_b, b.raw(), &lb_b, f)?;
     // return tensor
-    Tensor::new_f(DataOwned::from(storage_c), lc)
+    Tensor::new_f(storage_c, lc)
 }
 
 pub fn op_muta_refb_func<RA, RB, DA, DB, TA, TB, B, F>(
-    a: &mut TensorBase<RA, DA>,
-    b: &TensorBase<RB, DB>,
+    a: &mut TensorAny<RA, TA, B, DA>,
+    b: &TensorAny<RB, TB, B, DB>,
     f: &mut F,
 ) -> Result<()>
 where
     // lifetime and data constraints
-    RA: DataMutAPI<Data = Storage<TA, B>>,
-    RB: DataAPI<Data = Storage<TB, B>>,
+    RA: DataMutAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
+    RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
     DA: DimAPI,
     DB: DimAPI,
     B: DeviceAPI<TA> + DeviceAPI<TB>,
@@ -115,14 +110,12 @@ where
     rstsr_assert_eq!(la_b, *la, InvalidLayout)?;
     // op provided by device
     let device = a.device().clone();
-    let storage_a = a.data_mut().storage_mut();
-    let storage_b = b.data().storage();
-    device.op_muta_refb_func(storage_a, &la_b, storage_b, &lb_b, f)
+    device.op_muta_refb_func(a.raw_mut(), &la_b, b.raw(), &lb_b, f)
 }
 
-pub fn op_muta_func<R, T, D, B, F>(a: &mut TensorBase<R, D>, f: &mut F) -> Result<()>
+pub fn op_muta_func<R, T, D, B, F>(a: &mut TensorAny<R, T, B, D>, f: &mut F) -> Result<()>
 where
-    R: DataMutAPI<Data = Storage<T, B>>,
+    R: DataMutAPI<Data = B::Raw>,
     D: DimAPI,
     B: DeviceAPI<T>,
     B: DeviceOp_MutA_API<T, D, F>,
@@ -130,8 +123,7 @@ where
 {
     let la = a.layout().clone();
     let device = a.device().clone();
-    let storage_a = a.data_mut().storage_mut();
-    device.op_muta_func(storage_a, &la, f)
+    device.op_muta_func(a.raw_mut(), &la, f)
 }
 
 /* #endregion */

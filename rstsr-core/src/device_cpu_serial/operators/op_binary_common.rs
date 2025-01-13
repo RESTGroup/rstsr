@@ -17,15 +17,15 @@ macro_rules! impl_same_type {
 
             fn op_muta_refb(
                 &self,
-                a: &mut Storage<T, Self>,
+                a: &mut Vec<T>,
                 la: &Layout<D>,
-                b: &Storage<T, Self>,
+                b: &Vec<T>,
                 lb: &Layout<D>,
             ) -> Result<()> {
                 self.op_muta_refb_func(a, la, b, lb, &mut $func)
             }
 
-            fn op_muta(&self, a: &mut Storage<T, Self>, la: &Layout<D>) -> Result<()> {
+            fn op_muta(&self, a: &mut Vec<T>, la: &Layout<D>) -> Result<()> {
                 self.op_muta_func(a, la, &mut $func_inplace)
             }
         }
@@ -100,15 +100,15 @@ macro_rules! impl_boolean_output {
 
             fn op_muta_refb(
                 &self,
-                a: &mut Storage<bool, Self>,
+                a: &mut Vec<bool>,
                 la: &Layout<D>,
-                b: &Storage<T, Self>,
+                b: &Vec<T>,
                 lb: &Layout<D>,
             ) -> Result<()> {
                 self.op_muta_refb_func(a, la, b, lb, &mut $func)
             }
 
-            fn op_muta(&self, _a: &mut Storage<bool, Self>, _la: &Layout<D>) -> Result<()> {
+            fn op_muta(&self, _a: &mut Vec<bool>, _la: &Layout<D>) -> Result<()> {
                 let type_b = core::any::type_name::<T>();
                 unreachable!("{:?} is not supported in this function.", type_b);
             }
@@ -141,15 +141,15 @@ macro_rules! impl_complex_diff_type {
 
             fn op_muta_refb(
                 &self,
-                a: &mut Storage<T, Self>,
+                a: &mut Vec<T>,
                 la: &Layout<D>,
-                b: &Storage<Complex<T>, Self>,
+                b: &Vec<Complex<T>>,
                 lb: &Layout<D>,
             ) -> Result<()> {
                 self.op_muta_refb_func(a, la, b, lb, &mut $func)
             }
 
-            fn op_muta(&self, _a: &mut Storage<T, Self>, _la: &Layout<D>) -> Result<()> {
+            fn op_muta(&self, _a: &mut Vec<T>, _la: &Layout<D>) -> Result<()> {
                 let type_b = core::any::type_name::<Complex<T>>();
                 let type_a = core::any::type_name::<T>();
                 unreachable!(
@@ -178,15 +178,15 @@ where
 
     fn op_muta_refb(
         &self,
-        a: &mut Storage<Complex<T>, Self>,
+        a: &mut Vec<Complex<T>>,
         la: &Layout<D>,
-        b: &Storage<Complex<T>, Self>,
+        b: &Vec<Complex<T>>,
         lb: &Layout<D>,
     ) -> Result<()> {
         self.op_muta_refb_func(a, la, b, lb, &mut |a, b| *a = b / b.norm())
     }
 
-    fn op_muta(&self, a: &mut Storage<Complex<T>, Self>, la: &Layout<D>) -> Result<()> {
+    fn op_muta(&self, a: &mut Vec<Complex<T>>, la: &Layout<D>) -> Result<()> {
         self.op_muta_func(a, la, &mut |a| *a = *a / a.norm())
     }
 }

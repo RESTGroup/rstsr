@@ -5,11 +5,11 @@ where
     D: DimAPI,
     Self: DeviceAPI<T>,
 {
-    fn sum_all(&self, a: &Storage<T, Self>, la: &Layout<D>) -> Result<T>;
+    fn sum_all(&self, a: &Self::Raw, la: &Layout<D>) -> Result<T>;
     fn sum(
         &self,
-        a: &Storage<T, Self>,
+        a: &Self::Raw,
         la: &Layout<D>,
         axes: &[isize],
-    ) -> Result<(Storage<T, Self>, Layout<IxD>)>;
+    ) -> Result<(Storage<DataOwned<Self::Raw>, T, Self>, Layout<IxD>)>;
 }

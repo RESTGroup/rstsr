@@ -7,16 +7,16 @@ use crate::prelude_dev::*;
 /// This function assumes c-contiguous iteration, and will not check two
 /// dimensions are broadcastable.
 pub(crate) fn allclose_f64<RA, RB, DA, DB, BA, BB>(
-    a: &TensorBase<RA, DA>,
-    b: &TensorBase<RB, DB>,
+    a: &TensorAny<RA, f64, BA, DA>,
+    b: &TensorAny<RB, f64, BB, DB>,
 ) -> bool
 where
-    RA: DataAPI<Data = Storage<f64, BA>>,
-    RB: DataAPI<Data = Storage<f64, BB>>,
+    RA: DataAPI<Data = <BA as DeviceRawAPI<f64>>::Raw>,
+    RB: DataAPI<Data = <BB as DeviceRawAPI<f64>>::Raw>,
     DA: DimAPI,
     DB: DimAPI,
-    BA: DeviceAPI<f64, RawVec = Vec<f64>>,
-    BB: DeviceAPI<f64, RawVec = Vec<f64>>,
+    BA: DeviceAPI<f64, Raw = Vec<f64>>,
+    BB: DeviceAPI<f64, Raw = Vec<f64>>,
 {
     let la = a.layout().reverse_axes();
     let lb = b.layout().reverse_axes();
@@ -25,8 +25,8 @@ where
     }
     let it_la = IterLayoutColMajor::new(&la).unwrap();
     let it_lb = IterLayoutColMajor::new(&lb).unwrap();
-    let data_a = a.data().storage().rawvec();
-    let data_b = b.data().storage().rawvec();
+    let data_a = a.raw();
+    let data_b = b.raw();
     let atol = 1e-8;
     let rtol = 1e-5;
     for (idx_a, idx_b) in izip!(it_la, it_lb) {

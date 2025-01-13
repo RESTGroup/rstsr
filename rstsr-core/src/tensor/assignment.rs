@@ -21,15 +21,15 @@ where
     TRA::assign(a, b)
 }
 
-impl<RA, DA, RB, DB, T, B> TensorAssignAPI<TensorBase<RB, DB>> for TensorBase<RA, DA>
+impl<RA, DA, RB, DB, T, B> TensorAssignAPI<TensorAny<RB, T, B, DB>> for TensorAny<RA, T, B, DA>
 where
-    RA: DataMutAPI<Data = Storage<T, B>>,
-    RB: DataAPI<Data = Storage<T, B>>,
+    RA: DataMutAPI<Data = B::Raw>,
+    RB: DataAPI<Data = B::Raw>,
     DA: DimAPI,
     DB: DimAPI,
     B: DeviceAPI<T> + OpAssignAPI<T, DA>,
 {
-    fn assign_f(a: &mut Self, b: TensorBase<RB, DB>) -> Result<()> {
+    fn assign_f(a: &mut Self, b: TensorAny<RB, T, B, DB>) -> Result<()> {
         // get tensor views
         let mut a = a.view_mut();
         let b = b.view();
@@ -48,6 +48,6 @@ where
         let la_b = la_b.into_dim::<DA>()?;
         let lb_b = lb_b.into_dim::<DA>()?;
         // assign
-        device.assign(a.data_mut().storage_mut(), &la_b, b.data().storage(), &lb_b)
+        device.assign(a.raw_mut(), &la_b, b.raw(), &lb_b)
     }
 }

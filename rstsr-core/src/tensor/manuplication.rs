@@ -9,17 +9,11 @@ use crate::prelude_dev::*;
 /// # See also
 ///
 /// [Python Array API standard: `broadcast_arrays`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.broadcast_arrays.html)
-pub fn broadcast_arrays<R>(tensors: Vec<TensorBase<R, IxD>>) -> Vec<TensorBase<R, IxD>>
-where
-    R: DataAPI,
-{
+pub fn broadcast_arrays<S>(tensors: Vec<TensorBase<S, IxD>>) -> Vec<TensorBase<S, IxD>> {
     broadcast_arrays_f(tensors).unwrap()
 }
 
-pub fn broadcast_arrays_f<R>(tensors: Vec<TensorBase<R, IxD>>) -> Result<Vec<TensorBase<R, IxD>>>
-where
-    R: DataAPI,
-{
+pub fn broadcast_arrays_f<S>(tensors: Vec<TensorBase<S, IxD>>) -> Result<Vec<TensorBase<S, IxD>>> {
     // fast return if there is only zero/one tensor
     if tensors.len() <= 1 {
         return Ok(tensors);
@@ -42,17 +36,17 @@ where
 
 /* #region broadcast_to */
 
-pub fn into_broadcast_f<R, D, D2>(tensor: TensorBase<R, D>, shape: D2) -> Result<TensorBase<R, D2>>
+pub fn into_broadcast_f<S, D, D2>(tensor: TensorBase<S, D>, shape: D2) -> Result<TensorBase<S, D2>>
 where
-    R: DataAPI,
     D: DimAPI + DimMaxAPI<D2, Max = D2>,
     D2: DimAPI,
 {
     let shape1 = tensor.shape();
     let shape2 = &shape;
     let (shape, tp1, _) = broadcast_shape(shape1, shape2)?;
-    let layout = update_layout_by_shape(tensor.layout(), &shape, &tp1)?;
-    unsafe { Ok(TensorBase::new_unchecked(tensor.data, layout)) }
+    let (storage, layout) = tensor.into_raw_parts();
+    let layout = update_layout_by_shape(&layout, &shape, &tp1)?;
+    unsafe { Ok(TensorBase::new_unchecked(storage, layout)) }
 }
 
 /// Broadcasts an array to a specified shape.
@@ -60,42 +54,44 @@ where
 /// # See also
 ///
 /// [Python Array API standard: `broadcast_to`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.broadcast_to.html)
-pub fn to_broadcast<R, D, D2>(
-    tensor: &TensorBase<R, D>,
+pub fn to_broadcast<R, T, B, D, D2>(
+    tensor: &TensorAny<R, T, B, D>,
     shape: D2,
-) -> TensorBase<DataRef<'_, R::Data>, D2>
+) -> TensorView<'_, T, B, D2>
 where
-    R: DataAPI,
     D: DimAPI + DimMaxAPI<D2, Max = D2>,
     D2: DimAPI,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
 {
     into_broadcast_f(tensor.view(), shape).unwrap()
 }
 
-pub fn to_broadcast_f<R, D, D2>(
-    tensor: &TensorBase<R, D>,
+pub fn to_broadcast_f<R, T, B, D, D2>(
+    tensor: &TensorAny<R, T, B, D>,
     shape: D2,
-) -> Result<TensorBase<DataRef<'_, R::Data>, D2>>
+) -> Result<TensorView<'_, T, B, D2>>
 where
-    R: DataAPI,
     D: DimAPI + DimMaxAPI<D2, Max = D2>,
     D2: DimAPI,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
 {
     into_broadcast_f(tensor.view(), shape)
 }
 
-pub fn into_broadcast<R, D, D2>(tensor: TensorBase<R, D>, shape: D2) -> TensorBase<R, D2>
+pub fn into_broadcast<S, D, D2>(tensor: TensorBase<S, D>, shape: D2) -> TensorBase<S, D2>
 where
-    R: DataAPI,
     D: DimAPI + DimMaxAPI<D2, Max = D2>,
     D2: DimAPI,
 {
     into_broadcast_f(tensor, shape).unwrap()
 }
 
-impl<R, D> TensorBase<R, D>
+impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
     D: DimAPI,
 {
     /// Broadcasts an array to a specified shape.
@@ -103,7 +99,7 @@ where
     /// # See also
     ///
     /// [`broadcast_to`]
-    pub fn to_broadcast<D2>(&self, shape: D2) -> TensorBase<DataRef<'_, R::Data>, D2>
+    pub fn to_broadcast<D2>(&self, shape: D2) -> TensorView<'_, T, B, D2>
     where
         D2: DimAPI,
         D: DimMaxAPI<D2, Max = D2>,
@@ -111,7 +107,7 @@ where
         to_broadcast(self, shape)
     }
 
-    pub fn to_broadcast_f<D2>(&self, shape: D2) -> Result<TensorBase<DataRef<'_, R::Data>, D2>>
+    pub fn to_broadcast_f<D2>(&self, shape: D2) -> Result<TensorView<'_, T, B, D2>>
     where
         D2: DimAPI,
         D: DimMaxAPI<D2, Max = D2>,
@@ -124,7 +120,7 @@ where
     /// # See also
     ///
     /// [`broadcast_to`]
-    pub fn into_broadcast<D2>(self, shape: D2) -> TensorBase<R, D2>
+    pub fn into_broadcast<D2>(self, shape: D2) -> TensorAny<R, T, B, D2>
     where
         D2: DimAPI,
         D: DimMaxAPI<D2, Max = D2>,
@@ -132,7 +128,7 @@ where
         into_broadcast(self, shape)
     }
 
-    pub fn into_broadcast_f<D2>(self, shape: D2) -> Result<TensorBase<R, D2>>
+    pub fn into_broadcast_f<D2>(self, shape: D2) -> Result<TensorAny<R, T, B, D2>>
     where
         D2: DimAPI,
         D: DimMaxAPI<D2, Max = D2>,
@@ -145,16 +141,16 @@ where
 
 /* #region expand_dims */
 
-pub fn into_expand_dims_f<I, R, D>(tensor: TensorBase<R, D>, axes: I) -> Result<TensorBase<R, IxD>>
+pub fn into_expand_dims_f<I, S, D>(tensor: TensorBase<S, D>, axes: I) -> Result<TensorBase<S, IxD>>
 where
-    R: DataAPI,
     D: DimAPI,
     I: TryInto<AxesIndex<isize>>,
     Error: From<I::Error>,
 {
     // convert axis to negative indexes and sort
     let ndim: isize = TryInto::<isize>::try_into(tensor.ndim())?;
-    let mut layout = tensor.layout().clone().into_dim::<IxD>()?;
+    let (storage, layout) = tensor.into_raw_parts();
+    let mut layout = layout.into_dim::<IxD>()?;
     let mut axes: Vec<isize> = axes
         .try_into()?
         .as_ref()
@@ -165,7 +161,7 @@ where
     for &axis in axes.iter() {
         layout = layout.dim_insert(axis)?;
     }
-    unsafe { Ok(TensorBase::new_unchecked(tensor.data, layout)) }
+    unsafe { Ok(TensorBase::new_unchecked(storage, layout)) }
 }
 
 /// Expands the shape of an array by inserting a new axis (dimension) of size
@@ -178,35 +174,36 @@ where
 /// # See also
 ///
 /// [Python Array API standard: `expand_dims`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.expand_dims.html)
-pub fn expand_dims<I, R, D>(
-    tensor: &TensorBase<R, D>,
+pub fn expand_dims<I, R, T, B, D>(
+    tensor: &TensorAny<R, T, B, D>,
     axes: I,
-) -> TensorBase<DataRef<'_, R::Data>, IxD>
+) -> TensorView<'_, T, B, IxD>
 where
-    R: DataAPI,
     D: DimAPI,
     I: TryInto<AxesIndex<isize>>,
     Error: From<I::Error>,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
 {
     into_expand_dims_f(tensor.view(), axes).unwrap()
 }
 
-pub fn expand_dims_f<I, R, D>(
-    tensor: &TensorBase<R, D>,
+pub fn expand_dims_f<I, R, T, B, D>(
+    tensor: &TensorAny<R, T, B, D>,
     axes: I,
-) -> Result<TensorBase<DataRef<'_, R::Data>, IxD>>
+) -> Result<TensorView<'_, T, B, IxD>>
 where
-    R: DataAPI,
     D: DimAPI,
     I: TryInto<AxesIndex<isize>>,
     Error: From<I::Error>,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
 {
     into_expand_dims_f(tensor.view(), axes)
 }
 
-pub fn into_expand_dims<I, R, D>(tensor: TensorBase<R, D>, axes: I) -> TensorBase<R, IxD>
+pub fn into_expand_dims<I, S, D>(tensor: TensorBase<S, D>, axes: I) -> TensorBase<S, IxD>
 where
-    R: DataAPI,
     D: DimAPI,
     I: TryInto<AxesIndex<isize>>,
     Error: From<I::Error>,
@@ -214,9 +211,10 @@ where
     into_expand_dims_f(tensor, axes).unwrap()
 }
 
-impl<R, D> TensorBase<R, D>
+impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
     D: DimAPI,
 {
     /// Expands the shape of an array by inserting a new axis (dimension) of
@@ -225,7 +223,7 @@ where
     /// # See also
     ///
     /// [`expand_dims`]
-    pub fn expand_dims<I>(&self, axes: I) -> TensorBase<DataRef<'_, R::Data>, IxD>
+    pub fn expand_dims<I>(&self, axes: I) -> TensorView<'_, T, B, IxD>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -233,7 +231,7 @@ where
         into_expand_dims(self.view(), axes)
     }
 
-    pub fn expand_dims_f<I>(&self, axes: I) -> Result<TensorBase<DataRef<'_, R::Data>, IxD>>
+    pub fn expand_dims_f<I>(&self, axes: I) -> Result<TensorView<'_, T, B, IxD>>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -247,7 +245,7 @@ where
     /// # See also
     ///
     /// [`expand_dims`]
-    pub fn into_expand_dims<I>(self, axes: I) -> TensorBase<R, IxD>
+    pub fn into_expand_dims<I>(self, axes: I) -> TensorAny<R, T, B, IxD>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -255,7 +253,7 @@ where
         into_expand_dims(self, axes)
     }
 
-    pub fn into_expand_dims_f<I>(self, axes: I) -> Result<TensorBase<R, IxD>>
+    pub fn into_expand_dims_f<I>(self, axes: I) -> Result<TensorAny<R, T, B, IxD>>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -268,14 +266,13 @@ where
 
 /* #region flip */
 
-pub fn into_flip_f<I, R, D>(tensor: TensorBase<R, D>, axes: I) -> Result<TensorBase<R, D>>
+pub fn into_flip_f<I, S, D>(tensor: TensorBase<S, D>, axes: I) -> Result<TensorBase<S, D>>
 where
-    R: DataAPI,
     D: DimAPI,
     I: TryInto<AxesIndex<isize>>,
     Error: From<I::Error>,
 {
-    let mut layout = tensor.layout().clone();
+    let (storage, mut layout) = tensor.into_raw_parts();
     let axes = axes.try_into()?;
     match axes {
         AxesIndex::Val(axis) => {
@@ -287,7 +284,7 @@ where
             }
         },
     }
-    unsafe { Ok(TensorBase::new_unchecked(tensor.data, layout)) }
+    unsafe { Ok(TensorBase::new_unchecked(storage, layout)) }
 }
 
 /// Reverses the order of elements in an array along the given axis.
@@ -300,32 +297,33 @@ where
 /// # See also
 ///
 /// [Python array API standard: `flip`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.flip.html)
-pub fn flip<I, R, D>(tensor: &TensorBase<R, D>, axes: I) -> TensorBase<DataRef<'_, R::Data>, D>
+pub fn flip<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axes: I) -> TensorView<'_, T, B, D>
 where
-    R: DataAPI,
     D: DimAPI,
     I: TryInto<AxesIndex<isize>>,
     Error: From<I::Error>,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
 {
     into_flip_f(tensor.view(), axes).unwrap()
 }
 
-pub fn flip_f<I, R, D>(
-    tensor: &TensorBase<R, D>,
+pub fn flip_f<I, R, T, B, D>(
+    tensor: &TensorAny<R, T, B, D>,
     axes: I,
-) -> Result<TensorBase<DataRef<'_, R::Data>, D>>
+) -> Result<TensorView<'_, T, B, D>>
 where
-    R: DataAPI,
     D: DimAPI,
     I: TryInto<AxesIndex<isize>>,
     Error: From<I::Error>,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
 {
     into_flip_f(tensor.view(), axes)
 }
 
-pub fn into_flip<I, R, D>(tensor: TensorBase<R, D>, axes: I) -> TensorBase<R, D>
+pub fn into_flip<I, S, D>(tensor: TensorBase<S, D>, axes: I) -> TensorBase<S, D>
 where
-    R: DataAPI,
     D: DimAPI,
     I: TryInto<AxesIndex<isize>>,
     Error: From<I::Error>,
@@ -333,9 +331,10 @@ where
     into_flip_f(tensor, axes).unwrap()
 }
 
-impl<R, D> TensorBase<R, D>
+impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
     D: DimAPI,
 {
     /// Reverses the order of elements in an array along the given axis.
@@ -343,7 +342,7 @@ where
     /// # See also
     ///
     /// [`flip`]
-    pub fn flip<I>(&self, axis: I) -> TensorBase<DataRef<'_, R::Data>, D>
+    pub fn flip<I>(&self, axis: I) -> TensorView<'_, T, B, D>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -351,7 +350,7 @@ where
         flip(self, axis)
     }
 
-    pub fn flip_f<I>(&self, axis: I) -> Result<TensorBase<DataRef<'_, R::Data>, D>>
+    pub fn flip_f<I>(&self, axis: I) -> Result<TensorView<'_, T, B, D>>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -364,7 +363,7 @@ where
     /// # See also
     ///
     /// [`flip`]
-    pub fn into_flip<I>(self, axis: I) -> TensorBase<R, D>
+    pub fn into_flip<I>(self, axis: I) -> TensorAny<R, T, B, D>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -372,7 +371,7 @@ where
         into_flip(self, axis)
     }
 
-    pub fn into_flip_f<I>(self, axis: I) -> Result<TensorBase<R, D>>
+    pub fn into_flip_f<I>(self, axis: I) -> Result<TensorAny<R, T, B, D>>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -385,9 +384,8 @@ where
 
 /* #region permute_dims */
 
-pub fn into_transpose_f<I, R, D>(tensor: TensorBase<R, D>, axes: I) -> Result<TensorBase<R, D>>
+pub fn into_transpose_f<I, S, D>(tensor: TensorBase<S, D>, axes: I) -> Result<TensorBase<S, D>>
 where
-    R: DataAPI,
     D: DimAPI,
     I: TryInto<AxesIndex<isize>>,
     Error: From<I::Error>,
@@ -396,8 +394,9 @@ where
     if axes.as_ref().is_empty() {
         return Ok(into_reverse_axes(tensor));
     }
-    let layout = tensor.layout().transpose(axes.as_ref())?;
-    unsafe { Ok(TensorBase::new_unchecked(tensor.data, layout)) }
+    let (storage, layout) = tensor.into_raw_parts();
+    let layout = layout.transpose(axes.as_ref())?;
+    unsafe { Ok(TensorBase::new_unchecked(storage, layout)) }
 }
 
 /// Permutes the axes (dimensions) of an array `x`.
@@ -405,32 +404,33 @@ where
 /// # See also
 ///
 /// - [Python array API standard: `permute_dims`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.permute_dims.html)
-pub fn transpose<I, R, D>(tensor: &TensorBase<R, D>, axes: I) -> TensorBase<DataRef<'_, R::Data>, D>
+pub fn transpose<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axes: I) -> TensorView<'_, T, B, D>
 where
-    R: DataAPI,
     D: DimAPI,
     I: TryInto<AxesIndex<isize>>,
     Error: From<I::Error>,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
 {
     into_transpose_f(tensor.view(), axes).unwrap()
 }
 
-pub fn transpose_f<I, R, D>(
-    tensor: &TensorBase<R, D>,
+pub fn transpose_f<I, R, T, B, D>(
+    tensor: &TensorAny<R, T, B, D>,
     axes: I,
-) -> Result<TensorBase<DataRef<'_, R::Data>, D>>
+) -> Result<TensorView<'_, T, B, D>>
 where
-    R: DataAPI,
     D: DimAPI,
     I: TryInto<AxesIndex<isize>>,
     Error: From<I::Error>,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
 {
     into_transpose_f(tensor.view(), axes)
 }
 
-pub fn into_transpose<I, R, D>(tensor: TensorBase<R, D>, axes: I) -> TensorBase<R, D>
+pub fn into_transpose<I, S, D>(tensor: TensorBase<S, D>, axes: I) -> TensorBase<S, D>
 where
-    R: DataAPI,
     D: DimAPI,
     I: TryInto<AxesIndex<isize>>,
     Error: From<I::Error>,
@@ -443,9 +443,10 @@ pub use into_transpose_f as into_permute_dims_f;
 pub use transpose as permute_dims;
 pub use transpose_f as permute_dims_f;
 
-impl<R, D> TensorBase<R, D>
+impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
     D: DimAPI,
 {
     /// Permutes the axes (dimensions) of an array `x`.
@@ -453,7 +454,7 @@ where
     /// # See also
     ///
     /// [`transpose`]
-    pub fn transpose<I>(&self, axes: I) -> TensorBase<DataRef<'_, R::Data>, D>
+    pub fn transpose<I>(&self, axes: I) -> TensorView<'_, T, B, D>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -461,7 +462,7 @@ where
         transpose(self, axes)
     }
 
-    pub fn transpose_f<I>(&self, axes: I) -> Result<TensorBase<DataRef<'_, R::Data>, D>>
+    pub fn transpose_f<I>(&self, axes: I) -> Result<TensorView<'_, T, B, D>>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -474,7 +475,7 @@ where
     /// # See also
     ///
     /// [`transpose`]
-    pub fn into_transpose<I>(self, axes: I) -> TensorBase<R, D>
+    pub fn into_transpose<I>(self, axes: I) -> TensorAny<R, T, B, D>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -482,7 +483,7 @@ where
         into_transpose(self, axes)
     }
 
-    pub fn into_transpose_f<I>(self, axes: I) -> Result<TensorBase<R, D>>
+    pub fn into_transpose_f<I>(self, axes: I) -> Result<TensorAny<R, T, B, D>>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -495,7 +496,7 @@ where
     /// # See also
     ///
     /// [`transpose`]
-    pub fn permute_dims<I>(&self, axes: I) -> TensorBase<DataRef<'_, R::Data>, D>
+    pub fn permute_dims<I>(&self, axes: I) -> TensorView<'_, T, B, D>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -503,7 +504,7 @@ where
         transpose(self, axes)
     }
 
-    pub fn permute_dims_f<I>(&self, axes: I) -> Result<TensorBase<DataRef<'_, R::Data>, D>>
+    pub fn permute_dims_f<I>(&self, axes: I) -> Result<TensorView<'_, T, B, D>>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -516,7 +517,7 @@ where
     /// # See also
     ///
     /// [`transpose`]
-    pub fn into_permute_dims<I>(self, axes: I) -> TensorBase<R, D>
+    pub fn into_permute_dims<I>(self, axes: I) -> TensorAny<R, T, B, D>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -524,7 +525,7 @@ where
         into_transpose(self, axes)
     }
 
-    pub fn into_permute_dims_f<I>(self, axes: I) -> Result<TensorBase<R, D>>
+    pub fn into_permute_dims_f<I>(self, axes: I) -> Result<TensorAny<R, T, B, D>>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -537,27 +538,29 @@ where
 
 /* #region reverse_axes */
 
-pub fn into_reverse_axes<R, D>(tensor: TensorBase<R, D>) -> TensorBase<R, D>
+pub fn into_reverse_axes<S, D>(tensor: TensorBase<S, D>) -> TensorBase<S, D>
 where
-    R: DataAPI,
     D: DimAPI,
 {
-    let layout = tensor.layout().reverse_axes();
-    unsafe { TensorBase::new_unchecked(tensor.data, layout) }
+    let (storage, layout) = tensor.into_raw_parts();
+    let layout = layout.reverse_axes();
+    unsafe { TensorBase::new_unchecked(storage, layout) }
 }
 
 /// Reverse the order of elements in an array along the given axis.
-pub fn reverse_axes<R, D>(tensor: &TensorBase<R, D>) -> TensorBase<DataRef<'_, R::Data>, D>
+pub fn reverse_axes<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> TensorView<'_, T, B, D>
 where
-    R: DataAPI,
     D: DimAPI,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
 {
     into_reverse_axes(tensor.view())
 }
 
-impl<R, D> TensorBase<R, D>
+impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
     D: DimAPI,
 {
     /// Reverse the order of elements in an array along the given axis.
@@ -565,7 +568,7 @@ where
     /// # See also
     ///
     /// [`reverse_axes`]
-    pub fn reverse_axes(&self) -> TensorBase<DataRef<'_, R::Data>, D> {
+    pub fn reverse_axes(&self) -> TensorView<'_, T, B, D> {
         into_reverse_axes(self.view())
     }
 
@@ -574,7 +577,7 @@ where
     /// # See also
     ///
     /// [`reverse_axes`]
-    pub fn into_reverse_axes(self) -> TensorBase<R, D> {
+    pub fn into_reverse_axes(self) -> TensorAny<R, T, B, D> {
         into_reverse_axes(self)
     }
 
@@ -583,7 +586,7 @@ where
     /// # See also
     ///
     /// [`reverse_axes`]
-    pub fn t(&self) -> TensorBase<DataRef<'_, R::Data>, D> {
+    pub fn t(&self) -> TensorView<'_, T, B, D> {
         into_reverse_axes(self.view())
     }
 }
@@ -592,20 +595,20 @@ where
 
 /* #region swapaxes */
 
-pub fn into_swapaxes_f<I, R, D>(
-    tensor: TensorBase<R, D>,
+pub fn into_swapaxes_f<I, S, D>(
+    tensor: TensorBase<S, D>,
     axis1: I,
     axis2: I,
-) -> Result<TensorBase<R, D>>
+) -> Result<TensorBase<S, D>>
 where
-    R: DataAPI,
     D: DimAPI,
     I: TryInto<isize>,
 {
     let axis1 = axis1.try_into().map_err(|_| rstsr_error!(TryFromIntError))?;
     let axis2 = axis2.try_into().map_err(|_| rstsr_error!(TryFromIntError))?;
-    let layout = tensor.layout().swapaxes(axis1, axis2)?;
-    unsafe { Ok(TensorBase::new_unchecked(tensor.data, layout)) }
+    let (storage, layout) = tensor.into_raw_parts();
+    let layout = layout.swapaxes(axis1, axis2)?;
+    unsafe { Ok(TensorBase::new_unchecked(storage, layout)) }
 }
 
 /// Interchange two axes of an array.
@@ -613,44 +616,46 @@ where
 /// # See also
 ///
 /// - [numpy `swapaxes`](https://numpy.org/doc/stable/reference/generated/numpy.swapaxes.html)
-pub fn swapaxes<I, R, D>(
-    tensor: &TensorBase<R, D>,
+pub fn swapaxes<I, R, T, B, D>(
+    tensor: &TensorAny<R, T, B, D>,
     axis1: I,
     axis2: I,
-) -> TensorBase<DataRef<'_, R::Data>, D>
+) -> TensorView<'_, T, B, D>
 where
-    R: DataAPI,
     D: DimAPI,
     I: TryInto<isize>,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
 {
     into_swapaxes_f(tensor.view(), axis1, axis2).unwrap()
 }
 
-pub fn swapaxes_f<I, R, D>(
-    tensor: &TensorBase<R, D>,
+pub fn swapaxes_f<I, R, T, B, D>(
+    tensor: &TensorAny<R, T, B, D>,
     axis1: I,
     axis2: I,
-) -> Result<TensorBase<DataRef<'_, R::Data>, D>>
+) -> Result<TensorView<'_, T, B, D>>
 where
-    R: DataAPI,
     D: DimAPI,
     I: TryInto<isize>,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
 {
     into_swapaxes_f(tensor.view(), axis1, axis2)
 }
 
-pub fn into_swapaxes<I, R, D>(tensor: TensorBase<R, D>, axis1: I, axis2: I) -> TensorBase<R, D>
+pub fn into_swapaxes<I, S, D>(tensor: TensorBase<S, D>, axis1: I, axis2: I) -> TensorBase<S, D>
 where
-    R: DataAPI,
     D: DimAPI,
     I: TryInto<isize>,
 {
     into_swapaxes_f(tensor, axis1, axis2).unwrap()
 }
 
-impl<R, D> TensorBase<R, D>
+impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
     D: DimAPI,
 {
     /// Interchange two axes of an array.
@@ -658,14 +663,14 @@ where
     /// # See also
     ///
     /// [`swapaxes`]
-    pub fn swapaxes<I>(&self, axis1: I, axis2: I) -> TensorBase<DataRef<'_, R::Data>, D>
+    pub fn swapaxes<I>(&self, axis1: I, axis2: I) -> TensorView<'_, T, B, D>
     where
         I: TryInto<isize>,
     {
         swapaxes(self, axis1, axis2)
     }
 
-    pub fn swapaxes_f<I>(&self, axis1: I, axis2: I) -> Result<TensorBase<DataRef<'_, R::Data>, D>>
+    pub fn swapaxes_f<I>(&self, axis1: I, axis2: I) -> Result<TensorView<'_, T, B, D>>
     where
         I: TryInto<isize>,
     {
@@ -677,14 +682,14 @@ where
     /// # See also
     ///
     /// [`swapaxes`]
-    pub fn into_swapaxes<I>(self, axis1: I, axis2: I) -> TensorBase<R, D>
+    pub fn into_swapaxes<I>(self, axis1: I, axis2: I) -> TensorAny<R, T, B, D>
     where
         I: TryInto<isize>,
     {
         into_swapaxes(self, axis1, axis2)
     }
 
-    pub fn into_swapaxes_f<I>(self, axis1: I, axis2: I) -> Result<TensorBase<R, D>>
+    pub fn into_swapaxes_f<I>(self, axis1: I, axis2: I) -> Result<TensorAny<R, T, B, D>>
     where
         I: TryInto<isize>,
     {
@@ -696,16 +701,16 @@ where
 
 /* #region squeeze */
 
-pub fn into_squeeze_f<I, R, D>(tensor: TensorBase<R, D>, axes: I) -> Result<TensorBase<R, IxD>>
+pub fn into_squeeze_f<I, S, D>(tensor: TensorBase<S, D>, axes: I) -> Result<TensorBase<S, IxD>>
 where
-    R: DataAPI,
     D: DimAPI,
     I: TryInto<AxesIndex<isize>>,
     Error: From<I::Error>,
 {
     // convert axis to positive indexes and (reversed) sort
     let ndim: isize = TryInto::<isize>::try_into(tensor.ndim())?;
-    let mut layout = tensor.layout().clone().into_dim::<IxD>()?;
+    let (storage, layout) = tensor.into_raw_parts();
+    let mut layout = layout.into_dim::<IxD>()?;
     let mut axes: Vec<isize> =
         axes.try_into()?.as_ref().iter().map(|&v| if v >= 0 { v } else { v + ndim }).collect::<_>();
     axes.sort_by(|a, b| b.cmp(a));
@@ -720,7 +725,7 @@ where
     for &axis in axes.iter() {
         layout = layout.dim_eliminate(axis)?;
     }
-    unsafe { Ok(TensorBase::new_unchecked(tensor.data, layout)) }
+    unsafe { Ok(TensorBase::new_unchecked(storage, layout)) }
 }
 
 /// Removes singleton dimensions (axes) from `x`.
@@ -728,32 +733,33 @@ where
 /// # See also
 ///
 /// [Python array API standard: `squeeze`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.squeeze.html)
-pub fn squeeze<I, R, D>(tensor: &TensorBase<R, D>, axes: I) -> TensorBase<DataRef<'_, R::Data>, IxD>
+pub fn squeeze<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axes: I) -> TensorView<'_, T, B, IxD>
 where
-    R: DataAPI,
     D: DimAPI,
     I: TryInto<AxesIndex<isize>>,
     Error: From<I::Error>,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
 {
     into_squeeze_f(tensor.view(), axes).unwrap()
 }
 
-pub fn squeeze_f<I, R, D>(
-    tensor: &TensorBase<R, D>,
+pub fn squeeze_f<I, R, T, B, D>(
+    tensor: &TensorAny<R, T, B, D>,
     axes: I,
-) -> Result<TensorBase<DataRef<'_, R::Data>, IxD>>
+) -> Result<TensorView<'_, T, B, IxD>>
 where
-    R: DataAPI,
     D: DimAPI,
     I: TryInto<AxesIndex<isize>>,
     Error: From<I::Error>,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
 {
     into_squeeze_f(tensor.view(), axes)
 }
 
-pub fn into_squeeze<I, R, D>(tensor: TensorBase<R, D>, axes: I) -> TensorBase<R, IxD>
+pub fn into_squeeze<I, S, D>(tensor: TensorBase<S, D>, axes: I) -> TensorBase<S, IxD>
 where
-    R: DataAPI,
     D: DimAPI,
     I: TryInto<AxesIndex<isize>>,
     Error: From<I::Error>,
@@ -761,9 +767,10 @@ where
     into_squeeze_f(tensor, axes).unwrap()
 }
 
-impl<R, D> TensorBase<R, D>
+impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
     D: DimAPI,
 {
     /// Removes singleton dimensions (axes) from `x`.
@@ -771,7 +778,7 @@ where
     /// # See also
     ///
     /// [`squeeze`]
-    pub fn squeeze<I>(&self, axis: I) -> TensorBase<DataRef<'_, R::Data>, IxD>
+    pub fn squeeze<I>(&self, axis: I) -> TensorView<'_, T, B, IxD>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -779,7 +786,7 @@ where
         squeeze(self, axis)
     }
 
-    pub fn squeeze_f<I>(&self, axis: I) -> Result<TensorBase<DataRef<'_, R::Data>, IxD>>
+    pub fn squeeze_f<I>(&self, axis: I) -> Result<TensorView<'_, T, B, IxD>>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -792,7 +799,7 @@ where
     /// # See also
     ///
     /// [`squeeze`]
-    pub fn into_squeeze<I>(self, axis: I) -> TensorBase<R, IxD>
+    pub fn into_squeeze<I>(self, axis: I) -> TensorAny<R, T, B, IxD>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -800,7 +807,7 @@ where
         into_squeeze(self, axis)
     }
 
-    pub fn into_squeeze_f<I>(self, axis: I) -> Result<TensorBase<R, IxD>>
+    pub fn into_squeeze_f<I>(self, axis: I) -> Result<TensorAny<R, T, B, IxD>>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -813,44 +820,44 @@ where
 
 /* #region into_dim */
 
-pub fn into_dim_f<R, D, D2>(tensor: TensorBase<R, D>) -> Result<TensorBase<R, D2>>
+pub fn into_dim_f<S, D, D2>(tensor: TensorBase<S, D>) -> Result<TensorBase<S, D2>>
 where
-    R: DataAPI,
-    D: DimAPI,
+    D: DimAPI + DimIntoAPI<D2>,
     D2: DimAPI,
-    D: DimIntoAPI<D2>,
 {
-    let layout = tensor.layout().clone().into_dim::<D2>()?;
-    unsafe { Ok(TensorBase::new_unchecked(tensor.data, layout)) }
+    let (storage, layout) = tensor.into_raw_parts();
+    let layout = layout.into_dim::<D2>()?;
+    unsafe { Ok(TensorBase::new_unchecked(storage, layout)) }
 }
 
 /// Convert layout to another dimension.
 ///
 /// This is mostly used when converting static dimension to dynamic
 /// dimension or vice versa.
-pub fn to_dim<R, D, D2>(tensor: &TensorBase<R, D>) -> TensorBase<DataRef<'_, R::Data>, D2>
+pub fn to_dim<R, T, B, D, D2>(tensor: &TensorAny<R, T, B, D>) -> TensorView<'_, T, B, D2>
 where
-    R: DataAPI,
     D: DimAPI,
     D2: DimAPI,
     D: DimIntoAPI<D2>,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
 {
     into_dim_f(tensor.view()).unwrap()
 }
 
-pub fn to_dim_f<R, D, D2>(tensor: &TensorBase<R, D>) -> Result<TensorBase<DataRef<'_, R::Data>, D2>>
+pub fn to_dim_f<R, T, B, D, D2>(tensor: &TensorAny<R, T, B, D>) -> Result<TensorView<'_, T, B, D2>>
 where
-    R: DataAPI,
     D: DimAPI,
     D2: DimAPI,
     D: DimIntoAPI<D2>,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
 {
     into_dim_f(tensor.view())
 }
 
-pub fn into_dim<R, D, D2>(tensor: TensorBase<R, D>) -> TensorBase<R, D2>
+pub fn into_dim<S, D, D2>(tensor: TensorBase<S, D>) -> TensorBase<S, D2>
 where
-    R: DataAPI,
     D: DimAPI,
     D2: DimAPI,
     D: DimIntoAPI<D2>,
@@ -858,26 +865,27 @@ where
     into_dim_f(tensor).unwrap()
 }
 
-pub fn to_dyn<R, D>(tensor: &TensorBase<R, D>) -> TensorBase<DataRef<'_, R::Data>, IxD>
+pub fn to_dyn<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> TensorView<'_, T, B, IxD>
 where
-    R: DataAPI,
     D: DimAPI,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
 {
     into_dim_f(tensor.view()).unwrap()
 }
 
-pub fn into_dyn<R, D>(tensor: TensorBase<R, D>) -> TensorBase<R, IxD>
+pub fn into_dyn<S, D>(tensor: TensorBase<S, D>) -> TensorBase<S, IxD>
 where
-    R: DataAPI,
     D: DimAPI,
 {
     into_dim_f(tensor).unwrap()
 }
 
-impl<R, D> TensorBase<R, D>
+impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI,
     D: DimAPI,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
 {
     /// Convert layout to another dimension.
     ///
@@ -887,7 +895,7 @@ where
     /// # See also
     ///
     /// [`into_dim`]
-    pub fn to_dim<D2>(&self) -> TensorBase<DataRef<'_, R::Data>, D2>
+    pub fn to_dim<D2>(&self) -> TensorView<'_, T, B, D2>
     where
         D2: DimAPI,
         D: DimIntoAPI<D2>,
@@ -895,7 +903,7 @@ where
         to_dim(self)
     }
 
-    pub fn to_dim_f<D2>(&self) -> Result<TensorBase<DataRef<'_, R::Data>, D2>>
+    pub fn to_dim_f<D2>(&self) -> Result<TensorView<'_, T, B, D2>>
     where
         D2: DimAPI,
         D: DimIntoAPI<D2>,
@@ -908,7 +916,7 @@ where
     /// # See also
     ///
     /// [`into_dim`]
-    pub fn into_dim<D2>(self) -> TensorBase<R, D2>
+    pub fn into_dim<D2>(self) -> TensorAny<R, T, B, D2>
     where
         D2: DimAPI,
         D: DimIntoAPI<D2>,
@@ -916,7 +924,7 @@ where
         into_dim(self)
     }
 
-    pub fn into_dim_f<D2>(self) -> Result<TensorBase<R, D2>>
+    pub fn into_dim_f<D2>(self) -> Result<TensorAny<R, T, B, D2>>
     where
         D2: DimAPI,
         D: DimIntoAPI<D2>,
@@ -925,12 +933,12 @@ where
     }
 
     /// Convert layout to dynamic dimension.
-    pub fn to_dyn(&self) -> TensorBase<DataRef<'_, R::Data>, IxD> {
+    pub fn to_dyn(&self) -> TensorView<'_, T, B, IxD> {
         to_dyn(self)
     }
 
     /// Convert layout to dynamic dimension.
-    pub fn into_dyn(self) -> TensorBase<R, IxD> {
+    pub fn into_dyn(self) -> TensorAny<R, T, B, IxD> {
         into_dyn(self)
     }
 }
@@ -939,16 +947,15 @@ where
 
 /* #region reshape_assume_contig */
 
-pub fn into_shape_assume_contig_f<R, D, D2>(
-    tensor: TensorBase<R, D>,
+pub fn into_shape_assume_contig_f<S, D, D2>(
+    tensor: TensorBase<S, D>,
     shape: D2,
-) -> Result<TensorBase<R, D2>>
+) -> Result<TensorBase<S, D2>>
 where
-    R: DataAPI,
     D: DimAPI,
     D2: DimAPI,
 {
-    let layout = tensor.layout();
+    let (storage, layout) = tensor.into_raw_parts();
     let is_c_contig = layout.c_contig();
     let is_f_contig = layout.f_contig();
 
@@ -968,7 +975,7 @@ where
         (false, true) => shape.new_f_contig(Some(layout.offset)),
         (false, false) => rstsr_raise!(InvalidLayout, "Assumes contiguous layout.")?,
     };
-    unsafe { Ok(TensorBase::new_unchecked(tensor.data, new_layout)) }
+    unsafe { Ok(TensorBase::new_unchecked(storage, new_layout)) }
 }
 
 /// Assuming contiguous array, reshapes an array without changing its data.
@@ -984,33 +991,34 @@ where
 /// # See also
 ///
 /// [Python array API standard: `reshape`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.reshape.html)
-pub fn to_shape_assume_contig<R, D, D2>(
-    tensor: &TensorBase<R, D>,
+pub fn to_shape_assume_contig<R, T, B, D, D2>(
+    tensor: &TensorAny<R, T, B, D>,
     shape: D2,
-) -> TensorBase<DataRef<'_, R::Data>, D2>
+) -> TensorView<'_, T, B, D2>
 where
-    R: DataAPI,
     D: DimAPI,
     D2: DimAPI,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
 {
     into_shape_assume_contig_f(tensor.view(), shape).unwrap()
 }
 
-pub fn to_shape_assume_contig_f<R, D, D2>(
-    tensor: TensorBase<R, D>,
+pub fn to_shape_assume_contig_f<R, T, B, D, D2>(
+    tensor: &TensorAny<R, T, B, D>,
     shape: D2,
-) -> Result<TensorBase<R, D2>>
+) -> Result<TensorView<'_, T, B, D2>>
 where
-    R: DataAPI,
     D: DimAPI,
     D2: DimAPI,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
 {
-    into_shape_assume_contig_f(tensor, shape)
+    into_shape_assume_contig_f(tensor.view(), shape)
 }
 
-pub fn into_shape_assume_contig<R, D, D2>(tensor: TensorBase<R, D>, shape: D2) -> TensorBase<R, D2>
+pub fn into_shape_assume_contig<S, D, D2>(tensor: TensorBase<S, D>, shape: D2) -> TensorBase<S, D2>
 where
-    R: DataAPI,
     D: DimAPI,
     D2: DimAPI,
 {
@@ -1020,9 +1028,10 @@ where
 pub use to_shape_assume_contig as reshape_assume_contig;
 pub use to_shape_assume_contig_f as reshape_assume_contig_f;
 
-impl<R, D> TensorBase<R, D>
+impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
     D: DimAPI,
 {
     /// Assuming contiguous array, reshapes an array without changing its data.
@@ -1030,48 +1039,42 @@ where
     /// # See also
     ///
     /// [`reshape_assume_contig`]
-    pub fn reshape_assume_contig<D2>(&self, shape: D2) -> TensorBase<DataRef<'_, R::Data>, D2>
+    pub fn reshape_assume_contig<D2>(&self, shape: D2) -> TensorView<'_, T, B, D2>
     where
         D2: DimAPI,
     {
         into_shape_assume_contig(self.view(), shape)
     }
 
-    pub fn reshape_assume_contig_f<D2>(
-        &self,
-        shape: D2,
-    ) -> Result<TensorBase<DataRef<'_, R::Data>, D2>>
+    pub fn reshape_assume_contig_f<D2>(&self, shape: D2) -> Result<TensorView<'_, T, B, D2>>
     where
         D2: DimAPI,
     {
         into_shape_assume_contig_f(self.view(), shape)
     }
 
-    pub fn to_shape_assume_contig<D2>(&self, shape: D2) -> TensorBase<DataRef<'_, R::Data>, D2>
+    pub fn to_shape_assume_contig<D2>(&self, shape: D2) -> TensorView<'_, T, B, D2>
     where
         D2: DimAPI,
     {
         into_shape_assume_contig(self.view(), shape)
     }
 
-    pub fn to_shape_assume_contig_f<D2>(
-        &self,
-        shape: D2,
-    ) -> Result<TensorBase<DataRef<'_, R::Data>, D2>>
+    pub fn to_shape_assume_contig_f<D2>(&self, shape: D2) -> Result<TensorView<'_, T, B, D2>>
     where
         D2: DimAPI,
     {
         into_shape_assume_contig_f(self.view(), shape)
     }
 
-    pub fn into_shape_assume_contig<D2>(self, shape: D2) -> TensorBase<R, D2>
+    pub fn into_shape_assume_contig<D2>(self, shape: D2) -> TensorAny<R, T, B, D2>
     where
         D2: DimAPI,
     {
         into_shape_assume_contig(self, shape)
     }
 
-    pub fn into_shape_assume_contig_f<D2>(self, shape: D2) -> Result<TensorBase<R, D2>>
+    pub fn into_shape_assume_contig_f<D2>(self, shape: D2) -> Result<TensorAny<R, T, B, D2>>
     where
         D2: DimAPI,
     {
@@ -1083,17 +1086,19 @@ where
 
 /* #region reshape */
 
-pub fn change_shape_inner_f<'a, R, T, D, B>(
-    tensor: TensorBase<R, D>,
-    shape: AxesIndex<isize>,
-) -> Result<TensorBase<DataCow<'a, R::Data>, IxD>>
+pub fn change_shape_f<'a, I, R, T, B, D>(
+    tensor: TensorAny<R, T, B, D>,
+    shape: I,
+) -> Result<TensorCow<'a, T, B, IxD>>
 where
-    R: DataAPI<Data = Storage<T, B>> + DataIntoCowAPI<'a>,
+    I: TryInto<AxesIndex<isize>>,
+    Error: From<I::Error>,
+    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
 {
     // own shape, this is cheap operation
-    let mut shape = shape.as_ref().to_vec();
+    let mut shape = shape.try_into()?.as_ref().to_vec();
 
     // check negative indexes
     let mut idx_neg1: Option<usize> = None;
@@ -1132,224 +1137,204 @@ where
     let contig = tensor.layout().c_contig() || tensor.layout().f_contig();
     if same_shape {
         // same shape, do nothing but make layout to D2
-        let (data, layout) = tensor.into_data_and_layout();
-        let data = data.into_cow();
-        let layout = layout.into_dim::<IxD>()?.into_dim::<IxD>()?;
-        return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
+        let (storage, layout) = tensor.into_raw_parts();
+        let layout = layout.into_dim::<IxD>()?;
+        return unsafe { Ok(TensorBase::new_unchecked(storage, layout).into_cow()) };
     } else if contig {
         // no data cloned
-        let result = tensor.into_shape_assume_contig_f(shape.clone())?;
-        let layout = result.layout().clone();
-        let data = result.data.into_cow();
-        return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
+        let result = tensor.into_shape_assume_contig_f(shape.clone())?.into_cow();
+        return Ok(result);
     } else {
         // not contiguous, and shape changed
         // clone data by assign
-        let device = tensor.data.storage().device();
+        let (storage, layout) = tensor.into_raw_parts();
+        let device = storage.device();
         let layout_new = shape.new_contig(None);
         let mut storage_new = unsafe { device.empty_impl(layout_new.size())? };
-        device.assign_arbitary(&mut storage_new, &layout_new, tensor.storage(), tensor.layout())?;
-        let data_new = DataCow::Owned(storage_new.into());
-        return unsafe { Ok(TensorBase::new_unchecked(data_new, layout_new)) };
+        device.assign_arbitary(storage_new.raw_mut(), &layout_new, storage.raw(), &layout)?;
+        return unsafe { Ok(TensorBase::new_unchecked(storage, layout_new).into_cow()) };
     }
 }
 
-pub trait TensorChangeShapeAPI<'l, I>: Sized {
-    type OutCow;
-    type OutOwned;
-
-    fn change_shape_f(self, shape: I) -> Result<Self::OutCow>;
-    fn into_shape_f(self, shape: I) -> Result<Self::OutOwned>;
-    fn to_shape_f(&'l self, shape: I) -> Result<Self::OutCow>;
-
-    fn change_shape(self, shape: I) -> Self::OutCow {
-        self.change_shape_f(shape).unwrap()
-    }
-
-    fn into_shape(self, shape: I) -> Self::OutOwned {
-        self.into_shape_f(shape).unwrap()
-    }
-
-    fn to_shape(&'l self, shape: I) -> Self::OutCow {
-        self.to_shape_f(shape).unwrap()
-    }
-
-    fn reshape_f(&'l self, shape: I) -> Result<Self::OutCow> {
-        self.to_shape_f(shape)
-    }
-
-    /// Reshapes an array without changing its data.
-    ///
-    /// # Todo
-    ///
-    /// Current implementation only prohibits memory copy when the input tensor
-    /// is c-contiguous or f-contiguous. However, it is also possible in
-    /// some other cases, and we haven't implement that way.
-    ///
-    /// # See also
-    ///
-    /// [Python array API standard: `reshape`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.reshape.html)
-    fn reshape(&'l self, shape: I) -> Self::OutCow {
-        self.to_shape(shape)
-    }
-}
-
-impl<R, D> TensorBase<R, D>
+pub fn change_shape<'a, I, R, T, B, D>(
+    tensor: TensorAny<R, T, B, D>,
+    shape: I,
+) -> TensorCow<'a, T, B, IxD>
 where
-    R: DataAPI,
+    I: TryInto<AxesIndex<isize>>,
+    Error: From<I::Error>,
+    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
 {
-    pub fn change_shape_f<'l, I>(
-        self,
-        shape: I,
-    ) -> Result<<Self as TensorChangeShapeAPI<'l, I>>::OutCow>
-    where
-        Self: TensorChangeShapeAPI<'l, I>,
-    {
-        TensorChangeShapeAPI::change_shape_f(self, shape)
-    }
-
-    pub fn change_shape<'l, I>(self, shape: I) -> <Self as TensorChangeShapeAPI<'l, I>>::OutOwned
-    where
-        Self: TensorChangeShapeAPI<'l, I>,
-    {
-        TensorChangeShapeAPI::into_shape(self, shape)
-    }
-
-    pub fn into_shape_f<'l, I>(
-        self,
-        shape: I,
-    ) -> Result<<Self as TensorChangeShapeAPI<'l, I>>::OutOwned>
-    where
-        Self: TensorChangeShapeAPI<'l, I>,
-    {
-        TensorChangeShapeAPI::into_shape_f(self, shape)
-    }
-
-    pub fn into_shape<'l, I>(self, shape: I) -> <Self as TensorChangeShapeAPI<'l, I>>::OutOwned
-    where
-        Self: TensorChangeShapeAPI<'l, I>,
-    {
-        TensorChangeShapeAPI::into_shape(self, shape)
-    }
-
-    pub fn to_shape_f<'l, I>(
-        &'l self,
-        shape: I,
-    ) -> Result<<Self as TensorChangeShapeAPI<'l, I>>::OutCow>
-    where
-        Self: TensorChangeShapeAPI<'l, I>,
-    {
-        TensorChangeShapeAPI::to_shape_f(self, shape)
-    }
-
-    pub fn to_shape<'l, I>(&'l self, shape: I) -> <Self as TensorChangeShapeAPI<'l, I>>::OutCow
-    where
-        Self: TensorChangeShapeAPI<'l, I>,
-    {
-        TensorChangeShapeAPI::to_shape(self, shape)
-    }
-
-    pub fn reshape_f<'l, I>(
-        &'l self,
-        shape: I,
-    ) -> Result<<Self as TensorChangeShapeAPI<'l, I>>::OutCow>
-    where
-        Self: TensorChangeShapeAPI<'l, I>,
-    {
-        TensorChangeShapeAPI::reshape_f(self, shape)
-    }
-
-    pub fn reshape<'l, I>(&'l self, shape: I) -> <Self as TensorChangeShapeAPI<'l, I>>::OutCow
-    where
-        Self: TensorChangeShapeAPI<'l, I>,
-    {
-        TensorChangeShapeAPI::reshape(self, shape)
-    }
+    change_shape_f(tensor, shape).unwrap()
 }
 
-impl<'a, R, T, D, B, I, const N: usize> TensorChangeShapeAPI<'a, [I; N]> for TensorBase<R, D>
+pub fn into_shape_f<'a, I, R, T, B, D>(
+    tensor: TensorAny<R, T, B, D>,
+    shape: I,
+) -> Result<Tensor<T, B, IxD>>
 where
-    R: DataAPI<Data = Storage<T, B>> + DataIntoCowAPI<'a>,
-    T: Clone + 'a,
+    I: TryInto<AxesIndex<isize>>,
+    Error: From<I::Error>,
+    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
+    D: DimAPI,
+    T: Clone,
+    B: DeviceAPI<T>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignArbitaryAPI<T, IxD, D>
+        + OpAssignAPI<T, IxD>,
+    B::Raw: 'a,
+{
+    change_shape_f(tensor, shape).map(|v| v.into_owned())
+}
+
+pub fn into_shape<'a, I, R, T, B, D>(tensor: TensorAny<R, T, B, D>, shape: I) -> Tensor<T, B, IxD>
+where
+    I: TryInto<AxesIndex<isize>>,
+    Error: From<I::Error>,
+    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
+    D: DimAPI,
+    T: Clone,
+    B: DeviceAPI<T>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignArbitaryAPI<T, IxD, D>
+        + OpAssignAPI<T, IxD>,
+    B::Raw: 'a,
+{
+    into_shape_f(tensor, shape).unwrap()
+}
+
+pub fn to_shape_f<'a, I, R, T, B, D>(
+    tensor: &'a TensorAny<R, T, B, D>,
+    shape: I,
+) -> Result<TensorCow<'a, T, B, IxD>>
+where
+    I: TryInto<AxesIndex<isize>>,
+    Error: From<I::Error>,
+    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
+{
+    change_shape_f(tensor.view(), shape)
+}
+
+pub fn to_shape<'a, I, R, T, B, D>(
+    tensor: &'a TensorAny<R, T, B, D>,
+    shape: I,
+) -> TensorCow<'a, T, B, IxD>
+where
+    I: TryInto<AxesIndex<isize>>,
+    Error: From<I::Error>,
+    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
+{
+    to_shape_f(tensor, shape).unwrap()
+}
+
+pub fn reshape_f<'a, I, R, T, B, D>(
+    tensor: &'a TensorAny<R, T, B, D>,
+    shape: I,
+) -> Result<TensorCow<'a, T, B, IxD>>
+where
+    I: TryInto<AxesIndex<isize>>,
+    Error: From<I::Error>,
+    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
+{
+    to_shape_f(tensor, shape)
+}
+
+pub fn reshape<'a, I, R, T, B, D>(
+    tensor: &'a TensorAny<R, T, B, D>,
+    shape: I,
+) -> TensorCow<'a, T, B, IxD>
+where
+    I: TryInto<AxesIndex<isize>>,
+    Error: From<I::Error>,
+    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
+{
+    to_shape(tensor, shape)
+}
+
+impl<'a, R, T, B, D> TensorAny<R, T, B, D>
+where
+    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
     B: DeviceAPI<T>
         + DeviceCreationAnyAPI<T>
         + OpAssignArbitaryAPI<T, IxD, D>
-        + OpAssignAPI<T, Ix<N>>
-        + 'a,
-    I: TryInto<isize> + Copy,
+        + OpAssignAPI<T, IxD>,
+    T: Clone,
 {
-    type OutCow = TensorBase<DataCow<'a, R::Data>, Ix<N>>;
-    type OutOwned = TensorBase<DataOwned<R::Data>, Ix<N>>;
-
-    fn change_shape_f(self, shape: [I; N]) -> Result<Self::OutCow> {
-        let shape = shape.iter().map(|&v| v.try_into().ok().unwrap()).collect::<Vec<isize>>();
-        change_shape_inner_f(self, shape.try_into()?)?.into_dim_f()
+    pub fn change_shape_f<I>(self, shape: I) -> Result<TensorCow<'a, T, B, IxD>>
+    where
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
+    {
+        change_shape_f(self, shape)
     }
 
-    fn into_shape_f(self, shape: [I; N]) -> Result<Self::OutOwned> {
-        self.change_shape_f(shape).map(|t| t.into_owned())
+    pub fn change_shape<I>(self, shape: I) -> TensorCow<'a, T, B, IxD>
+    where
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
+    {
+        change_shape(self, shape)
     }
 
-    fn to_shape_f(&'a self, shape: [I; N]) -> Result<Self::OutCow> {
+    pub fn into_shape_f<I>(self, shape: I) -> Result<Tensor<T, B, IxD>>
+    where
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
+        B::Raw: 'a,
+    {
+        into_shape_f(self, shape)
+    }
+
+    pub fn into_shape<I>(self, shape: I) -> Tensor<T, B, IxD>
+    where
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
+        B::Raw: 'a,
+    {
+        into_shape(self, shape)
+    }
+
+    pub fn to_shape_f<I>(&'a self, shape: I) -> Result<TensorCow<'a, T, B, IxD>>
+    where
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
+    {
         self.view().change_shape_f(shape)
     }
-}
 
-impl<'a, R, T, D, B, I> TensorChangeShapeAPI<'a, Vec<I>> for TensorBase<R, D>
-where
-    R: DataAPI<Data = Storage<T, B>> + DataIntoCowAPI<'a>,
-    T: Clone + 'a,
-    D: DimAPI,
-    B: DeviceAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + OpAssignArbitaryAPI<T, IxD, D>
-        + OpAssignAPI<T, IxD>
-        + 'a,
-    I: TryInto<isize> + Copy,
-{
-    type OutCow = TensorBase<DataCow<'a, R::Data>, IxD>;
-    type OutOwned = TensorBase<DataOwned<R::Data>, IxD>;
-
-    fn change_shape_f(self, shape: Vec<I>) -> Result<Self::OutCow> {
-        let shape = shape.iter().map(|&v| v.try_into().ok().unwrap()).collect::<Vec<isize>>();
-        change_shape_inner_f(self, shape.try_into()?)?.into_dim_f()
+    pub fn to_shape<I>(&'a self, shape: I) -> TensorCow<'a, T, B, IxD>
+    where
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
+    {
+        self.view().change_shape(shape)
     }
 
-    fn into_shape_f(self, shape: Vec<I>) -> Result<Self::OutOwned> {
-        self.change_shape_f(shape).map(|t| t.into_owned())
-    }
-
-    fn to_shape_f(&'a self, shape: Vec<I>) -> Result<Self::OutCow> {
+    pub fn reshape_f<I>(&'a self, shape: I) -> Result<TensorCow<'a, T, B, IxD>>
+    where
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
+    {
         self.view().change_shape_f(shape)
     }
-}
 
-impl<'a, R, T, D, B> TensorChangeShapeAPI<'a, isize> for TensorBase<R, D>
-where
-    R: DataAPI<Data = Storage<T, B>> + DataIntoCowAPI<'a>,
-    T: Clone + 'a,
-    D: DimAPI,
-    B: DeviceAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + OpAssignArbitaryAPI<T, IxD, D>
-        + OpAssignAPI<T, Ix1>
-        + 'a,
-{
-    type OutCow = TensorBase<DataCow<'a, R::Data>, Ix1>;
-    type OutOwned = TensorBase<DataOwned<R::Data>, Ix1>;
-
-    fn change_shape_f(self, shape: isize) -> Result<Self::OutCow> {
-        change_shape_inner_f(self, [shape].try_into()?)?.into_dim_f()
-    }
-
-    fn into_shape_f(self, shape: isize) -> Result<Self::OutOwned> {
-        self.change_shape_f(shape).map(|t| t.into_owned())
-    }
-
-    fn to_shape_f(&'a self, shape: isize) -> Result<Self::OutCow> {
-        self.view().change_shape_f(shape)
+    pub fn reshape<I>(&'a self, shape: I) -> TensorCow<'a, T, B, IxD>
+    where
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
+    {
+        self.view().change_shape(shape)
     }
 }
 
@@ -1357,12 +1342,12 @@ where
 
 /* #region to_layout */
 
-pub fn change_layout_f<'a, R, T, D, B, D2>(
-    tensor: TensorBase<R, D>,
+pub fn change_layout_f<'a, R, T, B, D, D2>(
+    tensor: TensorAny<R, T, B, D>,
     layout: Layout<D2>,
-) -> Result<TensorBase<DataCow<'a, R::Data>, D2>>
+) -> Result<TensorCow<'a, T, B, D2>>
 where
-    R: DataAPI<Data = Storage<T, B>> + DataIntoCowAPI<'a>,
+    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
     D2: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D>,
@@ -1378,27 +1363,29 @@ where
         && tensor.layout().offset() == layout.offset();
     if same_layout || contig_c || contig_f {
         // no data cloned
-        let data = tensor.data.into_cow();
-        return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
+        let (storage, _) = tensor.into_raw_parts();
+        let tensor = unsafe { TensorBase::new_unchecked(storage, layout) };
+        return Ok(tensor.into_cow());
     } else {
         // layout changed, or not c and f contiguous with same layout
         // clone data by assign
-        let device = tensor.data.storage().device();
+        let (storage_old, layout_old) = tensor.into_raw_parts();
+        let device = storage_old.device();
         let (_, idx_max) = layout.bounds_index()?;
         let mut storage_new = unsafe { device.empty_impl(idx_max)? };
-        device.assign_arbitary(&mut storage_new, &layout, tensor.storage(), tensor.layout())?;
-        let data_new = DataCow::Owned(storage_new.into());
-        return unsafe { Ok(TensorBase::new_unchecked(data_new, layout)) };
+        device.assign_arbitary(storage_new.raw_mut(), &layout, storage_old.raw(), &layout_old)?;
+        let tensor = unsafe { TensorBase::new_unchecked(storage_new, layout) };
+        return Ok(tensor.into_cow());
     }
 }
 
 /// Convert layout to another layout.
 pub fn to_layout<R, T, D, B, D2>(
-    tensor: &TensorBase<R, D>,
+    tensor: &TensorAny<R, T, B, D>,
     layout: Layout<D2>,
-) -> TensorBase<DataCow<'_, R::Data>, D2>
+) -> TensorCow<'_, T, B, D2>
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     D: DimAPI,
     D2: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D>,
@@ -1407,11 +1394,11 @@ where
 }
 
 pub fn to_layout_f<R, T, D, B, D2>(
-    tensor: &TensorBase<R, D>,
+    tensor: &TensorAny<R, T, B, D>,
     layout: Layout<D2>,
-) -> Result<TensorBase<DataCow<'_, R::Data>, D2>>
+) -> Result<TensorCow<'_, T, B, D2>>
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     D: DimAPI,
     D2: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D>,
@@ -1419,42 +1406,42 @@ where
     change_layout_f(tensor.view(), layout)
 }
 
-pub fn into_layout<'a, R, T, D, B, D2>(
-    tensor: TensorBase<R, D>,
+pub fn into_layout_f<'a, R, T, B, D, D2>(
+    tensor: TensorAny<R, T, B, D>,
     layout: Layout<D2>,
-) -> TensorBase<DataOwned<R::Data>, D2>
+) -> Result<Tensor<T, B, D2>>
 where
-    T: Clone + 'a,
-    R: DataAPI<Data = Storage<T, B>> + DataIntoCowAPI<'a>,
+    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
     D2: DimAPI,
+    T: Clone,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D> + OpAssignAPI<T, D2>,
-    B: 'a,
+    B::Raw: 'a,
 {
-    change_layout_f(tensor, layout).map(|t| t.into_owned()).unwrap()
+    change_layout_f(tensor, layout).map(|v| v.into_owned())
 }
 
-pub fn into_layout_f<'a, R, T, D, B, D2>(
-    tensor: TensorBase<R, D>,
+pub fn into_layout<'a, R, T, B, D, D2>(
+    tensor: TensorAny<R, T, B, D>,
     layout: Layout<D2>,
-) -> Result<TensorBase<DataOwned<R::Data>, D2>>
+) -> Tensor<T, B, D2>
 where
-    T: Clone + 'a,
-    R: DataAPI<Data = Storage<T, B>> + DataIntoCowAPI<'a>,
+    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
     D2: DimAPI,
+    T: Clone,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D> + OpAssignAPI<T, D2>,
-    B: 'a,
+    B::Raw: 'a,
 {
-    change_layout_f(tensor, layout).map(|t| t.into_owned())
+    into_layout_f(tensor, layout).unwrap()
 }
 
-pub fn change_layout<'a, R, T, D, B, D2>(
-    tensor: TensorBase<R, D>,
+pub fn change_layout<'a, R, T, B, D, D2>(
+    tensor: TensorAny<R, T, B, D>,
     layout: Layout<D2>,
-) -> TensorBase<DataCow<'a, R::Data>, D2>
+) -> TensorCow<'a, T, B, D2>
 where
-    R: DataAPI<Data = Storage<T, B>> + DataIntoCowAPI<'a>,
+    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
     D2: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D>,
@@ -1462,10 +1449,11 @@ where
     change_layout_f(tensor, layout).unwrap()
 }
 
-impl<R, T, D, B> TensorBase<R, D>
+impl<'a, R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
+    T: Clone,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
 {
     /// Convert layout to another layout.
@@ -1473,67 +1461,54 @@ where
     /// # See also
     ///
     /// [`to_layout`]
-    pub fn to_layout<D2>(&self, layout: Layout<D2>) -> TensorBase<DataCow<'_, R::Data>, D2>
+    pub fn to_layout<D2>(&self, layout: Layout<D2>) -> TensorCow<'_, T, B, D2>
     where
         D2: DimAPI,
         B: OpAssignArbitaryAPI<T, D2, D>,
     {
-        change_layout(self.view(), layout)
+        to_layout(self, layout)
     }
 
-    pub fn to_layout_f<D2>(
-        &self,
-        layout: Layout<D2>,
-    ) -> Result<TensorBase<DataCow<'_, R::Data>, D2>>
+    pub fn to_layout_f<D2>(&self, layout: Layout<D2>) -> Result<TensorCow<'_, T, B, D2>>
     where
         D2: DimAPI,
         B: OpAssignArbitaryAPI<T, D2, D>,
     {
-        change_layout_f(self.view(), layout)
+        to_layout_f(self, layout)
     }
 
-    pub fn change_layout_f<'a, D2>(
-        self,
-        layout: Layout<D2>,
-    ) -> Result<TensorBase<DataCow<'a, R::Data>, D2>>
+    pub fn into_layout_f<D2>(self, layout: Layout<D2>) -> Result<Tensor<T, B, D2>>
     where
-        R: DataIntoCowAPI<'a>,
+        D2: DimAPI,
+        B: OpAssignArbitaryAPI<T, D2, D> + OpAssignAPI<T, D2>,
+        B::Raw: 'a,
+    {
+        into_layout_f(self, layout)
+    }
+
+    pub fn into_layout<D2>(self, layout: Layout<D2>) -> Tensor<T, B, D2>
+    where
+        D2: DimAPI,
+        B: OpAssignArbitaryAPI<T, D2, D> + OpAssignAPI<T, D2>,
+        B::Raw: 'a,
+    {
+        into_layout(self, layout)
+    }
+
+    pub fn change_layout_f<D2>(self, layout: Layout<D2>) -> Result<TensorCow<'a, T, B, D2>>
+    where
         D2: DimAPI,
         B: OpAssignArbitaryAPI<T, D2, D>,
     {
         change_layout_f(self, layout)
     }
 
-    pub fn change_layout<'a, D2>(self, layout: Layout<D2>) -> TensorBase<DataCow<'a, R::Data>, D2>
+    pub fn change_layout<D2>(self, layout: Layout<D2>) -> TensorCow<'a, T, B, D2>
     where
-        R: DataIntoCowAPI<'a>,
         D2: DimAPI,
         B: OpAssignArbitaryAPI<T, D2, D>,
     {
         change_layout(self, layout)
-    }
-
-    pub fn into_layout<'a, D2>(self, layout: Layout<D2>) -> TensorBase<DataOwned<R::Data>, D2>
-    where
-        R: DataIntoCowAPI<'a>,
-        T: Clone + 'a,
-        D2: DimAPI,
-        B: OpAssignArbitaryAPI<T, D2, D> + OpAssignAPI<T, D2> + 'a,
-    {
-        into_layout(self, layout)
-    }
-
-    pub fn into_layout_f<'a, D2>(
-        self,
-        layout: Layout<D2>,
-    ) -> Result<TensorBase<DataOwned<R::Data>, D2>>
-    where
-        R: DataIntoCowAPI<'a>,
-        T: Clone + 'a,
-        D2: DimAPI,
-        B: OpAssignArbitaryAPI<T, D2, D> + OpAssignAPI<T, D2> + 'a,
-    {
-        into_layout_f(self, layout)
     }
 }
 
@@ -1604,7 +1579,7 @@ mod tests {
     fn test_to_shape() {
         let a = linspace((0.0, 15.0, 16));
         let mut a = a.to_shape([4, 4]);
-        a.layout = Layout::new([2, 2], [2, 4], 0).unwrap();
+        a.layout = Layout::new(vec![2, 2], vec![2, 4], 0).unwrap();
         println!("{:?}", a);
         let b = a.to_shape([2, 2]);
         println!("{:?}", b);

@@ -133,7 +133,7 @@ Dropped support
 | Y | [`zeros_like`] | [`zeros_like`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.zeros_like.html) | Returns a new array filled with zeros and having the same `shape` as an input array x. |
 
 **Partial implementation**
-- [`asarray`]: This function have different implementations for `Vec<T>`, `[T; N]` and [`Tensor<T, D, B>`]. Different signatures are utilized for different inputs and purposes.
+- [`asarray`]: This function have different implementations for `Vec<T>`, `[T; N]` and [`Tensor<T, B, D>`]. Different signatures are utilized for different inputs and purposes.
 
 ## Data Type
 

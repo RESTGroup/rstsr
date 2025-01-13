@@ -12,11 +12,11 @@ macro_rules! trait_definition {
 
                 fn op_mutc_refa_refb(
                     &self,
-                    c: &mut Storage<Self::TOut, Self>,
+                    c: &mut <Self as DeviceRawAPI<Self::TOut>>::Raw,
                     lc: &Layout<D>,
-                    a: &Storage<TA, Self>,
+                    a: &<Self as DeviceRawAPI<TA>>::Raw,
                     la: &Layout<D>,
-                    b: &Storage<TB, Self>,
+                    b: &<Self as DeviceRawAPI<TB>>::Raw,
                     lb: &Layout<D>,
                 ) -> Result<()>;
             }

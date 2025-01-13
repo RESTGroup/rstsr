@@ -155,20 +155,18 @@ where
     T: Zero + Add<Output = T> + Clone,
     D: DimAPI,
 {
-    fn sum_all(&self, a: &Storage<T, Self>, la: &Layout<D>) -> Result<T> {
-        let a = a.rawvec();
+    fn sum_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T> {
         reduce_all_cpu_serial(a, la, T::zero, |acc, x| acc + x)
     }
 
     fn sum(
         &self,
-        a: &Storage<T, Self>,
+        a: &Vec<T>,
         la: &Layout<D>,
         axes: &[isize],
-    ) -> Result<(Storage<T, Self>, Layout<IxD>)> {
-        let a = a.rawvec();
+    ) -> Result<(Storage<DataOwned<Vec<T>>, T, Self>, Layout<IxD>)> {
         let (out, layout_out) =
             reduce_axes_cpu_serial(a, &la.to_dim()?, axes, T::zero, |acc, x| acc + x)?;
-        Ok((Storage::new(out, self.clone()), layout_out))
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 }

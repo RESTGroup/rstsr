@@ -17,11 +17,11 @@ where
 {
     fn matmul(
         &self,
-        c: &mut Storage<TC, Self>,
+        c: &mut <Self as DeviceRawAPI<TC>>::Raw,
         lc: &Layout<DC>,
-        a: &Storage<TA, Self>,
+        a: &<Self as DeviceRawAPI<TA>>::Raw,
         la: &Layout<DA>,
-        b: &Storage<TB, Self>,
+        b: &<Self as DeviceRawAPI<TB>>::Raw,
         lb: &Layout<DB>,
         alpha: TC,
         beta: TC,
@@ -36,11 +36,11 @@ where
 {
     fn gemm(
         &self,
-        c: &mut Storage<TC, Self>,
+        c: &mut <Self as DeviceRawAPI<TC>>::Raw,
         lc: &Layout<Ix2>,
-        a: &Storage<TA, Self>,
+        a: &<Self as DeviceRawAPI<TA>>::Raw,
         la: &Layout<Ix2>,
-        b: &Storage<TB, Self>,
+        b: &<Self as DeviceRawAPI<TB>>::Raw,
         lb: &Layout<Ix2>,
         alpha: TC,
         beta: TC,
@@ -55,11 +55,11 @@ where
 {
     fn symm(
         &self,
-        c: &mut Storage<TC, Self>,
+        c: &mut <Self as DeviceRawAPI<TC>>::Raw,
         lc: &Layout<Ix2>,
-        a: &Storage<TA, Self>,
+        a: &<Self as DeviceRawAPI<TA>>::Raw,
         la: &Layout<Ix2>,
-        b: &Storage<TB, Self>,
+        b: &<Self as DeviceRawAPI<TB>>::Raw,
         lb: &Layout<Ix2>,
         side: TensorSide,
         uplo: TensorUpLo,
@@ -76,9 +76,9 @@ where
 {
     fn syrk(
         &self,
-        c: &mut Storage<TC, Self>,
+        c: &mut <Self as DeviceRawAPI<TC>>::Raw,
         lc: &Layout<Ix2>,
-        a: &Storage<TA, Self>,
+        a: &<Self as DeviceRawAPI<TA>>::Raw,
         la: &Layout<Ix2>,
         uplo: TensorUpLo,
         alpha: TC,
@@ -94,9 +94,9 @@ where
 {
     fn herk(
         &self,
-        c: &mut Storage<TC, Self>,
+        c: &mut <Self as DeviceRawAPI<TC>>::Raw,
         lc: &Layout<Ix2>,
-        a: &Storage<TA, Self>,
+        a: &<Self as DeviceRawAPI<TA>>::Raw,
         la: &Layout<Ix2>,
         uplo: TensorUpLo,
         alpha: TC,
@@ -112,11 +112,11 @@ where
 {
     fn gemv(
         &self,
-        c: &mut Storage<TC, Self>,
+        c: &mut <Self as DeviceRawAPI<TC>>::Raw,
         lc: &Layout<Ix1>,
-        a: &Storage<TA, Self>,
+        a: &<Self as DeviceRawAPI<TA>>::Raw,
         la: &Layout<Ix2>,
-        b: &Storage<TB, Self>,
+        b: &<Self as DeviceRawAPI<TB>>::Raw,
         lb: &Layout<Ix1>,
         alpha: TC,
         beta: TC,
@@ -124,11 +124,11 @@ where
 
     fn gevm(
         &self,
-        c: &mut Storage<TC, Self>,
+        c: &mut <Self as DeviceRawAPI<TC>>::Raw,
         lc: &Layout<Ix1>,
-        a: &Storage<TA, Self>,
+        a: &<Self as DeviceRawAPI<TA>>::Raw,
         la: &Layout<Ix1>,
-        b: &Storage<TB, Self>,
+        b: &<Self as DeviceRawAPI<TB>>::Raw,
         lb: &Layout<Ix2>,
         alpha: TC,
         beta: TC,
@@ -143,11 +143,11 @@ where
 {
     fn inner_dot(
         &self,
-        c: &mut Storage<TC, Self>,
+        c: &mut <Self as DeviceRawAPI<TC>>::Raw,
         lc: &Layout<Ix0>,
-        a: &Storage<TA, Self>,
+        a: &<Self as DeviceRawAPI<TA>>::Raw,
         la: &Layout<Ix1>,
-        b: &Storage<TB, Self>,
+        b: &<Self as DeviceRawAPI<TB>>::Raw,
         lb: &Layout<Ix1>,
         alpha: TC,
         beta: TC,

@@ -11,13 +11,11 @@ macro_rules! macro_impl_rayon_assignment {
         {
             fn assign_arbitary(
                 &self,
-                c: &mut Storage<T, Self>,
+                c: &mut Vec<T>,
                 lc: &Layout<DC>,
-                a: &Storage<T, Self>,
+                a: &Vec<T>,
                 la: &Layout<DA>,
             ) -> Result<()> {
-                let c = c.rawvec_mut();
-                let a = a.rawvec();
                 let nthreads = self.get_num_threads();
                 assign_arbitary_cpu_rayon(c, lc, a, la, nthreads)
             }
@@ -30,19 +28,16 @@ macro_rules! macro_impl_rayon_assignment {
         {
             fn assign(
                 &self,
-                c: &mut Storage<T, Self>,
+                c: &mut Vec<T>,
                 lc: &Layout<D>,
-                a: &Storage<T, Self>,
+                a: &Vec<T>,
                 la: &Layout<D>,
             ) -> Result<()> {
-                let c = c.rawvec_mut();
-                let a = a.rawvec();
                 let nthreads = self.get_num_threads();
                 assign_cpu_rayon(c, lc, a, la, nthreads)
             }
 
-            fn fill(&self, c: &mut Storage<T, Self>, lc: &Layout<D>, fill: T) -> Result<()> {
-                let c = c.rawvec_mut();
+            fn fill(&self, c: &mut Vec<T>, lc: &Layout<D>, fill: T) -> Result<()> {
                 let nthreads = self.get_num_threads();
                 fill_cpu_rayon(c, lc, fill, nthreads)
             }

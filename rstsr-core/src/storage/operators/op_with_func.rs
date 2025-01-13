@@ -12,11 +12,11 @@ where
 {
     fn op_mutc_refa_refb_func(
         &self,
-        c: &mut Storage<TC, Self>,
+        c: &mut <Self as DeviceRawAPI<TC>>::Raw,
         lc: &Layout<D>,
-        a: &Storage<TA, Self>,
+        a: &<Self as DeviceRawAPI<TA>>::Raw,
         la: &Layout<D>,
-        b: &Storage<TB, Self>,
+        b: &<Self as DeviceRawAPI<TB>>::Raw,
         lb: &Layout<D>,
         f: &mut F,
     ) -> Result<()>;
@@ -31,9 +31,9 @@ where
 {
     fn op_mutc_refa_numb_func(
         &self,
-        c: &mut Storage<TC, Self>,
+        c: &mut <Self as DeviceRawAPI<TC>>::Raw,
         lc: &Layout<D>,
-        a: &Storage<TA, Self>,
+        a: &<Self as DeviceRawAPI<TA>>::Raw,
         la: &Layout<D>,
         b: TB,
         f: &mut F,
@@ -49,10 +49,10 @@ where
 {
     fn op_mutc_numa_refb_func(
         &self,
-        c: &mut Storage<TC, Self>,
+        c: &mut <Self as DeviceRawAPI<TC>>::Raw,
         lc: &Layout<D>,
         a: TA,
-        b: &Storage<TB, Self>,
+        b: &<Self as DeviceRawAPI<TB>>::Raw,
         lb: &Layout<D>,
         f: &mut F,
     ) -> Result<()>;
@@ -67,9 +67,9 @@ where
 {
     fn op_muta_refb_func(
         &self,
-        a: &mut Storage<TA, Self>,
+        a: &mut <Self as DeviceRawAPI<TA>>::Raw,
         la: &Layout<D>,
-        b: &Storage<TB, Self>,
+        b: &<Self as DeviceRawAPI<TB>>::Raw,
         lb: &Layout<D>,
         f: &mut F,
     ) -> Result<()>;
@@ -84,7 +84,7 @@ where
 {
     fn op_muta_numb_func(
         &self,
-        a: &mut Storage<TA, Self>,
+        a: &mut <Self as DeviceRawAPI<TA>>::Raw,
         la: &Layout<D>,
         b: TB,
         f: &mut F,
@@ -98,7 +98,12 @@ where
     F: FnMut(&mut T) + ?Sized,
     Self: DeviceAPI<T>,
 {
-    fn op_muta_func(&self, a: &mut Storage<T, Self>, la: &Layout<D>, f: &mut F) -> Result<()>;
+    fn op_muta_func(
+        &self,
+        a: &mut <Self as DeviceRawAPI<T>>::Raw,
+        la: &Layout<D>,
+        f: &mut F,
+    ) -> Result<()>;
 }
 
 /* #endregion */

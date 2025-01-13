@@ -50,7 +50,7 @@ pub use trait_binary_arithmetic::*;
 
 macro_rules! impl_core_ops {
     ($op: ident, $DeviceOpAPI: ident, $TensorOpAPI: ident, $Op: ident) => {
-        impl<RA, DA, TRB, TRC> $Op<TRB> for &TensorBase<RA, DA>
+        impl<SA, DA, TRB, TRC> $Op<TRB> for &TensorBase<SA, DA>
         where
             DA: DimAPI,
             Self: $TensorOpAPI<TRB, Output = TRC>,
@@ -61,7 +61,7 @@ macro_rules! impl_core_ops {
             }
         }
 
-        impl<'a, TA, DA, B, TRB, TRC> $Op<TRB> for TensorView<'a, TA, DA, B>
+        impl<'a, TA, DA, B, TRB, TRC> $Op<TRB> for TensorView<'a, TA, B, DA>
         where
             DA: DimAPI,
             B: DeviceAPI<TA>,
@@ -73,7 +73,7 @@ macro_rules! impl_core_ops {
             }
         }
 
-        impl<TA, DA, B, TRB, TRC> $Op<TRB> for Tensor<TA, DA, B>
+        impl<TA, DA, B, TRB, TRC> $Op<TRB> for Tensor<TA, B, DA>
         where
             DA: DimAPI,
             B: DeviceAPI<TA>,
@@ -109,12 +109,12 @@ mod impl_core_ops {
 
 macro_rules! impl_binary_arithmetic_ref {
     ($op_f: ident, $DeviceOpAPI: ident, $TensorOpAPI: ident, $Op: ident) => {
-        impl<RA, RB, TA, TB, TC, DA, DB, DC, B> $TensorOpAPI<&TensorBase<RB, DB>>
-            for &TensorBase<RA, DA>
+        impl<RA, RB, TA, TB, TC, DA, DB, DC, B> $TensorOpAPI<&TensorAny<RB, TB, B, DB>>
+            for &TensorAny<RA, TA, B, DA>
         where
             // tensor types
-            RA: DataAPI<Data = Storage<TA, B>>,
-            RB: DataAPI<Data = Storage<TB, B>>,
+            RA: DataAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
+            RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
             // data constraints
             DA: DimAPI,
             DB: DimAPI,
@@ -127,8 +127,8 @@ macro_rules! impl_binary_arithmetic_ref {
             TA: $Op<TB, Output = TC>,
             B: $DeviceOpAPI<TA, TB, TC, DC>,
         {
-            type Output = Tensor<TC, DC, B>;
-            fn $op_f(a: Self, b: &TensorBase<RB, DB>) -> Result<Self::Output> {
+            type Output = Tensor<TC, B, DC>;
+            fn $op_f(a: Self, b: &TensorAny<RB, TB, B, DB>) -> Result<Self::Output> {
                 // get tensor views
                 let a = a.view();
                 let b = b.view();
@@ -152,26 +152,24 @@ macro_rules! impl_binary_arithmetic_ref {
                 let device = a.device();
                 let mut storage_c = unsafe { device.empty_impl(lc.bounds_index()?.1)? };
                 // add provided by device
-                let storage_a = a.data().storage();
-                let storage_b = b.data().storage();
                 device.op_mutc_refa_refb(
-                    &mut storage_c,
+                    storage_c.raw_mut(),
                     &lc,
-                    storage_a,
+                    a.raw(),
                     &la_b,
-                    storage_b,
+                    b.raw(),
                     &lb_b,
                 )?;
                 // return tensor
-                Tensor::new_f(DataOwned::from(storage_c), lc)
+                Tensor::new_f(storage_c, lc)
             }
         }
 
-        impl<'a, RB, TA, TB, TC, DA, DB, DC, B> $TensorOpAPI<&TensorBase<RB, DB>>
-            for TensorView<'a, TA, DA, B>
+        impl<'a, RB, TA, TB, TC, DA, DB, DC, B> $TensorOpAPI<&TensorAny<RB, TB, B, DB>>
+            for TensorView<'a, TA, B, DA>
         where
             // tensor types
-            RB: DataAPI<Data = Storage<TB, B>>,
+            RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
             // data constraints
             DA: DimAPI,
             DB: DimAPI,
@@ -184,17 +182,17 @@ macro_rules! impl_binary_arithmetic_ref {
             TA: $Op<TB, Output = TC>,
             B: $DeviceOpAPI<TA, TB, TC, DC>,
         {
-            type Output = Tensor<TC, DC, B>;
-            fn $op_f(a: Self, b: &TensorBase<RB, DB>) -> Result<Self::Output> {
+            type Output = Tensor<TC, B, DC>;
+            fn $op_f(a: Self, b: &TensorAny<RB, TB, B, DB>) -> Result<Self::Output> {
                 $TensorOpAPI::$op_f(&a, b)
             }
         }
 
-        impl<'b, RA, TA, TB, TC, DA, DB, DC, B> $TensorOpAPI<TensorView<'b, TB, DB, B>>
-            for &TensorBase<RA, DA>
+        impl<'b, RA, TA, TB, TC, DA, DB, DC, B> $TensorOpAPI<TensorView<'b, TB, B, DB>>
+            for &TensorAny<RA, TA, B, DA>
         where
             // tensor types
-            RA: DataAPI<Data = Storage<TA, B>>,
+            RA: DataAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
             // data constraints
             DA: DimAPI,
             DB: DimAPI,
@@ -207,14 +205,14 @@ macro_rules! impl_binary_arithmetic_ref {
             TA: $Op<TB, Output = TC>,
             B: $DeviceOpAPI<TA, TB, TC, DC>,
         {
-            type Output = Tensor<TC, DC, B>;
-            fn $op_f(a: Self, b: TensorView<'b, TB, DB, B>) -> Result<Self::Output> {
+            type Output = Tensor<TC, B, DC>;
+            fn $op_f(a: Self, b: TensorView<'b, TB, B, DB>) -> Result<Self::Output> {
                 $TensorOpAPI::$op_f(a, &b)
             }
         }
 
-        impl<'a, 'b, TA, TB, TC, DA, DB, DC, B> $TensorOpAPI<TensorView<'b, TB, DB, B>>
-            for TensorView<'a, TA, DA, B>
+        impl<'a, 'b, TA, TB, TC, DA, DB, DC, B> $TensorOpAPI<TensorView<'b, TB, B, DB>>
+            for TensorView<'a, TA, B, DA>
         where
             // data constraints
             DA: DimAPI,
@@ -228,8 +226,8 @@ macro_rules! impl_binary_arithmetic_ref {
             TA: $Op<TB, Output = TC>,
             B: $DeviceOpAPI<TA, TB, TC, DC>,
         {
-            type Output = Tensor<TC, DC, B>;
-            fn $op_f(a: Self, b: TensorView<'b, TB, DB, B>) -> Result<Self::Output> {
+            type Output = Tensor<TC, B, DC>;
+            fn $op_f(a: Self, b: TensorView<'b, TB, B, DB>) -> Result<Self::Output> {
                 $TensorOpAPI::$op_f(&a, &b)
             }
         }
@@ -254,10 +252,11 @@ mod impl_binary_arithmetic_ref {
 
 macro_rules! impl_binary_lr_consume {
     ($op_f: ident, $DeviceOpAPI: ident, $TensorOpAPI: ident, $Op: ident, $DeviceLConsumeAPI: ident, $DeviceRConsumeAPI: ident) => {
-        impl<RB, TA, TB, DA, DB, DC, B> $TensorOpAPI<&TensorBase<RB, DB>> for Tensor<TA, DA, B>
+        impl<RB, TA, TB, DA, DB, DC, B> $TensorOpAPI<&TensorAny<RB, TB, B, DB>>
+            for Tensor<TA, B, DA>
         where
             // tensor types
-            RB: DataAPI<Data = Storage<TB, B>>,
+            RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
             // data constraints
             DA: DimAPI,
             DB: DimAPI,
@@ -273,8 +272,8 @@ macro_rules! impl_binary_lr_consume {
             B: $DeviceOpAPI<TA, TB, TA, DC>,
             B: $DeviceLConsumeAPI<TA, TB, DA>,
         {
-            type Output = Tensor<TA, DC, B>;
-            fn $op_f(a: Self, b: &TensorBase<RB, DB>) -> Result<Self::Output> {
+            type Output = Tensor<TA, B, DC>;
+            fn $op_f(a: Self, b: &TensorAny<RB, TB, B, DB>) -> Result<Self::Output> {
                 rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch)?;
                 let device = a.device().clone();
                 let la = a.layout();
@@ -291,21 +290,21 @@ macro_rules! impl_binary_lr_consume {
                         $TensorOpAPI::$op_f(&a, b)
                     } else {
                         // reuse a as c
-                        let mut storage_a = a.data.into_storage();
-                        let storage_b = b.data().storage();
-                        device.op_muta_refb(&mut storage_a, &la_b, storage_b, &lb_b)?;
-                        let c = unsafe { Tensor::new_unchecked(DataOwned::from(storage_a), la_b) };
+                        let (mut storage_a, _) = a.into_raw_parts();
+                        device.op_muta_refb(storage_a.raw_mut(), &la_b, b.raw(), &lb_b)?;
+                        let c = unsafe { Tensor::new_unchecked(storage_a, la_b) };
                         c.into_dim_f::<DC>()
                     }
                 }
             }
         }
 
-        impl<RA, TA, TB, DA, DB, DC, B> $TensorOpAPI<Tensor<TB, DB, B>> for &TensorBase<RA, DA>
+        impl<RA, TA, TB, DA, DB, DC, B> $TensorOpAPI<Tensor<TB, B, DB>>
+            for &TensorAny<RA, TA, B, DA>
         where
             // tensor
             // types
-            RA: DataAPI<Data = Storage<TA, B>>,
+            RA: DataAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
             // data constraints
             DA: DimAPI,
             DB: DimAPI,
@@ -322,8 +321,8 @@ macro_rules! impl_binary_lr_consume {
             B: $DeviceOpAPI<TA, TB, TB, DC>,
             B: $DeviceRConsumeAPI<TA, TB, DB>,
         {
-            type Output = Tensor<TB, DC, B>;
-            fn $op_f(a: Self, b: Tensor<TB, DB, B>) -> Result<Self::Output> {
+            type Output = Tensor<TB, B, DC>;
+            fn $op_f(a: Self, b: Tensor<TB, B, DB>) -> Result<Self::Output> {
                 rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch)?;
                 let device = b.device().clone();
                 let la = a.layout();
@@ -340,18 +339,17 @@ macro_rules! impl_binary_lr_consume {
                         $TensorOpAPI::$op_f(a, &b)
                     } else {
                         // reuse b as c
-                        let mut storage_b = b.data.into_storage();
-                        let storage_a = a.data().storage();
-                        device.op_muta_refb(&mut storage_b, &lb_b, storage_a, &la_b)?;
-                        let c = unsafe { Tensor::new_unchecked(DataOwned::from(storage_b), lb_b) };
+                        let (mut storage_b, _) = b.into_raw_parts();
+                        device.op_muta_refb(storage_b.raw_mut(), &lb_b, a.raw(), &la_b)?;
+                        let c = unsafe { Tensor::new_unchecked(storage_b, lb_b) };
                         c.into_dim_f::<DC>()
                     }
                 }
             }
         }
 
-        impl<'b, TA, TB, DA, DB, DC, B> $TensorOpAPI<TensorView<'b, TB, DB, B>>
-            for Tensor<TA, DA, B>
+        impl<'b, TA, TB, DA, DB, DC, B> $TensorOpAPI<TensorView<'b, TB, B, DB>>
+            for Tensor<TA, B, DA>
         where
             // data constraints
             DA: DimAPI,
@@ -368,14 +366,14 @@ macro_rules! impl_binary_lr_consume {
             B: $DeviceOpAPI<TA, TB, TA, DC>,
             B: $DeviceLConsumeAPI<TA, TB, DA>,
         {
-            type Output = Tensor<TA, DC, B>;
-            fn $op_f(a: Self, b: TensorView<'b, TB, DB, B>) -> Result<Self::Output> {
+            type Output = Tensor<TA, B, DC>;
+            fn $op_f(a: Self, b: TensorView<'b, TB, B, DB>) -> Result<Self::Output> {
                 $TensorOpAPI::$op_f(a, &b)
             }
         }
 
-        impl<'a, TA, TB, DA, DB, DC, B> $TensorOpAPI<Tensor<TB, DB, B>>
-            for TensorView<'a, TA, DA, B>
+        impl<'a, TA, TB, DA, DB, DC, B> $TensorOpAPI<Tensor<TB, B, DB>>
+            for TensorView<'a, TA, B, DA>
         where
             // data constraints
             DA: DimAPI,
@@ -393,13 +391,13 @@ macro_rules! impl_binary_lr_consume {
             B: $DeviceOpAPI<TA, TB, TB, DC>,
             B: $DeviceRConsumeAPI<TA, TB, DB>,
         {
-            type Output = Tensor<TB, DC, B>;
-            fn $op_f(a: Self, b: Tensor<TB, DB, B>) -> Result<Self::Output> {
+            type Output = Tensor<TB, B, DC>;
+            fn $op_f(a: Self, b: Tensor<TB, B, DB>) -> Result<Self::Output> {
                 $TensorOpAPI::$op_f(&a, b)
             }
         }
 
-        impl<T, DA, DB, DC, B> $TensorOpAPI<Tensor<T, DB, B>> for Tensor<T, DA, B>
+        impl<T, DA, DB, DC, B> $TensorOpAPI<Tensor<T, B, DB>> for Tensor<T, B, DA>
         where
             // data constraints
             DA: DimAPI,
@@ -417,8 +415,8 @@ macro_rules! impl_binary_lr_consume {
             B: $DeviceLConsumeAPI<T, T, DA>,
             B: $DeviceRConsumeAPI<T, T, DB>,
         {
-            type Output = Tensor<T, DC, B>;
-            fn $op_f(a: Self, b: Tensor<T, DB, B>) -> Result<Self::Output> {
+            type Output = Tensor<T, B, DC>;
+            fn $op_f(a: Self, b: Tensor<T, B, DB>) -> Result<Self::Output> {
                 rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch)?;
                 let la = a.layout();
                 let lb = b.layout();
@@ -471,9 +469,9 @@ macro_rules! impl_binary_with_output {
         ) -> Result<()>
         where
             // tensor types
-            TRA: TensorViewAPI<Storage<TA, B>, DA>,
-            TRB: TensorViewAPI<Storage<TB, B>, DB>,
-            TRC: TensorViewMutAPI<Storage<TC, B>, DC>,
+            TRA: TensorViewAPI<TA, B, DA>,
+            TRB: TensorViewAPI<TB, B, DB>,
+            TRC: TensorViewMutAPI<TC, B, DC>,
             // data constraints
             DA: DimAPI,
             DB: DimAPI,
@@ -503,18 +501,15 @@ macro_rules! impl_binary_with_output {
             rstsr_assert_eq!(lc_b, *lc, InvalidLayout)?;
             // op provided by device
             let device = c.device().clone();
-            let storage_c = c.data_mut().storage_mut();
-            let storage_a = a.data().storage();
-            let storage_b = b.data().storage();
-            device.op_mutc_refa_refb(storage_c, &lc_b, storage_a, &la_b, storage_b, &lb_b)
+            device.op_mutc_refa_refb(c.raw_mut(), &lc_b, a.raw(), &la_b, b.raw(), &lb_b)
         }
 
         pub fn $op<TRA, TRB, TRC, TA, TB, TC, DA, DB, DC, B>(a: TRA, b: TRB, c: TRC)
         where
             // tensor types
-            TRA: TensorViewAPI<Storage<TA, B>, DA>,
-            TRB: TensorViewAPI<Storage<TB, B>, DB>,
-            TRC: TensorViewMutAPI<Storage<TC, B>, DC>,
+            TRA: TensorViewAPI<TA, B, DA>,
+            TRB: TensorViewAPI<TB, B, DB>,
+            TRC: TensorViewMutAPI<TC, B, DC>,
             // data constraints
             DA: DimAPI,
             DB: DimAPI,
@@ -554,101 +549,98 @@ pub use impl_binary_with_output::*;
 
 macro_rules! impl_arithmetic_scalar_lhs {
     ($ty: ty, $op: ident, $op_f: ident, $Op: ident, $DeviceOpAPI: ident, $TensorOpAPI: ident, $DeviceRConsumeOpAPI: ident) => {
-        impl<T, R, D, B> $TensorOpAPI<&TensorBase<R, D>> for $ty
+        impl<T, R, D, B> $TensorOpAPI<&TensorAny<R, T, B, D>> for $ty
         where
             T: From<$ty> + $Op<T, Output = T>,
-            R: DataAPI<Data = Storage<T, B>>,
+            R: DataAPI<Data = B::Raw>,
             D: DimAPI,
             B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
             B: $DeviceOpAPI<T, T, T, D>,
         {
-            type Output = Tensor<T, D, B>;
-            fn $op_f(a: Self, b: &TensorBase<R, D>) -> Result<Self::Output> {
+            type Output = Tensor<T, B, D>;
+            fn $op_f(a: Self, b: &TensorAny<R, T, B, D>) -> Result<Self::Output> {
                 let a = T::from(a);
                 let device = b.device();
                 let lb = b.layout();
                 let lc = layout_for_array_copy(lb, TensorIterOrder::default())?;
                 let mut storage_c = unsafe { device.empty_impl(lc.bounds_index()?.1)? };
-                let storage_b = b.storage();
-                device.op_mutc_numa_refb(&mut storage_c, &lc, a, storage_b, lb)?;
-                Tensor::new_f(DataOwned::from(storage_c), lc)
+                device.op_mutc_numa_refb(storage_c.raw_mut(), &lc, a, b.raw(), lb)?;
+                Tensor::new_f(storage_c, lc)
             }
         }
 
-        impl<T, R, D, B> $Op<&TensorBase<R, D>> for $ty
+        impl<T, R, D, B> $Op<&TensorAny<R, T, B, D>> for $ty
         where
             T: From<$ty> + $Op<T, Output = T>,
-            R: DataAPI<Data = Storage<T, B>>,
+            R: DataAPI<Data = B::Raw>,
             D: DimAPI,
             B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
             B: $DeviceOpAPI<T, T, T, D>,
         {
-            type Output = Tensor<T, D, B>;
-            fn $op(self, rhs: &TensorBase<R, D>) -> Self::Output {
+            type Output = Tensor<T, B, D>;
+            fn $op(self, rhs: &TensorAny<R, T, B, D>) -> Self::Output {
                 $TensorOpAPI::$op_f(self, rhs).unwrap()
             }
         }
 
-        impl<'l, T, D, B> $TensorOpAPI<TensorView<'l, T, D, B>> for $ty
+        impl<'l, T, B, D> $TensorOpAPI<TensorView<'l, T, B, D>> for $ty
         where
             T: From<$ty> + $Op<T, Output = T>,
             D: DimAPI,
             B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
             B: $DeviceOpAPI<T, T, T, D>,
         {
-            type Output = Tensor<T, D, B>;
-            fn $op_f(a: Self, b: TensorView<'l, T, D, B>) -> Result<Self::Output> {
+            type Output = Tensor<T, B, D>;
+            fn $op_f(a: Self, b: TensorView<'l, T, B, D>) -> Result<Self::Output> {
                 let a = T::from(a);
                 let device = b.device();
                 let lb = b.layout();
                 let lc = layout_for_array_copy(lb, TensorIterOrder::default())?;
                 let mut storage_c = unsafe { device.empty_impl(lc.bounds_index()?.1)? };
-                let storage_b = b.storage();
-                device.op_mutc_numa_refb(&mut storage_c, &lc, a, storage_b, lb)?;
-                Tensor::new_f(DataOwned::from(storage_c), lc)
+                device.op_mutc_numa_refb(storage_c.raw_mut(), &lc, a, b.raw(), lb)?;
+                Tensor::new_f(storage_c, lc)
             }
         }
 
-        impl<'l, T, D, B> $Op<TensorView<'l, T, D, B>> for $ty
+        impl<'l, T, B, D> $Op<TensorView<'l, T, B, D>> for $ty
         where
             T: From<$ty> + $Op<T, Output = T>,
             D: DimAPI,
             B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
             B: $DeviceOpAPI<T, T, T, D>,
         {
-            type Output = Tensor<T, D, B>;
-            fn $op(self, rhs: TensorView<'l, T, D, B>) -> Self::Output {
+            type Output = Tensor<T, B, D>;
+            fn $op(self, rhs: TensorView<'l, T, B, D>) -> Self::Output {
                 $TensorOpAPI::$op_f(self, rhs).unwrap()
             }
         }
 
-        impl<T, D, B> $TensorOpAPI<Tensor<T, D, B>> for $ty
+        impl<T, B, D> $TensorOpAPI<Tensor<T, B, D>> for $ty
         where
             T: From<$ty> + $Op<T, Output = T>,
             D: DimAPI,
             B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
             B: $DeviceRConsumeOpAPI<T, T, D>,
         {
-            type Output = Tensor<T, D, B>;
-            fn $op_f(a: Self, mut b: Tensor<T, D, B>) -> Result<Self::Output> {
+            type Output = Tensor<T, B, D>;
+            fn $op_f(a: Self, mut b: Tensor<T, B, D>) -> Result<Self::Output> {
                 let a = T::from(a);
                 let device = b.device().clone();
                 let lb = b.layout().clone();
-                let storage_b = b.data_mut().storage_mut();
-                device.op_muta_numb(storage_b, &lb, a)?;
+                device.op_muta_numb(b.raw_mut(), &lb, a)?;
                 return Ok(b);
             }
         }
 
-        impl<T, D, B> $Op<Tensor<T, D, B>> for $ty
+        impl<T, B, D> $Op<Tensor<T, B, D>> for $ty
         where
             T: From<$ty> + $Op<T, Output = T>,
             D: DimAPI,
             B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
             B: $DeviceRConsumeOpAPI<T, T, D>,
         {
-            type Output = Tensor<T, D, B>;
-            fn $op(self, rhs: Tensor<T, D, B>) -> Self::Output {
+            type Output = Tensor<T, B, D>;
+            fn $op(self, rhs: Tensor<T, B, D>) -> Self::Output {
                 $TensorOpAPI::$op_f(self, rhs).unwrap()
             }
         }
@@ -729,30 +721,29 @@ mod impl_arithmetic_scalar_lhs {
 
 macro_rules! impl_arithmetic_scalar_rhs {
     ($op_f: ident, $Op: ident, $DeviceOpAPI: ident, $TensorOpAPI: ident, $DeviceLConsumeOpAPI: ident) => {
-        impl<T, TB, R, D, B> $TensorOpAPI<TB> for &TensorBase<R, D>
+        impl<T, TB, R, D, B> $TensorOpAPI<TB> for &TensorAny<R, T, B, D>
         where
             T: From<TB> + $Op<T, Output = T>,
-            R: DataAPI<Data = Storage<T, B>>,
+            R: DataAPI<Data = B::Raw>,
             D: DimAPI,
             B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
             B: $DeviceOpAPI<T, T, T, D>,
             // this constraint prohibits confliting impl to TensorBase<RB, D>
             TB: num::Num,
         {
-            type Output = Tensor<T, D, B>;
+            type Output = Tensor<T, B, D>;
             fn $op_f(a: Self, b: TB) -> Result<Self::Output> {
                 let b = T::from(b);
                 let device = a.device();
                 let la = a.layout();
                 let lc = layout_for_array_copy(la, TensorIterOrder::default())?;
                 let mut storage_c = unsafe { device.empty_impl(lc.bounds_index()?.1)? };
-                let storage_a = a.storage();
-                device.op_mutc_refa_numb(&mut storage_c, &lc, storage_a, la, b)?;
-                Tensor::new_f(DataOwned::from(storage_c), lc)
+                device.op_mutc_refa_numb(storage_c.raw_mut(), &lc, a.raw(), la, b)?;
+                Tensor::new_f(storage_c, lc)
             }
         }
 
-        impl<'l, T, TB, D, B> $TensorOpAPI<TB> for TensorView<'l, T, D, B>
+        impl<'l, T, TB, D, B> $TensorOpAPI<TB> for TensorView<'l, T, B, D>
         where
             T: From<TB> + $Op<T, Output = T>,
             D: DimAPI,
@@ -761,20 +752,19 @@ macro_rules! impl_arithmetic_scalar_rhs {
             // this constraint prohibits confliting impl to TensorBase<RB, D>
             TB: num::Num,
         {
-            type Output = Tensor<T, D, B>;
+            type Output = Tensor<T, B, D>;
             fn $op_f(a: Self, b: TB) -> Result<Self::Output> {
                 let b = T::from(b);
                 let device = a.device();
                 let la = a.layout();
                 let lc = layout_for_array_copy(la, TensorIterOrder::default())?;
                 let mut storage_c = unsafe { device.empty_impl(lc.bounds_index()?.1)? };
-                let storage_a = a.storage();
-                device.op_mutc_refa_numb(&mut storage_c, &lc, storage_a, la, b)?;
-                Tensor::new_f(DataOwned::from(storage_c), lc)
+                device.op_mutc_refa_numb(storage_c.raw_mut(), &lc, a.raw(), la, b)?;
+                Tensor::new_f(storage_c, lc)
             }
         }
 
-        impl<T, TB, D, B> $TensorOpAPI<TB> for Tensor<T, D, B>
+        impl<T, TB, D, B> $TensorOpAPI<TB> for Tensor<T, B, D>
         where
             T: From<TB> + $Op<T, Output = T>,
             D: DimAPI,
@@ -783,13 +773,12 @@ macro_rules! impl_arithmetic_scalar_rhs {
             // this constraint prohibits confliting impl to TensorBase<RB, D>
             TB: num::Num,
         {
-            type Output = Tensor<T, D, B>;
+            type Output = Tensor<T, B, D>;
             fn $op_f(mut a: Self, b: TB) -> Result<Self::Output> {
                 let b = T::from(b);
                 let device = a.device().clone();
                 let la = a.layout().clone();
-                let storage_a = a.data_mut().storage_mut();
-                device.op_muta_numb(storage_a, &la, b)?;
+                device.op_muta_numb(a.raw_mut(), &la, b)?;
                 return Ok(a);
             }
         }
@@ -922,54 +911,54 @@ mod test {
         // a + &b, same shape
         let a = linspace((1.0, 5.0, 5));
         let b = linspace((2.0, 10.0, 5));
-        let a_ptr = a.data().storage().rawvec().as_ptr();
+        let a_ptr = a.raw().as_ptr();
         let c = a + &b;
-        let c_ptr = c.data().storage().rawvec().as_ptr();
+        let c_ptr = c.raw().as_ptr();
         let c_ref = vec![3., 6., 9., 12., 15.].into();
         assert!(allclose_f64(&c, &c_ref));
         assert_eq!(a_ptr, c_ptr);
         // a + &b, broadcastable
         let a = linspace((1.0, 10.0, 10)).into_shape_assume_contig([2, 5]);
         let b = linspace((2.0, 10.0, 5));
-        let a_ptr = a.data().storage().rawvec().as_ptr();
+        let a_ptr = a.raw().as_ptr();
         let c = a + &b;
-        let c_ptr = c.data().storage().rawvec().as_ptr();
+        let c_ptr = c.raw().as_ptr();
         let c_ref = vec![3., 6., 9., 12., 15., 8., 11., 14., 17., 20.].into();
         assert!(allclose_f64(&c, &c_ref));
         assert_eq!(a_ptr, c_ptr);
         // a + &b, non-broadcastable
         let a = linspace((2.0, 10.0, 5));
         let b = linspace((1.0, 10.0, 10)).into_shape_assume_contig([2, 5]);
-        let a_ptr = a.data().storage().rawvec().as_ptr();
+        let a_ptr = a.raw().as_ptr();
         let c = a + &b;
-        let c_ptr = c.data().storage().rawvec().as_ptr();
+        let c_ptr = c.raw().as_ptr();
         let c_ref = vec![3., 6., 9., 12., 15., 8., 11., 14., 17., 20.].into();
         assert!(allclose_f64(&c, &c_ref));
         assert_ne!(a_ptr, c_ptr);
         // &a + b
         let a = linspace((1.0, 5.0, 5));
         let b = linspace((2.0, 10.0, 5));
-        let b_ptr = b.data().storage().rawvec().as_ptr();
+        let b_ptr = b.raw().as_ptr();
         let c = &a + b;
-        let c_ptr = c.data().storage().rawvec().as_ptr();
+        let c_ptr = c.raw().as_ptr();
         let c_ref = vec![3., 6., 9., 12., 15.].into();
         assert!(allclose_f64(&c, &c_ref));
         assert_eq!(b_ptr, c_ptr);
         // &a + b, non-broadcastable
         let a = linspace((1.0, 10.0, 10)).into_shape_assume_contig([2, 5]);
         let b = linspace((2.0, 10.0, 5));
-        let b_ptr = b.data().storage().rawvec().as_ptr();
+        let b_ptr = b.raw().as_ptr();
         let c = &a + b;
-        let c_ptr = c.data().storage().rawvec().as_ptr();
+        let c_ptr = c.raw().as_ptr();
         let c_ref = vec![3., 6., 9., 12., 15., 8., 11., 14., 17., 20.].into();
         assert!(allclose_f64(&c, &c_ref));
         assert_ne!(b_ptr, c_ptr);
         // a + b, same shape
         let a = linspace((1.0, 5.0, 5));
         let b = linspace((2.0, 10.0, 5));
-        let a_ptr = a.data().storage().rawvec().as_ptr();
+        let a_ptr = a.raw().as_ptr();
         let c = a + b;
-        let c_ptr = c.data().storage().rawvec().as_ptr();
+        let c_ptr = c.raw().as_ptr();
         let c_ref = vec![3., 6., 9., 12., 15.].into();
         assert!(allclose_f64(&c, &c_ref));
         assert_eq!(a_ptr, c_ptr);
@@ -980,27 +969,27 @@ mod test {
         // &a - b
         let a = linspace((1.0, 5.0, 5));
         let b = linspace((2.0, 10.0, 5));
-        let b_ptr = b.data().storage().rawvec().as_ptr();
+        let b_ptr = b.raw().as_ptr();
         let c = &a - b;
-        let c_ptr = c.data().storage().rawvec().as_ptr();
+        let c_ptr = c.raw().as_ptr();
         let c_ref = vec![-1., -2., -3., -4., -5.].into();
         assert!(allclose_f64(&c, &c_ref));
         assert_eq!(b_ptr, c_ptr);
         // a - &b
         let a = linspace((1.0, 5.0, 5));
         let b = linspace((2.0, 10.0, 5));
-        let a_ptr = a.data().storage().rawvec().as_ptr();
+        let a_ptr = a.raw().as_ptr();
         let c = a - b.view();
-        let c_ptr = c.data().storage().rawvec().as_ptr();
+        let c_ptr = c.raw().as_ptr();
         let c_ref = vec![-1., -2., -3., -4., -5.].into();
         assert!(allclose_f64(&c, &c_ref));
         assert_eq!(a_ptr, c_ptr);
         // a - b
         let a = linspace((1.0, 5.0, 5));
         let b = linspace((2.0, 10.0, 5));
-        let a_ptr = a.data().storage().rawvec().as_ptr();
+        let a_ptr = a.raw().as_ptr();
         let c = a - b;
-        let c_ptr = c.data().storage().rawvec().as_ptr();
+        let c_ptr = c.raw().as_ptr();
         let c_ref = vec![-1., -2., -3., -4., -5.].into();
         assert!(allclose_f64(&c, &c_ref));
         assert_eq!(a_ptr, c_ptr);
@@ -1014,7 +1003,7 @@ mod test_with_output {
     #[test]
     fn test_op_binary_with_output() {
         let a = linspace((1.0, 10.0, 10)).into_shape_assume_contig([2, 5]);
-        let b = linspace((2.0, 10.0, 5));
+        let b = linspace((2.0, 10.0, 5)).into_layout([5].c());
         let mut c = linspace((1.0, 10.0, 10)).into_shape_assume_contig([2, 5]);
         let c_view = c.view_mut();
         add_with_output(&a, b, c_view);
@@ -1044,12 +1033,12 @@ mod tests_with_scalar {
 
         // b * a
         let a = linspace((1.0, 5.0, 5));
-        let a_ptr = a.data().storage().rawvec().as_ptr();
+        let a_ptr = a.raw().as_ptr();
         let b = 2;
-        let c: Tensor<_, _> = -b * a;
+        let c: Tensor<_> = -b * a;
         let c_ref = vec![-2., -4., -6., -8., -10.].into();
         assert!(allclose_f64(&c, &c_ref));
-        let c_ptr = c.data().storage().rawvec().as_ptr();
+        let c_ptr = c.raw().as_ptr();
         assert_eq!(a_ptr, c_ptr);
     }
 }

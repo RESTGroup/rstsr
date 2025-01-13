@@ -4,68 +4,73 @@ pub trait DeviceBaseAPI: Default + Clone {
     fn same_device(&self, other: &Self) -> bool;
 }
 
-pub trait DeviceRawVecAPI<T>: DeviceBaseAPI {
-    type RawVec: Clone;
+pub trait DeviceRawAPI<T>: DeviceBaseAPI {
+    type Raw: Clone;
 }
 
 #[derive(Debug)]
-pub struct Storage<T, B>
+pub struct Storage<R, T, B>
 where
-    B: DeviceRawVecAPI<T>,
+    B: DeviceRawAPI<T>,
 {
-    pub(crate) rawvec: B::RawVec,
+    pub(crate) data: R,
     pub(crate) device: B,
+    _phantom: PhantomData<T>,
 }
 
-impl<T, B> Clone for Storage<T, B>
-where
-    B: DeviceRawVecAPI<T>,
-{
-    fn clone(&self) -> Self {
-        Self { rawvec: self.rawvec.clone(), device: self.device.clone() }
+pub trait DeviceStorageAPI<T>: DeviceRawAPI<T> {
+    fn len<R>(storage: &Storage<R, T, Self>) -> usize
+    where
+        R: DataAPI<Data = Self::Raw>;
+    fn is_empty<R>(storage: &Storage<R, T, Self>) -> bool
+    where
+        R: DataAPI<Data = Self::Raw>,
+    {
+        Self::len::<R>(storage) == 0
     }
+    fn to_cpu_vec<R>(storage: &Storage<R, T, Self>) -> Result<Vec<T>>
+    where
+        R: DataAPI<Data = Self::Raw>;
+    fn into_cpu_vec<R>(storage: Storage<R, T, Self>) -> Result<Vec<T>>
+    where
+        R: DataAPI<Data = Self::Raw>;
+    fn get_index<R>(storage: &Storage<R, T, Self>, index: usize) -> T
+    where
+        R: DataAPI<Data = Self::Raw>;
+    fn get_index_ptr<R>(storage: &Storage<R, T, Self>, index: usize) -> *const T
+    where
+        R: DataAPI<Data = Self::Raw>;
+    fn get_index_mut_ptr<R>(storage: &mut Storage<R, T, Self>, index: usize) -> *mut T
+    where
+        R: DataMutAPI<Data = Self::Raw>;
+    fn set_index<R>(storage: &mut Storage<R, T, Self>, index: usize, value: T)
+    where
+        R: DataMutAPI<Data = Self::Raw>;
 }
 
-pub trait DeviceStorageAPI<T>: DeviceRawVecAPI<T> {
-    fn new(vector: Self::RawVec, device: Self) -> Storage<T, Self>;
-    fn len(storage: &Storage<T, Self>) -> usize;
-    fn is_empty(storage: &Storage<T, Self>) -> bool {
-        storage.len() == 0
-    }
-    fn to_cpu_vec(storage: &Storage<T, Self>) -> Result<Vec<T>>;
-    fn into_cpu_vec(storage: Storage<T, Self>) -> Result<Vec<T>>;
-    fn get_index(storage: &Storage<T, Self>, index: usize) -> T;
-    fn get_index_ptr(storage: &Storage<T, Self>, index: usize) -> *const T;
-    fn get_index_mut_ptr(storage: &mut Storage<T, Self>, index: usize) -> *mut T;
-    fn set_index(storage: &mut Storage<T, Self>, index: usize, value: T);
-}
-
-impl<T, B> Storage<T, B>
+impl<R, T, B> Storage<R, T, B>
 where
     B: DeviceStorageAPI<T>,
+    R: DataAPI<Data = B::Raw>,
 {
     pub fn device(&self) -> &B {
         &self.device
     }
 
-    pub fn rawvec(&self) -> &B::RawVec {
-        &self.rawvec
+    pub fn data(&self) -> &R {
+        &self.data
     }
 
-    pub fn rawvec_mut(&mut self) -> &mut B::RawVec {
-        &mut self.rawvec
+    pub fn data_mut(&mut self) -> &mut R {
+        &mut self.data
     }
 
-    pub fn to_rawvec(&self) -> B::RawVec {
-        self.rawvec.clone()
+    pub fn into_raw_parts(self) -> (R, B) {
+        (self.data, self.device)
     }
 
-    pub fn into_rawvec(self) -> B::RawVec {
-        self.rawvec
-    }
-
-    pub fn new(vector: B::RawVec, device: B) -> Self {
-        Self { rawvec: vector, device }
+    pub fn new(data: R, device: B) -> Self {
+        Self { data, device, _phantom: PhantomData }
     }
 
     pub fn len(&self) -> usize {
@@ -95,17 +100,43 @@ where
     }
 
     #[inline]
-    pub fn get_index_mut_ptr(&mut self, index: usize) -> *mut T {
+    pub fn get_index_mut_ptr(&mut self, index: usize) -> *mut T
+    where
+        R: DataMutAPI<Data = B::Raw>,
+    {
         B::get_index_mut_ptr(self, index)
     }
 
     #[inline]
-    pub fn set_index(&mut self, index: usize, value: T) {
+    pub fn set_index(&mut self, index: usize, value: T)
+    where
+        R: DataMutAPI<Data = B::Raw>,
+    {
         B::set_index(self, index, value)
     }
 }
 
-pub trait DeviceAPI<T>: DeviceBaseAPI + DeviceRawVecAPI<T> + DeviceStorageAPI<T> {}
+impl<R, T, B> Storage<R, T, B>
+where
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceRawAPI<T>,
+{
+    pub fn raw(&self) -> &B::Raw {
+        self.data.raw()
+    }
+}
+
+impl<R, T, B> Storage<R, T, B>
+where
+    R: DataMutAPI<Data = B::Raw>,
+    B: DeviceRawAPI<T>,
+{
+    pub fn raw_mut(&mut self) -> &mut B::Raw {
+        self.data.raw_mut()
+    }
+}
+
+pub trait DeviceAPI<T>: DeviceBaseAPI + DeviceRawAPI<T> + DeviceStorageAPI<T> {}
 
 /// Unique identifier for cuda devices.
 ///
@@ -124,9 +155,11 @@ impl DeviceId {
 }
 
 /// Conversion API for device storage.
-pub trait DeviceStorageConversionAPI<B> {
-    type T;
-    fn into_device(self, device: &B) -> Result<Storage<Self::T, B>>
+pub trait DeviceStorageConversionAPI<R, T, B>
+where
+    Self: DeviceRawAPI<T>,
+{
+    fn into_device(storage: Storage<R, T, Self>, device: &B) -> Result<Storage<R, T, B>>
     where
-        B: DeviceRawVecAPI<Self::T>;
+        B: DeviceRawAPI<T>;
 }

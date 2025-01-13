@@ -8,7 +8,7 @@ struct Layout<D>        struct Data***<'l, S>
        |                trait  DataAPI            \
 struct Ix<N>, IxD       trait  DataMutAPI            struct Storage<T, B>
 trait  DimAPI           abbr   R (Representation)    trait  StorageAPI     \
-abbr   D (Dimension)           |                     abbr   S (Storage)       type   RawVec
+abbr   D (Dimension)           |                     abbr   S (Storage)       type   Raw
                         lifetime  'l                        |                 abbr   T (Data Type)
                         ownership DataOwned          trait  DeviceAPI
                                   DataRef            abbr   B (Backend)

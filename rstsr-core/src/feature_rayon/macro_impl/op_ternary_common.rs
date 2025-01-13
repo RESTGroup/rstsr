@@ -17,11 +17,11 @@ macro_rules! impl_same_binary {
 
             fn op_mutc_refa_refb(
                 &self,
-                c: &mut Storage<$TOut, Self>,
+                c: &mut Vec<$TOut>,
                 lc: &Layout<D>,
-                a: &Storage<T, Self>,
+                a: &Vec<T>,
                 la: &Layout<D>,
-                b: &Storage<T, Self>,
+                b: &Vec<T>,
                 lb: &Layout<D>,
             ) -> Result<()> {
                 self.op_mutc_refa_refb_func(c, lc, a, la, b, lb, &mut $func)
@@ -63,11 +63,11 @@ where
 
     fn op_mutc_refa_refb(
         &self,
-        c: &mut Storage<Self::TOut, Self>,
+        c: &mut Vec<Self::TOut>,
         lc: &Layout<D>,
-        a: &Storage<TA, Self>,
+        a: &Vec<TA>,
         la: &Layout<D>,
-        b: &Storage<TB, Self>,
+        b: &Vec<TB>,
         lb: &Layout<D>,
     ) -> Result<()> {
         self.op_mutc_refa_refb_func(c, lc, a, la, b, lb, &mut |c, a, b| {

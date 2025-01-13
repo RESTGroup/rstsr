@@ -3,14 +3,14 @@ use num::ToPrimitive;
 
 /* #region pack_tri */
 
-impl<R, T, D, B> TensorBase<R, D>
+impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataMutAPI<Data = Storage<T, B>>,
+    R: DataMutAPI<Data = B::Raw>,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
     B: DeviceAPI<T> + DeviceOpPackTriAPI<T> + DeviceCreationAnyAPI<T>,
 {
-    pub fn pack_tri_f(&self, uplo: TensorUpLo) -> Result<Tensor<T, D::SmallerOne, B>> {
+    pub fn pack_tri_f(&self, uplo: TensorUpLo) -> Result<Tensor<T, B, D::SmallerOne>> {
         // layouts manuplication
         let lb = self.layout().to_dim::<IxD>()?;
         let (lb_rest, lb_inner) = lb.dim_split_at(-2)?;
@@ -40,28 +40,27 @@ where
         // device alloc and compute
         let device = self.device();
         let mut storage_a = unsafe { device.empty_impl(la.bounds_index()?.1)? };
-        let storage_b = self.storage();
-        device.pack_tri(&mut storage_a, &la, storage_b, &lb, uplo)?;
-        Tensor::new_f(DataOwned::from(storage_a), la.into_dim()?)
+        device.pack_tri(storage_a.raw_mut(), &la, self.raw(), &lb, uplo)?;
+        Tensor::new_f(storage_a, la.into_dim()?)
     }
 
-    pub fn pack_tri(&self, uplo: TensorUpLo) -> Tensor<T, D::SmallerOne, B> {
+    pub fn pack_tri(&self, uplo: TensorUpLo) -> Tensor<T, B, D::SmallerOne> {
         self.pack_tri_f(uplo).unwrap()
     }
 
-    pub fn pack_tril_f(&self) -> Result<Tensor<T, D::SmallerOne, B>> {
+    pub fn pack_tril_f(&self) -> Result<Tensor<T, B, D::SmallerOne>> {
         self.pack_tri_f(TensorUpLo::L)
     }
 
-    pub fn pack_tril(&self) -> Tensor<T, D::SmallerOne, B> {
+    pub fn pack_tril(&self) -> Tensor<T, B, D::SmallerOne> {
         self.pack_tril_f().unwrap()
     }
 
-    pub fn pack_triu_f(&self) -> Result<Tensor<T, D::SmallerOne, B>> {
+    pub fn pack_triu_f(&self) -> Result<Tensor<T, B, D::SmallerOne>> {
         self.pack_tri_f(TensorUpLo::U)
     }
 
-    pub fn pack_triu(&self) -> Tensor<T, D::SmallerOne, B> {
+    pub fn pack_triu(&self) -> Tensor<T, B, D::SmallerOne> {
         self.pack_triu_f().unwrap()
     }
 }
@@ -70,9 +69,9 @@ where
 
 /* #region unpack_tri */
 
-impl<R, T, D, B> TensorBase<R, D>
+impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataMutAPI<Data = Storage<T, B>>,
+    R: DataMutAPI<Data = B::Raw>,
     D: DimAPI + DimLargerOneAPI,
     D::LargerOne: DimAPI,
     B: DeviceAPI<T> + DeviceOpUnpackTriAPI<T> + DeviceCreationAnyAPI<T>,
@@ -81,7 +80,7 @@ where
         &self,
         uplo: TensorUpLo,
         symm: TensorSymm,
-    ) -> Result<Tensor<T, D::LargerOne, B>> {
+    ) -> Result<Tensor<T, B, D::LargerOne>> {
         // layouts manuplication
         let lb = self.layout().to_dim::<IxD>()?;
         let (lb_rest, lb_inner) = lb.dim_split_at(-1)?;
@@ -112,16 +111,15 @@ where
         // device alloc and compute
         let device = self.device();
         let mut storage_a = unsafe { device.empty_impl(la.bounds_index()?.1)? };
-        let storage_b = self.storage();
-        device.unpack_tri(&mut storage_a, &la, storage_b, &lb, uplo, symm)?;
-        Tensor::new_f(DataOwned::from(storage_a), la.into_dim()?)
+        device.unpack_tri(storage_a.raw_mut(), &la, self.raw(), &lb, uplo, symm)?;
+        Tensor::new_f(storage_a, la.into_dim()?)
     }
 
-    pub fn unpack_tril(&self, symm: TensorSymm) -> Tensor<T, D::LargerOne, B> {
+    pub fn unpack_tril(&self, symm: TensorSymm) -> Tensor<T, B, D::LargerOne> {
         self.unpack_tri(TensorUpLo::L, symm).unwrap()
     }
 
-    pub fn unpack_triu(&self, symm: TensorSymm) -> Tensor<T, D::LargerOne, B> {
+    pub fn unpack_triu(&self, symm: TensorSymm) -> Tensor<T, B, D::LargerOne> {
         self.unpack_tri(TensorUpLo::U, symm).unwrap()
     }
 
@@ -129,11 +127,11 @@ where
         &self,
         uplo: TensorUpLo,
         symm: TensorSymm,
-    ) -> Result<Tensor<T, D::LargerOne, B>> {
+    ) -> Result<Tensor<T, B, D::LargerOne>> {
         self.unpack_tri(uplo, symm)
     }
 
-    pub fn unpack_tril_f(&self, symm: TensorSymm) -> Result<Tensor<T, D::LargerOne, B>> {
+    pub fn unpack_tril_f(&self, symm: TensorSymm) -> Result<Tensor<T, B, D::LargerOne>> {
         self.unpack_tri(TensorUpLo::L, symm)
     }
 }

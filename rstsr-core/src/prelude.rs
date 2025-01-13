@@ -9,7 +9,6 @@ pub mod rstsr_traits {
         OnesLikeAPI, ZerosAPI, ZerosLikeAPI,
     };
     pub use crate::tensor::creation_from_tensor::DiagAPI;
-    pub use crate::tensor::manuplication::TensorChangeShapeAPI;
     pub use crate::tensor::operators::op_binary_common::{
         TensorATan2API, TensorCopySignAPI, TensorEqualAPI, TensorFloatFloorDivideAPI,
         TensorGreaterAPI, TensorGreaterEqualAPI, TensorHypotAPI, TensorIntFloorDivideAPI,

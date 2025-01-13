@@ -16,25 +16,16 @@ macro_rules! macro_impl_rayon_op_with_func {
         {
             fn op_mutc_refa_refb_func(
                 &self,
-                c: &mut Storage<TC, Self>,
+                c: &mut Vec<TC>,
                 lc: &Layout<D>,
-                a: &Storage<TA, Self>,
+                a: &Vec<TA>,
                 la: &Layout<D>,
-                b: &Storage<TB, Self>,
+                b: &Vec<TB>,
                 lb: &Layout<D>,
                 f: &mut F,
             ) -> Result<()> {
                 let nthreads = self.get_num_threads();
-                op_mutc_refa_refb_func_cpu_rayon(
-                    c.rawvec_mut(),
-                    lc,
-                    a.rawvec(),
-                    la,
-                    b.rawvec(),
-                    lb,
-                    f,
-                    nthreads,
-                )
+                op_mutc_refa_refb_func_cpu_rayon(c, lc, a, la, b, lb, f, nthreads)
             }
         }
 
@@ -48,15 +39,15 @@ macro_rules! macro_impl_rayon_op_with_func {
         {
             fn op_mutc_refa_numb_func(
                 &self,
-                c: &mut Storage<TC, Self>,
+                c: &mut Vec<TC>,
                 lc: &Layout<D>,
-                a: &Storage<TA, Self>,
+                a: &Vec<TA>,
                 la: &Layout<D>,
                 b: TB,
                 f: &mut F,
             ) -> Result<()> {
                 let nthreads = self.get_num_threads();
-                op_mutc_refa_numb_func_cpu_rayon(c.rawvec_mut(), lc, a.rawvec(), la, b, f, nthreads)
+                op_mutc_refa_numb_func_cpu_rayon(c, lc, a, la, b, f, nthreads)
             }
         }
 
@@ -70,15 +61,15 @@ macro_rules! macro_impl_rayon_op_with_func {
         {
             fn op_mutc_numa_refb_func(
                 &self,
-                c: &mut Storage<TC, Self>,
+                c: &mut Vec<TC>,
                 lc: &Layout<D>,
                 a: TA,
-                b: &Storage<TB, Self>,
+                b: &Vec<TB>,
                 lb: &Layout<D>,
                 f: &mut F,
             ) -> Result<()> {
                 let nthreads = self.get_num_threads();
-                op_mutc_numa_refb_func_cpu_rayon(c.rawvec_mut(), lc, a, b.rawvec(), lb, f, nthreads)
+                op_mutc_numa_refb_func_cpu_rayon(c, lc, a, b, lb, f, nthreads)
             }
         }
 
@@ -91,14 +82,14 @@ macro_rules! macro_impl_rayon_op_with_func {
         {
             fn op_muta_refb_func(
                 &self,
-                a: &mut Storage<TA, Self>,
+                a: &mut Vec<TA>,
                 la: &Layout<D>,
-                b: &Storage<TB, Self>,
+                b: &Vec<TB>,
                 lb: &Layout<D>,
                 f: &mut F,
             ) -> Result<()> {
                 let nthreads = self.get_num_threads();
-                op_muta_refb_func_cpu_rayon(a.rawvec_mut(), la, b.rawvec(), lb, f, nthreads)
+                op_muta_refb_func_cpu_rayon(a, la, b, lb, f, nthreads)
             }
         }
 
@@ -111,13 +102,13 @@ macro_rules! macro_impl_rayon_op_with_func {
         {
             fn op_muta_numb_func(
                 &self,
-                a: &mut Storage<TA, Self>,
+                a: &mut Vec<TA>,
                 la: &Layout<D>,
                 b: TB,
                 f: &mut F,
             ) -> Result<()> {
                 let nthreads = self.get_num_threads();
-                op_muta_numb_func_cpu_rayon(a.rawvec_mut(), la, b, f, nthreads)
+                op_muta_numb_func_cpu_rayon(a, la, b, f, nthreads)
             }
         }
 
@@ -127,14 +118,9 @@ macro_rules! macro_impl_rayon_op_with_func {
             D: DimAPI,
             F: Fn(&mut T) + ?Sized + Send + Sync,
         {
-            fn op_muta_func(
-                &self,
-                a: &mut Storage<T, Self>,
-                la: &Layout<D>,
-                f: &mut F,
-            ) -> Result<()> {
+            fn op_muta_func(&self, a: &mut Vec<T>, la: &Layout<D>, f: &mut F) -> Result<()> {
                 let nthreads = self.get_num_threads();
-                op_muta_func_cpu_rayon(a.rawvec_mut(), la, f, nthreads)
+                op_muta_func_cpu_rayon(a, la, f, nthreads)
             }
         }
 

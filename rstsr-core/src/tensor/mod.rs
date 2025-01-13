@@ -2,7 +2,6 @@ pub mod asarray;
 pub mod assignment;
 pub mod creation;
 pub mod creation_from_tensor;
-pub mod data;
 pub mod device_conversion;
 pub mod ext_conversion;
 pub mod indexing;
@@ -14,5 +13,3 @@ pub mod operators;
 pub mod ownership_conversion;
 pub mod reduction;
 pub mod util;
-
-pub use data::*;

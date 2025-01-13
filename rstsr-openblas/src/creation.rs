@@ -1,68 +1,79 @@
-use num::{complex::ComplexFloat, Num};
 use crate::prelude_dev::*;
+use num::{complex::ComplexFloat, Num};
 
 // for creation, we use most of the functions from DeviceCpuSerial
 impl<T> DeviceCreationAnyAPI<T> for DeviceOpenBLAS
 where
     T: Clone,
-    Self: DeviceRawVecAPI<T, RawVec = Vec<T>>,
+    Self: DeviceRawAPI<T, Raw = Vec<T>>,
 {
-    unsafe fn empty_impl(&self, len: usize) -> Result<Storage<T, Self>> {
+    unsafe fn empty_impl(&self, len: usize) -> Result<Storage<DataOwned<Vec<T>>, T, Self>> {
         let storage = DeviceCpuSerial.empty_impl(len)?;
-        Ok(Storage::new(storage.into_rawvec(), self.clone()))
+        let (data, _) = storage.into_raw_parts();
+        Ok(Storage::new(data, self.clone()))
     }
 
-    fn full_impl(&self, len: usize, fill: T) -> Result<Storage<T, Self>> {
+    fn full_impl(&self, len: usize, fill: T) -> Result<Storage<DataOwned<Vec<T>>, T, Self>> {
         let storage = DeviceCpuSerial.full_impl(len, fill)?;
-        Ok(Storage::new(storage.into_rawvec(), self.clone()))
+        let (data, _) = storage.into_raw_parts();
+        Ok(Storage::new(data, self.clone()))
     }
 
-    fn outof_cpu_vec(&self, vec: Vec<T>) -> Result<Storage<T, Self>> {
-        Ok(Storage::new(vec, self.clone()))
+    fn outof_cpu_vec(&self, vec: Vec<T>) -> Result<Storage<DataOwned<Vec<T>>, T, Self>> {
+        Ok(Storage::new(DataOwned::from(vec), self.clone()))
     }
 
-    fn from_cpu_vec(&self, vec: &[T]) -> Result<Storage<T, Self>> {
-        let rawvec = vec.to_vec();
-        Ok(Storage::new(rawvec, self.clone()))
+    fn from_cpu_vec(&self, vec: &[T]) -> Result<Storage<DataOwned<Vec<T>>, T, Self>> {
+        let raw = vec.to_vec();
+        Ok(Storage::new(DataOwned::from(raw), self.clone()))
     }
 }
 
 impl<T> DeviceCreationNumAPI<T> for DeviceOpenBLAS
 where
     T: Num + Clone,
-    Self: DeviceRawVecAPI<T, RawVec = Vec<T>>,
+    Self: DeviceRawAPI<T, Raw = Vec<T>>,
 {
-    fn zeros_impl(&self, len: usize) -> Result<Storage<T, Self>> {
+    fn zeros_impl(&self, len: usize) -> Result<Storage<DataOwned<Vec<T>>, T, Self>> {
         let storage = DeviceCpuSerial.zeros_impl(len)?;
-        Ok(Storage::new(storage.into_rawvec(), self.clone()))
+        let (data, _) = storage.into_raw_parts();
+        Ok(Storage::new(data, self.clone()))
     }
 
-    fn ones_impl(&self, len: usize) -> Result<Storage<T, Self>> {
+    fn ones_impl(&self, len: usize) -> Result<Storage<DataOwned<Vec<T>>, T, Self>> {
         let storage = DeviceCpuSerial.ones_impl(len)?;
-        Ok(Storage::new(storage.into_rawvec(), self.clone()))
+        let (data, _) = storage.into_raw_parts();
+        Ok(Storage::new(data, self.clone()))
     }
 
-    fn arange_int_impl(&self, len: usize) -> Result<Storage<T, Self>> {
+    fn arange_int_impl(&self, len: usize) -> Result<Storage<DataOwned<Vec<T>>, T, Self>> {
         let storage = DeviceCpuSerial.arange_int_impl(len)?;
-        Ok(Storage::new(storage.into_rawvec(), self.clone()))
+        let (data, _) = storage.into_raw_parts();
+        Ok(Storage::new(data, self.clone()))
     }
 }
 
 impl<T> DeviceCreationPartialOrdNumAPI<T> for DeviceOpenBLAS
 where
     T: Num + PartialOrd + Clone,
-    Self: DeviceRawVecAPI<T, RawVec = Vec<T>>,
+    Self: DeviceRawAPI<T, Raw = Vec<T>>,
 {
-    fn arange_impl(&self, start: T, end: T, step: T) -> Result<Storage<T, Self>> {
+    fn arange_impl(
+        &self,
+        start: T,
+        end: T,
+        step: T,
+    ) -> Result<Storage<DataOwned<Vec<T>>, T, Self>> {
         let storage = DeviceCpuSerial.arange_impl(start, end, step)?;
-        Ok(Storage::new(storage.into_rawvec(), self.clone()))
+        let (data, _) = storage.into_raw_parts();
+        Ok(Storage::new(data, self.clone()))
     }
 }
 
 impl<T> DeviceCreationComplexFloatAPI<T> for DeviceOpenBLAS
 where
     T: ComplexFloat + Clone + Send + Sync,
-    Self: DeviceRawVecAPI<T, RawVec = Vec<T>>,
+    Self: DeviceRawAPI<T, Raw = Vec<T>>,
 {
     fn linspace_impl(
         &self,
@@ -70,9 +81,10 @@ where
         end: T,
         n: usize,
         endpoint: bool,
-    ) -> Result<Storage<T, Self>> {
+    ) -> Result<Storage<DataOwned<Vec<T>>, T, Self>> {
         let storage = DeviceCpuSerial.linspace_impl(start, end, n, endpoint)?;
-        Ok(Storage::new(storage.into_rawvec(), self.clone()))
+        let (data, _) = storage.into_raw_parts();
+        Ok(Storage::new(data, self.clone()))
     }
 }
 
@@ -84,6 +96,6 @@ mod test {
     fn test_linspace() {
         let device = DeviceOpenBLAS::default();
         let a = linspace((1.0, 5.0, 5, &device));
-        assert_eq!(a.data().storage().rawvec(), &vec![1., 2., 3., 4., 5.]);
+        assert_eq!(a.raw(), &vec![1., 2., 3., 4., 5.]);
     }
 }

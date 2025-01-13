@@ -5,7 +5,7 @@ use core::mem::ManuallyDrop;
 
 #[derive(Debug, Clone)]
 pub struct DataOwned<S> {
-    pub(crate) storage: S,
+    pub(crate) raw: S,
 }
 
 #[derive(Debug)]
@@ -28,7 +28,7 @@ pub enum DataCow<'a, S> {
 
 #[derive(Debug)]
 pub struct DataArc<S> {
-    pub(crate) storage: Arc<S>,
+    pub(crate) raw: Arc<S>,
 }
 
 unsafe impl<S> Send for DataRef<'_, S> where S: Send {}
@@ -40,12 +40,12 @@ unsafe impl<S> Sync for DataArc<S> where S: Sync {}
 impl<S> DataArc<S> {
     #[inline]
     pub fn strong_count(&self) -> usize {
-        Arc::strong_count(&self.storage)
+        Arc::strong_count(&self.raw)
     }
 
     #[inline]
     pub fn weak_count(&self) -> usize {
-        Arc::weak_count(&self.storage)
+        Arc::weak_count(&self.raw)
     }
 }
 
@@ -65,14 +65,14 @@ pub enum DataReference<'a, S> {
 impl<S> From<S> for DataOwned<S> {
     #[inline]
     fn from(data: S) -> Self {
-        Self { storage: data }
+        Self { raw: data }
     }
 }
 
 impl<S> DataOwned<S> {
     #[inline]
-    pub fn into_storage(self) -> S {
-        self.storage
+    pub fn into_raw(self) -> S {
+        self.raw
     }
 }
 
@@ -139,31 +139,31 @@ impl<S> DataCow<'_, S> {
 impl<S> From<Arc<S>> for DataArc<S> {
     #[inline]
     fn from(data: Arc<S>) -> Self {
-        Self { storage: data }
+        Self { raw: data }
     }
 }
 
 impl<S> From<S> for DataArc<S> {
     #[inline]
     fn from(data: S) -> Self {
-        Self { storage: Arc::new(data) }
+        Self { raw: Arc::new(data) }
     }
 }
 
 pub trait DataAPI {
     type Data: Clone;
-    fn storage(&self) -> &Self::Data;
+    fn raw(&self) -> &Self::Data;
     fn into_owned(self) -> DataOwned<Self::Data>;
     fn into_shared(self) -> DataArc<Self::Data>;
     fn as_ref(&self) -> DataRef<Self::Data> {
-        DataRef::from(self.storage())
+        DataRef::from(self.raw())
     }
 }
 
 pub trait DataMutAPI: DataAPI {
-    fn storage_mut(&mut self) -> &mut Self::Data;
+    fn raw_mut(&mut self) -> &mut Self::Data;
     fn as_mut(&mut self) -> DataMut<Self::Data> {
-        DataMut::TrueRef(self.storage_mut())
+        DataMut::TrueRef(self.raw_mut())
     }
 }
 
@@ -178,8 +178,8 @@ where
     type Data = S;
 
     #[inline]
-    fn storage(&self) -> &Self::Data {
-        &self.storage
+    fn raw(&self) -> &Self::Data {
+        &self.raw
     }
 
     #[inline]
@@ -189,7 +189,7 @@ where
 
     #[inline]
     fn into_shared(self) -> DataArc<Self::Data> {
-        DataArc::from(self.storage)
+        DataArc::from(self.raw)
     }
 }
 
@@ -200,19 +200,19 @@ where
     type Data = S;
 
     #[inline]
-    fn storage(&self) -> &Self::Data {
+    fn raw(&self) -> &Self::Data {
         match self {
-            DataRef::TrueRef(storage) => storage,
-            DataRef::ManuallyDropOwned(storage) => storage,
+            DataRef::TrueRef(raw) => raw,
+            DataRef::ManuallyDropOwned(raw) => raw,
         }
     }
 
     #[inline]
     fn into_owned(self) -> DataOwned<Self::Data> {
         match self {
-            DataRef::TrueRef(storage) => DataOwned::from(storage.clone()),
-            DataRef::ManuallyDropOwned(storage) => {
-                let v = ManuallyDrop::into_inner(storage);
+            DataRef::TrueRef(raw) => DataOwned::from(raw.clone()),
+            DataRef::ManuallyDropOwned(raw) => {
+                let v = ManuallyDrop::into_inner(raw);
                 DataOwned::from(v.clone())
             },
         }
@@ -221,9 +221,9 @@ where
     #[inline]
     fn into_shared(self) -> DataArc<Self::Data> {
         match self {
-            DataRef::TrueRef(storage) => DataArc::from(storage.clone()),
-            DataRef::ManuallyDropOwned(storage) => {
-                let v = ManuallyDrop::into_inner(storage);
+            DataRef::TrueRef(raw) => DataArc::from(raw.clone()),
+            DataRef::ManuallyDropOwned(raw) => {
+                let v = ManuallyDrop::into_inner(raw);
                 DataArc::from(v.clone())
             },
         }
@@ -237,19 +237,19 @@ where
     type Data = S;
 
     #[inline]
-    fn storage(&self) -> &Self::Data {
+    fn raw(&self) -> &Self::Data {
         match self {
-            DataMut::TrueRef(storage) => storage,
-            DataMut::ManuallyDropOwned(storage) => storage,
+            DataMut::TrueRef(raw) => raw,
+            DataMut::ManuallyDropOwned(raw) => raw,
         }
     }
 
     #[inline]
     fn into_owned(self) -> DataOwned<Self::Data> {
         match self {
-            DataMut::TrueRef(storage) => DataOwned::from(storage.clone()),
-            DataMut::ManuallyDropOwned(storage) => {
-                let v = ManuallyDrop::into_inner(storage);
+            DataMut::TrueRef(raw) => DataOwned::from(raw.clone()),
+            DataMut::ManuallyDropOwned(raw) => {
+                let v = ManuallyDrop::into_inner(raw);
                 DataOwned::from(v.clone())
             },
         }
@@ -258,9 +258,9 @@ where
     #[inline]
     fn into_shared(self) -> DataArc<Self::Data> {
         match self {
-            DataMut::TrueRef(storage) => DataArc::from(storage.clone()),
-            DataMut::ManuallyDropOwned(storage) => {
-                let v = ManuallyDrop::into_inner(storage);
+            DataMut::TrueRef(raw) => DataArc::from(raw.clone()),
+            DataMut::ManuallyDropOwned(raw) => {
+                let v = ManuallyDrop::into_inner(raw);
                 DataArc::from(v.clone())
             },
         }
@@ -274,10 +274,10 @@ where
     type Data = S;
 
     #[inline]
-    fn storage(&self) -> &Self::Data {
+    fn raw(&self) -> &Self::Data {
         match self {
-            DataCow::Owned(data) => data.storage(),
-            DataCow::Ref(data) => data.storage(),
+            DataCow::Owned(data) => data.raw(),
+            DataCow::Ref(data) => data.raw(),
         }
     }
 
@@ -292,7 +292,7 @@ where
     #[inline]
     fn into_shared(self) -> DataArc<Self::Data> {
         match self {
-            DataCow::Owned(data) => DataArc::from(data.into_storage()),
+            DataCow::Owned(data) => DataArc::from(data.into_raw()),
             DataCow::Ref(data) => data.into_shared(),
         }
     }
@@ -305,13 +305,13 @@ where
     type Data = S;
 
     #[inline]
-    fn storage(&self) -> &Self::Data {
-        &self.storage
+    fn raw(&self) -> &Self::Data {
+        &self.raw
     }
 
     #[inline]
     fn into_owned(self) -> DataOwned<Self::Data> {
-        DataOwned::from(Arc::try_unwrap(self.storage).ok().unwrap())
+        DataOwned::from(Arc::try_unwrap(self.raw).ok().unwrap())
     }
 
     #[inline]
@@ -329,8 +329,8 @@ where
     S: Clone,
 {
     #[inline]
-    fn storage_mut(&mut self) -> &mut Self::Data {
-        &mut self.storage
+    fn raw_mut(&mut self) -> &mut Self::Data {
+        &mut self.raw
     }
 }
 
@@ -339,10 +339,10 @@ where
     S: Clone,
 {
     #[inline]
-    fn storage_mut(&mut self) -> &mut Self::Data {
+    fn raw_mut(&mut self) -> &mut Self::Data {
         match self {
-            DataMut::TrueRef(storage) => storage,
-            DataMut::ManuallyDropOwned(storage) => storage,
+            DataMut::TrueRef(raw) => raw,
+            DataMut::ManuallyDropOwned(raw) => raw,
         }
     }
 }
@@ -352,8 +352,8 @@ where
     S: Clone,
 {
     #[inline]
-    fn storage_mut(&mut self) -> &mut Self::Data {
-        Arc::make_mut(&mut self.storage)
+    fn raw_mut(&mut self) -> &mut Self::Data {
+        Arc::make_mut(&mut self.raw)
     }
 }
 
@@ -429,21 +429,21 @@ mod test {
         let vec = vec![10, 20, 30];
         println!("===");
         println!("{:?}", vec.as_ptr());
-        let data = DataOwned { storage: vec.clone() };
+        let data = DataOwned { raw: vec.clone() };
         let data_ref = data.as_ref();
         let data_ref_ref = data_ref.as_ref();
-        println!("{:?}", data_ref.storage().as_ptr());
-        println!("{:?}", data_ref_ref.storage().as_ptr());
+        println!("{:?}", data_ref.raw().as_ptr());
+        println!("{:?}", data_ref_ref.raw().as_ptr());
         let data_ref2 = data_ref.into_owned();
-        println!("{:?}", data_ref2.storage().as_ptr());
+        println!("{:?}", data_ref2.raw().as_ptr());
 
         println!("===");
         let data_ref = DataRef::from_manually_drop(ManuallyDrop::new(vec.clone()));
         let data_ref_ref = data_ref.as_ref();
-        println!("{:?}", data_ref.storage().as_ptr());
-        println!("{:?}", data_ref_ref.storage().as_ptr());
+        println!("{:?}", data_ref.raw().as_ptr());
+        println!("{:?}", data_ref_ref.raw().as_ptr());
         let mut data_ref2 = data_ref.into_owned();
-        println!("{:?}", data_ref2.storage().as_ptr());
-        data_ref2.storage_mut()[1] = 10;
+        println!("{:?}", data_ref2.raw().as_ptr());
+        data_ref2.raw_mut()[1] = 10;
     }
 }

@@ -10,15 +10,15 @@ macro_rules! impl_op_muta_refb_assign {
         {
             fn op_muta_refb(
                 &self,
-                a: &mut Storage<TA, Self>,
+                a: &mut Vec<TA>,
                 la: &Layout<D>,
-                b: &Storage<TB, Self>,
+                b: &Vec<TB>,
                 lb: &Layout<D>,
             ) -> Result<()> {
                 self.op_muta_refb_func(a, la, b, lb, &mut $func)
             }
 
-            fn op_muta_numb(&self, a: &mut Storage<TA, Self>, la: &Layout<D>, b: TB) -> Result<()> {
+            fn op_muta_numb(&self, a: &mut Vec<TA>, la: &Layout<D>, b: TB) -> Result<()> {
                 self.op_muta_numb_func(a, la, b, &mut $func)
             }
         }
@@ -51,15 +51,15 @@ macro_rules! impl_op_muta_refb_l_consume {
         {
             fn op_muta_refb(
                 &self,
-                a: &mut Storage<TA, Self>,
+                a: &mut Vec<TA>,
                 la: &Layout<D>,
-                b: &Storage<TB, Self>,
+                b: &Vec<TB>,
                 lb: &Layout<D>,
             ) -> Result<()> {
                 self.op_muta_refb_func(a, la, b, lb, &mut $func)
             }
 
-            fn op_muta_numb(&self, a: &mut Storage<TA, Self>, la: &Layout<D>, b: TB) -> Result<()> {
+            fn op_muta_numb(&self, a: &mut Vec<TA>, la: &Layout<D>, b: TB) -> Result<()> {
                 self.op_muta_numb_func(a, la, b, &mut $func)
             }
         }
@@ -92,15 +92,15 @@ macro_rules! impl_op_muta_refb_r_consume {
         {
             fn op_muta_refb(
                 &self,
-                b: &mut Storage<TB, Self>,
+                b: &mut Vec<TB>,
                 lb: &Layout<D>,
-                a: &Storage<TA, Self>,
+                a: &Vec<TA>,
                 la: &Layout<D>,
             ) -> Result<()> {
                 self.op_muta_refb_func(b, lb, a, la, &mut $func)
             }
 
-            fn op_muta_numb(&self, b: &mut Storage<TB, Self>, lb: &Layout<D>, a: TA) -> Result<()> {
+            fn op_muta_numb(&self, b: &mut Vec<TB>, lb: &Layout<D>, a: TA) -> Result<()> {
                 self.op_muta_numb_func(b, lb, a, &mut $func)
             }
         }
@@ -133,9 +133,9 @@ macro_rules! impl_op_muta_refb_unary {
         {
             fn op_muta_refb(
                 &self,
-                a: &mut Storage<TA, Self>,
+                a: &mut Vec<TA>,
                 la: &Layout<D>,
-                b: &Storage<TB, Self>,
+                b: &Vec<TB>,
                 lb: &Layout<D>,
             ) -> Result<()>
             where
@@ -144,7 +144,7 @@ macro_rules! impl_op_muta_refb_unary {
                 self.op_muta_refb_func(a, la, b, lb, &mut $func)
             }
 
-            fn op_muta(&self, a: &mut Storage<TA, Self>, la: &Layout<D>) -> Result<()>
+            fn op_muta(&self, a: &mut Vec<TA>, la: &Layout<D>) -> Result<()>
             where
                 TA: $Op<Output = TA>,
             {

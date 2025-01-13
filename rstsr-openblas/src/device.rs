@@ -41,69 +41,70 @@ impl DeviceBaseAPI for DeviceOpenBLAS {
     }
 }
 
-impl<T> DeviceRawVecAPI<T> for DeviceOpenBLAS
+impl<T> DeviceRawAPI<T> for DeviceOpenBLAS
 where
     T: Clone,
 {
-    type RawVec = Vec<T>;
+    type Raw = Vec<T>;
 }
 
 impl<T> DeviceStorageAPI<T> for DeviceOpenBLAS
 where
     T: Clone,
 {
-    fn new(vector: Self::RawVec, device: Self) -> Storage<T, Self> {
-        Storage::<T, Self>::new(vector, device)
+    fn len<R>(storage: &Storage<R, T, Self>) -> usize
+    where
+        R: DataAPI<Data = Self::Raw>,
+    {
+        storage.raw().len()
     }
 
-    fn len(storage: &Storage<T, Self>) -> usize {
-        storage.rawvec().len()
+    fn to_cpu_vec<R>(storage: &Storage<R, T, Self>) -> Result<Vec<T>>
+    where
+        R: DataAPI<Data = Self::Raw>,
+    {
+        Ok(storage.raw().clone())
     }
 
-    fn to_cpu_vec(storage: &Storage<T, Self>) -> Result<Vec<T>> {
-        Ok(storage.rawvec().clone())
-    }
-
-    fn into_cpu_vec(storage: Storage<T, Self>) -> Result<Vec<T>> {
-        Ok(storage.into_rawvec())
-    }
-
-    #[inline]
-    fn get_index(storage: &Storage<T, Self>, index: usize) -> T {
-        storage.rawvec()[index].clone()
-    }
-
-    #[inline]
-    fn get_index_ptr(storage: &Storage<T, Self>, index: usize) -> *const T {
-        &storage.rawvec()[index] as *const T
+    fn into_cpu_vec<R>(storage: Storage<R, T, Self>) -> Result<Vec<T>>
+    where
+        R: DataAPI<Data = Self::Raw>,
+    {
+        let (raw, _) = storage.into_raw_parts();
+        Ok(raw.into_owned().into_raw())
     }
 
     #[inline]
-    fn get_index_mut_ptr(storage: &mut Storage<T, Self>, index: usize) -> *mut T {
-        &mut storage.rawvec_mut()[index] as *mut T
+    fn get_index<R>(storage: &Storage<R, T, Self>, index: usize) -> T
+    where
+        R: DataAPI<Data = Self::Raw>,
+    {
+        storage.raw()[index].clone()
     }
 
     #[inline]
-    fn set_index(storage: &mut Storage<T, Self>, index: usize, value: T) {
-        storage.rawvec_mut()[index] = value;
+    fn get_index_ptr<R>(storage: &Storage<R, T, Self>, index: usize) -> *const T
+    where
+        R: DataAPI<Data = Self::Raw>,
+    {
+        &storage.raw()[index] as *const T
+    }
+
+    #[inline]
+    fn get_index_mut_ptr<R>(storage: &mut Storage<R, T, Self>, index: usize) -> *mut T
+    where
+        R: DataMutAPI<Data = Self::Raw>,
+    {
+        storage.raw_mut().get_mut(index).unwrap() as *mut T
+    }
+
+    #[inline]
+    fn set_index<R>(storage: &mut Storage<R, T, Self>, index: usize, value: T)
+    where
+        R: DataMutAPI<Data = Self::Raw>,
+    {
+        storage.raw_mut()[index] = value;
     }
 }
 
 impl<T> DeviceAPI<T> for DeviceOpenBLAS where T: Clone {}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn test_device_conversion() {
-        let device_serial = DeviceCpuSerial {};
-        let device_faer = DeviceOpenBLAS::new(0);
-        let a = linspace((1.0, 5.0, 5, &device_serial));
-        let b = a.into_device(&device_faer).unwrap();
-        println!("{:?}", b);
-        let a = linspace((1.0, 5.0, 5, &device_serial));
-        let b = a.view().into_device(&device_faer).unwrap();
-        println!("{:?}", b);
-    }
-}

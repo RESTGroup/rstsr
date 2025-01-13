@@ -3,37 +3,40 @@ use crate::prelude_dev::*;
 /* #region basic conversion */
 
 /// Methods for tensor ownership conversion.
-impl<R, D> TensorBase<R, D>
+impl<R, T, B, D> TensorAny<R, T, B, D>
 where
     D: DimAPI,
+    B: DeviceAPI<T>,
+    R: DataAPI<Data = B::Raw>,
 {
     /// Get a view of tensor.
-    pub fn view(&self) -> TensorBase<DataRef<'_, R::Data>, D>
-    where
-        R: DataAPI,
-    {
-        let data = self.data().as_ref();
+    pub fn view(&self) -> TensorView<'_, T, B, D> {
         let layout = self.layout().clone();
-        unsafe { TensorBase::new_unchecked(data, layout) }
+        let data = self.data().as_ref();
+        let storage = Storage::new(data, self.device().clone());
+        unsafe { TensorBase::new_unchecked(storage, layout) }
     }
 
     /// Get a mutable view of tensor.
-    pub fn view_mut(&mut self) -> TensorBase<DataMut<'_, R::Data>, D>
+    pub fn view_mut(&mut self) -> TensorMut<'_, T, B, D>
     where
         R: DataMutAPI,
     {
+        let device = self.device().clone();
         let layout = self.layout().clone();
         let data = self.data_mut().as_mut();
-        unsafe { TensorBase::new_unchecked(data, layout) }
+        let storage = Storage::new(data, device);
+        unsafe { TensorBase::new_unchecked(storage, layout) }
     }
 
-    pub fn into_cow<'a>(self) -> TensorBase<DataCow<'a, R::Data>, D>
+    pub fn into_cow<'a>(self) -> TensorCow<'a, T, B, D>
     where
-        R: DataAPI + DataIntoCowAPI<'a>,
+        R: DataIntoCowAPI<'a>,
     {
-        let (data, layout) = self.into_data_and_layout();
-        let data = data.into_cow();
-        unsafe { TensorBase::new_unchecked(data, layout) }
+        let (storage, layout) = self.into_raw_parts();
+        let (data, device) = storage.into_raw_parts();
+        let storage = Storage::new(data.into_cow(), device);
+        unsafe { TensorBase::new_unchecked(storage, layout) }
     }
 
     /// Convert tensor into owned tensor.
@@ -47,13 +50,11 @@ where
     /// [`Tensor::into_owned`] keep data in some conditions, otherwise clone.
     /// This function can avoid cases where data memory bulk is large, but
     /// tensor view is small.
-    pub fn into_owned_keep_layout(self) -> TensorBase<DataOwned<R::Data>, D>
-    where
-        R: DataAPI,
-    {
-        let TensorBase { data, layout } = self;
-        let data = data.into_owned();
-        unsafe { TensorBase::new_unchecked(data, layout) }
+    pub fn into_owned_keep_layout(self) -> Tensor<T, B, D> {
+        let (storage, layout) = self.into_raw_parts();
+        let (data, device) = storage.into_raw_parts();
+        let storage = Storage::new(data.into_owned(), device);
+        unsafe { TensorBase::new_unchecked(storage, layout) }
     }
 
     /// Convert tensor into shared tensor.
@@ -67,45 +68,41 @@ where
     /// [`Tensor::into_shared`] keep data in some conditions, otherwise clone.
     /// This function can avoid cases where data memory bulk is large, but
     /// tensor view is small.
-    pub fn into_shared_keep_layout(self) -> TensorBase<DataArc<R::Data>, D>
-    where
-        R: DataAPI,
-    {
-        let TensorBase { data, layout } = self;
-        let data = data.into_shared();
-        unsafe { TensorBase::new_unchecked(data, layout) }
+    pub fn into_shared_keep_layout(self) -> TensorArc<T, B, D> {
+        let (storage, layout) = self.into_raw_parts();
+        let (data, device) = storage.into_raw_parts();
+        let storage = Storage::new(data.into_shared(), device);
+        unsafe { TensorBase::new_unchecked(storage, layout) }
     }
 }
 
-impl<R, T, D, B> TensorBase<R, D>
+impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     R::Data: Clone,
     D: DimAPI,
     T: Clone,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
 {
-    pub fn into_owned(self) -> TensorBase<DataOwned<R::Data>, D> {
+    pub fn into_owned(self) -> Tensor<T, B, D> {
         let (idx_min, idx_max) = self.layout().bounds_index().unwrap();
-        if idx_min == 0 && idx_max == self.data().storage().len() && idx_max == self.layout().size()
-        {
+        if idx_min == 0 && idx_max == self.storage().len() && idx_max == self.layout().size() {
             return self.into_owned_keep_layout();
         } else {
             return asarray((&self, TensorIterOrder::K));
         }
     }
 
-    pub fn into_shared(self) -> TensorBase<DataArc<R::Data>, D> {
+    pub fn into_shared(self) -> TensorArc<T, B, D> {
         let (idx_min, idx_max) = self.layout().bounds_index().unwrap();
-        if idx_min == 0 && idx_max == self.data().storage().len() && idx_max == self.layout().size()
-        {
+        if idx_min == 0 && idx_max == self.storage().len() && idx_max == self.layout().size() {
             return self.into_shared_keep_layout();
         } else {
             return asarray((&self, TensorIterOrder::K)).into_shared();
         }
     }
 
-    pub fn to_owned(&self) -> TensorBase<DataOwned<R::Data>, D> {
+    pub fn to_owned(&self) -> Tensor<T, B, D> {
         self.view().into_owned()
     }
 }
@@ -114,12 +111,12 @@ where
 
 /* #region to_vector */
 
-impl<R, T, D, B> TensorBase<R, D>
+impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     T: Clone,
     D: DimAPI,
-    B: DeviceAPI<T, RawVec = Vec<T>> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, Ix1>,
+    B: DeviceAPI<T, Raw = Vec<T>> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, Ix1>,
 {
     pub fn to_vec_f(&self) -> Result<Vec<T>> {
         rstsr_assert_eq!(
@@ -128,13 +125,13 @@ where
             InvalidLayout,
             "to_vec currently only support 1-D tensor"
         )?;
-        let data = self.data().storage();
+        let device = self.device();
         let layout = self.layout().to_dim::<Ix1>()?;
-        let device = data.device();
         let size = layout.size();
-        let mut new_data = unsafe { device.empty_impl(size)? };
-        device.assign(&mut new_data, &[size].c(), data, &layout)?;
-        Ok(new_data.into_rawvec())
+        let mut new_storage = unsafe { device.empty_impl(size)? };
+        device.assign(new_storage.raw_mut(), &[size].c(), self.raw(), &layout)?;
+        let (data, _) = new_storage.into_raw_parts();
+        Ok(data.into_raw())
     }
 
     pub fn to_vec(&self) -> Vec<T> {
@@ -142,11 +139,11 @@ where
     }
 }
 
-impl<T, D, B> Tensor<T, D, B>
+impl<T, B, D> Tensor<T, B, D>
 where
     T: Clone,
     D: DimAPI,
-    B: DeviceAPI<T, RawVec = Vec<T>> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, Ix1>,
+    B: DeviceAPI<T, Raw = Vec<T>> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, Ix1>,
 {
     pub fn into_vec_f(self) -> Result<Vec<T>> {
         rstsr_assert_eq!(
@@ -158,11 +155,13 @@ where
         let layout = self.layout();
         let (idx_min, idx_max) = layout.bounds_index()?;
         if idx_min == 0
-            && idx_max == self.data.storage.len()
+            && idx_max == self.storage().len()
             && idx_max == layout.size()
             && layout.stride()[0] > 0
         {
-            return Ok(self.data.storage.into_rawvec());
+            let (storage, _) = self.into_raw_parts();
+            let (data, _) = storage.into_raw_parts();
+            return Ok(data.into_raw());
         } else {
             return self.to_vec_f();
         }
@@ -173,23 +172,13 @@ where
     }
 }
 
-impl<T, D, B> Tensor<T, D, B>
-where
-    D: DimAPI,
-    B: DeviceAPI<T, RawVec = Vec<T>>,
-{
-    pub fn into_rawvec(self) -> B::RawVec {
-        self.data.storage.into_rawvec()
-    }
-}
-
 /* #endregion */
 
 /* #region to_scalar */
 
-impl<R, T, D, B> TensorBase<R, D>
+impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     T: Clone,
     D: DimAPI,
     B: DeviceAPI<T>,
@@ -197,8 +186,8 @@ where
     pub fn to_scalar_f(&self) -> Result<T> {
         let layout = self.layout();
         rstsr_assert_eq!(layout.size(), 1, InvalidLayout)?;
-        let data = self.data().storage();
-        let vec = data.to_cpu_vec()?;
+        let storage = self.storage();
+        let vec = storage.to_cpu_vec()?;
         Ok(vec[0].clone())
     }
 
@@ -211,21 +200,21 @@ where
 
 /* #region as_ptr */
 
-impl<R, T, D, B> TensorBase<R, D>
+impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = Storage<T, B>>,
+    R: DataAPI<Data = B::Raw>,
     D: DimAPI,
-    B: DeviceAPI<T, RawVec = Vec<T>>,
+    B: DeviceAPI<T, Raw = Vec<T>>,
 {
     pub fn as_ptr(&self) -> *const T {
-        unsafe { self.rawvec().as_ptr().add(self.layout().offset()) }
+        unsafe { self.raw().as_ptr().add(self.layout().offset()) }
     }
 
     pub fn as_mut_ptr(&mut self) -> *mut T
     where
         R: DataMutAPI,
     {
-        unsafe { self.rawvec_mut().as_mut_ptr().add(self.layout().offset()) }
+        unsafe { self.raw_mut().as_mut_ptr().add(self.layout().offset()) }
     }
 }
 
@@ -233,62 +222,71 @@ where
 
 /* #region view API */
 
-pub trait TensorViewAPI<S, D>
+pub trait TensorViewAPI<T, B, D>
 where
     D: DimAPI,
+    B: DeviceAPI<T>,
 {
     /// Get a view of tensor.
-    fn view(&self) -> TensorBase<DataRef<'_, S>, D>;
+    fn view(&self) -> TensorView<'_, T, B, D>;
 }
 
-impl<R, D> TensorViewAPI<R::Data, D> for TensorBase<R, D>
+impl<R, T, B, D> TensorViewAPI<T, B, D> for TensorAny<R, T, B, D>
 where
-    R: DataAPI,
     D: DimAPI,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
 {
-    fn view(&self) -> TensorBase<DataRef<'_, R::Data>, D> {
+    fn view(&self) -> TensorView<'_, T, B, D> {
         let data = self.data().as_ref();
+        let storage = Storage::new(data, self.device().clone());
         let layout = self.layout().clone();
-        unsafe { TensorBase::new_unchecked(data, layout) }
+        unsafe { TensorBase::new_unchecked(storage, layout) }
     }
 }
 
-impl<R, D> TensorViewAPI<R::Data, D> for &TensorBase<R, D>
+impl<R, T, B, D> TensorViewAPI<T, B, D> for &TensorAny<R, T, B, D>
 where
-    R: DataAPI,
     D: DimAPI,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
 {
-    fn view(&self) -> TensorBase<DataRef<'_, R::Data>, D> {
+    fn view(&self) -> TensorView<'_, T, B, D> {
         (*self).view()
     }
 }
 
-pub trait TensorViewMutAPI<S, D>
+pub trait TensorViewMutAPI<T, B, D>
 where
     D: DimAPI,
+    B: DeviceAPI<T>,
 {
     /// Get a mutable view of tensor.
-    fn view_mut(&mut self) -> TensorBase<DataMut<'_, S>, D>;
+    fn view_mut(&mut self) -> TensorMut<'_, T, B, D>;
 }
 
-impl<R, D> TensorViewMutAPI<R::Data, D> for TensorBase<R, D>
+impl<R, T, B, D> TensorViewMutAPI<T, B, D> for TensorAny<R, T, B, D>
 where
-    R: DataMutAPI,
     D: DimAPI,
+    R: DataMutAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
 {
-    fn view_mut(&mut self) -> TensorBase<DataMut<'_, R::Data>, D> {
+    fn view_mut(&mut self) -> TensorMut<'_, T, B, D> {
+        let device = self.device().clone();
         let layout = self.layout().clone();
         let data = self.data_mut().as_mut();
-        unsafe { TensorBase::new_unchecked(data, layout) }
+        let storage = Storage::new(data, device);
+        unsafe { TensorBase::new_unchecked(storage, layout) }
     }
 }
 
-impl<R, D> TensorViewMutAPI<R::Data, D> for &mut TensorBase<R, D>
+impl<R, T, B, D> TensorViewMutAPI<T, B, D> for &mut TensorAny<R, T, B, D>
 where
-    R: DataMutAPI,
     D: DimAPI,
+    R: DataMutAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
 {
-    fn view_mut(&mut self) -> TensorBase<DataMut<'_, R::Data>, D> {
+    fn view_mut(&mut self) -> TensorMut<'_, T, B, D> {
         (*self).view_mut()
     }
 }
@@ -298,32 +296,36 @@ where
 /* #region tensor prop for computation */
 
 pub trait TensorRefAPI {}
-impl<R, D> TensorRefAPI for &TensorBase<R, D>
+impl<R, T, B, D> TensorRefAPI for &TensorAny<R, T, B, D>
 where
     D: DimAPI,
-    R: DataAPI,
-    Self: TensorViewAPI<R::Data, D>,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
+    Self: TensorViewAPI<T, B, D>,
 {
 }
-impl<S, D> TensorRefAPI for TensorBase<DataRef<'_, S>, D>
+impl<T, B, D> TensorRefAPI for TensorView<'_, T, B, D>
 where
     D: DimAPI,
-    Self: TensorViewAPI<S, D>,
+    B: DeviceAPI<T>,
+    Self: TensorViewAPI<T, B, D>,
 {
 }
 
 pub trait TensorRefMutAPI {}
-impl<R, D> TensorRefMutAPI for &mut TensorBase<R, D>
+impl<R, T, B, D> TensorRefMutAPI for &mut TensorAny<R, T, B, D>
 where
-    R: DataAPI,
     D: DimAPI,
-    Self: TensorViewMutAPI<R::Data, D>,
+    R: DataMutAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
+    Self: TensorViewMutAPI<T, B, D>,
 {
 }
-impl<S, D> TensorRefMutAPI for TensorBase<DataMut<'_, S>, D>
+impl<T, B, D> TensorRefMutAPI for TensorMut<'_, T, B, D>
 where
     D: DimAPI,
-    Self: TensorViewMutAPI<S, D>,
+    B: DeviceAPI<T>,
+    Self: TensorViewMutAPI<T, B, D>,
 {
 }
 
@@ -336,7 +338,7 @@ mod test {
     #[test]
     fn test_into_cow() {
         let mut a = arange(3);
-        let ptr_a = a.rawvec().as_ptr();
+        let ptr_a = a.raw().as_ptr();
 
         let a_mut = a.view_mut();
         let a_cow = a_mut.into_cow();
@@ -348,7 +350,7 @@ mod test {
 
         let a_cow = a.into_cow();
         println!("{:?}", a_cow);
-        let ptr_a_cow = a_cow.rawvec().as_ptr();
+        let ptr_a_cow = a_cow.raw().as_ptr();
         assert_eq!(ptr_a, ptr_a_cow);
     }
 }

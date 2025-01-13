@@ -109,54 +109,52 @@ pub use trait_unary::*;
 macro_rules! impl_tensor_unary_common {
     ($op_f: ident, $TensorOpAPI: ident, $DeviceOpAPI: ident) => {
         // any types allowed
-        impl<R, T, D, B> $TensorOpAPI for &TensorBase<R, D>
+        impl<R, T, B, D> $TensorOpAPI for &TensorAny<R, T, B, D>
         where
             D: DimAPI,
-            R: DataAPI<Data = Storage<T, B>>,
+            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             B: DeviceAPI<T>,
             B: $DeviceOpAPI<T, D> + DeviceCreationAnyAPI<B::TOut>,
         {
-            type Output = Tensor<B::TOut, D, B>;
+            type Output = Tensor<B::TOut, B, D>;
             fn $op_f(self) -> Result<Self::Output> {
                 let lb = self.layout();
-                let storage_b = self.data().storage();
                 // generate empty output tensor
                 let device = self.device();
                 let la = layout_for_array_copy(lb, TensorIterOrder::K)?;
                 let mut storage_a = unsafe { device.empty_impl(la.bounds_index()?.1)? };
                 // compute and return
-                device.op_muta_refb(&mut storage_a, &la, storage_b, lb)?;
-                return Tensor::new_f(DataOwned::from(storage_a), la);
+                device.op_muta_refb(storage_a.raw_mut(), &la, self.raw(), lb)?;
+                return Tensor::new_f(storage_a, la);
             }
         }
 
         // any types allowed
-        impl<'l, T, D, B> $TensorOpAPI for TensorView<'l, T, D, B>
+        impl<'l, T, B, D> $TensorOpAPI for TensorView<'l, T, B, D>
         where
             D: DimAPI,
             B: DeviceAPI<T>,
             B: $DeviceOpAPI<T, D> + DeviceCreationAnyAPI<B::TOut>,
         {
-            type Output = Tensor<B::TOut, D, B>;
+            type Output = Tensor<B::TOut, B, D>;
             fn $op_f(self) -> Result<Self::Output> {
                 $TensorOpAPI::$op_f(&self)
             }
         }
 
         // same types allowed
-        impl<T, D, B> $TensorOpAPI for Tensor<T, D, B>
+        impl<T, B, D> $TensorOpAPI for Tensor<T, B, D>
         where
             D: DimAPI,
             B: DeviceAPI<T>,
             B: $DeviceOpAPI<T, D, TOut = T> + DeviceCreationAnyAPI<T>,
         {
-            type Output = Tensor<T, D, B>;
+            type Output = Tensor<T, B, D>;
             fn $op_f(mut self) -> Result<Self::Output> {
                 let layout = self.layout().clone();
                 let device = self.device().clone();
-                let storage = self.data_mut().storage_mut();
                 // generate empty output tensor
-                device.op_muta(storage, &layout)?;
+                device.op_muta(self.raw_mut(), &layout)?;
                 return Ok(self);
             }
         }
@@ -222,9 +220,9 @@ mod test {
         let b = a.view().sin();
         println!("{:}", b);
 
-        let ptr_a = a.rawvec().as_ptr();
+        let ptr_a = a.raw().as_ptr();
         let b = a.sin();
-        let ptr_b = b.rawvec().as_ptr();
+        let ptr_b = b.raw().as_ptr();
         assert_eq!(ptr_a, ptr_b);
     }
 
@@ -243,17 +241,17 @@ mod test {
     fn test_abs() {
         use num::complex::c32;
         let a = linspace((c32(1.0, 2.0), c32(5.0, 6.0), 6)).into_shape([2, 3]);
-        let ptr_a = a.rawvec().as_ptr();
+        let ptr_a = a.raw().as_ptr();
         let b = a.abs();
-        let ptr_b = b.rawvec().as_ptr();
+        let ptr_b = b.raw().as_ptr();
         println!("{:}", b);
         println!("{:?}", ptr_a);
         println!("{:?}", ptr_b);
 
         let a = linspace((-3.0f64, 3.0f64, 6)).into_shape([2, 3]);
-        let ptr_a = a.rawvec().as_ptr();
+        let ptr_a = a.raw().as_ptr();
         let b = a.abs();
-        let ptr_b = b.rawvec().as_ptr();
+        let ptr_b = b.raw().as_ptr();
         println!("{:}", b);
         assert_eq!(ptr_a, ptr_b);
     }

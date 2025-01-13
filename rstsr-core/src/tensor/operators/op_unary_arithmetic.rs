@@ -37,10 +37,12 @@ pub use trait_unary::*;
 
 macro_rules! impl_unary_core_ops {
     ($op: ident, $Op: ident, $TensorOpAPI: ident) => {
-        impl<R, D> $Op for &TensorBase<R, D>
+        impl<R, T, B, D> $Op for &TensorAny<R, T, B, D>
         where
             D: DimAPI,
-            for<'a> &'a TensorBase<R, D>: $TensorOpAPI,
+            for<'a> &'a TensorAny<R, T, B, D>: $TensorOpAPI,
+            R: DataAPI<Data = B::Raw>,
+            B: DeviceAPI<T>,
         {
             type Output = <Self as $TensorOpAPI>::Output;
             fn $op(self) -> Self::Output {
@@ -48,10 +50,12 @@ macro_rules! impl_unary_core_ops {
             }
         }
 
-        impl<R, D> $Op for TensorBase<R, D>
+        impl<R, T, B, D> $Op for TensorAny<R, T, B, D>
         where
             D: DimAPI,
-            TensorBase<R, D>: $TensorOpAPI,
+            TensorAny<R, T, B, D>: $TensorOpAPI,
+            R: DataAPI<Data = B::Raw>,
+            B: DeviceAPI<T>,
         {
             type Output = <Self as $TensorOpAPI>::Output;
             fn $op(self) -> Self::Output {
@@ -70,55 +74,53 @@ mod impl_unary_core_ops {
 
 macro_rules! impl_unary {
     ($op_f: ident, $Op: ident, $TensorOpAPI: ident, $DeviceOpAPI: ident) => {
-        impl<R, T, TB, D, B> $TensorOpAPI for &TensorBase<R, D>
+        impl<R, T, TB, D, B> $TensorOpAPI for &TensorAny<R, TB, B, D>
         where
             D: DimAPI,
-            R: DataAPI<Data = Storage<TB, B>>,
+            R: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
             B: DeviceAPI<T>,
             TB: $Op<Output = T>,
             B: $DeviceOpAPI<T, TB, D> + DeviceCreationAnyAPI<T>,
         {
-            type Output = Tensor<T, D, B>;
+            type Output = Tensor<T, B, D>;
             fn $op_f(self) -> Result<Self::Output> {
                 let lb = self.layout();
-                let storage_b = self.data().storage();
                 // generate empty output tensor
                 let device = self.device();
                 let la = layout_for_array_copy(lb, TensorIterOrder::K)?;
                 let mut storage_a = unsafe { device.empty_impl(la.bounds_index()?.1)? };
                 // compute and return
-                device.op_muta_refb(&mut storage_a, &la, storage_b, lb)?;
-                return Tensor::new_f(DataOwned::from(storage_a), la);
+                device.op_muta_refb(storage_a.raw_mut(), &la, self.raw(), lb)?;
+                return Tensor::new_f(storage_a, la);
             }
         }
 
-        impl<'l, T, TB, D, B> $TensorOpAPI for TensorView<'l, TB, D, B>
+        impl<'l, T, TB, D, B> $TensorOpAPI for TensorView<'l, TB, B, D>
         where
             D: DimAPI,
             B: DeviceAPI<T>,
             TB: $Op<Output = T>,
             B: $DeviceOpAPI<T, TB, D> + DeviceCreationAnyAPI<T>,
         {
-            type Output = Tensor<T, D, B>;
+            type Output = Tensor<T, B, D>;
             fn $op_f(self) -> Result<Self::Output> {
                 $TensorOpAPI::$op_f(&self)
             }
         }
 
-        impl<T, D, B> $TensorOpAPI for Tensor<T, D, B>
+        impl<T, B, D> $TensorOpAPI for Tensor<T, B, D>
         where
             D: DimAPI,
             B: DeviceAPI<T>,
             T: $Op<Output = T>,
             B: $DeviceOpAPI<T, T, D> + DeviceCreationAnyAPI<T>,
         {
-            type Output = Tensor<T, D, B>;
+            type Output = Tensor<T, B, D>;
             fn $op_f(mut self) -> Result<Self::Output> {
                 let layout = self.layout().clone();
                 let device = self.device().clone();
-                let storage = self.data_mut().storage_mut();
                 // generate empty output tensor
-                device.op_muta(storage, &layout)?;
+                device.op_muta(self.raw_mut(), &layout)?;
                 return Ok(self);
             }
         }
