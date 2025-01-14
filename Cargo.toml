@@ -13,6 +13,7 @@ edition = "2021"
 [workspace.dependencies]
 # members
 rstsr-core = { path = "./rstsr-core" }
+rstsr-openblas-ffi = { path = "./rstsr-openblas-ffi" }
 # basic dependencies
 num = { version = "0.4" }
 thiserror = { version = "1.0" }

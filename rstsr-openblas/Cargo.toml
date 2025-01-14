@@ -7,3 +7,4 @@ edition.workspace = true
 rayon = { workspace = true }
 num = { workspace = true }
 rstsr-core = { workspace = true }
+rstsr-openblas-ffi = { workspace = true }
