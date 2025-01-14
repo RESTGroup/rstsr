@@ -33,7 +33,7 @@ where
 {
     // determine whether to use parallel iteration
     let size = lc.size();
-    if size < PARALLEL_SWITCH * nthreads {
+    if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
         return op_mutc_refa_refb_func_cpu_serial(c, lc, a, la, b, lb, f);
     }
 
@@ -108,7 +108,7 @@ where
 {
     // determine whether to use parallel iteration
     let size = lc.size();
-    if size < PARALLEL_SWITCH * nthreads {
+    if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
         return op_mutc_refa_numb_func_cpu_serial(c, lc, a, la, b, f);
     }
 
@@ -181,7 +181,7 @@ where
 {
     // determine whether to use parallel iteration
     let size = lc.size();
-    if size < PARALLEL_SWITCH * nthreads {
+    if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
         return op_mutc_numa_refb_func_cpu_serial(c, lc, a, b, lb, f);
     }
 
@@ -252,7 +252,7 @@ where
 {
     // determine whether to use parallel iteration
     let size = la.size();
-    if size < PARALLEL_SWITCH * nthreads {
+    if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
         return op_muta_refb_func_cpu_serial(a, la, b, lb, f);
     }
 
@@ -322,7 +322,7 @@ where
 {
     // determine whether to use parallel iteration
     let size = la.size();
-    if size < PARALLEL_SWITCH * nthreads {
+    if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
         return op_muta_numb_func_cpu_serial(a, la, b, f);
     }
 
@@ -387,7 +387,7 @@ where
 {
     // determine whether to use parallel iteration
     let size = la.size();
-    if size < PARALLEL_SWITCH * nthreads {
+    if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
         return op_muta_func_cpu_serial(a, la, f);
     }
 

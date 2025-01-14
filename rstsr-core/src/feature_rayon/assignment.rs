@@ -26,12 +26,16 @@ where
 {
     // determine whether to use parallel iteration
     let size = lc.size();
-    if size < PARALLEL_SWITCH * nthreads {
+    if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
         return assign_arbitary_cpu_serial(c, lc, a, la);
     }
 
     // actual parallel iteration
-    if lc.c_contig() && la.c_contig() || lc.f_contig() && la.f_contig() {
+    let contig = match TensorOrder::default() {
+        TensorOrder::C => lc.c_contig() && la.c_contig(),
+        TensorOrder::F => lc.f_contig() && la.f_contig(),
+    };
+    if contig {
         // contiguous case
         // we do not perform parallel for this case
         let offset_c = lc.offset();
@@ -40,17 +44,9 @@ where
         c[offset_c..(offset_c + size)].clone_from_slice(&a[offset_a..(offset_a + size)]);
     } else {
         // determine order by layout preference
-        let order = {
-            if lc.c_prefer() && la.c_prefer() {
-                TensorIterOrder::C
-            } else if lc.f_prefer() && la.f_prefer() {
-                TensorIterOrder::F
-            } else {
-                match TensorOrder::default() {
-                    TensorOrder::C => TensorIterOrder::C,
-                    TensorOrder::F => TensorIterOrder::F,
-                }
-            }
+        let order = match TensorOrder::default() {
+            TensorOrder::C => TensorIterOrder::C,
+            TensorOrder::F => TensorIterOrder::F,
         };
         // generate col-major iterator
         let lc = translate_to_col_major_unary(lc, order)?;
@@ -82,7 +78,7 @@ where
 {
     // determine whether to use parallel iteration
     let size = lc.size();
-    if size < PARALLEL_SWITCH * nthreads {
+    if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
         return assign_cpu_serial(c, lc, a, la);
     }
 

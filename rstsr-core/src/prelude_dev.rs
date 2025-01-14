@@ -28,7 +28,7 @@ pub use crate::device_cpu_serial::op_with_func::*;
 pub use crate::DeviceCpu;
 
 #[allow(unused_imports)]
-pub(crate) use crate::dev_utilities::*;
+pub use crate::dev_utilities::*;
 
 pub use crate::tensor::asarray::*;
 pub use crate::tensor::creation::*;

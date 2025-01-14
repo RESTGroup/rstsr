@@ -956,8 +956,6 @@ where
     D2: DimAPI,
 {
     let (storage, layout) = tensor.into_raw_parts();
-    let is_c_contig = layout.c_contig();
-    let is_f_contig = layout.f_contig();
 
     rstsr_assert_eq!(
         layout.size(),
@@ -966,27 +964,20 @@ where
         "Number of elements not same."
     )?;
 
-    let new_layout = match (is_c_contig, is_f_contig) {
-        (true, true) => match TensorOrder::default() {
-            TensorOrder::C => shape.new_c_contig(Some(layout.offset)),
-            TensorOrder::F => shape.new_f_contig(Some(layout.offset)),
-        },
-        (true, false) => shape.new_c_contig(Some(layout.offset)),
-        (false, true) => shape.new_f_contig(Some(layout.offset)),
-        (false, false) => rstsr_raise!(InvalidLayout, "Assumes contiguous layout.")?,
+    let new_layout = if TensorOrder::default() == TensorOrder::C && layout.c_contig() {
+        shape.new_c_contig(Some(layout.offset))
+    } else if TensorOrder::default() == TensorOrder::F && layout.f_contig() {
+        shape.new_f_contig(Some(layout.offset))
+    } else {
+        rstsr_raise!(InvalidLayout, "Assumes contiguous layout depends on `c_prefer` feature.")?
     };
     unsafe { Ok(TensorBase::new_unchecked(storage, new_layout)) }
 }
 
 /// Assuming contiguous array, reshapes an array without changing its data.
 ///
-/// This function may return c-contiguous or f-contiguous array:
-/// - If input array is both c-contiguous and f-contiguous (especially case of
-///   1-D), the output array will be chosen as default contiguous.
-/// - If input array is c-contiguous but not f-contiguous, the output array will
-///   be c-contiguous.
-/// - If input array is f-contiguous but not c-contiguous, the output array will
-///   be f-contiguous.
+/// This function may return c-contiguous or f-contiguous array depending on
+/// crate feature `c_prefer`.
 ///
 /// # See also
 ///
@@ -1134,7 +1125,10 @@ where
 
     // avoid memory copy if possible
     let same_shape = tensor.shape().as_ref().to_vec() == shape;
-    let contig = tensor.layout().c_contig() || tensor.layout().f_contig();
+    let contig = match TensorOrder::default() {
+        TensorOrder::C => tensor.layout().c_contig(),
+        TensorOrder::F => tensor.layout().f_contig(),
+    };
     if same_shape {
         // same shape, do nothing but make layout to D2
         let (storage, layout) = tensor.into_raw_parts();
@@ -1152,7 +1146,7 @@ where
         let layout_new = shape.new_contig(None);
         let mut storage_new = unsafe { device.empty_impl(layout_new.size())? };
         device.assign_arbitary(storage_new.raw_mut(), &layout_new, storage.raw(), &layout)?;
-        return unsafe { Ok(TensorBase::new_unchecked(storage, layout_new).into_cow()) };
+        return unsafe { Ok(TensorBase::new_unchecked(storage_new, layout_new).into_cow()) };
     }
 }
 
@@ -1361,7 +1355,11 @@ where
     let contig_f = tensor.layout().f_contig()
         && layout.f_contig()
         && tensor.layout().offset() == layout.offset();
-    if same_layout || contig_c || contig_f {
+    let contig = match TensorOrder::default() {
+        TensorOrder::C => contig_c,
+        TensorOrder::F => contig_f,
+    };
+    if same_layout || contig {
         // no data cloned
         let (storage, _) = tensor.into_raw_parts();
         let tensor = unsafe { TensorBase::new_unchecked(storage, layout) };

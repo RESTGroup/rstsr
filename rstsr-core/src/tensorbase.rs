@@ -91,7 +91,7 @@ where
         // check pointer exceed
         let len_data = storage.len();
         let (_, idx_max) = layout.bounds_index()?;
-        rstsr_pattern!(idx_max, len_data.., ValueOutOfRange)?;
+        rstsr_pattern!(idx_max, ..=len_data, ValueOutOfRange)?;
         return Ok(Self { storage, layout });
     }
 

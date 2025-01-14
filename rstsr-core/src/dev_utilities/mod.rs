@@ -6,7 +6,7 @@ use crate::prelude_dev::*;
 ///
 /// This function assumes c-contiguous iteration, and will not check two
 /// dimensions are broadcastable.
-pub(crate) fn allclose_f64<RA, RB, DA, DB, BA, BB>(
+pub fn allclose_f64<RA, RB, DA, DB, BA, BB>(
     a: &TensorAny<RA, f64, BA, DA>,
     b: &TensorAny<RB, f64, BB, DB>,
 ) -> bool
