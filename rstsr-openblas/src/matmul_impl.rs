@@ -3,11 +3,14 @@
 use crate::prelude_dev::*;
 use num::complex::Complex;
 use num::traits::ConstZero;
+use rayon::prelude::*;
 use rstsr_openblas_ffi::{cblas, ffi};
 use std::ffi::c_void;
 
 type c32 = Complex<f32>;
 type c64 = Complex<f64>;
+
+const PARALLEL_SWITCH: usize = 64;
 
 /* #region gemm */
 
@@ -53,7 +56,7 @@ macro_rules! impl_gemm_blas_no_conj {
                         c_vec
                     };
                     if beta == <$ty>::ZERO {
-                        fill_cpu_serial(&mut c_new, &lc_new, <$ty>::ZERO)?;
+                        fill_cpu_rayon(&mut c_new, &lc_new, <$ty>::ZERO, nthreads)?;
                     } else {
                         assign_cpu_rayon(&mut c_new, &lc_new, c, lc, nthreads)?;
                     }
@@ -293,6 +296,257 @@ unsafe fn cblas_zgemm_wrap(
             lda as ffi::cblas::blasint,
             ptr_b as *const c_void,
             ldb as ffi::cblas::blasint,
+            &beta as *const _ as *const c_void,
+            ptr_c as *mut c_void,
+            ldc as ffi::cblas::blasint,
+        );
+    }
+}
+
+/* #endregion */
+
+/* #region syrk */
+
+macro_rules! impl_syrk_blas_no_conj {
+    ($ty: ty, $fn_name: ident, $cblas_wrap: ident) => {
+        pub fn $fn_name(
+            c: &mut [$ty],
+            lc: &Layout<Ix2>,
+            a: &[$ty],
+            la: &Layout<Ix2>,
+            alpha: $ty,
+            nthreads: usize,
+        ) -> Result<()> {
+            // nthreads is only used for `assign_cpu_rayon`.
+            // the threading of openblas should be handled outside this function.
+
+            // beta is assumed to be zero, and not passed as argument.
+
+            // check layout of output
+            if !lc.f_prefer() {
+                // change to f-contig anyway
+                // we do not handle conj, so this can be done easily
+                if lc.c_prefer() {
+                    // c-prefer, transpose and run
+                    return $fn_name(c, &lc.reverse_axes(), a, la, alpha, nthreads);
+                } else {
+                    // not c-prefer, allocate new buffer and copy back
+                    let lc_new = lc.shape().new_f_contig(None);
+                    let mut c_new = unsafe {
+                        let mut c_vec = Vec::with_capacity(lc_new.size());
+                        c_vec.set_len(lc_new.size());
+                        c_vec
+                    };
+                    fill_cpu_rayon(&mut c_new, &lc_new, <$ty>::ZERO, nthreads)?;
+                    $fn_name(&mut c_new, &lc_new, a, la, alpha, nthreads)?;
+                    assign_cpu_rayon(c, lc, &c_new, &lc_new, nthreads)?;
+                    return Ok(());
+                }
+            }
+
+            // we assume that the layout is correct
+            let sc = lc.shape();
+            let sa = la.shape();
+            debug_assert_eq!(sc[0], sa[0]);
+            debug_assert_eq!(sc[1], sc[0]);
+
+            let n = sc[0];
+            let k = sa[1];
+
+            // determine trans/layout and clone data if necessary
+            let mut a_data: Option<Vec<$ty>> = None;
+            let (a_trans, la) = if la.f_prefer() {
+                (cblas::NoTrans, la.clone())
+            } else if la.c_prefer() {
+                (cblas::Trans, la.reverse_axes())
+            } else {
+                let len = la.size();
+                a_data = unsafe {
+                    let mut a_vec = Vec::with_capacity(len);
+                    a_vec.set_len(len);
+                    Some(a_vec)
+                };
+                let la_data = la.shape().new_f_contig(None);
+                assign_cpu_rayon(a_data.as_mut().unwrap(), &la_data, a, &la, nthreads)?;
+                (cblas::NoTrans, la_data)
+            };
+
+            // final configuration
+            // shape may be broadcasted for one-dimension case, so make this check
+            let lda = if la.shape()[1] != 1 { la.stride()[1] } else { la.shape()[0] as isize };
+            let ldc = if lc.shape()[1] != 1 { lc.stride()[1] } else { lc.shape()[0] as isize };
+
+            let ptr_c = unsafe { c.as_mut_ptr().add(lc.offset()) };
+            let ptr_a = if let Some(a_data) = a_data.as_ref() {
+                a_data.as_ptr()
+            } else {
+                unsafe { a.as_ptr().add(la.offset()) }
+            };
+
+            // actual computation
+            unsafe {
+                $cblas_wrap(
+                    cblas::ColMajor,
+                    cblas::Upper,
+                    a_trans,
+                    n,
+                    k,
+                    alpha,
+                    ptr_a,
+                    lda,
+                    <$ty>::ZERO,
+                    ptr_c,
+                    ldc,
+                );
+            }
+
+            // write back to lower triangle
+            let n = sc[0];
+            let ldc = lc.stride()[1];
+            let offset = lc.offset() as isize;
+            if n < PARALLEL_SWITCH || nthreads == 1 {
+                // lc is always f-prefer
+                for j in 0..(n as isize) {
+                    for i in (j + 1)..(n as isize) {
+                        c[(offset + j * ldc + i) as usize] = c[(offset + i * ldc + j) as usize];
+                    }
+                }
+            } else {
+                let pool = DeviceCpuRayon::new(nthreads).get_pool(nthreads)?;
+                pool.install(|| {
+                    (0..(n as isize)).into_par_iter().for_each(|j| {
+                        ((j + 1)..(n as isize)).for_each(|i| unsafe {
+                            let idx_ij = (offset + j * ldc + i) as usize;
+                            let idx_ji = (offset + i * ldc + j) as usize;
+                            let c_ptr_ij = c.as_ptr().add(idx_ij) as *mut $ty;
+                            *c_ptr_ij = c[idx_ji];
+                        });
+                    });
+                });
+            }
+            Ok(())
+        }
+    };
+}
+
+impl_syrk_blas_no_conj!(f32, syrk_blas_no_conj_f32, cblas_ssyrk_wrap);
+impl_syrk_blas_no_conj!(f64, syrk_blas_no_conj_f64, cblas_dsyrk_wrap);
+impl_syrk_blas_no_conj!(c32, syrk_blas_no_conj_c32, cblas_csyrk_wrap);
+impl_syrk_blas_no_conj!(c64, syrk_blas_no_conj_c64, cblas_zsyrk_wrap);
+
+unsafe fn cblas_ssyrk_wrap(
+    order: cblas::CblasLayout,
+    uplo: cblas::CblasUplo,
+    a_trans: cblas::CblasTranspose,
+    n: usize,
+    k: usize,
+    alpha: f32,
+    ptr_a: *const f32,
+    lda: isize,
+    beta: f32,
+    ptr_c: *mut f32,
+    ldc: isize,
+) {
+    unsafe {
+        ffi::cblas::cblas_ssyrk(
+            order as ffi::cblas::CBLAS_ORDER,
+            uplo as ffi::cblas::CBLAS_UPLO,
+            a_trans as ffi::cblas::CBLAS_TRANSPOSE,
+            n as ffi::cblas::blasint,
+            k as ffi::cblas::blasint,
+            alpha,
+            ptr_a,
+            lda as ffi::cblas::blasint,
+            beta,
+            ptr_c,
+            ldc as ffi::cblas::blasint,
+        );
+    }
+}
+
+unsafe fn cblas_dsyrk_wrap(
+    order: cblas::CblasLayout,
+    uplo: cblas::CblasUplo,
+    a_trans: cblas::CblasTranspose,
+    n: usize,
+    k: usize,
+    alpha: f64,
+    ptr_a: *const f64,
+    lda: isize,
+    beta: f64,
+    ptr_c: *mut f64,
+    ldc: isize,
+) {
+    unsafe {
+        ffi::cblas::cblas_dsyrk(
+            order as ffi::cblas::CBLAS_ORDER,
+            uplo as ffi::cblas::CBLAS_UPLO,
+            a_trans as ffi::cblas::CBLAS_TRANSPOSE,
+            n as ffi::cblas::blasint,
+            k as ffi::cblas::blasint,
+            alpha,
+            ptr_a,
+            lda as ffi::cblas::blasint,
+            beta,
+            ptr_c,
+            ldc as ffi::cblas::blasint,
+        );
+    }
+}
+
+unsafe fn cblas_csyrk_wrap(
+    order: cblas::CblasLayout,
+    uplo: cblas::CblasUplo,
+    a_trans: cblas::CblasTranspose,
+    n: usize,
+    k: usize,
+    alpha: c32,
+    ptr_a: *const c32,
+    lda: isize,
+    beta: c32,
+    ptr_c: *mut c32,
+    ldc: isize,
+) {
+    unsafe {
+        ffi::cblas::cblas_csyrk(
+            order as ffi::cblas::CBLAS_ORDER,
+            uplo as ffi::cblas::CBLAS_UPLO,
+            a_trans as ffi::cblas::CBLAS_TRANSPOSE,
+            n as ffi::cblas::blasint,
+            k as ffi::cblas::blasint,
+            &alpha as *const _ as *const c_void,
+            ptr_a as *const c_void,
+            lda as ffi::cblas::blasint,
+            &beta as *const _ as *const c_void,
+            ptr_c as *mut c_void,
+            ldc as ffi::cblas::blasint,
+        );
+    }
+}
+
+unsafe fn cblas_zsyrk_wrap(
+    order: cblas::CblasLayout,
+    uplo: cblas::CblasUplo,
+    a_trans: cblas::CblasTranspose,
+    n: usize,
+    k: usize,
+    alpha: c64,
+    ptr_a: *const c64,
+    lda: isize,
+    beta: c64,
+    ptr_c: *mut c64,
+    ldc: isize,
+) {
+    unsafe {
+        ffi::cblas::cblas_zsyrk(
+            order as ffi::cblas::CBLAS_ORDER,
+            uplo as ffi::cblas::CBLAS_UPLO,
+            a_trans as ffi::cblas::CBLAS_TRANSPOSE,
+            n as ffi::cblas::blasint,
+            k as ffi::cblas::blasint,
+            &alpha as *const _ as *const c_void,
+            ptr_a as *const c_void,
+            lda as ffi::cblas::blasint,
             &beta as *const _ as *const c_void,
             ptr_c as *mut c_void,
             ldc as ffi::cblas::blasint,

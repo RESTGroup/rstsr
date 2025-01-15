@@ -30,8 +30,21 @@ where
     TB: Clone + Send + Sync + 'static,
     TC: Clone + Send + Sync + 'static,
     TA: Mul<TB, Output = TC>,
-    TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero,
+    TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + PartialEq,
 {
+    // check if syrk could be applicable
+    let able_syrk = beta == TC::zero()
+        && same_type::<TB, TC>()
+        && same_type::<TA, TC>()
+        && unsafe {
+            let a_ptr = a.as_ptr().add(la.offset()) as *const TC;
+            let b_ptr = b.as_ptr().add(lb.offset()) as *const TC;
+            let equal_ptr = a_ptr == b_ptr;
+            let equal_shape = la.shape() == lb.reverse_axes().shape();
+            let equal_stride = la.stride() == lb.reverse_axes().stride();
+            equal_ptr && equal_shape && equal_stride
+        };
+
     // type check and dispatch
     macro_rules! impl_gemm_dispatch {
         ($ty: ty, $fn_gemm_name: ident, $fn_syrk_name: ident) => {
@@ -41,20 +54,20 @@ where
                 let c_slice = unsafe { from_raw_parts_mut(c.as_mut_ptr() as *mut $ty, c.len()) };
                 let alpha = unsafe { *(&alpha as *const TC as *const $ty) };
                 let beta = unsafe { *(&beta as *const TC as *const $ty) };
-                // if able_syrk {
-                //     $fn_syrk_name(c_slice, lc, a_slice, la, alpha, beta, nthreads)?;
-                // } else {
-                $fn_gemm_name(c_slice, lc, a_slice, la, b_slice, lb, alpha, beta, nthreads)?;
-                // }
+                if able_syrk {
+                    $fn_syrk_name(c_slice, lc, a_slice, la, alpha, nthreads)?;
+                } else {
+                    $fn_gemm_name(c_slice, lc, a_slice, la, b_slice, lb, alpha, beta, nthreads)?;
+                }
                 return Ok(());
             }
         };
     }
 
-    impl_gemm_dispatch!(f32, gemm_blas_no_conj_f32, notimplemented);
-    impl_gemm_dispatch!(f64, gemm_blas_no_conj_f64, notimplemented);
-    impl_gemm_dispatch!(Complex<f32>, gemm_blas_no_conj_c32, notimplemented);
-    impl_gemm_dispatch!(Complex<f64>, gemm_blas_no_conj_c64, notimplemented);
+    impl_gemm_dispatch!(f32, gemm_blas_no_conj_f32, syrk_blas_no_conj_f32);
+    impl_gemm_dispatch!(f64, gemm_blas_no_conj_f64, syrk_blas_no_conj_f64);
+    impl_gemm_dispatch!(Complex<f32>, gemm_blas_no_conj_c32, syrk_blas_no_conj_c32);
+    impl_gemm_dispatch!(Complex<f64>, gemm_blas_no_conj_c64, syrk_blas_no_conj_c64);
 
     // not able to be accelarated by blas_no_conj
     // fallback to naive implementation
@@ -74,7 +87,7 @@ where
     DB: DimAPI,
     DC: DimAPI,
     TA: Mul<TB, Output = TC>,
-    TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero,
+    TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + PartialEq,
 {
     fn matmul(
         &self,
@@ -95,158 +108,157 @@ where
 
         let nthreads = self.get_num_threads();
 
-        openblas_with_num_threads(nthreads, || {
-            // handle special cases
-            match (la.ndim(), lb.ndim(), lc.ndim()) {
-                (1, 1, 0) => {
-                    // rule 1: vector inner dot
-                    let la = &la.clone().into_dim::<Ix1>().unwrap();
-                    let lb = &lb.clone().into_dim::<Ix1>().unwrap();
-                    let lc = &lc.clone().into_dim::<Ix0>().unwrap();
-                    let c_num = &mut c[lc.offset()];
-                    return inner_dot_naive_rayon(c_num, a, la, b, lb, alpha, beta, nthreads);
-                },
-                (2, 2, 2) => {
-                    // rule 2: matrix multiplication
-                    let la = &la.clone().into_dim::<Ix2>().unwrap();
-                    let lb = &lb.clone().into_dim::<Ix2>().unwrap();
-                    let lc = &lc.clone().into_dim::<Ix2>().unwrap();
-                    return gemm_blas_no_conj_dispatch(c, lc, a, la, b, lb, alpha, beta, nthreads);
-                },
-                _ => (),
-            };
+        // handle special cases
+        match (la.ndim(), lb.ndim(), lc.ndim()) {
+            (1, 1, 0) => {
+                // rule 1: vector inner dot
+                let la = &la.clone().into_dim::<Ix1>().unwrap();
+                let lb = &lb.clone().into_dim::<Ix1>().unwrap();
+                let lc = &lc.clone().into_dim::<Ix0>().unwrap();
+                let c_num = &mut c[lc.offset()];
+                return openblas_with_num_threads(nthreads, || {
+                    inner_dot_naive_rayon(c_num, a, la, b, lb, alpha, beta, nthreads)
+                });
+            },
+            (2, 2, 2) => {
+                // rule 2: matrix multiplication
+                let la = &la.clone().into_dim::<Ix2>().unwrap();
+                let lb = &lb.clone().into_dim::<Ix2>().unwrap();
+                let lc = &lc.clone().into_dim::<Ix2>().unwrap();
+                return openblas_with_num_threads(nthreads, || {
+                    gemm_blas_no_conj_dispatch(c, lc, a, la, b, lb, alpha, beta, nthreads)
+                });
+            },
+            _ => (),
+        };
 
-            // handle broadcasted cases
-            // temporary variables
-            let la_matmul;
-            let lb_matmul;
-            let lc_matmul;
-            let la_rest;
-            let lb_rest;
-            let lc_rest;
+        // handle broadcasted cases
+        // temporary variables
+        let la_matmul;
+        let lb_matmul;
+        let lc_matmul;
+        let la_rest;
+        let lb_rest;
+        let lc_rest;
 
-            match (la.ndim(), lb.ndim(), lc.ndim()) {
-                // we have already handled these cases
-                (1, 1, 0) | (2, 2, 2) => unreachable!(),
-                (1, 2.., _) => {
-                    // rule 3: | `        K` | `..., K, N` | `   ..., N` |
-                    rstsr_assert_eq!(lb.ndim(), lc.ndim() + 1, InvalidLayout)?;
-                    let (la_r, la_m) = la.dim_split_at(-1)?;
-                    let (lb_r, lb_m) = lb.dim_split_at(-2)?;
-                    let (lc_r, lc_m) = lc.dim_split_at(-1)?;
-                    la_rest = broadcast_layout_to_first(&lc_r, &la_r)?.1;
-                    lb_rest = lb_r;
-                    lc_rest = lc_r;
-                    la_matmul = la_m.dim_insert(0)?.into_dim::<Ix2>()?;
-                    lb_matmul = lb_m.into_dim::<Ix2>()?;
-                    lc_matmul = lc_m.dim_insert(0)?.into_dim::<Ix2>()?;
-                },
-                (2.., 1, _) => {
-                    // rule 4: | `..., M, K` | `        K` | `   ..., M` |
-                    rstsr_assert_eq!(la.ndim(), lc.ndim() + 1, InvalidLayout)?;
-                    let (la_r, la_m) = la.dim_split_at(-2)?;
-                    let (lb_r, lb_m) = lb.dim_split_at(-1)?;
-                    let (lc_r, lc_m) = lc.dim_split_at(-1)?;
-                    la_rest = la_r;
-                    lb_rest = broadcast_layout_to_first(&lc_r, &lb_r)?.1;
-                    lc_rest = lc_r;
-                    la_matmul = la_m.into_dim::<Ix2>()?;
-                    lb_matmul = lb_m.dim_insert(1)?.into_dim::<Ix2>()?;
-                    lc_matmul = lc_m.dim_insert(1)?.into_dim::<Ix2>()?;
-                },
-                (2, 3.., _) => {
-                    // rule 5: | `     M, K` | `..., K, N` | `..., M, N` |
-                    rstsr_assert_eq!(lb.ndim(), lc.ndim(), InvalidLayout)?;
-                    let (la_r, la_m) = la.dim_split_at(-2)?;
-                    let (lb_r, lb_m) = lb.dim_split_at(-2)?;
-                    let (lc_r, lc_m) = lc.dim_split_at(-2)?;
-                    la_rest = broadcast_layout_to_first(&lc_r, &la_r)?.1;
-                    lb_rest = lb_r;
-                    lc_rest = lc_r;
-                    la_matmul = la_m.into_dim::<Ix2>()?;
-                    lb_matmul = lb_m.into_dim::<Ix2>()?;
-                    lc_matmul = lc_m.into_dim::<Ix2>()?;
-                },
-                (3.., 2, _) => {
-                    // rule 6: | `..., M, K` | `     K, N` | `..., M, N` |
-                    rstsr_assert_eq!(la.ndim(), lc.ndim(), InvalidLayout)?;
-                    let (la_r, la_m) = la.dim_split_at(-2)?;
-                    let (lb_r, lb_m) = lb.dim_split_at(-2)?;
-                    let (lc_r, lc_m) = lc.dim_split_at(-2)?;
-                    la_rest = la_r;
-                    lb_rest = broadcast_layout_to_first(&lc_r, &lb_r)?.1;
-                    lc_rest = lc_r;
-                    la_matmul = la_m.into_dim::<Ix2>()?;
-                    lb_matmul = lb_m.into_dim::<Ix2>()?;
-                    lc_matmul = lc_m.into_dim::<Ix2>()?;
-                },
-                (3.., 3.., _) => {
-                    // rule 7: | `..., M, K` | `..., K, N` | `..., M, N` |
-                    rstsr_assert_eq!(la.ndim(), lc.ndim(), InvalidLayout)?;
-                    rstsr_assert_eq!(lb.ndim(), lc.ndim(), InvalidLayout)?;
-                    let (la_r, la_m) = la.dim_split_at(-2)?;
-                    let (lb_r, lb_m) = lb.dim_split_at(-2)?;
-                    let (lc_r, lc_m) = lc.dim_split_at(-2)?;
-                    la_rest = la_r;
-                    lb_rest = lb_r;
-                    lc_rest = lc_r;
-                    la_matmul = la_m.into_dim::<Ix2>()?;
-                    lb_matmul = lb_m.into_dim::<Ix2>()?;
-                    lc_matmul = lc_m.into_dim::<Ix2>()?;
-                },
-                _ => {
-                    rstsr_raise!(
-                        InvalidLayout,
-                        "This is not valid layout for matmul broadcasting."
-                    )?;
-                    unreachable!()
-                },
-            }
-            // now, lx_rest should have the same shape, while lx_matmul
-            // should be matmulable
-            // only parallel matmul when lx_rest is small (larger than
-            // 2*nthreads), otherwise parallel matmul anyway
-            rstsr_assert_eq!(la_rest.shape(), lb_rest.shape(), InvalidLayout)?;
-            rstsr_assert_eq!(lb_rest.shape(), lc_rest.shape(), InvalidLayout)?;
-            let n_task = la_rest.size();
-            let ita_rest = IterLayoutColMajor::new(&la_rest)?;
-            let itb_rest = IterLayoutColMajor::new(&lb_rest)?;
-            let itc_rest = IterLayoutColMajor::new(&lc_rest)?;
-            if n_task >= 4 * nthreads {
-                // parallel outer, sequential matmul
-                let pool = self.get_pool(nthreads)?;
+        match (la.ndim(), lb.ndim(), lc.ndim()) {
+            // we have already handled these cases
+            (1, 1, 0) | (2, 2, 2) => unreachable!(),
+            (1, 2.., _) => {
+                // rule 3: | `        K` | `..., K, N` | `   ..., N` |
+                rstsr_assert_eq!(lb.ndim(), lc.ndim() + 1, InvalidLayout)?;
+                let (la_r, la_m) = la.dim_split_at(-1)?;
+                let (lb_r, lb_m) = lb.dim_split_at(-2)?;
+                let (lc_r, lc_m) = lc.dim_split_at(-1)?;
+                la_rest = broadcast_layout_to_first(&lc_r, &la_r)?.1;
+                lb_rest = lb_r;
+                lc_rest = lc_r;
+                la_matmul = la_m.dim_insert(0)?.into_dim::<Ix2>()?;
+                lb_matmul = lb_m.into_dim::<Ix2>()?;
+                lc_matmul = lc_m.dim_insert(0)?.into_dim::<Ix2>()?;
+            },
+            (2.., 1, _) => {
+                // rule 4: | `..., M, K` | `        K` | `   ..., M` |
+                rstsr_assert_eq!(la.ndim(), lc.ndim() + 1, InvalidLayout)?;
+                let (la_r, la_m) = la.dim_split_at(-2)?;
+                let (lb_r, lb_m) = lb.dim_split_at(-1)?;
+                let (lc_r, lc_m) = lc.dim_split_at(-1)?;
+                la_rest = la_r;
+                lb_rest = broadcast_layout_to_first(&lc_r, &lb_r)?.1;
+                lc_rest = lc_r;
+                la_matmul = la_m.into_dim::<Ix2>()?;
+                lb_matmul = lb_m.dim_insert(1)?.into_dim::<Ix2>()?;
+                lc_matmul = lc_m.dim_insert(1)?.into_dim::<Ix2>()?;
+            },
+            (2, 3.., _) => {
+                // rule 5: | `     M, K` | `..., K, N` | `..., M, N` |
+                rstsr_assert_eq!(lb.ndim(), lc.ndim(), InvalidLayout)?;
+                let (la_r, la_m) = la.dim_split_at(-2)?;
+                let (lb_r, lb_m) = lb.dim_split_at(-2)?;
+                let (lc_r, lc_m) = lc.dim_split_at(-2)?;
+                la_rest = broadcast_layout_to_first(&lc_r, &la_r)?.1;
+                lb_rest = lb_r;
+                lc_rest = lc_r;
+                la_matmul = la_m.into_dim::<Ix2>()?;
+                lb_matmul = lb_m.into_dim::<Ix2>()?;
+                lc_matmul = lc_m.into_dim::<Ix2>()?;
+            },
+            (3.., 2, _) => {
+                // rule 6: | `..., M, K` | `     K, N` | `..., M, N` |
+                rstsr_assert_eq!(la.ndim(), lc.ndim(), InvalidLayout)?;
+                let (la_r, la_m) = la.dim_split_at(-2)?;
+                let (lb_r, lb_m) = lb.dim_split_at(-2)?;
+                let (lc_r, lc_m) = lc.dim_split_at(-2)?;
+                la_rest = la_r;
+                lb_rest = broadcast_layout_to_first(&lc_r, &lb_r)?.1;
+                lc_rest = lc_r;
+                la_matmul = la_m.into_dim::<Ix2>()?;
+                lb_matmul = lb_m.into_dim::<Ix2>()?;
+                lc_matmul = lc_m.into_dim::<Ix2>()?;
+            },
+            (3.., 3.., _) => {
+                // rule 7: | `..., M, K` | `..., K, N` | `..., M, N` |
+                rstsr_assert_eq!(la.ndim(), lc.ndim(), InvalidLayout)?;
+                rstsr_assert_eq!(lb.ndim(), lc.ndim(), InvalidLayout)?;
+                let (la_r, la_m) = la.dim_split_at(-2)?;
+                let (lb_r, lb_m) = lb.dim_split_at(-2)?;
+                let (lc_r, lc_m) = lc.dim_split_at(-2)?;
+                la_rest = la_r;
+                lb_rest = lb_r;
+                lc_rest = lc_r;
+                la_matmul = la_m.into_dim::<Ix2>()?;
+                lb_matmul = lb_m.into_dim::<Ix2>()?;
+                lc_matmul = lc_m.into_dim::<Ix2>()?;
+            },
+            _ => {
+                rstsr_raise!(InvalidLayout, "This is not valid layout for matmul broadcasting.")?;
+                unreachable!()
+            },
+        }
+        // now, lx_rest should have the same shape, while lx_matmul
+        // should be matmulable
+        // only parallel matmul when lx_rest is small (larger than
+        // 2*nthreads), otherwise parallel matmul anyway
+        rstsr_assert_eq!(la_rest.shape(), lb_rest.shape(), InvalidLayout)?;
+        rstsr_assert_eq!(lb_rest.shape(), lc_rest.shape(), InvalidLayout)?;
+        let n_task = la_rest.size();
+        let ita_rest = IterLayoutColMajor::new(&la_rest)?;
+        let itb_rest = IterLayoutColMajor::new(&lb_rest)?;
+        let itc_rest = IterLayoutColMajor::new(&lc_rest)?;
+        if n_task >= 4 * nthreads {
+            // parallel outer, sequential matmul
+            let pool = self.get_pool(nthreads)?;
+            openblas_with_num_threads(1, || {
                 pool.install(|| {
-                    openblas_with_num_threads(1, || {
-                        ita_rest.into_par_iter().zip(itb_rest).zip(itc_rest).try_for_each(
-                            |((ia_rest, ib_rest), ic_rest)| -> Result<()> {
-                                // prepare layout
-                                let mut la_m = la_matmul.clone();
-                                let mut lb_m = lb_matmul.clone();
-                                let mut lc_m = lc_matmul.clone();
-                                unsafe {
-                                    la_m.set_offset(ia_rest);
-                                    lb_m.set_offset(ib_rest);
-                                    lc_m.set_offset(ic_rest);
-                                }
-                                // move mutable reference into parallel closure
-                                let c = unsafe {
-                                    let c_ptr = c.as_ptr() as *mut TC;
-                                    let c_len = c.len();
-                                    from_raw_parts_mut(c_ptr, c_len)
-                                };
-                                // clone alpha and beta
-                                let alpha = alpha.clone();
-                                let beta = beta.clone();
-                                gemm_blas_no_conj_dispatch(
-                                    c, &lc_m, a, &la_m, b, &lb_m, alpha, beta, 1,
-                                )
-                            },
-                        )
-                    })
+                    ita_rest.into_par_iter().zip(itb_rest).zip(itc_rest).try_for_each(
+                        |((ia_rest, ib_rest), ic_rest)| -> Result<()> {
+                            // prepare layout
+                            let mut la_m = la_matmul.clone();
+                            let mut lb_m = lb_matmul.clone();
+                            let mut lc_m = lc_matmul.clone();
+                            unsafe {
+                                la_m.set_offset(ia_rest);
+                                lb_m.set_offset(ib_rest);
+                                lc_m.set_offset(ic_rest);
+                            }
+                            // move mutable reference into parallel closure
+                            let c = unsafe {
+                                let c_ptr = c.as_ptr() as *mut TC;
+                                let c_len = c.len();
+                                from_raw_parts_mut(c_ptr, c_len)
+                            };
+                            // clone alpha and beta
+                            let alpha = alpha.clone();
+                            let beta = beta.clone();
+                            gemm_blas_no_conj_dispatch(c, &lc_m, a, &la_m, b, &lb_m, alpha, beta, 1)
+                        },
+                    )
                 })
-            } else {
-                // sequential outer, parallel matmul
-                for (ia_rest, ib_rest, ic_rest) in izip!(ita_rest, itb_rest, itc_rest) {
+            })
+        } else {
+            // sequential outer, parallel matmul
+            openblas_with_num_threads(nthreads, || -> Result<()> {
+                izip!(ita_rest, itb_rest, itc_rest).try_for_each(|(ia_rest, ib_rest, ic_rest)| {
                     // prepare layout
                     let mut la_m = la_matmul.clone();
                     let mut lb_m = lb_matmul.clone();
@@ -259,13 +271,10 @@ where
                     // clone alpha and beta
                     let alpha = alpha.clone();
                     let beta = beta.clone();
-                    gemm_blas_no_conj_dispatch(
-                        c, &lc_m, a, &la_m, b, &lb_m, alpha, beta, nthreads,
-                    )?;
-                }
-                Ok(())
-            }
-        })
+                    gemm_blas_no_conj_dispatch(c, &lc_m, a, &la_m, b, &lb_m, alpha, beta, nthreads)
+                })
+            })
+        }
     }
 }
 
@@ -378,6 +387,52 @@ mod test {
             if i == 0 {
                 println!("{:?}", c);
             }
+        }
+    }
+
+    #[test]
+    fn syrk_correctness() {
+        let device = DeviceOpenBLAS::default();
+        let a = linspace((0.0, 1.0, 512 * 512, &device)).into_shape([512, 512]);
+        let b = linspace((0.0, 1.0, 512 * 512, &device)).into_shape([512, 512]);
+        let c = &a % &a.t();
+        let d = &a % &b.t();
+        assert!(allclose_f64(&c, &d));
+
+        let device = DeviceOpenBLAS::default();
+        let a = linspace((0.0, 1.0, 1024 * 1024, &device)).into_shape([4, 512, 512]);
+        let b = linspace((0.0, 1.0, 1024 * 1024, &device)).into_shape([4, 512, 512]);
+        let c = &a % &a.swapaxes(-1, -2);
+        let d = &a % &b.swapaxes(-1, -2);
+        assert!(allclose_f64(&c, &d));
+    }
+
+    #[test]
+    #[ignore]
+    fn syrk_efficiency() {
+        use std::hint::black_box;
+        let device = DeviceOpenBLAS::default();
+        let a = linspace((0.0, 1.0, 8192 * 8192, &device)).into_shape([256, 512, 512]);
+        let b = linspace((0.0, 1.0, 8192 * 8192, &device)).into_shape([256, 512, 512]);
+        for _ in 0..10 {
+            let start = std::time::Instant::now();
+            black_box(&a % &a.swapaxes(-1, -2));
+            println!("syrk time: {:?}", start.elapsed());
+            let start = std::time::Instant::now();
+            black_box(&a % &b.swapaxes(-1, -2));
+            println!("gemm time: {:?}", start.elapsed());
+        }
+
+        println!("---------------------");
+        let a = linspace((0.0, 1.0, 8192 * 8192, &device)).into_shape([8192, 8192]);
+        let b = linspace((0.0, 1.0, 8192 * 8192, &device)).into_shape([8192, 8192]);
+        for _ in 0..10 {
+            let start = std::time::Instant::now();
+            black_box(&a % &a.swapaxes(-1, -2));
+            println!("syrk time: {:?}", start.elapsed());
+            let start = std::time::Instant::now();
+            black_box(&a % &b.swapaxes(-1, -2));
+            println!("gemm time: {:?}", start.elapsed());
         }
     }
 }

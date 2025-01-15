@@ -4,7 +4,7 @@ use crate::prelude_dev::*;
 use num::complex::Complex;
 use rayon::prelude::*;
 
-const PARALLEL_SWITCH: usize = 1024;
+const PARALLEL_SWITCH: usize = 64;
 
 /* #region gemm */
 
@@ -187,7 +187,7 @@ macro_rules! impl_gemm_with_syrk_faer {
                     let pool = DeviceCpuRayon::new(nthreads).get_pool(nthreads)?;
                     pool.install(|| {
                         (0..n).into_par_iter().for_each(|i| {
-                            (0..i).into_par_iter().for_each(|j| unsafe {
+                            (0..i).for_each(|j| unsafe {
                                 let idx_ij = lc.index_uncheck(&[i, j]) as usize;
                                 let idx_ji = lc.index_uncheck(&[j, i]) as usize;
                                 let c_ptr_ji = c.as_ptr().add(idx_ji) as *mut $ty;

@@ -2,14 +2,13 @@
 //!
 //! This implementation does not specialize gemv. We always use gemm for matmul.
 
-use num::{Complex, Zero};
-
 use super::matmul_impl::*;
 use crate::feature_rayon::matmul_naive::{gemm_naive_rayon, inner_dot_naive_rayon};
 use crate::prelude_dev::*;
 use core::any::TypeId;
 use core::ops::{Add, Mul};
 use core::slice::{from_raw_parts, from_raw_parts_mut};
+use num::{Complex, Zero};
 use rayon::prelude::*;
 
 // code from ndarray
@@ -34,21 +33,20 @@ where
     TB: Clone + Send + Sync + 'static,
     TC: Clone + Send + Sync + 'static,
     TA: Mul<TB, Output = TC>,
-    TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero,
+    TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + PartialEq,
 {
     // check if syrk could be applicable
-    let able_syrk = if same_type::<TA, TC>() && same_type::<TB, TC>() {
-        unsafe {
+    let able_syrk = beta == TC::zero()
+        && same_type::<TA, TC>()
+        && same_type::<TB, TC>()
+        && unsafe {
             let a_ptr = a.as_ptr().add(la.offset()) as *const TC;
             let b_ptr = b.as_ptr().add(lb.offset()) as *const TC;
             let equal_ptr = a_ptr == b_ptr;
             let equal_shape = la.shape() == lb.reverse_axes().shape();
             let equal_stride = la.stride() == lb.reverse_axes().stride();
             equal_ptr && equal_shape && equal_stride
-        }
-    } else {
-        false
-    };
+        };
 
     // type check and dispatch
     macro_rules! impl_gemm_dispatch {
@@ -92,7 +90,7 @@ where
     DB: DimAPI,
     DC: DimAPI,
     TA: Mul<TB, Output = TC>,
-    TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero,
+    TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + PartialEq,
 {
     fn matmul(
         &self,
