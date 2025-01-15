@@ -42,7 +42,7 @@ Some requirements in [Python array API](https://data-apis.org/array-api/latest/)
 Other utilities
 
 - [x] (parallel) index by axis
-- [ ] BLAS device: OpenBLAS
+- [x] BLAS device: OpenBLAS
 
 About crate
 
