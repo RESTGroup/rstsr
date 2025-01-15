@@ -24,6 +24,25 @@ macro_rules! trait_unary {
         {
             TRA::$op(a)
         }
+
+        impl<S, D> TensorBase<S, D>
+        where
+            D: DimAPI,
+        {
+            pub fn $op_f(&self) -> Result<<&Self as $TensorOpAPI>::Output>
+            where
+                for<'a> &'a Self: $TensorOpAPI,
+            {
+                $op_f(self)
+            }
+
+            pub fn $op(&self) -> <&Self as $TensorOpAPI>::Output
+            where
+                for<'a> &'a Self: $TensorOpAPI,
+            {
+                $op(self)
+            }
+        }
     };
 }
 

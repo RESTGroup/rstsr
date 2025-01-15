@@ -25,6 +25,25 @@ macro_rules! trait_binary_arithmetic {
         {
             TRA::$op(a, b)
         }
+
+        impl<S, D> TensorBase<S, D>
+        where
+            D: DimAPI,
+        {
+            pub fn $op_f<TRB>(&self, b: TRB) -> Result<<&Self as $TensorOpAPI<TRB>>::Output>
+            where
+                for<'a> &'a Self: $TensorOpAPI<TRB>,
+            {
+                <&Self as $TensorOpAPI<TRB>>::$op_f(self, b)
+            }
+
+            pub fn $op<TRB>(&self, b: TRB) -> <&Self as $TensorOpAPI<TRB>>::Output
+            where
+                for<'a> &'a Self: $TensorOpAPI<TRB>,
+            {
+                <&Self as $TensorOpAPI<TRB>>::$op(self, b)
+            }
+        }
     };
 }
 
