@@ -1,7 +1,10 @@
 extern crate alloc;
 
 use alloc::sync::Arc;
-use core::mem::ManuallyDrop;
+use alloc::vec::Vec;
+use core::mem::{transmute, ManuallyDrop};
+
+/* #region definitions */
 
 #[derive(Debug, Clone)]
 pub struct DataOwned<C> {
@@ -31,23 +34,18 @@ pub struct DataArc<C> {
     pub(crate) raw: Arc<C>,
 }
 
+unsafe impl<C> Send for DataOwned<C> where C: Send {}
 unsafe impl<C> Send for DataRef<'_, C> where C: Send {}
 unsafe impl<C> Sync for DataRef<'_, C> where C: Sync {}
 unsafe impl<C> Send for DataMut<'_, C> where C: Send {}
+unsafe impl<C> Sync for DataCow<'_, C> where C: Sync {}
+unsafe impl<C> Send for DataCow<'_, C> where C: Send {}
 unsafe impl<C> Send for DataArc<C> where C: Send {}
 unsafe impl<C> Sync for DataArc<C> where C: Sync {}
 
-impl<C> DataArc<C> {
-    #[inline]
-    pub fn strong_count(&self) -> usize {
-        Arc::strong_count(&self.raw)
-    }
+/* #endregion */
 
-    #[inline]
-    pub fn weak_count(&self) -> usize {
-        Arc::weak_count(&self.raw)
-    }
-}
+/* #region definitions not fully utilized */
 
 #[derive(Debug)]
 pub enum DataMutable<'a, S> {
@@ -61,6 +59,10 @@ pub enum DataReference<'a, S> {
     Ref(DataRef<'a, S>),
     RefMut(DataMut<'a, S>),
 }
+
+/* #endregion */
+
+/* #region specific implementations */
 
 impl<C> From<C> for DataOwned<C> {
     #[inline]
@@ -150,6 +152,22 @@ impl<C> From<C> for DataArc<C> {
     }
 }
 
+impl<C> DataArc<C> {
+    #[inline]
+    pub fn strong_count(&self) -> usize {
+        Arc::strong_count(&self.raw)
+    }
+
+    #[inline]
+    pub fn weak_count(&self) -> usize {
+        Arc::weak_count(&self.raw)
+    }
+}
+
+/* #endregion */
+
+/* #region data traits */
+
 pub trait DataAPI {
     type Data: Clone;
     fn raw(&self) -> &Self::Data;
@@ -168,6 +186,12 @@ pub trait DataMutAPI: DataAPI {
 }
 
 pub trait DataOwnedAPI: DataMutAPI {}
+
+pub trait DataForceMutAPI<C>: DataAPI<Data = C> {
+    unsafe fn force_mut(&self) -> DataMut<'_, C>;
+}
+
+/* #endregion */
 
 /* #region impl DataAPI */
 
@@ -356,6 +380,43 @@ where
         Arc::make_mut(&mut self.raw)
     }
 }
+
+/* #endregion */
+
+/* #region impl DataForceMutAPI */
+
+impl<T> DataForceMutAPI<Vec<T>> for DataRef<'_, Vec<T>>
+where
+    T: Clone,
+{
+    unsafe fn force_mut(&self) -> DataMut<'_, Vec<T>> {
+        let (ptr, len) = match self {
+            DataRef::TrueRef(raw) => (raw.as_ptr(), raw.len()),
+            DataRef::ManuallyDropOwned(raw) => (raw.as_ptr(), raw.len()),
+        };
+        let vec = unsafe { Vec::from_raw_parts(ptr as *mut T, len, len) };
+        let vec = ManuallyDrop::new(vec);
+        DataMut::ManuallyDropOwned(vec)
+    }
+}
+
+macro_rules! impl_data_force_vec {
+    ($data: ty) => {
+        impl<T> DataForceMutAPI<Vec<T>> for $data
+        where
+            T: Clone,
+        {
+            unsafe fn force_mut(&self) -> DataMut<'_, Vec<T>> {
+                transmute(self.as_ref().force_mut())
+            }
+        }
+    };
+}
+
+impl_data_force_vec!(DataOwned<Vec<T>>);
+impl_data_force_vec!(DataMut<'_, Vec<T>>);
+impl_data_force_vec!(DataCow<'_, Vec<T>>);
+impl_data_force_vec!(DataArc<Vec<T>>);
 
 /* #endregion */
 

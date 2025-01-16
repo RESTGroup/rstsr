@@ -107,6 +107,20 @@ where
     }
 }
 
+impl<R, T, B, D> TensorAny<R, T, B, D>
+where
+    R: DataAPI<Data = B::Raw> + DataForceMutAPI<B::Raw>,
+    B: DeviceAPI<T>,
+    D: DimAPI,
+{
+    pub unsafe fn force_mut(&self) -> TensorMut<'_, T, B, D> {
+        let layout = self.layout().clone();
+        let data = self.data().force_mut();
+        let storage = Storage::new(data, self.device().clone());
+        TensorBase::new_unchecked(storage, layout)
+    }
+}
+
 /* #endregion */
 
 /* #region to_vector */
@@ -334,6 +348,7 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
+    use rayon::prelude::*;
 
     #[test]
     fn test_into_cow() {
@@ -352,5 +367,35 @@ mod test {
         println!("{:?}", a_cow);
         let ptr_a_cow = a_cow.raw().as_ptr();
         assert_eq!(ptr_a, ptr_a_cow);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_force_mut() {
+        let n = 4096;
+        let a = linspace((0.0, 1.0, n * n)).into_shape((n, n));
+        for _ in 0..10 {
+            let time = std::time::Instant::now();
+            for i in 0..n {
+                let a_view = a.slice(i);
+                let mut a_mut = unsafe { a_view.force_mut() };
+                a_mut *= i as f64 / 2048.0;
+            }
+            println!("Elapsed time {:?}", time.elapsed());
+        }
+        println!("{:16.10}", a);
+
+        let n = 4096;
+        let a = linspace((0.0, 1.0, n * n)).into_shape((n, n));
+        for _ in 0..10 {
+            let time = std::time::Instant::now();
+            (0..n).into_par_iter().for_each(|i| {
+                let a_view = a.slice(i);
+                let mut a_mut = unsafe { a_view.force_mut() };
+                a_mut *= i as f64 / 2048.0;
+            });
+            println!("Elapsed time {:?}", time.elapsed());
+        }
+        println!("{:16.10}", a);
     }
 }
