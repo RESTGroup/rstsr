@@ -4,40 +4,40 @@ use alloc::sync::Arc;
 use core::mem::ManuallyDrop;
 
 #[derive(Debug, Clone)]
-pub struct DataOwned<S> {
-    pub(crate) raw: S,
+pub struct DataOwned<C> {
+    pub(crate) raw: C,
 }
 
 #[derive(Debug)]
-pub enum DataRef<'a, S> {
-    TrueRef(&'a S),
-    ManuallyDropOwned(ManuallyDrop<S>),
+pub enum DataRef<'a, C> {
+    TrueRef(&'a C),
+    ManuallyDropOwned(ManuallyDrop<C>),
 }
 
 #[derive(Debug)]
-pub enum DataMut<'a, S> {
-    TrueRef(&'a mut S),
-    ManuallyDropOwned(ManuallyDrop<S>),
+pub enum DataMut<'a, C> {
+    TrueRef(&'a mut C),
+    ManuallyDropOwned(ManuallyDrop<C>),
 }
 
 #[derive(Debug)]
-pub enum DataCow<'a, S> {
-    Owned(DataOwned<S>),
-    Ref(DataRef<'a, S>),
+pub enum DataCow<'a, C> {
+    Owned(DataOwned<C>),
+    Ref(DataRef<'a, C>),
 }
 
 #[derive(Debug)]
-pub struct DataArc<S> {
-    pub(crate) raw: Arc<S>,
+pub struct DataArc<C> {
+    pub(crate) raw: Arc<C>,
 }
 
-unsafe impl<S> Send for DataRef<'_, S> where S: Send {}
-unsafe impl<S> Sync for DataRef<'_, S> where S: Sync {}
-unsafe impl<S> Send for DataMut<'_, S> where S: Send {}
-unsafe impl<S> Send for DataArc<S> where S: Send {}
-unsafe impl<S> Sync for DataArc<S> where S: Sync {}
+unsafe impl<C> Send for DataRef<'_, C> where C: Send {}
+unsafe impl<C> Sync for DataRef<'_, C> where C: Sync {}
+unsafe impl<C> Send for DataMut<'_, C> where C: Send {}
+unsafe impl<C> Send for DataArc<C> where C: Send {}
+unsafe impl<C> Sync for DataArc<C> where C: Sync {}
 
-impl<S> DataArc<S> {
+impl<C> DataArc<C> {
     #[inline]
     pub fn strong_count(&self) -> usize {
         Arc::strong_count(&self.raw)
@@ -62,30 +62,30 @@ pub enum DataReference<'a, S> {
     RefMut(DataMut<'a, S>),
 }
 
-impl<S> From<S> for DataOwned<S> {
+impl<C> From<C> for DataOwned<C> {
     #[inline]
-    fn from(data: S) -> Self {
+    fn from(data: C) -> Self {
         Self { raw: data }
     }
 }
 
-impl<S> DataOwned<S> {
+impl<C> DataOwned<C> {
     #[inline]
-    pub fn into_raw(self) -> S {
+    pub fn into_raw(self) -> C {
         self.raw
     }
 }
 
-impl<'a, S> From<&'a S> for DataRef<'a, S> {
+impl<'a, C> From<&'a C> for DataRef<'a, C> {
     #[inline]
-    fn from(data: &'a S) -> Self {
+    fn from(data: &'a C) -> Self {
         DataRef::TrueRef(data)
     }
 }
 
-impl<S> DataRef<'_, S> {
+impl<C> DataRef<'_, C> {
     #[inline]
-    pub fn from_manually_drop(data: ManuallyDrop<S>) -> Self {
+    pub fn from_manually_drop(data: ManuallyDrop<C>) -> Self {
         DataRef::ManuallyDropOwned(data)
     }
 
@@ -100,16 +100,16 @@ impl<S> DataRef<'_, S> {
     }
 }
 
-impl<'a, S> From<&'a mut S> for DataMut<'a, S> {
+impl<'a, C> From<&'a mut C> for DataMut<'a, C> {
     #[inline]
-    fn from(data: &'a mut S) -> Self {
+    fn from(data: &'a mut C) -> Self {
         DataMut::TrueRef(data)
     }
 }
 
-impl<S> DataMut<'_, S> {
+impl<C> DataMut<'_, C> {
     #[inline]
-    pub fn from_manually_drop(data: ManuallyDrop<S>) -> Self {
+    pub fn from_manually_drop(data: ManuallyDrop<C>) -> Self {
         DataMut::ManuallyDropOwned(data)
     }
 
@@ -124,7 +124,7 @@ impl<S> DataMut<'_, S> {
     }
 }
 
-impl<S> DataCow<'_, S> {
+impl<C> DataCow<'_, C> {
     #[inline]
     pub fn is_owned(&self) -> bool {
         matches!(self, DataCow::Owned(_))
@@ -136,16 +136,16 @@ impl<S> DataCow<'_, S> {
     }
 }
 
-impl<S> From<Arc<S>> for DataArc<S> {
+impl<C> From<Arc<C>> for DataArc<C> {
     #[inline]
-    fn from(data: Arc<S>) -> Self {
+    fn from(data: Arc<C>) -> Self {
         Self { raw: data }
     }
 }
 
-impl<S> From<S> for DataArc<S> {
+impl<C> From<C> for DataArc<C> {
     #[inline]
-    fn from(data: S) -> Self {
+    fn from(data: C) -> Self {
         Self { raw: Arc::new(data) }
     }
 }
@@ -171,11 +171,11 @@ pub trait DataOwnedAPI: DataMutAPI {}
 
 /* #region impl DataAPI */
 
-impl<S> DataAPI for DataOwned<S>
+impl<C> DataAPI for DataOwned<C>
 where
-    S: Clone,
+    C: Clone,
 {
-    type Data = S;
+    type Data = C;
 
     #[inline]
     fn raw(&self) -> &Self::Data {
@@ -193,11 +193,11 @@ where
     }
 }
 
-impl<S> DataAPI for DataRef<'_, S>
+impl<C> DataAPI for DataRef<'_, C>
 where
-    S: Clone,
+    C: Clone,
 {
-    type Data = S;
+    type Data = C;
 
     #[inline]
     fn raw(&self) -> &Self::Data {
@@ -230,11 +230,11 @@ where
     }
 }
 
-impl<S> DataAPI for DataMut<'_, S>
+impl<C> DataAPI for DataMut<'_, C>
 where
-    S: Clone,
+    C: Clone,
 {
-    type Data = S;
+    type Data = C;
 
     #[inline]
     fn raw(&self) -> &Self::Data {
@@ -267,11 +267,11 @@ where
     }
 }
 
-impl<S> DataAPI for DataCow<'_, S>
+impl<C> DataAPI for DataCow<'_, C>
 where
-    S: Clone,
+    C: Clone,
 {
-    type Data = S;
+    type Data = C;
 
     #[inline]
     fn raw(&self) -> &Self::Data {
@@ -298,11 +298,11 @@ where
     }
 }
 
-impl<S> DataAPI for DataArc<S>
+impl<C> DataAPI for DataArc<C>
 where
-    S: Clone,
+    C: Clone,
 {
-    type Data = S;
+    type Data = C;
 
     #[inline]
     fn raw(&self) -> &Self::Data {
@@ -324,9 +324,9 @@ where
 
 /* #region impl DataMutAPI */
 
-impl<S> DataMutAPI for DataOwned<S>
+impl<C> DataMutAPI for DataOwned<C>
 where
-    S: Clone,
+    C: Clone,
 {
     #[inline]
     fn raw_mut(&mut self) -> &mut Self::Data {
@@ -334,9 +334,9 @@ where
     }
 }
 
-impl<S> DataMutAPI for DataMut<'_, S>
+impl<C> DataMutAPI for DataMut<'_, C>
 where
-    S: Clone,
+    C: Clone,
 {
     #[inline]
     fn raw_mut(&mut self) -> &mut Self::Data {
@@ -347,9 +347,9 @@ where
     }
 }
 
-impl<S> DataMutAPI for DataArc<S>
+impl<C> DataMutAPI for DataArc<C>
 where
-    S: Clone,
+    C: Clone,
 {
     #[inline]
     fn raw_mut(&mut self) -> &mut Self::Data {
@@ -365,32 +365,32 @@ pub trait DataIntoCowAPI<'a>: DataAPI {
     fn into_cow(self) -> DataCow<'a, Self::Data>;
 }
 
-impl<'a, S> DataIntoCowAPI<'a> for DataOwned<S>
+impl<'a, C> DataIntoCowAPI<'a> for DataOwned<C>
 where
-    S: Clone,
+    C: Clone,
 {
     #[inline]
-    fn into_cow(self) -> DataCow<'a, S> {
+    fn into_cow(self) -> DataCow<'a, C> {
         DataCow::Owned(self)
     }
 }
 
-impl<'a, S> DataIntoCowAPI<'a> for DataRef<'a, S>
+impl<'a, C> DataIntoCowAPI<'a> for DataRef<'a, C>
 where
-    S: Clone,
+    C: Clone,
 {
     #[inline]
-    fn into_cow(self) -> DataCow<'a, S> {
+    fn into_cow(self) -> DataCow<'a, C> {
         DataCow::Ref(self)
     }
 }
 
-impl<'a, S> DataIntoCowAPI<'a> for DataMut<'a, S>
+impl<'a, C> DataIntoCowAPI<'a> for DataMut<'a, C>
 where
-    S: Clone,
+    C: Clone,
 {
     #[inline]
-    fn into_cow(self) -> DataCow<'a, S> {
+    fn into_cow(self) -> DataCow<'a, C> {
         match self {
             DataMut::TrueRef(data) => DataRef::from(&*data).into_cow(),
             DataMut::ManuallyDropOwned(data) => DataRef::from_manually_drop(data).into_cow(),
@@ -398,22 +398,22 @@ where
     }
 }
 
-impl<'a, S> DataIntoCowAPI<'a> for DataCow<'a, S>
+impl<'a, C> DataIntoCowAPI<'a> for DataCow<'a, C>
 where
-    S: Clone,
+    C: Clone,
 {
     #[inline]
-    fn into_cow(self) -> DataCow<'a, S> {
+    fn into_cow(self) -> DataCow<'a, C> {
         self
     }
 }
 
-impl<'a, S> DataIntoCowAPI<'a> for DataArc<S>
+impl<'a, C> DataIntoCowAPI<'a> for DataArc<C>
 where
-    S: Clone,
+    C: Clone,
 {
     #[inline]
-    fn into_cow(self) -> DataCow<'a, S> {
+    fn into_cow(self) -> DataCow<'a, C> {
         DataCow::Owned(self.into_owned())
     }
 }
