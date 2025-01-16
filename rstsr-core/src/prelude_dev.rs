@@ -15,6 +15,7 @@ pub use crate::flags::*;
 pub use crate::layout::*;
 
 pub use crate::storage::assignment::*;
+pub use crate::storage::conversion::*;
 pub use crate::storage::creation::*;
 pub use crate::storage::data::*;
 pub use crate::storage::device::*;

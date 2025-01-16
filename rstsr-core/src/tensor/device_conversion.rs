@@ -1,25 +1,105 @@
 use crate::prelude_dev::*;
 
-pub trait TensorToDeviceAPI<B> {
-    type Storage;
+pub trait TensorDeviceChangeAPI<'l, BOut>: Sized
+where
+    BOut: DeviceRawAPI<Self::Type>,
+{
+    type Repr;
+    type ReprTo;
+    type Type;
     type Dim: DimAPI;
-    fn into_device(self, device: &B) -> Result<TensorBase<Self::Storage, Self::Dim>>;
+
+    fn change_device_f(
+        self,
+        device: &BOut,
+    ) -> Result<TensorAny<Self::Repr, Self::Type, BOut, Self::Dim>>;
+    fn into_device_f(
+        self,
+        device: &BOut,
+    ) -> Result<TensorAny<DataOwned<BOut::Raw>, Self::Type, BOut, Self::Dim>>;
+    fn to_device_f(
+        &'l self,
+        device: &BOut,
+    ) -> Result<TensorAny<Self::ReprTo, Self::Type, BOut, Self::Dim>>;
+
+    fn change_device(self, device: &BOut) -> TensorAny<Self::Repr, Self::Type, BOut, Self::Dim> {
+        self.change_device_f(device).unwrap()
+    }
+
+    fn into_device(
+        self,
+        device: &BOut,
+    ) -> TensorAny<DataOwned<BOut::Raw>, Self::Type, BOut, Self::Dim> {
+        self.into_device_f(device).unwrap()
+    }
+
+    fn to_device(&'l self, device: &BOut) -> TensorAny<Self::ReprTo, Self::Type, BOut, Self::Dim> {
+        self.to_device_f(device).unwrap()
+    }
 }
 
-impl<R, T, D, B1, B2> TensorToDeviceAPI<B2> for TensorAny<R, T, B1, D>
+impl<'a, R, T, B, D, BOut> TensorDeviceChangeAPI<'a, BOut> for TensorAny<R, T, B, D>
 where
+    B: DeviceRawAPI<T> + DeviceChangeAPI<'a, BOut, R, T, D>,
+    BOut: DeviceRawAPI<T>,
     D: DimAPI,
-    B1: DeviceAPI<T>,
-    B2: DeviceAPI<T, Raw = B1::Raw>,
-    R: DataAPI<Data = B1::Raw>,
-    B1: DeviceStorageConversionAPI<R, T, B2>,
+    R: DataAPI<Data = B::Raw>,
 {
-    type Storage = Storage<R, T, B2>;
+    type Repr = B::Repr;
+    type ReprTo = B::ReprTo;
+    type Type = T;
     type Dim = D;
-    fn into_device(self, device: &B2) -> Result<TensorAny<R, T, B2, D>> {
-        let (storage, layout) = self.into_raw_parts();
-        let (data, _) = storage.into_raw_parts();
-        let storage = Storage::new(data, device.clone());
-        TensorBase::new_f(storage, layout)
+
+    fn change_device_f(self, device: &BOut) -> Result<TensorAny<B::Repr, T, BOut, D>> {
+        B::change_device(self, device)
+    }
+
+    fn into_device_f(self, device: &BOut) -> Result<Tensor<T, BOut, D>> {
+        B::into_device(self, device)
+    }
+
+    fn to_device_f(
+        &'a self,
+        device: &BOut,
+    ) -> Result<TensorAny<B::ReprTo, Self::Type, BOut, Self::Dim>> {
+        B::to_device(self, device)
+    }
+}
+
+pub trait TensorChangeFromDevice<'l, BOut>: Sized
+where
+    BOut: DeviceRawAPI<Self::Type>,
+{
+    type Repr;
+    type ReprTo;
+    type Type;
+    type Dim: DimAPI;
+
+    fn change_device_f(
+        self,
+        device: &BOut,
+    ) -> Result<TensorAny<Self::Repr, Self::Type, BOut, Self::Dim>>;
+    fn into_device_f(
+        self,
+        device: &BOut,
+    ) -> Result<TensorAny<DataOwned<BOut::Raw>, Self::Type, BOut, Self::Dim>>;
+    fn to_device_f(
+        &'l self,
+        device: &BOut,
+    ) -> Result<TensorAny<Self::ReprTo, Self::Type, BOut, Self::Dim>>;
+
+    fn change_device(self, device: &BOut) -> TensorAny<Self::Repr, Self::Type, BOut, Self::Dim> {
+        self.change_device_f(device).unwrap()
+    }
+
+    fn into_device(
+        self,
+        device: &BOut,
+    ) -> TensorAny<DataOwned<BOut::Raw>, Self::Type, BOut, Self::Dim> {
+        self.into_device_f(device).unwrap()
+    }
+
+    fn to_device(&'l self, device: &BOut) -> TensorAny<Self::ReprTo, Self::Type, BOut, Self::Dim> {
+        self.to_device_f(device).unwrap()
     }
 }
