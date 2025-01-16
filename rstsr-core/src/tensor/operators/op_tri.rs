@@ -144,7 +144,11 @@ mod tests {
 
     #[test]
     fn test_pack_tri() {
-        let a = arange((48., &DeviceCpuSerial)).into_layout([3, 4, 4].f());
+        let a = {
+            let a = arange((48., &DeviceCpuSerial));
+            let storage_a = a.into_raw_parts().0;
+            Tensor::new(storage_a, [3, 4, 4].f())
+        };
         let a_triu = a.pack_tril();
         println!("{:?}", a_triu);
         println!("{:?}", a.slice(0));
