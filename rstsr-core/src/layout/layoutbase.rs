@@ -21,7 +21,6 @@ where
     pub(crate) shape: D,
     pub(crate) stride: D::Stride,
     pub(crate) offset: usize,
-    size: usize,
 }
 
 unsafe impl<D> Send for Layout<D> where D: DimBaseAPI {}
@@ -67,7 +66,7 @@ where
     /// This function uses cached size, instead of evaluating from shape.
     #[inline]
     pub fn size(&self) -> usize {
-        self.size
+        self.shape().as_ref().iter().product()
     }
 
     /// Manually set offset.
@@ -403,8 +402,7 @@ where
     /// This function does not check whether layout is valid.
     #[inline]
     pub unsafe fn new_unchecked(shape: D, stride: D::Stride, offset: usize) -> Self {
-        let size = shape.as_ref().iter().product();
-        Layout { shape, stride, offset, size }
+        Layout { shape, stride, offset }
     }
 
     /// New zero shape, which number of dimensions are the same to current
@@ -730,8 +728,7 @@ where
         let shape = layout.shape().clone().try_into().map_err(|_| rstsr_error!(InvalidLayout))?;
         let stride = layout.stride().clone().try_into().map_err(|_| rstsr_error!(InvalidLayout))?;
         let offset = layout.offset();
-        let size = layout.size();
-        return Ok(Layout { shape, stride, offset, size });
+        return Ok(Layout { shape, stride, offset });
     }
 }
 
@@ -740,8 +737,7 @@ impl<const N: usize> DimIntoAPI<IxD> for Ix<N> {
         let shape = (*layout.shape()).into();
         let stride = (*layout.stride()).into();
         let offset = layout.offset();
-        let size = layout.size();
-        return Ok(Layout { shape, stride, offset, size });
+        return Ok(Layout { shape, stride, offset });
     }
 }
 
@@ -751,8 +747,7 @@ impl<const N: usize, const M: usize> DimIntoAPI<Ix<M>> for Ix<N> {
         let shape = layout.shape().to_vec().try_into().unwrap();
         let stride = layout.stride().to_vec().try_into().unwrap();
         let offset = layout.offset();
-        let size = layout.size();
-        return Ok(Layout { shape, stride, offset, size });
+        return Ok(Layout { shape, stride, offset });
     }
 }
 
@@ -782,15 +777,14 @@ where
 impl<const N: usize> From<Ix<N>> for Layout<Ix<N>> {
     fn from(shape: Ix<N>) -> Self {
         let stride = shape.stride_contig();
-        Layout { shape, stride, offset: 0, size: shape.shape_size() }
+        Layout { shape, stride, offset: 0 }
     }
 }
 
 impl From<IxD> for Layout<IxD> {
     fn from(shape: IxD) -> Self {
-        let size = shape.shape_size();
         let stride = shape.stride_contig();
-        Layout { shape, stride, offset: 0, size }
+        Layout { shape, stride, offset: 0 }
     }
 }
 
