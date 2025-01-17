@@ -45,9 +45,15 @@ impl DeviceRayonAPI for DeviceCpuRayon {
     }
 
     fn get_num_threads(&self) -> usize {
-        match self.num_threads {
-            0 => rayon::current_num_threads(),
-            _ => rayon::current_num_threads().min(self.num_threads),
+        // if in rayon parallel worker, only one thread is used; otherwise use all
+        // threads
+        if rayon::current_thread_index().is_some() {
+            1
+        } else {
+            match self.num_threads {
+                0 => rayon::current_num_threads(),
+                _ => rayon::current_num_threads().min(self.num_threads),
+            }
         }
     }
 
