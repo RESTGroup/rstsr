@@ -71,7 +71,7 @@ where
 
 impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataMutAPI<Data = B::Raw>,
+    R: DataAPI<Data = B::Raw>,
     D: DimAPI + DimLargerOneAPI,
     D::LargerOne: DimAPI,
     B: DeviceAPI<T> + DeviceOpUnpackTriAPI<T> + DeviceCreationAnyAPI<T>,
