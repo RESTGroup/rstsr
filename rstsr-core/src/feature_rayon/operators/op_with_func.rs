@@ -63,15 +63,10 @@ where
             // parallel inner iteration
             pool.install(|| {
                 (iter_c, iter_a, iter_b).into_par_iter().for_each(|(idx_c, idx_a, idx_b)| unsafe {
-                    let c_ptr = c.as_ptr().add(idx_c) as *mut TC;
-                    let c_ptr = ThreadedRawPtr(c_ptr);
-                    (0..size_contig).into_par_iter().with_min_len(PARALLEL_SWITCH).for_each(
-                        |idx| {
-                            let c_ptr = &c_ptr;
-                            let c_ptr = c_ptr.0;
-                            f(&mut *c_ptr.add(idx), &a[idx_a + idx], &b[idx_b + idx]);
-                        },
-                    );
+                    (0..size_contig).into_par_iter().for_each(|idx| {
+                        let c_ptr = c.as_ptr().add(idx_c + idx) as *mut TC;
+                        f(&mut *c_ptr, &a[idx_a + idx], &b[idx_b + idx]);
+                    });
                 });
             });
         }
@@ -137,15 +132,10 @@ where
             // parallel inner iteration
             pool.install(|| {
                 (iter_c, iter_a).into_par_iter().for_each(|(idx_c, idx_a)| unsafe {
-                    let c_ptr = c.as_ptr().add(idx_c) as *mut TC;
-                    let c_ptr = ThreadedRawPtr(c_ptr);
-                    (0..size_contig).into_par_iter().with_min_len(PARALLEL_SWITCH).for_each(
-                        |idx| {
-                            let c_ptr = &c_ptr;
-                            let c_ptr = c_ptr.0;
-                            f(&mut *c_ptr.add(idx), &a[idx_a + idx], &b);
-                        },
-                    );
+                    (0..size_contig).into_par_iter().for_each(|idx| {
+                        let c_ptr = c.as_ptr().add(idx_c + idx) as *mut TC;
+                        f(&mut *c_ptr, &a[idx_a + idx], &b);
+                    });
                 });
             });
         }
@@ -210,15 +200,10 @@ where
             // parallel inner iteration
             pool.install(|| {
                 (iter_c, iter_b).into_par_iter().for_each(|(idx_c, idx_b)| unsafe {
-                    let c_ptr = c.as_ptr().add(idx_c) as *mut TC;
-                    let c_ptr = ThreadedRawPtr(c_ptr);
-                    (0..size_contig).into_par_iter().with_min_len(PARALLEL_SWITCH).for_each(
-                        |idx| {
-                            let c_ptr = &c_ptr;
-                            let c_ptr = c_ptr.0;
-                            f(&mut *c_ptr.add(idx), &a, &b[idx_b + idx]);
-                        },
-                    );
+                    (0..size_contig).into_par_iter().for_each(|idx| {
+                        let c_ptr = c.as_ptr().add(idx_c + idx) as *mut TC;
+                        f(&mut *c_ptr, &a, &b[idx_b + idx]);
+                    });
                 });
             });
         }
@@ -281,15 +266,10 @@ where
             // parallel inner iteration
             pool.install(|| {
                 (iter_a, iter_b).into_par_iter().for_each(|(idx_a, idx_b)| unsafe {
-                    let a_ptr = a.as_ptr().add(idx_a) as *mut TA;
-                    let a_ptr = ThreadedRawPtr(a_ptr);
-                    (0..size_contig).into_par_iter().with_min_len(PARALLEL_SWITCH).for_each(
-                        |idx| {
-                            let a_ptr = &a_ptr;
-                            let a_ptr = a_ptr.0;
-                            f(&mut *a_ptr.add(idx), &b[idx_b + idx]);
-                        },
-                    );
+                    (0..size_contig).for_each(|idx| {
+                        let a_ptr = a.as_ptr().add(idx_a + idx) as *mut TA;
+                        f(&mut *a_ptr, &b[idx_b + idx]);
+                    });
                 });
             });
         }
@@ -349,15 +329,10 @@ where
             // parallel inner iteration
             pool.install(|| {
                 iter_a.into_par_iter().for_each(|idx_a| unsafe {
-                    let a_ptr = a.as_ptr().add(idx_a) as *mut TA;
-                    let a_ptr = ThreadedRawPtr(a_ptr);
-                    (0..size_contig).into_par_iter().with_min_len(PARALLEL_SWITCH).for_each(
-                        |idx| {
-                            let a_ptr = &a_ptr;
-                            let a_ptr = a_ptr.0;
-                            f(&mut *a_ptr.add(idx), &b);
-                        },
-                    );
+                    (0..size_contig).into_par_iter().for_each(|idx| {
+                        let a_ptr = a.as_ptr().add(idx_a + idx) as *mut TA;
+                        f(&mut *a_ptr, &b);
+                    });
                 });
             });
         }
@@ -413,15 +388,10 @@ where
             // parallel inner iteration
             pool.install(|| {
                 iter_a.into_par_iter().for_each(|idx_a| unsafe {
-                    let a_ptr = a.as_ptr().add(idx_a) as *mut T;
-                    let a_ptr = ThreadedRawPtr(a_ptr);
-                    (0..size_contig).into_par_iter().with_min_len(PARALLEL_SWITCH).for_each(
-                        |idx| {
-                            let a_ptr = &a_ptr;
-                            let a_ptr = a_ptr.0;
-                            f(&mut *a_ptr.add(idx));
-                        },
-                    );
+                    (0..size_contig).into_par_iter().for_each(|idx| {
+                        let a_ptr = a.as_ptr().add(idx_a + idx) as *mut T;
+                        f(&mut *a_ptr);
+                    });
                 });
             });
         }
