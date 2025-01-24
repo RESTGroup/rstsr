@@ -175,7 +175,7 @@ macro_rules! impl_gemm_with_syrk_faer {
                 $syrk_name(c, lc, a, la, TensorUpLo::L, alpha, beta, nthreads)?;
                 // symmetrize
                 let n = lc.shape()[0];
-                if n < PARALLEL_SWITCH {
+                if n < PARALLEL_SWITCH || nthreads == 1 {
                     for i in 0..n {
                         for j in 0..i {
                             let idx_ij = unsafe { lc.index_uncheck(&[i, j]) as usize };
@@ -184,7 +184,8 @@ macro_rules! impl_gemm_with_syrk_faer {
                         }
                     }
                 } else {
-                    let pool = DeviceCpuRayon::new(nthreads).get_pool(nthreads)?;
+                    let pool =
+                        rayon::ThreadPoolBuilder::new().num_threads(nthreads).build().unwrap();
                     pool.install(|| {
                         (0..n).into_par_iter().for_each(|i| {
                             (0..i).for_each(|j| unsafe {

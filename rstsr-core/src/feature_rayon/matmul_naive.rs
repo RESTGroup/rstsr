@@ -19,7 +19,7 @@ pub fn gemm_naive_rayon<TA, TB, TC>(
     lb: &Layout<Ix2>,
     alpha: TC,
     beta: TC,
-    nthreads: usize,
+    pool: &rayon::ThreadPool,
 ) -> Result<()>
 where
     TA: Clone + Send + Sync + Mul<TB, Output = TC>,
@@ -35,7 +35,6 @@ where
     rstsr_assert_eq!(sc[1], sb[1], InvalidLayout)?;
     let (m, n, k) = (sc[0], sc[1], sa[1]);
 
-    let pool = DeviceCpuRayon::new(nthreads).get_pool(nthreads)?;
     pool.install(|| {
         (0..n).into_par_iter().for_each(|j| {
             (0..m).into_par_iter().for_each(|i| unsafe {
@@ -61,7 +60,7 @@ pub fn inner_dot_naive_rayon<TA, TB, TC>(
     lb: &Layout<Ix1>,
     alpha: TC,
     beta: TC,
-    nthreads: usize,
+    pool: &rayon::ThreadPool,
 ) -> Result<()>
 where
     TA: Clone + Send + Sync + Mul<TB, Output = TC>,
@@ -73,8 +72,6 @@ where
     let sb = lb.shape();
     rstsr_assert_eq!(sa[0], sb[0], InvalidLayout)?;
     let n = sa[0];
-
-    let pool = DeviceCpuRayon::new(nthreads).get_pool(nthreads)?;
 
     let c_innerdot = pool.install(|| {
         (0..n)

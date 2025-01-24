@@ -23,7 +23,7 @@ pub fn gemm_blas_no_conj_dispatch<TA, TB, TC>(
     lb: &Layout<Ix2>,
     alpha: TC,
     beta: TC,
-    nthreads: usize,
+    pool: &rayon::ThreadPool,
 ) -> Result<()>
 where
     TA: Clone + Send + Sync + 'static,
@@ -55,9 +55,9 @@ where
                 let alpha = unsafe { *(&alpha as *const TC as *const $ty) };
                 let beta = unsafe { *(&beta as *const TC as *const $ty) };
                 if able_syrk {
-                    $fn_syrk_name(c_slice, lc, a_slice, la, alpha, nthreads)?;
+                    $fn_syrk_name(c_slice, lc, a_slice, la, alpha, pool)?;
                 } else {
-                    $fn_gemm_name(c_slice, lc, a_slice, la, b_slice, lb, alpha, beta, nthreads)?;
+                    $fn_gemm_name(c_slice, lc, a_slice, la, b_slice, lb, alpha, beta, pool)?;
                 }
                 return Ok(());
             }
@@ -74,7 +74,7 @@ where
     let c_slice = c;
     let a_slice = a;
     let b_slice = b;
-    return gemm_naive_rayon(c_slice, lc, a_slice, la, b_slice, lb, alpha, beta, nthreads);
+    return gemm_naive_rayon(c_slice, lc, a_slice, la, b_slice, lb, alpha, beta, pool);
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -107,6 +107,7 @@ where
         }
 
         let nthreads = self.get_num_threads();
+        let pool = self.get_pool();
 
         // handle special cases
         match (la.ndim(), lb.ndim(), lc.ndim()) {
@@ -117,7 +118,7 @@ where
                 let lc = &lc.clone().into_dim::<Ix0>().unwrap();
                 let c_num = &mut c[lc.offset()];
                 return openblas_with_num_threads(nthreads, || {
-                    inner_dot_naive_rayon(c_num, a, la, b, lb, alpha, beta, nthreads)
+                    inner_dot_naive_rayon(c_num, a, la, b, lb, alpha, beta, pool)
                 });
             },
             (2, 2, 2) => {
@@ -126,7 +127,7 @@ where
                 let lb = &lb.clone().into_dim::<Ix2>().unwrap();
                 let lc = &lc.clone().into_dim::<Ix2>().unwrap();
                 return openblas_with_num_threads(nthreads, || {
-                    gemm_blas_no_conj_dispatch(c, lc, a, la, b, lb, alpha, beta, nthreads)
+                    gemm_blas_no_conj_dispatch(c, lc, a, la, b, lb, alpha, beta, pool)
                 });
             },
             _ => (),
@@ -227,7 +228,6 @@ where
         let itc_rest = IterLayoutColMajor::new(&lc_rest)?;
         if n_task >= 4 * nthreads {
             // parallel outer, sequential matmul
-            let pool = self.get_pool(nthreads)?;
             openblas_with_num_threads(1, || {
                 pool.install(|| {
                     ita_rest.into_par_iter().zip(itb_rest).zip(itc_rest).try_for_each(
@@ -250,7 +250,18 @@ where
                             // clone alpha and beta
                             let alpha = alpha.clone();
                             let beta = beta.clone();
-                            gemm_blas_no_conj_dispatch(c, &lc_m, a, &la_m, b, &lb_m, alpha, beta, 1)
+                            let serial_pool = self.get_serial_pool();
+                            gemm_blas_no_conj_dispatch(
+                                c,
+                                &lc_m,
+                                a,
+                                &la_m,
+                                b,
+                                &lb_m,
+                                alpha,
+                                beta,
+                                serial_pool,
+                            )
                         },
                     )
                 })
@@ -271,7 +282,7 @@ where
                     // clone alpha and beta
                     let alpha = alpha.clone();
                     let beta = beta.clone();
-                    gemm_blas_no_conj_dispatch(c, &lc_m, a, &la_m, b, &lb_m, alpha, beta, nthreads)
+                    gemm_blas_no_conj_dispatch(c, &lc_m, a, &la_m, b, &lb_m, alpha, beta, pool)
                 })
             })
         }

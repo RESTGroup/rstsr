@@ -26,7 +26,7 @@ pub fn gemm_faer_dispatch<TA, TB, TC>(
     lb: &Layout<Ix2>,
     alpha: TC,
     beta: TC,
-    nthreads: usize,
+    pool: &rayon::ThreadPool,
 ) -> Result<()>
 where
     TA: Clone + Send + Sync + 'static,
@@ -35,6 +35,7 @@ where
     TA: Mul<TB, Output = TC>,
     TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + PartialEq,
 {
+    let nthreads = pool.current_num_threads();
     // check if syrk could be applicable
     let able_syrk = beta == TC::zero()
         && same_type::<TA, TC>()
@@ -77,7 +78,7 @@ where
     let c_slice = c;
     let a_slice = a;
     let b_slice = b;
-    return gemm_naive_rayon(c_slice, lc, a_slice, la, b_slice, lb, alpha, beta, nthreads);
+    return gemm_naive_rayon(c_slice, lc, a_slice, la, b_slice, lb, alpha, beta, pool);
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -104,6 +105,7 @@ where
         beta: TC,
     ) -> Result<()> {
         let nthreads = self.get_num_threads();
+        let pool = self.get_pool();
 
         // handle special cases
         match (la.ndim(), lb.ndim(), lc.ndim()) {
@@ -113,14 +115,14 @@ where
                 let lb = &lb.clone().into_dim::<Ix1>().unwrap();
                 let lc = &lc.clone().into_dim::<Ix0>().unwrap();
                 let c_num = &mut c[lc.offset()];
-                return inner_dot_naive_rayon(c_num, a, la, b, lb, alpha, beta, nthreads);
+                return inner_dot_naive_rayon(c_num, a, la, b, lb, alpha, beta, pool);
             },
             (2, 2, 2) => {
                 // rule 2: matrix multiplication
                 let la = &la.clone().into_dim::<Ix2>().unwrap();
                 let lb = &lb.clone().into_dim::<Ix2>().unwrap();
                 let lc = &lc.clone().into_dim::<Ix2>().unwrap();
-                return gemm_faer_dispatch(c, lc, a, la, b, lb, alpha, beta, nthreads);
+                return gemm_faer_dispatch(c, lc, a, la, b, lb, alpha, beta, pool);
             },
             _ => (),
         }
@@ -217,7 +219,6 @@ where
         let itc_rest = IterLayoutColMajor::new(&lc_rest)?;
         if n_task > 4 * nthreads {
             // parallel outer, sequential matmul
-            let pool = self.get_pool(nthreads)?;
             pool.install(|| {
                 ita_rest.into_par_iter().zip(itb_rest).zip(itc_rest).try_for_each(
                     |((ia_rest, ib_rest), ic_rest)| -> Result<()> {
@@ -239,7 +240,17 @@ where
                         // clone alpha and beta
                         let alpha = alpha.clone();
                         let beta = beta.clone();
-                        gemm_faer_dispatch(c, &lc_m, a, &la_m, b, &lb_m, alpha, beta, 1)
+                        gemm_faer_dispatch(
+                            c,
+                            &lc_m,
+                            a,
+                            &la_m,
+                            b,
+                            &lb_m,
+                            alpha,
+                            beta,
+                            self.get_serial_pool(),
+                        )
                     },
                 )
             })?;
@@ -258,7 +269,7 @@ where
                 // clone alpha and beta
                 let alpha = alpha.clone();
                 let beta = beta.clone();
-                gemm_faer_dispatch(c, &lc_m, a, &la_m, b, &lb_m, alpha, beta, nthreads)?;
+                gemm_faer_dispatch(c, &lc_m, a, &la_m, b, &lb_m, alpha, beta, pool)?;
             }
         }
         return Ok(());

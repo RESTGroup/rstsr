@@ -22,7 +22,7 @@ pub fn op_mutc_refa_refb_func_cpu_rayon<TA, TB, TC, D, F>(
     b: &[TB],
     lb: &Layout<D>,
     f: &mut F,
-    nthreads: usize,
+    pool: &rayon::ThreadPool,
 ) -> Result<()>
 where
     TA: Send + Sync,
@@ -32,6 +32,7 @@ where
     F: Fn(&mut TC, &TA, &TB) + ?Sized + Sync + Send,
 {
     // determine whether to use parallel iteration
+    let nthreads = pool.current_num_threads();
     let size = lc.size();
     if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
         return op_mutc_refa_refb_func_cpu_serial(c, lc, a, la, b, lb, f);
@@ -43,7 +44,6 @@ where
     let (layouts_outer, size_contig) = translate_to_col_major_with_contig(&layouts_full_ref);
 
     // actual parallel iteration
-    let pool = DeviceCpuRayon::new(nthreads).get_pool(nthreads)?;
     if size_contig >= CONTIG_SWITCH {
         // parallel for outer iteration
         let iter_c = IterLayoutColMajor::new(&layouts_outer[0])?;
@@ -97,7 +97,7 @@ pub fn op_mutc_refa_numb_func_cpu_rayon<TA, TB, TC, D, F>(
     la: &Layout<D>,
     b: TB,
     f: &mut F,
-    nthreads: usize,
+    pool: &rayon::ThreadPool,
 ) -> Result<()>
 where
     TA: Send + Sync,
@@ -107,6 +107,7 @@ where
     F: Fn(&mut TC, &TA, &TB) + ?Sized + Send + Sync,
 {
     // determine whether to use parallel iteration
+    let nthreads = pool.current_num_threads();
     let size = lc.size();
     if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
         return op_mutc_refa_numb_func_cpu_serial(c, lc, a, la, b, f);
@@ -118,7 +119,6 @@ where
     let (layouts_outer, size_contig) = translate_to_col_major_with_contig(&layouts_full_ref);
 
     // actual parallel iteration
-    let pool = DeviceCpuRayon::new(nthreads).get_pool(nthreads)?;
     if size_contig >= CONTIG_SWITCH {
         // parallel for outer iteration
         let iter_c = IterLayoutColMajor::new(&layouts_outer[0])?;
@@ -170,7 +170,7 @@ pub fn op_mutc_numa_refb_func_cpu_rayon<TA, TB, TC, D, F>(
     b: &[TB],
     lb: &Layout<D>,
     f: &mut F,
-    nthreads: usize,
+    pool: &rayon::ThreadPool,
 ) -> Result<()>
 where
     TA: Send + Sync,
@@ -180,6 +180,7 @@ where
     F: Fn(&mut TC, &TA, &TB) + ?Sized + Send + Sync,
 {
     // determine whether to use parallel iteration
+    let nthreads = pool.current_num_threads();
     let size = lc.size();
     if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
         return op_mutc_numa_refb_func_cpu_serial(c, lc, a, b, lb, f);
@@ -191,7 +192,6 @@ where
     let (layouts_outer, size_contig) = translate_to_col_major_with_contig(&layouts_full_ref);
 
     // actual parallel iteration
-    let pool = DeviceCpuRayon::new(nthreads).get_pool(nthreads)?;
     if size_contig >= CONTIG_SWITCH {
         // parallel for outer iteration
         let iter_c = IterLayoutColMajor::new(&layouts_outer[0])?;
@@ -242,7 +242,7 @@ pub fn op_muta_refb_func_cpu_rayon<TA, TB, D, F>(
     b: &[TB],
     lb: &Layout<D>,
     f: &mut F,
-    nthreads: usize,
+    pool: &rayon::ThreadPool,
 ) -> Result<()>
 where
     TA: Send + Sync,
@@ -251,6 +251,7 @@ where
     F: Fn(&mut TA, &TB) + ?Sized + Send + Sync,
 {
     // determine whether to use parallel iteration
+    let nthreads = pool.current_num_threads();
     let size = la.size();
     if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
         return op_muta_refb_func_cpu_serial(a, la, b, lb, f);
@@ -262,7 +263,6 @@ where
     let (layouts_outer, size_contig) = translate_to_col_major_with_contig(&layouts_full_ref);
 
     // actual parallel iteration
-    let pool = DeviceCpuRayon::new(nthreads).get_pool(nthreads)?;
     if size_contig >= CONTIG_SWITCH {
         // parallel for outer iteration
         let iter_a = IterLayoutColMajor::new(&layouts_outer[0])?;
@@ -312,7 +312,7 @@ pub fn op_muta_numb_func_cpu_rayon<TA, TB, D, F>(
     la: &Layout<D>,
     b: TB,
     f: &mut F,
-    nthreads: usize,
+    pool: &rayon::ThreadPool,
 ) -> Result<()>
 where
     TA: Send + Sync,
@@ -321,6 +321,7 @@ where
     F: Fn(&mut TA, &TB) + ?Sized + Send + Sync,
 {
     // determine whether to use parallel iteration
+    let nthreads = pool.current_num_threads();
     let size = la.size();
     if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
         return op_muta_numb_func_cpu_serial(a, la, b, f);
@@ -331,7 +332,6 @@ where
     let (layout_contig, size_contig) = translate_to_col_major_with_contig(&[&layout]);
 
     // actual parallel iteration
-    let pool = DeviceCpuRayon::new(nthreads).get_pool(nthreads)?;
     if size_contig >= CONTIG_SWITCH {
         // parallel for outer iteration
         let iter_a = IterLayoutColMajor::new(&layout_contig[0])?;
@@ -378,7 +378,7 @@ pub fn op_muta_func_cpu_rayon<T, D, F>(
     a: &mut [T],
     la: &Layout<D>,
     f: &mut F,
-    nthreads: usize,
+    pool: &rayon::ThreadPool,
 ) -> Result<()>
 where
     T: Send + Sync,
@@ -386,6 +386,7 @@ where
     F: Fn(&mut T) + ?Sized + Send + Sync,
 {
     // determine whether to use parallel iteration
+    let nthreads = pool.current_num_threads();
     let size = la.size();
     if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
         return op_muta_func_cpu_serial(a, la, f);
@@ -396,7 +397,6 @@ where
     let (layout_contig, size_contig) = translate_to_col_major_with_contig(&[&layout]);
 
     // actual parallel iteration
-    let pool = DeviceCpuRayon::new(nthreads).get_pool(nthreads)?;
     if size_contig >= CONTIG_SWITCH {
         let iter_a = IterLayoutColMajor::new(&layout_contig[0])?;
         if size_contig < PARALLEL_SWITCH * nthreads {

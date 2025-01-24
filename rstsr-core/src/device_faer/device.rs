@@ -24,8 +24,12 @@ impl DeviceRayonAPI for DeviceFaer {
         self.base.get_num_threads()
     }
 
-    fn get_pool(&self, n: usize) -> Result<rayon::ThreadPool> {
-        self.base.get_pool(n)
+    fn get_pool(&self) -> &rayon::ThreadPool {
+        self.base.get_pool()
+    }
+
+    fn get_serial_pool(&self) -> &rayon::ThreadPool {
+        self.base.get_serial_pool()
     }
 }
 

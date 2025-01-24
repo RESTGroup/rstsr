@@ -1,9 +1,13 @@
 use crate::prelude_dev::*;
 
+extern crate alloc;
+use alloc::sync::Arc;
+
 pub trait DeviceRayonAPI {
     fn set_num_threads(&mut self, num_threads: usize);
     fn get_num_threads(&self) -> usize;
-    fn get_pool(&self, n: usize) -> Result<rayon::ThreadPool>;
+    fn get_pool(&self) -> &rayon::ThreadPool;
+    fn get_serial_pool(&self) -> &rayon::ThreadPool;
 }
 
 /// This is base device for Parallel CPU device.
@@ -15,15 +19,23 @@ pub trait DeviceRayonAPI {
 #[derive(Clone, Debug)]
 pub struct DeviceCpuRayon {
     num_threads: usize,
+    pool: Arc<rayon::ThreadPool>,
+    serial_pool: Arc<rayon::ThreadPool>,
 }
 
 impl DeviceCpuRayon {
     pub fn new(num_threads: usize) -> Self {
-        DeviceCpuRayon { num_threads }
+        let pool = Arc::new(Self::generate_pool(num_threads).unwrap());
+        let serial_serial = Arc::new(Self::generate_pool(1).unwrap());
+        DeviceCpuRayon { num_threads, pool, serial_pool: serial_serial }
     }
 
     pub fn var_num_threads(&self) -> usize {
         self.num_threads
+    }
+
+    fn generate_pool(n: usize) -> Result<rayon::ThreadPool> {
+        rayon::ThreadPoolBuilder::new().num_threads(n).build().map_err(Error::from)
     }
 }
 
@@ -41,7 +53,12 @@ impl DeviceBaseAPI for DeviceCpuRayon {
 
 impl DeviceRayonAPI for DeviceCpuRayon {
     fn set_num_threads(&mut self, num_threads: usize) {
-        self.num_threads = num_threads;
+        let num_threads_old = self.num_threads;
+        if num_threads_old != num_threads {
+            let pool = Self::generate_pool(num_threads).unwrap();
+            self.num_threads = num_threads;
+            self.pool = Arc::new(pool);
+        }
     }
 
     fn get_num_threads(&self) -> usize {
@@ -57,9 +74,15 @@ impl DeviceRayonAPI for DeviceCpuRayon {
         }
     }
 
-    fn get_pool(&self, n: usize) -> Result<rayon::ThreadPool> {
-        rstsr_pattern!(n, 0..=self.get_num_threads(), RayonError, "Specified too much threads.")?;
-        let nthreads = if n == 0 { self.get_num_threads() } else { n };
-        rayon::ThreadPoolBuilder::new().num_threads(nthreads).build().map_err(Error::from)
+    fn get_pool(&self) -> &rayon::ThreadPool {
+        if self.get_num_threads() == 1 || rayon::current_thread_index().is_some() {
+            self.serial_pool.as_ref()
+        } else {
+            self.pool.as_ref()
+        }
+    }
+
+    fn get_serial_pool(&self) -> &rayon::ThreadPool {
+        self.serial_pool.as_ref()
     }
 }

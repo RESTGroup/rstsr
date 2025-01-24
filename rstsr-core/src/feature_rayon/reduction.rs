@@ -20,7 +20,7 @@ pub fn reduce_all_cpu_rayon<T, D, I, F>(
     la: &Layout<D>,
     init: I,
     f: F,
-    nthreads: usize,
+    pool: &rayon::ThreadPool,
 ) -> Result<T>
 where
     T: Clone + Send + Sync,
@@ -29,6 +29,7 @@ where
     F: Fn(T, T) -> T + Send + Sync,
 {
     // determine whether to use parallel iteration
+    let nthreads = pool.current_num_threads();
     let size = la.size();
     if size < PARALLEL_SWITCH * nthreads {
         return reduce_all_cpu_serial(a, la, init, f);
@@ -39,8 +40,6 @@ where
     let (layout_contig, size_contig) = translate_to_col_major_with_contig(&[&layout]);
 
     // actual parallel iteration
-    let pool = DeviceCpuRayon::new(nthreads).get_pool(nthreads)?;
-
     if size_contig >= CONTIG_SWITCH {
         // parallel for outer iteration
         let mut acc = init();
@@ -98,7 +97,7 @@ pub fn reduce_axes_cpu_rayon<T, I, F>(
     axes: &[isize],
     init: I,
     f: F,
-    nthreads: usize,
+    pool: &rayon::ThreadPool,
 ) -> Result<(Vec<T>, Layout<IxD>)>
 where
     T: Clone + Send + Sync,
@@ -106,6 +105,7 @@ where
     F: Fn(T, T) -> T + Send + Sync,
 {
     // determine whether to use parallel iteration
+    let nthreads = pool.current_num_threads();
     let size = la.size();
     if size < PARALLEL_SWITCH * nthreads {
         return reduce_axes_cpu_serial(a, la, axes, init, f);
@@ -143,7 +143,7 @@ where
                 let out_ptr = out_ptr.get();
                 let mut layout_inner = layout_axes.clone();
                 unsafe { layout_inner.set_offset(idx_rest) };
-                let acc = reduce_all_cpu_rayon(a, &layout_inner, &init, &f, nthreads)?;
+                let acc = reduce_all_cpu_rayon(a, &layout_inner, &init, &f, pool)?;
                 unsafe { *out_ptr.add(idx_out) = acc };
                 Ok(())
             },
@@ -166,14 +166,7 @@ where
 
         for idx_axes in iter_layout_axes {
             unsafe { layout_inner.set_offset(idx_axes) };
-            op_muta_refb_func_cpu_rayon(
-                &mut out,
-                &layout_out,
-                a,
-                &layout_inner,
-                &mut f_add,
-                nthreads,
-            )?;
+            op_muta_refb_func_cpu_rayon(&mut out, &layout_out, a, &layout_inner, &mut f_add, pool)?;
         }
         return Ok((out, layout_out));
     }

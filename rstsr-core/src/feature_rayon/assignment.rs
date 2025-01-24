@@ -17,7 +17,7 @@ pub fn assign_arbitary_cpu_rayon<T, DC, DA>(
     lc: &Layout<DC>,
     a: &[T],
     la: &Layout<DA>,
-    nthreads: usize,
+    pool: &rayon::ThreadPool,
 ) -> Result<()>
 where
     T: Clone + Send + Sync,
@@ -25,6 +25,7 @@ where
     DA: DimAPI,
 {
     // determine whether to use parallel iteration
+    let nthreads = pool.current_num_threads();
     let size = lc.size();
     if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
         return assign_arbitary_cpu_serial(c, lc, a, la);
@@ -54,7 +55,6 @@ where
         let iter_c = IterLayoutColMajor::new(&lc)?;
         let iter_a = IterLayoutColMajor::new(&la)?;
         // iterate and assign
-        let pool = DeviceCpuRayon::new(nthreads).get_pool(nthreads)?;
         pool.install(|| {
             (iter_c, iter_a).into_par_iter().for_each(|(idx_c, idx_a)| unsafe {
                 let c_ptr = c.as_ptr() as *mut T;
@@ -70,13 +70,14 @@ pub fn assign_cpu_rayon<T, D>(
     lc: &Layout<D>,
     a: &[T],
     la: &Layout<D>,
-    nthreads: usize,
+    pool: &rayon::ThreadPool,
 ) -> Result<()>
 where
     T: Clone + Send + Sync,
     D: DimAPI,
 {
     // determine whether to use parallel iteration
+    let nthreads = pool.current_num_threads();
     let size = lc.size();
     if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
         return assign_cpu_serial(c, lc, a, la);
@@ -88,7 +89,6 @@ where
     let (layouts_contig, size_contig) = translate_to_col_major_with_contig(&layouts_full_ref);
 
     // actual parallel iteration
-    let pool = DeviceCpuRayon::new(nthreads).get_pool(nthreads)?;
     if size_contig < CONTIG_SWITCH {
         // not possible for contiguous assign
         let iter_c = IterLayoutColMajor::new(&layouts_full[0])?;
@@ -115,12 +115,18 @@ where
     return Ok(());
 }
 
-pub fn fill_cpu_rayon<T, D>(c: &mut [T], lc: &Layout<D>, fill: T, nthreads: usize) -> Result<()>
+pub fn fill_cpu_rayon<T, D>(
+    c: &mut [T],
+    lc: &Layout<D>,
+    fill: T,
+    pool: &rayon::ThreadPool,
+) -> Result<()>
 where
     T: Clone + Send + Sync,
     D: DimAPI,
 {
     // determine whether to use parallel iteration
+    let nthreads = pool.current_num_threads();
     let size = lc.size();
     if size < PARALLEL_SWITCH * nthreads {
         return fill_cpu_serial(c, lc, fill);
@@ -132,7 +138,6 @@ where
     let (layouts_contig, size_contig) = translate_to_col_major_with_contig(&layouts_full_ref);
 
     // actual parallel iteration
-    let pool = DeviceCpuRayon::new(nthreads).get_pool(nthreads)?;
     if size_contig < CONTIG_SWITCH {
         // not possible for contiguous fill
         let iter_c = IterLayoutColMajor::new(&layouts_full[0])?;

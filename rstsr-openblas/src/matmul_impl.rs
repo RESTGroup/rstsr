@@ -25,7 +25,7 @@ macro_rules! impl_gemm_blas_no_conj {
             lb: &Layout<Ix2>,
             alpha: $ty,
             beta: $ty,
-            nthreads: usize,
+            pool: &rayon::ThreadPool,
         ) -> Result<()> {
             // nthreads is only used for `assign_cpu_rayon`.
             // the threading of openblas should be handled outside this function.
@@ -45,7 +45,7 @@ macro_rules! impl_gemm_blas_no_conj {
                         &la.reverse_axes(),
                         alpha,
                         beta,
-                        nthreads,
+                        pool,
                     );
                 } else {
                     // not c-prefer, allocate new buffer and copy back
@@ -56,12 +56,12 @@ macro_rules! impl_gemm_blas_no_conj {
                         c_vec
                     };
                     if beta == <$ty>::ZERO {
-                        fill_cpu_rayon(&mut c_new, &lc_new, <$ty>::ZERO, nthreads)?;
+                        fill_cpu_rayon(&mut c_new, &lc_new, <$ty>::ZERO, pool)?;
                     } else {
-                        assign_cpu_rayon(&mut c_new, &lc_new, c, lc, nthreads)?;
+                        assign_cpu_rayon(&mut c_new, &lc_new, c, lc, pool)?;
                     }
-                    $fn_name(&mut c_new, &lc_new, a, la, b, lb, alpha, <$ty>::ZERO, nthreads)?;
-                    assign_cpu_rayon(c, lc, &c_new, &lc_new, nthreads)?;
+                    $fn_name(&mut c_new, &lc_new, a, la, b, lb, alpha, <$ty>::ZERO, pool)?;
+                    assign_cpu_rayon(c, lc, &c_new, &lc_new, pool)?;
                     return Ok(());
                 }
             }
@@ -93,7 +93,7 @@ macro_rules! impl_gemm_blas_no_conj {
                     Some(a_vec)
                 };
                 let la_data = la.shape().new_f_contig(None);
-                assign_cpu_rayon(a_data.as_mut().unwrap(), &la_data, a, &la, nthreads)?;
+                assign_cpu_rayon(a_data.as_mut().unwrap(), &la_data, a, &la, pool)?;
                 (cblas::NoTrans, la_data)
             };
             let (b_trans, lb) = if lb.f_prefer() {
@@ -108,7 +108,7 @@ macro_rules! impl_gemm_blas_no_conj {
                     Some(b_vec)
                 };
                 let lb_data = lb.shape().new_f_contig(None);
-                assign_cpu_rayon(b_data.as_mut().unwrap(), &lb_data, b, &lb, nthreads)?;
+                assign_cpu_rayon(b_data.as_mut().unwrap(), &lb_data, b, &lb, pool)?;
                 (cblas::NoTrans, lb_data)
             };
 
@@ -315,10 +315,11 @@ macro_rules! impl_syrk_blas_no_conj {
             a: &[$ty],
             la: &Layout<Ix2>,
             alpha: $ty,
-            nthreads: usize,
+            pool: &rayon::ThreadPool,
         ) -> Result<()> {
             // nthreads is only used for `assign_cpu_rayon`.
             // the threading of openblas should be handled outside this function.
+            let nthreads = pool.current_num_threads();
 
             // beta is assumed to be zero, and not passed as argument.
 
@@ -328,7 +329,7 @@ macro_rules! impl_syrk_blas_no_conj {
                 // we do not handle conj, so this can be done easily
                 if lc.c_prefer() {
                     // c-prefer, transpose and run
-                    return $fn_name(c, &lc.reverse_axes(), a, la, alpha, nthreads);
+                    return $fn_name(c, &lc.reverse_axes(), a, la, alpha, pool);
                 } else {
                     // not c-prefer, allocate new buffer and copy back
                     let lc_new = lc.shape().new_f_contig(None);
@@ -337,9 +338,9 @@ macro_rules! impl_syrk_blas_no_conj {
                         c_vec.set_len(lc_new.size());
                         c_vec
                     };
-                    fill_cpu_rayon(&mut c_new, &lc_new, <$ty>::ZERO, nthreads)?;
-                    $fn_name(&mut c_new, &lc_new, a, la, alpha, nthreads)?;
-                    assign_cpu_rayon(c, lc, &c_new, &lc_new, nthreads)?;
+                    fill_cpu_rayon(&mut c_new, &lc_new, <$ty>::ZERO, pool)?;
+                    $fn_name(&mut c_new, &lc_new, a, la, alpha, pool)?;
+                    assign_cpu_rayon(c, lc, &c_new, &lc_new, pool)?;
                     return Ok(());
                 }
             }
@@ -367,7 +368,7 @@ macro_rules! impl_syrk_blas_no_conj {
                     Some(a_vec)
                 };
                 let la_data = la.shape().new_f_contig(None);
-                assign_cpu_rayon(a_data.as_mut().unwrap(), &la_data, a, &la, nthreads)?;
+                assign_cpu_rayon(a_data.as_mut().unwrap(), &la_data, a, &la, pool)?;
                 (cblas::NoTrans, la_data)
             };
 
@@ -412,7 +413,6 @@ macro_rules! impl_syrk_blas_no_conj {
                     }
                 }
             } else {
-                let pool = DeviceCpuRayon::new(nthreads).get_pool(nthreads)?;
                 pool.install(|| {
                     (0..(n as isize)).into_par_iter().for_each(|j| {
                         ((j + 1)..(n as isize)).for_each(|i| unsafe {
@@ -569,7 +569,8 @@ mod test {
         let la = [2, 3].c();
         let lb = [3, 4].c();
         let lc = [2, 4].c();
-        gemm_blas_no_conj_f32(&mut c, &lc, &a, &la, &b, &lb, 1.0, 0.0, 16).unwrap();
+        let pool = rayon::ThreadPoolBuilder::new().num_threads(16).build().unwrap();
+        gemm_blas_no_conj_f32(&mut c, &lc, &a, &la, &b, &lb, 1.0, 0.0, &pool).unwrap();
         let c_tsr = TensorView::new(asarray(&c).into_raw_parts().0, lc);
         println!("{:}", c_tsr);
         println!("{:}", c_tsr.reshape([8]));
@@ -579,7 +580,7 @@ mod test {
         let la = [2, 3].c();
         let lb = [3, 4].c();
         let lc = [2, 4].f();
-        gemm_blas_no_conj_f32(&mut c, &lc, &a, &la, &b, &lb, 1.0, 0.0, 16).unwrap();
+        gemm_blas_no_conj_f32(&mut c, &lc, &a, &la, &b, &lb, 1.0, 0.0, &pool).unwrap();
         let c_tsr = TensorView::new(asarray(&c).into_raw_parts().0, lc);
         println!("{:}", c_tsr);
         println!("{:}", c_tsr.reshape([8]));
@@ -589,7 +590,7 @@ mod test {
         let la = [2, 3].f();
         let lb = [3, 4].c();
         let lc = [2, 4].c();
-        gemm_blas_no_conj_f32(&mut c, &lc, &a, &la, &b, &lb, 1.0, 0.0, 16).unwrap();
+        gemm_blas_no_conj_f32(&mut c, &lc, &a, &la, &b, &lb, 1.0, 0.0, &pool).unwrap();
         let c_tsr = TensorView::new(asarray(&c).into_raw_parts().0, lc);
         println!("{:}", c_tsr);
         println!("{:}", c_tsr.reshape([8]));
@@ -599,7 +600,7 @@ mod test {
         let la = [2, 3].f();
         let lb = [3, 4].c();
         let lc = [2, 4].f();
-        gemm_blas_no_conj_f32(&mut c, &lc, &a, &la, &b, &lb, 2.0, 0.0, 16).unwrap();
+        gemm_blas_no_conj_f32(&mut c, &lc, &a, &la, &b, &lb, 2.0, 0.0, &pool).unwrap();
         let c_tsr = TensorView::new(asarray(&c).into_raw_parts().0, lc);
         println!("{:}", c_tsr);
         println!("{:}", c_tsr.reshape([8]));
@@ -616,7 +617,8 @@ mod test {
         let la = [2, 3].c();
         let lb = [3, 4].c();
         let lc = [2, 4].c();
-        gemm_blas_no_conj_c32(&mut c, &lc, &a, &la, &b, &lb, c32::ONE, c32::ZERO, 16).unwrap();
+        let pool = rayon::ThreadPoolBuilder::new().num_threads(16).build().unwrap();
+        gemm_blas_no_conj_c32(&mut c, &lc, &a, &la, &b, &lb, c32::ONE, c32::ZERO, &pool).unwrap();
         let c_tsr = TensorView::new(asarray(&c).into_raw_parts().0, lc);
         println!("{:}", c_tsr);
         println!("{:}", c_tsr.reshape([8]));

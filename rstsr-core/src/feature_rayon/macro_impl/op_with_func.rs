@@ -24,8 +24,8 @@ macro_rules! macro_impl_rayon_op_with_func {
                 lb: &Layout<D>,
                 f: &mut F,
             ) -> Result<()> {
-                let nthreads = self.get_num_threads();
-                op_mutc_refa_refb_func_cpu_rayon(c, lc, a, la, b, lb, f, nthreads)
+                let pool = self.get_pool();
+                op_mutc_refa_refb_func_cpu_rayon(c, lc, a, la, b, lb, f, pool)
             }
         }
 
@@ -46,8 +46,8 @@ macro_rules! macro_impl_rayon_op_with_func {
                 b: TB,
                 f: &mut F,
             ) -> Result<()> {
-                let nthreads = self.get_num_threads();
-                op_mutc_refa_numb_func_cpu_rayon(c, lc, a, la, b, f, nthreads)
+                let pool = self.get_pool();
+                op_mutc_refa_numb_func_cpu_rayon(c, lc, a, la, b, f, pool)
             }
         }
 
@@ -68,8 +68,8 @@ macro_rules! macro_impl_rayon_op_with_func {
                 lb: &Layout<D>,
                 f: &mut F,
             ) -> Result<()> {
-                let nthreads = self.get_num_threads();
-                op_mutc_numa_refb_func_cpu_rayon(c, lc, a, b, lb, f, nthreads)
+                let pool = self.get_pool();
+                op_mutc_numa_refb_func_cpu_rayon(c, lc, a, b, lb, f, pool)
             }
         }
 
@@ -88,8 +88,8 @@ macro_rules! macro_impl_rayon_op_with_func {
                 lb: &Layout<D>,
                 f: &mut F,
             ) -> Result<()> {
-                let nthreads = self.get_num_threads();
-                op_muta_refb_func_cpu_rayon(a, la, b, lb, f, nthreads)
+                let pool = self.get_pool();
+                op_muta_refb_func_cpu_rayon(a, la, b, lb, f, pool)
             }
         }
 
@@ -107,8 +107,8 @@ macro_rules! macro_impl_rayon_op_with_func {
                 b: TB,
                 f: &mut F,
             ) -> Result<()> {
-                let nthreads = self.get_num_threads();
-                op_muta_numb_func_cpu_rayon(a, la, b, f, nthreads)
+                let pool = self.get_pool();
+                op_muta_numb_func_cpu_rayon(a, la, b, f, pool)
             }
         }
 
@@ -119,8 +119,8 @@ macro_rules! macro_impl_rayon_op_with_func {
             F: Fn(&mut T) + ?Sized + Send + Sync,
         {
             fn op_muta_func(&self, a: &mut Vec<T>, la: &Layout<D>, f: &mut F) -> Result<()> {
-                let nthreads = self.get_num_threads();
-                op_muta_func_cpu_rayon(a, la, f, nthreads)
+                let pool = self.get_pool();
+                op_muta_func_cpu_rayon(a, la, f, pool)
             }
         }
 
