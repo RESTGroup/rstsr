@@ -1,7 +1,8 @@
 use crate::prelude_dev::*;
+use core::sync::atomic::{AtomicUsize, Ordering};
 
-pub static MIN_PRINT: usize = 3;
-pub static MAX_PRINT: usize = 8;
+pub static MIN_PRINT: AtomicUsize = AtomicUsize::new(3);
+pub static MAX_PRINT: AtomicUsize = AtomicUsize::new(8);
 
 pub struct FnPrintVecWithLayout<'v, 'l, 'f1, 'f2, T, D>
 where
@@ -217,8 +218,8 @@ where
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let vec = self.storage().to_cpu_vec().unwrap();
         let layout = &self.layout();
-        let max_print = MAX_PRINT;
-        let min_print = MIN_PRINT;
+        let max_print = MAX_PRINT.load(Ordering::Relaxed);
+        let min_print = MIN_PRINT.load(Ordering::Relaxed);
         print_vec_with_layout(f, &vec, layout, max_print, min_print)
     }
 }
@@ -428,8 +429,8 @@ where
         writeln!(f, "\n=== Debug Tensor Print ===")?;
         let vec = self.storage().to_cpu_vec().unwrap();
         let layout = &self.layout();
-        let max_print = MAX_PRINT;
-        let min_print = MIN_PRINT;
+        let max_print = MAX_PRINT.load(Ordering::Relaxed);
+        let min_print = MIN_PRINT.load(Ordering::Relaxed);
         print_vec_with_layout_debug(f, &vec, layout, max_print, min_print)?;
         writeln!(f)?;
         Debug::fmt(&self.device(), f)?;
@@ -462,7 +463,9 @@ mod playground {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             let vec = self.0.as_slice();
             let layout = &self.1;
-            print_vec_with_layout(f, vec, layout, MAX_PRINT, MIN_PRINT)
+            let max_print = MAX_PRINT.load(Ordering::Relaxed);
+            let min_print = MIN_PRINT.load(Ordering::Relaxed);
+            print_vec_with_layout(f, vec, layout, max_print, min_print)
         }
     }
 
