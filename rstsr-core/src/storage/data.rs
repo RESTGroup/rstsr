@@ -219,7 +219,7 @@ where
 
 impl<C> DataAPI for DataRef<'_, C>
 where
-    C: Clone,
+    C: Clone + ?Sized,
 {
     type Data = C;
 
@@ -236,8 +236,7 @@ where
         match self {
             DataRef::TrueRef(raw) => DataOwned::from(raw.clone()),
             DataRef::ManuallyDropOwned(raw) => {
-                let v = ManuallyDrop::into_inner(raw);
-                DataOwned::from(v.clone())
+                DataOwned::from(ManuallyDrop::into_inner(raw.clone()))
             },
         }
     }
@@ -246,10 +245,7 @@ where
     fn into_shared(self) -> DataArc<Self::Data> {
         match self {
             DataRef::TrueRef(raw) => DataArc::from(raw.clone()),
-            DataRef::ManuallyDropOwned(raw) => {
-                let v = ManuallyDrop::into_inner(raw);
-                DataArc::from(v.clone())
-            },
+            DataRef::ManuallyDropOwned(raw) => DataArc::from(ManuallyDrop::into_inner(raw.clone())),
         }
     }
 }
@@ -273,8 +269,7 @@ where
         match self {
             DataMut::TrueRef(raw) => DataOwned::from(raw.clone()),
             DataMut::ManuallyDropOwned(raw) => {
-                let v = ManuallyDrop::into_inner(raw);
-                DataOwned::from(v.clone())
+                DataOwned::from(ManuallyDrop::into_inner(raw.clone()))
             },
         }
     }
@@ -283,10 +278,7 @@ where
     fn into_shared(self) -> DataArc<Self::Data> {
         match self {
             DataMut::TrueRef(raw) => DataArc::from(raw.clone()),
-            DataMut::ManuallyDropOwned(raw) => {
-                let v = ManuallyDrop::into_inner(raw);
-                DataArc::from(v.clone())
-            },
+            DataMut::ManuallyDropOwned(raw) => DataArc::from(ManuallyDrop::into_inner(raw.clone())),
         }
     }
 }
