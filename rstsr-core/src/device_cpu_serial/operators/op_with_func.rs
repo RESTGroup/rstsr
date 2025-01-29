@@ -28,23 +28,22 @@ where
 
     // contiguous iteration if possible, otherwise use iterator of layout
     if size_contig >= CONTIG_SWITCH {
-        let iter_c = IterLayoutColMajor::new(&layouts_contig[0])?;
-        let iter_a = IterLayoutColMajor::new(&layouts_contig[1])?;
-        let iter_b = IterLayoutColMajor::new(&layouts_contig[2])?;
-        for (idx_c, idx_a, idx_b) in izip!(iter_c, iter_a, iter_b) {
+        let lc = &layouts_contig[0];
+        let la = &layouts_contig[1];
+        let lb = &layouts_contig[2];
+        layout_col_major_dim_dispatch_3(lc, la, lb, |(idx_c, idx_a, idx_b)| {
             for i in 0..size_contig {
                 f(&mut c[idx_c + i], &a[idx_a + i], &b[idx_b + i]);
             }
-        }
+        })
     } else {
-        let iter_c = IterLayoutColMajor::new(&layouts_full[0])?;
-        let iter_a = IterLayoutColMajor::new(&layouts_full[1])?;
-        let iter_b = IterLayoutColMajor::new(&layouts_full[2])?;
-        for (idx_c, idx_a, idx_b) in izip!(iter_c, iter_a, iter_b) {
+        let lc = &layouts_full[0];
+        let la = &layouts_full[1];
+        let lb = &layouts_full[2];
+        layout_col_major_dim_dispatch_3(lc, la, lb, |(idx_c, idx_a, idx_b)| {
             f(&mut c[idx_c], &a[idx_a], &b[idx_b]);
-        }
+        })
     }
-    return Ok(());
 }
 
 pub fn op_mutc_refa_numb_func_cpu_serial<TA, TB, TC, D>(
@@ -65,21 +64,20 @@ where
 
     // contiguous iteration if possible, otherwise use iterator of layout
     if size_contig >= CONTIG_SWITCH {
-        let iter_c = IterLayoutColMajor::new(&layouts_contig[0])?;
-        let iter_a = IterLayoutColMajor::new(&layouts_contig[1])?;
-        for (idx_c, idx_a) in izip!(iter_c, iter_a) {
+        let lc = &layouts_contig[0];
+        let la = &layouts_contig[1];
+        layout_col_major_dim_dispatch_2(lc, la, |(idx_c, idx_a)| {
             for i in 0..size_contig {
                 f(&mut c[idx_c + i], &a[idx_a + i], &b);
             }
-        }
+        })
     } else {
-        let iter_c = IterLayoutColMajor::new(&layouts_full[0])?;
-        let iter_a = IterLayoutColMajor::new(&layouts_full[1])?;
-        for (idx_c, idx_a) in izip!(iter_c, iter_a) {
+        let lc = &layouts_full[0];
+        let la = &layouts_full[1];
+        layout_col_major_dim_dispatch_2(lc, la, |(idx_c, idx_a)| {
             f(&mut c[idx_c], &a[idx_a], &b);
-        }
+        })
     }
-    return Ok(());
 }
 
 pub fn op_mutc_numa_refb_func_cpu_serial<TA, TB, TC, D>(
@@ -100,21 +98,20 @@ where
 
     // contiguous iteration if possible, otherwise use iterator of layout
     if size_contig >= CONTIG_SWITCH {
-        let iter_c = IterLayoutColMajor::new(&layouts_contig[0])?;
-        let iter_b = IterLayoutColMajor::new(&layouts_contig[1])?;
-        for (idx_c, idx_b) in izip!(iter_c, iter_b) {
+        let lc = &layouts_contig[0];
+        let lb = &layouts_contig[1];
+        layout_col_major_dim_dispatch_2(lc, lb, |(idx_c, idx_b)| {
             for i in 0..size_contig {
                 f(&mut c[idx_c + i], &a, &b[idx_b + i]);
             }
-        }
+        })
     } else {
-        let iter_c = IterLayoutColMajor::new(&layouts_full[0])?;
-        let iter_b = IterLayoutColMajor::new(&layouts_full[1])?;
-        for (idx_c, idx_b) in izip!(iter_c, iter_b) {
+        let lc = &layouts_full[0];
+        let lb = &layouts_full[1];
+        layout_col_major_dim_dispatch_2(lc, lb, |(idx_c, idx_b)| {
             f(&mut c[idx_c], &a, &b[idx_b]);
-        }
+        })
     }
-    return Ok(());
 }
 
 pub fn op_muta_refb_func_cpu_serial<TA, TB, D>(
@@ -134,21 +131,20 @@ where
 
     // contiguous iteration if possible, otherwise use iterator of layout
     if size_contig >= CONTIG_SWITCH {
-        let iter_a = IterLayoutColMajor::new(&layouts_contig[0])?;
-        let iter_b = IterLayoutColMajor::new(&layouts_contig[1])?;
-        for (idx_a, idx_b) in izip!(iter_a, iter_b) {
+        let la = &layouts_contig[0];
+        let lb = &layouts_contig[1];
+        layout_col_major_dim_dispatch_2(la, lb, |(idx_a, idx_b)| {
             for i in 0..size_contig {
                 f(&mut a[idx_a + i], &b[idx_b + i]);
             }
-        }
+        })
     } else {
-        let iter_a = IterLayoutColMajor::new(&layouts_full[0])?;
-        let iter_b = IterLayoutColMajor::new(&layouts_full[1])?;
-        for (idx_a, idx_b) in izip!(iter_a, iter_b) {
+        let la = &layouts_full[0];
+        let lb = &layouts_full[1];
+        layout_col_major_dim_dispatch_2(la, lb, |(idx_a, idx_b)| {
             f(&mut a[idx_a], &b[idx_b]);
-        }
+        })
     }
-    return Ok(());
 }
 
 pub fn op_muta_numb_func_cpu_serial<TA, TB, D>(
@@ -164,19 +160,18 @@ where
     let (layout_contig, size_contig) = translate_to_col_major_with_contig(&[&layout]);
 
     if size_contig >= CONTIG_SWITCH {
-        let iter_a = IterLayoutColMajor::new(&layout_contig[0])?;
-        for idx_a in iter_a {
+        let la = &layout_contig[0];
+        layout_col_major_dim_dispatch_1(la, |idx_a| {
             for i in 0..size_contig {
                 f(&mut a[idx_a + i], &b);
             }
-        }
+        })
     } else {
-        let iter_a = IterLayoutColMajor::new(&layout)?;
-        for idx_a in iter_a {
+        let la = &layout;
+        layout_col_major_dim_dispatch_1(la, |idx_a| {
             f(&mut a[idx_a], &b);
-        }
+        })
     }
-    return Ok(());
 }
 
 pub fn op_muta_func_cpu_serial<T, D>(
@@ -191,19 +186,18 @@ where
     let (layout_contig, size_contig) = translate_to_col_major_with_contig(&[&layout]);
 
     if size_contig >= CONTIG_SWITCH {
-        let iter_a = IterLayoutColMajor::new(&layout_contig[0])?;
-        for idx_a in iter_a {
+        let la = &layout_contig[0];
+        layout_col_major_dim_dispatch_1(la, |idx_a| {
             for i in 0..size_contig {
                 f(&mut a[idx_a + i]);
             }
-        }
+        })
     } else {
-        let iter_a = IterLayoutColMajor::new(&layout)?;
-        for idx_a in iter_a {
+        let la = &layout;
+        layout_col_major_dim_dispatch_1(la, |idx_a| {
             f(&mut a[idx_a]);
-        }
+        })
     }
-    return Ok(());
 }
 
 /* #endregion */

@@ -57,7 +57,7 @@ where
                     f(&mut *c_ptr.add(idx), &a[idx_a + idx], &b[idx_b + idx]);
                 });
             };
-            pool.install(|| layout_col_major_dim_dispatch_3(lc, la, lb, func))
+            pool.install(|| layout_col_major_dim_dispatch_par_3(lc, la, lb, func))
         } else {
             // parallel inner iteration
             let func = |(idx_c, idx_a, idx_b)| unsafe {
@@ -66,7 +66,7 @@ where
                     f(&mut *c_ptr, &a[idx_a + idx], &b[idx_b + idx]);
                 });
             };
-            pool.install(|| layout_col_major_dim_dispatch_3(lc, la, lb, func))
+            pool.install(|| layout_col_major_dim_dispatch_par_3(lc, la, lb, func))
         }
     } else {
         // not possible for contiguous assign
@@ -77,7 +77,7 @@ where
             let c_ptr = c.as_ptr() as *mut TC;
             f(&mut *c_ptr.add(idx_c), &a[idx_a], &b[idx_b]);
         };
-        pool.install(|| layout_col_major_dim_dispatch_3(lc, la, lb, func))
+        pool.install(|| layout_col_major_dim_dispatch_par_3(lc, la, lb, func))
     }
 }
 
@@ -122,7 +122,7 @@ where
                     f(&mut *c_ptr.add(idx), &a[idx_a + idx], &b);
                 });
             };
-            pool.install(|| layout_col_major_dim_dispatch_2(lc, la, func))
+            pool.install(|| layout_col_major_dim_dispatch_par_2(lc, la, func))
         } else {
             // parallel inner iteration
             let func = |(idx_c, idx_a)| unsafe {
@@ -131,7 +131,7 @@ where
                     f(&mut *c_ptr, &a[idx_a + idx], &b);
                 });
             };
-            pool.install(|| layout_col_major_dim_dispatch_2(lc, la, func))
+            pool.install(|| layout_col_major_dim_dispatch_par_2(lc, la, func))
         }
     } else {
         // not possible for contiguous assign
@@ -141,7 +141,7 @@ where
             let c_ptr = c.as_ptr() as *mut TC;
             f(&mut *c_ptr.add(idx_c), &a[idx_a], &b);
         };
-        pool.install(|| layout_col_major_dim_dispatch_2(lc, la, func))
+        pool.install(|| layout_col_major_dim_dispatch_par_2(lc, la, func))
     }
 }
 
@@ -186,7 +186,7 @@ where
                     f(&mut *c_ptr.add(idx), &a, &b[idx_b + idx]);
                 });
             };
-            pool.install(|| layout_col_major_dim_dispatch_2(lc, lb, func))
+            pool.install(|| layout_col_major_dim_dispatch_par_2(lc, lb, func))
         } else {
             // parallel inner iteration
             let func = |(idx_c, idx_b)| unsafe {
@@ -195,7 +195,7 @@ where
                     f(&mut *c_ptr, &a, &b[idx_b + idx]);
                 });
             };
-            pool.install(|| layout_col_major_dim_dispatch_2(lc, lb, func))
+            pool.install(|| layout_col_major_dim_dispatch_par_2(lc, lb, func))
         }
     } else {
         // not possible for contiguous assign
@@ -205,7 +205,7 @@ where
             let c_ptr = c.as_ptr() as *mut TC;
             f(&mut *c_ptr.add(idx_c), &a, &b[idx_b]);
         };
-        pool.install(|| layout_col_major_dim_dispatch_2(lc, lb, func))
+        pool.install(|| layout_col_major_dim_dispatch_par_2(lc, lb, func))
     }
 }
 
@@ -248,7 +248,7 @@ where
                     f(&mut *a_ptr.add(idx), &b[idx_b + idx]);
                 });
             };
-            pool.install(|| layout_col_major_dim_dispatch_2(la, lb, func))
+            pool.install(|| layout_col_major_dim_dispatch_par_2(la, lb, func))
         } else {
             // parallel inner iteration
             let func = |(idx_a, idx_b)| unsafe {
@@ -257,7 +257,7 @@ where
                     f(&mut *a_ptr, &b[idx_b + idx]);
                 });
             };
-            pool.install(|| layout_col_major_dim_dispatch_2(la, lb, func))
+            pool.install(|| layout_col_major_dim_dispatch_par_2(la, lb, func))
         }
     } else {
         // not possible for contiguous assign
@@ -267,7 +267,7 @@ where
             let a_ptr = a.as_ptr() as *mut TA;
             f(&mut *a_ptr.add(idx_a), &b[idx_b]);
         };
-        pool.install(|| layout_col_major_dim_dispatch_2(la, lb, func))
+        pool.install(|| layout_col_major_dim_dispatch_par_2(la, lb, func))
     }
 }
 
@@ -307,7 +307,7 @@ where
                     f(&mut *a_ptr.add(idx), &b);
                 });
             };
-            pool.install(|| layout_col_major_dim_dispatch_1(la, func))
+            pool.install(|| layout_col_major_dim_dispatch_par_1(la, func))
         } else {
             // parallel inner iteration
             let func = |idx_a| unsafe {
@@ -316,7 +316,7 @@ where
                     f(&mut *a_ptr, &b);
                 });
             };
-            pool.install(|| layout_col_major_dim_dispatch_1(la, func))
+            pool.install(|| layout_col_major_dim_dispatch_par_1(la, func))
         }
     } else {
         // not possible for contiguous assign
@@ -324,7 +324,7 @@ where
             let a_ptr = a.as_ptr() as *mut TA;
             f(&mut *a_ptr.add(idx_a), &b);
         };
-        pool.install(|| layout_col_major_dim_dispatch_1(&layout, func))
+        pool.install(|| layout_col_major_dim_dispatch_par_1(&layout, func))
     }
 }
 
@@ -361,7 +361,7 @@ where
                     f(&mut *a_ptr.add(idx));
                 });
             };
-            pool.install(|| layout_col_major_dim_dispatch_1(la, func))
+            pool.install(|| layout_col_major_dim_dispatch_par_1(la, func))
         } else {
             // parallel inner iteration
             let func = |idx_a| unsafe {
@@ -370,13 +370,13 @@ where
                     f(&mut *a_ptr);
                 });
             };
-            pool.install(|| layout_col_major_dim_dispatch_1(la, func))
+            pool.install(|| layout_col_major_dim_dispatch_par_1(la, func))
         }
     } else {
         let func = |idx_a| unsafe {
             let a_ptr = a.as_ptr() as *mut T;
             f(&mut *a_ptr.add(idx_a));
         };
-        pool.install(|| layout_col_major_dim_dispatch_1(&layout, func))
+        pool.install(|| layout_col_major_dim_dispatch_par_1(&layout, func))
     }
 }

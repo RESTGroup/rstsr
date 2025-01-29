@@ -33,12 +33,9 @@ where
         // generate col-major iterator
         let lc = translate_to_col_major_unary(lc, order)?;
         let la = translate_to_col_major_unary(la, order)?;
-        let iter_c = IterLayoutColMajor::new(&lc)?;
-        let iter_a = IterLayoutColMajor::new(&la)?;
-        // iterate and assign
-        for (idx_c, idx_a) in izip!(iter_c, iter_a) {
-            c[idx_c] = a[idx_a].clone();
-        }
+        layout_col_major_dim_dispatch_2diff(&lc, &la, |(idx_c, idx_a)| {
+            c[idx_c] = a[idx_a].clone()
+        })?;
     }
     return Ok(());
 }
@@ -53,17 +50,15 @@ where
     let (layouts_contig, size_contig) = translate_to_col_major_with_contig(&layouts_full_ref);
 
     if size_contig >= CONTIG_SWITCH {
-        let iter_c = IterLayoutColMajor::new(&layouts_contig[0])?;
-        let iter_a = IterLayoutColMajor::new(&layouts_contig[1])?;
-        for (idx_c, idx_a) in izip!(iter_c, iter_a) {
+        let lc = &layouts_contig[0];
+        let la = &layouts_contig[1];
+        layout_col_major_dim_dispatch_2(lc, la, |(idx_c, idx_a)| {
             c[idx_c..(idx_c + size_contig)].clone_from_slice(&a[idx_a..(idx_a + size_contig)]);
-        }
+        })?;
     } else {
-        let iter_c = IterLayoutColMajor::new(&layouts_full[0])?;
-        let iter_a = IterLayoutColMajor::new(&layouts_full[1])?;
-        for (idx_c, idx_a) in izip!(iter_c, iter_a) {
-            c[idx_c] = a[idx_a].clone();
-        }
+        let lc = &layouts_full[0];
+        let la = &layouts_full[1];
+        layout_col_major_dim_dispatch_2(lc, la, |(idx_c, idx_a)| c[idx_c] = a[idx_a].clone())?;
     }
     return Ok(());
 }
@@ -78,17 +73,15 @@ where
     let (layouts_contig, size_contig) = translate_to_col_major_with_contig(&layouts_full_ref);
 
     if size_contig > CONTIG_SWITCH {
-        let iter_c = IterLayoutColMajor::new(&layouts_contig[0])?;
-        for idx_c in iter_c {
+        layout_col_major_dim_dispatch_1(&layouts_contig[0], |idx_c| {
             for i in 0..size_contig {
                 c[idx_c + i] = fill.clone();
             }
-        }
+        })?;
     } else {
-        let iter_c = IterLayoutColMajor::new(&layouts_full[0])?;
-        for idx_c in iter_c {
+        layout_col_major_dim_dispatch_1(&layouts_full[0], |idx_c| {
             c[idx_c] = fill.clone();
-        }
+        })?;
     }
     return Ok(());
 }

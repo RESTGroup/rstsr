@@ -1,5 +1,4 @@
 use crate::prelude_dev::*;
-use rayon::prelude::*;
 
 // this value is used to determine whether to use contiguous inner iteration
 const CONTIG_SWITCH: usize = 16;
@@ -52,15 +51,12 @@ where
         // generate col-major iterator
         let lc = translate_to_col_major_unary(lc, order)?;
         let la = translate_to_col_major_unary(la, order)?;
-        let iter_c = IterLayoutColMajor::new(&lc)?;
-        let iter_a = IterLayoutColMajor::new(&la)?;
         // iterate and assign
-        pool.install(|| {
-            (iter_c, iter_a).into_par_iter().for_each(|(idx_c, idx_a)| unsafe {
-                let c_ptr = c.as_ptr() as *mut T;
-                *c_ptr.add(idx_c) = a[idx_a].clone();
-            });
-        });
+        let func = |(idx_c, idx_a): (usize, usize)| unsafe {
+            let c_ptr = c.as_ptr() as *mut T;
+            *c_ptr.add(idx_c) = a[idx_a].clone();
+        };
+        pool.install(|| layout_col_major_dim_dispatch_par_2diff(&lc, &la, func))?;
     }
     return Ok(());
 }
@@ -91,26 +87,24 @@ where
     // actual parallel iteration
     if size_contig < CONTIG_SWITCH {
         // not possible for contiguous assign
-        let iter_c = IterLayoutColMajor::new(&layouts_full[0])?;
-        let iter_a = IterLayoutColMajor::new(&layouts_full[1])?;
-        pool.install(|| {
-            (iter_c, iter_a).into_par_iter().for_each(|(idx_c, idx_a)| unsafe {
-                let c_ptr = c.as_ptr() as *mut T;
-                *c_ptr.add(idx_c) = a[idx_a].clone();
-            });
-        });
+        let lc = &layouts_full[0];
+        let la = &layouts_full[1];
+        let func = |(idx_c, idx_a): (usize, usize)| unsafe {
+            let c_ptr = c.as_ptr() as *mut T;
+            *c_ptr.add(idx_c) = a[idx_a].clone();
+        };
+        pool.install(|| layout_col_major_dim_dispatch_par_2(&lc, &la, func))?;
     } else {
         // parallel for outer iteration
-        let iter_c = IterLayoutColMajor::new(&layouts_contig[0])?;
-        let iter_a = IterLayoutColMajor::new(&layouts_contig[1])?;
-        pool.install(|| {
-            (iter_c, iter_a).into_par_iter().for_each(|(idx_c, idx_a)| unsafe {
-                let c_ptr = c.as_ptr().add(idx_c) as *mut T;
-                (0..size_contig).for_each(|idx| {
-                    *c_ptr.add(idx) = a[idx_a + idx].clone();
-                })
-            });
-        });
+        let lc = &layouts_contig[0];
+        let la = &layouts_contig[1];
+        let func = |(idx_c, idx_a): (usize, usize)| unsafe {
+            let c_ptr = c.as_ptr().add(idx_c) as *mut T;
+            (0..size_contig).for_each(|idx| {
+                *c_ptr.add(idx) = a[idx_a + idx].clone();
+            })
+        };
+        pool.install(|| layout_col_major_dim_dispatch_par_2(&lc, &la, func))?;
     }
     return Ok(());
 }
@@ -140,24 +134,22 @@ where
     // actual parallel iteration
     if size_contig < CONTIG_SWITCH {
         // not possible for contiguous fill
-        let iter_c = IterLayoutColMajor::new(&layouts_full[0])?;
-        pool.install(|| {
-            (iter_c).into_par_iter().for_each(|idx_c| unsafe {
-                let c_ptr = c.as_ptr() as *mut T;
-                *c_ptr.add(idx_c) = fill.clone();
-            });
-        });
+        let lc = &layouts_full[0];
+        let func = |idx_c| unsafe {
+            let c_ptr = c.as_ptr() as *mut T;
+            *c_ptr.add(idx_c) = fill.clone();
+        };
+        pool.install(|| layout_col_major_dim_dispatch_par_1(&lc, func))?;
     } else {
         // parallel for outer iteration
-        let iter_c = IterLayoutColMajor::new(&layouts_contig[0])?;
-        pool.install(|| {
-            (iter_c).into_par_iter().for_each(|idx_c| unsafe {
-                let c_ptr = c.as_ptr().add(idx_c) as *mut T;
-                (0..size_contig).for_each(|idx| {
-                    *c_ptr.add(idx) = fill.clone();
-                })
-            });
-        });
+        let lc = &layouts_contig[0];
+        let func = |idx_c| unsafe {
+            let c_ptr = c.as_ptr().add(idx_c) as *mut T;
+            (0..size_contig).for_each(|idx| {
+                *c_ptr.add(idx) = fill.clone();
+            })
+        };
+        pool.install(|| layout_col_major_dim_dispatch_par_1(&lc, func))?;
     }
     return Ok(());
 }

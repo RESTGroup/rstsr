@@ -62,12 +62,11 @@ where
 
     if size_contig >= CONTIG_SWITCH {
         let mut acc = init();
-        let iter_a = IterLayoutColMajor::new(&layout_contig[0])?;
-        for idx_a in iter_a {
+        layout_col_major_dim_dispatch_1(&layout_contig[0], |idx_a| {
             let slc = &a[idx_a..idx_a + size_contig];
             let acc_inner = unrolled_reduce(slc, &init, &f);
-            acc = f(acc, acc_inner);
-        }
+            acc = f(acc.clone(), acc_inner);
+        })?;
         return Ok(acc);
     } else {
         let iter_a = IterLayoutColMajor::new(&layout)?;
