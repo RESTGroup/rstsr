@@ -79,6 +79,7 @@ macro_rules! impl_change_device {
 }
 
 impl_change_device!(DeviceCpuSerial);
+#[cfg(feature = "faer")]
 impl_change_device!(DeviceFaer);
 
 #[cfg(test)]
@@ -99,6 +100,7 @@ mod test {
     }
 
     #[test]
+    #[cfg(feature = "faer")]
     fn test_device_conversion_faer() {
         let device_faer = DeviceFaer::new(0);
         let device_openblas = DeviceOpenBLAS::new(0);

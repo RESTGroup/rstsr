@@ -969,7 +969,7 @@ where
     } else if TensorOrder::default() == TensorOrder::F && layout.f_contig() {
         shape.new_f_contig(Some(layout.offset))
     } else {
-        rstsr_raise!(InvalidLayout, "Assumes contiguous layout depends on `c_prefer` feature.")?
+        rstsr_raise!(InvalidLayout, "Assumes contiguous layout depends on `f_prefer` feature.")?
     };
     unsafe { Ok(TensorBase::new_unchecked(storage, new_layout)) }
 }
@@ -977,7 +977,7 @@ where
 /// Assuming contiguous array, reshapes an array without changing its data.
 ///
 /// This function may return c-contiguous or f-contiguous array depending on
-/// crate feature `c_prefer`.
+/// crate feature `f_prefer`.
 ///
 /// # See also
 ///

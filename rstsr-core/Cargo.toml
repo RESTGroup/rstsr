@@ -21,9 +21,9 @@ criterion = { workspace = true }
 cpu-time = { workspace = true }
 
 [features]
-default = ["c_prefer", "faer", "faer_as_default"]
+default = ["faer", "faer_as_default"]
 std = []
-c_prefer = []
+f_prefer = []  # NOTE: THIS FEATURE IS NOT STABLE
 rayon = ["dep:rayon"]
 faer = ["rayon", "dep:faer", "dep:faer-ext", "dep:faer-entity"]
 faer_as_default = []

@@ -44,11 +44,16 @@ macro_rules! impl_changeable_default {
 ///
 /// # Default
 ///
-/// Default order depends on cargo feature `c_prefer`.
-/// If `c_prefer` is set, then [`TensorOrder::C`] is applied as default;
-/// otherwise [`TensorOrder::F`] is applied as default.
+/// Default order depends on cargo feature `f_prefer`.
+/// If `f_prefer` is set, then [`TensorOrder::F`] is applied as default;
+/// otherwise [`TensorOrder::C`] is applied as default.
 ///
 /// You may change default value by [`TensorOrder::change_default`].
+///
+/// # IMPORTANT NOTE
+///
+/// F-prefer is not a stable feature currently! We develop only in C-prefer
+/// currently.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TensorOrder {
     /// row-major order.
@@ -60,7 +65,7 @@ pub enum TensorOrder {
 impl_changeable_default!(
     TensorOrder,
     DEFAULT_TENSOR_ORDER,
-    if cfg!(feature = "c_prefer") { TensorOrder::C } else { TensorOrder::F }
+    if cfg!(feature = "f_prefer") { TensorOrder::F } else { TensorOrder::C }
 );
 
 /* #endregion */
@@ -84,7 +89,7 @@ pub enum TensorIterOrder {
     /// - try c/f-prefer second (also see [`TensorIterOrder::C`],
     ///   [`TensorIterOrder::F`]),
     /// - otherwise [`TensorOrder::default()`], which is defined by crate
-    ///   feature `c_prefer`.
+    ///   feature `f_prefer`.
     ///
     /// - safe for multi-array iteration like `get_iter(a, b)`
     /// - not safe for cases like `a.iter().zip(b.iter())`

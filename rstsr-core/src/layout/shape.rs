@@ -51,7 +51,7 @@ pub trait DimShapeAPI: DimBaseAPI {
     /// # Cargo feature dependent
     ///
     /// Whether c-contiguous or f-contiguous will depends on cargo feature
-    /// `c_prefer`.
+    /// `f_prefer`.
     fn stride_contig(&self) -> Self::Stride;
 
     /// Index (col-major) of tensor by list of indexes.

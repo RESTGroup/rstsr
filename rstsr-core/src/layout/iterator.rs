@@ -18,7 +18,7 @@ use crate::prelude_dev::*;
 /// intended to be exposed to user.
 /// Choosing col-major iterator is because it is possibly the most efficient
 /// way. It is not related to default order, which could be defined by crate
-/// feature `c_prefer`.
+/// feature `f_prefer`.
 #[derive(Clone, Debug)]
 pub struct IterLayoutColMajor<D>
 where
