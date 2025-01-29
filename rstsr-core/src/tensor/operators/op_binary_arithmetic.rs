@@ -69,37 +69,37 @@ pub use trait_binary_arithmetic::*;
 
 macro_rules! impl_core_ops {
     ($op: ident, $DeviceOpAPI: ident, $TensorOpAPI: ident, $Op: ident) => {
-        impl<SA, DA, TRB, TRC> $Op<TRB> for &TensorBase<SA, DA>
+        impl<SA, DA, TRB> $Op<TRB> for &TensorBase<SA, DA>
         where
             DA: DimAPI,
-            Self: $TensorOpAPI<TRB, Output = TRC>,
+            Self: $TensorOpAPI<TRB>,
         {
-            type Output = TRC;
-            fn $op(self, b: TRB) -> TRC {
+            type Output = <Self as $TensorOpAPI<TRB>>::Output;
+            fn $op(self, b: TRB) -> Self::Output {
                 $TensorOpAPI::$op(self, b)
             }
         }
 
-        impl<'a, TA, DA, B, TRB, TRC> $Op<TRB> for TensorView<'a, TA, B, DA>
+        impl<'a, TA, DA, B, TRB> $Op<TRB> for TensorView<'a, TA, B, DA>
         where
             DA: DimAPI,
             B: DeviceAPI<TA>,
-            Self: $TensorOpAPI<TRB, Output = TRC>,
+            Self: $TensorOpAPI<TRB>,
         {
-            type Output = TRC;
-            fn $op(self, b: TRB) -> TRC {
+            type Output = <Self as $TensorOpAPI<TRB>>::Output;
+            fn $op(self, b: TRB) -> Self::Output {
                 $TensorOpAPI::$op(self, b)
             }
         }
 
-        impl<TA, DA, B, TRB, TRC> $Op<TRB> for Tensor<TA, B, DA>
+        impl<TA, DA, B, TRB> $Op<TRB> for Tensor<TA, B, DA>
         where
             DA: DimAPI,
             B: DeviceAPI<TA>,
-            Self: $TensorOpAPI<TRB, Output = TRC>,
+            Self: $TensorOpAPI<TRB>,
         {
-            type Output = TRC;
-            fn $op(self, b: TRB) -> TRC {
+            type Output = <Self as $TensorOpAPI<TRB>>::Output;
+            fn $op(self, b: TRB) -> Self::Output {
                 $TensorOpAPI::$op(self, b)
             }
         }
@@ -1059,6 +1059,18 @@ mod tests_with_scalar {
         assert!(allclose_f64(&c, &c_ref));
         let c_ptr = c.raw().as_ptr();
         assert_eq!(a_ptr, c_ptr);
+    }
+
+    #[test]
+    fn test_scalar_consequent() {
+        let a = linspace((1.0, 5.0, 5));
+        let mut c = linspace((1.0, 5.0, 5));
+        // TODO: currently `let b = 2 * a` will give compiler error
+        // type must be known at this point
+        // I'm not sure why this happens, maybe rust's type inference problem?
+        let b = a * 2;
+        *&mut c.i_mut(1) += b.i(1);
+        println!("{:?}", c);
     }
 }
 
