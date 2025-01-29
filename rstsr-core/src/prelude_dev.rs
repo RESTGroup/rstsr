@@ -1,4 +1,5 @@
 extern crate alloc;
+pub use alloc::boxed::Box;
 pub use alloc::format;
 pub use alloc::string::{String, ToString};
 pub use alloc::vec;
@@ -48,6 +49,8 @@ pub use crate::feature_rayon::assignment::*;
 pub use crate::feature_rayon::device::*;
 #[cfg(feature = "rayon")]
 pub use crate::feature_rayon::op_with_func::*;
+#[cfg(feature = "rayon")]
+pub use crate::feature_rayon::par_iter::*;
 
 #[cfg(feature = "faer")]
 pub use crate::device_faer::device::*;

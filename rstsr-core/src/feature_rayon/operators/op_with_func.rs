@@ -46,43 +46,39 @@ where
     // actual parallel iteration
     if size_contig >= CONTIG_SWITCH {
         // parallel for outer iteration
-        let iter_c = IterLayoutColMajor::new(&layouts_outer[0])?;
-        let iter_a = IterLayoutColMajor::new(&layouts_outer[1])?;
-        let iter_b = IterLayoutColMajor::new(&layouts_outer[2])?;
+        let lc = &layouts_outer[0];
+        let la = &layouts_outer[1];
+        let lb = &layouts_outer[2];
         if size_contig < PARALLEL_SWITCH * nthreads {
             // not parallel inner iteration
-            pool.install(|| {
-                (iter_c, iter_a, iter_b).into_par_iter().for_each(|(idx_c, idx_a, idx_b)| unsafe {
-                    let c_ptr = c.as_ptr().add(idx_c) as *mut TC;
-                    (0..size_contig).for_each(|idx| {
-                        f(&mut *c_ptr.add(idx), &a[idx_a + idx], &b[idx_b + idx]);
-                    });
+            let func = |(idx_c, idx_a, idx_b)| unsafe {
+                let c_ptr = c.as_ptr().add(idx_c) as *mut TC;
+                (0..size_contig).for_each(|idx| {
+                    f(&mut *c_ptr.add(idx), &a[idx_a + idx], &b[idx_b + idx]);
                 });
-            });
+            };
+            pool.install(|| layout_col_major_dim_dispatch_3(lc, la, lb, func))
         } else {
             // parallel inner iteration
-            pool.install(|| {
-                (iter_c, iter_a, iter_b).into_par_iter().for_each(|(idx_c, idx_a, idx_b)| unsafe {
-                    (0..size_contig).into_par_iter().for_each(|idx| {
-                        let c_ptr = c.as_ptr().add(idx_c + idx) as *mut TC;
-                        f(&mut *c_ptr, &a[idx_a + idx], &b[idx_b + idx]);
-                    });
+            let func = |(idx_c, idx_a, idx_b)| unsafe {
+                (0..size_contig).into_par_iter().for_each(|idx| {
+                    let c_ptr = c.as_ptr().add(idx_c + idx) as *mut TC;
+                    f(&mut *c_ptr, &a[idx_a + idx], &b[idx_b + idx]);
                 });
-            });
+            };
+            pool.install(|| layout_col_major_dim_dispatch_3(lc, la, lb, func))
         }
     } else {
         // not possible for contiguous assign
-        let iter_c = IterLayoutColMajor::new(&layouts_full[0])?;
-        let iter_a = IterLayoutColMajor::new(&layouts_full[1])?;
-        let iter_b = IterLayoutColMajor::new(&layouts_full[2])?;
-        pool.install(|| {
-            (iter_c, iter_a, iter_b).into_par_iter().for_each(|(idx_c, idx_a, idx_b)| unsafe {
-                let c_ptr = c.as_ptr() as *mut TC;
-                f(&mut *c_ptr.add(idx_c), &a[idx_a], &b[idx_b]);
-            });
-        });
+        let lc = &layouts_full[0];
+        let la = &layouts_full[1];
+        let lb = &layouts_full[2];
+        let func = |(idx_c, idx_a, idx_b)| unsafe {
+            let c_ptr = c.as_ptr() as *mut TC;
+            f(&mut *c_ptr.add(idx_c), &a[idx_a], &b[idx_b]);
+        };
+        pool.install(|| layout_col_major_dim_dispatch_3(lc, la, lb, func))
     }
-    return Ok(());
 }
 
 pub fn op_mutc_refa_numb_func_cpu_rayon<TA, TB, TC, D, F>(
@@ -116,41 +112,37 @@ where
     // actual parallel iteration
     if size_contig >= CONTIG_SWITCH {
         // parallel for outer iteration
-        let iter_c = IterLayoutColMajor::new(&layouts_outer[0])?;
-        let iter_a = IterLayoutColMajor::new(&layouts_outer[1])?;
+        let lc = &layouts_outer[0];
+        let la = &layouts_outer[1];
         if size_contig < PARALLEL_SWITCH * nthreads {
             // not parallel inner iteration
-            pool.install(|| {
-                (iter_c, iter_a).into_par_iter().for_each(|(idx_c, idx_a)| unsafe {
-                    let c_ptr = c.as_ptr().add(idx_c) as *mut TC;
-                    (0..size_contig).for_each(|idx| {
-                        f(&mut *c_ptr.add(idx), &a[idx_a + idx], &b);
-                    });
+            let func = |(idx_c, idx_a)| unsafe {
+                let c_ptr = c.as_ptr().add(idx_c) as *mut TC;
+                (0..size_contig).for_each(|idx| {
+                    f(&mut *c_ptr.add(idx), &a[idx_a + idx], &b);
                 });
-            });
+            };
+            pool.install(|| layout_col_major_dim_dispatch_2(lc, la, func))
         } else {
             // parallel inner iteration
-            pool.install(|| {
-                (iter_c, iter_a).into_par_iter().for_each(|(idx_c, idx_a)| unsafe {
-                    (0..size_contig).into_par_iter().for_each(|idx| {
-                        let c_ptr = c.as_ptr().add(idx_c + idx) as *mut TC;
-                        f(&mut *c_ptr, &a[idx_a + idx], &b);
-                    });
+            let func = |(idx_c, idx_a)| unsafe {
+                (0..size_contig).into_par_iter().for_each(|idx| {
+                    let c_ptr = c.as_ptr().add(idx_c + idx) as *mut TC;
+                    f(&mut *c_ptr, &a[idx_a + idx], &b);
                 });
-            });
+            };
+            pool.install(|| layout_col_major_dim_dispatch_2(lc, la, func))
         }
     } else {
         // not possible for contiguous assign
-        let iter_c = IterLayoutColMajor::new(&layouts_full[0])?;
-        let iter_a = IterLayoutColMajor::new(&layouts_full[1])?;
-        pool.install(|| {
-            (iter_c, iter_a).into_par_iter().for_each(|(idx_c, idx_a)| unsafe {
-                let c_ptr = c.as_ptr() as *mut TC;
-                f(&mut *c_ptr.add(idx_c), &a[idx_a], &b);
-            });
-        });
+        let lc = &layouts_full[0];
+        let la = &layouts_full[1];
+        let func = |(idx_c, idx_a)| unsafe {
+            let c_ptr = c.as_ptr() as *mut TC;
+            f(&mut *c_ptr.add(idx_c), &a[idx_a], &b);
+        };
+        pool.install(|| layout_col_major_dim_dispatch_2(lc, la, func))
     }
-    return Ok(());
 }
 
 pub fn op_mutc_numa_refb_func_cpu_rayon<TA, TB, TC, D, F>(
@@ -184,41 +176,37 @@ where
     // actual parallel iteration
     if size_contig >= CONTIG_SWITCH {
         // parallel for outer iteration
-        let iter_c = IterLayoutColMajor::new(&layouts_outer[0])?;
-        let iter_b = IterLayoutColMajor::new(&layouts_outer[1])?;
+        let lc = &layouts_outer[0];
+        let lb = &layouts_outer[1];
         if size_contig < PARALLEL_SWITCH * nthreads {
             // not parallel inner iteration
-            pool.install(|| {
-                (iter_c, iter_b).into_par_iter().for_each(|(idx_c, idx_b)| unsafe {
-                    let c_ptr = c.as_ptr().add(idx_c) as *mut TC;
-                    (0..size_contig).for_each(|idx| {
-                        f(&mut *c_ptr.add(idx), &a, &b[idx_b + idx]);
-                    });
+            let func = |(idx_c, idx_b)| unsafe {
+                let c_ptr = c.as_ptr().add(idx_c) as *mut TC;
+                (0..size_contig).for_each(|idx| {
+                    f(&mut *c_ptr.add(idx), &a, &b[idx_b + idx]);
                 });
-            });
+            };
+            pool.install(|| layout_col_major_dim_dispatch_2(lc, lb, func))
         } else {
             // parallel inner iteration
-            pool.install(|| {
-                (iter_c, iter_b).into_par_iter().for_each(|(idx_c, idx_b)| unsafe {
-                    (0..size_contig).into_par_iter().for_each(|idx| {
-                        let c_ptr = c.as_ptr().add(idx_c + idx) as *mut TC;
-                        f(&mut *c_ptr, &a, &b[idx_b + idx]);
-                    });
+            let func = |(idx_c, idx_b)| unsafe {
+                (0..size_contig).into_par_iter().for_each(|idx| {
+                    let c_ptr = c.as_ptr().add(idx_c + idx) as *mut TC;
+                    f(&mut *c_ptr, &a, &b[idx_b + idx]);
                 });
-            });
+            };
+            pool.install(|| layout_col_major_dim_dispatch_2(lc, lb, func))
         }
     } else {
         // not possible for contiguous assign
-        let iter_c = IterLayoutColMajor::new(&layouts_full[0])?;
-        let iter_b = IterLayoutColMajor::new(&layouts_full[1])?;
-        pool.install(|| {
-            (iter_c, iter_b).into_par_iter().for_each(|(idx_c, idx_b)| unsafe {
-                let c_ptr = c.as_ptr() as *mut TC;
-                f(&mut *c_ptr.add(idx_c), &a, &b[idx_b]);
-            });
-        });
+        let lc = &layouts_full[0];
+        let lb = &layouts_full[1];
+        let func = |(idx_c, idx_b)| unsafe {
+            let c_ptr = c.as_ptr() as *mut TC;
+            f(&mut *c_ptr.add(idx_c), &a, &b[idx_b]);
+        };
+        pool.install(|| layout_col_major_dim_dispatch_2(lc, lb, func))
     }
-    return Ok(());
 }
 
 pub fn op_muta_refb_func_cpu_rayon<TA, TB, D, F>(
@@ -250,41 +238,37 @@ where
     // actual parallel iteration
     if size_contig >= CONTIG_SWITCH {
         // parallel for outer iteration
-        let iter_a = IterLayoutColMajor::new(&layouts_outer[0])?;
-        let iter_b = IterLayoutColMajor::new(&layouts_outer[1])?;
+        let la = &layouts_outer[0];
+        let lb = &layouts_outer[1];
         if size_contig < PARALLEL_SWITCH * nthreads {
             // not parallel inner iteration
-            pool.install(|| {
-                (iter_a, iter_b).into_par_iter().for_each(|(idx_a, idx_b)| unsafe {
-                    let a_ptr = a.as_ptr().add(idx_a) as *mut TA;
-                    (0..size_contig).for_each(|idx| {
-                        f(&mut *a_ptr.add(idx), &b[idx_b + idx]);
-                    });
+            let func = |(idx_a, idx_b)| unsafe {
+                let a_ptr = a.as_ptr().add(idx_a) as *mut TA;
+                (0..size_contig).for_each(|idx| {
+                    f(&mut *a_ptr.add(idx), &b[idx_b + idx]);
                 });
-            });
+            };
+            pool.install(|| layout_col_major_dim_dispatch_2(la, lb, func))
         } else {
             // parallel inner iteration
-            pool.install(|| {
-                (iter_a, iter_b).into_par_iter().for_each(|(idx_a, idx_b)| unsafe {
-                    (0..size_contig).for_each(|idx| {
-                        let a_ptr = a.as_ptr().add(idx_a + idx) as *mut TA;
-                        f(&mut *a_ptr, &b[idx_b + idx]);
-                    });
+            let func = |(idx_a, idx_b)| unsafe {
+                (0..size_contig).for_each(|idx| {
+                    let a_ptr = a.as_ptr().add(idx_a + idx) as *mut TA;
+                    f(&mut *a_ptr, &b[idx_b + idx]);
                 });
-            });
+            };
+            pool.install(|| layout_col_major_dim_dispatch_2(la, lb, func))
         }
     } else {
         // not possible for contiguous assign
-        let iter_a = IterLayoutColMajor::new(&layouts_full[0])?;
-        let iter_b = IterLayoutColMajor::new(&layouts_full[1])?;
-        pool.install(|| {
-            (iter_a, iter_b).into_par_iter().for_each(|(idx_a, idx_b)| unsafe {
-                let a_ptr = a.as_ptr() as *mut TA;
-                f(&mut *a_ptr.add(idx_a), &b[idx_b]);
-            });
-        });
+        let la = &layouts_full[0];
+        let lb = &layouts_full[1];
+        let func = |(idx_a, idx_b): (usize, usize)| unsafe {
+            let a_ptr = a.as_ptr() as *mut TA;
+            f(&mut *a_ptr.add(idx_a), &b[idx_b]);
+        };
+        pool.install(|| layout_col_major_dim_dispatch_2(la, lb, func))
     }
-    return Ok(());
 }
 
 pub fn op_muta_numb_func_cpu_rayon<TA, TB, D, F>(
@@ -314,39 +298,34 @@ where
     // actual parallel iteration
     if size_contig >= CONTIG_SWITCH {
         // parallel for outer iteration
-        let iter_a = IterLayoutColMajor::new(&layout_contig[0])?;
+        let la = &layout_contig[0];
         if size_contig < PARALLEL_SWITCH * nthreads {
             // not parallel inner iteration
-            pool.install(|| {
-                iter_a.into_par_iter().for_each(|idx_a| unsafe {
-                    let a_ptr = a.as_ptr().add(idx_a) as *mut TA;
-                    (0..size_contig).for_each(|idx| {
-                        f(&mut *a_ptr.add(idx), &b);
-                    });
+            let func = |idx_a| unsafe {
+                let a_ptr = a.as_ptr().add(idx_a) as *mut TA;
+                (0..size_contig).for_each(|idx| {
+                    f(&mut *a_ptr.add(idx), &b);
                 });
-            });
+            };
+            pool.install(|| layout_col_major_dim_dispatch_1(la, func))
         } else {
             // parallel inner iteration
-            pool.install(|| {
-                iter_a.into_par_iter().for_each(|idx_a| unsafe {
-                    (0..size_contig).into_par_iter().for_each(|idx| {
-                        let a_ptr = a.as_ptr().add(idx_a + idx) as *mut TA;
-                        f(&mut *a_ptr, &b);
-                    });
+            let func = |idx_a| unsafe {
+                (0..size_contig).into_par_iter().for_each(|idx| {
+                    let a_ptr = a.as_ptr().add(idx_a + idx) as *mut TA;
+                    f(&mut *a_ptr, &b);
                 });
-            });
+            };
+            pool.install(|| layout_col_major_dim_dispatch_1(la, func))
         }
     } else {
         // not possible for contiguous assign
-        let iter_a = IterLayoutColMajor::new(&layout)?;
-        pool.install(|| {
-            iter_a.into_par_iter().for_each(|idx_a| unsafe {
-                let a_ptr = a.as_ptr() as *mut TA;
-                f(&mut *a_ptr.add(idx_a), &b);
-            });
-        });
+        let func = |idx_a| unsafe {
+            let a_ptr = a.as_ptr() as *mut TA;
+            f(&mut *a_ptr.add(idx_a), &b);
+        };
+        pool.install(|| layout_col_major_dim_dispatch_1(&layout, func))
     }
-    return Ok(());
 }
 
 pub fn op_muta_func_cpu_rayon<T, D, F>(
@@ -373,36 +352,31 @@ where
 
     // actual parallel iteration
     if size_contig >= CONTIG_SWITCH {
-        let iter_a = IterLayoutColMajor::new(&layout_contig[0])?;
+        let la = &layout_contig[0];
         if size_contig < PARALLEL_SWITCH * nthreads {
             // not parallel inner iteration
-            pool.install(|| {
-                iter_a.into_par_iter().for_each(|idx_a| unsafe {
-                    let a_ptr = a.as_ptr().add(idx_a) as *mut T;
-                    (0..size_contig).for_each(|idx| {
-                        f(&mut *a_ptr.add(idx));
-                    });
+            let func = |idx_a| unsafe {
+                let a_ptr = a.as_ptr().add(idx_a) as *mut T;
+                (0..size_contig).for_each(|idx| {
+                    f(&mut *a_ptr.add(idx));
                 });
-            });
+            };
+            pool.install(|| layout_col_major_dim_dispatch_1(la, func))
         } else {
             // parallel inner iteration
-            pool.install(|| {
-                iter_a.into_par_iter().for_each(|idx_a| unsafe {
-                    (0..size_contig).into_par_iter().for_each(|idx| {
-                        let a_ptr = a.as_ptr().add(idx_a + idx) as *mut T;
-                        f(&mut *a_ptr);
-                    });
+            let func = |idx_a| unsafe {
+                (0..size_contig).into_par_iter().for_each(|idx| {
+                    let a_ptr = a.as_ptr().add(idx_a + idx) as *mut T;
+                    f(&mut *a_ptr);
                 });
-            });
+            };
+            pool.install(|| layout_col_major_dim_dispatch_1(la, func))
         }
     } else {
-        let iter_a = IterLayoutColMajor::new(&layout)?;
-        pool.install(|| {
-            iter_a.into_par_iter().for_each(|idx_a| unsafe {
-                let a_ptr = a.as_ptr() as *mut T;
-                f(&mut *a_ptr.add(idx_a));
-            });
-        });
+        let func = |idx_a| unsafe {
+            let a_ptr = a.as_ptr() as *mut T;
+            f(&mut *a_ptr.add(idx_a));
+        };
+        pool.install(|| layout_col_major_dim_dispatch_1(&layout, func))
     }
-    return Ok(());
 }

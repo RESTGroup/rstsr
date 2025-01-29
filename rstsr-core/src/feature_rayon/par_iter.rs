@@ -142,6 +142,105 @@ impl_par_axes_iter_tensor!(IndexedIterAxesMut, (IxD, TensorMut<'a, T, B, IxD>));
 
 /* #endregion */
 
+/* #region col-major layout dim dispatch */
+
+pub fn layout_col_major_dim_dispatch_1<D, F>(la: &Layout<D>, f: F) -> Result<()>
+where
+    D: DimAPI,
+    F: Fn(usize) + Send + Sync,
+{
+    macro_rules! dispatch {
+        ($dim: ident) => {{
+            let iter_a = IterLayoutColMajor::new(&la.to_dim::<$dim>()?)?;
+            iter_a.into_par_iter().for_each(f);
+        }};
+    }
+    match la.ndim() {
+        0 => dispatch!(Ix0),
+        1 => dispatch!(Ix1),
+        2 => dispatch!(Ix2),
+        3 => dispatch!(Ix3),
+        4 => dispatch!(Ix4),
+        5 => dispatch!(Ix5),
+        6 => dispatch!(Ix6),
+        _ => {
+            let iter_a = IterLayoutColMajor::new(&la)?;
+            iter_a.into_par_iter().for_each(f);
+        },
+    }
+    Ok(())
+}
+
+pub fn layout_col_major_dim_dispatch_2<D, F>(la: &Layout<D>, lb: &Layout<D>, f: F) -> Result<()>
+where
+    D: DimAPI,
+    F: Fn((usize, usize)) + Send + Sync,
+{
+    debug_assert!(la.ndim() == lb.ndim());
+    macro_rules! dispatch {
+        ($dim: ident) => {{
+            let iter_a = IterLayoutColMajor::new(&la.to_dim::<$dim>()?)?;
+            let iter_b = IterLayoutColMajor::new(&lb.to_dim::<$dim>()?)?;
+            (iter_a, iter_b).into_par_iter().for_each(f);
+        }};
+    }
+    match la.ndim() {
+        0 => dispatch!(Ix0),
+        1 => dispatch!(Ix1),
+        2 => dispatch!(Ix2),
+        3 => dispatch!(Ix3),
+        4 => dispatch!(Ix4),
+        5 => dispatch!(Ix5),
+        6 => dispatch!(Ix6),
+        _ => {
+            let iter_a = IterLayoutColMajor::new(&la)?;
+            let iter_b = IterLayoutColMajor::new(&lb)?;
+            (iter_a, iter_b).into_par_iter().for_each(f);
+        },
+    }
+    Ok(())
+}
+
+pub fn layout_col_major_dim_dispatch_3<D, F>(
+    la: &Layout<D>,
+    lb: &Layout<D>,
+    lc: &Layout<D>,
+    f: F,
+) -> Result<()>
+where
+    D: DimAPI,
+    F: Fn((usize, usize, usize)) + Send + Sync,
+{
+    debug_assert!(la.ndim() == lb.ndim());
+    debug_assert!(la.ndim() == lc.ndim());
+    macro_rules! dispatch {
+        ($dim: ident) => {{
+            let iter_a = IterLayoutColMajor::new(&la.to_dim::<$dim>()?)?;
+            let iter_b = IterLayoutColMajor::new(&lb.to_dim::<$dim>()?)?;
+            let iter_c = IterLayoutColMajor::new(&lc.to_dim::<$dim>()?)?;
+            (iter_a, iter_b, iter_c).into_par_iter().for_each(f);
+        }};
+    }
+    match la.ndim() {
+        0 => dispatch!(Ix0),
+        1 => dispatch!(Ix1),
+        2 => dispatch!(Ix2),
+        3 => dispatch!(Ix3),
+        4 => dispatch!(Ix4),
+        5 => dispatch!(Ix5),
+        6 => dispatch!(Ix6),
+        _ => {
+            let iter_a = IterLayoutColMajor::new(&la)?;
+            let iter_b = IterLayoutColMajor::new(&lb)?;
+            let iter_c = IterLayoutColMajor::new(&lc)?;
+            (iter_a, iter_b, iter_c).into_par_iter().for_each(f);
+        },
+    }
+    Ok(())
+}
+
+/* #endregion */
+
 #[cfg(test)]
 mod test {
     use super::*;
