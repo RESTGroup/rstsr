@@ -28,16 +28,16 @@ pub trait DiagAPI<Inp>: Sized {
 /// # See also
 ///
 /// - [numpy.diag](https://numpy.org/doc/stable/reference/generated/numpy.diag.html)
-pub fn diag<Param, Inp, Rhs>(param: Param) -> Rhs
+pub fn diag<Param, Inp>(param: Param) -> Param::Out
 where
-    Param: DiagAPI<Inp, Out = Rhs>,
+    Param: DiagAPI<Inp>,
 {
     Param::diag(param)
 }
 
-pub fn diag_f<Param, Inp, Rhs>(param: Param) -> Result<Rhs>
+pub fn diag_f<Param, Inp>(param: Param) -> Result<Param::Out>
 where
-    Param: DiagAPI<Inp, Out = Rhs>,
+    Param: DiagAPI<Inp>,
 {
     Param::diag_f(param)
 }
