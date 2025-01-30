@@ -11,6 +11,7 @@ pub mod prelude_dev;
 
 pub mod error;
 pub mod flags;
+pub mod util;
 
 pub mod layout;
 pub use layout::{DimAPI, Layout};

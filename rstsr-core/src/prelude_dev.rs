@@ -12,6 +12,7 @@ pub use itertools::{izip, Itertools};
 
 pub use crate::error::{Error, Result};
 pub use crate::flags::*;
+pub use crate::util::*;
 
 pub use crate::layout::*;
 
@@ -41,7 +42,6 @@ pub use crate::tensor::iterator_axes::*;
 pub use crate::tensor::iterator_elem::*;
 pub use crate::tensor::manuplication::*;
 pub use crate::tensor::ownership_conversion::*;
-pub use crate::tensor::util::*;
 
 #[cfg(feature = "rayon")]
 pub use crate::feature_rayon::assignment::*;
