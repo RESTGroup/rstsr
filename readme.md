@@ -60,11 +60,14 @@ println!("{:?}", c.layout());
 
 We need a numeric library that supports
 - a data structure that supports arbitary types (including complex, half, and arbitary-precision)
-- supports different backends
+- a framework that supports different backends
 - fast, at least efficient on server CPU
 - supports parallel by threading (specifically rayon)
 - large dynamic dimension tensor and its reshape
 - functionality can be extended by other crates
+
+And further more,
+- the framework should not be too difficult for a chemist scientist/engineer
 
 Many crates in native rust done well in some aspects but not all.
 

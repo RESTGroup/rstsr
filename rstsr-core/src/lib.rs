@@ -6,6 +6,14 @@
 // This code is not allowed in rust, but `*&mut tensor.slice_mut() += scalar` is allowed.
 #![allow(clippy::deref_addrof)]
 
+// this line is for docs
+#[allow(unused_imports)]
+use crate::prelude::rstsr_funcs::*;
+#[allow(unused_imports)]
+use crate::prelude::rstsr_structs::*;
+#[allow(unused_imports)]
+use crate::prelude::rstsr_traits::*;
+
 pub mod prelude;
 pub mod prelude_dev;
 
@@ -42,7 +50,14 @@ pub type DeviceCpu = device_faer::device::DeviceFaer;
 #[cfg(not(feature = "faer_as_default"))]
 pub type DeviceCpu = device_cpu_serial::DeviceCpuSerial;
 
-pub mod doc_api_specification {
+pub mod array_api_standard {
+    #![doc = include_str!("docs/array_api_standard.md")]
+
+    #[allow(unused_imports)]
+    use crate::prelude_dev::*;
+}
+
+pub mod api_specification {
     #![doc = include_str!("docs/api_specification.md")]
 
     #[allow(unused_imports)]

@@ -98,7 +98,7 @@ where
     ///
     /// # See also
     ///
-    /// [`broadcast_to`]
+    /// [`to_broadcast`]
     pub fn to_broadcast<D2>(&self, shape: D2) -> TensorView<'_, T, B, D2>
     where
         D2: DimAPI,
@@ -119,7 +119,7 @@ where
     ///
     /// # See also
     ///
-    /// [`broadcast_to`]
+    /// [`to_broadcast`]
     pub fn into_broadcast<D2>(self, shape: D2) -> TensorAny<R, T, B, D2>
     where
         D2: DimAPI,

@@ -3,6 +3,10 @@ pub mod rstsr_traits {
         DimAPI, DimBaseAPI, DimBroadcastableAPI, DimDevAPI, DimIntoAPI, DimLargerOneAPI,
         DimLayoutContigAPI, DimMaxAPI, DimShapeAPI, DimSmallerOneAPI, DimStrideAPI,
     };
+    pub use crate::storage::data::{
+        DataAPI, DataForceMutAPI, DataIntoCowAPI, DataMutAPI, DataOwnedAPI,
+    };
+    pub use crate::storage::device::{DeviceAPI, DeviceBaseAPI, DeviceRawAPI, DeviceStorageAPI};
     pub use crate::tensor::asarray::AsArrayAPI;
     pub use crate::tensor::creation::{
         ArangeAPI, EmptyAPI, EmptyLikeAPI, EyeAPI, FullAPI, FullLikeAPI, LinspaceAPI, OnesAPI,
@@ -53,6 +57,18 @@ pub mod rstsr_funcs {
         zeros_f, zeros_like, zeros_like_f,
     };
     pub use crate::tensor::creation_from_tensor::{diag, diag_f};
+    pub use crate::tensor::manuplication::{
+        broadcast_arrays, broadcast_arrays_f, change_layout, change_layout_f, change_shape,
+        change_shape_f, expand_dims, expand_dims_f, flip, flip_f, into_broadcast, into_broadcast_f,
+        into_dim, into_dim_f, into_dyn, into_expand_dims, into_expand_dims_f, into_flip,
+        into_flip_f, into_layout, into_layout_f, into_permute_dims, into_permute_dims_f,
+        into_reverse_axes, into_shape, into_shape_assume_contig, into_shape_assume_contig_f,
+        into_shape_f, into_squeeze, into_squeeze_f, into_swapaxes, into_swapaxes_f, into_transpose,
+        into_transpose_f, permute_dims, permute_dims_f, reshape, reshape_assume_contig,
+        reshape_assume_contig_f, reshape_f, reverse_axes, squeeze, squeeze_f, swapaxes, swapaxes_f,
+        to_broadcast, to_broadcast_f, to_dim, to_dim_f, to_dyn, to_layout, to_layout_f, to_shape,
+        to_shape_assume_contig, to_shape_assume_contig_f, to_shape_f, transpose, transpose_f,
+    };
 
     // binary arithmetics
     pub use crate::tensor::operators::{
