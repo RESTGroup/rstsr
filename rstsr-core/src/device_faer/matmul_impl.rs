@@ -216,6 +216,7 @@ mod test {
     use std::time::Instant;
 
     #[test]
+    #[ignore]
     fn playground_1() {
         let m = 2048;
         let n = 2049;

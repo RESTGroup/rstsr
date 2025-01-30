@@ -32,12 +32,6 @@ ndarray = { version = "0.15" }
 criterion = { version = "0.5" }
 cpu-time = { version = "1.0" }
 
-[profile.dev]
-opt-level = 2
-
-[profile.release]
-opt-level = 3
-
 [profile.coverage]
 inherits = "dev"
 opt-level = 0
