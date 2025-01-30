@@ -243,12 +243,8 @@ where
     D: DimAPI,
     B: DeviceAPI<T, Raw = Vec<T>> + 'a,
 {
-    /// # Safety
-    ///
-    /// `iter_a = a.iter_mut` will generate mutable views of tensor,
-    /// both `iter_a` and `a` are mutable, which is not safe in rust.
-    pub unsafe fn axes_iter_mut_with_order_f<I>(
-        &mut self,
+    pub fn axes_iter_mut_with_order_f<I>(
+        &'a mut self,
         axes: I,
         order: TensorIterOrder,
     ) -> Result<IterAxesMut<'a, T, B>>
@@ -308,15 +304,11 @@ where
         let axes_iter = IterLayout::<IxD>::new(&layout_axes, order)?;
         let mut view = self.view_mut().into_dyn();
         view.layout = layout_inner.clone();
-        let iter = IterAxesMut { axes_iter, view: unsafe { transmute(view) } };
+        let iter = IterAxesMut { axes_iter, view };
         Ok(iter)
     }
 
-    /// # Safety
-    ///
-    /// `iter_a = a.iter_mut` will generate mutable views of tensor,
-    /// both `iter_a` and `a` are mutable, which is not safe in rust.
-    pub unsafe fn axes_iter_mut_f<I>(&mut self, axes: I) -> Result<IterAxesMut<'a, T, B>>
+    pub fn axes_iter_mut_f<I>(&'a mut self, axes: I) -> Result<IterAxesMut<'a, T, B>>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -324,12 +316,8 @@ where
         self.axes_iter_mut_with_order_f(axes, TensorIterOrder::default())
     }
 
-    /// # Safety
-    ///
-    /// `iter_a = a.iter_mut` will generate mutable views of tensor,
-    /// both `iter_a` and `a` are mutable, which is not safe in rust.
-    pub unsafe fn axes_iter_mut_with_order<I>(
-        &mut self,
+    pub fn axes_iter_mut_with_order<I>(
+        &'a mut self,
         axes: I,
         order: TensorIterOrder,
     ) -> IterAxesMut<'a, T, B>
@@ -340,11 +328,7 @@ where
         self.axes_iter_mut_with_order_f(axes, order).unwrap()
     }
 
-    /// # Safety
-    ///
-    /// `iter_a = a.iter_mut` will generate mutable views of tensor,
-    /// both `iter_a` and `a` are mutable, which is not safe in rust.
-    pub unsafe fn axes_iter_mut<I>(&mut self, axes: I) -> IterAxesMut<'a, T, B>
+    pub fn axes_iter_mut<I>(&'a mut self, axes: I) -> IterAxesMut<'a, T, B>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -627,12 +611,8 @@ where
     D: DimAPI,
     B: DeviceAPI<T, Raw = Vec<T>> + 'a,
 {
-    /// # Safety
-    ///
-    /// `iter_a = a.iter_mut` will generate mutable views of tensor,
-    /// both `iter_a` and `a` are mutable, which is not safe in rust.
-    pub unsafe fn indexed_axes_iter_mut_with_order_f<I>(
-        &mut self,
+    pub fn indexed_axes_iter_mut_with_order_f<I>(
+        &'a mut self,
         axes: I,
         order: TensorIterOrder,
     ) -> Result<IndexedIterAxesMut<'a, T, B>>
@@ -692,18 +672,11 @@ where
         let axes_iter = IterLayout::<IxD>::new(&layout_axes, order)?;
         let mut view = self.view_mut().into_dyn();
         view.layout = layout_inner.clone();
-        let iter = IndexedIterAxesMut { axes_iter, view: unsafe { transmute(view) } };
+        let iter = IndexedIterAxesMut { axes_iter, view };
         Ok(iter)
     }
 
-    /// # Safety
-    ///
-    /// `iter_a = a.iter_mut` will generate mutable views of tensor,
-    /// both `iter_a` and `a` are mutable, which is not safe in rust.
-    pub unsafe fn indexed_axes_iter_mut_f<I>(
-        &mut self,
-        axes: I,
-    ) -> Result<IndexedIterAxesMut<'a, T, B>>
+    pub fn indexed_axes_iter_mut_f<I>(&'a mut self, axes: I) -> Result<IndexedIterAxesMut<'a, T, B>>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -715,12 +688,8 @@ where
         self.indexed_axes_iter_mut_with_order_f(axes, order)
     }
 
-    /// # Safety
-    ///
-    /// `iter_a = a.iter_mut` will generate mutable views of tensor,
-    /// both `iter_a` and `a` are mutable, which is not safe in rust.
-    pub unsafe fn indexed_axes_iter_mut_with_order<I>(
-        &mut self,
+    pub fn indexed_axes_iter_mut_with_order<I>(
+        &'a mut self,
         axes: I,
         order: TensorIterOrder,
     ) -> IndexedIterAxesMut<'a, T, B>
@@ -731,11 +700,7 @@ where
         self.indexed_axes_iter_mut_with_order_f(axes, order).unwrap()
     }
 
-    /// # Safety
-    ///
-    /// `iter_a = a.iter_mut` will generate mutable views of tensor,
-    /// both `iter_a` and `a` are mutable, which is not safe in rust.
-    pub unsafe fn indexed_axes_iter_mut<I>(&mut self, axes: I) -> IndexedIterAxesMut<'a, T, B>
+    pub fn indexed_axes_iter_mut<I>(&'a mut self, axes: I) -> IndexedIterAxesMut<'a, T, B>
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
@@ -767,7 +732,7 @@ mod tests_serial {
     #[test]
     fn test_axes_iter_mut() {
         let mut a = arange(120).into_shape([2, 3, 4, 5]);
-        let iter = unsafe { a.axes_iter_mut_with_order_f([0, 2], TensorIterOrder::C).unwrap() };
+        let iter = a.axes_iter_mut_with_order_f([0, 2], TensorIterOrder::C).unwrap();
 
         let res = iter
             .map(|mut view| {
@@ -813,7 +778,7 @@ mod tests_parallel {
     #[test]
     fn test_axes_iter() {
         let mut a = arange(65536).into_shape([16, 16, 16, 16]);
-        let iter = unsafe { a.axes_iter_mut([0, 2]) };
+        let iter = a.axes_iter_mut([0, 2]);
 
         let res = iter
             .into_par_iter()
