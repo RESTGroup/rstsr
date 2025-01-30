@@ -65,13 +65,4 @@ trait_definition!(
     DeviceTruncAPI
 );
 
-trait_definition!(
-    DeviceRealAbsAPI,
-    DeviceRealImagAPI,
-    DeviceRealRealAPI,
-    DeviceRealSignAPI,
-    DeviceComplexAbsAPI,
-    DeviceComplexImagAPI,
-    DeviceComplexRealAPI,
-    DeviceComplexSignAPI
-);
+trait_definition!(DeviceAbsAPI, DeviceImagAPI, DeviceRealAPI, DeviceSignAPI);

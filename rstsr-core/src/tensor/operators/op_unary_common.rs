@@ -43,18 +43,6 @@ macro_rules! trait_unary {
     };
 }
 
-macro_rules! trait_unary_without_func {
-    ($op: ident, $op_f: ident, $TensorOpAPI: ident) => {
-        pub trait $TensorOpAPI: Sized {
-            type Output;
-            fn $op_f(self) -> Result<Self::Output>;
-            fn $op(self) -> Self::Output {
-                self.$op_f().unwrap()
-            }
-        }
-    };
-}
-
 #[rustfmt::skip]
 #[allow(clippy::wrong_self_convention)]
 mod trait_unary {
@@ -90,14 +78,10 @@ mod trait_unary {
     trait_unary!(is_inf    , is_inf_f    , TensorIsInfAPI    );
     trait_unary!(is_nan    , is_nan_f    , TensorIsNanAPI    );
 
-    trait_unary_without_func!(abs  , abs_f  , TensorRealAbsAPI     );
-    trait_unary_without_func!(real , real_f , TensorRealRealAPI    );
-    trait_unary_without_func!(imag , imag_f , TensorRealImagAPI    );
-    trait_unary_without_func!(sign , sign_f , TensorRealSignAPI    );
-    trait_unary_without_func!(abs  , abs_f  , TensorComplexAbsAPI  );
-    trait_unary_without_func!(real , real_f , TensorComplexRealAPI );
-    trait_unary_without_func!(imag , imag_f , TensorComplexImagAPI );
-    trait_unary_without_func!(sign , sign_f , TensorComplexSignAPI );
+    trait_unary!(abs  , abs_f  , TensorAbsAPI  );
+    trait_unary!(real , real_f , TensorRealAPI );
+    trait_unary!(imag , imag_f , TensorImagAPI );
+    trait_unary!(sign , sign_f , TensorSignAPI );
 }
 
 pub use trait_unary::*;
@@ -196,14 +180,10 @@ mod impl_tensor_unary_common {
     impl_tensor_unary_common!(tanh_f      , TensorTanhAPI     , DeviceTanhAPI     );
     impl_tensor_unary_common!(trunc_f     , TensorTruncAPI    , DeviceTruncAPI    );
 
-    impl_tensor_unary_common!(abs_f       , TensorRealAbsAPI     , DeviceRealAbsAPI     );
-    impl_tensor_unary_common!(imag_f      , TensorRealImagAPI    , DeviceRealImagAPI    );
-    impl_tensor_unary_common!(real_f      , TensorRealRealAPI    , DeviceRealRealAPI    );
-    impl_tensor_unary_common!(sign_f      , TensorRealSignAPI    , DeviceRealSignAPI    );
-    impl_tensor_unary_common!(abs_f       , TensorComplexAbsAPI  , DeviceComplexAbsAPI  );
-    impl_tensor_unary_common!(imag_f      , TensorComplexImagAPI , DeviceComplexImagAPI );
-    impl_tensor_unary_common!(real_f      , TensorComplexRealAPI , DeviceComplexRealAPI );
-    impl_tensor_unary_common!(sign_f      , TensorComplexSignAPI , DeviceComplexSignAPI );
+    impl_tensor_unary_common!(abs_f       , TensorAbsAPI         , DeviceAbsAPI  );
+    impl_tensor_unary_common!(imag_f      , TensorImagAPI        , DeviceImagAPI );
+    impl_tensor_unary_common!(real_f      , TensorRealAPI        , DeviceRealAPI );
+    impl_tensor_unary_common!(sign_f      , TensorSignAPI        , DeviceSignAPI );
 }
 
 /* #endregion */
@@ -247,6 +227,8 @@ mod test {
         println!("{:}", b);
         println!("{:?}", ptr_a);
         println!("{:?}", ptr_b);
+        // for complex case, only abs(&a) is valid
+        println!("{:}", a);
 
         let a = linspace((-3.0f64, 3.0f64, 6)).into_shape([2, 3]);
         let ptr_a = a.raw().as_ptr();
@@ -254,6 +236,8 @@ mod test {
         let ptr_b = b.raw().as_ptr();
         println!("{:}", b);
         assert_eq!(ptr_a, ptr_b);
+        // for f64 case, `a.abs()` will try to consume variable `a`
+        // println!("{:?}", a);
     }
 
     #[test]

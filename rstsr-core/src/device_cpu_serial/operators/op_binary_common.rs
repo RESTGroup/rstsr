@@ -1,6 +1,7 @@
 use crate::prelude_dev::*;
-use num::complex::{Complex, ComplexFloat};
-use num::{Bounded, Float, Num, Signed, Zero};
+use core::ops::Div;
+use num::complex::ComplexFloat;
+use num::{Float, Num};
 
 // TODO: log1p
 
@@ -35,7 +36,6 @@ macro_rules! impl_same_type {
 #[rustfmt::skip]
 mod impl_same_type {
     use super::*;
-    trait BoundedZero: Bounded + Zero {}
 
     impl_same_type!(DeviceAcosAPI         , ComplexFloat , |a, b| *a = b.acos()              , |a| *a = a.acos()             );
     impl_same_type!(DeviceAcoshAPI        , ComplexFloat , |a, b| *a = b.acosh()             , |a| *a = a.acosh()            );
@@ -62,27 +62,6 @@ mod impl_same_type {
     impl_same_type!(DeviceTanAPI          , ComplexFloat , |a, b| *a = b.tan()               , |a| *a = a.tan()              );
     impl_same_type!(DeviceTanhAPI         , ComplexFloat , |a, b| *a = b.tanh()              , |a| *a = a.tanh()             );
     impl_same_type!(DeviceTruncAPI        , Float        , |a, b| *a = b.trunc()             , |a| *a = a.trunc()            );
-
-    impl_same_type!(DeviceRealAbsAPI      , Signed       , |a, b| *a = b.abs()               , |a| *a = a.abs()              );
-    impl_same_type!(DeviceRealImagAPI     , BoundedZero  , |a, _| *a = T::zero()             , |a| *a = T::zero()            );
-    impl_same_type!(DeviceRealRealAPI     , Bounded      , |a, b| *a = b.clone()             , |_| {}                        );
-
-    impl_same_type!(
-        DeviceRealSignAPI,
-        Signed,
-        |a, b| {
-            if *b == T::zero() {
-                *a = T::zero();
-            } else {
-                *a = T::signum(b);
-            }
-        },
-        |a| {
-            if *a != T::zero() {
-                *a = T::signum(a);
-            }
-        }
-    );
 }
 
 /* #endregion */
@@ -131,31 +110,32 @@ mod impl_bool_output{
 /* #region complex specific implementation */
 
 macro_rules! impl_complex_diff_type {
-    ($DeviceOpAPI: ident, $NumTrait: ident, $func:expr) => {
-        impl<T, D> $DeviceOpAPI<Complex<T>, D> for DeviceCpuSerial
+    ($DeviceOpAPI: ident, $func:expr, $func_inplace: expr) => {
+        impl<T, D> $DeviceOpAPI<T, D> for DeviceCpuSerial
         where
-            T: Clone + $NumTrait,
+            T: Clone + ComplexFloat,
             D: DimAPI,
         {
-            type TOut = T;
+            type TOut = T::Real;
 
             fn op_muta_refb(
                 &self,
-                a: &mut Vec<T>,
+                a: &mut Vec<T::Real>,
                 la: &Layout<D>,
-                b: &Vec<Complex<T>>,
+                b: &Vec<T>,
                 lb: &Layout<D>,
             ) -> Result<()> {
                 self.op_muta_refb_func(a, la, b, lb, &mut $func)
             }
 
-            fn op_muta(&self, _a: &mut Vec<T>, _la: &Layout<D>) -> Result<()> {
-                let type_b = core::any::type_name::<Complex<T>>();
+            fn op_muta(&self, a: &mut Vec<T::Real>, la: &Layout<D>) -> Result<()> {
+                let type_b = core::any::type_name::<T::Real>();
                 let type_a = core::any::type_name::<T>();
-                unreachable!(
-                    "{:?} is not supported in this function, where out type is {:?}.",
-                    type_b, type_a
-                );
+                if type_b == type_a {
+                    self.op_muta_func(a, la, &mut $func_inplace)
+                } else {
+                    unreachable!("{:?} is not supported in this function.", type_b);
+                }
             }
         }
     };
@@ -164,30 +144,30 @@ macro_rules! impl_complex_diff_type {
 #[rustfmt::skip]
 mod impl_complex_diff_type {
     use super::*;
-    impl_complex_diff_type!(DeviceComplexAbsAPI  , Float , |a, b| *a = b.norm() );
-    impl_complex_diff_type!(DeviceComplexImagAPI , Clone , |a, b| *a = b.im.clone() );
-    impl_complex_diff_type!(DeviceComplexRealAPI , Clone , |a, b| *a = b.re.clone() );
+    impl_complex_diff_type!(DeviceAbsAPI  , |a, b| *a = b.abs(), |a| *a = ComplexFloat::abs(a.clone()) );
+    impl_complex_diff_type!(DeviceImagAPI , |a, b| *a = b.im() , |a| *a = a.im() );
+    impl_complex_diff_type!(DeviceRealAPI , |a, b| *a = b.re() , |a| *a = a.re() );
 }
 
-impl<T, D> DeviceComplexSignAPI<Complex<T>, D> for DeviceCpuSerial
+impl<T, D> DeviceSignAPI<T, D> for DeviceCpuSerial
 where
-    T: Clone + Float,
+    T: Clone + ComplexFloat + Div<T::Real, Output = T>,
     D: DimAPI,
 {
-    type TOut = Complex<T>;
+    type TOut = T;
 
     fn op_muta_refb(
         &self,
-        a: &mut Vec<Complex<T>>,
+        a: &mut Vec<T>,
         la: &Layout<D>,
-        b: &Vec<Complex<T>>,
+        b: &Vec<T>,
         lb: &Layout<D>,
     ) -> Result<()> {
-        self.op_muta_refb_func(a, la, b, lb, &mut |a, b| *a = b / b.norm())
+        self.op_muta_refb_func(a, la, b, lb, &mut |a, b| *a = *b / b.abs())
     }
 
-    fn op_muta(&self, a: &mut Vec<Complex<T>>, la: &Layout<D>) -> Result<()> {
-        self.op_muta_func(a, la, &mut |a| *a = *a / a.norm())
+    fn op_muta(&self, a: &mut Vec<T>, la: &Layout<D>) -> Result<()> {
+        self.op_muta_func(a, la, &mut |a| *a = *a / a.abs())
     }
 }
 

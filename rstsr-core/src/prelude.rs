@@ -20,14 +20,12 @@ pub mod rstsr_traits {
         TensorNotEqualAPI, TensorPowAPI,
     };
     pub use crate::tensor::operators::op_unary_common::{
-        TensorAcosAPI, TensorAcoshAPI, TensorAsinAPI, TensorAsinhAPI, TensorAtanAPI,
-        TensorAtanhAPI, TensorCeilAPI, TensorComplexAbsAPI, TensorComplexImagAPI,
-        TensorComplexRealAPI, TensorComplexSignAPI, TensorConjAPI, TensorCosAPI, TensorCoshAPI,
-        TensorExpAPI, TensorExpm1API, TensorFloorAPI, TensorInvAPI, TensorIsFiniteAPI,
-        TensorIsInfAPI, TensorIsNanAPI, TensorLog10API, TensorLog2API, TensorLogAPI,
-        TensorRealAbsAPI, TensorRealImagAPI, TensorRealRealAPI, TensorRealSignAPI, TensorRoundAPI,
-        TensorSignBitAPI, TensorSinAPI, TensorSinhAPI, TensorSqrtAPI, TensorSquareAPI,
-        TensorTanAPI, TensorTanhAPI, TensorTruncAPI,
+        TensorAbsAPI, TensorAcosAPI, TensorAcoshAPI, TensorAsinAPI, TensorAsinhAPI, TensorAtanAPI,
+        TensorAtanhAPI, TensorCeilAPI, TensorConjAPI, TensorCosAPI, TensorCoshAPI, TensorExpAPI,
+        TensorExpm1API, TensorFloorAPI, TensorImagAPI, TensorInvAPI, TensorIsFiniteAPI,
+        TensorIsInfAPI, TensorIsNanAPI, TensorLog10API, TensorLog2API, TensorLogAPI, TensorRealAPI,
+        TensorRoundAPI, TensorSignAPI, TensorSignBitAPI, TensorSinAPI, TensorSinhAPI,
+        TensorSqrtAPI, TensorSquareAPI, TensorTanAPI, TensorTanhAPI, TensorTruncAPI,
     };
     pub use core::ops::*;
 }
