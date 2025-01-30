@@ -29,7 +29,8 @@ pub mod storage;
 pub mod tensor;
 pub mod tensorbase;
 pub use tensorbase::{
-    Tensor, TensorArc, TensorBase, TensorCow, TensorMut, TensorRef, TensorView, TensorViewMut,
+    Tensor, TensorAny, TensorArc, TensorBase, TensorCow, TensorMut, TensorRef, TensorView,
+    TensorViewMut,
 };
 
 pub mod format;
@@ -52,14 +53,21 @@ pub type DeviceCpu = device_cpu_serial::DeviceCpuSerial;
 
 pub mod array_api_standard {
     #![doc = include_str!("docs/array_api_standard.md")]
+    #![allow(unused_imports)]
 
-    #[allow(unused_imports)]
-    use crate::prelude_dev::*;
+    use crate::prelude::*;
+    use crate::prelude_dev::Indexer;
+    use core::ops::*;
+    use num::complex::ComplexFloat;
+    use num::{pow::Pow, Float, Num, Signed};
+    use rt::*;
 }
 
 pub mod api_specification {
     #![doc = include_str!("docs/api_specification.md")]
 
     #[allow(unused_imports)]
-    use crate::prelude_dev::*;
+    use crate::prelude::*;
+    #[allow(unused_imports)]
+    use rt::*;
 }

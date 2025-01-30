@@ -102,11 +102,11 @@ macro_rules! impl_boolean_output {
 #[rustfmt::skip]
 mod impl_bool_output{
     use super::*;
-    use num::{Float, Signed};
-    impl_boolean_output!(DeviceSignBitAPI  , Signed , |a, b| *a = b.is_positive() );
-    impl_boolean_output!(DeviceIsFiniteAPI , Float  , |a, b| *a = b.is_finite()   );
-    impl_boolean_output!(DeviceIsInfAPI    , Float  , |a, b| *a = b.is_infinite() );
-    impl_boolean_output!(DeviceIsNanAPI    , Float  , |a, b| *a = b.is_nan()      );
+    use num::Signed;
+    impl_boolean_output!(DeviceSignBitAPI  , Signed      , |a, b| *a = b.is_positive() );
+    impl_boolean_output!(DeviceIsFiniteAPI , ComplexFloat, |a, b| *a = b.is_finite()   );
+    impl_boolean_output!(DeviceIsInfAPI    , ComplexFloat, |a, b| *a = b.is_infinite() );
+    impl_boolean_output!(DeviceIsNanAPI    , ComplexFloat, |a, b| *a = b.is_nan()      );
 }
 
 /* #endregion */

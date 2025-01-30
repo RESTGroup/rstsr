@@ -86,8 +86,8 @@ mod trait_binary {
     trait_binary!(greater       , greater_f         , TensorGreaterAPI          , DeviceGreaterAPI          , gt, gt_f      );
     trait_binary!(greater_equal , greater_equal_f   , TensorGreaterEqualAPI     , DeviceGreaterEqualAPI     , ge, ge_f      );
     trait_binary!(hypot         , hypot_f           , TensorHypotAPI            , DeviceHypotAPI            ,               );
-    trait_binary!(less          , less_f            , TensorLessAPI             , DeviceLessAPI             , le, le_f      );
-    trait_binary!(less_equal    , less_equal_f      , TensorLessEqualAPI        , DeviceLessEqualAPI        , lt, lt_f      );
+    trait_binary!(less          , less_f            , TensorLessAPI             , DeviceLessAPI             , lt, lt_f      );
+    trait_binary!(less_equal    , less_equal_f      , TensorLessEqualAPI        , DeviceLessEqualAPI        , le, le_f      );
     trait_binary!(log_add_exp   , log_add_exp_f     , TensorLogAddExpAPI        , DeviceLogAddExpAPI        ,               );
     trait_binary!(maximum       , maximum_f         , TensorMaximumAPI          , DeviceMaximumAPI          , max, max_f    );
     trait_binary!(minimum       , minimum_f         , TensorMinimumAPI          , DeviceMinimumAPI          , min, min_f    );
@@ -146,8 +146,8 @@ mod func_binary {
     func_binary!(greater       , greater_f         , TensorGreaterAPI          , DeviceGreaterAPI          , gt, gt_f      );
     func_binary!(greater_equal , greater_equal_f   , TensorGreaterEqualAPI     , DeviceGreaterEqualAPI     , ge, ge_f      );
     func_binary!(hypot         , hypot_f           , TensorHypotAPI            , DeviceHypotAPI            ,               );
-    func_binary!(less          , less_f            , TensorLessAPI             , DeviceLessAPI             , le, le_f      );
-    func_binary!(less_equal    , less_equal_f      , TensorLessEqualAPI        , DeviceLessEqualAPI        , lt, lt_f      );
+    func_binary!(less          , less_f            , TensorLessAPI             , DeviceLessAPI             , lt, lt_f      );
+    func_binary!(less_equal    , less_equal_f      , TensorLessEqualAPI        , DeviceLessEqualAPI        , le, le_f      );
     func_binary!(log_add_exp   , log_add_exp_f     , TensorLogAddExpAPI        , DeviceLogAddExpAPI        ,               );
     func_binary!(maximum       , maximum_f         , TensorMaximumAPI          , DeviceMaximumAPI          , max, max_f    );
     func_binary!(minimum       , minimum_f         , TensorMinimumAPI          , DeviceMinimumAPI          , min, min_f    );

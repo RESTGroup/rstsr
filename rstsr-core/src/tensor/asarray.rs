@@ -1,8 +1,8 @@
 //! Implementation of function `asarray`.
 
-use core::mem::ManuallyDrop;
-
 use crate::prelude_dev::*;
+use core::mem::ManuallyDrop;
+use num::complex::{Complex32, Complex64};
 
 pub trait AsArrayAPI<Inp>: Sized {
     type Out;
@@ -552,7 +552,9 @@ macro_rules! impl_asarray_scalar {
     };
 }
 
-impl_asarray_scalar!(i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize, f32, f64);
+impl_asarray_scalar!(
+    i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize, f32, f64, Complex32, Complex64
+);
 
 /* #endregion */
 
@@ -578,6 +580,14 @@ mod tests {
         println!("{:?}", tensor);
 
         let tensor = asarray_f((tensor, TensorIterOrder::K)).unwrap();
+        println!("{:?}", tensor);
+    }
+
+    #[test]
+    fn test_asarray_scalar() {
+        let tensor = asarray_f(1).unwrap();
+        println!("{:?}", tensor);
+        let tensor = asarray_f((Complex64::new(0., 1.), &DeviceCpuSerial::default())).unwrap();
         println!("{:?}", tensor);
     }
 }

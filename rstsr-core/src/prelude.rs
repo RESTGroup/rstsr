@@ -3,6 +3,7 @@ pub mod rstsr_traits {
         DimAPI, DimBaseAPI, DimBroadcastableAPI, DimDevAPI, DimIntoAPI, DimLargerOneAPI,
         DimLayoutContigAPI, DimMaxAPI, DimShapeAPI, DimSmallerOneAPI, DimStrideAPI,
     };
+    pub use crate::storage::conversion::DeviceChangeAPI;
     pub use crate::storage::data::{
         DataAPI, DataForceMutAPI, DataIntoCowAPI, DataMutAPI, DataOwnedAPI,
     };
@@ -43,7 +44,8 @@ pub mod rstsr_structs {
     pub use crate::layout::indexer::{Ellipsis, NewAxis};
     pub use crate::layout::{Ix, Ix1, Ix2, Ix3, Ix4, Ix5, Ix6, Ix7, Ix8, Ix9, IxD, IxDyn, Layout};
     pub use crate::{
-        Tensor, TensorArc, TensorBase, TensorCow, TensorMut, TensorRef, TensorView, TensorViewMut,
+        Tensor, TensorAny, TensorArc, TensorBase, TensorCow, TensorMut, TensorRef, TensorView,
+        TensorViewMut,
     };
 }
 
@@ -96,12 +98,23 @@ pub mod rstsr_funcs {
     pub use crate::tensor::operators::{neg, neg_f, not, not_f};
     // unary common functions
     pub use crate::tensor::operators::{
-        acos, acos_f, acosh, acosh_f, asin, asin_f, asinh, asinh_f, atan, atan_f, atanh, atanh_f,
-        ceil, ceil_f, conj, conj_f, cos, cos_f, cosh, cosh_f, exp, exp_f, expm1, expm1_f, floor,
-        floor_f, inv, inv_f, is_finite, is_finite_f, is_inf, is_inf_f, is_nan, is_nan_f, log,
-        log10, log10_f, log2, log2_f, log_f, round, round_f, signbit, signbit_f, sin, sin_f, sinh,
-        sinh_f, sqrt, sqrt_f, square, square_f, tan, tan_f, tanh, tanh_f, trunc, trunc_f,
+        abs, abs_f, acos, acos_f, acosh, acosh_f, asin, asin_f, asinh, asinh_f, atan, atan_f,
+        atanh, atanh_f, ceil, ceil_f, conj, conj_f, cos, cos_f, cosh, cosh_f, exp, exp_f, expm1,
+        expm1_f, floor, floor_f, imag, imag_f, inv, inv_f, is_finite, is_finite_f, is_inf,
+        is_inf_f, is_nan, is_nan_f, log, log10, log10_f, log2, log2_f, log_f, real, real_f, round,
+        round_f, sign, sign_f, signbit, signbit_f, sin, sin_f, sinh, sinh_f, sqrt, sqrt_f, square,
+        square_f, tan, tan_f, tanh, tanh_f, trunc, trunc_f,
     };
+    // binary common functions
+    pub use crate::tensor::operators::{
+        atan2, atan2_f, copysign, copysign_f, eq, eq_f, equal, equal_f, ge, ge_f, greater,
+        greater_equal, greater_equal_f, greater_f, gt, gt_f, hypot, hypot_f, le, le_f, less,
+        less_equal, less_equal_f, less_f, log_add_exp, log_add_exp_f, lt, lt_f, max, max_f,
+        maximum, maximum_f, min, min_f, minimum, minimum_f, ne, ne_f, not_equal, not_equal_f, pow,
+        pow_f,
+    };
+    // reduction
+    pub use crate::tensor::reduction::{sum, sum_all, sum_all_f, sum_f};
 }
 
 pub mod rstsr_macros {

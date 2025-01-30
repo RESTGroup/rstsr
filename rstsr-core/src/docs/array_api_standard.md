@@ -5,6 +5,7 @@ For column status:
 - C: Changed feature (**breaking using experience from numpy**);
 - P: Partial implemented in rstsr (not all features in Python array API is implemented);
 - D: Features that would be dropped in rstsr.
+- blank: Will be implemented in future version of RSTSR.
 
 ## Operators
 
@@ -18,16 +19,20 @@ For column status:
 | Y | `-` | `__sub__` | `x1 - x2` |
 | Y | `*` | `__mul__` | `x1 * x2` |
 | Y | `/` | `__truediv__` | `x1 / x2` |
-| | | `__floordiv__` | `x1 // x2` |
-| **C** | | `__mod__` | `x1 % x2` |
-| | | `__pow__` | `x1 ** x2` |
+| Y | `floor_divide`[^1] | `__floordiv__` | `x1 // x2` |
+| **C** | [`rt::rem`][^2] | `__mod__` | `x1 % x2` |
+| Y | [`pow`] | `__pow__` | `x1 ** x2` |
 | Y | `+=` | `__iadd__` | `x1 += x2` |
 | Y | `-=` | `__isub__` | `x1 -= x2` |
 | Y | `*=` | `__imul__` | `x1 *= x2` |
 | Y | `/=` | `__itruediv__` | `x1 /= x2` |
-| | | `__ifloordiv__` | `x1 //= x2` |
-| | | `__ipow__` | `x1 **= x2` |
+| D | | `__ifloordiv__` | `x1 //= x2` |
+| D | | `__ipow__` | `x1 **= x2` |
 | Y | `%=` | `__imod__` | `x1 %= x2` |
+
+[^1]: For float and int types, `floor_divide` is implemented separately. For float[`TensorFloatFloorDivideAPI::floor_divide`], for int [`TensorIntFloorDivideAPI::floor_divide`]. This function can only called by associated method.
+
+[^2]: To use remainder (modular) function correctly, one may use `rt::rem` (as function), instead of using `x1 % x2` (as operator) or `x1.rem(x2)` (as associated method). In this crate, the latter two will call [`matmul()`].
 
 **Changed feature**
 - `__mod__`: We do not use remainder function to represent something like `8 % 3 = 2`, but instead using notation `%` to represent matrix multiplication (`@` in python/numpy).
@@ -35,12 +40,14 @@ For column status:
 
 **Dropped support**
 - `__pos__`: In rust, leading `+` is not allowed.
+- `__ifloordiv__`: This is not a priority for implementation.
+- `__ipow__`: This is not a priority for implementation.
 
 ### Array Operators
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| **C** | `%` | `__matmul__` | `x1 @ x2` |
+| **C** | `%`, [`matmul()`] | `__matmul__` | `x1 @ x2` |
 | D | | `__imatmul__` | `x1 @= x2` |
 
 **Changed feature**
@@ -53,54 +60,57 @@ Dropped support
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| Y | `!`  | `__invert__` | `~x` |
-| Y | `&`  | `__and__` | `x1 & x2` |
-| Y | `\|` | `__or__` | `x1 \| x2` |
-| Y | `^`  | `__xor__` | `x1 ^ x2` |
-| Y | `<<` | `__lshift__` | `x1 << x2` |
-| Y | `>>` | `__rshift__` | `x1 >> x2` |
-| Y | `&=` | `__iand__` | `x1 &= x2` |
-| Y | `\|=`| `__ior__` | `x1 \|= x2` |
-| Y | `^=` | `__ixor__` | `x1 ^= x2` |
-| Y | `<<=`| `__ilshift__` | `x1 <<= x2` |
-| Y | `>>=`| `__irshift__` | `x1 >>= x2` |
+| Y | `!` [`Not`] | `__invert__` | `~x` |
+| Y | `&` [`BitAnd`] | `__and__` | `x1 & x2` |
+| Y | `\|` [`BitOr`] | `__or__` | `x1 \| x2` |
+| Y | `^`  [`BitXor`] | `__xor__` | `x1 ^ x2` |
+| Y | `<<` [`Shl`] | `__lshift__` | `x1 << x2` |
+| Y | `>>` [`Shr`] | `__rshift__` | `x1 >> x2` |
+| Y | `&=` [`BitAndAssign`] | `__iand__` | `x1 &= x2` |
+| Y | `\|=` [`BitOrAssign`] | `__ior__` | `x1 \|= x2` |
+| Y | `^=` [`BitXorAssign`] | `__ixor__` | `x1 ^= x2` |
+| Y | `<<=` [`ShlAssign`] | `__ilshift__` | `x1 <<= x2` |
+| Y | `>>=` [`ShrAssign`] | `__irshift__` | `x1 >>= x2` |
 
 ### Comparsion Operators
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| | | `__lt__` | `x1 < x2` |
-| | | `__le__` | `x1 <= x2` |
-| | | `__gt__` | `x1 > x2` |
-| | | `__ge__` | `x1 >= x2` |
-| | | `__eq__` | `x1 == x2` |
-| | | `__ne__` | `x1 != x2` |
+| Y | [`lt`], [`less`] | `__lt__` | `x1 < x2` |
+| Y | [`le`], [`less_equal`] | `__le__` | `x1 <= x2` |
+| Y | [`gt`], [`greater`] | `__gt__` | `x1 > x2` |
+| Y | [`ge`], [`greater_equal`] | `__ge__` | `x1 >= x2` |
+| Y | [`eq`], [`equal`] | `__eq__` | `x1 == x2` |
+| Y | [`ne`], [`not_equal`] | `__ne__` | `x1 != x2` |
 
 ### Array Object Attributes
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| | | `dtype` | Data type of the array elements. |
-| | | `device` | Hardware device the array data resides on. |
-| | | `mT` | Transpose of a matrix (or a stack of matrices). |
-| | | `ndim` | Number of array dimensions (axes). |
-| | | `shape` | Array dimensions. |
-| | | `size` | Number of elements in an array. |
-| | | `T` | Transpose of the array. |
+| C | `T` of [`TensorAny<R, T, B, D>`] | `dtype` | Data type of the array elements. |
+| C | `B` of [`TensorAny<R, T, B, D>`] | `device` | Hardware device the array data resides on. |
+| Y | [`TensorBase::swapaxes`]`(-1, -2)` | `mT` | Transpose of a matrix (or a stack of matrices). |
+| Y | [`TensorBase::ndim`] | `ndim` | Number of array dimensions (axes). |
+| Y | [`TensorBase::shape`] | `shape` | Array dimensions. |
+| Y | [`TensorBase::size`] | `size` | Number of elements in an array. |
+| Y | [`transpose`], [`TensorBase::t`] | `T` | Transpose of the array. |
 
 ### Methods
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| | | `__abs__` | Calculates the absolute value for each element of an array instance. |
-| | | `__bool__` | Converts a zero-dimensional array to a Python bool object. |
-| | | `__complex__` | Converts a zero-dimensional array to a Python `complex` object. |
-| | | `__float__` | Converts a zero-dimensional array to a Python `float` object. |
-| | | `__getitem__` | Returns `self[key]`. |
-| | | `__index__` | Converts a zero-dimensional integer array to a Python `int` object. |
-| | | `__int__` | Converts a zero-dimensional array to a Python `int` object. |
-| | | `__setitem__` | Sets `self[key]` to `value`. |
-| | | `to_device` | Copy the array from the device on which it currently resides to the specified `device`. |
+| P | [`abs`] | `__abs__` | Calculates the absolute value for each element of an array instance. |
+| Y | [`asarray`] | `__bool__` | Converts a zero-dimensional array to a Python bool object. |
+| Y | [`asarray`] | `__complex__` | Converts a zero-dimensional array to a Python `complex` object. |
+| Y | [`asarray`] | `__float__` | Converts a zero-dimensional array to a Python `float` object. |
+| Y | [`Index`] | `__getitem__` | Returns `self[key]`. |
+| Y | [`TensorBase::to_scalar`] | `__index__` | Converts a zero-dimensional integer array to a Python `int` object. |
+| Y | [`asarray`] | `__int__` | Converts a zero-dimensional array to a Python `int` object. |
+| Y | [`IndexMut`] | `__setitem__` | Sets `self[key]` to `value`. |
+| P | [`DeviceChangeAPI::to_device`] | `to_device` | Copy the array from the device on which it currently resides to the specified `device`. |
+
+**Partial Implemented**
+- Only [`ComplexFloat`] types implemented [`abs`]. Integer types has not been implemented for absolute value.
 
 ## Constants
 
@@ -141,12 +151,14 @@ Dropped support
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| | | `astype` | Copies an array to a specified data type irrespective of Type Promotion Rules rules. |
-| | | `can_cast` | Determines if one data type can be cast to another data type according Type Promotion Rules rules. |
-| | | `finfo` | Machine limits for floating-point data types. |
-| | | `iinfo` | Machine limits for integer data types. |
-| | | `isdtype` | Returns a boolean indicating whether a provided dtype is of a specified data type "kind". |
-| | | `result_type` | Returns the dtype that results from applying the type promotion rules (see Type Promotion Rules) to the arguments. |
+| T | [`num`] crate | `astype` | Copies an array to a specified data type irrespective of Type Promotion Rules rules. |
+| T | [`num`] crate | `can_cast` | Determines if one data type can be cast to another data type according Type Promotion Rules rules. |
+| T | [`num`] crate | `finfo` | Machine limits for floating-point data types. |
+| T | [`num`] crate | `iinfo` | Machine limits for integer data types. |
+| T | [`core::any::type_name`] | `isdtype` | Returns a boolean indicating whether a provided dtype is of a specified data type "kind". |
+| T | [`num`] crate | `result_type` | Returns the dtype that results from applying the type promotion rules (see Type Promotion Rules) to the arguments. |
+
+For this part, we refer to [`num`] crate, where data type conversion and promotion are regularized by trait bounds.
 
 ### Data Type Categories
 
@@ -167,75 +179,77 @@ Dropped support
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| | | `abs` | Calculates the absolute value for each element x_i of the input array x. |
-| | | `acos` | Calculates an implementation-dependent approximation of the principal value of the inverse cosine for each element x_i of the input array x. |
-| | | `acosh` | Calculates an implementation-dependent approximation to the inverse hyperbolic cosine for each element x_i of the input array x. |
-| | | `asin` | Calculates an implementation-dependent approximation of the principal value of the inverse sine for each element x_i of the input array x. |
-| | | `asinh` | Calculates an implementation-dependent approximation to the inverse hyperbolic sine for each element x_i in the input array x. |
-| | | `atan` | Calculates an implementation-dependent approximation of the principal value of the inverse tangent for each element x_i of the input array x. |
-| | | `atanh` | Calculates an implementation-dependent approximation to the inverse hyperbolic tangent for each element x_i of the input array x. |
-| | | `bitwise_invert` | Inverts (flips) each bit for each element x_i of the input array x. |
-| | | `ceil` | Rounds each element x_i of the input array x to the smallest (i.e., closest to -infinity) integer-valued number that is not less than x_i. |
-| | | `conj` | Returns the complex conjugate for each element x_i of the input array x. |
-| | | `cos` | Calculates an implementation-dependent approximation to the cosine for each element x_i of the input array x. |
-| | | `cosh` | Calculates an implementation-dependent approximation to the hyperbolic cosine for each element x_i in the input array x. |
-| | | `exp` | Calculates an implementation-dependent approximation to the exponential function for each element x_i of the input array x (e raised to the power of x_i, where e is the base of the natural logarithm). |
-| | | `expm1` | Calculates an implementation-dependent approximation to exp(x)-1 for each element x_i of the input array x. |
-| | | `floor` | Rounds each element x_i of the input array x to the greatest (i.e., closest to +infinity) integer-valued number that is not greater than x_i. |
-| | | `imag` | Returns the imaginary component of a complex number for each element x_i of the input array x. |
-| | | `isfinite` | Tests each element x_i of the input array x to determine if finite. |
-| | | `isinf` | Tests each element x_i of the input array x to determine if equal to positive or negative infinity. |
-| | | `isnan` | Tests each element x_i of the input array x to determine whether the element is NaN. |
-| | | `log` | Calculates an implementation-dependent approximation to the natural (base e) logarithm for each element x_i of the input array x. |
-| | | `log1p` | Calculates an implementation-dependent approximation to log(1+x), where log refers to the natural (base e) logarithm, for each element x_i of the input array x. |
-| | | `log2` | Calculates an implementation-dependent approximation to the base 2 logarithm for each element x_i of the input array x. |
-| | | `log10` | Calculates an implementation-dependent approximation to the base 10 logarithm for each element x_i of the input array x. |
-| | | `logical_not` | Computes the logical NOT for each element x_i of the input array x. |
-| | | `negative` | Computes the numerical negative of each element x_i (i.e., y_i = -x_i) of the input array x. |
-| | | `positive` | Computes the numerical positive of each element x_i (i.e., y_i = +x_i) of the input array x. |
-| | | `real` | Returns the real component of a complex number for each element x_i of the input array x. |
-| | | `round` | Rounds each element x_i of the input array x to the nearest integer-valued number. |
-| | | `sign` | Returns an indication of the sign of a number for each element x_i of the input array x. |
-| | | `signbit` | Determines whether the sign bit is set for each element x_i of the input array x. |
-| | | `sin` | Calculates an implementation-dependent approximation to the sine for each element x_i of the input array x. |
-| | | `sinh` | Calculates an implementation-dependent approximation to the hyperbolic sine for each element x_i of the input array x. |
-| | | `square` | Squares each element x_i of the input array x. |
-| | | `sqrt` | Calculates the principal square root for each element x_i of the input array x. |
-| | | `tan` | Calculates an implementation-dependent approximation to the tangent for each element x_i of the input array x. |
-| | | `tanh` | Calculates an implementation-dependent approximation to the hyperbolic tangent for each element x_i of the input array x. |
-| | | `trunc` | Rounds each element x_i of the input array x to the nearest integer-valued number that is closer to zero than x_i. |
+| [`ComplexFloat`] (partial) | [`abs`] | `abs` | Calculates the absolute value for each element x_i of the input array x. |
+| [`ComplexFloat`] | [`acos`] | `acos` | Calculates an implementation-dependent approximation of the principal value of the inverse cosine for each element x_i of the input array x. |
+| [`ComplexFloat`] | [`acosh`] | `acosh` | Calculates an implementation-dependent approximation to the inverse hyperbolic cosine for each element x_i of the input array x. |
+| [`ComplexFloat`] | [`asin`] | `asin` | Calculates an implementation-dependent approximation of the principal value of the inverse sine for each element x_i of the input array x. |
+| [`ComplexFloat`] | [`asinh`] | `asinh` | Calculates an implementation-dependent approximation to the inverse hyperbolic sine for each element x_i in the input array x. |
+| [`ComplexFloat`] | [`atan`] | `atan` | Calculates an implementation-dependent approximation of the principal value of the inverse tangent for each element x_i of the input array x. |
+| [`ComplexFloat`] | [`atanh`] | `atanh` | Calculates an implementation-dependent approximation to the inverse hyperbolic tangent for each element x_i of the input array x. |
+| [`Not`] | `!`, [`not`] | `bitwise_invert` | Inverts (flips) each bit for each element x_i of the input array x. |
+| [`Float`] | [`ceil`] | `ceil` | Rounds each element x_i of the input array x to the smallest (i.e., closest to -infinity) integer-valued number that is not less than x_i. |
+| [`ComplexFloat`] | [`conj`] | `conj` | Returns the complex conjugate for each element x_i of the input array x. |
+| [`ComplexFloat`] | [`cos`] | `cos` | Calculates an implementation-dependent approximation to the cosine for each element x_i of the input array x. |
+| [`ComplexFloat`] | [`cosh`] | `cosh` | Calculates an implementation-dependent approximation to the hyperbolic cosine for each element x_i in the input array x. |
+| [`ComplexFloat`] | [`exp`] | `exp` | Calculates an implementation-dependent approximation to the exponential function for each element x_i of the input array x (e raised to the power of x_i, where e is the base of the natural logarithm). |
+| [`Float`] (partial) | [`expm1`] | `expm1` | Calculates an implementation-dependent approximation to exp(x)-1 for each element x_i of the input array x. |
+| [`Float`] | [`floor`] | `floor` | Rounds each element x_i of the input array x to the greatest (i.e., closest to +infinity) integer-valued number that is not greater than x_i. |
+| [`ComplexFloat`] | [`imag`] | `imag` | Returns the imaginary component of a complex number for each element x_i of the input array x. |
+| [`ComplexFloat`] | [`is_finite`] | `isfinite` | Tests each element x_i of the input array x to determine if finite. |
+| [`ComplexFloat`] | [`is_inf`] | `isinf` | Tests each element x_i of the input array x to determine if equal to positive or negative infinity. |
+| [`ComplexFloat`] | [`is_nan`] | `isnan` | Tests each element x_i of the input array x to determine whether the element is NaN. |
+| [`ComplexFloat`] | [`log`] | `log` | Calculates an implementation-dependent approximation to the natural (base e) logarithm for each element x_i of the input array x. |
+| Not implemented | | `log1p` | Calculates an implementation-dependent approximation to log(1+x), where log refers to the natural (base e) logarithm, for each element x_i of the input array x. |
+| [`ComplexFloat`] | [`log2`] | `log2` | Calculates an implementation-dependent approximation to the base 2 logarithm for each element x_i of the input array x. |
+| [`ComplexFloat`] | [`log10`] | `log10` | Calculates an implementation-dependent approximation to the base 10 logarithm for each element x_i of the input array x. |
+| [`Not`] | `!`, [`not`] | `logical_not` | Computes the logical NOT for each element x_i of the input array x. |
+| [`Neg`] | `-`, [`neg`] | `negative` | Computes the numerical negative of each element x_i (i.e., y_i = -x_i) of the input array x. |
+| Dropped | | `positive` | Computes the numerical positive of each element x_i (i.e., y_i = +x_i) of the input array x. |
+| [`ComplexFloat`] | [`real`] | `real` | Returns the real component of a complex number for each element x_i of the input array x. |
+| [`Float`] | [`round`] | `round` | Rounds each element x_i of the input array x to the nearest integer-valued number. |
+| [`ComplexFloat`] | [`sign`] | `sign` | Returns an indication of the sign of a number for each element x_i of the input array x. |
+| [`Signed`] | [`signbit`] | `signbit` | Determines whether the sign bit is set for each element x_i of the input array x. |
+| [`ComplexFloat`] | [`sin`] | `sin` | Calculates an implementation-dependent approximation to the sine for each element x_i of the input array x. |
+| [`ComplexFloat`] | [`sinh`] | `sinh` | Calculates an implementation-dependent approximation to the hyperbolic sine for each element x_i of the input array x. |
+| [Num] | [`square`] | `square` | Squares each element x_i of the input array x. |
+| [`ComplexFloat`] | [`sqrt`] | `sqrt` | Calculates the principal square root for each element x_i of the input array x. |
+| [`ComplexFloat`] | [`tan`] | `tan` | Calculates an implementation-dependent approximation to the tangent for each element x_i of the input array x. |
+| [`ComplexFloat`] | [`tanh`] | `tanh` | Calculates an implementation-dependent approximation to the hyperbolic tangent for each element x_i of the input array x. |
+| [`Float`] | [`trunc`] | `trunc` | Rounds each element x_i of the input array x to the nearest integer-valued number that is closer to zero than x_i. |
 
 ### Binary Functions
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| | | `add` | Calculates the sum for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
-| | | `atan2` | Calculates an implementation-dependent approximation of the inverse tangent of the quotient x1/x2, having domain [-infinity, +infinity] x [-infinity, +infinity] (where the x notation denotes the set of ordered pairs of elements (x1_i, x2_i)) and codomain [-π, +π], for each pair of elements (x1_i, x2_i) of the input arrays x1 and x2, respectively. |
-| | | `bitwise_and` | Computes the bitwise AND of the underlying binary representation of each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
-| | | `bitwise_left_shift` | Shifts the bits of each element x1_i of the input array x1 to the left by appending x2_i (i.e., the respective element in the input array x2) zeros to the right of x1_i. |
-| | | `bitwise_or` | Computes the bitwise OR of the underlying binary representation of each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
-| | | `bitwise_right_shift` | Shifts the bits of each element x1_i of the input array x1 to the right according to the respective element x2_i of the input array x2. |
-| | | `bitwise_xor` | Computes the bitwise XOR of the underlying binary representation of each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
-| | | `copysign` | Composes a floating-point value with the magnitude of x1_i and the sign of x2_i for each element of the input array x1. |
-| | | `divide` | Calculates the division of each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
-| | | `equal` | Computes the truth value of x1_i == x2_i for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
-| | | `floor_divide` | Rounds the result of dividing each element x1_i of the input array x1 by the respective element x2_i of the input array x2 to the greatest (i.e., closest to +infinity) integer-value number that is not greater than the division result. |
-| | | `greater` | Computes the truth value of x1_i > x2_i for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
-| | | `greater_equal` | Computes the truth value of x1_i >= x2_i for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
-| | | `hypot` | Computes the square root of the sum of squares for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
-| | | `less` | Computes the truth value of x1_i < x2_i for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
-| | | `less_equal` | Computes the truth value of x1_i <= x2_i for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
-| | | `logaddexp` | Calculates the logarithm of the sum of exponentiations log(exp(x1) + exp(x2)) for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
-| | | `logical_and` | Computes the logical AND for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
-| | | `logical_or` | Computes the logical OR for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
-| | | `logical_xor` | Computes the logical XOR for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
-| | | `maximum` | Computes the maximum value for each element x1_i of the input array x1 relative to the respective element x2_i of the input array x2. |
-| | | `minimum` | Computes the minimum value for each element x1_i of the input array x1 relative to the respective element x2_i of the input array x2. |
-| | | `multiply` | Calculates the product for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
-| | | `not_equal` | Computes the truth value of x1_i != x2_i for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
-| | | `pow` | Calculates an implementation-dependent approximation of exponentiation by raising each element x1_i (the base) of the input array x1 to the power of x2_i (the exponent), where x2_i is the corresponding element of the input array x2. |
-| | | `remainder` | Returns the remainder of division for each element x1_i of the input array x1 and the respective element x2_i of the input array x2. |
-| | | `subtract` | Calculates the difference for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
+| [`Add`] | `+`, [`add`] | `add` | Calculates the sum for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
+| [`Float`] | [`atan2`] | `atan2` | Calculates an implementation-dependent approximation of the inverse tangent of the quotient x1/x2, having domain [-infinity, +infinity] x [-infinity, +infinity] (where the x notation denotes the set of ordered pairs of elements (x1_i, x2_i)) and codomain [-π, +π], for each pair of elements (x1_i, x2_i) of the input arrays x1 and x2, respectively. |
+| [`BitAnd`] | `&`, [`bitand`] | `bitwise_and` | Computes the bitwise AND of the underlying binary representation of each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
+| [`Shl`] | `<<`, [`shl`] | `bitwise_left_shift` | Shifts the bits of each element x1_i of the input array x1 to the left by appending x2_i (i.e., the respective element in the input array x2) zeros to the right of x1_i. |
+| [`BitOr`] | `\|`, [`bitor`] | `bitwise_or` | Computes the bitwise OR of the underlying binary representation of each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
+| [`Shr`] | `>>`, [`shr`] | `bitwise_right_shift` | Shifts the bits of each element x1_i of the input array x1 to the right according to the respective element x2_i of the input array x2. |
+| [`BitXor`] | `^`, [`bitxor`] | `bitwise_xor` | Computes the bitwise XOR of the underlying binary representation of each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
+| [`Float`] | [`copysign`] | `copysign` | Composes a floating-point value with the magnitude of x1_i and the sign of x2_i for each element of the input array x1. |
+| [`Div`] | `/`, [`div`] | `divide` | Calculates the division of each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
+| [`PartialEq`] | [`eq`], [`equal`] | `equal` | Computes the truth value of x1_i == x2_i for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
+| See Note[^1] | | `floor_divide` | Rounds the result of dividing each element x1_i of the input array x1 by the respective element x2_i of the input array x2 to the greatest (i.e., closest to +infinity) integer-value number that is not greater than the division result. |
+| [`PartialOrd`] | [`gt`], [`greater`] | `greater` | Computes the truth value of x1_i > x2_i for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
+| [`PartialOrd`] | [`ge`], [`greater_equal`] | `greater_equal` | Computes the truth value of x1_i >= x2_i for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
+| [`Float`] | [`hypot`] | `hypot` | Computes the square root of the sum of squares for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
+| [`PartialOrd`] | [`lt`], [`less`] | `less` | Computes the truth value of x1_i < x2_i for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
+| [`PartialOrd`] | [`le`], [`less_equal`] | `less_equal` | Computes the truth value of x1_i <= x2_i for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
+| [`ComplexFloat`] | [`log_add_exp`] | `logaddexp` | Calculates the logarithm of the sum of exponentiations log(exp(x1) + exp(x2)) for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
+| | [`bitand`] instead | `logical_and` | Computes the logical AND for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
+| | [`bitor`] instead | `logical_or` | Computes the logical OR for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
+| | [`bitxor`] instead | `logical_xor` | Computes the logical XOR for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
+| [`PartialOrd`] | [`max`], [`maximum`] | `maximum` | Computes the maximum value for each element x1_i of the input array x1 relative to the respective element x2_i of the input array x2. |
+| [`PartialOrd`] | [`min`], [`minimum`] | `minimum` | Computes the minimum value for each element x1_i of the input array x1 relative to the respective element x2_i of the input array x2. |
+| [`Mul`] | [`mul`] | `multiply` | Calculates the product for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
+| [`PartialEq`] | [`ne`], [`not_equal`] | `not_equal` | Computes the truth value of x1_i != x2_i for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
+| [`Pow`] | [`pow`] | `pow` | Calculates an implementation-dependent approximation of exponentiation by raising each element x1_i (the base) of the input array x1 to the power of x2_i (the exponent), where x2_i is the corresponding element of the input array x2. |
+| [`Rem`] | [`rt::rem`][^2] | `remainder` | Returns the remainder of division for each element x1_i of the input array x1 and the respective element x2_i of the input array x2. |
+| [`Sub`] | `-`, [`sub`] | `subtract` | Calculates the difference for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
+
+
 
 ### Other functions
 
@@ -253,18 +267,18 @@ Dropped support
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| | | `capabilities` | Returns a dictionary of array library capabilities. |
-| | | `default_device` | Returns the default device. |
-| | | `default_dtypes` | Returns a dictionary containing default data types. |
-| | | `devices` | Returns a list of supported devices which are available at runtime. |
-| | | `dtypes` | Returns a dictionary of supported Array API data types. |
+| D | requires reflection | `capabilities` | Returns a dictionary of array library capabilities. |
+| Fixed | [`DeviceCpu`] | `default_device` | Returns the default device. |
+| D | controled by rust | `default_dtypes` | Returns a dictionary containing default data types. |
+| Y | [`TensorBase::device`] | `devices` | Returns a list of supported devices which are available at runtime. |
+| Y | [`core::any::type_name_of_val`] | `dtypes` | Returns a dictionary of supported Array API data types. |
 
 ## Linear Algebra Functions
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| | | `matmul` | Computes the matrix product. |
-| | | `matrix_transpose` | Transposes a matrix (or a stack of matrices) x. |
+| Y | [`matmul()`] | `matmul` | Computes the matrix product. |
+| Y | [`swapaxes`]`(-1, -2)` | `matrix_transpose` | Transposes a matrix (or a stack of matrices) x. |
 | | | `tensordot` | Returns a tensor contraction of x1 and x2 over specific axes. |
 | | | `vecdot` | Computes the (vector) dot product of two arrays. |
 
@@ -327,7 +341,7 @@ Dropped support
 | | | `min` | Calculates the minimum value of the input array x. |
 | | | `prod` | Calculates the product of input array x elements. |
 | | | `std` | Calculates the standard deviation of the input array x. |
-| | | `sum` | Calculates the sum of the input array x. |
+| Y | [`sum`] | `sum` | Calculates the sum of the input array x. |
 | | | `var` | Calculates the variance of the input array x. |
 
 ## Utility Functions
