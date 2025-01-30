@@ -1,0 +1,17 @@
+[package]
+name = "rstsr"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+rstsr-core = { workspace = true }
+rstsr-openblas = { workspace = true, optional = true }
+
+[features]
+default = ["rstsr-core/default"]
+std = ["rstsr-core/std"]
+f_prefer = ["rstsr-core/std"]
+rayon = ["rstsr-core/rayon"]
+faer = ["rstsr-core/faer"]
+faer_as_default = ["rstsr-core/faer_as_default"]
+openblas = ["dep:rstsr-openblas"]

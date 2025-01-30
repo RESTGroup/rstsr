@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "rstsr",
     "rstsr-core",
     "rstsr-openblas",
     "rstsr-openblas-ffi",
@@ -13,6 +14,7 @@ edition = "2021"
 [workspace.dependencies]
 # members
 rstsr-core = { path = "./rstsr-core", default-features = false }
+rstsr-openblas = { path = "./rstsr-openblas" }
 rstsr-openblas-ffi = { path = "./rstsr-openblas-ffi" }
 # basic dependencies
 num = { version = "0.4" }
