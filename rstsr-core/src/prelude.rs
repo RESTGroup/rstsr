@@ -103,7 +103,7 @@ pub use rstsr_macros::*;
 pub use rstsr_structs::*;
 pub use rstsr_traits::*;
 
-pub mod rstsr {
+pub mod rt {
     pub use super::rstsr_funcs;
     pub use super::rstsr_macros;
     pub use super::rstsr_structs;
@@ -116,5 +116,3 @@ pub mod rstsr {
 
     pub use crate::error::{Error, Result};
 }
-
-pub use rstsr as rt;
