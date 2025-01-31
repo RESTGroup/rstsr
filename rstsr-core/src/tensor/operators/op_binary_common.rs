@@ -83,6 +83,7 @@ mod trait_binary {
     trait_binary!(atan2         , atan2_f           , TensorATan2API            , DeviceATan2API            ,               );
     trait_binary!(copysign      , copysign_f        , TensorCopySignAPI         , DeviceCopySignAPI         ,               );
     trait_binary!(equal         , equal_f           , TensorEqualAPI            , DeviceEqualAPI            , eq, eq_f      );
+    trait_binary!(floor_divide  , floor_divide_f    , TensorFloorDivideAPI      , DeviceFloorDivideAPI      ,               );
     trait_binary!(greater       , greater_f         , TensorGreaterAPI          , DeviceGreaterAPI          , gt, gt_f      );
     trait_binary!(greater_equal , greater_equal_f   , TensorGreaterEqualAPI     , DeviceGreaterEqualAPI     , ge, ge_f      );
     trait_binary!(hypot         , hypot_f           , TensorHypotAPI            , DeviceHypotAPI            ,               );
@@ -93,8 +94,6 @@ mod trait_binary {
     trait_binary!(minimum       , minimum_f         , TensorMinimumAPI          , DeviceMinimumAPI          , min, min_f    );
     trait_binary!(not_equal     , not_equal_f       , TensorNotEqualAPI         , DeviceNotEqualAPI         , ne, ne_f      );
     trait_binary!(pow           , pow_f             , TensorPowAPI              , DevicePowAPI              ,               );
-    trait_binary!(floor_divide  , floor_divide_f    , TensorFloatFloorDivideAPI , DeviceFloatFloorDivideAPI ,               );
-    trait_binary!(floor_divide  , floor_divide_f    , TensorIntFloorDivideAPI   , DeviceIntFloorDivideAPI   ,               );
 }
 
 pub use trait_binary::*;
@@ -143,6 +142,7 @@ mod func_binary {
     func_binary!(atan2         , atan2_f           , TensorATan2API            , DeviceATan2API            ,               );
     func_binary!(copysign      , copysign_f        , TensorCopySignAPI         , DeviceCopySignAPI         ,               );
     func_binary!(equal         , equal_f           , TensorEqualAPI            , DeviceEqualAPI            , eq, eq_f      );
+    func_binary!(floor_divide  , floor_divide_f    , TensorFloorDivideAPI      , DeviceFloorDivideAPI      ,               );
     func_binary!(greater       , greater_f         , TensorGreaterAPI          , DeviceGreaterAPI          , gt, gt_f      );
     func_binary!(greater_equal , greater_equal_f   , TensorGreaterEqualAPI     , DeviceGreaterEqualAPI     , ge, ge_f      );
     func_binary!(hypot         , hypot_f           , TensorHypotAPI            , DeviceHypotAPI            ,               );

@@ -34,6 +34,7 @@ trait_definition!(
     DeviceATan2API,
     DeviceCopySignAPI,
     DeviceEqualAPI,
+    DeviceFloorDivideAPI,
     DeviceGreaterAPI,
     DeviceGreaterEqualAPI,
     DeviceHypotAPI,
@@ -45,5 +46,3 @@ trait_definition!(
     DeviceNotEqualAPI,
     DevicePowAPI
 );
-
-trait_definition!(DeviceFloatFloorDivideAPI, DeviceIntFloorDivideAPI);
