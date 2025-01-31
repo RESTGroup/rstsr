@@ -5,6 +5,7 @@ members = [
     "rstsr-core",
     "rstsr-openblas",
     "rstsr-openblas-ffi",
+    "rstsr-dtype-traits",
 ]
 
 [workspace.package]
@@ -15,7 +16,9 @@ edition = "2021"
 # members
 rstsr-core = { path = "./rstsr-core", default-features = false }
 rstsr-openblas = { path = "./rstsr-openblas" }
+# members without core
 rstsr-openblas-ffi = { path = "./rstsr-openblas-ffi" }
+rstsr-dtype-traits = { path = "./rstsr-dtype-traits", default-features = false }
 # basic dependencies
 num = { version = "0.4" }
 thiserror = { version = "1.0" }

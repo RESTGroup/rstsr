@@ -1,0 +1,12 @@
+[package]
+name = "rstsr-dtype-traits"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+num = { workspace = true }
+half = { workspace = true, optional = true }
+
+[features]
+defaults = ["half"]
+half = ["dep:half"]
