@@ -32,7 +32,7 @@ where
     let nthreads = pool.current_num_threads();
     let size = la.size();
     if size < PARALLEL_SWITCH * nthreads {
-        return reduce_all_cpu_serial(a, la, init, f);
+        return reduce_all_cpu_serial(a, la, init, f, |acc| acc);
     }
 
     // re-align layout
@@ -108,7 +108,7 @@ where
     let nthreads = pool.current_num_threads();
     let size = la.size();
     if size < PARALLEL_SWITCH * nthreads {
-        return reduce_axes_cpu_serial(a, la, axes, init, f);
+        return reduce_axes_cpu_serial(a, la, axes, init, f, |acc| acc);
     }
 
     // split the layout into axes (to be summed) and the rest

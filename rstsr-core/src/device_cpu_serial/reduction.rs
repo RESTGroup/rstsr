@@ -1,6 +1,4 @@
 use crate::prelude_dev::*;
-use core::ops::Add;
-use num::Zero;
 
 // this value is used to determine whether to use contiguous inner iteration
 const CONTIG_SWITCH: usize = 32;
@@ -49,12 +47,19 @@ where
     acc
 }
 
-pub fn reduce_all_cpu_serial<T, D, I, F>(a: &[T], la: &Layout<D>, init: I, f: F) -> Result<T>
+pub fn reduce_all_cpu_serial<T, D, I, F, Fin>(
+    a: &[T],
+    la: &Layout<D>,
+    init: I,
+    f: F,
+    fin: Fin,
+) -> Result<T>
 where
     T: Clone,
     D: DimAPI,
     I: Fn() -> T,
     F: Fn(T, T) -> T,
+    Fin: Fn(T) -> T,
 {
     // re-align layout
     let layout = translate_to_col_major_unary(la, TensorIterOrder::K)?;
@@ -67,26 +72,28 @@ where
             let acc_inner = unrolled_reduce(slc, &init, &f);
             acc = f(acc.clone(), acc_inner);
         })?;
-        return Ok(acc);
+        return Ok(fin(acc));
     } else {
         let iter_a = IterLayoutColMajor::new(&layout)?;
         let acc = iter_a.fold(init(), |acc, idx| f(acc, a[idx].clone()));
-        return Ok(acc);
+        return Ok(fin(acc));
     }
 }
 
 #[allow(clippy::uninit_vec)]
-pub fn reduce_axes_cpu_serial<T, I, F>(
+pub fn reduce_axes_cpu_serial<T, I, F, Fin>(
     a: &[T],
     la: &Layout<IxD>,
     axes: &[isize],
     init: I,
     f: F,
+    fin: Fin,
 ) -> Result<(Vec<T>, Layout<IxD>)>
 where
     T: Clone,
     I: Fn() -> T,
     F: Fn(T, T) -> T,
+    Fin: Fn(T) -> T,
 {
     // split the layout into axes (to be summed) and the rest
     let (layout_axes, layout_rest) = la.dim_split_axes(axes)?;
@@ -120,7 +127,7 @@ where
         izip!(iter_out_swapped, iter_rest_swapped).try_for_each(
             |(idx_out, idx_rest)| -> Result<()> {
                 unsafe { layout_inner.set_offset(idx_rest) };
-                let acc = reduce_all_cpu_serial(a, &layout_inner, &init, &f)?;
+                let acc = reduce_all_cpu_serial(a, &layout_inner, &init, &f, &fin)?;
                 out[idx_out] = acc;
                 Ok(())
             },
@@ -145,27 +152,8 @@ where
             unsafe { layout_inner.set_offset(idx_axes) };
             op_muta_refb_func_cpu_serial(&mut out, &layout_out, a, &layout_inner, f_add)?;
         }
+        let fin_inplace = |a: &mut T| *a = fin(a.clone());
+        op_muta_func_cpu_serial(&mut out, &layout_out, fin_inplace)?;
         return Ok((out, layout_out));
-    }
-}
-
-impl<T, D> OpSumAPI<T, D> for DeviceCpuSerial
-where
-    T: Zero + Add<Output = T> + Clone,
-    D: DimAPI,
-{
-    fn sum_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T> {
-        reduce_all_cpu_serial(a, la, T::zero, |acc, x| acc + x)
-    }
-
-    fn sum(
-        &self,
-        a: &Vec<T>,
-        la: &Layout<D>,
-        axes: &[isize],
-    ) -> Result<(Storage<DataOwned<Vec<T>>, T, Self>, Layout<IxD>)> {
-        let (out, layout_out) =
-            reduce_axes_cpu_serial(a, &la.to_dim()?, axes, T::zero, |acc, x| acc + x)?;
-        Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 }
