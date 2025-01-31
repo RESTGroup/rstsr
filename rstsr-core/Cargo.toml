@@ -4,6 +4,7 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+rstsr-dtype-traits = { workspace = true, features = ["half"] }
 num = { workspace = true }
 itertools = { workspace = true }
 half = { workspace = true }

@@ -2,8 +2,8 @@
 use half::{bf16, f16};
 use num::{Complex, Float, Zero};
 
-pub trait ReImAPI {
-    type Out;
+pub trait ReImAPI: Clone {
+    type Out: Clone + ReImAPI<Out = Self::Out>;
     const REALIDENT: bool;
     const SAME_TYPE: bool;
     fn real(self) -> Self::Out;
@@ -39,7 +39,7 @@ impl_unchanged!(bf16, f16);
 
 impl<T> ReImAPI for Complex<T>
 where
-    T: Float,
+    T: Float + ReImAPI<Out = T>,
 {
     type Out = T;
     const REALIDENT: bool = false;

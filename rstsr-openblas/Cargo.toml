@@ -7,6 +7,7 @@ edition.workspace = true
 rayon = { workspace = true }
 num = { workspace = true }
 rstsr-core = { workspace = true, features = ["rayon"] }
+rstsr-dtype-traits = { workspace = true, features = ["half"] }
 rstsr-openblas-ffi = { workspace = true }
 
 [features]

@@ -2,6 +2,7 @@ use crate::prelude_dev::*;
 use core::ops::Div;
 use num::complex::ComplexFloat;
 use num::{Float, Num};
+use rstsr_dtype_traits::{AbsAPI, ReImAPI};
 
 // TODO: log1p
 
@@ -109,44 +110,89 @@ mod impl_bool_output{
 
 /* #region complex specific implementation */
 
-macro_rules! impl_complex_diff_type {
-    ($DeviceOpAPI: ident, $func:expr, $func_inplace: expr) => {
-        impl<T, D> $DeviceOpAPI<T, D> for DeviceCpuSerial
-        where
-            T: Clone + ComplexFloat,
-            D: DimAPI,
-        {
-            type TOut = T::Real;
+impl<T, D> DeviceAbsAPI<T, D> for DeviceCpuSerial
+where
+    T: Clone + AbsAPI,
+    D: DimAPI,
+{
+    type TOut = T::Out;
 
-            fn op_muta_refb(
-                &self,
-                a: &mut Vec<T::Real>,
-                la: &Layout<D>,
-                b: &Vec<T>,
-                lb: &Layout<D>,
-            ) -> Result<()> {
-                self.op_muta_refb_func(a, la, b, lb, &mut $func)
-            }
+    fn op_muta_refb(
+        &self,
+        a: &mut Vec<T::Out>,
+        la: &Layout<D>,
+        b: &Vec<T>,
+        lb: &Layout<D>,
+    ) -> Result<()> {
+        self.op_muta_refb_func(a, la, b, lb, &mut |a, b| *a = b.clone().abs())
+    }
 
-            fn op_muta(&self, a: &mut Vec<T::Real>, la: &Layout<D>) -> Result<()> {
-                let type_b = core::any::type_name::<T::Real>();
-                let type_a = core::any::type_name::<T>();
-                if type_b == type_a {
-                    self.op_muta_func(a, la, &mut $func_inplace)
-                } else {
-                    unreachable!("{:?} is not supported in this function.", type_b);
-                }
-            }
+    fn op_muta(&self, a: &mut Vec<T::Out>, la: &Layout<D>) -> Result<()> {
+        if T::UNCHANGED {
+            return Ok(());
+        } else if T::SAME_TYPE {
+            return self.op_muta_func(a, la, &mut |a| *a = a.clone().abs());
+        } else {
+            let type_b = core::any::type_name::<T>();
+            unreachable!("{:?} is not supported in this function.", type_b);
         }
-    };
+    }
 }
 
-#[rustfmt::skip]
-mod impl_complex_diff_type {
-    use super::*;
-    impl_complex_diff_type!(DeviceAbsAPI  , |a, b| *a = b.abs(), |a| *a = ComplexFloat::abs(a.clone()) );
-    impl_complex_diff_type!(DeviceImagAPI , |a, b| *a = b.im() , |a| *a = a.im() );
-    impl_complex_diff_type!(DeviceRealAPI , |a, b| *a = b.re() , |a| *a = a.re() );
+impl<T, D> DeviceImagAPI<T, D> for DeviceCpuSerial
+where
+    T: Clone + ReImAPI,
+    D: DimAPI,
+{
+    type TOut = T::Out;
+
+    fn op_muta_refb(
+        &self,
+        a: &mut Vec<T::Out>,
+        la: &Layout<D>,
+        b: &Vec<T>,
+        lb: &Layout<D>,
+    ) -> Result<()> {
+        self.op_muta_refb_func(a, la, b, lb, &mut |a, b| *a = b.clone().imag())
+    }
+
+    fn op_muta(&self, a: &mut Vec<T::Out>, la: &Layout<D>) -> Result<()> {
+        if T::SAME_TYPE {
+            return self.op_muta_func(a, la, &mut |a| *a = a.clone().imag());
+        } else {
+            let type_b = core::any::type_name::<T>();
+            unreachable!("{:?} is not supported in this function.", type_b);
+        }
+    }
+}
+
+impl<T, D> DeviceRealAPI<T, D> for DeviceCpuSerial
+where
+    T: Clone + ReImAPI,
+    D: DimAPI,
+{
+    type TOut = T::Out;
+
+    fn op_muta_refb(
+        &self,
+        a: &mut Vec<T::Out>,
+        la: &Layout<D>,
+        b: &Vec<T>,
+        lb: &Layout<D>,
+    ) -> Result<()> {
+        self.op_muta_refb_func(a, la, b, lb, &mut |a, b| *a = b.clone().real())
+    }
+
+    fn op_muta(&self, a: &mut Vec<T::Out>, la: &Layout<D>) -> Result<()> {
+        if T::REALIDENT {
+            return Ok(());
+        } else if T::SAME_TYPE {
+            return self.op_muta_func(a, la, &mut |a| *a = a.clone().real());
+        } else {
+            let type_b = core::any::type_name::<T>();
+            unreachable!("{:?} is not supported in this function.", type_b);
+        }
+    }
 }
 
 impl<T, D> DeviceSignAPI<T, D> for DeviceCpuSerial

@@ -3,8 +3,8 @@ use num::{Complex, Float};
 #[cfg(feature = "half")]
 use half::{bf16, f16};
 
-pub trait AbsAPI {
-    type Out;
+pub trait AbsAPI: Clone {
+    type Out: Clone + AbsAPI<Out = Self::Out>;
     const UNCHANGED: bool;
     const SAME_TYPE: bool;
     fn abs(self) -> Self::Out;
@@ -77,7 +77,7 @@ impl_abs_float!(bf16, f16);
 
 impl<T> AbsAPI for Complex<T>
 where
-    T: Float,
+    T: Float + AbsAPI<Out = T>,
 {
     type Out = T;
     const UNCHANGED: bool = false;
