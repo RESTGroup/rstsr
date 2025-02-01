@@ -1,7 +1,8 @@
 use crate::device_cpu_serial::reduction::*;
 use crate::prelude_dev::*;
 use core::ops::{Add, Mul};
-use num::{complex::ComplexFloat, Bounded, FromPrimitive, One, Zero};
+use num::complex::ComplexFloat;
+use num::{Bounded, FromPrimitive, One, Zero};
 use rstsr_dtype_traits::MinMaxAPI;
 
 impl<T, D> OpSumAPI<T, D> for DeviceCpuSerial
