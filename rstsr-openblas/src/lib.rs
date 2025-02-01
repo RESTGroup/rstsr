@@ -1,3 +1,5 @@
+#![doc = include_str!("../readme.md")]
+
 pub mod conversion;
 pub mod creation;
 pub mod device;

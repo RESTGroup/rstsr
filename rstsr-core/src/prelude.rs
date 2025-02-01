@@ -106,14 +106,18 @@ pub mod rstsr_funcs {
     };
     // binary common functions
     pub use crate::tensor::operators::{
-        atan2, atan2_f, copysign, copysign_f, eq, eq_f, equal, equal_f, ge, ge_f, greater,
-        greater_equal, greater_equal_f, greater_f, gt, gt_f, hypot, hypot_f, le, le_f, less,
-        less_equal, less_equal_f, less_f, log_add_exp, log_add_exp_f, lt, lt_f, max, max_f,
-        maximum, maximum_f, min, min_f, minimum, minimum_f, ne, ne_f, not_equal, not_equal_f, pow,
-        pow_f,
+        atan2, atan2_f, copysign, copysign_f, eq, eq_f, equal, equal_f, floor_divide,
+        floor_divide_f, ge, ge_f, greater, greater_equal, greater_equal_f, greater_f, gt, gt_f,
+        hypot, hypot_f, le, le_f, less, less_equal, less_equal_f, less_f, log_add_exp,
+        log_add_exp_f, lt, lt_f, maximum, maximum_f, minimum, minimum_f, ne, ne_f, not_equal,
+        not_equal_f, pow, pow_f,
     };
     // reduction
-    pub use crate::tensor::reduction::{sum, sum_all, sum_all_f, sum_f};
+    pub use crate::tensor::reduction::{
+        max, max_all, max_all_f, max_f, mean, mean_all, mean_all_f, mean_f, min, min_all,
+        min_all_f, min_f, prod, prod_all, prod_all_f, prod_f, std, std_all, std_all_f, std_f, sum,
+        sum_all, sum_all_f, sum_f, var, var_all, var_all_f, var_f,
+    };
 }
 
 pub mod rstsr_macros {

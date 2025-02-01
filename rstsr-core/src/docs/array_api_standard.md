@@ -19,7 +19,7 @@ For column status:
 | Y | `-` | `__sub__` | `x1 - x2` |
 | Y | `*` | `__mul__` | `x1 * x2` |
 | Y | `/` | `__truediv__` | `x1 / x2` |
-| Y | `floor_divide`[^1] | `__floordiv__` | `x1 // x2` |
+| Y | `floor_divide` | `__floordiv__` | `x1 // x2` |
 | **C** | [`rt::rem`][^2] | `__mod__` | `x1 % x2` |
 | Y | [`pow`] | `__pow__` | `x1 ** x2` |
 | Y | `+=` | `__iadd__` | `x1 += x2` |
@@ -29,8 +29,6 @@ For column status:
 | D | | `__ifloordiv__` | `x1 //= x2` |
 | D | | `__ipow__` | `x1 **= x2` |
 | Y | `%=` | `__imod__` | `x1 %= x2` |
-
-[^1]: For float and int types, `floor_divide` is implemented separately. For float[`TensorFloatFloorDivideAPI::floor_divide`], for int [`TensorIntFloorDivideAPI::floor_divide`]. This function can only called by associated method.
 
 [^2]: To use remainder (modular) function correctly, one may use `rt::rem` (as function), instead of using `x1 % x2` (as operator) or `x1.rem(x2)` (as associated method). In this crate, the latter two will call [`matmul()`].
 
@@ -179,7 +177,7 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| [`ComplexFloat`] (partial) | [`abs`] | `abs` | Calculates the absolute value for each element x_i of the input array x. |
+| [`AbsAPI`] | [`abs`] | `abs` | Calculates the absolute value for each element x_i of the input array x. |
 | [`ComplexFloat`] | [`acos`] | `acos` | Calculates an implementation-dependent approximation of the principal value of the inverse cosine for each element x_i of the input array x. |
 | [`ComplexFloat`] | [`acosh`] | `acosh` | Calculates an implementation-dependent approximation to the inverse hyperbolic cosine for each element x_i of the input array x. |
 | [`ComplexFloat`] | [`asin`] | `asin` | Calculates an implementation-dependent approximation of the principal value of the inverse sine for each element x_i of the input array x. |
@@ -194,7 +192,7 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 | [`ComplexFloat`] | [`exp`] | `exp` | Calculates an implementation-dependent approximation to the exponential function for each element x_i of the input array x (e raised to the power of x_i, where e is the base of the natural logarithm). |
 | [`Float`] (partial) | [`expm1`] | `expm1` | Calculates an implementation-dependent approximation to exp(x)-1 for each element x_i of the input array x. |
 | [`Float`] | [`floor`] | `floor` | Rounds each element x_i of the input array x to the greatest (i.e., closest to +infinity) integer-valued number that is not greater than x_i. |
-| [`ComplexFloat`] | [`imag`] | `imag` | Returns the imaginary component of a complex number for each element x_i of the input array x. |
+| [`ReImAPI`] | [`imag`] | `imag` | Returns the imaginary component of a complex number for each element x_i of the input array x. |
 | [`ComplexFloat`] | [`is_finite`] | `isfinite` | Tests each element x_i of the input array x to determine if finite. |
 | [`ComplexFloat`] | [`is_inf`] | `isinf` | Tests each element x_i of the input array x to determine if equal to positive or negative infinity. |
 | [`ComplexFloat`] | [`is_nan`] | `isnan` | Tests each element x_i of the input array x to determine whether the element is NaN. |
@@ -202,16 +200,16 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 | Not implemented | | `log1p` | Calculates an implementation-dependent approximation to log(1+x), where log refers to the natural (base e) logarithm, for each element x_i of the input array x. |
 | [`ComplexFloat`] | [`log2`] | `log2` | Calculates an implementation-dependent approximation to the base 2 logarithm for each element x_i of the input array x. |
 | [`ComplexFloat`] | [`log10`] | `log10` | Calculates an implementation-dependent approximation to the base 10 logarithm for each element x_i of the input array x. |
-| [`Not`] | `!`, [`not`] | `logical_not` | Computes the logical NOT for each element x_i of the input array x. |
+| [`Not`] | [`not`] instead | `logical_not` | Computes the logical NOT for each element x_i of the input array x. |
 | [`Neg`] | `-`, [`neg`] | `negative` | Computes the numerical negative of each element x_i (i.e., y_i = -x_i) of the input array x. |
 | Dropped | | `positive` | Computes the numerical positive of each element x_i (i.e., y_i = +x_i) of the input array x. |
-| [`ComplexFloat`] | [`real`] | `real` | Returns the real component of a complex number for each element x_i of the input array x. |
+| [`ReImAPI`] | [`real`] | `real` | Returns the real component of a complex number for each element x_i of the input array x. |
 | [`Float`] | [`round`] | `round` | Rounds each element x_i of the input array x to the nearest integer-valued number. |
 | [`ComplexFloat`] | [`sign`] | `sign` | Returns an indication of the sign of a number for each element x_i of the input array x. |
 | [`Signed`] | [`signbit`] | `signbit` | Determines whether the sign bit is set for each element x_i of the input array x. |
 | [`ComplexFloat`] | [`sin`] | `sin` | Calculates an implementation-dependent approximation to the sine for each element x_i of the input array x. |
 | [`ComplexFloat`] | [`sinh`] | `sinh` | Calculates an implementation-dependent approximation to the hyperbolic sine for each element x_i of the input array x. |
-| [Num] | [`square`] | `square` | Squares each element x_i of the input array x. |
+| [`Num`] | [`square`] | `square` | Squares each element x_i of the input array x. |
 | [`ComplexFloat`] | [`sqrt`] | `sqrt` | Calculates the principal square root for each element x_i of the input array x. |
 | [`ComplexFloat`] | [`tan`] | `tan` | Calculates an implementation-dependent approximation to the tangent for each element x_i of the input array x. |
 | [`ComplexFloat`] | [`tanh`] | `tanh` | Calculates an implementation-dependent approximation to the hyperbolic tangent for each element x_i of the input array x. |
@@ -231,7 +229,7 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 | [`Float`] | [`copysign`] | `copysign` | Composes a floating-point value with the magnitude of x1_i and the sign of x2_i for each element of the input array x1. |
 | [`Div`] | `/`, [`div`] | `divide` | Calculates the division of each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
 | [`PartialEq`] | [`eq`], [`equal`] | `equal` | Computes the truth value of x1_i == x2_i for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
-| See Note[^1] | | `floor_divide` | Rounds the result of dividing each element x1_i of the input array x1 by the respective element x2_i of the input array x2 to the greatest (i.e., closest to +infinity) integer-value number that is not greater than the division result. |
+| [`FloorDivideAPI`] | [`floor_divide`] | `floor_divide` | Rounds the result of dividing each element x1_i of the input array x1 by the respective element x2_i of the input array x2 to the greatest (i.e., closest to +infinity) integer-value number that is not greater than the division result. |
 | [`PartialOrd`] | [`gt`], [`greater`] | `greater` | Computes the truth value of x1_i > x2_i for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
 | [`PartialOrd`] | [`ge`], [`greater_equal`] | `greater_equal` | Computes the truth value of x1_i >= x2_i for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
 | [`Float`] | [`hypot`] | `hypot` | Computes the square root of the sum of squares for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
@@ -241,8 +239,8 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 | | [`bitand`] instead | `logical_and` | Computes the logical AND for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
 | | [`bitor`] instead | `logical_or` | Computes the logical OR for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
 | | [`bitxor`] instead | `logical_xor` | Computes the logical XOR for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
-| [`PartialOrd`] | [`max`], [`maximum`] | `maximum` | Computes the maximum value for each element x1_i of the input array x1 relative to the respective element x2_i of the input array x2. |
-| [`PartialOrd`] | [`min`], [`minimum`] | `minimum` | Computes the minimum value for each element x1_i of the input array x1 relative to the respective element x2_i of the input array x2. |
+| [`MinMaxAPI`] | [`maximum`] | `maximum` | Computes the maximum value for each element x1_i of the input array x1 relative to the respective element x2_i of the input array x2. |
+| [`MinMaxAPI`] | [`minimum`] | `minimum` | Computes the minimum value for each element x1_i of the input array x1 relative to the respective element x2_i of the input array x2. |
 | [`Mul`] | [`mul`] | `multiply` | Calculates the product for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
 | [`PartialEq`] | [`ne`], [`not_equal`] | `not_equal` | Computes the truth value of x1_i != x2_i for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
 | [`Pow`] | [`pow`] | `pow` | Calculates an implementation-dependent approximation of exponentiation by raising each element x1_i (the base) of the input array x1 to the power of x2_i (the exponent), where x2_i is the corresponding element of the input array x2. |
@@ -294,7 +292,7 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 | | | `moveaxis` | Moves array axes (dimensions) to new positions, while leaving other axes in their original positions. |
 | Y | [`transpose`], [`permute_dims`] | [`permute_dims`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.permute_dims.html) | Permutes the axes (dimensions) of an array `x`. |
 | | | `repeat` | Repeats each element of an array a specified number of times on a per-element basis. |
-| P | [`Tensor::reshape`], [`Tensor::into_shape_assume_contig`] | [`reshape`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.reshape.html) | Reshapes an array without changing its data. |
+| P | [`reshape`], [`into_shape_assume_contig`] | [`reshape`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.reshape.html) | Reshapes an array without changing its data. |
 | | | `roll` | Rolls array elements along a specified axis. |
 | P | [`squeeze`] | [`squeeze`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.squeeze.html) | Removes singleton dimensions (axes) from x. |
 | | | `stack` | Joins a sequence of arrays along a new axis. |
@@ -303,7 +301,7 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 
 **Partial implementation**
 - [`squeeze`] accepts one axis as input, instead of accepting multiple axes. This is mostly because output of smaller dimension tensor can be fixed-dimension array ([`DimSmallerOneAPI::SmallerOne`]) when only one axis is passed as argument.
-- `reshape`: Currently reshape is work-in-progress. It does not copy array when f/c-contiguous. For numpy, much more cases may not invoke explicit copy when reshape.
+- [`reshape`]: Currently reshape is work-in-progress. It does not copy array when c-contiguous. For numpy, much more cases may not invoke explicit copy when reshape.
 
 ## Searching Functions
 
@@ -336,13 +334,13 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 | status | implementation | Python API | description |
 |-|-|-|-|
 | | | `cumulative_sum` | Calculates the cumulative sum of elements in the input array x. |
-| | | `max` | Calculates the maximum value of the input array x. |
-| | | `mean` | Calculates the arithmetic mean of the input array x. |
-| | | `min` | Calculates the minimum value of the input array x. |
-| | | `prod` | Calculates the product of input array x elements. |
-| | | `std` | Calculates the standard deviation of the input array x. |
+| Y | [`max`] | `max` | Calculates the maximum value of the input array x. |
+| Y | [`mean`] | `mean` | Calculates the arithmetic mean of the input array x. |
+| Y | [`min`] | `min` | Calculates the minimum value of the input array x. |
+| Y | [`prod`] | `prod` | Calculates the product of input array x elements. |
+| Y | [`std`] | `std` | Calculates the standard deviation of the input array x. |
 | Y | [`sum`] | `sum` | Calculates the sum of the input array x. |
-| | | `var` | Calculates the variance of the input array x. |
+| Y | [`var`] | `var` | Calculates the variance of the input array x. |
 
 ## Utility Functions
 

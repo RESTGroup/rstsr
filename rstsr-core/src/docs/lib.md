@@ -6,9 +6,11 @@ User document refers to [github pages](https://ajz34.github.io/rstsr-book). Some
 
 ## API specifications
 
-This document is the core of this crate. We refer API specifications to [another page](`api_specification`).
+This document is the core of this crate.
 
-We also provide fullfillment for [Array API standard](`array_api_standard`). This fullfillment check shows how much functionalities we have achieved to be a basic tensor (array) library.
+We provide [fullfillment for Array API standard](`array_api_standard`). This fullfillment check shows how much functionalities we have achieved to be a basic tensor (array) library.
+
+We refer API specifications to [another page](`api_specification`). However, this part is still in construction. In this mean time, we refer [fullfillment for Array API standard](`array_api_standard`) as API specifications.
 
 ## Basic structure of rstsr Tensor
 

@@ -1,3 +1,5 @@
+#![doc = include_str!("../readme.md")]
+
 pub mod cblas;
 pub mod ffi;
 pub mod threading;
