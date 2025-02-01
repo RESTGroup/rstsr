@@ -15,12 +15,13 @@ const PARALLEL_CHUNK_MAX: usize = 1024;
 // Currently, we do not make contiguous parts to be parallel. Only outer
 // iteration is parallelized.
 
-pub fn reduce_all_cpu_rayon<T, D, I, F, Fin>(
+pub fn reduce_all_cpu_rayon<T, D, I, F, FSum, FOut>(
     a: &[T],
     la: &Layout<D>,
     init: I,
     f: F,
-    fin: Fin,
+    f_sum: FSum,
+    f_out: FOut,
     pool: &rayon::ThreadPool,
 ) -> Result<T>
 where
@@ -28,13 +29,14 @@ where
     D: DimAPI,
     I: Fn() -> T + Send + Sync,
     F: Fn(T, T) -> T + Send + Sync,
-    Fin: Fn(T) -> T + Send + Sync,
+    FSum: Fn(T, T) -> T + Send + Sync,
+    FOut: Fn(T) -> T + Send + Sync,
 {
     // determine whether to use parallel iteration
     let nthreads = pool.current_num_threads();
     let size = la.size();
     if size < PARALLEL_SWITCH * nthreads {
-        return reduce_all_cpu_serial(a, la, init, f, fin);
+        return reduce_all_cpu_serial(a, la, init, f, f_sum, f_out);
     }
 
     // re-align layout
@@ -53,9 +55,9 @@ where
                     .into_par_iter()
                     .fold(&init, |acc_inner, idx_a| {
                         let slc = &a[idx_a..idx_a + size_contig];
-                        f(acc_inner, unrolled_reduce(slc, &init, &f))
+                        f_sum(acc_inner, unrolled_reduce(slc, &init, &f, &f_sum))
                     })
-                    .reduce(&init, &f);
+                    .reduce(&init, &f_sum);
             });
         } else {
             // parallel inner iteration
@@ -70,14 +72,14 @@ where
                             let chunk = chunk.min(size_contig - idx);
                             let start = idx_a + idx;
                             let slc = &a[start..start + chunk];
-                            f(acc_chunk, unrolled_reduce(slc, &init, &f))
+                            f_sum(acc_chunk, unrolled_reduce(slc, &init, &f, &f_sum))
                         })
-                        .reduce(&init, &f);
-                    f(acc_inner, res)
+                        .reduce(&init, &f_sum);
+                    f_sum(acc_inner, res)
                 })
-                .reduce(&init, &f);
+                .reduce(&init, &f_sum);
         }
-        return Ok(fin(acc));
+        return Ok(f_out(acc));
     } else {
         // manual fold when not contiguous
         let iter_a = IterLayoutColMajor::new(&layout)?;
@@ -86,33 +88,35 @@ where
             acc = iter_a
                 .into_par_iter()
                 .fold(&init, |acc, idx| f(acc, a[idx].clone()))
-                .reduce(&init, &f);
+                .reduce(&init, &f_sum);
         });
-        return Ok(fin(acc));
+        return Ok(f_out(acc));
     }
 }
 
 #[allow(clippy::uninit_vec)]
-pub fn reduce_axes_cpu_rayon<T, I, F, Fin>(
+pub fn reduce_axes_cpu_rayon<T, I, F, FSum, FOut>(
     a: &[T],
     la: &Layout<IxD>,
     axes: &[isize],
     init: I,
     f: F,
-    fin: Fin,
+    f_sum: FSum,
+    f_out: FOut,
     pool: &rayon::ThreadPool,
 ) -> Result<(Vec<T>, Layout<IxD>)>
 where
     T: Clone + Send + Sync,
     I: Fn() -> T + Send + Sync,
     F: Fn(T, T) -> T + Send + Sync,
-    Fin: Fn(T) -> T + Send + Sync,
+    FSum: Fn(T, T) -> T + Send + Sync,
+    FOut: Fn(T) -> T + Send + Sync,
 {
     // determine whether to use parallel iteration
     let nthreads = pool.current_num_threads();
     let size = la.size();
     if size < PARALLEL_SWITCH * nthreads {
-        return reduce_axes_cpu_serial(a, la, axes, init, f, fin);
+        return reduce_axes_cpu_serial(a, la, axes, init, f, f_sum, f_out);
     }
 
     // split the layout into axes (to be summed) and the rest
@@ -147,7 +151,7 @@ where
                 let out_ptr = out_ptr.get();
                 let mut layout_inner = layout_axes.clone();
                 unsafe { layout_inner.set_offset(idx_rest) };
-                let acc = reduce_all_cpu_rayon(a, &layout_inner, &init, &f, &fin, pool)?;
+                let acc = reduce_all_cpu_rayon(a, &layout_inner, &init, &f, &f_sum, &f_out, pool)?;
                 unsafe { *out_ptr.add(idx_out) = acc };
                 Ok(())
             },
@@ -172,7 +176,7 @@ where
             unsafe { layout_inner.set_offset(idx_axes) };
             op_muta_refb_func_cpu_rayon(&mut out, &layout_out, a, &layout_inner, &mut f_add, pool)?;
         }
-        let mut fin_inplace = |a: &mut T| *a = fin(a.clone());
+        let mut fin_inplace = |a: &mut T| *a = f_out(a.clone());
         op_muta_func_cpu_rayon(&mut out, &layout_out, &mut fin_inplace, pool)?;
         return Ok((out, layout_out));
     }

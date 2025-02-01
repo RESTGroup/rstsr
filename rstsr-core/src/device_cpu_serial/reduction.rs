@@ -8,11 +8,12 @@ const CONTIG_SWITCH: usize = 32;
 /// # See also
 ///
 /// This code is from <https://github.com/rust-ndarray/ndarray/blob/master/src/numeric_util.rs>
-pub fn unrolled_reduce<A, I, F>(mut xs: &[A], init: I, f: F) -> A
+pub fn unrolled_reduce<A, I, F, FSum>(mut xs: &[A], init: I, f: F, f_sum: FSum) -> A
 where
     A: Clone,
     I: Fn() -> A,
     F: Fn(A, A) -> A,
+    FSum: Fn(A, A) -> A,
 {
     // eightfold unrolled so that floating point can be vectorized
     // (even with strict floating point accuracy semantics)
@@ -31,10 +32,10 @@ where
 
         xs = &xs[8..];
     }
-    acc = f(acc.clone(), f(p0, p4));
-    acc = f(acc.clone(), f(p1, p5));
-    acc = f(acc.clone(), f(p2, p6));
-    acc = f(acc.clone(), f(p3, p7));
+    acc = f_sum(acc.clone(), f_sum(p0, p4));
+    acc = f_sum(acc.clone(), f_sum(p1, p5));
+    acc = f_sum(acc.clone(), f_sum(p2, p6));
+    acc = f_sum(acc.clone(), f_sum(p3, p7));
 
     // make it clear to the optimizer that this loop is short
     // and can not be autovectorized.
@@ -47,19 +48,21 @@ where
     acc
 }
 
-pub fn reduce_all_cpu_serial<T, D, I, F, Fin>(
+pub fn reduce_all_cpu_serial<T, D, I, F, FSum, FOut>(
     a: &[T],
     la: &Layout<D>,
     init: I,
     f: F,
-    fin: Fin,
+    f_sum: FSum,
+    f_out: FOut,
 ) -> Result<T>
 where
     T: Clone,
     D: DimAPI,
     I: Fn() -> T,
     F: Fn(T, T) -> T,
-    Fin: Fn(T) -> T,
+    FSum: Fn(T, T) -> T,
+    FOut: Fn(T) -> T,
 {
     // re-align layout
     let layout = translate_to_col_major_unary(la, TensorIterOrder::K)?;
@@ -69,31 +72,33 @@ where
         let mut acc = init();
         layout_col_major_dim_dispatch_1(&layout_contig[0], |idx_a| {
             let slc = &a[idx_a..idx_a + size_contig];
-            let acc_inner = unrolled_reduce(slc, &init, &f);
-            acc = f(acc.clone(), acc_inner);
+            let acc_inner = unrolled_reduce(slc, &init, &f, &f_sum);
+            acc = f_sum(acc.clone(), acc_inner);
         })?;
-        return Ok(fin(acc));
+        return Ok(f_out(acc));
     } else {
         let iter_a = IterLayoutColMajor::new(&layout)?;
         let acc = iter_a.fold(init(), |acc, idx| f(acc, a[idx].clone()));
-        return Ok(fin(acc));
+        return Ok(f_out(acc));
     }
 }
 
 #[allow(clippy::uninit_vec)]
-pub fn reduce_axes_cpu_serial<T, I, F, Fin>(
+pub fn reduce_axes_cpu_serial<T, I, F, FSum, FOut>(
     a: &[T],
     la: &Layout<IxD>,
     axes: &[isize],
     init: I,
     f: F,
-    fin: Fin,
+    f_sum: FSum,
+    f_out: FOut,
 ) -> Result<(Vec<T>, Layout<IxD>)>
 where
     T: Clone,
     I: Fn() -> T,
     F: Fn(T, T) -> T,
-    Fin: Fn(T) -> T,
+    FSum: Fn(T, T) -> T,
+    FOut: Fn(T) -> T,
 {
     // split the layout into axes (to be summed) and the rest
     let (layout_axes, layout_rest) = la.dim_split_axes(axes)?;
@@ -127,7 +132,7 @@ where
         izip!(iter_out_swapped, iter_rest_swapped).try_for_each(
             |(idx_out, idx_rest)| -> Result<()> {
                 unsafe { layout_inner.set_offset(idx_rest) };
-                let acc = reduce_all_cpu_serial(a, &layout_inner, &init, &f, &fin)?;
+                let acc = reduce_all_cpu_serial(a, &layout_inner, &init, &f, &f_sum, &f_out)?;
                 out[idx_out] = acc;
                 Ok(())
             },
@@ -152,7 +157,7 @@ where
             unsafe { layout_inner.set_offset(idx_axes) };
             op_muta_refb_func_cpu_serial(&mut out, &layout_out, a, &layout_inner, f_add)?;
         }
-        let fin_inplace = |a: &mut T| *a = fin(a.clone());
+        let fin_inplace = |a: &mut T| *a = f_out(a.clone());
         op_muta_func_cpu_serial(&mut out, &layout_out, fin_inplace)?;
         return Ok((out, layout_out));
     }

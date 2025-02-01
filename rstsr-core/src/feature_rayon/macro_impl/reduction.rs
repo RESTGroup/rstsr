@@ -15,7 +15,13 @@ macro_rules! macro_impl_rayon_reduction {
         {
             fn sum_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T> {
                 let pool = self.get_pool();
-                reduce_all_cpu_rayon(a, la, T::zero, |acc, x| acc + x, |acc| acc, pool)
+
+                let f_init = T::zero;
+                let f = |acc, x| acc + x;
+                let f_sum = |acc1, acc2| acc1 + acc2;
+                let f_out = |acc| acc;
+
+                reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
             }
 
             fn sum(
@@ -25,15 +31,14 @@ macro_rules! macro_impl_rayon_reduction {
                 axes: &[isize],
             ) -> Result<(Storage<DataOwned<Vec<T>>, T, Self>, Layout<IxD>)> {
                 let pool = self.get_pool();
-                let (out, layout_out) = reduce_axes_cpu_rayon(
-                    a,
-                    &la.to_dim()?,
-                    axes,
-                    T::zero,
-                    |acc, x| acc + x,
-                    |acc| acc,
-                    pool,
-                )?;
+
+                let f_init = T::zero;
+                let f = |acc, x| acc + x;
+                let f_sum = |acc1, acc2| acc1 + acc2;
+                let f_out = |acc| acc;
+
+                let (out, layout_out) =
+                    reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
                 Ok((Storage::new(out.into(), self.clone()), layout_out))
             }
         }
@@ -44,11 +49,18 @@ macro_rules! macro_impl_rayon_reduction {
             D: DimAPI,
         {
             fn min_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T> {
-                let pool = self.get_pool();
                 if la.size() == 0 {
                     rstsr_raise!(InvalidValue, "zero-size array is not supported for min")?;
                 }
-                reduce_all_cpu_rayon(a, la, || T::max_value(), |acc, x| acc.min(x), |acc| acc, pool)
+
+                let pool = self.get_pool();
+
+                let f_init = T::max_value;
+                let f = |acc: T, x: T| acc.min(x);
+                let f_sum = |acc1: T, acc2: T| acc1.min(acc2);
+                let f_out = |acc| acc;
+
+                reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
             }
 
             fn min(
@@ -57,19 +69,19 @@ macro_rules! macro_impl_rayon_reduction {
                 la: &Layout<D>,
                 axes: &[isize],
             ) -> Result<(Storage<DataOwned<Vec<T>>, T, Self>, Layout<IxD>)> {
-                let pool = self.get_pool();
                 if la.size() == 0 {
                     rstsr_raise!(InvalidValue, "zero-size array is not supported for min")?;
                 }
-                let (out, layout_out) = reduce_axes_cpu_rayon(
-                    a,
-                    &la.to_dim()?,
-                    axes,
-                    || T::max_value(),
-                    |acc, x| acc.min(x),
-                    |acc| acc,
-                    pool,
-                )?;
+
+                let pool = self.get_pool();
+
+                let f_init = T::max_value;
+                let f = |acc: T, x: T| acc.min(x);
+                let f_sum = |acc1: T, acc2: T| acc1.min(acc2);
+                let f_out = |acc| acc;
+
+                let (out, layout_out) =
+                    reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
                 Ok((Storage::new(out.into(), self.clone()), layout_out))
             }
         }
@@ -80,11 +92,18 @@ macro_rules! macro_impl_rayon_reduction {
             D: DimAPI,
         {
             fn max_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T> {
-                let pool = self.get_pool();
                 if la.size() == 0 {
                     rstsr_raise!(InvalidValue, "zero-size array is not supported for max")?;
                 }
-                reduce_all_cpu_rayon(a, la, || T::min_value(), |acc, x| acc.max(x), |acc| acc, pool)
+
+                let pool = self.get_pool();
+
+                let f_init = T::min_value;
+                let f = |acc: T, x: T| acc.max(x);
+                let f_sum = |acc1: T, acc2: T| acc1.max(acc2);
+                let f_out = |acc| acc;
+
+                reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
             }
 
             fn max(
@@ -93,19 +112,19 @@ macro_rules! macro_impl_rayon_reduction {
                 la: &Layout<D>,
                 axes: &[isize],
             ) -> Result<(Storage<DataOwned<Vec<T>>, T, Self>, Layout<IxD>)> {
-                let pool = self.get_pool();
                 if la.size() == 0 {
                     rstsr_raise!(InvalidValue, "zero-size array is not supported for max")?;
                 }
-                let (out, layout_out) = reduce_axes_cpu_rayon(
-                    a,
-                    &la.to_dim()?,
-                    axes,
-                    || T::min_value(),
-                    |acc, x| acc.max(x),
-                    |acc| acc,
-                    pool,
-                )?;
+
+                let pool = self.get_pool();
+
+                let f_init = T::min_value;
+                let f = |acc: T, x: T| acc.max(x);
+                let f_sum = |acc1: T, acc2: T| acc1.max(acc2);
+                let f_out = |acc| acc;
+
+                let (out, layout_out) =
+                    reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
                 Ok((Storage::new(out.into(), self.clone()), layout_out))
             }
         }
@@ -117,7 +136,13 @@ macro_rules! macro_impl_rayon_reduction {
         {
             fn prod_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T> {
                 let pool = self.get_pool();
-                reduce_all_cpu_rayon(a, la, T::one, |acc, x| acc * x, |acc| acc, pool)
+
+                let f_init = T::one;
+                let f = |acc, x| acc * x;
+                let f_sum = |acc1, acc2| acc1 * acc2;
+                let f_out = |acc| acc;
+
+                reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
             }
 
             fn prod(
@@ -127,15 +152,14 @@ macro_rules! macro_impl_rayon_reduction {
                 axes: &[isize],
             ) -> Result<(Storage<DataOwned<Vec<T>>, T, Self>, Layout<IxD>)> {
                 let pool = self.get_pool();
-                let (out, layout_out) = reduce_axes_cpu_rayon(
-                    a,
-                    &la.to_dim()?,
-                    axes,
-                    T::one,
-                    |acc, x| acc * x,
-                    |acc| acc,
-                    pool,
-                )?;
+
+                let f_init = T::one;
+                let f = |acc, x| acc * x;
+                let f_sum = |acc1, acc2| acc1 * acc2;
+                let f_out = |acc| acc;
+
+                let (out, layout_out) =
+                    reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
                 Ok((Storage::new(out.into(), self.clone()), layout_out))
             }
         }
@@ -147,15 +171,14 @@ macro_rules! macro_impl_rayon_reduction {
         {
             fn mean_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T> {
                 let pool = self.get_pool();
+
                 let size = la.size();
-                let sum = reduce_all_cpu_rayon(
-                    a,
-                    la,
-                    T::zero,
-                    |acc, x| acc + x,
-                    |acc| acc / T::from_usize(size).unwrap(),
-                    pool,
-                )?;
+                let f_init = T::zero;
+                let f = |acc, x| acc + x;
+                let f_sum = |acc, x| acc + x;
+                let f_out = |acc| acc / T::from_usize(size).unwrap();
+
+                let sum = reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)?;
                 Ok(sum)
             }
 
@@ -166,17 +189,16 @@ macro_rules! macro_impl_rayon_reduction {
                 axes: &[isize],
             ) -> Result<(Storage<DataOwned<Vec<T>>, T, Self>, Layout<IxD>)> {
                 let pool = self.get_pool();
+
                 let (layout_axes, _) = la.dim_split_axes(axes)?;
                 let size = layout_axes.size();
-                let (out, layout_out) = reduce_axes_cpu_rayon(
-                    a,
-                    &la.to_dim()?,
-                    axes,
-                    T::zero,
-                    |acc, x| acc + x,
-                    |acc| acc / T::from_usize(size).unwrap(),
-                    pool,
-                )?;
+                let f_init = T::zero;
+                let f = |acc, x| acc + x;
+                let f_sum = |acc, x| acc + x;
+                let f_out = |acc| acc / T::from_usize(size).unwrap();
+
+                let (out, layout_out) =
+                    reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
                 Ok((Storage::new(out.into(), self.clone()), layout_out))
             }
         }
@@ -188,23 +210,19 @@ macro_rules! macro_impl_rayon_reduction {
         {
             fn var_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T> {
                 let pool = self.get_pool();
+
                 let size = la.size();
-                let e_x1 = reduce_all_cpu_rayon(
-                    a,
-                    la,
-                    T::zero,
-                    |acc, x| acc + x,
-                    |acc| acc / T::from_usize(size).unwrap(),
-                    pool,
-                )?;
-                let e_x2 = reduce_all_cpu_rayon(
-                    a,
-                    la,
-                    T::zero,
-                    |acc, x| acc + x.clone() * x.clone(),
-                    |acc| acc / T::from_usize(size).unwrap(),
-                    pool,
-                )?;
+
+                let f_init = T::zero;
+                let f = |acc, x| acc + x;
+                let f_sum = |acc, x| acc + x;
+                let f_out = |acc| acc / T::from_usize(size).unwrap();
+
+                let e_x1 = reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)?;
+
+                let f = |acc: T, x: T| acc + x.clone() * x.clone();
+
+                let e_x2 = reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)?;
                 Ok(e_x2 - e_x1.clone() * e_x1.clone())
             }
 
@@ -215,26 +233,23 @@ macro_rules! macro_impl_rayon_reduction {
                 axes: &[isize],
             ) -> Result<(Storage<DataOwned<Vec<T>>, T, Self>, Layout<IxD>)> {
                 let pool = self.get_pool();
+
                 let (layout_axes, _) = la.dim_split_axes(axes)?;
                 let size = layout_axes.size();
-                let (mut e_x1, layout_out) = reduce_axes_cpu_rayon(
-                    a,
-                    &la.to_dim()?,
-                    axes,
-                    T::zero,
-                    |acc, x| acc + x,
-                    |acc| acc / T::from_usize(size).unwrap(),
-                    pool,
-                )?;
-                let (e_x2, _) = reduce_axes_cpu_rayon(
-                    a,
-                    &la.to_dim()?,
-                    axes,
-                    T::zero,
-                    |acc, x| acc + x.clone() * x.clone(),
-                    |acc| acc / T::from_usize(size).unwrap(),
-                    pool,
-                )?;
+
+                let f_init = T::zero;
+                let f = |acc, x| acc + x;
+                let f_sum = |acc, x| acc + x;
+                let f_out = |acc| acc / T::from_usize(size).unwrap();
+
+                let (mut e_x1, layout_out) =
+                    reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+
+                let f = |acc: T, x: T| acc + x.clone() * x.clone();
+
+                let (e_x2, _) =
+                    reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+
                 e_x1.iter_mut()
                     .zip(e_x2.iter())
                     .for_each(|(x1, x2)| *x1 = x2.clone() - x1.clone() * x1.clone());
@@ -249,23 +264,19 @@ macro_rules! macro_impl_rayon_reduction {
         {
             fn std_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T> {
                 let pool = self.get_pool();
+
                 let size = la.size();
-                let e_x1 = reduce_all_cpu_rayon(
-                    a,
-                    la,
-                    T::zero,
-                    |acc, x| acc + x,
-                    |acc| acc / T::from_usize(size).unwrap(),
-                    pool,
-                )?;
-                let e_x2 = reduce_all_cpu_rayon(
-                    a,
-                    la,
-                    T::zero,
-                    |acc, x| acc + x.clone() * x.clone(),
-                    |acc| acc / T::from_usize(size).unwrap(),
-                    pool,
-                )?;
+
+                let f_init = T::zero;
+                let f = |acc, x| acc + x;
+                let f_sum = |acc, x| acc + x;
+                let f_out = |acc| acc / T::from_usize(size).unwrap();
+
+                let e_x1 = reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)?;
+
+                let f = |acc: T, x: T| acc + x.clone() * x.clone();
+
+                let e_x2 = reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)?;
                 Ok((e_x2 - e_x1.clone() * e_x1.clone()).sqrt())
             }
 
@@ -276,26 +287,23 @@ macro_rules! macro_impl_rayon_reduction {
                 axes: &[isize],
             ) -> Result<(Storage<DataOwned<Vec<T>>, T, Self>, Layout<IxD>)> {
                 let pool = self.get_pool();
+
                 let (layout_axes, _) = la.dim_split_axes(axes)?;
                 let size = layout_axes.size();
-                let (mut e_x1, layout_out) = reduce_axes_cpu_rayon(
-                    a,
-                    &la.to_dim()?,
-                    axes,
-                    T::zero,
-                    |acc, x| acc + x,
-                    |acc| acc / T::from_usize(size).unwrap(),
-                    pool,
-                )?;
-                let (e_x2, _) = reduce_axes_cpu_rayon(
-                    a,
-                    &la.to_dim()?,
-                    axes,
-                    T::zero,
-                    |acc, x| acc + x.clone() * x.clone(),
-                    |acc| acc / T::from_usize(size).unwrap(),
-                    pool,
-                )?;
+
+                let f_init = T::zero;
+                let f = |acc, x| acc + x;
+                let f_sum = |acc, x| acc + x;
+                let f_out = |acc| acc / T::from_usize(size).unwrap();
+
+                let (mut e_x1, layout_out) =
+                    reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+
+                let f = |acc: T, x: T| acc + x.clone() * x.clone();
+
+                let (e_x2, _) =
+                    reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+
                 e_x1.iter_mut()
                     .zip(e_x2.iter())
                     .for_each(|(x1, x2)| *x1 = (x2.clone() - x1.clone() * x1.clone()).sqrt());

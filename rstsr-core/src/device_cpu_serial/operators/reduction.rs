@@ -11,7 +11,12 @@ where
     D: DimAPI,
 {
     fn sum_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T> {
-        reduce_all_cpu_serial(a, la, T::zero, |acc, x| acc + x, |acc| acc)
+        let f_init = T::zero;
+        let f = |acc, x| acc + x;
+        let f_sum = |acc1, acc2| acc1 + acc2;
+        let f_out = |acc| acc;
+
+        reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)
     }
 
     fn sum(
@@ -20,8 +25,13 @@ where
         la: &Layout<D>,
         axes: &[isize],
     ) -> Result<(Storage<DataOwned<Vec<T>>, T, Self>, Layout<IxD>)> {
+        let f_init = T::zero;
+        let f = |acc, x| acc + x;
+        let f_sum = |acc1, acc2| acc1 + acc2;
+        let f_out = |acc| acc;
+
         let (out, layout_out) =
-            reduce_axes_cpu_serial(a, &la.to_dim()?, axes, T::zero, |acc, x| acc + x, |acc| acc)?;
+            reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 }
@@ -35,7 +45,12 @@ where
         if la.size() == 0 {
             rstsr_raise!(InvalidValue, "zero-size array is not supported for min")?;
         }
-        reduce_all_cpu_serial(a, la, || T::max_value(), |acc, x| acc.min(x), |acc| acc)
+
+        let f_init = T::max_value;
+        let f = |acc: T, x: T| acc.min(x);
+        let f_sum = |acc1: T, acc2: T| acc1.min(acc2);
+        let f_out = |acc| acc;
+        reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)
     }
 
     fn min(
@@ -47,14 +62,14 @@ where
         if la.size() == 0 {
             rstsr_raise!(InvalidValue, "zero-size array is not supported for min")?;
         }
-        let (out, layout_out) = reduce_axes_cpu_serial(
-            a,
-            &la.to_dim()?,
-            axes,
-            || T::max_value(),
-            |acc, x| acc.min(x),
-            |acc| acc,
-        )?;
+
+        let f_init = T::max_value;
+        let f = |acc: T, x: T| acc.min(x);
+        let f_sum = |acc1: T, acc2: T| acc1.min(acc2);
+        let f_out = |acc| acc;
+
+        let (out, layout_out) =
+            reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 }
@@ -68,7 +83,13 @@ where
         if la.size() == 0 {
             rstsr_raise!(InvalidValue, "zero-size array is not supported for max")?;
         }
-        reduce_all_cpu_serial(a, la, || T::min_value(), |acc, x| acc.max(x), |acc| acc)
+
+        let f_init = T::min_value;
+        let f = |acc: T, x: T| acc.max(x);
+        let f_sum = |acc1: T, acc2: T| acc1.max(acc2);
+        let f_out = |acc| acc;
+
+        reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)
     }
 
     fn max(
@@ -80,14 +101,14 @@ where
         if la.size() == 0 {
             rstsr_raise!(InvalidValue, "zero-size array is not supported for max")?;
         }
-        let (out, layout_out) = reduce_axes_cpu_serial(
-            a,
-            &la.to_dim()?,
-            axes,
-            || T::min_value(),
-            |acc, x| acc.max(x),
-            |acc| acc,
-        )?;
+
+        let f_init = T::min_value;
+        let f = |acc: T, x: T| acc.max(x);
+        let f_sum = |acc1: T, acc2: T| acc1.max(acc2);
+        let f_out = |acc| acc;
+
+        let (out, layout_out) =
+            reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 }
@@ -98,7 +119,12 @@ where
     D: DimAPI,
 {
     fn prod_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T> {
-        reduce_all_cpu_serial(a, la, T::one, |acc, x| acc * x, |acc| acc)
+        let f_init = T::one;
+        let f = |acc, x| acc * x;
+        let f_sum = |acc1, acc2| acc1 * acc2;
+        let f_out = |acc| acc;
+
+        reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)
     }
 
     fn prod(
@@ -107,8 +133,13 @@ where
         la: &Layout<D>,
         axes: &[isize],
     ) -> Result<(Storage<DataOwned<Vec<T>>, T, Self>, Layout<IxD>)> {
+        let f_init = T::one;
+        let f = |acc, x| acc * x;
+        let f_sum = |acc1, acc2| acc1 * acc2;
+        let f_out = |acc| acc;
+
         let (out, layout_out) =
-            reduce_axes_cpu_serial(a, &la.to_dim()?, axes, T::one, |acc, x| acc * x, |acc| acc)?;
+            reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 }
@@ -120,13 +151,12 @@ where
 {
     fn mean_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T> {
         let size = la.size();
-        let sum = reduce_all_cpu_serial(
-            a,
-            la,
-            T::zero,
-            |acc, x| acc + x,
-            |acc| acc / T::from_usize(size).unwrap(),
-        )?;
+        let f_init = T::zero;
+        let f = |acc, x| acc + x;
+        let f_sum = |acc, x| acc + x;
+        let f_out = |acc| acc / T::from_usize(size).unwrap();
+
+        let sum = reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)?;
         Ok(sum)
     }
 
@@ -138,14 +168,13 @@ where
     ) -> Result<(Storage<DataOwned<Vec<T>>, T, Self>, Layout<IxD>)> {
         let (layout_axes, _) = la.dim_split_axes(axes)?;
         let size = layout_axes.size();
-        let (out, layout_out) = reduce_axes_cpu_serial(
-            a,
-            &la.to_dim()?,
-            axes,
-            T::zero,
-            |acc, x| acc + x,
-            |acc| acc / T::from_usize(size).unwrap(),
-        )?;
+        let f_init = T::zero;
+        let f = |acc, x| acc + x;
+        let f_sum = |acc, x| acc + x;
+        let f_out = |acc| acc / T::from_usize(size).unwrap();
+
+        let (out, layout_out) =
+            reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 }
@@ -157,20 +186,17 @@ where
 {
     fn var_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T> {
         let size = la.size();
-        let e_x1 = reduce_all_cpu_serial(
-            a,
-            la,
-            T::zero,
-            |acc, x| acc + x,
-            |acc| acc / T::from_usize(size).unwrap(),
-        )?;
-        let e_x2 = reduce_all_cpu_serial(
-            a,
-            la,
-            T::zero,
-            |acc, x| acc + x.clone() * x.clone(),
-            |acc| acc / T::from_usize(size).unwrap(),
-        )?;
+
+        let f_init = T::zero;
+        let f = |acc, x| acc + x;
+        let f_sum = |acc, x| acc + x;
+        let f_out = |acc| acc / T::from_usize(size).unwrap();
+
+        let e_x1 = reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)?;
+
+        let f = |acc: T, x: T| acc + x.clone() * x.clone();
+
+        let e_x2 = reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)?;
         Ok(e_x2 - e_x1.clone() * e_x1.clone())
     }
 
@@ -182,22 +208,19 @@ where
     ) -> Result<(Storage<DataOwned<Vec<T>>, T, Self>, Layout<IxD>)> {
         let (layout_axes, _) = la.dim_split_axes(axes)?;
         let size = layout_axes.size();
-        let (mut e_x1, layout_out) = reduce_axes_cpu_serial(
-            a,
-            &la.to_dim()?,
-            axes,
-            T::zero,
-            |acc, x| acc + x,
-            |acc| acc / T::from_usize(size).unwrap(),
-        )?;
-        let (e_x2, _) = reduce_axes_cpu_serial(
-            a,
-            &la.to_dim()?,
-            axes,
-            T::zero,
-            |acc, x| acc + x.clone() * x.clone(),
-            |acc| acc / T::from_usize(size).unwrap(),
-        )?;
+
+        let f_init = T::zero;
+        let f = |acc, x| acc + x;
+        let f_sum = |acc, x| acc + x;
+        let f_out = |acc| acc / T::from_usize(size).unwrap();
+
+        let (mut e_x1, layout_out) =
+            reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+
+        let f = |acc: T, x: T| acc + x.clone() * x.clone();
+
+        let (e_x2, _) = reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+
         e_x1.iter_mut()
             .zip(e_x2.iter())
             .for_each(|(x1, x2)| *x1 = x2.clone() - x1.clone() * x1.clone());
@@ -212,20 +235,17 @@ where
 {
     fn std_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T> {
         let size = la.size();
-        let e_x1 = reduce_all_cpu_serial(
-            a,
-            la,
-            T::zero,
-            |acc, x| acc + x,
-            |acc| acc / T::from_usize(size).unwrap(),
-        )?;
-        let e_x2 = reduce_all_cpu_serial(
-            a,
-            la,
-            T::zero,
-            |acc, x| acc + x.clone() * x.clone(),
-            |acc| acc / T::from_usize(size).unwrap(),
-        )?;
+
+        let f_init = T::zero;
+        let f = |acc, x| acc + x;
+        let f_sum = |acc, x| acc + x;
+        let f_out = |acc| acc / T::from_usize(size).unwrap();
+
+        let e_x1 = reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)?;
+
+        let f = |acc: T, x: T| acc + x.clone() * x.clone();
+
+        let e_x2 = reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)?;
         Ok((e_x2 - e_x1.clone() * e_x1.clone()).sqrt())
     }
 
@@ -237,22 +257,19 @@ where
     ) -> Result<(Storage<DataOwned<Vec<T>>, T, Self>, Layout<IxD>)> {
         let (layout_axes, _) = la.dim_split_axes(axes)?;
         let size = layout_axes.size();
-        let (mut e_x1, layout_out) = reduce_axes_cpu_serial(
-            a,
-            &la.to_dim()?,
-            axes,
-            T::zero,
-            |acc, x| acc + x,
-            |acc| acc / T::from_usize(size).unwrap(),
-        )?;
-        let (e_x2, _) = reduce_axes_cpu_serial(
-            a,
-            &la.to_dim()?,
-            axes,
-            T::zero,
-            |acc, x| acc + x.clone() * x.clone(),
-            |acc| acc / T::from_usize(size).unwrap(),
-        )?;
+
+        let f_init = T::zero;
+        let f = |acc, x| acc + x;
+        let f_sum = |acc, x| acc + x;
+        let f_out = |acc| acc / T::from_usize(size).unwrap();
+
+        let (mut e_x1, layout_out) =
+            reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+
+        let f = |acc: T, x: T| acc + x.clone() * x.clone();
+
+        let (e_x2, _) = reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+
         e_x1.iter_mut()
             .zip(e_x2.iter())
             .for_each(|(x1, x2)| *x1 = (x2.clone() - x1.clone() * x1.clone()).sqrt());
