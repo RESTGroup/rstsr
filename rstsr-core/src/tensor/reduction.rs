@@ -285,6 +285,7 @@ mod test {
     }
 
     #[test]
+    #[cfg(feature = "rayon")]
     fn test_large_std() {
         let a = linspace((0.0, 1.0, 1048576)).into_shape([16, 256, 256]);
         let b = linspace((1.0, 2.0, 1048576)).into_shape([16, 256, 256]);

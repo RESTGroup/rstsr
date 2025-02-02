@@ -771,6 +771,7 @@ mod tests_serial {
 }
 
 #[cfg(test)]
+#[cfg(feature = "rayon")]
 mod tests_parallel {
     use super::*;
     use rayon::prelude::*;

@@ -161,6 +161,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "rayon")]
     fn test_par_pack_tril_compiles() {
         use num::complex::c64;
         let a = linspace((c64(-2.0, 1.5), c64(1.7, -2.3), 256 * 256 * 256))

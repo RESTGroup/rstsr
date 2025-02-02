@@ -348,7 +348,6 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use rayon::prelude::*;
 
     #[test]
     fn test_into_cow() {
@@ -384,7 +383,13 @@ mod test {
             println!("Elapsed time {:?}", time.elapsed());
         }
         println!("{:16.10}", a);
+    }
 
+    #[test]
+    #[ignore]
+    #[cfg(feature = "rayon")]
+    fn test_force_mut_par() {
+        use rayon::prelude::*;
         let n = 4096;
         let a = linspace((0.0, 1.0, n * n)).into_shape((n, n));
         for _ in 0..10 {
