@@ -215,16 +215,16 @@ where
 
         // naive iteration: assuming c-prefer
         unsafe {
-            for i_n in 0..m {
-                for i_m in 0..n {
+            for i_m in 0..m {
+                for i_n in 0..n {
                     let idx_c = lc.index_uncheck(&[i_m, i_n]) as usize;
                     c[idx_c] = beta.clone() * c[idx_c].clone();
                 }
                 for i_k in 0..k {
-                    let idx_b = lb.index_uncheck(&[i_k, i_n]) as usize;
-                    for i_m in 0..n {
+                    let idx_a = la.index_uncheck(&[i_m, i_k]) as usize;
+                    for i_n in 0..n {
                         let idx_c = lc.index_uncheck(&[i_m, i_n]) as usize;
-                        let idx_a = la.index_uncheck(&[i_m, i_k]) as usize;
+                        let idx_b = lb.index_uncheck(&[i_k, i_n]) as usize;
                         c[idx_c] = alpha.clone() * (a[idx_a].clone() * b[idx_b].clone())
                             + c[idx_c].clone();
                     }
