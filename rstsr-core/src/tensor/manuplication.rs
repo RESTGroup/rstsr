@@ -969,7 +969,7 @@ where
     } else if TensorOrder::default() == TensorOrder::F && layout.f_contig() {
         shape.new_f_contig(Some(layout.offset))
     } else {
-        rstsr_raise!(InvalidLayout, "Assumes contiguous layout depends on `f_prefer` feature.")?
+        rstsr_raise!(InvalidLayout, "This array is not contiguous by {:?}", TensorOrder::default())?
     };
     unsafe { Ok(TensorBase::new_unchecked(storage, new_layout)) }
 }
