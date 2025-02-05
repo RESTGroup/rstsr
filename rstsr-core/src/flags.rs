@@ -48,8 +48,6 @@ macro_rules! impl_changeable_default {
 /// If `f_prefer` is set, then [`TensorOrder::F`] is applied as default;
 /// otherwise [`TensorOrder::C`] is applied as default.
 ///
-/// You may change default value by [`TensorOrder::change_default`].
-///
 /// # IMPORTANT NOTE
 ///
 /// F-prefer is not a stable feature currently! We develop only in C-prefer
@@ -62,11 +60,18 @@ pub enum TensorOrder {
     F,
 }
 
-impl_changeable_default!(
-    TensorOrder,
-    DEFAULT_TENSOR_ORDER,
-    if cfg!(feature = "f_prefer") { TensorOrder::F } else { TensorOrder::C }
-);
+impl Default for TensorOrder {
+    fn default() -> Self {
+        #[cfg(not(feature = "f_prefer"))]
+        {
+            TensorOrder::C
+        }
+        #[cfg(feature = "f_prefer")]
+        {
+            TensorOrder::F
+        }
+    }
+}
 
 /* #endregion */
 
