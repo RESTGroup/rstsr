@@ -29,6 +29,12 @@ rayon = ["dep:rayon"]
 faer = ["rayon", "dep:faer", "dep:faer-ext", "dep:faer-entity"]
 faer_as_default = []
 
+# Dispatch dimensinoality in layout iterators
+# This option is recommended for efficiency for large tensor, especially with non-contiguous strides.
+# However, this feature will add runtime overhead for small tensor.
+# And more importantly, this feature will hugely increase compile time.
+dispatch_dim_layout_iter = []
+
 [[bench]]
 name = "main"
 harness = false
