@@ -4,7 +4,7 @@
 //!
 //! User documentation is currently on [github pages](https://ajz34.github.io/rstsr-book).
 #![doc = include_str!("../readme.md")]
-pub use rstsr_core::*;
+pub mod prelude;
 
 #[test]
 fn test() {
