@@ -1089,61 +1089,17 @@ where
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
 {
     // own shape, this is cheap operation
-    let mut shape = shape.try_into()?.as_ref().to_vec();
-
-    // check negative indexes
-    let mut idx_neg1: Option<usize> = None;
-    for (i, &v) in shape.iter().enumerate() {
-        match v {
-            -1 => match idx_neg1 {
-                Some(_) => rstsr_raise!(InvalidValue, "Only one -1 is allowed in shape.")?,
-                None => idx_neg1 = Some(i),
-            },
-            ..-1 => {
-                rstsr_raise!(InvalidValue, "Negative index must be -1.")?;
-            },
-            _ => (),
-        }
-    }
-
-    // substitute negative index
-    if let Some(idx_neg1) = idx_neg1 {
-        let size_known = tensor.layout().size() as isize;
-        let size_unknown = shape.iter().fold(1, |acc, &v| if v == -1 { acc } else { acc * v });
-        if size_known % size_unknown != 0 {
-            rstsr_raise!(
-                InvalidValue,
-                "Shape -1 in {:?} could not be determined to original tensor shape {:?}",
-                shape,
-                tensor.shape()
-            )?;
-        } else {
-            shape[idx_neg1] = size_known / size_unknown;
-        }
-    }
-    let shape = shape.iter().map(|&v| v as usize).collect::<Vec<usize>>();
-
-    // avoid memory copy if possible
-    let same_shape = tensor.shape().as_ref().to_vec() == shape;
-    let contig = match TensorOrder::default() {
-        TensorOrder::C => tensor.layout().c_contig(),
-        TensorOrder::F => tensor.layout().f_contig(),
-    };
-    if same_shape {
-        // same shape, do nothing but make layout to D2
-        let (storage, layout) = tensor.into_raw_parts();
-        let layout = layout.into_dim::<IxD>()?;
+    let shape_new = reshape_substitute_negatives(shape.try_into()?.as_ref(), tensor.size())?;
+    if let Some(layout_new) = layout_reshapeable(&tensor.layout().to_dim()?, &shape_new)? {
+        // shape does not need to be changed
+        let (storage, _) = tensor.into_raw_parts();
+        let layout = layout_new.into_dim::<IxD>()?;
         return unsafe { Ok(TensorBase::new_unchecked(storage, layout).into_cow()) };
-    } else if contig {
-        // no data cloned
-        let result = tensor.into_shape_assume_contig_f(shape.clone())?.into_cow();
-        return Ok(result);
     } else {
-        // not contiguous, and shape changed
-        // clone data by assign
+        // clone underlying data by assign_arbitary
         let (storage, layout) = tensor.into_raw_parts();
         let device = storage.device();
-        let layout_new = shape.new_contig(None);
+        let layout_new = shape_new.new_contig(None);
         let mut storage_new = unsafe { device.empty_impl(layout_new.size())? };
         device.assign_arbitary(storage_new.raw_mut(), &layout_new, storage.raw(), &layout)?;
         return unsafe { Ok(TensorBase::new_unchecked(storage_new, layout_new).into_cow()) };
