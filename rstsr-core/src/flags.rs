@@ -195,4 +195,10 @@ pub enum FlagSymm {
     N,
 }
 
+pub type TensorDiag = FlagDiag;
+pub type TensorSide = FlagSide;
+pub type TensorUpLo = FlagUpLo;
+pub type TensorTrans = FlagTrans;
+pub type TensorSymm = FlagSymm;
+
 /* #endregion */
