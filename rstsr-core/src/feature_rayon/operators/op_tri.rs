@@ -9,7 +9,7 @@ pub fn pack_tri_cpu_rayon<T>(
     la: &Layout<IxD>,
     b: &[T],
     lb: &Layout<IxD>,
-    uplo: TensorUpLo,
+    uplo: FlagUpLo,
     nthreads: usize,
 ) -> Result<()>
 where
@@ -50,7 +50,7 @@ where
     let pool = rayon::ThreadPoolBuilder::new().num_threads(nthreads).build()?;
     pool.install(|| -> Result<()> {
         match uplo {
-            TensorUpLo::U => match (c_contig, f_contig) {
+            FlagUpLo::U => match (c_contig, f_contig) {
                 (true, _) => {
                     la_rest_iter.zip(lb_rest_iter).for_each(|(offset_a, offset_b)| {
                         let ptr_a = thr_a.get();
@@ -82,7 +82,7 @@ where
                     )?;
                 },
             },
-            TensorUpLo::L => match (c_contig, f_contig) {
+            FlagUpLo::L => match (c_contig, f_contig) {
                 (true, _) => {
                     la_rest_iter.zip(lb_rest_iter).for_each(|(offset_a, offset_b)| {
                         let ptr_a = thr_a.get();
@@ -124,8 +124,8 @@ pub fn unpack_tri_cpu_rayon<T>(
     la: &Layout<IxD>,
     b: &[T],
     lb: &Layout<IxD>,
-    uplo: TensorUpLo,
-    symm: TensorSymm,
+    uplo: FlagUpLo,
+    symm: FlagSymm,
     nthreads: usize,
 ) -> Result<()>
 where
@@ -166,7 +166,7 @@ where
     let pool = rayon::ThreadPoolBuilder::new().num_threads(nthreads).build()?;
     pool.install(|| -> Result<()> {
         match uplo {
-            TensorUpLo::U => match (c_contig, f_contig) {
+            FlagUpLo::U => match (c_contig, f_contig) {
                 (true, _) => {
                     la_rest_iter.zip(lb_rest_iter).for_each(|(offset_a, offset_b)| {
                         let ptr_a = thr_a.get();
@@ -198,7 +198,7 @@ where
                     )?;
                 },
             },
-            TensorUpLo::L => match (c_contig, f_contig) {
+            FlagUpLo::L => match (c_contig, f_contig) {
                 (true, _) => {
                     la_rest_iter.zip(lb_rest_iter).for_each(|(offset_a, offset_b)| {
                         let ptr_a = thr_a.get();

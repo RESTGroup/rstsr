@@ -93,6 +93,7 @@ mod impl_unary_core_ops {
 
 macro_rules! impl_unary {
     ($op_f: ident, $Op: ident, $TensorOpAPI: ident, $DeviceOpAPI: ident) => {
+        #[doc(hidden)]
         impl<R, T, TB, D, B> $TensorOpAPI for &TensorAny<R, TB, B, D>
         where
             D: DimAPI,
@@ -114,6 +115,7 @@ macro_rules! impl_unary {
             }
         }
 
+        #[doc(hidden)]
         impl<'l, T, TB, D, B> $TensorOpAPI for TensorView<'l, TB, B, D>
         where
             D: DimAPI,
@@ -127,6 +129,7 @@ macro_rules! impl_unary {
             }
         }
 
+        #[doc(hidden)]
         impl<T, B, D> $TensorOpAPI for Tensor<T, B, D>
         where
             D: DimAPI,

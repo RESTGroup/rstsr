@@ -37,8 +37,8 @@ pub mod rstsr_structs {
     pub use crate::DeviceCpu;
 
     pub use crate::flags::{
-        TensorCopyPolicy, TensorDiag, TensorIterOrder, TensorOrder, TensorSide, TensorSymm,
-        TensorTranspose, TensorUpLo,
+        FlagDiag, FlagSide, FlagSymm, FlagTrans, FlagUpLo, TensorCopyPolicy, TensorIterOrder,
+        TensorOrder,
     };
     pub use crate::layout::indexer::{Ellipsis, NewAxis};
     pub use crate::layout::{Ix, Ix1, Ix2, Ix3, Ix4, Ix5, Ix6, Ix7, Ix8, Ix9, IxD, IxDyn, Layout};

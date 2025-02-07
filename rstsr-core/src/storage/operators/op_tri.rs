@@ -10,7 +10,7 @@ where
         la: &Layout<IxD>,
         b: &<Self as DeviceRawAPI<T>>::Raw,
         lb: &Layout<IxD>,
-        uplo: TensorUpLo,
+        uplo: FlagUpLo,
     ) -> Result<()>;
 }
 
@@ -24,7 +24,7 @@ where
         la: &Layout<IxD>,
         b: &<Self as DeviceRawAPI<T>>::Raw,
         lb: &Layout<IxD>,
-        uplo: TensorUpLo,
-        symm: TensorSymm,
+        uplo: FlagUpLo,
+        symm: FlagSymm,
     ) -> Result<()>;
 }

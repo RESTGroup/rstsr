@@ -1,21 +1,32 @@
 # API document of rstsr-core
 
+`rstsr-core` is the core of RSTSR series:
+- It defines data structure and some traits (interface) of tensor, storage, device.
+- It realizes two basic devices: [`DeviceCpuSerial`] and [`DeviceFaer`], so `rstsr-core` alone is a functional tensor toolkit library.
+
+If you are more aware of matmul efficiency, or by other considerations (we will try to implement BLAS and Lapack features in future), you may find `DeviceOpenBLAS` in `rstsr-openblas` helpful. We hope to implement more devices in future.
+
 ## User document
 
-User document refers to [github pages](https://ajz34.github.io/rstsr-book). Some information of developer guide will also shipped to that document.
+User document refers to [github pages](https://ajz34.github.io/rstsr-book).
+
+This document is still in construction.
+
+Some information of developer guide will also shipped to that document.
 
 ## API specifications
 
-This document is the core of this crate.
+[API specifications](`api_specification`) is provided for summary of important identifiers (structs, traits and functions) in `rstsr-core`.
 
-We provide [fullfillment for Array API standard](`array_api_standard`). This fullfillment check shows how much functionalities we have achieved to be a basic tensor (array) library.
+Currently, more detailed documentation for each identifiers are still constructing.
 
-We refer API specifications to [another page](`api_specification`). However, this part is still in construction. In this mean time, we refer [fullfillment for Array API standard](`array_api_standard`) as API specifications.
+We also provide [fullfillment for Array API standard](`array_api_standard`). This fullfillment check shows how much functionalities we have achieved to be a basic tensor (array) library.
 
-## Basic structure of rstsr Tensor
-
-Basic structure of this crate:
-![rstsr-basic-structure](https://ajz34.github.io/rstsr-book/assets/rstsr-basic-structure.png)
+For NumPy users, in this meantime, [fullfillment for Array API standard](`array_api_standard`) shows the similar parts of RSTSR and NumPy; and these parts in [API specifications](`api_specification`) shows the difference between RSTSR and NumPy:
+- [Tensor Structure and Ownership](`api_specification#tensor-structure-and-ownership`)
+- [RSTSR Specific Identifiers](`api_specification#rstsr-specific-identifiers`)
+- [Storage-dependent manuplication](`api_specification#storage-dependent-manuplication`)
+- [Developer Area](`api_specification#developer-area`)
 
 ## Variable naming convention
 
@@ -41,5 +52,5 @@ Basic structure of this crate:
 | prefix `into_` <br/> (some manuplication functions) | Only changes layout, and does not change data with its lifetime and mutability. <br/> Example: [`into_broadcast`], [`into_transpose`], [`into_dyn`] |
 | prefix `into_` <br/> output is always [`Tensor`] <br/> (some manuplication functions) | Give owned tensor. <br/> This special case will occur when there is possiblity to generate a new tensor by manuplication function. For these cases, prefix `to_` and `change_` will give output [`TensorCow`], prefix `into_` will give [`Tensor`]. <br/> Example: [`into_shape`], [`into_layout`] |
 | prefix `change_` <br/> output is always [`TensorCow`] <br/> (some manuplication functions) | Give copy-on-write tensor by consuming input. <br/> This special case will occur when there is possiblity to generate a new tensor by manuplication function. <br/> Example: [`change_shape`], [`change_layout`] |
-| type annotation `Param` | Input tuple type as overloadable parameters. <br/> Example: [`zeros`], [`asarray`] |
+| type annotation `Args` | Input tuple type as overloadable parameters. <br/> Example: [`zeros`], [`asarray`] |
 | type annotation `Inp` | Additional annotation that rust requires for type deduction. <br/> Example: [`zeros`], [`asarray`] |

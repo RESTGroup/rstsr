@@ -28,18 +28,18 @@ pub trait DiagAPI<Inp>: Sized {
 /// # See also
 ///
 /// - [numpy.diag](https://numpy.org/doc/stable/reference/generated/numpy.diag.html)
-pub fn diag<Param, Inp>(param: Param) -> Param::Out
+pub fn diag<Args, Inp>(param: Args) -> Args::Out
 where
-    Param: DiagAPI<Inp>,
+    Args: DiagAPI<Inp>,
 {
-    Param::diag(param)
+    Args::diag(param)
 }
 
-pub fn diag_f<Param, Inp>(param: Param) -> Result<Param::Out>
+pub fn diag_f<Args, Inp>(param: Args) -> Result<Args::Out>
 where
-    Param: DiagAPI<Inp>,
+    Args: DiagAPI<Inp>,
 {
-    Param::diag_f(param)
+    Args::diag_f(param)
 }
 
 impl<R, T, B, D> DiagAPI<()> for (&TensorAny<R, T, B, D>, isize)

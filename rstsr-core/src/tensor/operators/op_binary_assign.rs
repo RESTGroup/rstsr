@@ -75,6 +75,7 @@ mod impl_assign_ops {
 
 macro_rules! impl_binary_assign {
     ($op_f: ident, $TensorOpAPI: ident, $Op: ident, $DeviceOpAPI: ident) => {
+        #[doc(hidden)]
         impl<RA, RB, TA, TB, DA, DB, B> $TensorOpAPI<&TensorAny<RB, TB, B, DB>>
             for &mut TensorAny<RA, TA, B, DA>
         where
@@ -103,6 +104,7 @@ macro_rules! impl_binary_assign {
             }
         }
 
+        #[doc(hidden)]
         impl<RA, RB, TA, TB, DA, DB, B> $TensorOpAPI<TensorAny<RB, TB, B, DB>>
             for &mut TensorAny<RA, TA, B, DA>
         where
@@ -124,6 +126,7 @@ macro_rules! impl_binary_assign {
             }
         }
 
+        #[doc(hidden)]
         impl<RA, TA, TB, D, B> $TensorOpAPI<TB> for &mut TensorAny<RA, TA, B, D>
         where
             // tensor types

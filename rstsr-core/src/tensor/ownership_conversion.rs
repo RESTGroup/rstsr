@@ -29,6 +29,7 @@ where
         unsafe { TensorBase::new_unchecked(storage, layout) }
     }
 
+    /// Convert current tensor into copy-on-write.
     pub fn into_cow<'a>(self) -> TensorCow<'a, T, B, D>
     where
         R: DataIntoCowAPI<'a>,
@@ -41,7 +42,7 @@ where
 
     /// Convert tensor into owned tensor.
     ///
-    /// Data is either moved or cloned.
+    /// Data is either moved or fully cloned.
     /// Layout is not involved; i.e. all underlying data is moved or cloned
     /// without changing layout.
     ///
@@ -123,7 +124,7 @@ where
 
 /* #endregion */
 
-/* #region to_vector */
+/* #region to_raw */
 
 impl<R, T, B, D> TensorAny<R, T, B, D>
 where
@@ -132,7 +133,7 @@ where
     D: DimAPI,
     B: DeviceAPI<T, Raw = Vec<T>> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, Ix1>,
 {
-    pub fn to_vec_f(&self) -> Result<Vec<T>> {
+    pub fn to_raw_f(&self) -> Result<Vec<T>> {
         rstsr_assert_eq!(
             self.ndim(),
             1,
@@ -149,7 +150,7 @@ where
     }
 
     pub fn to_vec(&self) -> Vec<T> {
-        self.to_vec_f().unwrap()
+        self.to_raw_f().unwrap()
     }
 }
 
@@ -177,7 +178,7 @@ where
             let (data, _) = storage.into_raw_parts();
             return Ok(data.into_raw());
         } else {
-            return self.to_vec_f();
+            return self.to_raw_f();
         }
     }
 

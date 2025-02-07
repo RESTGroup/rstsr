@@ -82,7 +82,7 @@ pub fn pack_tri_cpu_serial<T>(
     la: &Layout<IxD>,
     b: &[T],
     lb: &Layout<IxD>,
-    uplo: TensorUpLo,
+    uplo: FlagUpLo,
 ) -> Result<()>
 where
     T: Clone,
@@ -113,7 +113,7 @@ where
     let f_contig = la_inner.f_contig() && lb_inner.f_contig();
 
     match uplo {
-        TensorUpLo::U => match (c_contig, f_contig) {
+        FlagUpLo::U => match (c_contig, f_contig) {
             (true, _) => {
                 for (offset_a, offset_b) in izip!(la_rest_iter, lb_rest_iter) {
                     inner_pack_triu_c_contig(a, offset_a, b, offset_b, n);
@@ -136,7 +136,7 @@ where
                 }
             },
         },
-        TensorUpLo::L => match (c_contig, f_contig) {
+        FlagUpLo::L => match (c_contig, f_contig) {
             (true, _) => {
                 for (offset_a, offset_b) in izip!(la_rest_iter, lb_rest_iter) {
                     inner_pack_tril_c_contig(a, offset_a, b, offset_b, n);
@@ -174,7 +174,7 @@ pub fn inner_unpack_tril_c_contig<T>(
     b: &[T],
     offset_b: usize,
     n: usize,
-    symm: TensorSymm,
+    symm: FlagSymm,
 ) where
     T: ComplexFloat,
 {
@@ -182,7 +182,7 @@ pub fn inner_unpack_tril_c_contig<T>(
     let b = &b[offset_b..];
     let mut idx_b = 0;
     match symm {
-        TensorSymm::Sy => {
+        FlagSymm::Sy => {
             for i in 0..n {
                 for j in 0..=i {
                     a[i * n + j] = b[idx_b];
@@ -191,7 +191,7 @@ pub fn inner_unpack_tril_c_contig<T>(
                 }
             }
         },
-        TensorSymm::He => {
+        FlagSymm::He => {
             for i in 0..n {
                 for j in 0..=i {
                     a[i * n + j] = b[idx_b];
@@ -200,7 +200,7 @@ pub fn inner_unpack_tril_c_contig<T>(
                 }
             }
         },
-        TensorSymm::Ay => {
+        FlagSymm::Ay => {
             for i in 0..n {
                 for j in 0..i {
                     a[i * n + j] = b[idx_b];
@@ -211,7 +211,7 @@ pub fn inner_unpack_tril_c_contig<T>(
                 idx_b += 1;
             }
         },
-        TensorSymm::Ah => {
+        FlagSymm::Ah => {
             for i in 0..n {
                 for j in 0..i {
                     a[i * n + j] = b[idx_b];
@@ -222,7 +222,7 @@ pub fn inner_unpack_tril_c_contig<T>(
                 idx_b += 1;
             }
         },
-        TensorSymm::N => {
+        FlagSymm::N => {
             for i in 0..n {
                 for j in 0..=i {
                     a[i * n + j] = b[idx_b];
@@ -240,13 +240,13 @@ pub fn inner_unpack_tril_general<T>(
     b: &[T],
     lb: &Layout<Ix1>,
     n: usize,
-    symm: TensorSymm,
+    symm: FlagSymm,
 ) where
     T: ComplexFloat,
 {
     let mut idx_b = 0;
     match symm {
-        TensorSymm::Sy => {
+        FlagSymm::Sy => {
             for i in 0..n {
                 for j in 0..=i {
                     let loc_b = unsafe { lb.index_uncheck(&[idx_b]) } as usize;
@@ -258,7 +258,7 @@ pub fn inner_unpack_tril_general<T>(
                 }
             }
         },
-        TensorSymm::He => {
+        FlagSymm::He => {
             for i in 0..n {
                 for j in 0..=i {
                     let loc_b = unsafe { lb.index_uncheck(&[idx_b]) } as usize;
@@ -270,7 +270,7 @@ pub fn inner_unpack_tril_general<T>(
                 }
             }
         },
-        TensorSymm::Ay => {
+        FlagSymm::Ay => {
             for i in 0..n {
                 for j in 0..i {
                     let loc_b = unsafe { lb.index_uncheck(&[idx_b]) } as usize;
@@ -285,7 +285,7 @@ pub fn inner_unpack_tril_general<T>(
                 idx_b += 1;
             }
         },
-        TensorSymm::Ah => {
+        FlagSymm::Ah => {
             for i in 0..n {
                 for j in 0..i {
                     let loc_b = unsafe { lb.index_uncheck(&[idx_b]) } as usize;
@@ -300,7 +300,7 @@ pub fn inner_unpack_tril_general<T>(
                 idx_b += 1;
             }
         },
-        TensorSymm::N => {
+        FlagSymm::N => {
             for i in 0..n {
                 for j in 0..=i {
                     let loc_b = unsafe { lb.index_uncheck(&[idx_b]) } as usize;
@@ -320,7 +320,7 @@ pub fn inner_unpack_triu_c_contig<T>(
     b: &[T],
     offset_b: usize,
     n: usize,
-    symm: TensorSymm,
+    symm: FlagSymm,
 ) where
     T: ComplexFloat,
 {
@@ -328,7 +328,7 @@ pub fn inner_unpack_triu_c_contig<T>(
     let b = &b[offset_b..];
     let mut idx_b = 0;
     match symm {
-        TensorSymm::Sy => {
+        FlagSymm::Sy => {
             for i in 0..n {
                 for j in i..n {
                     a[i * n + j] = b[idx_b];
@@ -337,7 +337,7 @@ pub fn inner_unpack_triu_c_contig<T>(
                 }
             }
         },
-        TensorSymm::He => {
+        FlagSymm::He => {
             for i in 0..n {
                 for j in i..n {
                     a[i * n + j] = b[idx_b];
@@ -346,7 +346,7 @@ pub fn inner_unpack_triu_c_contig<T>(
                 }
             }
         },
-        TensorSymm::Ay => {
+        FlagSymm::Ay => {
             for i in 0..n {
                 a[i * n + i] = T::zero();
                 idx_b += 1;
@@ -357,7 +357,7 @@ pub fn inner_unpack_triu_c_contig<T>(
                 }
             }
         },
-        TensorSymm::Ah => {
+        FlagSymm::Ah => {
             for i in 0..n {
                 a[i * n + i] = T::zero();
                 idx_b += 1;
@@ -368,7 +368,7 @@ pub fn inner_unpack_triu_c_contig<T>(
                 }
             }
         },
-        TensorSymm::N => {
+        FlagSymm::N => {
             for i in 0..n {
                 for j in i..n {
                     a[i * n + j] = b[idx_b];
@@ -386,13 +386,13 @@ pub fn inner_unpack_triu_general<T>(
     b: &[T],
     lb: &Layout<Ix1>,
     n: usize,
-    symm: TensorSymm,
+    symm: FlagSymm,
 ) where
     T: ComplexFloat,
 {
     let mut idx_b = 0;
     match symm {
-        TensorSymm::Sy => {
+        FlagSymm::Sy => {
             for i in 0..n {
                 for j in i..n {
                     let loc_b = unsafe { lb.index_uncheck(&[idx_b]) } as usize;
@@ -404,7 +404,7 @@ pub fn inner_unpack_triu_general<T>(
                 }
             }
         },
-        TensorSymm::He => {
+        FlagSymm::He => {
             for i in 0..n {
                 for j in i..n {
                     let loc_b = unsafe { lb.index_uncheck(&[idx_b]) } as usize;
@@ -416,7 +416,7 @@ pub fn inner_unpack_triu_general<T>(
                 }
             }
         },
-        TensorSymm::Ay => {
+        FlagSymm::Ay => {
             for i in 0..n {
                 let loc_a_ii = unsafe { la.index_uncheck(&[i, i]) } as usize;
                 a[loc_a_ii] = T::zero();
@@ -431,7 +431,7 @@ pub fn inner_unpack_triu_general<T>(
                 }
             }
         },
-        TensorSymm::Ah => {
+        FlagSymm::Ah => {
             for i in 0..n {
                 let loc_a_ii = unsafe { la.index_uncheck(&[i, i]) } as usize;
                 a[loc_a_ii] = T::zero();
@@ -446,7 +446,7 @@ pub fn inner_unpack_triu_general<T>(
                 }
             }
         },
-        TensorSymm::N => {
+        FlagSymm::N => {
             for i in 0..n {
                 for j in i..n {
                     let loc_b = unsafe { lb.index_uncheck(&[idx_b]) } as usize;
@@ -464,8 +464,8 @@ pub fn unpack_tri_cpu_serial<T>(
     la: &Layout<IxD>,
     b: &[T],
     lb: &Layout<IxD>,
-    uplo: TensorUpLo,
-    symm: TensorSymm,
+    uplo: FlagUpLo,
+    symm: FlagSymm,
 ) -> Result<()>
 where
     T: ComplexFloat,
@@ -496,7 +496,7 @@ where
     let f_contig = la_inner.f_contig() && lb_inner.f_contig();
 
     match uplo {
-        TensorUpLo::U => match (c_contig, f_contig) {
+        FlagUpLo::U => match (c_contig, f_contig) {
             (true, _) => {
                 for (offset_a, offset_b) in izip!(la_rest_iter, lb_rest_iter) {
                     inner_unpack_triu_c_contig(a, offset_a, b, offset_b, n, symm);
@@ -519,7 +519,7 @@ where
                 }
             },
         },
-        TensorUpLo::L => match (c_contig, f_contig) {
+        FlagUpLo::L => match (c_contig, f_contig) {
             (true, _) => {
                 for (offset_a, offset_b) in izip!(la_rest_iter, lb_rest_iter) {
                     inner_unpack_tril_c_contig(a, offset_a, b, offset_b, n, symm);
@@ -560,7 +560,7 @@ where
         la: &Layout<IxD>,
         b: &Vec<T>,
         lb: &Layout<IxD>,
-        uplo: TensorUpLo,
+        uplo: FlagUpLo,
     ) -> Result<()> {
         pack_tri_cpu_serial(a, la, b, lb, uplo)
     }
@@ -576,8 +576,8 @@ where
         la: &Layout<IxD>,
         b: &Vec<T>,
         lb: &Layout<IxD>,
-        uplo: TensorUpLo,
-        symm: TensorSymm,
+        uplo: FlagUpLo,
+        symm: FlagSymm,
     ) -> Result<()> {
         unpack_tri_cpu_serial(a, la, b, lb, uplo, symm)
     }

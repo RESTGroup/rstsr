@@ -2,7 +2,8 @@
 extern crate std;
 
 use crate::prelude_dev::*;
-use core::{convert::Infallible, num::TryFromIntError};
+use core::convert::Infallible;
+use core::num::TryFromIntError;
 
 #[non_exhaustive]
 #[derive(Debug)]
@@ -32,7 +33,7 @@ impl core::fmt::Display for Error {
 #[cfg(feature = "std")]
 impl std::error::Error for Error {}
 
-pub type Result<T> = core::result::Result<T, Error>;
+pub type Result<E> = core::result::Result<E, Error>;
 
 impl From<TryFromIntError> for Error {
     fn from(e: TryFromIntError) -> Self {

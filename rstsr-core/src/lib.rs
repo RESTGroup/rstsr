@@ -66,9 +66,9 @@ pub mod array_api_standard {
 
 pub mod api_specification {
     #![doc = include_str!("docs/api_specification.md")]
+    #![allow(unused_imports)]
 
-    #[allow(unused_imports)]
     use crate::prelude::*;
-    #[allow(unused_imports)]
     use rt::*;
+    extern crate alloc;
 }

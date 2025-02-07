@@ -10,7 +10,7 @@ where
     D::SmallerOne: DimAPI,
     B: DeviceAPI<T> + DeviceOpPackTriAPI<T> + DeviceCreationAnyAPI<T>,
 {
-    pub fn pack_tri_f(&self, uplo: TensorUpLo) -> Result<Tensor<T, B, D::SmallerOne>> {
+    pub fn pack_tri_f(&self, uplo: FlagUpLo) -> Result<Tensor<T, B, D::SmallerOne>> {
         // layouts manuplication
         let lb = self.layout().to_dim::<IxD>()?;
         let (lb_rest, lb_inner) = lb.dim_split_at(-2)?;
@@ -44,12 +44,12 @@ where
         Tensor::new_f(storage_a, la.into_dim()?)
     }
 
-    pub fn pack_tri(&self, uplo: TensorUpLo) -> Tensor<T, B, D::SmallerOne> {
+    pub fn pack_tri(&self, uplo: FlagUpLo) -> Tensor<T, B, D::SmallerOne> {
         self.pack_tri_f(uplo).unwrap()
     }
 
     pub fn pack_tril_f(&self) -> Result<Tensor<T, B, D::SmallerOne>> {
-        self.pack_tri_f(TensorUpLo::L)
+        self.pack_tri_f(FlagUpLo::L)
     }
 
     pub fn pack_tril(&self) -> Tensor<T, B, D::SmallerOne> {
@@ -57,7 +57,7 @@ where
     }
 
     pub fn pack_triu_f(&self) -> Result<Tensor<T, B, D::SmallerOne>> {
-        self.pack_tri_f(TensorUpLo::U)
+        self.pack_tri_f(FlagUpLo::U)
     }
 
     pub fn pack_triu(&self) -> Tensor<T, B, D::SmallerOne> {
@@ -78,8 +78,8 @@ where
 {
     pub fn unpack_tri(
         &self,
-        uplo: TensorUpLo,
-        symm: TensorSymm,
+        uplo: FlagUpLo,
+        symm: FlagSymm,
     ) -> Result<Tensor<T, B, D::LargerOne>> {
         // layouts manuplication
         let lb = self.layout().to_dim::<IxD>()?;
@@ -115,24 +115,24 @@ where
         Tensor::new_f(storage_a, la.into_dim()?)
     }
 
-    pub fn unpack_tril(&self, symm: TensorSymm) -> Tensor<T, B, D::LargerOne> {
-        self.unpack_tri(TensorUpLo::L, symm).unwrap()
+    pub fn unpack_tril(&self, symm: FlagSymm) -> Tensor<T, B, D::LargerOne> {
+        self.unpack_tri(FlagUpLo::L, symm).unwrap()
     }
 
-    pub fn unpack_triu(&self, symm: TensorSymm) -> Tensor<T, B, D::LargerOne> {
-        self.unpack_tri(TensorUpLo::U, symm).unwrap()
+    pub fn unpack_triu(&self, symm: FlagSymm) -> Tensor<T, B, D::LargerOne> {
+        self.unpack_tri(FlagUpLo::U, symm).unwrap()
     }
 
     pub fn unpack_tri_f(
         &self,
-        uplo: TensorUpLo,
-        symm: TensorSymm,
+        uplo: FlagUpLo,
+        symm: FlagSymm,
     ) -> Result<Tensor<T, B, D::LargerOne>> {
         self.unpack_tri(uplo, symm)
     }
 
-    pub fn unpack_tril_f(&self, symm: TensorSymm) -> Result<Tensor<T, B, D::LargerOne>> {
-        self.unpack_tri(TensorUpLo::L, symm)
+    pub fn unpack_tril_f(&self, symm: FlagSymm) -> Result<Tensor<T, B, D::LargerOne>> {
+        self.unpack_tri(FlagUpLo::L, symm)
     }
 }
 
@@ -155,7 +155,7 @@ mod tests {
         println!("{:?}", a_triu.slice(0).to_vec());
         assert_eq!(a_triu.slice(1).to_vec(), [1., 4., 16., 7., 19., 31., 10., 22., 34., 46.]);
 
-        let b = a_triu.unpack_tril(TensorSymm::Sy);
+        let b = a_triu.unpack_tril(FlagSymm::Sy);
         println!("{:?}", b);
         assert_eq!(b.slice((0, 1)).to_vec(), [3., 15., 18., 21.]);
     }
@@ -168,7 +168,7 @@ mod tests {
             .into_layout([4, 64, 256, 256].f());
         let a_tril = a.pack_tril();
         println!("{:20.5}", a_tril);
-        let b = a_tril.unpack_tril(TensorSymm::Ah);
+        let b = a_tril.unpack_tril(FlagSymm::Ah);
         println!("{:20.5}", b);
     }
 }

@@ -1,8 +1,4 @@
-//! # Notes to API documentation
-//!
-//! This crate is a re-export of the `rstsr-core`. More API document can be found in the [docs.rs](https://docs.rs/rstsr-core).
-//!
-//! User documentation is currently on [github pages](https://ajz34.github.io/rstsr-book).
+#![doc = include_str!("../notes_to_api_doc.md")]
 #![doc = include_str!("../readme.md")]
 pub mod prelude;
 

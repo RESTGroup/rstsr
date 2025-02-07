@@ -67,7 +67,7 @@ We need a numeric library that supports
 - functionality can be extended by other crates
 
 And further more,
-- the framework should not be too difficult for a chemist scientist/engineer
+- the framework may not overwhelm chemist scientists
 
 Many crates in native rust done well in some aspects but not all.
 
@@ -78,7 +78,7 @@ This crate gets inspires from [NumPy](https://github.com/data-apis/array-api/), 
 - Lapack functions and basic linear algebra APIs
 - CUDA and HIP device support
 - MKL and BLIS device support
-- Full support of [Python array API standard](https://data-apis.org/array-api/latest/) (in native rust instead of python binding)\
+- Full support of [Python array API standard](https://data-apis.org/array-api/latest/) (in native rust instead of python binding)
     - statistical (reduction) functions (norm, std, etc)
     - searching functions
     - manuplication functions (stack, unstack, tile, roll, moveaxis)

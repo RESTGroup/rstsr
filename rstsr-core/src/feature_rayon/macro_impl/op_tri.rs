@@ -15,7 +15,7 @@ macro_rules! macro_impl_rayon_op_tri {
                 la: &Layout<IxD>,
                 b: &Vec<T>,
                 lb: &Layout<IxD>,
-                uplo: TensorUpLo,
+                uplo: FlagUpLo,
             ) -> Result<()> {
                 let nthreads = self.get_num_threads();
                 pack_tri_cpu_rayon(a, la, b, lb, uplo, nthreads)
@@ -32,8 +32,8 @@ macro_rules! macro_impl_rayon_op_tri {
                 la: &Layout<IxD>,
                 b: &Vec<T>,
                 lb: &Layout<IxD>,
-                uplo: TensorUpLo,
-                symm: TensorSymm,
+                uplo: FlagUpLo,
+                symm: FlagSymm,
             ) -> Result<()> {
                 let nthreads = self.get_num_threads();
                 unpack_tri_cpu_rayon(a, la, b, lb, uplo, symm, nthreads)

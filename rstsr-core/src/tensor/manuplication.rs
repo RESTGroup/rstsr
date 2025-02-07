@@ -830,7 +830,7 @@ where
     unsafe { Ok(TensorBase::new_unchecked(storage, layout)) }
 }
 
-/// Convert layout to another dimension.
+/// Convert layout to the other dimension.
 ///
 /// This is mostly used when converting static dimension to dynamic
 /// dimension or vice versa.
@@ -887,7 +887,7 @@ where
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
-    /// Convert layout to another dimension.
+    /// Convert layout to the other dimension.
     ///
     /// This is mostly used when converting static dimension to dynamic
     /// dimension or vice versa.
@@ -1333,7 +1333,7 @@ where
     }
 }
 
-/// Convert layout to another layout.
+/// Convert tensor to the other layout.
 pub fn to_layout<R, T, D, B, D2>(
     tensor: &TensorAny<R, T, B, D>,
     layout: Layout<D2>,
@@ -1410,7 +1410,7 @@ where
     T: Clone,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
 {
-    /// Convert layout to another layout.
+    /// Convert tensor to the other layout.
     ///
     /// # See also
     ///

@@ -88,7 +88,7 @@ macro_rules! impl_syrk_faer {
             lc: &Layout<Ix2>,
             a: &[$ty],
             la: &Layout<Ix2>,
-            uplo: TensorUpLo,
+            uplo: FlagUpLo,
             alpha: $ty,
             beta: $ty,
             nthreads: usize,
@@ -129,8 +129,8 @@ macro_rules! impl_syrk_faer {
 
             use faer::linalg::matmul::triangular::BlockStructure;
             let block_structure = match uplo {
-                TensorUpLo::U => BlockStructure::TriangularUpper,
-                TensorUpLo::L => BlockStructure::TriangularLower,
+                FlagUpLo::U => BlockStructure::TriangularUpper,
+                FlagUpLo::L => BlockStructure::TriangularLower,
             };
             faer::linalg::matmul::triangular::matmul(
                 faer_c,
@@ -172,7 +172,7 @@ macro_rules! impl_gemm_with_syrk_faer {
             if beta != <$ty>::from(0.0) {
                 $gemm_name(c, lc, a, la, a, &la.reverse_axes(), alpha, beta, nthreads)?;
             } else {
-                $syrk_name(c, lc, a, la, TensorUpLo::L, alpha, beta, nthreads)?;
+                $syrk_name(c, lc, a, la, FlagUpLo::L, alpha, beta, nthreads)?;
                 // symmetrize
                 let n = lc.shape()[0];
                 if n < PARALLEL_SWITCH || nthreads == 1 {
@@ -245,7 +245,7 @@ mod test {
         let mut c = vec![1.0; 4];
         let la = [2, 2].c();
         let lc = [2, 2].c();
-        syrk_faer_f64(&mut c, &lc, &a, &la, TensorUpLo::L, 2.0, 1.0, 16).unwrap();
+        syrk_faer_f64(&mut c, &lc, &a, &la, FlagUpLo::L, 2.0, 1.0, 16).unwrap();
         println!("{:?}", c);
     }
 }

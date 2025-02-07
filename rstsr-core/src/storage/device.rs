@@ -137,19 +137,3 @@ where
 }
 
 pub trait DeviceAPI<T>: DeviceBaseAPI + DeviceRawAPI<T> + DeviceStorageAPI<T> {}
-
-/// Unique identifier for cuda devices.
-///
-/// This code is from `candle`.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct DeviceId(usize);
-
-impl DeviceId {
-    #[allow(unused)]
-    pub(crate) fn new() -> Self {
-        // https://users.rust-lang.org/t/idiomatic-rust-way-to-generate-unique-id/33805
-        use core::sync::atomic;
-        static COUNTER: atomic::AtomicUsize = atomic::AtomicUsize::new(1);
-        Self(COUNTER.fetch_add(1, atomic::Ordering::Relaxed))
-    }
-}

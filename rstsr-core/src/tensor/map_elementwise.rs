@@ -10,7 +10,7 @@ where
     D: DimAPI,
     B: DeviceAPI<T>,
 {
-    /// Call `f` by reference on each element and create a new array with the
+    /// Call `f` by reference on each element and create a new tensor with the
     /// new values.
     pub fn map_fnmut_f<'f, TOut>(
         &self,
@@ -29,7 +29,7 @@ where
         return Tensor::new_f(storage_c, lc);
     }
 
-    /// Call `f` by reference on each element and create a new array with the
+    /// Call `f` by reference on each element and create a new tensor with the
     /// new values.
     pub fn map_fnmut<'f, TOut>(&self, f: impl FnMut(&T) -> TOut + 'f) -> Tensor<TOut, B, D>
     where
@@ -39,7 +39,7 @@ where
         self.map_fnmut_f(f).unwrap()
     }
 
-    /// Call `f` by value on each element and create a new array with the new
+    /// Call `f` by value on each element and create a new tensor with the new
     /// values.
     pub fn mapv_fnmut_f<'f, TOut>(
         &self,
@@ -53,7 +53,7 @@ where
         self.map_fnmut_f(move |x| f(x.clone()))
     }
 
-    /// Call `f` by value on each element and create a new array with the new
+    /// Call `f` by value on each element and create a new tensor with the new
     /// values.
     pub fn mapv_fnmut<'f, TOut>(&self, mut f: impl FnMut(T) -> TOut + 'f) -> Tensor<TOut, B, D>
     where
@@ -64,7 +64,7 @@ where
         self.map_fnmut_f(move |x| f(x.clone())).unwrap()
     }
 
-    /// Modify the array in place by calling `f` by mutable reference on each
+    /// Modify the tensor in place by calling `f` by mutable reference on each
     /// element.
     pub fn mapi_fnmut_f<'f>(&mut self, mut f: impl FnMut(&mut T) + 'f) -> Result<()>
     where
@@ -76,7 +76,7 @@ where
         device.op_muta_func(self.raw_mut(), &la, &mut f)
     }
 
-    /// Modify the array in place by calling `f` by mutable reference on each
+    /// Modify the tensor in place by calling `f` by mutable reference on each
     /// element.
     pub fn mapi_fnmut<'f>(&mut self, f: impl FnMut(&mut T) + 'f)
     where
@@ -86,7 +86,7 @@ where
         self.mapi_fnmut_f(f).unwrap()
     }
 
-    /// Modify the array in place by calling `f` by value on each
+    /// Modify the tensor in place by calling `f` by value on each
     /// element.
     pub fn mapvi_fnmut_f<'f>(&mut self, mut f: impl FnMut(T) -> T + 'f) -> Result<()>
     where
@@ -97,7 +97,7 @@ where
         self.mapi_fnmut_f(move |x| *x = f(x.clone()))
     }
 
-    /// Modify the array in place by calling `f` by value on each
+    /// Modify the tensor in place by calling `f` by value on each
     /// element.
     pub fn mapvi_fnmut<'f>(&mut self, f: impl FnMut(T) -> T + 'f)
     where
@@ -230,7 +230,7 @@ where
     D: DimAPI,
     B: DeviceAPI<T>,
 {
-    /// Call `f` by reference on each element and create a new array with the
+    /// Call `f` by reference on each element and create a new tensor with the
     /// new values.
     pub fn map_f<'f, TOut>(
         &self,
@@ -249,7 +249,7 @@ where
         return Tensor::new_f(storage_c, lc);
     }
 
-    /// Call `f` by reference on each element and create a new array with the
+    /// Call `f` by reference on each element and create a new tensor with the
     /// new values.
     pub fn map<'f, TOut>(&self, f: impl Fn(&T) -> TOut + Send + Sync + 'f) -> Tensor<TOut, B, D>
     where
@@ -259,7 +259,7 @@ where
         self.map_f(f).unwrap()
     }
 
-    /// Call `f` by value on each element and create a new array with the new
+    /// Call `f` by value on each element and create a new tensor with the new
     /// values.
     pub fn mapv_f<'f, TOut>(
         &self,
@@ -273,7 +273,7 @@ where
         self.map_f(move |x| f(x.clone()))
     }
 
-    /// Call `f` by value on each element and create a new array with the new
+    /// Call `f` by value on each element and create a new tensor with the new
     /// values.
     pub fn mapv<'f, TOut>(&self, f: impl Fn(T) -> TOut + Send + Sync + 'f) -> Tensor<TOut, B, D>
     where
@@ -284,7 +284,7 @@ where
         self.map_f(move |x| f(x.clone())).unwrap()
     }
 
-    /// Modify the array in place by calling `f` by mutable reference on each
+    /// Modify the tensor in place by calling `f` by mutable reference on each
     /// element.
     pub fn mapi_f<'f>(&mut self, mut f: impl Fn(&mut T) + Send + Sync + 'f) -> Result<()>
     where
@@ -296,7 +296,7 @@ where
         device.op_muta_func(self.raw_mut(), &la, &mut f)
     }
 
-    /// Modify the array in place by calling `f` by mutable reference on each
+    /// Modify the tensor in place by calling `f` by mutable reference on each
     /// element.
     pub fn mapi<'f>(&mut self, f: impl Fn(&mut T) + Send + Sync + 'f)
     where
@@ -306,7 +306,7 @@ where
         self.mapi_f(f).unwrap()
     }
 
-    /// Modify the array in place by calling `f` by value on each
+    /// Modify the tensor in place by calling `f` by value on each
     /// element.
     pub fn mapvi_f<'f>(&mut self, f: impl Fn(T) -> T + Send + Sync + 'f) -> Result<()>
     where
@@ -317,7 +317,7 @@ where
         self.mapi_f(move |x| *x = f(x.clone()))
     }
 
-    /// Modify the array in place by calling `f` by value on each
+    /// Modify the tensor in place by calling `f` by value on each
     /// element.
     pub fn mapvi<'f>(&mut self, f: impl Fn(T) -> T + Send + Sync + 'f)
     where

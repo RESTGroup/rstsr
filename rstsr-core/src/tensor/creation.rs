@@ -42,16 +42,16 @@ pub trait ArangeAPI<Inp>: Sized {
 /// # See also
 ///
 /// - [Python array API standard: `arange`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.arange.html)
-pub fn arange<Param, Inp>(param: Param) -> Param::Out
+pub fn arange<Args, Inp>(param: Args) -> Args::Out
 where
-    Param: ArangeAPI<Inp>,
+    Args: ArangeAPI<Inp>,
 {
     return ArangeAPI::arange(param);
 }
 
-pub fn arange_f<Param, Inp>(param: Param) -> Result<Param::Out>
+pub fn arange_f<Args, Inp>(param: Args) -> Result<Args::Out>
 where
-    Param: ArangeAPI<Inp>,
+    Args: ArangeAPI<Inp>,
 {
     return ArangeAPI::arange_f(param);
 }
@@ -170,9 +170,9 @@ pub trait EmptyAPI<Inp>: Sized {
 /// # See also
 ///
 /// - [Python array API standard: `empty`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.empty.html)
-pub unsafe fn empty<Param, Inp>(param: Param) -> Param::Out
+pub unsafe fn empty<Args, Inp>(param: Args) -> Args::Out
 where
-    Param: EmptyAPI<Inp>,
+    Args: EmptyAPI<Inp>,
 {
     return EmptyAPI::empty(param);
 }
@@ -180,9 +180,9 @@ where
 /// # Safety
 ///
 /// This function is unsafe because it creates a tensor with uninitialized.
-pub unsafe fn empty_f<Param, Inp>(param: Param) -> Result<Param::Out>
+pub unsafe fn empty_f<Args, Inp>(param: Args) -> Result<Args::Out>
 where
-    Param: EmptyAPI<Inp>,
+    Args: EmptyAPI<Inp>,
 {
     return EmptyAPI::empty_f(param);
 }
@@ -246,9 +246,9 @@ pub trait EmptyLikeAPI<Inp>: Sized {
 /// # See also
 ///
 /// - [Python array API standard: `empty_like`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.empty_like.html)
-pub unsafe fn empty_like<Param, Inp>(param: Param) -> Param::Out
+pub unsafe fn empty_like<Args, Inp>(param: Args) -> Args::Out
 where
-    Param: EmptyLikeAPI<Inp>,
+    Args: EmptyLikeAPI<Inp>,
 {
     return EmptyLikeAPI::empty_like(param);
 }
@@ -256,9 +256,9 @@ where
 /// # Safety
 ///
 /// This function is unsafe because it creates a tensor with uninitialized.
-pub unsafe fn empty_like_f<Param, Inp>(param: Param) -> Result<Param::Out>
+pub unsafe fn empty_like_f<Args, Inp>(param: Args) -> Result<Args::Out>
 where
-    Param: EmptyLikeAPI<Inp>,
+    Args: EmptyLikeAPI<Inp>,
 {
     return EmptyLikeAPI::empty_like_f(param);
 }
@@ -344,16 +344,16 @@ pub trait EyeAPI<Inp>: Sized {
 /// # See also
 ///
 /// - [Python array API standard: `eye`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.eye.html)
-pub fn eye<Param, Inp>(param: Param) -> Param::Out
+pub fn eye<Args, Inp>(param: Args) -> Args::Out
 where
-    Param: EyeAPI<Inp>,
+    Args: EyeAPI<Inp>,
 {
     return EyeAPI::eye(param);
 }
 
-pub fn eye_f<Param, Inp>(param: Param) -> Result<Param::Out>
+pub fn eye_f<Args, Inp>(param: Args) -> Result<Args::Out>
 where
-    Param: EyeAPI<Inp>,
+    Args: EyeAPI<Inp>,
 {
     return EyeAPI::eye_f(param);
 }
@@ -462,16 +462,16 @@ pub trait FullAPI<Inp>: Sized {
 /// # See also
 ///
 /// - [Python array API standard: `full`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.full.html)
-pub fn full<Param, Inp>(param: Param) -> Param::Out
+pub fn full<Args, Inp>(param: Args) -> Args::Out
 where
-    Param: FullAPI<Inp>,
+    Args: FullAPI<Inp>,
 {
     return FullAPI::full(param);
 }
 
-pub fn full_f<Param, Inp>(param: Param) -> Result<Param::Out>
+pub fn full_f<Args, Inp>(param: Args) -> Result<Args::Out>
 where
-    Param: FullAPI<Inp>,
+    Args: FullAPI<Inp>,
 {
     return FullAPI::full_f(param);
 }
@@ -527,16 +527,16 @@ pub trait FullLikeAPI<Inp>: Sized {
 /// # See also
 ///
 /// - [Python array API standard: `full_like`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.full_like.html)
-pub fn full_like<Param, Inp>(param: Param) -> Param::Out
+pub fn full_like<Args, Inp>(param: Args) -> Args::Out
 where
-    Param: FullLikeAPI<Inp>,
+    Args: FullLikeAPI<Inp>,
 {
     return FullLikeAPI::full_like(param);
 }
 
-pub fn full_like_f<Param, Inp>(param: Param) -> Result<Param::Out>
+pub fn full_like_f<Args, Inp>(param: Args) -> Result<Args::Out>
 where
-    Param: FullLikeAPI<Inp>,
+    Args: FullLikeAPI<Inp>,
 {
     return FullLikeAPI::full_like_f(param);
 }
@@ -641,16 +641,16 @@ pub trait LinspaceAPI<Inp>: Sized {
 /// # See also
 ///
 /// - [Python array API standard: `linspace`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.linspace.html)
-pub fn linspace<Param, Inp>(param: Param) -> Param::Out
+pub fn linspace<Args, Inp>(param: Args) -> Args::Out
 where
-    Param: LinspaceAPI<Inp>,
+    Args: LinspaceAPI<Inp>,
 {
     return LinspaceAPI::linspace(param);
 }
 
-pub fn linspace_f<Param, Inp>(param: Param) -> Result<Param::Out>
+pub fn linspace_f<Args, Inp>(param: Args) -> Result<Args::Out>
 where
-    Param: LinspaceAPI<Inp>,
+    Args: LinspaceAPI<Inp>,
 {
     return LinspaceAPI::linspace_f(param);
 }
@@ -729,16 +729,16 @@ pub trait OnesAPI<Inp>: Sized {
 /// # See also
 ///
 /// - [Python array API standard: `ones`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.ones.html)
-pub fn ones<Param, Inp>(param: Param) -> Param::Out
+pub fn ones<Args, Inp>(param: Args) -> Args::Out
 where
-    Param: OnesAPI<Inp>,
+    Args: OnesAPI<Inp>,
 {
     return OnesAPI::ones(param);
 }
 
-pub fn ones_f<Param, Inp>(param: Param) -> Result<Param::Out>
+pub fn ones_f<Args, Inp>(param: Args) -> Result<Args::Out>
 where
-    Param: OnesAPI<Inp>,
+    Args: OnesAPI<Inp>,
 {
     return OnesAPI::ones_f(param);
 }
@@ -794,16 +794,16 @@ pub trait OnesLikeAPI<Inp>: Sized {
 /// # See also
 ///
 /// - [Python array API standard: `ones_like`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.ones_like.html)
-pub fn ones_like<Param, Inp>(param: Param) -> Param::Out
+pub fn ones_like<Args, Inp>(param: Args) -> Args::Out
 where
-    Param: OnesLikeAPI<Inp>,
+    Args: OnesLikeAPI<Inp>,
 {
     return OnesLikeAPI::ones_like(param);
 }
 
-pub fn ones_like_f<Param, Inp>(param: Param) -> Result<Param::Out>
+pub fn ones_like_f<Args, Inp>(param: Args) -> Result<Args::Out>
 where
-    Param: OnesLikeAPI<Inp>,
+    Args: OnesLikeAPI<Inp>,
 {
     return OnesLikeAPI::ones_like_f(param);
 }
@@ -913,16 +913,16 @@ pub trait ZerosAPI<Inp>: Sized {
 /// # See also
 ///
 /// - [Python array API standard: `zeros`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.zeros.html)
-pub fn zeros<Param, Inp>(param: Param) -> Param::Out
+pub fn zeros<Args, Inp>(param: Args) -> Args::Out
 where
-    Param: ZerosAPI<Inp>,
+    Args: ZerosAPI<Inp>,
 {
     return ZerosAPI::zeros(param);
 }
 
-pub fn zeros_f<Param, Inp>(param: Param) -> Result<Param::Out>
+pub fn zeros_f<Args, Inp>(param: Args) -> Result<Args::Out>
 where
-    Param: ZerosAPI<Inp>,
+    Args: ZerosAPI<Inp>,
 {
     return ZerosAPI::zeros_f(param);
 }
@@ -978,16 +978,16 @@ pub trait ZerosLikeAPI<Inp>: Sized {
 /// # See also
 ///
 /// - [Python array API standard: `zeros_like`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.zeros_like.html)
-pub fn zeros_like<Param, Inp, Rhs>(param: Param) -> Rhs
+pub fn zeros_like<Args, Inp, Rhs>(param: Args) -> Rhs
 where
-    Param: ZerosLikeAPI<Inp, Out = Rhs>,
+    Args: ZerosLikeAPI<Inp, Out = Rhs>,
 {
     return ZerosLikeAPI::zeros_like(param);
 }
 
-pub fn zeros_like_f<Param, Inp, Rhs>(param: Param) -> Result<Rhs>
+pub fn zeros_like_f<Args, Inp, Rhs>(param: Args) -> Result<Rhs>
 where
-    Param: ZerosLikeAPI<Inp, Out = Rhs>,
+    Args: ZerosLikeAPI<Inp, Out = Rhs>,
 {
     return ZerosLikeAPI::zeros_like_f(param);
 }

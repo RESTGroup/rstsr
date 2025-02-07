@@ -147,7 +147,7 @@ pub mod TensorCopyPolicy {
 
 /* #region blas-flags */
 
-pub enum TensorTranspose {
+pub enum FlagTrans {
     /// No transpose
     N,
     /// Transpose
@@ -156,21 +156,21 @@ pub enum TensorTranspose {
     C,
 }
 
-pub enum TensorSide {
+pub enum FlagSide {
     /// Left side
     L,
     /// Right side
     R,
 }
 
-pub enum TensorUpLo {
+pub enum FlagUpLo {
     /// Upper triangle
     U,
     /// Lower triangle
     L,
 }
 
-pub enum TensorDiag {
+pub enum FlagDiag {
     /// Non-unit diagonal
     N,
     /// Unit diagonal
@@ -182,7 +182,7 @@ pub enum TensorDiag {
 /* #region symm-flags */
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TensorSymm {
+pub enum FlagSymm {
     /// Symmetric matrix
     Sy,
     /// Hermitian matrix

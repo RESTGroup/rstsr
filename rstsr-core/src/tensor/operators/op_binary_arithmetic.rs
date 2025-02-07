@@ -128,6 +128,7 @@ mod impl_core_ops {
 
 macro_rules! impl_binary_arithmetic_ref {
     ($op_f: ident, $DeviceOpAPI: ident, $TensorOpAPI: ident, $Op: ident) => {
+        #[doc(hidden)]
         impl<RA, RB, TA, TB, TC, DA, DB, DC, B> $TensorOpAPI<&TensorAny<RB, TB, B, DB>>
             for &TensorAny<RA, TA, B, DA>
         where
@@ -184,6 +185,7 @@ macro_rules! impl_binary_arithmetic_ref {
             }
         }
 
+        #[doc(hidden)]
         impl<'a, RB, TA, TB, TC, DA, DB, DC, B> $TensorOpAPI<&TensorAny<RB, TB, B, DB>>
             for TensorView<'a, TA, B, DA>
         where
@@ -207,6 +209,7 @@ macro_rules! impl_binary_arithmetic_ref {
             }
         }
 
+        #[doc(hidden)]
         impl<'b, RA, TA, TB, TC, DA, DB, DC, B> $TensorOpAPI<TensorView<'b, TB, B, DB>>
             for &TensorAny<RA, TA, B, DA>
         where
@@ -230,6 +233,7 @@ macro_rules! impl_binary_arithmetic_ref {
             }
         }
 
+        #[doc(hidden)]
         impl<'a, 'b, TA, TB, TC, DA, DB, DC, B> $TensorOpAPI<TensorView<'b, TB, B, DB>>
             for TensorView<'a, TA, B, DA>
         where
@@ -271,6 +275,7 @@ mod impl_binary_arithmetic_ref {
 
 macro_rules! impl_binary_lr_consume {
     ($op_f: ident, $DeviceOpAPI: ident, $TensorOpAPI: ident, $Op: ident, $DeviceLConsumeAPI: ident, $DeviceRConsumeAPI: ident) => {
+        #[doc(hidden)]
         impl<RB, TA, TB, DA, DB, DC, B> $TensorOpAPI<&TensorAny<RB, TB, B, DB>>
             for Tensor<TA, B, DA>
         where
@@ -318,6 +323,7 @@ macro_rules! impl_binary_lr_consume {
             }
         }
 
+        #[doc(hidden)]
         impl<RA, TA, TB, DA, DB, DC, B> $TensorOpAPI<Tensor<TB, B, DB>>
             for &TensorAny<RA, TA, B, DA>
         where
@@ -367,6 +373,7 @@ macro_rules! impl_binary_lr_consume {
             }
         }
 
+        #[doc(hidden)]
         impl<'b, TA, TB, DA, DB, DC, B> $TensorOpAPI<TensorView<'b, TB, B, DB>>
             for Tensor<TA, B, DA>
         where
@@ -391,6 +398,7 @@ macro_rules! impl_binary_lr_consume {
             }
         }
 
+        #[doc(hidden)]
         impl<'a, TA, TB, DA, DB, DC, B> $TensorOpAPI<Tensor<TB, B, DB>>
             for TensorView<'a, TA, B, DA>
         where
@@ -416,6 +424,7 @@ macro_rules! impl_binary_lr_consume {
             }
         }
 
+        #[doc(hidden)]
         impl<T, DA, DB, DC, B> $TensorOpAPI<Tensor<T, B, DB>> for Tensor<T, B, DA>
         where
             // data constraints
@@ -568,6 +577,7 @@ pub use impl_binary_with_output::*;
 
 macro_rules! impl_arithmetic_scalar_lhs {
     ($ty: ty, $op: ident, $op_f: ident, $Op: ident, $DeviceOpAPI: ident, $TensorOpAPI: ident, $DeviceRConsumeOpAPI: ident) => {
+        #[doc(hidden)]
         impl<T, R, D, B> $TensorOpAPI<&TensorAny<R, T, B, D>> for $ty
         where
             T: From<$ty> + $Op<T, Output = T>,
@@ -588,6 +598,7 @@ macro_rules! impl_arithmetic_scalar_lhs {
             }
         }
 
+        #[doc(hidden)]
         impl<T, R, D, B> $Op<&TensorAny<R, T, B, D>> for $ty
         where
             T: From<$ty> + $Op<T, Output = T>,
@@ -602,6 +613,7 @@ macro_rules! impl_arithmetic_scalar_lhs {
             }
         }
 
+        #[doc(hidden)]
         impl<'l, T, B, D> $TensorOpAPI<TensorView<'l, T, B, D>> for $ty
         where
             T: From<$ty> + $Op<T, Output = T>,
@@ -621,6 +633,7 @@ macro_rules! impl_arithmetic_scalar_lhs {
             }
         }
 
+        #[doc(hidden)]
         impl<'l, T, B, D> $Op<TensorView<'l, T, B, D>> for $ty
         where
             T: From<$ty> + $Op<T, Output = T>,
@@ -634,6 +647,7 @@ macro_rules! impl_arithmetic_scalar_lhs {
             }
         }
 
+        #[doc(hidden)]
         impl<T, B, D> $TensorOpAPI<Tensor<T, B, D>> for $ty
         where
             T: From<$ty> + $Op<T, Output = T>,
@@ -651,6 +665,7 @@ macro_rules! impl_arithmetic_scalar_lhs {
             }
         }
 
+        #[doc(hidden)]
         impl<T, B, D> $Op<Tensor<T, B, D>> for $ty
         where
             T: From<$ty> + $Op<T, Output = T>,
@@ -740,6 +755,7 @@ mod impl_arithmetic_scalar_lhs {
 
 macro_rules! impl_arithmetic_scalar_rhs {
     ($op_f: ident, $Op: ident, $DeviceOpAPI: ident, $TensorOpAPI: ident, $DeviceLConsumeOpAPI: ident) => {
+        #[doc(hidden)]
         impl<T, TB, R, D, B> $TensorOpAPI<TB> for &TensorAny<R, T, B, D>
         where
             T: From<TB> + $Op<T, Output = T>,
@@ -762,6 +778,7 @@ macro_rules! impl_arithmetic_scalar_rhs {
             }
         }
 
+        #[doc(hidden)]
         impl<'l, T, TB, D, B> $TensorOpAPI<TB> for TensorView<'l, T, B, D>
         where
             T: From<TB> + $Op<T, Output = T>,
@@ -783,6 +800,7 @@ macro_rules! impl_arithmetic_scalar_rhs {
             }
         }
 
+        #[doc(hidden)]
         impl<T, TB, D, B> $TensorOpAPI<TB> for Tensor<T, B, D>
         where
             T: From<TB> + $Op<T, Output = T>,

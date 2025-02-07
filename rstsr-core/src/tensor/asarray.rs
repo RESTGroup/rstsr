@@ -22,16 +22,16 @@ pub trait AsArrayAPI<Inp>: Sized {
 /// # See also
 ///
 /// [Python array API: `asarray`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.asarray.html)
-pub fn asarray<Param, Inp>(param: Param) -> Param::Out
+pub fn asarray<Args, Inp>(param: Args) -> Args::Out
 where
-    Param: AsArrayAPI<Inp>,
+    Args: AsArrayAPI<Inp>,
 {
     return AsArrayAPI::asarray(param);
 }
 
-pub fn asarray_f<Param, Inp>(param: Param) -> Result<Param::Out>
+pub fn asarray_f<Args, Inp>(param: Args) -> Result<Args::Out>
 where
-    Param: AsArrayAPI<Inp>,
+    Args: AsArrayAPI<Inp>,
 {
     return AsArrayAPI::asarray_f(param);
 }

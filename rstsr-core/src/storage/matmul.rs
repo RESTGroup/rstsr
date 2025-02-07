@@ -61,8 +61,8 @@ where
         la: &Layout<Ix2>,
         b: &<Self as DeviceRawAPI<TB>>::Raw,
         lb: &Layout<Ix2>,
-        side: TensorSide,
-        uplo: TensorUpLo,
+        side: FlagSide,
+        uplo: FlagUpLo,
         alpha: TC,
         beta: TC,
     ) -> Result<()>;
@@ -80,7 +80,7 @@ where
         lc: &Layout<Ix2>,
         a: &<Self as DeviceRawAPI<TA>>::Raw,
         la: &Layout<Ix2>,
-        uplo: TensorUpLo,
+        uplo: FlagUpLo,
         alpha: TC,
         beta: TC,
     ) -> Result<()>;
@@ -98,7 +98,7 @@ where
         lc: &Layout<Ix2>,
         a: &<Self as DeviceRawAPI<TA>>::Raw,
         la: &Layout<Ix2>,
-        uplo: TensorUpLo,
+        uplo: FlagUpLo,
         alpha: TC,
         beta: TC,
     ) -> Result<()>;
