@@ -58,22 +58,30 @@ where
     D: DimAPI,
     B: DeviceAPI<T, Raw = Vec<T>> + 'a,
 {
-    pub fn iter_with_order(&self, order: TensorIterOrder) -> IterVecView<'a, T, D> {
-        let layout_iter = IterLayout::new(self.layout(), order).unwrap();
+    pub fn iter_with_order_f(&self, order: TensorIterOrder) -> Result<IterVecView<'a, T, D>> {
+        let layout_iter = IterLayout::new(self.layout(), order)?;
         let raw = self.raw().as_ref();
 
         // SAFETY: The lifetime of `raw` is guaranteed to be at least `'a`.
         // transmute is to change the lifetime, not for type casting.
         let iter = IterVecView { layout_iter, view: raw };
-        unsafe { transmute(iter) }
+        Ok(unsafe { transmute(iter) })
     }
 
-    pub fn iter(&self) -> IterVecView<'a, T, D> {
+    pub fn iter_with_order(&self, order: TensorIterOrder) -> IterVecView<'a, T, D> {
+        self.iter_with_order_f(order).unwrap()
+    }
+
+    pub fn iter_f(&self) -> Result<IterVecView<'a, T, D>> {
         let order = match TensorOrder::default() {
             TensorOrder::C => TensorIterOrder::C,
             TensorOrder::F => TensorIterOrder::F,
         };
-        self.iter_with_order(order)
+        self.iter_with_order_f(order)
+    }
+
+    pub fn iter(&self) -> IterVecView<'a, T, D> {
+        self.iter_f().unwrap()
     }
 }
 
@@ -143,19 +151,30 @@ where
     D: DimAPI,
     B: DeviceAPI<T, Raw = Vec<T>> + 'a,
 {
-    pub fn iter_mut_with_order(&'a mut self, order: TensorIterOrder) -> IterVecMut<'a, T, D> {
-        let layout_iter = IterLayout::new(self.layout(), order).unwrap();
+    pub fn iter_mut_with_order_f(
+        &'a mut self,
+        order: TensorIterOrder,
+    ) -> Result<IterVecMut<'a, T, D>> {
+        let layout_iter = IterLayout::new(self.layout(), order)?;
         let raw = self.raw_mut().as_mut();
         let iter = IterVecMut { layout_iter, view: raw };
-        iter
+        Ok(iter)
     }
 
-    pub fn iter_mut(&'a mut self) -> IterVecMut<'a, T, D> {
+    pub fn iter_mut_with_order(&'a mut self, order: TensorIterOrder) -> IterVecMut<'a, T, D> {
+        self.iter_mut_with_order_f(order).unwrap()
+    }
+
+    pub fn iter_mut_f(&'a mut self) -> Result<IterVecMut<'a, T, D>> {
         let order = match TensorOrder::default() {
             TensorOrder::C => TensorIterOrder::C,
             TensorOrder::F => TensorIterOrder::F,
         };
-        self.iter_mut_with_order(order)
+        self.iter_mut_with_order_f(order)
+    }
+
+    pub fn iter_mut(&'a mut self) -> IterVecMut<'a, T, D> {
+        self.iter_mut_f().unwrap()
     }
 }
 
@@ -226,22 +245,39 @@ where
     D: DimAPI,
     B: DeviceAPI<T, Raw = Vec<T>> + 'a,
 {
-    pub fn indexed_iter_with_order(&self, order: TensorIterOrder) -> IndexedIterVecView<'a, T, D> {
+    pub fn indexed_iter_with_order_f(
+        &self,
+        order: TensorIterOrder,
+    ) -> Result<IndexedIterVecView<'a, T, D>> {
         use TensorIterOrder::*;
         // this function only accepts c/f iter order currently
         match order {
             C | F => (),
-            _ => {
-                rstsr_invalid!(order, "This function only accepts TensorIterOrder::C|F.",).unwrap()
-            },
+            _ => rstsr_invalid!(order, "This function only accepts TensorIterOrder::C|F.",)?,
         };
-        let layout_iter = IterLayout::<D>::new(self.layout(), order).unwrap();
+        let layout_iter = IterLayout::<D>::new(self.layout(), order)?;
         let raw = self.raw().as_ref();
 
         // SAFETY: The lifetime of `raw` is guaranteed to be at least `'a`.
         // transmute is to change the lifetime, not for type casting.
         let iter = IndexedIterVecView { layout_iter, view: raw };
-        unsafe { transmute(iter) }
+        Ok(unsafe { transmute(iter) })
+    }
+
+    pub fn indexed_iter_with_order(&self, order: TensorIterOrder) -> IndexedIterVecView<'a, T, D> {
+        self.indexed_iter_with_order_f(order).unwrap()
+    }
+
+    pub fn indexed_iter_f(&self) -> Result<IndexedIterVecView<'a, T, D>> {
+        let order = match TensorOrder::default() {
+            TensorOrder::C => TensorIterOrder::C,
+            TensorOrder::F => TensorIterOrder::F,
+        };
+        self.indexed_iter_with_order_f(order)
+    }
+
+    pub fn indexed_iter(&self) -> IndexedIterVecView<'a, T, D> {
+        self.indexed_iter_f().unwrap()
     }
 }
 
@@ -267,9 +303,7 @@ where
             IterLayout::ColMajor(iter_inner) => iter_inner.index_start.clone(),
             IterLayout::RowMajor(iter_inner) => iter_inner.index_start.clone(),
         };
-        self.layout_iter
-            .next()
-            .map(|offset| (index, unsafe { transmute::<&mut T, &mut T>(&mut self.view[offset]) }))
+        self.layout_iter.next().map(|offset| (index, unsafe { transmute(&mut self.view[offset]) }))
     }
 }
 
@@ -284,7 +318,7 @@ where
         };
         self.layout_iter
             .next_back()
-            .map(|offset| (index, unsafe { transmute::<&mut T, &mut T>(&mut self.view[offset]) }))
+            .map(|offset| (index, unsafe { transmute(&mut self.view[offset]) }))
     }
 }
 
@@ -320,29 +354,40 @@ where
     D: DimAPI,
     B: DeviceAPI<T, Raw = Vec<T>> + 'a,
 {
-    /// # Safety
-    ///
-    /// `iter_a = a.iter_mut` will generate mutable views of tensor,
-    /// both `iter_a` and `a` are mutable, which is not safe in rust.
-    pub unsafe fn indexed_iter_mut_with_order(
-        &mut self,
+    pub fn indexed_iter_mut_with_order_f(
+        &'a mut self,
         order: TensorIterOrder,
-    ) -> IndexedIterVecMut<'a, T, D> {
+    ) -> Result<IndexedIterVecMut<'a, T, D>> {
         use TensorIterOrder::*;
         // this function only accepts c/f iter order currently
         match order {
             C | F => (),
-            _ => {
-                rstsr_invalid!(order, "This function only accepts TensorIterOrder::C|F.",).unwrap()
-            },
+            _ => rstsr_invalid!(order, "This function only accepts TensorIterOrder::C|F.",)?,
         };
-        let layout_iter = IterLayout::<D>::new(self.layout(), order).unwrap();
+        let layout_iter = IterLayout::<D>::new(self.layout(), order)?;
         let raw = self.raw_mut().as_mut();
 
-        // SAFETY: The lifetime of `raw` is guaranteed to be at least `'a`.
-        // transmute is to change the lifetime, not for type casting.
         let iter = IndexedIterVecMut { layout_iter, view: raw };
-        transmute(iter)
+        Ok(iter)
+    }
+
+    pub fn indexed_iter_mut_with_order(
+        &'a mut self,
+        order: TensorIterOrder,
+    ) -> IndexedIterVecMut<'a, T, D> {
+        self.indexed_iter_mut_with_order_f(order).unwrap()
+    }
+
+    pub fn indexed_iter_mut_f(&'a mut self) -> Result<IndexedIterVecMut<'a, T, D>> {
+        let order = match TensorOrder::default() {
+            TensorOrder::C => TensorIterOrder::C,
+            TensorOrder::F => TensorIterOrder::F,
+        };
+        self.indexed_iter_mut_with_order_f(order)
+    }
+
+    pub fn indexed_iter_mut(&'a mut self) -> IndexedIterVecMut<'a, T, D> {
+        self.indexed_iter_mut_f().unwrap()
     }
 }
 
