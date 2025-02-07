@@ -7,6 +7,6 @@ There are already some rust BLAS FFI crates. However, there may be some addition
 - Custom suffixes,
 - Non-standard BLAS functions,
 - OpenBLAS specific utilities,
-- For OpenMP compiled OpenBLAS, we need to add some utilities to both handling parallel and single-threaded.
+- For OpenMP or pthread compiled OpenBLAS, we need to add some utilities to both handling parallel and single-threaded.
 
 Not all tasks will be handled currently. We will first try to make OpenBLAS device in RSTSR work.

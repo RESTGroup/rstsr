@@ -12,3 +12,4 @@ rstsr-openblas-ffi = { workspace = true }
 
 [features]
 faer = ["rstsr-core/faer"]
+openmp = ["rstsr-openblas-ffi/openmp"]

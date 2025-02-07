@@ -15,9 +15,9 @@ edition = "2021"
 [workspace.dependencies]
 # members
 rstsr-core = { path = "./rstsr-core", default-features = false }
-rstsr-openblas = { path = "./rstsr-openblas" }
+rstsr-openblas = { path = "./rstsr-openblas", default-features = false }
 # members without core
-rstsr-openblas-ffi = { path = "./rstsr-openblas-ffi" }
+rstsr-openblas-ffi = { path = "./rstsr-openblas-ffi", default-features = false }
 rstsr-dtype-traits = { path = "./rstsr-dtype-traits", default-features = false }
 # basic dependencies
 num = { version = "0.4" }

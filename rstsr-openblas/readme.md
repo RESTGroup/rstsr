@@ -28,8 +28,11 @@ assert!((c_mean - 213.2503660477036) < 1e-6);
 
 ## Important Notes
 
-- Currently, this crate is only designed for **pthreads** compiled OpenBLAS.
-    - If using OpenMP compiled OpenBLAS, number of actual threads will exceed rayon's.
-    - Also, serial compiled OpenBLAS will be single-threaded in many matmuls.
-- Please add `-l openblas` in `RUSTFLAGS`, or `cargo:rustc-link-lib=openblas` in build.rs, or something similar, to your project.
-  We do not provide automatic linkage, and we do not use external FFI crates `blas` or `blas-sys`.
+- We do not provide automatic linkage:
+  - Please add `-l openblas` in `RUSTFLAGS`, or `cargo:rustc-link-lib=openblas` in build.rs, or something similar, to your project.
+    We do not use external FFI crates `blas` or `blas-sys`, and do not automatically search OpenBLAS library for linking.
+  - If feature `openmp` activated, please add `-l gomp` or `-l omp` in `RUSTFLAGS`, or `cargo:rustc-link-lib=gomp` or `cargo:rustc-link-lib=omp` in build.rs, or something similar, to your project.
+    We do not use external FFI crate `openmp-sys`, and do not automatically search for OpenMP library for linking.
+
+- If your OpenBLAS is compiled with OpenMP, please add `openmp` feature to either this crate or `rstsr-openblas-ffi`.
+  - In our testing, OpenBLAS with OpenMP is probably more efficient than pthreads. However, we currently decided not make `openmp` as default feature.
