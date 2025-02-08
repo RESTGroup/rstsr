@@ -13,7 +13,7 @@ version = "0.0.1"
 edition = "2021"
 description = "An n-Dimension Rust Tensor Toolkit"
 repository = "https://github.com/ajz34/rstsr"
-keywords = ["tensor", "array", "blas", "multidimensional", "scientific computation"]
+keywords = ["tensor", "array", "blas", "multidimensional", "scientific"]
 categories = ["science"]
 license = "Apache-2.0"
 
