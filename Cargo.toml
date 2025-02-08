@@ -19,11 +19,11 @@ license = "Apache-2.0"
 
 [workspace.dependencies]
 # members
-rstsr-core = { path = "./rstsr-core", default-features = false }
-rstsr-openblas = { path = "./rstsr-openblas", default-features = false }
+rstsr-core = { path = "./rstsr-core", default-features = false, version = "0.0.1" }
+rstsr-openblas = { path = "./rstsr-openblas", default-features = false, version = "0.0.1" }
 # members without core
-rstsr-openblas-ffi = { path = "./rstsr-openblas-ffi", default-features = false }
-rstsr-dtype-traits = { path = "./rstsr-dtype-traits", default-features = false }
+rstsr-openblas-ffi = { path = "./rstsr-openblas-ffi", default-features = false, version = "0.0.1" }
+rstsr-dtype-traits = { path = "./rstsr-dtype-traits", default-features = false, version = "0.0.1" }
 # basic dependencies
 num = { version = "0.4" }
 thiserror = { version = "1.0" }
