@@ -28,7 +28,7 @@ macro_rules! impl_floordiv_float {
     ($t: ident) => {
         impl FloorDivideAPI for $t {
             fn floor_divide(self, other: Self) -> Self {
-                (self / other).floor()
+                Float::floor(self / other)
             }
         }
     };
