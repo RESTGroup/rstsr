@@ -93,7 +93,7 @@ where
             let c_ptr = c.as_ptr() as *mut T;
             *c_ptr.add(idx_c) = a[idx_a].clone();
         };
-        pool.install(|| layout_col_major_dim_dispatch_par_2(&lc, &la, func))?;
+        pool.install(|| layout_col_major_dim_dispatch_par_2(lc, la, func))?;
     } else {
         // parallel for outer iteration
         let lc = &layouts_contig[0];
@@ -104,7 +104,7 @@ where
                 *c_ptr.add(idx) = a[idx_a + idx].clone();
             })
         };
-        pool.install(|| layout_col_major_dim_dispatch_par_2(&lc, &la, func))?;
+        pool.install(|| layout_col_major_dim_dispatch_par_2(lc, la, func))?;
     }
     return Ok(());
 }
@@ -139,7 +139,7 @@ where
             let c_ptr = c.as_ptr() as *mut T;
             *c_ptr.add(idx_c) = fill.clone();
         };
-        pool.install(|| layout_col_major_dim_dispatch_par_1(&lc, func))?;
+        pool.install(|| layout_col_major_dim_dispatch_par_1(lc, func))?;
     } else {
         // parallel for outer iteration
         let lc = &layouts_contig[0];
@@ -149,7 +149,7 @@ where
                 *c_ptr.add(idx) = fill.clone();
             })
         };
-        pool.install(|| layout_col_major_dim_dispatch_par_1(&lc, func))?;
+        pool.install(|| layout_col_major_dim_dispatch_par_1(lc, func))?;
     }
     return Ok(());
 }

@@ -60,6 +60,7 @@ pub enum TensorOrder {
     F,
 }
 
+#[allow(clippy::derivable_impls)]
 impl Default for TensorOrder {
     fn default() -> Self {
         #[cfg(not(feature = "f_prefer"))]

@@ -114,6 +114,10 @@ where
     B: DeviceAPI<T>,
     D: DimAPI,
 {
+    /// # Safety
+    ///
+    /// This function is highly unsafe, as it entirely bypasses Rust's lifetime
+    /// and borrowing rules.
     pub unsafe fn force_mut(&self) -> TensorMut<'_, T, B, D> {
         let layout = self.layout().clone();
         let data = self.data().force_mut();

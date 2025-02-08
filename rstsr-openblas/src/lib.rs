@@ -1,3 +1,4 @@
+#![allow(clippy::needless_return)]
 #![doc = include_str!("../readme.md")]
 
 pub mod conversion;

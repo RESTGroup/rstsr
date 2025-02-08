@@ -1,5 +1,6 @@
 use crate::prelude_dev::*;
 
+#[allow(clippy::type_complexity)]
 pub trait TensorDeviceChangeAPI<'l, BOut>: Sized
 where
     BOut: DeviceRawAPI<Self::Type>,
@@ -66,6 +67,7 @@ where
     }
 }
 
+#[allow(clippy::type_complexity)]
 pub trait TensorChangeFromDevice<'l, BOut>: Sized
 where
     BOut: DeviceRawAPI<Self::Type>,

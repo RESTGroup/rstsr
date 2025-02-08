@@ -6,13 +6,11 @@ where
     T: Clone,
     DeviceCpuSerial: DeviceRawAPI<T, Raw = Vec<T>>,
 {
-    #[allow(clippy::uninit_vec)]
     unsafe fn empty_impl(
         &self,
         len: usize,
     ) -> Result<Storage<DataOwned<Vec<T>>, T, DeviceCpuSerial>> {
-        let mut raw: Vec<T> = Vec::with_capacity(len);
-        unsafe { raw.set_len(len) };
+        let raw = uninitialized_vec(len);
         Ok(Storage::new(raw.into(), self.clone()))
     }
 

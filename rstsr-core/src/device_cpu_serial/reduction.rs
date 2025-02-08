@@ -83,7 +83,6 @@ where
     }
 }
 
-#[allow(clippy::uninit_vec)]
 pub fn reduce_axes_cpu_serial<T, I, F, FSum, FOut>(
     a: &[T],
     la: &Layout<IxD>,
@@ -125,8 +124,7 @@ where
 
         // prepare output
         let len_out = layout_out.size();
-        let mut out = Vec::with_capacity(len_out);
-        unsafe { out.set_len(len_out) };
+        let mut out = unsafe { uninitialized_vec(len_out) };
 
         // actual evaluation
         izip!(iter_out_swapped, iter_rest_swapped).try_for_each(

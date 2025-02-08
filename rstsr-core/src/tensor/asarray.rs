@@ -51,9 +51,9 @@ where
         let (input, order) = self;
         let device = input.device();
         let layout_a = input.layout();
-        let layout_c = layout_for_array_copy(&layout_a, order)?;
+        let layout_c = layout_for_array_copy(layout_a, order)?;
         let mut storage_c = unsafe { device.empty_impl(layout_c.size())? };
-        device.assign(storage_c.raw_mut(), &layout_c, input.raw(), &layout_a)?;
+        device.assign(storage_c.raw_mut(), &layout_c, input.raw(), layout_a)?;
         let tensor = unsafe { Tensor::new_unchecked(storage_c, layout_c) };
         return Ok(tensor);
     }
@@ -91,7 +91,7 @@ where
             return Ok(input);
         } else {
             let mut storage_c = unsafe { device.empty_impl(layout_c.size())? };
-            device.assign(storage_c.raw_mut(), &layout_c, storage_a.raw(), &layout_a)?;
+            device.assign(storage_c.raw_mut(), &layout_c, storage_a.raw(), layout_a)?;
             let tensor = unsafe { Tensor::new_unchecked(storage_c, layout_c) };
             return Ok(tensor);
         }
@@ -587,7 +587,7 @@ mod tests {
     fn test_asarray_scalar() {
         let tensor = asarray_f(1).unwrap();
         println!("{:?}", tensor);
-        let tensor = asarray_f((Complex64::new(0., 1.), &DeviceCpuSerial::default())).unwrap();
+        let tensor = asarray_f((Complex64::new(0., 1.), &DeviceCpuSerial)).unwrap();
         println!("{:?}", tensor);
     }
 }

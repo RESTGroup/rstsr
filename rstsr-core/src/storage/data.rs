@@ -188,6 +188,10 @@ pub trait DataMutAPI: DataAPI {
 pub trait DataOwnedAPI: DataMutAPI {}
 
 pub trait DataForceMutAPI<C>: DataAPI<Data = C> {
+    /// # Safety
+    ///
+    /// This function is highly unsafe, as it entirely bypasses Rust's lifetime
+    /// and borrowing rules.
     unsafe fn force_mut(&self) -> DataMut<'_, C>;
 }
 
@@ -219,7 +223,7 @@ where
 
 impl<C> DataAPI for DataRef<'_, C>
 where
-    C: Clone + ?Sized,
+    C: Clone,
 {
     type Data = C;
 

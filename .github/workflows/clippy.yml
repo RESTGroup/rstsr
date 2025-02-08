@@ -3,7 +3,7 @@ name: code style and linting checks
 on:
   push:
     branches:
-      - main
+      - master
   pull_request:
 
 jobs:

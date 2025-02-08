@@ -737,7 +737,7 @@ where
             5 => dispatch!(Ix5),
             6 => dispatch!(Ix6),
             _ => {
-                let iter_a = IterLayoutColMajor::new(&la)?;
+                let iter_a = IterLayoutColMajor::new(la)?;
                 iter_a.for_each(f);
             },
         }
@@ -745,7 +745,7 @@ where
 
     #[cfg(not(feature = "dispatch_dim_layout_iter"))]
     {
-        let iter_a = IterLayoutColMajor::new(&la)?;
+        let iter_a = IterLayoutColMajor::new(la)?;
         iter_a.for_each(f);
     }
     Ok(())
@@ -777,8 +777,8 @@ where
             5 => dispatch!(Ix5),
             6 => dispatch!(Ix6),
             _ => {
-                let iter_a = IterLayoutColMajor::new(&la)?;
-                let iter_b = IterLayoutColMajor::new(&lb)?;
+                let iter_a = IterLayoutColMajor::new(la)?;
+                let iter_b = IterLayoutColMajor::new(lb)?;
                 izip!(iter_a, iter_b).for_each(f);
             },
         }
@@ -786,8 +786,8 @@ where
 
     #[cfg(not(feature = "dispatch_dim_layout_iter"))]
     {
-        let iter_a = IterLayoutColMajor::new(&la)?;
-        let iter_b = IterLayoutColMajor::new(&lb)?;
+        let iter_a = IterLayoutColMajor::new(la)?;
+        let iter_b = IterLayoutColMajor::new(lb)?;
         izip!(iter_a, iter_b).for_each(f);
     }
     Ok(())
@@ -826,9 +826,9 @@ where
             5 => dispatch!(Ix5),
             6 => dispatch!(Ix6),
             _ => {
-                let iter_a = IterLayoutColMajor::new(&la)?;
-                let iter_b = IterLayoutColMajor::new(&lb)?;
-                let iter_c = IterLayoutColMajor::new(&lc)?;
+                let iter_a = IterLayoutColMajor::new(la)?;
+                let iter_b = IterLayoutColMajor::new(lb)?;
+                let iter_c = IterLayoutColMajor::new(lc)?;
                 izip!(iter_a, iter_b, iter_c).for_each(f);
             },
         }
@@ -836,9 +836,9 @@ where
 
     #[cfg(not(feature = "dispatch_dim_layout_iter"))]
     {
-        let iter_a = IterLayoutColMajor::new(&la)?;
-        let iter_b = IterLayoutColMajor::new(&lb)?;
-        let iter_c = IterLayoutColMajor::new(&lc)?;
+        let iter_a = IterLayoutColMajor::new(la)?;
+        let iter_b = IterLayoutColMajor::new(lb)?;
+        let iter_c = IterLayoutColMajor::new(lc)?;
         izip!(iter_a, iter_b, iter_c).for_each(f);
     }
     Ok(())
@@ -903,8 +903,8 @@ where
             (6, 5) => dispatch!(Ix6, Ix5),
             (6, 6) => dispatch!(Ix6, Ix6),
             _ => {
-                let iter_a = IterLayoutColMajor::new(&la)?;
-                let iter_b = IterLayoutColMajor::new(&lb)?;
+                let iter_a = IterLayoutColMajor::new(la)?;
+                let iter_b = IterLayoutColMajor::new(lb)?;
                 izip!(iter_a, iter_b).for_each(f);
             },
         }
@@ -912,8 +912,8 @@ where
 
     #[cfg(not(feature = "dispatch_dim_layout_iter"))]
     {
-        let iter_a = IterLayoutColMajor::new(&la)?;
-        let iter_b = IterLayoutColMajor::new(&lb)?;
+        let iter_a = IterLayoutColMajor::new(la)?;
+        let iter_b = IterLayoutColMajor::new(lb)?;
         izip!(iter_a, iter_b).for_each(f);
     }
     Ok(())

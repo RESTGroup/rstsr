@@ -194,10 +194,10 @@ where
 
         let e_x1 = reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)?;
 
-        let f = |acc: T, x: T| acc + x.clone() * x.clone();
+        let f = |acc: T, x: T| acc + x * x;
 
         let e_x2 = reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)?;
-        Ok(e_x2 - e_x1.clone() * e_x1.clone())
+        Ok(e_x2 - e_x1 * e_x1)
     }
 
     fn var(
@@ -217,13 +217,11 @@ where
         let (mut e_x1, layout_out) =
             reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
 
-        let f = |acc: T, x: T| acc + x.clone() * x.clone();
+        let f = |acc: T, x: T| acc + x * x;
 
         let (e_x2, _) = reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
 
-        e_x1.iter_mut()
-            .zip(e_x2.iter())
-            .for_each(|(x1, x2)| *x1 = x2.clone() - x1.clone() * x1.clone());
+        e_x1.iter_mut().zip(e_x2.iter()).for_each(|(x1, x2)| *x1 = *x2 - *x1 * *x1);
         Ok((Storage::new(e_x1.into(), self.clone()), layout_out))
     }
 }
@@ -243,10 +241,10 @@ where
 
         let e_x1 = reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)?;
 
-        let f = |acc: T, x: T| acc + x.clone() * x.clone();
+        let f = |acc: T, x: T| acc + x * x;
 
         let e_x2 = reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)?;
-        Ok((e_x2 - e_x1.clone() * e_x1.clone()).sqrt())
+        Ok((e_x2 - e_x1 * e_x1).sqrt())
     }
 
     fn std(
@@ -266,13 +264,11 @@ where
         let (mut e_x1, layout_out) =
             reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
 
-        let f = |acc: T, x: T| acc + x.clone() * x.clone();
+        let f = |acc: T, x: T| acc + x * x;
 
         let (e_x2, _) = reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
 
-        e_x1.iter_mut()
-            .zip(e_x2.iter())
-            .for_each(|(x1, x2)| *x1 = (x2.clone() - x1.clone() * x1.clone()).sqrt());
+        e_x1.iter_mut().zip(e_x2.iter()).for_each(|(x1, x2)| *x1 = (*x2 - *x1 * *x1).sqrt());
         Ok((Storage::new(e_x1.into(), self.clone()), layout_out))
     }
 }

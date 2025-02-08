@@ -55,7 +55,7 @@ pub(crate) fn reshape_substitute_negatives(
 fn quick_check(shape_out: &Vec<usize>, layout_in: &Layout<IxD>) -> Result<Option<Layout<IxD>>> {
     // check if size is the same
     let size_in = layout_in.size();
-    let size_out = shape_out.iter().fold(1, |acc, &v| acc * v);
+    let size_out = shape_out.iter().product();
     rstsr_assert_eq!(
         size_in,
         size_out,
@@ -104,7 +104,7 @@ fn quick_check(shape_out: &Vec<usize>, layout_in: &Layout<IxD>) -> Result<Option
 /// * `Vec<isize>` - The minimum stride of the current batch.
 fn pop_layout_in(shape_in: &mut Vec<usize>, stride_in: &mut Vec<isize>) -> (usize, isize) {
     debug_assert!(shape_in.len() == stride_in.len());
-    debug_assert!(shape_in.len() > 0);
+    debug_assert!(!shape_in.is_empty());
 
     let mut stride_min = stride_in.pop().unwrap();
     let mut size = shape_in.pop().unwrap();
@@ -141,7 +141,7 @@ fn pop_shape_out(
     mut size: usize,
     mut stride_min: isize,
 ) -> bool {
-    debug_assert!(shape_out.len() > 0);
+    debug_assert!(!shape_out.is_empty());
 
     while size != 1 || shape_out.last().is_some_and(|&v| v == 1) {
         let s_out = shape_out.pop().unwrap();
@@ -157,9 +157,9 @@ fn pop_shape_out(
 }
 
 /// Internal function for reshaping a tensor in any cases.
-fn complicated_reshape(shape_out: &Vec<usize>, layout_in: &Layout<IxD>) -> Option<Layout<IxD>> {
+fn complicated_reshape(shape_out: &[usize], layout_in: &Layout<IxD>) -> Option<Layout<IxD>> {
     let shape_out_ref = shape_out; // the original shape_out not modified
-    let mut shape_out = shape_out.clone(); // the shape_out to be destroyed in iteration
+    let mut shape_out = shape_out.to_vec(); // the shape_out to be destroyed in iteration
     let mut stride_out = Vec::new();
     let mut shape_in = layout_in.shape().to_vec();
     let mut stride_in = layout_in.stride().to_vec();
@@ -188,7 +188,7 @@ fn complicated_reshape(shape_out: &Vec<usize>, layout_in: &Layout<IxD>) -> Optio
     };
 
     let layout_out =
-        unsafe { Layout::<IxD>::new_unchecked(shape_out_ref.clone(), stride_out, offset) };
+        unsafe { Layout::<IxD>::new_unchecked(shape_out_ref.to_vec(), stride_out, offset) };
     return Some(layout_out);
 }
 
@@ -202,10 +202,10 @@ pub fn layout_reshapeable(
     layout_in: &Layout<IxD>,
     shape_out: &Vec<usize>,
 ) -> Result<Option<Layout<IxD>>> {
-    if let Some(layout_out) = quick_check(&shape_out, layout_in)? {
+    if let Some(layout_out) = quick_check(shape_out, layout_in)? {
         return Ok(Some(layout_out));
     }
-    return Ok(complicated_reshape(&shape_out, layout_in));
+    return Ok(complicated_reshape(shape_out, layout_in));
 }
 
 #[cfg(test)]
