@@ -2,6 +2,12 @@
 name = "rstsr"
 version.workspace = true
 edition.workspace = true
+description.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+license.workspace = true
+readme = "readme.md"
 
 [dependencies]
 rstsr-core = { workspace = true }
