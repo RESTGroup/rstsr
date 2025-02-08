@@ -1,6 +1,7 @@
 use crate::device_cpu_serial::operators::op_tri::*;
 use crate::prelude_dev::*;
 use core::slice::from_raw_parts_mut;
+use core::sync::atomic::{AtomicPtr, Ordering};
 use num::complex::ComplexFloat;
 use rayon::prelude::*;
 
@@ -44,7 +45,7 @@ where
     let f_contig = la_inner.f_contig() && lb_inner.f_contig();
 
     // pass mutable reference in parallel region
-    let thr_a = ThreadedRawPtr(a.as_mut_ptr());
+    let thr_a = AtomicPtr::new(a.as_mut_ptr());
     let len_a = a.len();
 
     let pool = rayon::ThreadPoolBuilder::new().num_threads(nthreads).build()?;
@@ -53,14 +54,14 @@ where
             FlagUpLo::U => match (c_contig, f_contig) {
                 (true, _) => {
                     la_rest_iter.zip(lb_rest_iter).for_each(|(offset_a, offset_b)| {
-                        let ptr_a = thr_a.get();
+                        let ptr_a = thr_a.load(Ordering::Relaxed);
                         let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
                         inner_pack_triu_c_contig(slice_a, offset_a, b, offset_b, n);
                     });
                 },
                 (_, true) => {
                     la_rest_iter.zip(lb_rest_iter).for_each(|(offset_a, offset_b)| {
-                        let ptr_a = thr_a.get();
+                        let ptr_a = thr_a.load(Ordering::Relaxed);
                         let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
                         inner_pack_tril_c_contig(slice_a, offset_a, b, offset_b, n);
                     });
@@ -74,7 +75,7 @@ where
                                 la_inner.set_offset(offset_a);
                                 lb_inner.set_offset(offset_b);
                             }
-                            let ptr_a = thr_a.get();
+                            let ptr_a = thr_a.load(Ordering::Relaxed);
                             let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
                             inner_pack_triu_general(slice_a, &la_inner, b, &lb_inner, n);
                             Ok(())
@@ -85,14 +86,14 @@ where
             FlagUpLo::L => match (c_contig, f_contig) {
                 (true, _) => {
                     la_rest_iter.zip(lb_rest_iter).for_each(|(offset_a, offset_b)| {
-                        let ptr_a = thr_a.get();
+                        let ptr_a = thr_a.load(Ordering::Relaxed);
                         let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
                         inner_pack_tril_c_contig(slice_a, offset_a, b, offset_b, n);
                     });
                 },
                 (_, true) => {
                     la_rest_iter.zip(lb_rest_iter).for_each(|(offset_a, offset_b)| {
-                        let ptr_a = thr_a.get();
+                        let ptr_a = thr_a.load(Ordering::Relaxed);
                         let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
                         inner_pack_triu_c_contig(slice_a, offset_a, b, offset_b, n);
                     });
@@ -106,7 +107,7 @@ where
                                 la_inner.set_offset(offset_a);
                                 lb_inner.set_offset(offset_b);
                             }
-                            let ptr_a = thr_a.get();
+                            let ptr_a = thr_a.load(Ordering::Relaxed);
                             let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
                             inner_pack_tril_general(slice_a, &la_inner, b, &lb_inner, n);
                             Ok(())
@@ -160,7 +161,7 @@ where
     let f_contig = la_inner.f_contig() && lb_inner.f_contig();
 
     // pass mutable reference in parallel region
-    let thr_a = ThreadedRawPtr(a.as_mut_ptr());
+    let thr_a = AtomicPtr::new(a.as_mut_ptr());
     let len_a = a.len();
 
     let pool = rayon::ThreadPoolBuilder::new().num_threads(nthreads).build()?;
@@ -169,14 +170,14 @@ where
             FlagUpLo::U => match (c_contig, f_contig) {
                 (true, _) => {
                     la_rest_iter.zip(lb_rest_iter).for_each(|(offset_a, offset_b)| {
-                        let ptr_a = thr_a.get();
+                        let ptr_a = thr_a.load(Ordering::Relaxed);
                         let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
                         inner_unpack_triu_c_contig(slice_a, offset_a, b, offset_b, n, symm);
                     });
                 },
                 (_, true) => {
                     la_rest_iter.zip(lb_rest_iter).for_each(|(offset_a, offset_b)| {
-                        let ptr_a = thr_a.get();
+                        let ptr_a = thr_a.load(Ordering::Relaxed);
                         let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
                         inner_unpack_tril_c_contig(slice_a, offset_a, b, offset_b, n, symm);
                     });
@@ -190,7 +191,7 @@ where
                                 la_inner.set_offset(offset_a);
                                 lb_inner.set_offset(offset_b);
                             }
-                            let ptr_a = thr_a.get();
+                            let ptr_a = thr_a.load(Ordering::Relaxed);
                             let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
                             inner_unpack_triu_general(slice_a, &la_inner, b, &lb_inner, n, symm);
                             Ok(())
@@ -201,14 +202,14 @@ where
             FlagUpLo::L => match (c_contig, f_contig) {
                 (true, _) => {
                     la_rest_iter.zip(lb_rest_iter).for_each(|(offset_a, offset_b)| {
-                        let ptr_a = thr_a.get();
+                        let ptr_a = thr_a.load(Ordering::Relaxed);
                         let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
                         inner_unpack_tril_c_contig(slice_a, offset_a, b, offset_b, n, symm);
                     });
                 },
                 (_, true) => {
                     la_rest_iter.zip(lb_rest_iter).for_each(|(offset_a, offset_b)| {
-                        let ptr_a = thr_a.get();
+                        let ptr_a = thr_a.load(Ordering::Relaxed);
                         let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
                         inner_unpack_triu_c_contig(slice_a, offset_a, b, offset_b, n, symm);
                     });
@@ -222,7 +223,7 @@ where
                                 la_inner.set_offset(offset_a);
                                 lb_inner.set_offset(offset_b);
                             }
-                            let ptr_a = thr_a.get();
+                            let ptr_a = thr_a.load(Ordering::Relaxed);
                             let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
                             inner_unpack_tril_general(slice_a, &la_inner, b, &lb_inner, n, symm);
                             Ok(())

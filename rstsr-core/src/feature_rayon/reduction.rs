@@ -1,6 +1,7 @@
 use crate::device_cpu_serial::reduction::*;
 use crate::feature_rayon::*;
 use crate::prelude_dev::*;
+use core::sync::atomic::{AtomicPtr, Ordering};
 use rayon::prelude::*;
 
 // this value is used to determine whether to use contiguous inner iteration
@@ -94,7 +95,7 @@ where
     }
 }
 
-#[allow(clippy::uninit_vec)]
+#[allow(clippy::too_many_arguments)]
 pub fn reduce_axes_cpu_rayon<T, I, F, FSum, FOut>(
     a: &[T],
     la: &Layout<IxD>,
@@ -141,14 +142,14 @@ where
 
         // prepare output
         let len_out = layout_out.size();
-        let mut out: Vec<T> = Vec::with_capacity(len_out);
-        unsafe { out.set_len(len_out) };
-        let out_ptr = ThreadedRawPtr(out.as_mut_ptr());
+        let mut out: Vec<T> = unsafe { uninitialized_vec(len_out) };
+        let out_ptr = AtomicPtr::new(out.as_mut_ptr());
 
         // actual evaluation
         (iter_out_swapped, iter_rest_swapped).into_par_iter().try_for_each(
             |(idx_out, idx_rest)| -> Result<()> {
-                let out_ptr = out_ptr.get();
+                let out_ptr = out_ptr.load(Ordering::Relaxed);
+                // let out_ptr = out_ptr.get();
                 let mut layout_inner = layout_axes.clone();
                 unsafe { layout_inner.set_offset(idx_rest) };
                 let acc = reduce_all_cpu_rayon(a, &layout_inner, &init, &f, &f_sum, &f_out, pool)?;

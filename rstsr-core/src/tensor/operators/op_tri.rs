@@ -76,11 +76,7 @@ where
     D::LargerOne: DimAPI,
     B: DeviceAPI<T> + DeviceOpUnpackTriAPI<T> + DeviceCreationAnyAPI<T>,
 {
-    pub fn unpack_tri(
-        &self,
-        uplo: FlagUpLo,
-        symm: FlagSymm,
-    ) -> Result<Tensor<T, B, D::LargerOne>> {
+    pub fn unpack_tri(&self, uplo: FlagUpLo, symm: FlagSymm) -> Result<Tensor<T, B, D::LargerOne>> {
         // layouts manuplication
         let lb = self.layout().to_dim::<IxD>()?;
         let (lb_rest, lb_inner) = lb.dim_split_at(-1)?;

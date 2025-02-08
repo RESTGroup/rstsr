@@ -68,7 +68,7 @@ where
         let (start, stop, step, device) = self;
         let data = device.arange_impl(start, stop, step)?;
         let layout = vec![data.len()].into();
-        unsafe { Ok(Tensor::new_unchecked(data.into(), layout)) }
+        unsafe { Ok(Tensor::new_unchecked(data, layout)) }
     }
 }
 
@@ -276,7 +276,7 @@ where
         let layout = layout_for_array_copy(tensor.layout(), order)?;
         let idx_max = layout.size();
         let storage = device.empty_impl(idx_max)?;
-        unsafe { Ok(Tensor::new_unchecked(storage.into(), layout)) }
+        unsafe { Ok(Tensor::new_unchecked(storage, layout)) }
     }
 }
 
@@ -374,7 +374,7 @@ where
         let mut storage = device.zeros_impl(layout.size())?;
         let layout_diag = layout.diagonal(Some(k), Some(0), Some(1))?;
         device.fill(storage.raw_mut(), &layout_diag, T::one())?;
-        unsafe { Ok(Tensor::new_unchecked(storage.into(), layout.into_dim()?)) }
+        unsafe { Ok(Tensor::new_unchecked(storage, layout.into_dim()?)) }
     }
 }
 
@@ -666,7 +666,7 @@ where
         let (start, end, n, endpoint, device) = self;
         let data = B::linspace_impl(device, start, end, n, endpoint)?;
         let layout = vec![data.len()].into();
-        unsafe { Ok(Tensor::new_unchecked(data.into(), layout)) }
+        unsafe { Ok(Tensor::new_unchecked(data, layout)) }
     }
 }
 

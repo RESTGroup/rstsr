@@ -65,7 +65,7 @@ where
         // SAFETY: The lifetime of `raw` is guaranteed to be at least `'a`.
         // transmute is to change the lifetime, not for type casting.
         let iter = IterVecView { layout_iter, view: raw };
-        Ok(unsafe { transmute(iter) })
+        Ok(unsafe { transmute::<IterVecView<'_, T, D>, IterVecView<'_, T, D>>(iter) })
     }
 
     pub fn iter_with_order(&self, order: TensorIterOrder) -> IterVecView<'a, T, D> {
@@ -261,7 +261,7 @@ where
         // SAFETY: The lifetime of `raw` is guaranteed to be at least `'a`.
         // transmute is to change the lifetime, not for type casting.
         let iter = IndexedIterVecView { layout_iter, view: raw };
-        Ok(unsafe { transmute(iter) })
+        Ok(unsafe { transmute::<IndexedIterVecView<'_, T, D>, IndexedIterVecView<'_, T, D>>(iter) })
     }
 
     pub fn indexed_iter_with_order(&self, order: TensorIterOrder) -> IndexedIterVecView<'a, T, D> {
@@ -303,7 +303,9 @@ where
             IterLayout::ColMajor(iter_inner) => iter_inner.index_start.clone(),
             IterLayout::RowMajor(iter_inner) => iter_inner.index_start.clone(),
         };
-        self.layout_iter.next().map(|offset| (index, unsafe { transmute(&mut self.view[offset]) }))
+        self.layout_iter
+            .next()
+            .map(|offset| (index, unsafe { transmute::<&mut T, &mut T>(&mut self.view[offset]) }))
     }
 }
 
@@ -318,7 +320,7 @@ where
         };
         self.layout_iter
             .next_back()
-            .map(|offset| (index, unsafe { transmute(&mut self.view[offset]) }))
+            .map(|offset| (index, unsafe { transmute::<&mut T, &mut T>(&mut self.view[offset]) }))
     }
 }
 

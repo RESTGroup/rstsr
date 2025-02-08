@@ -1,4 +1,5 @@
 use crate::prelude_dev::*;
+use core::mem::{transmute, MaybeUninit};
 
 /* #region AxisIndex */
 
@@ -389,20 +390,17 @@ impl_from_tuple_to_axes_index!(usize);
 
 /* #endregion */
 
-/* #region ThreadedRawPtr */
+/* #region uninitialized vector */
 
-// https://stackoverflow.com/a/78555116/7740992
-
-#[derive(Clone, Copy)]
-pub struct ThreadedRawPtr<T: ?Sized>(pub *mut T);
-
-unsafe impl<T: ?Sized> Send for ThreadedRawPtr<T> {}
-unsafe impl<T: ?Sized> Sync for ThreadedRawPtr<T> {}
-
-impl<T: ?Sized> ThreadedRawPtr<T> {
-    pub fn get(&self) -> *mut T {
-        self.0
-    }
+/// Create an uninitialized vector with the given size.
+///
+/// # Safety
+///
+/// Caller must ensure that the vector is properly initialized before using it.
+pub unsafe fn uninitialized_vec<T>(size: usize) -> Vec<T> {
+    let mut v: Vec<MaybeUninit<T>> = Vec::with_capacity(size);
+    v.set_len(size);
+    return transmute::<Vec<MaybeUninit<T>>, Vec<T>>(v);
 }
 
 /* #endregion */

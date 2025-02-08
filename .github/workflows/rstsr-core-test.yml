@@ -1,0 +1,22 @@
+name: rstsr-core tests
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  unittests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: unittest
+        run: cargo test -p rstsr-core --lib
+  
+  integration-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: integrationtest
+        run: cargo test -p rstsr-core --test "*"

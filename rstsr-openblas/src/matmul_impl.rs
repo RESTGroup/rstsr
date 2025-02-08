@@ -4,6 +4,7 @@ use crate::prelude_dev::*;
 use num::complex::Complex;
 use num::traits::ConstZero;
 use rayon::prelude::*;
+use rstsr_core::util::uninitialized_vec;
 use rstsr_openblas_ffi::{cblas, ffi};
 use std::ffi::c_void;
 
@@ -16,6 +17,7 @@ const PARALLEL_SWITCH: usize = 64;
 
 macro_rules! impl_gemm_blas_no_conj {
     ($ty: ty, $fn_name: ident, $cblas_wrap: ident) => {
+        #[allow(clippy::too_many_arguments)]
         pub fn $fn_name(
             c: &mut [$ty],
             lc: &Layout<Ix2>,
@@ -50,11 +52,7 @@ macro_rules! impl_gemm_blas_no_conj {
                 } else {
                     // not c-prefer, allocate new buffer and copy back
                     let lc_new = lc.shape().new_f_contig(None);
-                    let mut c_new = unsafe {
-                        let mut c_vec = Vec::with_capacity(lc_new.size());
-                        c_vec.set_len(lc_new.size());
-                        c_vec
-                    };
+                    let mut c_new = unsafe { uninitialized_vec(lc_new.size()) };
                     if beta == <$ty>::ZERO {
                         fill_cpu_rayon(&mut c_new, &lc_new, <$ty>::ZERO, pool)?;
                     } else {
@@ -87,11 +85,7 @@ macro_rules! impl_gemm_blas_no_conj {
                 (cblas::Trans, la.reverse_axes())
             } else {
                 let len = la.size();
-                a_data = unsafe {
-                    let mut a_vec = Vec::with_capacity(len);
-                    a_vec.set_len(len);
-                    Some(a_vec)
-                };
+                a_data = unsafe { Some(uninitialized_vec(len)) };
                 let la_data = la.shape().new_f_contig(None);
                 assign_cpu_rayon(a_data.as_mut().unwrap(), &la_data, a, &la, pool)?;
                 (cblas::NoTrans, la_data)
@@ -102,11 +96,7 @@ macro_rules! impl_gemm_blas_no_conj {
                 (cblas::Trans, lb.reverse_axes())
             } else {
                 let len = lb.size();
-                b_data = unsafe {
-                    let mut b_vec = Vec::with_capacity(len);
-                    b_vec.set_len(len);
-                    Some(b_vec)
-                };
+                b_data = unsafe { Some(uninitialized_vec(len)) };
                 let lb_data = lb.shape().new_f_contig(None);
                 assign_cpu_rayon(b_data.as_mut().unwrap(), &lb_data, b, &lb, pool)?;
                 (cblas::NoTrans, lb_data)
@@ -159,6 +149,7 @@ impl_gemm_blas_no_conj!(f64, gemm_blas_no_conj_f64, cblas_dgemm_wrap);
 impl_gemm_blas_no_conj!(c32, gemm_blas_no_conj_c32, cblas_cgemm_wrap);
 impl_gemm_blas_no_conj!(c64, gemm_blas_no_conj_c64, cblas_zgemm_wrap);
 
+#[allow(clippy::too_many_arguments)]
 unsafe fn cblas_sgemm_wrap(
     order: cblas::CblasLayout,
     a_trans: cblas::CblasTranspose,
@@ -195,6 +186,7 @@ unsafe fn cblas_sgemm_wrap(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 unsafe fn cblas_dgemm_wrap(
     order: cblas::CblasLayout,
     a_trans: cblas::CblasTranspose,
@@ -231,6 +223,7 @@ unsafe fn cblas_dgemm_wrap(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 unsafe fn cblas_cgemm_wrap(
     order: cblas::CblasLayout,
     a_trans: cblas::CblasTranspose,
@@ -267,6 +260,7 @@ unsafe fn cblas_cgemm_wrap(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 unsafe fn cblas_zgemm_wrap(
     order: cblas::CblasLayout,
     a_trans: cblas::CblasTranspose,
@@ -333,11 +327,7 @@ macro_rules! impl_syrk_blas_no_conj {
                 } else {
                     // not c-prefer, allocate new buffer and copy back
                     let lc_new = lc.shape().new_f_contig(None);
-                    let mut c_new = unsafe {
-                        let mut c_vec = Vec::with_capacity(lc_new.size());
-                        c_vec.set_len(lc_new.size());
-                        c_vec
-                    };
+                    let mut c_new = unsafe { uninitialized_vec(lc_new.size()) };
                     fill_cpu_rayon(&mut c_new, &lc_new, <$ty>::ZERO, pool)?;
                     $fn_name(&mut c_new, &lc_new, a, la, alpha, pool)?;
                     assign_cpu_rayon(c, lc, &c_new, &lc_new, pool)?;
@@ -362,11 +352,7 @@ macro_rules! impl_syrk_blas_no_conj {
                 (cblas::Trans, la.reverse_axes())
             } else {
                 let len = la.size();
-                a_data = unsafe {
-                    let mut a_vec = Vec::with_capacity(len);
-                    a_vec.set_len(len);
-                    Some(a_vec)
-                };
+                a_data = unsafe { Some(uninitialized_vec(len)) };
                 let la_data = la.shape().new_f_contig(None);
                 assign_cpu_rayon(a_data.as_mut().unwrap(), &la_data, a, &la, pool)?;
                 (cblas::NoTrans, la_data)
@@ -434,6 +420,7 @@ impl_syrk_blas_no_conj!(f64, syrk_blas_no_conj_f64, cblas_dsyrk_wrap);
 impl_syrk_blas_no_conj!(c32, syrk_blas_no_conj_c32, cblas_csyrk_wrap);
 impl_syrk_blas_no_conj!(c64, syrk_blas_no_conj_c64, cblas_zsyrk_wrap);
 
+#[allow(clippy::too_many_arguments)]
 unsafe fn cblas_ssyrk_wrap(
     order: cblas::CblasLayout,
     uplo: cblas::CblasUplo,
@@ -464,6 +451,7 @@ unsafe fn cblas_ssyrk_wrap(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 unsafe fn cblas_dsyrk_wrap(
     order: cblas::CblasLayout,
     uplo: cblas::CblasUplo,
@@ -494,6 +482,7 @@ unsafe fn cblas_dsyrk_wrap(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 unsafe fn cblas_csyrk_wrap(
     order: cblas::CblasLayout,
     uplo: cblas::CblasUplo,
@@ -524,6 +513,7 @@ unsafe fn cblas_csyrk_wrap(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 unsafe fn cblas_zsyrk_wrap(
     order: cblas::CblasLayout,
     uplo: cblas::CblasUplo,

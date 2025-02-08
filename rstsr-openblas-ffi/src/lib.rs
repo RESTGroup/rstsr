@@ -1,3 +1,5 @@
+#![allow(clippy::needless_return)]
+#![allow(clippy::unnecessary_cast)]
 #![doc = include_str!("../readme.md")]
 
 pub mod cblas;
