@@ -1,4 +1,4 @@
-name: rstsr-core tests
+name: code style and linting checks
 
 on:
   push:
@@ -7,16 +7,16 @@ on:
   pull_request:
 
 jobs:
-  unittests:
+  rustfmt:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: unittest
-        run: cargo test -p rstsr-core --lib
+      - name: rustfmt
+        run: cargo fmt --all -- --check
   
-  integration-tests:
+  clippy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: integrationtest
-        run: cargo test -p rstsr-core --test "*"
+      - name: clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
