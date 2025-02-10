@@ -1,9 +1,11 @@
-# Notes to API documentation
+# Notes to API document
 
 This crate is a re-export of the [`rstsr-core`](https://docs.rs/rstsr-core), and possibly the other underlying crates.
 
-We refer these crates for API documentation.
+We refer these crates for API document.
 
-User documentation is currently on [github pages](https://ajz34.github.io/rstsr-book).
+# Notes to User document
+
+User document is currently on [readthedocs](https://rstsr-book.readthedocs.io/).
 
 This crate is still in early development. APIs are not fully stablized.

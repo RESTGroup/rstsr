@@ -8,7 +8,7 @@ If you are more aware of matmul efficiency, or by other considerations (we will 
 
 ## User document
 
-Except for API document, we also tries to provide user document, refer to [github pages](https://ajz34.github.io/rstsr-book).
+Except for API document, we also tries to provide user document, refer to [readthedocs](https://rstsr-book.readthedocs.io/).
 
 This document is still in construction.
 

@@ -1,10 +1,5 @@
 # API Specification of RSTSR
 
-## Table of Contents
-
-- [Tensor Structure and Ownership](#tensor-structure-and-ownership)
-    - [Figure illustration of tensor structure](#figure-illustration-of-tensor-structure)
-
 ## Notes on API Specification
 
 - "type" column
@@ -31,7 +26,7 @@
 
 ### Figure illustration of tensor structure
 
-![rstsr-basic-structure](https://ajz34.github.io/rstsr-book/assets/rstsr-basic-structure.png)
+![rstsr-basic-structure](https://rstsr-book.readthedocs.io/latest/assets/images/rstsr-basic-structure-cd99e6e423b65b46c9677fbbbe284760.png)
 
 ### Tensor
 

@@ -8,11 +8,7 @@ If you are more aware of matmul efficiency, or by other considerations (we will 
 
 ## User document
 
-User document refers to [github pages](https://ajz34.github.io/rstsr-book).
-
-This document is still in construction.
-
-Some information of developer guide will also shipped to that document.
+User document refers to [readthedocs](https://rstsr-book.readthedocs.io/). This document is still in construction.
 
 ## API specifications
 
