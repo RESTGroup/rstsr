@@ -131,6 +131,7 @@ macro_rules! impl_syrk_faer {
             let block_structure = match uplo {
                 FlagUpLo::U => BlockStructure::TriangularUpper,
                 FlagUpLo::L => BlockStructure::TriangularLower,
+                _ => rstsr_invalid!(uplo)?,
             };
             faer::linalg::matmul::triangular::matmul(
                 faer_c,
