@@ -12,3 +12,4 @@ pub mod map_elementwise;
 pub mod operators;
 pub mod ownership_conversion;
 pub mod reduction;
+pub mod tensor_mutable;

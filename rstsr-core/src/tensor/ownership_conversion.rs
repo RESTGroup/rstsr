@@ -310,6 +310,31 @@ where
     }
 }
 
+pub trait TensorIntoOwnedAPI<T, B, D>
+where
+    D: DimAPI,
+    B: DeviceAPI<T>,
+{
+    /// Convert tensor into owned tensor.
+    ///
+    /// Data is either moved or fully cloned.
+    /// Layout is not involved; i.e. all underlying data is moved or cloned
+    /// without changing layout.
+    fn into_owned(self) -> Tensor<T, B, D>;
+}
+
+impl<R, T, B, D> TensorIntoOwnedAPI<T, B, D> for TensorAny<R, T, B, D>
+where
+    R: DataAPI<Data = B::Raw>,
+    T: Clone,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
+{
+    fn into_owned(self) -> Tensor<T, B, D> {
+        TensorAny::into_owned(self)
+    }
+}
+
 /* #endregion */
 
 /* #region tensor prop for computation */
