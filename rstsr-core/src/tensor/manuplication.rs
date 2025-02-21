@@ -1468,6 +1468,144 @@ where
 
 /* #endregion */
 
+/* #region to_contig */
+
+pub fn change_contig_f<'a, R, T, B, D>(
+    tensor: TensorAny<R, T, B, D>,
+    order: TensorOrder,
+) -> Result<TensorCow<'a, T, B, D>>
+where
+    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D, D>,
+{
+    let shape = tensor.shape();
+    let layout_new = match order {
+        TensorOrder::C => shape.new_c_contig(None),
+        TensorOrder::F => shape.new_f_contig(None),
+    };
+    change_layout_f(tensor, layout_new)
+}
+
+pub fn to_contig_f<R, T, B, D>(
+    tensor: &TensorAny<R, T, B, D>,
+    order: TensorOrder,
+) -> Result<TensorCow<'_, T, B, D>>
+where
+    R: DataAPI<Data = B::Raw>,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D, D>,
+{
+    change_contig_f(tensor.view(), order)
+}
+
+pub fn into_contig_f<'a, R, T, B, D>(
+    tensor: TensorAny<R, T, B, D>,
+    order: TensorOrder,
+) -> Result<Tensor<T, B, D>>
+where
+    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
+    D: DimAPI,
+    T: Clone,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D, D> + OpAssignAPI<T, D>,
+    B::Raw: 'a,
+{
+    change_contig_f(tensor, order).map(|v| v.into_owned())
+}
+
+pub fn change_contig<'a, R, T, B, D>(
+    tensor: TensorAny<R, T, B, D>,
+    order: TensorOrder,
+) -> TensorCow<'a, T, B, D>
+where
+    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D, D>,
+{
+    change_contig_f(tensor, order).unwrap()
+}
+
+pub fn to_contig<R, T, B, D>(
+    tensor: &TensorAny<R, T, B, D>,
+    order: TensorOrder,
+) -> TensorCow<'_, T, B, D>
+where
+    R: DataAPI<Data = B::Raw>,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D, D>,
+{
+    to_contig_f(tensor, order).unwrap()
+}
+
+pub fn into_contig<'a, R, T, B, D>(
+    tensor: TensorAny<R, T, B, D>,
+    order: TensorOrder,
+) -> Tensor<T, B, D>
+where
+    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
+    D: DimAPI,
+    T: Clone,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D, D> + OpAssignAPI<T, D>,
+    B::Raw: 'a,
+{
+    into_contig_f(tensor, order).unwrap()
+}
+
+impl<'a, R, T, B, D> TensorAny<R, T, B, D>
+where
+    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
+    D: DimAPI,
+    T: Clone,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+{
+    /// Convert tensor to contiguous, with specified layout.
+    pub fn to_contig(&self, order: TensorOrder) -> TensorCow<'_, T, B, D>
+    where
+        B: OpAssignArbitaryAPI<T, D, D>,
+    {
+        to_contig(self, order)
+    }
+
+    pub fn to_contig_f(&self, order: TensorOrder) -> Result<TensorCow<'_, T, B, D>>
+    where
+        B: OpAssignArbitaryAPI<T, D, D>,
+    {
+        to_contig_f(self, order)
+    }
+
+    pub fn into_contig_f(self, order: TensorOrder) -> Result<Tensor<T, B, D>>
+    where
+        B: OpAssignArbitaryAPI<T, D, D> + OpAssignAPI<T, D>,
+        B::Raw: 'a,
+    {
+        into_contig_f(self, order)
+    }
+
+    pub fn into_contig(self, order: TensorOrder) -> Tensor<T, B, D>
+    where
+        B: OpAssignArbitaryAPI<T, D, D> + OpAssignAPI<T, D>,
+        B::Raw: 'a,
+    {
+        into_contig(self, order)
+    }
+
+    pub fn change_contig_f(self, order: TensorOrder) -> Result<TensorCow<'a, T, B, D>>
+    where
+        B: OpAssignArbitaryAPI<T, D, D>,
+    {
+        change_contig_f(self, order)
+    }
+
+    pub fn change_contig(self, order: TensorOrder) -> TensorCow<'a, T, B, D>
+    where
+        B: OpAssignArbitaryAPI<T, D, D>,
+    {
+        change_contig(self, order)
+    }
+}
+
+/* #endregion */
+
 #[cfg(test)]
 mod tests {
     use super::*;
