@@ -27,6 +27,9 @@ pub mod rstsr_traits {
         TensorRoundAPI, TensorSignAPI, TensorSignBitAPI, TensorSinAPI, TensorSinhAPI,
         TensorSqrtAPI, TensorSquareAPI, TensorTanAPI, TensorTanhAPI, TensorTruncAPI,
     };
+    pub use crate::tensor::ownership_conversion::{
+        TensorIntoOwnedAPI, TensorViewAPI, TensorViewMutAPI,
+    };
     pub use core::ops::*;
 }
 
@@ -42,6 +45,7 @@ pub mod rstsr_structs {
     };
     pub use crate::layout::indexer::{Ellipsis, NewAxis};
     pub use crate::layout::{Ix, Ix1, Ix2, Ix3, Ix4, Ix5, Ix6, Ix7, Ix8, Ix9, IxD, IxDyn, Layout};
+    pub use crate::tensor::tensor_mutable::TensorMutable;
     pub use crate::{
         Tensor, TensorAny, TensorArc, TensorBase, TensorCow, TensorMut, TensorRef, TensorView,
         TensorViewMut,
