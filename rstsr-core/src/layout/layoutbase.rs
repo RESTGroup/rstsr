@@ -107,6 +107,10 @@ where
                     return false;
                 }
                 last = s;
+            } else if last == 0 {
+                // if dimension is one, then consider that stride is one, counted as contiguous
+                // in last dimension
+                last = 1;
             }
         }
         return true;
@@ -133,6 +137,10 @@ where
                     return false;
                 }
                 last = s;
+            } else if last == 0 {
+                // if dimension is one, then consider that stride is one, counted as contiguous
+                // in last dimension
+                last = 1;
             }
         }
         return true;
