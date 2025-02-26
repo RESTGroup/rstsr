@@ -1,5 +1,7 @@
 //! Flags for the crate.
 
+use crate::prelude_dev::*;
+
 /* #region changeable default */
 
 pub trait ChangeableDefault {
@@ -213,5 +215,105 @@ pub type TensorSide = FlagSide;
 pub type TensorUpLo = FlagUpLo;
 pub type TensorTrans = FlagTrans;
 pub type TensorSymm = FlagSymm;
+
+/* #endregion */
+
+/* #region flag into */
+
+impl TryInto<FlagTrans> for char {
+    type Error = Error;
+
+    fn try_into(self) -> Result<FlagTrans> {
+        match self {
+            'N' | 'n' => Ok(FlagTrans::N),
+            'T' | 't' => Ok(FlagTrans::T),
+            'C' | 'c' => Ok(FlagTrans::C),
+            _ => rstsr_invalid!(self)?,
+        }
+    }
+}
+
+impl TryInto<FlagDiag> for char {
+    type Error = Error;
+
+    fn try_into(self) -> Result<FlagDiag> {
+        match self {
+            'N' | 'n' => Ok(FlagDiag::N),
+            'U' | 'u' => Ok(FlagDiag::U),
+            _ => rstsr_invalid!(self)?,
+        }
+    }
+}
+
+impl TryInto<FlagSide> for char {
+    type Error = Error;
+
+    fn try_into(self) -> Result<FlagSide> {
+        match self {
+            'L' | 'l' => Ok(FlagSide::L),
+            'R' | 'r' => Ok(FlagSide::R),
+            _ => rstsr_invalid!(self)?,
+        }
+    }
+}
+
+impl TryInto<FlagUpLo> for char {
+    type Error = Error;
+
+    fn try_into(self) -> Result<FlagUpLo> {
+        match self {
+            'U' | 'u' => Ok(FlagUpLo::U),
+            'L' | 'l' => Ok(FlagUpLo::L),
+            _ => rstsr_invalid!(self)?,
+        }
+    }
+}
+
+/* #endregion */
+
+/* #region flag flip */
+
+impl TensorOrder {
+    pub fn flip(&self) -> Self {
+        match self {
+            TensorOrder::C => TensorOrder::F,
+            TensorOrder::F => TensorOrder::C,
+        }
+    }
+}
+
+impl FlagTrans {
+    pub fn flip(&self, hermi: bool) -> Result<Self> {
+        match self {
+            FlagTrans::N => match hermi {
+                true => Ok(FlagTrans::C),
+                false => Ok(FlagTrans::T),
+            },
+            FlagTrans::T => Ok(FlagTrans::N),
+            FlagTrans::C => Ok(FlagTrans::N),
+            _ => rstsr_invalid!(self)?,
+        }
+    }
+}
+
+impl FlagSide {
+    pub fn flip(&self) -> Result<Self> {
+        match self {
+            FlagSide::L => Ok(FlagSide::R),
+            FlagSide::R => Ok(FlagSide::L),
+            _ => rstsr_invalid!(self)?,
+        }
+    }
+}
+
+impl FlagUpLo {
+    pub fn flip(&self) -> Result<Self> {
+        match self {
+            FlagUpLo::U => Ok(FlagUpLo::L),
+            FlagUpLo::L => Ok(FlagUpLo::U),
+            _ => rstsr_invalid!(self)?,
+        }
+    }
+}
 
 /* #endregion */
