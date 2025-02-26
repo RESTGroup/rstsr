@@ -1606,6 +1606,145 @@ where
 
 /* #endregion */
 
+/* #region to_prefer */
+
+pub fn change_prefer_f<'a, R, T, B, D>(
+    tensor: TensorAny<R, T, B, D>,
+    order: TensorOrder,
+) -> Result<TensorCow<'a, T, B, D>>
+where
+    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D, D>,
+{
+    if (order == TensorOrder::C && tensor.layout().c_prefer())
+        || (order == TensorOrder::F && tensor.layout().f_prefer())
+    {
+        Ok(tensor.into_cow())
+    } else {
+        change_contig_f(tensor, order)
+    }
+}
+
+pub fn to_prefer_f<R, T, B, D>(
+    tensor: &TensorAny<R, T, B, D>,
+    order: TensorOrder,
+) -> Result<TensorCow<'_, T, B, D>>
+where
+    R: DataAPI<Data = B::Raw>,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D, D>,
+{
+    change_prefer_f(tensor.view(), order)
+}
+
+pub fn into_prefer_f<'a, R, T, B, D>(
+    tensor: TensorAny<R, T, B, D>,
+    order: TensorOrder,
+) -> Result<Tensor<T, B, D>>
+where
+    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
+    D: DimAPI,
+    T: Clone,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D, D> + OpAssignAPI<T, D>,
+    B::Raw: 'a,
+{
+    change_prefer_f(tensor, order).map(|v| v.into_owned())
+}
+
+pub fn change_prefer<'a, R, T, B, D>(
+    tensor: TensorAny<R, T, B, D>,
+    order: TensorOrder,
+) -> TensorCow<'a, T, B, D>
+where
+    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D, D>,
+{
+    change_prefer_f(tensor, order).unwrap()
+}
+
+pub fn to_prefer<R, T, B, D>(
+    tensor: &TensorAny<R, T, B, D>,
+    order: TensorOrder,
+) -> TensorCow<'_, T, B, D>
+where
+    R: DataAPI<Data = B::Raw>,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D, D>,
+{
+    to_prefer_f(tensor, order).unwrap()
+}
+
+pub fn into_prefer<'a, R, T, B, D>(
+    tensor: TensorAny<R, T, B, D>,
+    order: TensorOrder,
+) -> Tensor<T, B, D>
+where
+    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
+    D: DimAPI,
+    T: Clone,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D, D> + OpAssignAPI<T, D>,
+    B::Raw: 'a,
+{
+    into_prefer_f(tensor, order).unwrap()
+}
+
+impl<'a, R, T, B, D> TensorAny<R, T, B, D>
+where
+    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
+    D: DimAPI,
+    T: Clone,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+{
+    /// Convert tensor to contiguous, with specified layout.
+    pub fn to_prefer(&self, order: TensorOrder) -> TensorCow<'_, T, B, D>
+    where
+        B: OpAssignArbitaryAPI<T, D, D>,
+    {
+        to_prefer(self, order)
+    }
+
+    pub fn to_prefer_f(&self, order: TensorOrder) -> Result<TensorCow<'_, T, B, D>>
+    where
+        B: OpAssignArbitaryAPI<T, D, D>,
+    {
+        to_prefer_f(self, order)
+    }
+
+    pub fn into_prefer_f(self, order: TensorOrder) -> Result<Tensor<T, B, D>>
+    where
+        B: OpAssignArbitaryAPI<T, D, D> + OpAssignAPI<T, D>,
+        B::Raw: 'a,
+    {
+        into_prefer_f(self, order)
+    }
+
+    pub fn into_prefer(self, order: TensorOrder) -> Tensor<T, B, D>
+    where
+        B: OpAssignArbitaryAPI<T, D, D> + OpAssignAPI<T, D>,
+        B::Raw: 'a,
+    {
+        into_prefer(self, order)
+    }
+
+    pub fn change_prefer_f(self, order: TensorOrder) -> Result<TensorCow<'a, T, B, D>>
+    where
+        B: OpAssignArbitaryAPI<T, D, D>,
+    {
+        change_prefer_f(self, order)
+    }
+
+    pub fn change_prefer(self, order: TensorOrder) -> TensorCow<'a, T, B, D>
+    where
+        B: OpAssignArbitaryAPI<T, D, D>,
+    {
+        change_prefer(self, order)
+    }
+}
+
+/* #endregion */
+
 #[cfg(test)]
 mod tests {
     use super::*;
