@@ -1,99 +1,148 @@
-use std::ffi::c_void;
-
 use crate::DeviceOpenBLAS;
 use num::Complex;
 use rstsr_blas_traits::blas3::gemm::*;
-use rstsr_blas_traits::blasint;
-use rstsr_blas_traits::cblas_flags::*;
+use rstsr_core::flags::{FlagTrans, TensorOrder};
 
-impl GEMMFuncAPI<f32> for DeviceOpenBLAS {
-    unsafe fn cblas_gemm(
-        order: CBLAS_ORDER,
-        transa: CBLAS_TRANSPOSE,
-        transb: CBLAS_TRANSPOSE,
-        m: blasint,
-        n: blasint,
-        k: blasint,
+impl GEMMDriverAPI<f32> for DeviceOpenBLAS {
+    unsafe fn driver_gemm(
+        order: TensorOrder,
+        transa: FlagTrans,
+        transb: FlagTrans,
+        m: usize,
+        n: usize,
+        k: usize,
         alpha: f32,
         a: *const f32,
-        lda: blasint,
+        lda: usize,
         b: *const f32,
-        ldb: blasint,
+        ldb: usize,
         beta: f32,
         c: *mut f32,
-        ldc: blasint,
+        ldc: usize,
     ) {
         rstsr_openblas_ffi::ffi::cblas::cblas_sgemm(
-            order, transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc,
+            order as _,
+            transa as _,
+            transb as _,
+            m as _,
+            n as _,
+            k as _,
+            alpha,
+            a,
+            lda as _,
+            b,
+            ldb as _,
+            beta,
+            c,
+            ldc as _,
         );
     }
 }
 
-impl GEMMFuncAPI<f64> for DeviceOpenBLAS {
-    unsafe fn cblas_gemm(
-        order: CBLAS_ORDER,
-        transa: CBLAS_TRANSPOSE,
-        transb: CBLAS_TRANSPOSE,
-        m: blasint,
-        n: blasint,
-        k: blasint,
+impl GEMMDriverAPI<f64> for DeviceOpenBLAS {
+    unsafe fn driver_gemm(
+        order: TensorOrder,
+        transa: FlagTrans,
+        transb: FlagTrans,
+        m: usize,
+        n: usize,
+        k: usize,
         alpha: f64,
         a: *const f64,
-        lda: blasint,
+        lda: usize,
         b: *const f64,
-        ldb: blasint,
+        ldb: usize,
         beta: f64,
         c: *mut f64,
-        ldc: blasint,
+        ldc: usize,
     ) {
         rstsr_openblas_ffi::ffi::cblas::cblas_dgemm(
-            order, transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc,
+            order as _,
+            transa as _,
+            transb as _,
+            m as _,
+            n as _,
+            k as _,
+            alpha,
+            a,
+            lda as _,
+            b,
+            ldb as _,
+            beta,
+            c,
+            ldc as _,
         );
     }
 }
 
-impl GEMMFuncAPI<Complex<f32>> for DeviceOpenBLAS {
-    unsafe fn cblas_gemm(
-        order: CBLAS_ORDER,
-        transa: CBLAS_TRANSPOSE,
-        transb: CBLAS_TRANSPOSE,
-        m: blasint,
-        n: blasint,
-        k: blasint,
-        alpha: *const c_void,
-        a: *const c_void,
-        lda: blasint,
-        b: *const c_void,
-        ldb: blasint,
-        beta: *const c_void,
-        c: *mut c_void,
-        ldc: blasint,
+impl GEMMDriverAPI<Complex<f32>> for DeviceOpenBLAS {
+    unsafe fn driver_gemm(
+        order: TensorOrder,
+        transa: FlagTrans,
+        transb: FlagTrans,
+        m: usize,
+        n: usize,
+        k: usize,
+        alpha: Complex<f32>,
+        a: *const Complex<f32>,
+        lda: usize,
+        b: *const Complex<f32>,
+        ldb: usize,
+        beta: Complex<f32>,
+        c: *mut Complex<f32>,
+        ldc: usize,
     ) {
         rstsr_openblas_ffi::ffi::cblas::cblas_cgemm(
-            order, transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc,
+            order as _,
+            transa as _,
+            transb as _,
+            m as _,
+            n as _,
+            k as _,
+            &alpha as *const _ as *const _,
+            a as *const _,
+            lda as _,
+            b as *const _,
+            ldb as _,
+            &beta as *const _ as *const _,
+            c as *mut _,
+            ldc as _,
         );
     }
 }
 
-impl GEMMFuncAPI<Complex<f64>> for DeviceOpenBLAS {
-    unsafe fn cblas_gemm(
-        order: CBLAS_ORDER,
-        transa: CBLAS_TRANSPOSE,
-        transb: CBLAS_TRANSPOSE,
-        m: blasint,
-        n: blasint,
-        k: blasint,
-        alpha: *const c_void,
-        a: *const c_void,
-        lda: blasint,
-        b: *const c_void,
-        ldb: blasint,
-        beta: *const c_void,
-        c: *mut c_void,
-        ldc: blasint,
+impl GEMMDriverAPI<Complex<f64>> for DeviceOpenBLAS {
+    unsafe fn driver_gemm(
+        order: TensorOrder,
+        transa: FlagTrans,
+        transb: FlagTrans,
+        m: usize,
+        n: usize,
+        k: usize,
+        alpha: Complex<f64>,
+        a: *const Complex<f64>,
+        lda: usize,
+        b: *const Complex<f64>,
+        ldb: usize,
+        beta: Complex<f64>,
+        c: *mut Complex<f64>,
+        ldc: usize,
     ) {
-        rstsr_openblas_ffi::ffi::cblas::cblas_zgemm(
-            order, transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc,
+        rstsr_openblas_ffi::ffi::cblas::cblas_cgemm(
+            order as _,
+            transa as _,
+            transb as _,
+            m as _,
+            n as _,
+            k as _,
+            &alpha as *const _ as *const _,
+            a as *const _,
+            lda as _,
+            b as *const _,
+            ldb as _,
+            &beta as *const _ as *const _,
+            c as *mut _,
+            ldc as _,
         );
     }
 }
@@ -111,7 +160,7 @@ mod test {
         let lb = [2048, 4096].c();
         let a = Tensor::new(Storage::new(get_vec::<f64>('a').into(), device.clone()), la);
         let b = Tensor::new(Storage::new(get_vec::<f64>('b').into(), device.clone()), lb);
-        let driver = GEMMBuilder::default().a(a.view()).b(b.t()).build().unwrap();
+        let driver = GEMM::default().a(a.view()).b(b.t()).build().unwrap();
         let c = driver.run().unwrap().into_owned();
         println!("{:?}", fingerprint(&c));
         assert!((fingerprint(&c) - -4118.154714656608).abs() < 1e-8);

@@ -54,12 +54,13 @@ macro_rules! impl_changeable_default {
 ///
 /// F-prefer is not a stable feature currently! We develop only in C-prefer
 /// currently.
+#[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TensorOrder {
     /// row-major order.
-    C,
+    C = 101,
     /// column-major order.
-    F,
+    F = 102,
 }
 
 #[allow(clippy::derivable_impls)]
@@ -150,46 +151,52 @@ pub mod TensorCopyPolicy {
 
 /* #region blas-flags */
 
+#[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum FlagTrans {
     #[default]
     Undefined,
     /// No transpose
-    N,
+    N = 111,
     /// Transpose
-    T,
+    T = 112,
     /// Conjugate transpose
-    C,
+    C = 113,
+    // Conjuate only
+    CN = 114,
 }
 
+#[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum FlagSide {
     #[default]
     Undefined,
     /// Left side
-    L,
+    L = 141,
     /// Right side
-    R,
+    R = 142,
 }
 
+#[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum FlagUpLo {
     #[default]
     Undefined,
     /// Upper triangle
-    U,
+    U = 121,
     /// Lower triangle
-    L,
+    L = 122,
 }
 
+#[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum FlagDiag {
     #[default]
     Undefined,
     /// Non-unit diagonal
-    N,
+    N = 131,
     /// Unit diagonal
-    U,
+    U = 132,
 }
 
 /* #endregion */
