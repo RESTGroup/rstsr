@@ -17,6 +17,9 @@ rstsr-dtype-traits = { workspace = true, features = ["half"] }
 rstsr-openblas-ffi = { workspace = true }
 rstsr-blas-traits = { workspace = true }
 
+[dev-dependencies]
+rstsr-test-manifest = { workspace = true }
+
 [features]
 faer = ["rstsr-core/faer"]
 ilp64 = ["rstsr-openblas-ffi/ilp64", "rstsr-blas-traits/ilp64"]

@@ -58,11 +58,12 @@ where
         + DeviceCreationAnyAPI<T>
         + OpAssignAPI<T, IxD>
         + OpAssignArbitaryAPI<T, IxD, D>
+        + OpAssignArbitaryAPI<T, D, D>
         + DeviceMatMulAPI<T, T, T, IxD, IxD, IxD>,
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     for<'a> R: DataIntoCowAPI<'a>,
 {
     let range = linspace((T::zero(), T::from(a.size()).unwrap(), a.size(), false, a.device()));
-    let val = a.reshape(-1) % range.cos();
+    let val = a.to_contig(RowMajor).reshape(-1) % range.cos();
     val.to_scalar()
 }
