@@ -15,7 +15,9 @@ num = { workspace = true }
 rstsr-core = { workspace = true, features = ["rayon"] }
 rstsr-dtype-traits = { workspace = true, features = ["half"] }
 rstsr-openblas-ffi = { workspace = true }
+rstsr-blas-traits = { workspace = true }
 
 [features]
 faer = ["rstsr-core/faer"]
+ilp64 = ["rstsr-openblas-ffi/ilp64", "rstsr-blas-traits/ilp64"]
 openmp = ["rstsr-openblas-ffi/openmp"]

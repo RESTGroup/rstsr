@@ -6,6 +6,7 @@ members = [
     "rstsr-openblas",
     "rstsr-openblas-ffi",
     "rstsr-dtype-traits",
+    "rstsr-blas-traits",
 ]
 
 [workspace.package]
@@ -21,6 +22,7 @@ license = "Apache-2.0"
 # members
 rstsr-core = { path = "./rstsr-core", default-features = false, version = "0.1.0" }
 rstsr-openblas = { path = "./rstsr-openblas", default-features = false, version = "0.1.0" }
+rstsr-blas-traits = { path = "./rstsr-blas-traits", default-features = false, version = "0.1.0" }
 # members without core
 rstsr-openblas-ffi = { path = "./rstsr-openblas-ffi", default-features = false, version = "0.1.0" }
 rstsr-dtype-traits = { path = "./rstsr-dtype-traits", default-features = false, version = "0.1.0" }
@@ -29,6 +31,7 @@ num = { version = "0.4" }
 thiserror = { version = "1.0" }
 itertools = { version = "0.13" }
 half = { version = "2.4", features = ["num-traits"] }
+derive_builder = { version = "0.20" }
 # optional dependencies
 rayon = { version = "1.10" }
 faer = { version = "0.19" }
