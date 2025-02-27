@@ -40,7 +40,7 @@ pub mod rstsr_structs {
     pub use crate::DeviceCpu;
 
     pub use crate::flags::{
-        FlagDiag, FlagSide, FlagSymm, FlagTrans, FlagUpLo, TensorCopyPolicy, TensorDiag,
+        FlagDiag, FlagOrder, FlagSide, FlagSymm, FlagTrans, FlagUpLo, TensorCopyPolicy, TensorDiag,
         TensorIterOrder, TensorOrder, TensorSide, TensorSymm, TensorTrans, TensorUpLo,
     };
     pub use crate::layout::indexer::{Ellipsis, NewAxis};

@@ -5,7 +5,7 @@ use rstsr_core::prelude_dev::*;
 
 pub trait GEMMDriverAPI<T> {
     unsafe fn driver_gemm(
-        order: TensorOrder,
+        order: FlagOrder,
         transa: FlagTrans,
         transb: FlagTrans,
         m: usize,
@@ -43,7 +43,7 @@ where
     #[builder(setter(into), default = "FlagTrans::N")]
     pub transb: FlagTrans,
     #[builder(setter(into, strip_option), default = "None")]
-    pub order: Option<TensorOrder>,
+    pub order: Option<FlagOrder>,
 }
 
 /* #endregion */
@@ -55,7 +55,6 @@ where
     T: BlasFloat + Num,
     B: GEMMDriverAPI<T>
         + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceRawAPI<T, Raw = Vec<T>>
         + DeviceCreationNumAPI<T>
         + DeviceCreationAnyAPI<T>
         + OpAssignArbitaryAPI<T, Ix2, Ix2>
@@ -70,12 +69,12 @@ where
         let order_b = (b.c_prefer(), b.f_prefer());
         let order_c = c.as_ref().map(|c| (c.c_prefer(), c.f_prefer()));
         let order = order.map(|order| match order {
-            TensorOrder::F => (true, false),
-            TensorOrder::C => (false, true),
+            ColMajor => (true, false),
+            RowMajor => (false, true),
         });
 
         let order = get_order_row_preferred(&[order, order_c], &[order_a, order_b]);
-        if order == TensorOrder::F {
+        if order == ColMajor {
             // f-prefer: C = op(A) op(B)
             let (transa, a_cow) = flip_trans(order, transa, a, false)?;
             let (transb, b_cow) = flip_trans(order, transb, b, false)?;
@@ -87,7 +86,7 @@ where
                 beta,
                 transa,
                 transb,
-                order: Some(TensorOrder::F),
+                order: Some(ColMajor),
             };
             obj.internal_run()
         } else {
@@ -102,7 +101,7 @@ where
                 beta,
                 transa: transb,
                 transb: transa,
-                order: Some(TensorOrder::F),
+                order: Some(ColMajor),
             };
             Ok(obj.internal_run()?.into_reverse_axes())
         }
@@ -112,7 +111,7 @@ where
         // this function only accepts column major
         let Self { a, b, c, alpha, beta, transa, transb, order } = self;
 
-        rstsr_assert_eq!(order, Some(TensorOrder::F), RuntimeError)?;
+        rstsr_assert_eq!(order, Some(ColMajor), RuntimeError)?;
         rstsr_assert!(a.f_prefer(), RuntimeError)?;
         rstsr_assert!(b.f_prefer(), RuntimeError)?;
 
@@ -149,7 +148,7 @@ where
                 if c.f_prefer() {
                     TensorMutable::Mut(c)
                 } else {
-                    let c_buffer = c.to_contig_f(TensorOrder::F)?.into_owned();
+                    let c_buffer = c.to_contig_f(ColMajor)?.into_owned();
                     TensorMutable::ToBeCloned(c, c_buffer)
                 }
             },

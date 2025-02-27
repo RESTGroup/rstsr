@@ -1,11 +1,11 @@
-use crate::DeviceOpenBLAS;
+use crate::DeviceOpenBLAS as DeviceBLAS;
 use num::Complex;
 use rstsr_blas_traits::blas3::gemm::*;
-use rstsr_core::flags::{FlagTrans, TensorOrder};
+use rstsr_core::flags::{FlagOrder, FlagTrans};
 
-impl GEMMDriverAPI<f32> for DeviceOpenBLAS {
+impl GEMMDriverAPI<f32> for DeviceBLAS {
     unsafe fn driver_gemm(
-        order: TensorOrder,
+        order: FlagOrder,
         transa: FlagTrans,
         transb: FlagTrans,
         m: usize,
@@ -39,9 +39,9 @@ impl GEMMDriverAPI<f32> for DeviceOpenBLAS {
     }
 }
 
-impl GEMMDriverAPI<f64> for DeviceOpenBLAS {
+impl GEMMDriverAPI<f64> for DeviceBLAS {
     unsafe fn driver_gemm(
-        order: TensorOrder,
+        order: FlagOrder,
         transa: FlagTrans,
         transb: FlagTrans,
         m: usize,
@@ -75,9 +75,9 @@ impl GEMMDriverAPI<f64> for DeviceOpenBLAS {
     }
 }
 
-impl GEMMDriverAPI<Complex<f32>> for DeviceOpenBLAS {
+impl GEMMDriverAPI<Complex<f32>> for DeviceBLAS {
     unsafe fn driver_gemm(
-        order: TensorOrder,
+        order: FlagOrder,
         transa: FlagTrans,
         transb: FlagTrans,
         m: usize,
@@ -111,9 +111,9 @@ impl GEMMDriverAPI<Complex<f32>> for DeviceOpenBLAS {
     }
 }
 
-impl GEMMDriverAPI<Complex<f64>> for DeviceOpenBLAS {
+impl GEMMDriverAPI<Complex<f64>> for DeviceBLAS {
     unsafe fn driver_gemm(
-        order: TensorOrder,
+        order: FlagOrder,
         transa: FlagTrans,
         transb: FlagTrans,
         m: usize,
@@ -128,7 +128,7 @@ impl GEMMDriverAPI<Complex<f64>> for DeviceOpenBLAS {
         c: *mut Complex<f64>,
         ldc: usize,
     ) {
-        rstsr_openblas_ffi::ffi::cblas::cblas_cgemm(
+        rstsr_openblas_ffi::ffi::cblas::cblas_zgemm(
             order as _,
             transa as _,
             transb as _,
@@ -150,6 +150,7 @@ impl GEMMDriverAPI<Complex<f64>> for DeviceOpenBLAS {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::DeviceOpenBLAS;
     use rstsr_core::prelude_dev::*;
     use rstsr_test_manifest::get_vec;
 
@@ -162,7 +163,15 @@ mod test {
         let b = Tensor::new(Storage::new(get_vec::<f64>('b').into(), device.clone()), lb);
         let driver = GEMM::default().a(a.view()).b(b.t()).build().unwrap();
         let c = driver.run().unwrap().into_owned();
-        println!("{:?}", fingerprint(&c));
+        assert!(c.c_contig());
+        assert!((fingerprint(&c) - -4118.154714656608).abs() < 1e-8);
+        let driver = GEMM::default().a(a.view()).b(b.view()).transb('T').build().unwrap();
+        let c = driver.run().unwrap().into_owned();
+        assert!(c.c_contig());
+        assert!((fingerprint(&c) - -4118.154714656608).abs() < 1e-8);
+        let driver = GEMM::default().a(a.t()).b(b.t()).transa('T').build().unwrap();
+        let c = driver.run().unwrap().into_owned();
+        assert!(c.f_contig());
         assert!((fingerprint(&c) - -4118.154714656608).abs() < 1e-8);
     }
 }
