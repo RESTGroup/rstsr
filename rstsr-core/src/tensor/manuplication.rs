@@ -1305,12 +1305,10 @@ where
     let shape = layout.shape();
     rstsr_assert_eq!(tensor.size(), shape.shape_size(), InvalidLayout)?;
     let same_layout = tensor.layout().to_dim::<IxD>()? == layout.to_dim::<IxD>()?;
-    let contig_c = tensor.layout().c_contig()
-        && layout.c_contig()
-        && tensor.layout().offset() == layout.offset();
-    let contig_f = tensor.layout().f_contig()
-        && layout.f_contig()
-        && tensor.layout().offset() == layout.offset();
+    let contig_c =
+        tensor.c_contig() && layout.c_contig() && tensor.layout().offset() == layout.offset();
+    let contig_f =
+        tensor.f_contig() && layout.f_contig() && tensor.layout().offset() == layout.offset();
     let contig = match TensorOrder::default() {
         TensorOrder::C => contig_c,
         TensorOrder::F => contig_f,
@@ -1617,8 +1615,8 @@ where
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D, D>,
 {
-    if (order == TensorOrder::C && tensor.layout().c_prefer())
-        || (order == TensorOrder::F && tensor.layout().f_prefer())
+    if (order == TensorOrder::C && tensor.c_prefer())
+        || (order == TensorOrder::F && tensor.f_prefer())
     {
         Ok(tensor.into_cow())
     } else {
