@@ -1,0 +1,18 @@
+[package]
+name = "rstsr-blas-traits"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+license.workspace = true
+
+[dependencies]
+num = { workspace = true }
+half = { workspace = true }
+derive_builder = { workspace = true }
+rstsr-core = { workspace = true, default-features = false }
+
+[features]
+ilp64 = []
