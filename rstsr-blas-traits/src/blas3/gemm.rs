@@ -1,32 +1,6 @@
 use crate::prelude_dev::*;
 use rstsr_core::prelude_dev::*;
 
-/* #region func */
-
-pub trait GEMMFuncAPI<T>
-where
-    T: BlasFloat,
-{
-    unsafe fn cblas_gemm(
-        order: CBLAS_ORDER,
-        transa: CBLAS_TRANSPOSE,
-        transb: CBLAS_TRANSPOSE,
-        m: blasint,
-        n: blasint,
-        k: blasint,
-        alpha: T::Scalar,
-        a: *const T::FFI,
-        lda: blasint,
-        b: *const T::FFI,
-        ldb: blasint,
-        beta: T::Scalar,
-        c: *mut T::FFI,
-        ldc: blasint,
-    );
-}
-
-/* #endregion */
-
 /* #region driver */
 
 pub trait GEMMDriverAPI<T> {
@@ -48,184 +22,9 @@ pub trait GEMMDriverAPI<T> {
     );
 }
 
-impl<B> GEMMDriverAPI<f32> for B
-where
-    B: GEMMFuncAPI<f32>,
-{
-    unsafe fn driver_gemm(
-        order: TensorOrder,
-        transa: FlagTrans,
-        transb: FlagTrans,
-        m: usize,
-        n: usize,
-        k: usize,
-        alpha: f32,
-        a: *const f32,
-        lda: usize,
-        b: *const f32,
-        ldb: usize,
-        beta: f32,
-        c: *mut f32,
-        ldc: usize,
-    ) {
-        let order = CblasOrder::from(order) as CBLAS_ORDER;
-        let transa = CblasTranspose::from(transa) as CBLAS_TRANSPOSE;
-        let transb = CblasTranspose::from(transb) as CBLAS_TRANSPOSE;
-        let m = m.try_into().unwrap();
-        let n = n.try_into().unwrap();
-        let k = k.try_into().unwrap();
-        let lda = lda as blasint;
-        let ldb = ldb as blasint;
-        let ldc = ldc as blasint;
-        B::cblas_gemm(order, transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
-    }
-}
-
-impl<B> GEMMDriverAPI<f64> for B
-where
-    B: GEMMFuncAPI<f64>,
-{
-    unsafe fn driver_gemm(
-        order: TensorOrder,
-        transa: FlagTrans,
-        transb: FlagTrans,
-        m: usize,
-        n: usize,
-        k: usize,
-        alpha: f64,
-        a: *const f64,
-        lda: usize,
-        b: *const f64,
-        ldb: usize,
-        beta: f64,
-        c: *mut f64,
-        ldc: usize,
-    ) {
-        let order = CblasOrder::from(order) as CBLAS_ORDER;
-        let transa = CblasTranspose::from(transa) as CBLAS_TRANSPOSE;
-        let transb = CblasTranspose::from(transb) as CBLAS_TRANSPOSE;
-        let m = m.try_into().unwrap();
-        let n = n.try_into().unwrap();
-        let k = k.try_into().unwrap();
-        let lda = lda as blasint;
-        let ldb = ldb as blasint;
-        let ldc = ldc as blasint;
-        B::cblas_gemm(order, transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
-    }
-}
-
-impl<B> GEMMDriverAPI<f16> for B
-where
-    B: GEMMFuncAPI<f16>,
-{
-    unsafe fn driver_gemm(
-        order: TensorOrder,
-        transa: FlagTrans,
-        transb: FlagTrans,
-        m: usize,
-        n: usize,
-        k: usize,
-        alpha: f16,
-        a: *const f16,
-        lda: usize,
-        b: *const f16,
-        ldb: usize,
-        beta: f16,
-        c: *mut f16,
-        ldc: usize,
-    ) {
-        let order = CblasOrder::from(order) as CBLAS_ORDER;
-        let transa = CblasTranspose::from(transa) as CBLAS_TRANSPOSE;
-        let transb = CblasTranspose::from(transb) as CBLAS_TRANSPOSE;
-        let m = m.try_into().unwrap();
-        let n = n.try_into().unwrap();
-        let k = k.try_into().unwrap();
-        let lda = lda as blasint;
-        let ldb = ldb as blasint;
-        let ldc = ldc as blasint;
-        B::cblas_gemm(order, transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
-    }
-}
-
-impl<B> GEMMDriverAPI<Complex<f32>> for B
-where
-    B: GEMMFuncAPI<Complex<f32>>,
-{
-    unsafe fn driver_gemm(
-        order: TensorOrder,
-        transa: FlagTrans,
-        transb: FlagTrans,
-        m: usize,
-        n: usize,
-        k: usize,
-        alpha: Complex<f32>,
-        a: *const Complex<f32>,
-        lda: usize,
-        b: *const Complex<f32>,
-        ldb: usize,
-        beta: Complex<f32>,
-        c: *mut Complex<f32>,
-        ldc: usize,
-    ) {
-        let order = CblasOrder::from(order) as CBLAS_ORDER;
-        let transa = CblasTranspose::from(transa) as CBLAS_TRANSPOSE;
-        let transb = CblasTranspose::from(transb) as CBLAS_TRANSPOSE;
-        let m = m.try_into().unwrap();
-        let n = n.try_into().unwrap();
-        let k = k.try_into().unwrap();
-        let lda = lda as blasint;
-        let ldb = ldb as blasint;
-        let ldc = ldc as blasint;
-        let a = a as *const _;
-        let b = b as *const _;
-        let c = c as *mut _;
-        let alpha = &alpha as *const _ as *const _;
-        let beta = &beta as *const _ as *const _;
-        B::cblas_gemm(order, transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
-    }
-}
-
-impl<B> GEMMDriverAPI<Complex<f64>> for B
-where
-    B: GEMMFuncAPI<Complex<f64>>,
-{
-    unsafe fn driver_gemm(
-        order: TensorOrder,
-        transa: FlagTrans,
-        transb: FlagTrans,
-        m: usize,
-        n: usize,
-        k: usize,
-        alpha: Complex<f64>,
-        a: *const Complex<f64>,
-        lda: usize,
-        b: *const Complex<f64>,
-        ldb: usize,
-        beta: Complex<f64>,
-        c: *mut Complex<f64>,
-        ldc: usize,
-    ) {
-        let order = CblasOrder::from(order) as CBLAS_ORDER;
-        let transa = CblasTranspose::from(transa) as CBLAS_TRANSPOSE;
-        let transb = CblasTranspose::from(transb) as CBLAS_TRANSPOSE;
-        let m = m.try_into().unwrap();
-        let n = n.try_into().unwrap();
-        let k = k.try_into().unwrap();
-        let lda = lda as blasint;
-        let ldb = ldb as blasint;
-        let ldc = ldc as blasint;
-        let a = a as *const _;
-        let b = b as *const _;
-        let c = c as *mut _;
-        let alpha = &alpha as *const _ as *const _;
-        let beta = &beta as *const _ as *const _;
-        B::cblas_gemm(order, transa, transb, m, n, k, alpha, a, lda, b, ldb, beta, c, ldc);
-    }
-}
-
 #[derive(Builder)]
 #[builder(pattern = "owned", no_std)]
-pub struct GEMM<'a, 'b, 'c, B, T>
+pub struct GEMM_<'a, 'b, 'c, B, T>
 where
     T: BlasFloat,
     B: DeviceAPI<T>,
@@ -251,7 +50,7 @@ where
 
 /* #region builder */
 
-impl<'c, B, T> GEMM<'_, '_, 'c, B, T>
+impl<'c, B, T> GEMM_<'_, '_, 'c, B, T>
 where
     T: BlasFloat + Num,
     B: GEMMDriverAPI<T>
@@ -280,7 +79,7 @@ where
             // f-prefer: C = op(A) op(B)
             let (transa, a_cow) = flip_trans(order, transa, a, false)?;
             let (transb, b_cow) = flip_trans(order, transb, b, false)?;
-            let obj = GEMM {
+            let obj = GEMM_ {
                 a: a_cow.view(),
                 b: b_cow.view(),
                 c,
@@ -295,7 +94,7 @@ where
             // c-prefer: C' = op(B') op(A')
             let (transa, a_cow) = flip_trans(order, transa, a, false)?;
             let (transb, b_cow) = flip_trans(order, transb, b, false)?;
-            let obj = GEMM {
+            let obj = GEMM_ {
                 a: b_cow.t(),
                 b: a_cow.t(),
                 c: c.map(|c| c.into_reverse_axes()),
@@ -371,5 +170,11 @@ where
         Ok(c.clone_to_mut())
     }
 }
+
+pub type GEMM<'a, 'b, 'c, B, T> = GEMM_Builder<'a, 'b, 'c, B, T>;
+pub type SGEMM<'a, 'b, 'c, B> = GEMM<'a, 'b, 'c, B, f32>;
+pub type DGEMM<'a, 'b, 'c, B> = GEMM<'a, 'b, 'c, B, f64>;
+pub type CGEMM<'a, 'b, 'c, B> = GEMM<'a, 'b, 'c, B, Complex<f32>>;
+pub type ZGEMM<'a, 'b, 'c, B> = GEMM<'a, 'b, 'c, B, Complex<f64>>;
 
 /* #endregion */
