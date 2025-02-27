@@ -1,7 +1,7 @@
 use crate::DeviceOpenBLAS as DeviceBLAS;
 use num::Complex;
 use rstsr_blas_traits::blas3::gemm::*;
-use rstsr_core::flags::{FlagOrder, FlagTrans};
+use rstsr_core::flags::*;
 
 impl GEMMDriverAPI<f32> for DeviceBLAS {
     unsafe fn driver_gemm(
