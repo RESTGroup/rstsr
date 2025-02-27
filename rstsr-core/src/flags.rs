@@ -259,11 +259,32 @@ impl From<char> for FlagTrans {
     }
 }
 
+impl From<FlagTrans> for char {
+    fn from(val: FlagTrans) -> Self {
+        match val {
+            FlagTrans::N => 'N',
+            FlagTrans::T => 'T',
+            FlagTrans::C => 'C',
+            _ => rstsr_invalid!(val).unwrap(),
+        }
+    }
+}
+
 impl From<char> for FlagDiag {
     fn from(val: char) -> Self {
         match val {
             'N' | 'n' => FlagDiag::N,
             'U' | 'u' => FlagDiag::U,
+            _ => rstsr_invalid!(val).unwrap(),
+        }
+    }
+}
+
+impl From<FlagDiag> for char {
+    fn from(val: FlagDiag) -> Self {
+        match val {
+            FlagDiag::N => 'N',
+            FlagDiag::U => 'U',
             _ => rstsr_invalid!(val).unwrap(),
         }
     }
@@ -279,11 +300,31 @@ impl From<char> for FlagSide {
     }
 }
 
+impl From<FlagSide> for char {
+    fn from(val: FlagSide) -> Self {
+        match val {
+            FlagSide::L => 'L',
+            FlagSide::R => 'R',
+            _ => rstsr_invalid!(val).unwrap(),
+        }
+    }
+}
+
 impl From<char> for FlagUpLo {
     fn from(val: char) -> Self {
         match val {
             'U' | 'u' => FlagUpLo::U,
             'L' | 'l' => FlagUpLo::L,
+            _ => rstsr_invalid!(val).unwrap(),
+        }
+    }
+}
+
+impl From<FlagUpLo> for char {
+    fn from(val: FlagUpLo) -> Self {
+        match val {
+            FlagUpLo::U => 'U',
+            FlagUpLo::L => 'L',
             _ => rstsr_invalid!(val).unwrap(),
         }
     }
