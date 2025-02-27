@@ -40,15 +40,15 @@ macro_rules! impl_changeable_default {
 
 /* #endregion */
 
-/* #region TensorOrder */
+/* #region FlagOrder */
 
 /// The order of the tensor.
 ///
 /// # Default
 ///
 /// Default order depends on cargo feature `f_prefer`.
-/// If `f_prefer` is set, then [`TensorOrder::F`] is applied as default;
-/// otherwise [`TensorOrder::C`] is applied as default.
+/// If `f_prefer` is set, then [`FlagOrder::F`] is applied as default;
+/// otherwise [`FlagOrder::C`] is applied as default.
 ///
 /// # IMPORTANT NOTE
 ///
@@ -56,7 +56,7 @@ macro_rules! impl_changeable_default {
 /// currently.
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TensorOrder {
+pub enum FlagOrder {
     /// row-major order.
     C = 101,
     /// column-major order.
@@ -64,15 +64,15 @@ pub enum TensorOrder {
 }
 
 #[allow(clippy::derivable_impls)]
-impl Default for TensorOrder {
+impl Default for FlagOrder {
     fn default() -> Self {
         #[cfg(not(feature = "f_prefer"))]
         {
-            TensorOrder::C
+            FlagOrder::C
         }
         #[cfg(feature = "f_prefer")]
         {
-            TensorOrder::F
+            FlagOrder::F
         }
     }
 }
@@ -97,8 +97,8 @@ pub enum TensorIterOrder {
     /// - try c/f-contig first (also see [`TensorIterOrder::B`]),
     /// - try c/f-prefer second (also see [`TensorIterOrder::C`],
     ///   [`TensorIterOrder::F`]),
-    /// - otherwise [`TensorOrder::default()`], which is defined by crate
-    ///   feature `f_prefer`.
+    /// - otherwise [`FlagOrder::default()`], which is defined by crate feature
+    ///   `f_prefer`.
     ///
     /// - safe for multi-array iteration like `get_iter(a, b)`
     /// - not safe for cases like `a.iter().zip(b.iter())`
@@ -217,6 +217,7 @@ pub enum FlagSymm {
     N,
 }
 
+pub type TensorOrder = FlagOrder;
 pub type TensorDiag = FlagDiag;
 pub type TensorSide = FlagSide;
 pub type TensorUpLo = FlagUpLo;
@@ -240,8 +241,8 @@ pub use FlagUpLo::U as Upper;
 pub use FlagDiag::N as NonUnit;
 pub use FlagDiag::U as Unit;
 
-pub use TensorOrder::C as RowMajor;
-pub use TensorOrder::F as ColMajor;
+pub use FlagOrder::C as RowMajor;
+pub use FlagOrder::F as ColMajor;
 
 /* #endregion */
 
@@ -292,11 +293,11 @@ impl From<char> for FlagUpLo {
 
 /* #region flag flip */
 
-impl TensorOrder {
+impl FlagOrder {
     pub fn flip(&self) -> Self {
         match self {
-            TensorOrder::C => TensorOrder::F,
-            TensorOrder::F => TensorOrder::C,
+            FlagOrder::C => FlagOrder::F,
+            FlagOrder::F => FlagOrder::C,
         }
     }
 }
