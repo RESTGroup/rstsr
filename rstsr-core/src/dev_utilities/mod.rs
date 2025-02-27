@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 
+use crate::prelude::*;
 use crate::prelude_dev::*;
+use num::complex::ComplexFloat;
 
 /// Compare two tensors with f64 data type.
 ///
@@ -38,4 +40,29 @@ where
         }
     }
     return true;
+}
+
+/// Get a somehow unique fingerprint of a tensor.
+///
+/// # See also
+///
+/// PySCF `pyscf.lib.misc.fingerprint`
+/// https://github.com/pyscf/pyscf/blob/6f6d3741bf42543e02ccaa1d4ef43d9bf83b3dda/pyscf/lib/misc.py#L1249-L1253
+pub fn fingerprint<R, T, B, D>(a: &TensorAny<R, T, B, D>) -> T
+where
+    T: ComplexFloat,
+    D: DimAPI,
+    B: DeviceAPI<T>
+        + DeviceCreationComplexFloatAPI<T>
+        + DeviceCosAPI<T, IxD, TOut = T>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignAPI<T, IxD>
+        + OpAssignArbitaryAPI<T, IxD, D>
+        + DeviceMatMulAPI<T, T, T, IxD, IxD, IxD>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+    for<'a> R: DataIntoCowAPI<'a>,
+{
+    let range = linspace((T::zero(), T::from(a.size()).unwrap(), a.size(), false, a.device()));
+    let val = a.reshape(-1) % range.cos();
+    val.to_scalar()
 }

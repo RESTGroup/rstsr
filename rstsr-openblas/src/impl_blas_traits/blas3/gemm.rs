@@ -107,11 +107,12 @@ mod test {
     fn playground() {
         let device = DeviceOpenBLAS::default();
         let a =
-            linspace((0.0f32, 1., 1024 * 1024, &device)).into_shape([512, 2048]).into_dim::<Ix2>();
+            linspace((0.0f64, 1., 1024 * 1024, &device)).into_shape([512, 2048]).into_dim::<Ix2>();
         let b =
-            linspace((0.0f32, 1., 1024 * 1024, &device)).into_shape([2048, 512]).into_dim::<Ix2>();
+            linspace((0.0f64, 1., 1024 * 1024, &device)).into_shape([2048, 512]).into_dim::<Ix2>();
         let driver = GEMMBuilder::default().a(a.view()).b(b.view()).build().unwrap();
         let c = driver.run().unwrap().into_owned();
         println!("{:?}", c);
+        println!("{:?}", fingerprint(&c));
     }
 }
