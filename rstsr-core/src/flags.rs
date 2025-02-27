@@ -218,6 +218,26 @@ pub type TensorSymm = FlagSymm;
 
 /* #endregion */
 
+/* #region flag alias */
+
+pub use FlagTrans::C as ConjTrans;
+pub use FlagTrans::N as NoTrans;
+pub use FlagTrans::T as Trans;
+
+pub use FlagSide::L as Left;
+pub use FlagSide::R as Right;
+
+pub use FlagUpLo::L as Lower;
+pub use FlagUpLo::U as Upper;
+
+pub use FlagDiag::N as NonUnit;
+pub use FlagDiag::U as Unit;
+
+pub use TensorOrder::C as RowMajor;
+pub use TensorOrder::F as ColMajor;
+
+/* #endregion */
+
 /* #region flag into */
 
 impl From<char> for FlagTrans {
