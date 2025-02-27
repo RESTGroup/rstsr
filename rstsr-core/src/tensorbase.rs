@@ -76,6 +76,26 @@ where
     pub fn into_raw_parts(self) -> (S, Layout<D>) {
         (self.storage, self.layout)
     }
+
+    #[inline]
+    pub fn c_contig(&self) -> bool {
+        self.layout().c_contig()
+    }
+
+    #[inline]
+    pub fn f_contig(&self) -> bool {
+        self.layout().f_contig()
+    }
+
+    #[inline]
+    pub fn c_prefer(&self) -> bool {
+        self.layout().c_prefer()
+    }
+
+    #[inline]
+    pub fn f_prefer(&self) -> bool {
+        self.layout().f_prefer()
+    }
 }
 
 impl<R, T, B, D> TensorAny<R, T, B, D>
