@@ -1,0 +1,13 @@
+[package]
+name = "rstsr-test-manifest"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+license.workspace = true
+
+[dependencies]
+npyz = { workspace = true }
+num = { workspace = true }
