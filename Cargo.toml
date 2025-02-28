@@ -11,7 +11,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "An n-Dimension Rust Tensor Toolkit"
 repository = "https://github.com/RESTGroup/rstsr"
@@ -21,13 +21,13 @@ license = "Apache-2.0"
 
 [workspace.dependencies]
 # members
-rstsr-core = { path = "./rstsr-core", default-features = false, version = "0.1.0" }
-rstsr-openblas = { path = "./rstsr-openblas", default-features = false, version = "0.1.0" }
-rstsr-blas-traits = { path = "./rstsr-blas-traits", default-features = false, version = "0.1.0" }
+rstsr-core = { path = "./rstsr-core", default-features = false, version = "0.1.1" }
+rstsr-openblas = { path = "./rstsr-openblas", default-features = false, version = "0.1.1" }
+rstsr-blas-traits = { path = "./rstsr-blas-traits", default-features = false, version = "0.1.1" }
 # members without core
-rstsr-openblas-ffi = { path = "./rstsr-openblas-ffi", default-features = false, version = "0.1.0" }
-rstsr-dtype-traits = { path = "./rstsr-dtype-traits", default-features = false, version = "0.1.0" }
-rstsr-test-manifest = { path = "./rstsr-test-manifest", default-features = false, version = "0.1.0" }
+rstsr-openblas-ffi = { path = "./rstsr-openblas-ffi", default-features = false, version = "0.1.1" }
+rstsr-dtype-traits = { path = "./rstsr-dtype-traits", default-features = false, version = "0.1.1" }
+rstsr-test-manifest = { path = "./rstsr-test-manifest", default-features = false, version = "0.1.1" }
 # basic dependencies
 num = { version = "0.4" }
 thiserror = { version = "1.0" }
