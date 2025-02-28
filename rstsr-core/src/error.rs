@@ -21,6 +21,8 @@ pub enum Error {
     DeviceError(String),
     RayonError(String),
 
+    ErrorCode(i32, String),
+
     Miscellaneous(String),
 }
 
@@ -149,6 +151,28 @@ macro_rules! rstsr_invalid {
         write!(s, " : ").unwrap();
         write!(s, $($arg)*).unwrap();
         Err(Error::InvalidValue(s))
+    }};
+}
+
+#[macro_export]
+macro_rules! rstsr_errcode {
+    ($word:expr) => {{
+        use core::fmt::Write;
+        let mut s = String::new();
+        write!(s, concat!(file!(), ":", line!(), ": ")).unwrap();
+        write!(s, "Error::ErrorCode").unwrap();
+        write!(s, " : {:?}", $word).unwrap();
+        Err(Error::ErrorCode($word, s))
+    }};
+    ($word:expr, $($arg:tt)*) => {{
+        use core::fmt::Write;
+        let mut s = String::new();
+        write!(s, concat!(file!(), ":", line!(), ": ")).unwrap();
+        write!(s, "Error::ErrorCode").unwrap();
+        write!(s, " : {:?}", $word).unwrap();
+        write!(s, " : ").unwrap();
+        write!(s, $($arg)*).unwrap();
+        Err(Error::ErrorCode($word, s))
     }};
 }
 
