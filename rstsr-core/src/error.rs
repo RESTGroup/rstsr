@@ -4,6 +4,7 @@ extern crate std;
 use crate::prelude_dev::*;
 use core::convert::Infallible;
 use core::num::TryFromIntError;
+use derive_builder::UninitializedFieldError;
 
 #[non_exhaustive]
 #[derive(Debug)]
@@ -18,6 +19,7 @@ pub enum Error {
     TryFromIntError(String),
     Infallible,
 
+    BuilderError(UninitializedFieldError),
     DeviceError(String),
     RayonError(String),
 
@@ -53,6 +55,12 @@ impl From<Infallible> for Error {
 impl From<rayon::ThreadPoolBuildError> for Error {
     fn from(e: rayon::ThreadPoolBuildError) -> Self {
         Error::RayonError(format!("{:?}", e))
+    }
+}
+
+impl From<UninitializedFieldError> for Error {
+    fn from(e: UninitializedFieldError) -> Self {
+        Error::BuilderError(e)
     }
 }
 

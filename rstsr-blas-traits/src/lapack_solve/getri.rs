@@ -12,7 +12,7 @@ pub trait GETRIDriverAPI<T> {
 }
 
 #[derive(Builder)]
-#[builder(pattern = "owned", no_std)]
+#[builder(pattern = "owned", no_std, build_fn(error = "Error"))]
 pub struct GETRI_<'a, B, T>
 where
     T: BlasFloat,

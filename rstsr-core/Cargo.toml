@@ -18,6 +18,7 @@ rayon = { workspace = true, optional = true }
 faer = { workspace = true, optional = true }
 faer-ext = { workspace = true, optional = true }
 faer-entity = { workspace = true, optional = true }
+derive_builder = { workspace = true }
 
 [dev-dependencies]
 rand = { workspace = true }

@@ -13,7 +13,7 @@ pub trait GETRFDriverAPI<T> {
 }
 
 #[derive(Builder)]
-#[builder(pattern = "owned", no_std)]
+#[builder(pattern = "owned", no_std, build_fn(error = "Error"))]
 pub struct GETRF_<'a, B, T>
 where
     T: BlasFloat,
