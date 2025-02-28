@@ -90,4 +90,20 @@ where
             },
         }
     }
+
+    pub fn f_prefer(&self) -> bool {
+        self.view().f_prefer()
+    }
+
+    pub fn c_prefer(&self) -> bool {
+        self.view().c_prefer()
+    }
+
+    pub fn f_contig(&self) -> bool {
+        self.view().f_contig()
+    }
+
+    pub fn c_contig(&self) -> bool {
+        self.view().c_contig()
+    }
 }
