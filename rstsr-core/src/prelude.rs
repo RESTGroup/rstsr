@@ -47,8 +47,8 @@ pub mod rstsr_structs {
     pub use crate::layout::{Ix, Ix1, Ix2, Ix3, Ix4, Ix5, Ix6, Ix7, Ix8, Ix9, IxD, IxDyn, Layout};
     pub use crate::tensor::tensor_mutable::TensorMutable;
     pub use crate::{
-        Tensor, TensorAny, TensorArc, TensorBase, TensorCow, TensorMut, TensorRef, TensorView,
-        TensorViewMut,
+        Tensor, TensorAny, TensorArc, TensorBase, TensorCow, TensorMut, TensorRef, TensorReference,
+        TensorView, TensorViewMut,
     };
 }
 

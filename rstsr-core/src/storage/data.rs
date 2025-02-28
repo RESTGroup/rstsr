@@ -34,6 +34,12 @@ pub struct DataArc<C> {
     pub(crate) raw: Arc<C>,
 }
 
+#[derive(Debug)]
+pub enum DataReference<'a, C> {
+    Ref(DataRef<'a, C>),
+    Mut(DataMut<'a, C>),
+}
+
 unsafe impl<C> Send for DataOwned<C> where C: Send {}
 unsafe impl<C> Send for DataRef<'_, C> where C: Send {}
 unsafe impl<C> Sync for DataRef<'_, C> where C: Sync {}
@@ -42,23 +48,8 @@ unsafe impl<C> Sync for DataCow<'_, C> where C: Sync {}
 unsafe impl<C> Send for DataCow<'_, C> where C: Send {}
 unsafe impl<C> Send for DataArc<C> where C: Send {}
 unsafe impl<C> Sync for DataArc<C> where C: Sync {}
-
-/* #endregion */
-
-/* #region definitions not fully utilized */
-
-#[derive(Debug)]
-pub enum DataMutable<'a, S> {
-    Owned(DataOwned<S>),
-    RefMut(DataMut<'a, S>),
-    ToBeCloned(DataRef<'a, S>, DataOwned<S>),
-}
-
-#[derive(Debug)]
-pub enum DataReference<'a, S> {
-    Ref(DataRef<'a, S>),
-    RefMut(DataMut<'a, S>),
-}
+unsafe impl<C> Send for DataReference<'_, C> where C: Send {}
+unsafe impl<C> Sync for DataReference<'_, C> where C: Sync {}
 
 /* #endregion */
 
@@ -161,6 +152,18 @@ impl<C> DataArc<C> {
     #[inline]
     pub fn weak_count(&self) -> usize {
         Arc::weak_count(&self.raw)
+    }
+}
+
+impl<C> DataReference<'_, C> {
+    #[inline]
+    pub fn is_ref(&self) -> bool {
+        matches!(self, DataReference::Ref(_))
+    }
+
+    #[inline]
+    pub fn is_mut(&self) -> bool {
+        matches!(self, DataReference::Mut(_))
     }
 }
 
@@ -340,6 +343,37 @@ where
     }
 }
 
+impl<C> DataAPI for DataReference<'_, C>
+where
+    C: Clone,
+{
+    type Data = C;
+
+    #[inline]
+    fn raw(&self) -> &Self::Data {
+        match self {
+            DataReference::Ref(data) => data.raw(),
+            DataReference::Mut(data) => data.raw(),
+        }
+    }
+
+    #[inline]
+    fn into_owned(self) -> DataOwned<Self::Data> {
+        match self {
+            DataReference::Ref(data) => data.into_owned(),
+            DataReference::Mut(data) => data.into_owned(),
+        }
+    }
+
+    #[inline]
+    fn into_shared(self) -> DataArc<Self::Data> {
+        match self {
+            DataReference::Ref(data) => data.into_shared(),
+            DataReference::Mut(data) => data.into_shared(),
+        }
+    }
+}
+
 /* #endregion */
 
 /* #region impl DataMutAPI */
@@ -413,6 +447,7 @@ impl_data_force_vec!(DataOwned<Vec<T>>);
 impl_data_force_vec!(DataMut<'_, Vec<T>>);
 impl_data_force_vec!(DataCow<'_, Vec<T>>);
 impl_data_force_vec!(DataArc<Vec<T>>);
+impl_data_force_vec!(DataReference<'_, Vec<T>>);
 
 /* #endregion */
 
@@ -472,6 +507,19 @@ where
     #[inline]
     fn into_cow(self) -> DataCow<'a, C> {
         DataCow::Owned(self.into_owned())
+    }
+}
+
+impl<'a, C> DataIntoCowAPI<'a> for DataReference<'a, C>
+where
+    C: Clone,
+{
+    #[inline]
+    fn into_cow(self) -> DataCow<'a, C> {
+        match self {
+            DataReference::Ref(data) => data.into_cow(),
+            DataReference::Mut(data) => data.into_cow(),
+        }
     }
 }
 

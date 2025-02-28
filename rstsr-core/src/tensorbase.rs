@@ -11,6 +11,22 @@ where
     pub(crate) layout: Layout<D>,
 }
 
+pub type Tensor<T, B = DeviceCpu, D = IxD> =
+    TensorBase<Storage<DataOwned<<B as DeviceRawAPI<T>>::Raw>, T, B>, D>;
+pub type TensorView<'a, T, B = DeviceCpu, D = IxD> =
+    TensorBase<Storage<DataRef<'a, <B as DeviceRawAPI<T>>::Raw>, T, B>, D>;
+pub type TensorViewMut<'a, T, B = DeviceCpu, D = IxD> =
+    TensorBase<Storage<DataMut<'a, <B as DeviceRawAPI<T>>::Raw>, T, B>, D>;
+pub type TensorCow<'a, T, B = DeviceCpu, D = IxD> =
+    TensorBase<Storage<DataCow<'a, <B as DeviceRawAPI<T>>::Raw>, T, B>, D>;
+pub type TensorArc<T, B = DeviceCpu, D = IxD> =
+    TensorBase<Storage<DataArc<<B as DeviceRawAPI<T>>::Raw>, T, B>, D>;
+pub type TensorReference<'a, T, B = DeviceCpu, D = IxD> =
+    TensorBase<Storage<DataReference<'a, <B as DeviceRawAPI<T>>::Raw>, T, B>, D>;
+pub type TensorAny<R, T, B, D> = TensorBase<Storage<R, T, B>, D>;
+pub use TensorView as TensorRef;
+pub use TensorViewMut as TensorMut;
+
 impl<R, D> TensorBaseAPI for TensorBase<R, D> where D: DimAPI {}
 
 /// Basic definitions for tensor object.
@@ -157,6 +173,92 @@ where
     }
 }
 
+/* #region TensorReference */
+
+impl<T, B, D> TensorReference<'_, T, B, D>
+where
+    B: DeviceAPI<T>,
+    D: DimAPI,
+{
+    pub fn is_ref(&self) -> bool {
+        self.data().is_ref()
+    }
+
+    pub fn is_mut(&self) -> bool {
+        self.data().is_mut()
+    }
+}
+
+impl<'a, T, B, D> From<TensorView<'a, T, B, D>> for TensorReference<'a, T, B, D>
+where
+    B: DeviceAPI<T>,
+    D: DimAPI,
+{
+    fn from(tensor: TensorView<'a, T, B, D>) -> Self {
+        let (storage, layout) = tensor.into_raw_parts();
+        let (data, device) = storage.into_raw_parts();
+        let data = DataReference::Ref(data);
+        let storage = Storage::new(data, device);
+        TensorReference::new(storage, layout)
+    }
+}
+
+impl<'a, T, B, D> From<TensorViewMut<'a, T, B, D>> for TensorReference<'a, T, B, D>
+where
+    B: DeviceAPI<T>,
+    D: DimAPI,
+{
+    fn from(tensor: TensorViewMut<'a, T, B, D>) -> Self {
+        let (storage, layout) = tensor.into_raw_parts();
+        let (data, device) = storage.into_raw_parts();
+        let data = DataReference::Mut(data);
+        let storage = Storage::new(data, device);
+        TensorReference::new(storage, layout)
+    }
+}
+
+impl<'a, T, B, D> From<TensorReference<'a, T, B, D>> for TensorView<'a, T, B, D>
+where
+    B: DeviceAPI<T>,
+    D: DimAPI,
+{
+    fn from(tensor: TensorReference<'a, T, B, D>) -> Self {
+        let (storage, layout) = tensor.into_raw_parts();
+        let (data, device) = storage.into_raw_parts();
+        let data = match data {
+            DataReference::Ref(data) => data,
+            DataReference::Mut(_) => {
+                rstsr_raise!(RuntimeError, "cannot convert to TensorView if data is mutable")
+                    .unwrap()
+            },
+        };
+        let storage = Storage::new(data, device);
+        TensorView::new(storage, layout)
+    }
+}
+
+impl<'a, T, B, D> From<TensorReference<'a, T, B, D>> for TensorMut<'a, T, B, D>
+where
+    B: DeviceAPI<T>,
+    D: DimAPI,
+{
+    fn from(tensor: TensorReference<'a, T, B, D>) -> Self {
+        let (storage, layout) = tensor.into_raw_parts();
+        let (data, device) = storage.into_raw_parts();
+        let data = match data {
+            DataReference::Mut(data) => data,
+            DataReference::Ref(_) => {
+                rstsr_raise!(RuntimeError, "cannot convert to TensorMut if data is immutable")
+                    .unwrap()
+            },
+        };
+        let storage = Storage::new(data, device);
+        TensorViewMut::new(storage, layout)
+    }
+}
+
+/* #endregion */
+
 unsafe impl<R, D> Send for TensorBase<R, D>
 where
     D: DimAPI,
@@ -170,17 +272,3 @@ where
     R: Sync,
 {
 }
-
-pub type Tensor<T, B = DeviceCpu, D = IxD> =
-    TensorBase<Storage<DataOwned<<B as DeviceRawAPI<T>>::Raw>, T, B>, D>;
-pub type TensorView<'a, T, B = DeviceCpu, D = IxD> =
-    TensorBase<Storage<DataRef<'a, <B as DeviceRawAPI<T>>::Raw>, T, B>, D>;
-pub type TensorViewMut<'a, T, B = DeviceCpu, D = IxD> =
-    TensorBase<Storage<DataMut<'a, <B as DeviceRawAPI<T>>::Raw>, T, B>, D>;
-pub type TensorCow<'a, T, B = DeviceCpu, D = IxD> =
-    TensorBase<Storage<DataCow<'a, <B as DeviceRawAPI<T>>::Raw>, T, B>, D>;
-pub type TensorArc<T, B = DeviceCpu, D = IxD> =
-    TensorBase<Storage<DataArc<<B as DeviceRawAPI<T>>::Raw>, T, B>, D>;
-pub type TensorAny<R, T, B, D> = TensorBase<Storage<R, T, B>, D>;
-pub use TensorView as TensorRef;
-pub use TensorViewMut as TensorMut;
