@@ -17,6 +17,7 @@ pub use crate::util::*;
 pub use crate::layout::*;
 
 pub use crate::storage::assignment::*;
+pub use crate::storage::combined_trait::*;
 pub use crate::storage::conversion::*;
 pub use crate::storage::creation::*;
 pub use crate::storage::data::*;

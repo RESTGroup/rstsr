@@ -1,4 +1,5 @@
 use crate::prelude_dev::*;
+use num::complex::ComplexFloat;
 
 #[derive(Clone, Debug)]
 pub struct DeviceCpuSerial;
@@ -82,6 +83,12 @@ where
 }
 
 impl<T> DeviceAPI<T> for DeviceCpuSerial where T: Clone {}
+impl<T, D> DeviceComplexFloatAPI<T, D> for DeviceCpuSerial
+where
+    T: ComplexFloat,
+    D: DimAPI,
+{
+}
 
 #[cfg(test)]
 mod tests {

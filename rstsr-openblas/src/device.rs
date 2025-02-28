@@ -1,4 +1,5 @@
 use crate::prelude_dev::*;
+use num::complex::ComplexFloat;
 
 #[derive(Clone, Debug)]
 pub struct DeviceOpenBLAS {
@@ -112,3 +113,9 @@ where
 }
 
 impl<T> DeviceAPI<T> for DeviceOpenBLAS where T: Clone {}
+impl<T, D> DeviceComplexFloatAPI<T, D> for DeviceOpenBLAS
+where
+    T: ComplexFloat + Send + Sync,
+    D: DimAPI,
+{
+}

@@ -46,14 +46,8 @@ where
 
 impl<'c, B, T> GEMM_<'_, '_, 'c, B, T>
 where
-    T: BlasFloat + Num,
-    B: GEMMDriverAPI<T>
-        + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceCreationNumAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + OpAssignArbitaryAPI<T, Ix2, Ix2>
-        + OpAssignAPI<T, Ix2>
-        + DeviceConjAPI<T, Ix2, TOut = T>,
+    T: BlasFloat,
+    B: GEMMDriverAPI<T> + DeviceAPI<T, Raw = Vec<T>> + DeviceComplexFloatAPI<T, Ix2>,
 {
     pub fn run(self) -> Result<TensorMutable2<'c, T, B>> {
         let Self { a, b, c, alpha, beta, transa, transb, order } = self;
