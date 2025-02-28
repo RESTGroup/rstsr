@@ -107,3 +107,32 @@ where
         self.view().c_contig()
     }
 }
+
+impl<'a, T, B, D> TensorMutable<'a, T, B, D>
+where
+    T: Clone,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
+{
+    pub fn into_dim_f<D2>(self) -> Result<TensorMutable<'a, T, B, D2>>
+    where
+        D: DimIntoAPI<D2>,
+        D2: DimAPI,
+    {
+        match self {
+            TensorMutable::Owned(t) => Ok(TensorMutable::Owned(t.into_dim_f()?)),
+            TensorMutable::Mut(t) => Ok(TensorMutable::Mut(t.into_dim_f()?)),
+            TensorMutable::ToBeCloned(t, t_owned) => {
+                Ok(TensorMutable::ToBeCloned(t.into_dim_f()?, t_owned.into_dim_f()?))
+            },
+        }
+    }
+
+    pub fn into_dim<D2>(self) -> TensorMutable<'a, T, B, D2>
+    where
+        D: DimIntoAPI<D2>,
+        D2: DimAPI,
+    {
+        self.into_dim_f().unwrap()
+    }
+}

@@ -8,6 +8,7 @@ members = [
     "rstsr-dtype-traits",
     "rstsr-blas-traits",
     "rstsr-test-manifest",
+    "rstsr-linalg-traits",
 ]
 
 [workspace.package]
@@ -20,14 +21,15 @@ categories = ["science"]
 license = "Apache-2.0"
 
 [workspace.dependencies]
-# members
 rstsr-core = { path = "./rstsr-core", default-features = false, version = "0.1.0" }
-rstsr-openblas = { path = "./rstsr-openblas", default-features = false, version = "0.1.0" }
-rstsr-blas-traits = { path = "./rstsr-blas-traits", default-features = false, version = "0.1.0" }
 # members without core
 rstsr-openblas-ffi = { path = "./rstsr-openblas-ffi", default-features = false, version = "0.1.0" }
 rstsr-dtype-traits = { path = "./rstsr-dtype-traits", default-features = false, version = "0.1.0" }
 rstsr-test-manifest = { path = "./rstsr-test-manifest", default-features = false, version = "0.1.0" }
+# members
+rstsr-openblas = { path = "./rstsr-openblas", default-features = false, version = "0.1.0" }
+rstsr-blas-traits = { path = "./rstsr-blas-traits", default-features = false, version = "0.1.0" }
+rstsr-linalg-traits = { path = "./rstsr-linalg-traits", default-features = false, version = "0.1.0" }
 # basic dependencies
 num = { version = "0.4" }
 thiserror = { version = "1.0" }

@@ -16,6 +16,7 @@ rstsr-core = { workspace = true, features = ["rayon"] }
 rstsr-dtype-traits = { workspace = true, features = ["half"] }
 rstsr-openblas-ffi = { workspace = true }
 rstsr-blas-traits = { workspace = true }
+rstsr-linalg-traits = { workspace = true, optional = true }
 
 [dev-dependencies]
 rstsr-test-manifest = { workspace = true }
@@ -24,3 +25,4 @@ rstsr-test-manifest = { workspace = true }
 faer = ["rstsr-core/faer"]
 ilp64 = ["rstsr-openblas-ffi/ilp64", "rstsr-blas-traits/ilp64"]
 openmp = ["rstsr-openblas-ffi/openmp"]
+linalg = ["dep:rstsr-linalg-traits"]

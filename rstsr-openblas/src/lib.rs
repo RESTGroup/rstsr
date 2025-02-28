@@ -5,10 +5,13 @@
 pub mod conversion;
 pub mod creation;
 pub mod device;
-pub mod impl_blas_traits;
 pub mod macro_impl;
 pub mod matmul;
 pub mod matmul_impl;
 pub mod prelude_dev;
+
+pub mod impl_blas_traits;
+#[cfg(feature = "linalg")]
+pub mod impl_linalg_traits;
 
 pub use device::DeviceOpenBLAS;
