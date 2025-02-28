@@ -113,17 +113,7 @@ where
         };
 
         // prepare output
-        let mut b = if b.is_ref() {
-            TensorMutable2::Owned(TensorView::from(b).into_contig_f(ColMajor)?)
-        } else {
-            let b = TensorMut::from(b);
-            if b.f_prefer() {
-                TensorMutable2::Mut(b)
-            } else {
-                let b_buffer = b.to_contig_f(ColMajor)?.into_owned();
-                TensorMutable2::ToBeCloned(b, b_buffer)
-            }
-        };
+        let mut b = overwritable_convert_with_order(b, ColMajor)?;
 
         // perform blas
         let ptr_a = a.raw().as_ptr();

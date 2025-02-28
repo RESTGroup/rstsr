@@ -13,3 +13,5 @@ pub mod prelude_dev;
 pub mod util;
 
 pub mod blas3;
+
+pub mod lapack_solve;
