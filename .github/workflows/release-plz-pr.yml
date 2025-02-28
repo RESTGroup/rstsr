@@ -5,9 +5,7 @@ permissions:
   contents: write
 
 on:
-  push:
-    branches:
-      - master
+  workflow_dispatch:
 
 jobs:
   # Create a PR with the new versions and changelog, preparing the next release.
