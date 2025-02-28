@@ -41,6 +41,14 @@ impl<S> TensorBase<S, Ix2> {
             return Some(self.stride()[1] as usize);
         }
     }
+
+    /// Leading dimension by order.
+    pub fn ld(&self, order: FlagOrder) -> Option<usize> {
+        match order {
+            ColMajor => self.ld_col(),
+            RowMajor => self.ld_row(),
+        }
+    }
 }
 
 #[cfg(test)]

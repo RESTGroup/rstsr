@@ -36,9 +36,9 @@ where
     pub alpha: T,
     #[builder(setter(into), default = "T::zero()")]
     pub beta: T,
-    #[builder(setter(into), default = "FlagTrans::N")]
+    #[builder(setter(into), default = "NoTrans")]
     pub transa: FlagTrans,
-    #[builder(setter(into), default = "FlagTrans::N")]
+    #[builder(setter(into), default = "NoTrans")]
     pub transb: FlagTrans,
     #[builder(setter(into, strip_option), default = "None")]
     pub order: Option<FlagOrder>,
