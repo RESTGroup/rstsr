@@ -1,10 +1,7 @@
 use crate::DeviceBLAS;
-use rstsr_blas_traits::{
-    lapack_solve::{getrf::GETRFDriverAPI, getri::GETRIDriverAPI},
-    prelude_dev::BlasFloat,
-};
+use rstsr_blas_traits::prelude::*;
 use rstsr_core::prelude_dev::*;
-use rstsr_linalg_traits::traits::basics::inv::*;
+use rstsr_linalg_traits::prelude::*;
 
 impl<R, T> LinalgInvAPI<DeviceBLAS> for &TensorAny<R, T, DeviceBLAS, Ix2>
 where
