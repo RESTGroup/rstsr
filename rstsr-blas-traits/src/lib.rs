@@ -1,6 +1,7 @@
 #![allow(non_camel_case_types)]
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::missing_safety_doc)]
+#![allow(clippy::type_complexity)]
 
 #[cfg(not(feature = "ilp64"))]
 pub type blasint = i32;
@@ -16,4 +17,5 @@ pub mod util;
 
 pub mod blas3;
 
+pub mod lapack_eigh;
 pub mod lapack_solve;

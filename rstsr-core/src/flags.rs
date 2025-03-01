@@ -1,6 +1,7 @@
 //! Flags for the crate.
 
 use crate::prelude_dev::*;
+use core::ffi::c_char;
 
 /* #region changeable default */
 
@@ -270,6 +271,17 @@ impl From<FlagTrans> for char {
     }
 }
 
+impl From<FlagTrans> for c_char {
+    fn from(val: FlagTrans) -> Self {
+        match val {
+            FlagTrans::N => b'N' as c_char,
+            FlagTrans::T => b'T' as c_char,
+            FlagTrans::C => b'C' as c_char,
+            _ => rstsr_invalid!(val).unwrap(),
+        }
+    }
+}
+
 impl From<char> for FlagDiag {
     fn from(val: char) -> Self {
         match val {
@@ -285,6 +297,16 @@ impl From<FlagDiag> for char {
         match val {
             FlagDiag::N => 'N',
             FlagDiag::U => 'U',
+            _ => rstsr_invalid!(val).unwrap(),
+        }
+    }
+}
+
+impl From<FlagDiag> for c_char {
+    fn from(val: FlagDiag) -> Self {
+        match val {
+            FlagDiag::N => b'N' as c_char,
+            FlagDiag::U => b'U' as c_char,
             _ => rstsr_invalid!(val).unwrap(),
         }
     }
@@ -310,6 +332,16 @@ impl From<FlagSide> for char {
     }
 }
 
+impl From<FlagSide> for c_char {
+    fn from(val: FlagSide) -> Self {
+        match val {
+            FlagSide::L => b'L' as c_char,
+            FlagSide::R => b'R' as c_char,
+            _ => rstsr_invalid!(val).unwrap(),
+        }
+    }
+}
+
 impl From<char> for FlagUpLo {
     fn from(val: char) -> Self {
         match val {
@@ -325,6 +357,16 @@ impl From<FlagUpLo> for char {
         match val {
             FlagUpLo::U => 'U',
             FlagUpLo::L => 'L',
+            _ => rstsr_invalid!(val).unwrap(),
+        }
+    }
+}
+
+impl From<FlagUpLo> for c_char {
+    fn from(val: FlagUpLo) -> Self {
+        match val {
+            FlagUpLo::U => b'U' as c_char,
+            FlagUpLo::L => b'L' as c_char,
             _ => rstsr_invalid!(val).unwrap(),
         }
     }

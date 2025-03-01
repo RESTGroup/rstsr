@@ -1,6 +1,6 @@
-use crate::DeviceBLAS as DeviceBLAS;
+use crate::DeviceBLAS;
 use num::Complex;
-use rstsr_blas_traits::{blasint, lapack_solve::getrf::*};
+use rstsr_blas_traits::prelude::*;
 use rstsr_core::flags::*;
 
 impl GETRFDriverAPI<f32> for DeviceBLAS {
