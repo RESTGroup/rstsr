@@ -46,7 +46,6 @@ where
 
         let device = a.device().clone();
         let mut a = overwritable_convert(a)?;
-        println!("{:?}", a.view().layout());
         let order = if a.f_prefer() && !a.c_prefer() { ColMajor } else { RowMajor };
 
         let [n, m] = *a.view().shape();
