@@ -1,11 +1,10 @@
-use crate::DeviceOpenBLAS as DeviceBLAS;
+use crate::DeviceBLAS;
 use rstsr_blas_traits::{
     lapack_solve::{getrf::GETRFDriverAPI, getri::GETRIDriverAPI},
     prelude_dev::BlasFloat,
 };
 use rstsr_core::prelude_dev::*;
-use rstsr_linalg_traits::traits::basics::*;
-use rstsr_openblas_ffi::with_num_threads;
+use rstsr_linalg_traits::traits::basics::inv::*;
 
 impl<R, T> LinalgInvAPI<DeviceBLAS> for &TensorAny<R, T, DeviceBLAS, Ix2>
 where
@@ -18,9 +17,7 @@ where
 {
     type Out = Tensor<T, DeviceBLAS, Ix2>;
     fn inv_f(args: Self) -> Result<Self::Out> {
-        let device = args.device();
-        let nthreads = device.get_num_threads();
-        with_num_threads(nthreads, || Ok(blas_inv_f(args.view().into())?.into_owned()))
+        Ok(blas_inv_f(args.view().into())?.into_owned())
     }
 }
 
@@ -34,9 +31,7 @@ where
 {
     type Out = Tensor<T, DeviceBLAS, Ix2>;
     fn inv_f(args: Self) -> Result<Self::Out> {
-        let device = args.device();
-        let nthreads = device.get_num_threads();
-        with_num_threads(nthreads, || Ok(blas_inv_f(args.into())?.into_owned()))
+        Ok(blas_inv_f(args.into())?.into_owned())
     }
 }
 
@@ -50,9 +45,7 @@ where
 {
     type Out = TensorMutable<'a, T, DeviceBLAS, Ix2>;
     fn inv_f(args: Self) -> Result<Self::Out> {
-        let device = args.device();
-        let nthreads = device.get_num_threads();
-        with_num_threads(nthreads, || blas_inv_f(args.into()))
+        blas_inv_f(args.into())
     }
 }
 
@@ -66,9 +59,7 @@ where
 {
     type Out = Tensor<T, DeviceBLAS, Ix2>;
     fn inv_f(mut args: Self) -> Result<Self::Out> {
-        let device = args.device();
-        let nthreads = device.get_num_threads();
-        with_num_threads(nthreads, || Ok(blas_inv_f(args.view_mut().into())?.into_owned()))
+        Ok(blas_inv_f(args.view_mut().into())?.into_owned())
     }
 }
 

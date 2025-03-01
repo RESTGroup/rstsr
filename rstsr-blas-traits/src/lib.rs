@@ -10,6 +10,7 @@ pub type blasint = i64;
 pub mod blas_scalar;
 pub mod cblas_flags;
 pub mod prelude_dev;
+pub mod threading;
 pub mod util;
 
 pub mod blas3;

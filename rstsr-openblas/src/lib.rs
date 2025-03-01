@@ -15,3 +15,4 @@ pub mod impl_blas_traits;
 pub mod impl_linalg_traits;
 
 pub use device::DeviceOpenBLAS;
+pub(crate) type DeviceBLAS = DeviceOpenBLAS;
