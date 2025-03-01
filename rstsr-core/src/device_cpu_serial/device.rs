@@ -1,5 +1,5 @@
 use crate::prelude_dev::*;
-use num::complex::ComplexFloat;
+use num::{complex::ComplexFloat, Num};
 
 #[derive(Clone, Debug)]
 pub struct DeviceCpuSerial;
@@ -86,6 +86,13 @@ impl<T> DeviceAPI<T> for DeviceCpuSerial where T: Clone {}
 impl<T, D> DeviceComplexFloatAPI<T, D> for DeviceCpuSerial
 where
     T: ComplexFloat,
+    D: DimAPI,
+{
+}
+
+impl<T, D> DeviceNumAPI<T, D> for DeviceCpuSerial
+where
+    T: Clone + Num,
     D: DimAPI,
 {
 }

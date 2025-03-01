@@ -26,21 +26,27 @@ where
 impl<'a, B, T> GETRF_<'a, B, T>
 where
     T: BlasFloat,
-    B: GETRFDriverAPI<T> + DeviceAPI<T, Raw = Vec<T>> + DeviceComplexFloatAPI<T, Ix2>,
+    B: GETRFDriverAPI<T>
+        + DeviceAPI<T, Raw = Vec<T>>
+        + DeviceAPI<blasint, Raw = Vec<blasint>>
+        + DeviceComplexFloatAPI<T, Ix2>
+        + DeviceNumAPI<blasint, Ix1>,
 {
-    pub fn internal_run(self) -> Result<(TensorMutable2<'a, T, B>, Vec<blasint>)> {
+    pub fn internal_run(self) -> Result<(TensorMutable2<'a, T, B>, Tensor<blasint, B, Ix1>)> {
         let Self { a } = self;
 
+        let device = a.device().clone();
         let mut a = overwritable_convert(a)?;
         let order = if a.f_prefer() && !a.c_prefer() { ColMajor } else { RowMajor };
 
         let [m, n] = *a.view().shape();
         let lda = a.view().ld(order).unwrap();
-        let mut ipiv = vec![0; m.min(n)];
+        let mut ipiv = unsafe { empty_f(([n].c(), &device))?.into_dim::<Ix1>() };
         let ptr_a = a.view_mut().as_mut_ptr();
+        let ptr_ipiv = ipiv.as_mut_ptr();
 
         // run driver
-        let info = unsafe { B::driver_getrf(order, m, n, ptr_a, lda, ipiv.as_mut_ptr()) };
+        let info = unsafe { B::driver_getrf(order, m, n, ptr_a, lda, ptr_ipiv) };
         let info = info as i32;
         if info != 0 {
             rstsr_errcode!(info, "Lapack GETRF")?;
@@ -49,7 +55,7 @@ where
         Ok((a.clone_to_mut(), ipiv))
     }
 
-    pub fn run(self) -> Result<(TensorMutable2<'a, T, B>, Vec<blasint>)> {
+    pub fn run(self) -> Result<(TensorMutable2<'a, T, B>, Tensor<blasint, B, Ix1>)> {
         self.internal_run()
     }
 }

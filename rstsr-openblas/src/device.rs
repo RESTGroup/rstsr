@@ -1,5 +1,5 @@
 use crate::prelude_dev::*;
-use num::complex::ComplexFloat;
+use num::{complex::ComplexFloat, Num};
 
 impl DeviceBLAS {
     pub fn new(num_threads: usize) -> Self {
@@ -111,6 +111,13 @@ impl<T> DeviceAPI<T> for DeviceBLAS where T: Clone {}
 impl<T, D> DeviceComplexFloatAPI<T, D> for DeviceBLAS
 where
     T: ComplexFloat + Send + Sync,
+    D: DimAPI,
+{
+}
+
+impl<T, D> DeviceNumAPI<T, D> for DeviceBLAS
+where
+    T: Clone + Num + Send + Sync,
     D: DimAPI,
 {
 }

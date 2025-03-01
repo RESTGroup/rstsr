@@ -13,26 +13,31 @@ pub trait GETRIDriverAPI<T> {
 
 #[derive(Builder)]
 #[builder(pattern = "owned", no_std, build_fn(error = "Error"))]
-pub struct GETRI_<'a, B, T>
+pub struct GETRI_<'a, 'ipiv, B, T>
 where
     T: BlasFloat,
-    B: DeviceAPI<T>,
+    B: DeviceAPI<T> + DeviceAPI<blasint>,
 {
     #[builder(setter(into))]
     pub a: TensorReference<'a, T, B, Ix2>,
-    pub ipiv: Vec<blasint>,
+    pub ipiv: TensorView<'ipiv, blasint, B, Ix1>,
 }
 
-impl<'a, B, T> GETRI_<'a, B, T>
+impl<'a, B, T> GETRI_<'a, '_, B, T>
 where
     T: BlasFloat,
-    B: GETRIDriverAPI<T> + DeviceAPI<T, Raw = Vec<T>> + DeviceComplexFloatAPI<T, Ix2>,
+    B: GETRIDriverAPI<T>
+        + DeviceAPI<T, Raw = Vec<T>>
+        + DeviceAPI<blasint, Raw = Vec<blasint>>
+        + DeviceComplexFloatAPI<T, Ix2>
+        + DeviceNumAPI<blasint, Ix1>,
 {
     pub fn internal_run(self) -> Result<TensorMutable2<'a, T, B>> {
-        let Self { a, mut ipiv } = self;
+        let Self { a, ipiv } = self;
 
         let mut a = overwritable_convert(a)?;
         let order = if a.f_prefer() && !a.c_prefer() { ColMajor } else { RowMajor };
+        let mut ipiv = ipiv.into_contig_f(ColMajor)?;
 
         // perform check
         rstsr_assert_eq!(
@@ -45,9 +50,10 @@ where
         let n = a.view().nrow();
         let lda = a.view().ld(order).unwrap();
         let ptr_a = a.view_mut().as_mut_ptr();
+        let ptr_ipiv = ipiv.as_mut_ptr();
 
         // run driver
-        let info = unsafe { B::driver_getri(order, n, ptr_a, lda, ipiv.as_mut_ptr()) };
+        let info = unsafe { B::driver_getri(order, n, ptr_a, lda, ptr_ipiv) };
         let info = info as i32;
         if info != 0 {
             rstsr_errcode!(info, "Lapack GETRI")?;
@@ -61,8 +67,8 @@ where
     }
 }
 
-pub type GETRI<'a, B, T> = GETRI_Builder<'a, B, T>;
-pub type SGETRI<'a, B> = GETRI<'a, B, f32>;
-pub type DGETRI<'a, B> = GETRI<'a, B, f64>;
-pub type CGETRI<'a, B> = GETRI<'a, B, Complex<f32>>;
-pub type ZGETRI<'a, B> = GETRI<'a, B, Complex<f64>>;
+pub type GETRI<'a, 'ipiv, B, T> = GETRI_Builder<'a, 'ipiv, B, T>;
+pub type SGETRI<'a, 'ipiv, B> = GETRI<'a, 'ipiv, B, f32>;
+pub type DGETRI<'a, 'ipiv, B> = GETRI<'a, 'ipiv, B, f64>;
+pub type CGETRI<'a, 'ipiv, B> = GETRI<'a, 'ipiv, B, Complex<f32>>;
+pub type ZGETRI<'a, 'ipiv, B> = GETRI<'a, 'ipiv, B, Complex<f64>>;
