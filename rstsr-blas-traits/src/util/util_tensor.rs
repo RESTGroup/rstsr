@@ -15,14 +15,19 @@ where
     B: DeviceAPI<T, Raw = Vec<T>> + DeviceComplexFloatAPI<T, D>,
     D: DimAPI,
 {
+    let order = match (a.f_prefer(), a.c_prefer()) {
+        (true, false) => ColMajor,
+        (false, true) => RowMajor,
+        _ => FlagOrder::default(),
+    };
     let a = if a.is_ref() {
-        TensorMutable::Owned(TensorView::from(a).into_contig_f(FlagOrder::default())?)
+        TensorMutable::Owned(TensorView::from(a).into_contig_f(order)?)
     } else {
         let a = TensorMut::from(a);
         if a.f_prefer() || a.c_prefer() {
             TensorMutable::Mut(a)
         } else {
-            let a_buffer = a.to_contig_f(FlagOrder::default())?.into_owned();
+            let a_buffer = a.to_contig_f(order)?.into_owned();
             TensorMutable::ToBeCloned(a, a_buffer)
         }
     };

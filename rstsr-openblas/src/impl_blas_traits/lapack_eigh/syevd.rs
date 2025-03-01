@@ -3,8 +3,8 @@ use num::Complex;
 use rstsr_blas_traits::prelude::*;
 use rstsr_core::flags::*;
 
-impl SYEVDriverAPI<f32> for DeviceBLAS {
-    unsafe fn driver_syev(
+impl SYEVDDriverAPI<f32> for DeviceBLAS {
+    unsafe fn driver_syevd(
         order: FlagOrder,
         jobz: char,
         uplo: FlagUpLo,
@@ -13,7 +13,7 @@ impl SYEVDriverAPI<f32> for DeviceBLAS {
         lda: usize,
         w: *mut f32,
     ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_ssyev(
+        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_ssyevd(
             order as _,
             jobz as _,
             uplo.into(),
@@ -25,8 +25,8 @@ impl SYEVDriverAPI<f32> for DeviceBLAS {
     }
 }
 
-impl SYEVDriverAPI<f64> for DeviceBLAS {
-    unsafe fn driver_syev(
+impl SYEVDDriverAPI<f64> for DeviceBLAS {
+    unsafe fn driver_syevd(
         order: FlagOrder,
         jobz: char,
         uplo: FlagUpLo,
@@ -35,7 +35,7 @@ impl SYEVDriverAPI<f64> for DeviceBLAS {
         lda: usize,
         w: *mut f64,
     ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_dsyev(
+        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_dsyevd(
             order as _,
             jobz as _,
             uplo.into(),
@@ -47,8 +47,8 @@ impl SYEVDriverAPI<f64> for DeviceBLAS {
     }
 }
 
-impl SYEVDriverAPI<Complex<f32>> for DeviceBLAS {
-    unsafe fn driver_syev(
+impl SYEVDDriverAPI<Complex<f32>> for DeviceBLAS {
+    unsafe fn driver_syevd(
         order: FlagOrder,
         jobz: char,
         uplo: FlagUpLo,
@@ -57,7 +57,7 @@ impl SYEVDriverAPI<Complex<f32>> for DeviceBLAS {
         lda: usize,
         w: *mut f32,
     ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_cheev(
+        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_cheevd(
             order as _,
             jobz as _,
             uplo.into(),
@@ -69,8 +69,8 @@ impl SYEVDriverAPI<Complex<f32>> for DeviceBLAS {
     }
 }
 
-impl SYEVDriverAPI<Complex<f64>> for DeviceBLAS {
-    unsafe fn driver_syev(
+impl SYEVDDriverAPI<Complex<f64>> for DeviceBLAS {
+    unsafe fn driver_syevd(
         order: FlagOrder,
         jobz: char,
         uplo: FlagUpLo,
@@ -79,7 +79,7 @@ impl SYEVDriverAPI<Complex<f64>> for DeviceBLAS {
         lda: usize,
         w: *mut f64,
     ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_zheev(
+        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_zheevd(
             order as _,
             jobz as _,
             uplo.into(),
@@ -103,7 +103,7 @@ mod test {
         let device = DeviceBLAS::default();
         let la = [2048, 2048].c();
         let a = Tensor::new(Storage::new(get_vec::<f64>('a').into(), device.clone()), la);
-        let driver = DSYEV::default().a(a.view()).build().unwrap();
+        let driver = DSYEVD::default().a(a.view()).build().unwrap();
         let (c, w) = driver.run().unwrap();
         let c = c.into_owned();
         // println!("{:?}", c);

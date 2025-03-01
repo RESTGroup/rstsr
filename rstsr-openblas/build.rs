@@ -14,5 +14,6 @@ fn main() {
                 println!("cargo:rustc-link-search=native={}", path);
             });
         println!("cargo:rustc-link-lib=openblas");
+        println!("cargo:rustc-link-lib=gomp");
     }
 }
