@@ -1,4 +1,4 @@
-use crate::DeviceBLAS as DeviceBLAS;
+use crate::DeviceBLAS;
 use num::Complex;
 use rstsr_blas_traits::blas3::gemm::*;
 use rstsr_core::flags::*;
