@@ -1,14 +1,9 @@
 use crate::prelude_dev::*;
 use num::complex::ComplexFloat;
 
-#[derive(Clone, Debug)]
-pub struct DeviceOpenBLAS {
-    base: DeviceCpuRayon,
-}
-
-impl DeviceOpenBLAS {
+impl DeviceBLAS {
     pub fn new(num_threads: usize) -> Self {
-        DeviceOpenBLAS { base: DeviceCpuRayon::new(num_threads) }
+        DeviceBLAS { base: DeviceCpuRayon::new(num_threads) }
     }
 
     pub fn var_num_threads(&self) -> usize {
@@ -16,7 +11,7 @@ impl DeviceOpenBLAS {
     }
 }
 
-impl DeviceRayonAPI for DeviceOpenBLAS {
+impl DeviceRayonAPI for DeviceBLAS {
     fn set_num_threads(&mut self, num_threads: usize) {
         self.base.set_num_threads(num_threads);
     }
@@ -34,26 +29,26 @@ impl DeviceRayonAPI for DeviceOpenBLAS {
     }
 }
 
-impl Default for DeviceOpenBLAS {
+impl Default for DeviceBLAS {
     fn default() -> Self {
-        DeviceOpenBLAS::new(0)
+        DeviceBLAS::new(0)
     }
 }
 
-impl DeviceBaseAPI for DeviceOpenBLAS {
+impl DeviceBaseAPI for DeviceBLAS {
     fn same_device(&self, other: &Self) -> bool {
         self.var_num_threads() == other.var_num_threads()
     }
 }
 
-impl<T> DeviceRawAPI<T> for DeviceOpenBLAS
+impl<T> DeviceRawAPI<T> for DeviceBLAS
 where
     T: Clone,
 {
     type Raw = Vec<T>;
 }
 
-impl<T> DeviceStorageAPI<T> for DeviceOpenBLAS
+impl<T> DeviceStorageAPI<T> for DeviceBLAS
 where
     T: Clone,
 {
@@ -112,8 +107,8 @@ where
     }
 }
 
-impl<T> DeviceAPI<T> for DeviceOpenBLAS where T: Clone {}
-impl<T, D> DeviceComplexFloatAPI<T, D> for DeviceOpenBLAS
+impl<T> DeviceAPI<T> for DeviceBLAS where T: Clone {}
+impl<T, D> DeviceComplexFloatAPI<T, D> for DeviceBLAS
 where
     T: ComplexFloat + Send + Sync,
     D: DimAPI,

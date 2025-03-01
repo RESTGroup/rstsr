@@ -4,7 +4,7 @@ mod test {
     #[test]
     fn workable() {
         use rstsr_core::prelude::*;
-        use rstsr_openblas::device::DeviceOpenBLAS;
+        use rstsr_openblas::DeviceOpenBLAS;
 
         // specify the number of threads of 16
         let device = DeviceOpenBLAS::new(16);

@@ -1,4 +1,4 @@
-use crate::DeviceOpenBLAS as DeviceBLAS;
+use crate::DeviceBLAS;
 use num::Complex;
 use rstsr_blas_traits::blas3::trsm::*;
 use rstsr_core::flags::*;
@@ -134,13 +134,13 @@ impl TRSMDriverAPI<Complex<f64>> for DeviceBLAS {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::DeviceOpenBLAS;
+    use crate::DeviceBLAS;
     use rstsr_core::prelude_dev::*;
     use rstsr_test_manifest::get_vec;
 
     #[test]
     fn playground() {
-        let device = DeviceOpenBLAS::default();
+        let device = DeviceBLAS::default();
         let la = [2048, 2048].c();
         let lb = [2048, 4096].c();
         let a = Tensor::new(Storage::new(get_vec::<f64>('a').into(), device.clone()), la);

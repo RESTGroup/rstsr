@@ -78,7 +78,7 @@ where
 }
 
 #[allow(clippy::too_many_arguments)]
-impl<TA, TB, TC, DA, DB, DC> DeviceMatMulAPI<TA, TB, TC, DA, DB, DC> for DeviceOpenBLAS
+impl<TA, TB, TC, DA, DB, DC> DeviceMatMulAPI<TA, TB, TC, DA, DB, DC> for DeviceBLAS
 where
     TA: Clone + Send + Sync + 'static,
     TB: Clone + Send + Sync + 'static,
@@ -295,7 +295,7 @@ mod test {
 
     #[test]
     fn test_matmul() {
-        let device = DeviceOpenBLAS::default();
+        let device = DeviceBLAS::default();
         let a = linspace((0.0, 14.0, 15, &device)).into_shape([3, 5]);
         let b = linspace((0.0, 14.0, 15, &device)).into_shape([5, 3]);
         println!("{:}", &a % &b);
@@ -324,7 +324,7 @@ mod test {
     #[test]
     #[ignore]
     fn parallel_test_full() {
-        let device = DeviceOpenBLAS::default();
+        let device = DeviceBLAS::default();
         let a = linspace((0.0, 1.0, 8192 * 8192, &device)).into_shape([8192, 8192]);
         let b = linspace((0.0, 1.0, 8192 * 8192, &device)).into_shape([8192, 8192]);
         for _ in 0..10 {
@@ -337,7 +337,7 @@ mod test {
     #[test]
     #[ignore]
     fn parallel_test_full_512() {
-        let device = DeviceOpenBLAS::new(1);
+        let device = DeviceBLAS::new(1);
         let a = linspace((0.0, 1.0, 512 * 512, &device)).into_shape([512, 512]);
         let b = linspace((0.0, 1.0, 512 * 512, &device)).into_shape([512, 512]);
         for _ in 0..1000 {
@@ -351,7 +351,7 @@ mod test {
     #[test]
     #[ignore]
     fn parallel_test_par_rule7() {
-        let device = DeviceOpenBLAS::default();
+        let device = DeviceBLAS::default();
         let a = linspace((0.0, 1.0, 8192 * 8192, &device)).into_shape([256, 512, 512]);
         let b = linspace((0.0, 1.0, 8192 * 8192, &device)).into_shape([256, 512, 512]);
         for i in 0..10 {
@@ -368,7 +368,7 @@ mod test {
     #[test]
     #[ignore]
     fn parallel_test_par_rule6() {
-        let device = DeviceOpenBLAS::default();
+        let device = DeviceBLAS::default();
         let a = linspace((0.0, 1.0, 8192 * 8192, &device)).into_shape([256, 512, 512]);
         let b = linspace((0.0, 1.0, 512 * 512, &device)).into_shape([512, 512]);
         for i in 0..10 {
@@ -385,7 +385,7 @@ mod test {
     #[test]
     #[ignore]
     fn parallel_test_par_rule6_fprefer() {
-        let device = DeviceOpenBLAS::default();
+        let device = DeviceBLAS::default();
         let a = linspace((0.0, 1.0, 8192 * 8192, &device))
             .into_shape([512, 512, 256])
             .into_reverse_axes();
@@ -403,14 +403,14 @@ mod test {
 
     #[test]
     fn syrk_correctness() {
-        let device = DeviceOpenBLAS::default();
+        let device = DeviceBLAS::default();
         let a = linspace((0.0, 1.0, 512 * 512, &device)).into_shape([512, 512]);
         let b = linspace((0.0, 1.0, 512 * 512, &device)).into_shape([512, 512]);
         let c = &a % &a.t();
         let d = &a % &b.t();
         assert!(allclose_f64(&c, &d));
 
-        let device = DeviceOpenBLAS::default();
+        let device = DeviceBLAS::default();
         let a = linspace((0.0, 1.0, 1024 * 1024, &device)).into_shape([4, 512, 512]);
         let b = linspace((0.0, 1.0, 1024 * 1024, &device)).into_shape([4, 512, 512]);
         let c = &a % &a.swapaxes(-1, -2);
@@ -422,7 +422,7 @@ mod test {
     #[ignore]
     fn syrk_efficiency() {
         use std::hint::black_box;
-        let device = DeviceOpenBLAS::default();
+        let device = DeviceBLAS::default();
         let a = linspace((0.0, 1.0, 8192 * 8192, &device)).into_shape([256, 512, 512]);
         let b = linspace((0.0, 1.0, 8192 * 8192, &device)).into_shape([256, 512, 512]);
         for _ in 0..10 {

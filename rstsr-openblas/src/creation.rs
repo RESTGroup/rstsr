@@ -2,7 +2,7 @@ use crate::prelude_dev::*;
 use num::{complex::ComplexFloat, Num};
 
 // for creation, we use most of the functions from DeviceCpuSerial
-impl<T> DeviceCreationAnyAPI<T> for DeviceOpenBLAS
+impl<T> DeviceCreationAnyAPI<T> for DeviceBLAS
 where
     T: Clone,
     Self: DeviceRawAPI<T, Raw = Vec<T>>,
@@ -29,7 +29,7 @@ where
     }
 }
 
-impl<T> DeviceCreationNumAPI<T> for DeviceOpenBLAS
+impl<T> DeviceCreationNumAPI<T> for DeviceBLAS
 where
     T: Num + Clone,
     Self: DeviceRawAPI<T, Raw = Vec<T>>,
@@ -53,7 +53,7 @@ where
     }
 }
 
-impl<T> DeviceCreationPartialOrdNumAPI<T> for DeviceOpenBLAS
+impl<T> DeviceCreationPartialOrdNumAPI<T> for DeviceBLAS
 where
     T: Num + PartialOrd + Clone,
     Self: DeviceRawAPI<T, Raw = Vec<T>>,
@@ -70,7 +70,7 @@ where
     }
 }
 
-impl<T> DeviceCreationComplexFloatAPI<T> for DeviceOpenBLAS
+impl<T> DeviceCreationComplexFloatAPI<T> for DeviceBLAS
 where
     T: ComplexFloat + Clone + Send + Sync,
     Self: DeviceRawAPI<T, Raw = Vec<T>>,
@@ -94,7 +94,7 @@ mod test {
 
     #[test]
     fn test_linspace() {
-        let device = DeviceOpenBLAS::default();
+        let device = DeviceBLAS::default();
         let a = linspace((1.0, 5.0, 5, &device));
         assert_eq!(a.raw(), &vec![1., 2., 3., 4., 5.]);
     }

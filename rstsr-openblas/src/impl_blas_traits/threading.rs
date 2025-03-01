@@ -1,7 +1,7 @@
 use crate::prelude_dev::*;
 use rstsr_blas_traits::prelude_dev::*;
 
-impl BlasThreadAPI for DeviceOpenBLAS {
+impl BlasThreadAPI for DeviceBLAS {
     fn get_num_threads(&self) -> usize {
         rstsr_openblas_ffi::get_num_threads()
     }

@@ -14,5 +14,11 @@ pub mod impl_blas_traits;
 #[cfg(feature = "linalg")]
 pub mod impl_linalg_traits;
 
-pub use device::DeviceOpenBLAS;
-pub(crate) type DeviceBLAS = DeviceOpenBLAS;
+use rstsr_core::prelude_dev::DeviceCpuRayon;
+
+#[derive(Clone, Debug)]
+pub struct DeviceOpenBLAS {
+    base: DeviceCpuRayon,
+}
+
+pub(crate) use DeviceOpenBLAS as DeviceBLAS;

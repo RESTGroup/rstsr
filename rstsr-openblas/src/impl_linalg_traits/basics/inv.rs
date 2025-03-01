@@ -66,12 +66,12 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::DeviceOpenBLAS;
+    use crate::DeviceBLAS;
     use rstsr_test_manifest::get_vec;
 
     #[test]
     fn playground() {
-        let device = DeviceOpenBLAS::default();
+        let device = DeviceBLAS::default();
         let la = [2048, 2048].c();
         let a = Tensor::new(Storage::new(get_vec::<f64>('a').into(), device.clone()), la);
         let a_inv = inv(&a);
