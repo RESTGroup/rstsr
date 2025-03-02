@@ -1110,7 +1110,7 @@ where
     return TrilAPI::tril_f(param);
 }
 
-impl<T, D, B> TrilAPI<T> for (TensorView<'_, T, B, D>, isize)
+impl<T, D, B> TrilAPI<()> for (TensorView<'_, T, B, D>, isize)
 where
     T: Num + Clone,
     D: DimAPI,
@@ -1132,7 +1132,7 @@ where
     }
 }
 
-impl<T, D, B> TrilAPI<T> for TensorView<'_, T, B, D>
+impl<T, D, B> TrilAPI<()> for TensorView<'_, T, B, D>
 where
     T: Num + Clone,
     D: DimAPI,
@@ -1149,7 +1149,45 @@ where
     }
 }
 
-impl<T, D, B> TrilAPI<T> for (Tensor<T, B, D>, isize)
+impl<'a, T, D, B> TrilAPI<()> for (TensorMut<'a, T, B, D>, isize)
+where
+    T: Num + Clone,
+    D: DimAPI,
+    B: DeviceAPI<T>
+        + DeviceCreationTriAPI<T>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignArbitaryAPI<T, D, D>
+        + OpAssignAPI<T, D>,
+{
+    type Out = TensorMut<'a, T, B, D>;
+
+    fn tril_f(self) -> Result<Self::Out> {
+        let (mut x, k) = self;
+        let device = x.device().clone();
+        let layout = x.layout().clone();
+        device.tril_impl(x.raw_mut(), &layout, k)?;
+        Ok(x)
+    }
+}
+
+impl<'a, T, D, B> TrilAPI<()> for TensorMut<'a, T, B, D>
+where
+    T: Num + Clone,
+    D: DimAPI,
+    B: DeviceAPI<T>
+        + DeviceCreationTriAPI<T>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignArbitaryAPI<T, D, D>
+        + OpAssignAPI<T, D>,
+{
+    type Out = TensorMut<'a, T, B, D>;
+
+    fn tril_f(self) -> Result<Self::Out> {
+        tril_f((self, 0))
+    }
+}
+
+impl<T, D, B> TrilAPI<()> for (Tensor<T, B, D>, isize)
 where
     T: Num + Clone,
     D: DimAPI,
@@ -1166,7 +1204,7 @@ where
     }
 }
 
-impl<T, D, B> TrilAPI<T> for Tensor<T, B, D>
+impl<T, D, B> TrilAPI<()> for Tensor<T, B, D>
 where
     T: Num + Clone,
     D: DimAPI,
@@ -1179,7 +1217,7 @@ where
     }
 }
 
-impl<R, T, D, B> TrilAPI<T> for (&TensorAny<R, T, B, D>, isize)
+impl<R, T, D, B> TrilAPI<()> for (&TensorAny<R, T, B, D>, isize)
 where
     R: DataAPI<Data = B::Raw>,
     T: Num + Clone,
@@ -1198,7 +1236,7 @@ where
     }
 }
 
-impl<R, T, D, B> TrilAPI<T> for &TensorAny<R, T, B, D>
+impl<R, T, D, B> TrilAPI<()> for &TensorAny<R, T, B, D>
 where
     R: DataAPI<Data = B::Raw>,
     T: Num + Clone,
@@ -1249,7 +1287,7 @@ where
     return TriuAPI::triu_f(param);
 }
 
-impl<T, D, B> TriuAPI<T> for (TensorView<'_, T, B, D>, isize)
+impl<T, D, B> TriuAPI<()> for (TensorView<'_, T, B, D>, isize)
 where
     T: Num + Clone,
     D: DimAPI,
@@ -1271,7 +1309,7 @@ where
     }
 }
 
-impl<T, D, B> TriuAPI<T> for TensorView<'_, T, B, D>
+impl<T, D, B> TriuAPI<()> for TensorView<'_, T, B, D>
 where
     T: Num + Clone,
     D: DimAPI,
@@ -1288,7 +1326,45 @@ where
     }
 }
 
-impl<T, D, B> TriuAPI<T> for (Tensor<T, B, D>, isize)
+impl<'a, T, D, B> TriuAPI<()> for (TensorMut<'a, T, B, D>, isize)
+where
+    T: Num + Clone,
+    D: DimAPI,
+    B: DeviceAPI<T>
+        + DeviceCreationTriAPI<T>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignArbitaryAPI<T, D, D>
+        + OpAssignAPI<T, D>,
+{
+    type Out = TensorMut<'a, T, B, D>;
+
+    fn triu_f(self) -> Result<Self::Out> {
+        let (mut x, k) = self;
+        let device = x.device().clone();
+        let layout = x.layout().clone();
+        device.triu_impl(x.raw_mut(), &layout, k)?;
+        Ok(x)
+    }
+}
+
+impl<'a, T, D, B> TriuAPI<()> for TensorMut<'a, T, B, D>
+where
+    T: Num + Clone,
+    D: DimAPI,
+    B: DeviceAPI<T>
+        + DeviceCreationTriAPI<T>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignArbitaryAPI<T, D, D>
+        + OpAssignAPI<T, D>,
+{
+    type Out = TensorMut<'a, T, B, D>;
+
+    fn triu_f(self) -> Result<Self::Out> {
+        triu_f((self, 0))
+    }
+}
+
+impl<T, D, B> TriuAPI<()> for (Tensor<T, B, D>, isize)
 where
     T: Num + Clone,
     D: DimAPI,
@@ -1305,7 +1381,7 @@ where
     }
 }
 
-impl<T, D, B> TriuAPI<T> for Tensor<T, B, D>
+impl<T, D, B> TriuAPI<()> for Tensor<T, B, D>
 where
     T: Num + Clone,
     D: DimAPI,
@@ -1318,7 +1394,7 @@ where
     }
 }
 
-impl<R, T, D, B> TriuAPI<T> for (&TensorAny<R, T, B, D>, isize)
+impl<R, T, D, B> TriuAPI<()> for (&TensorAny<R, T, B, D>, isize)
 where
     R: DataAPI<Data = B::Raw>,
     T: Num + Clone,
@@ -1337,7 +1413,7 @@ where
     }
 }
 
-impl<R, T, D, B> TriuAPI<T> for &TensorAny<R, T, B, D>
+impl<R, T, D, B> TriuAPI<()> for &TensorAny<R, T, B, D>
 where
     R: DataAPI<Data = B::Raw>,
     T: Num + Clone,

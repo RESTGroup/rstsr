@@ -11,12 +11,17 @@ where
     B: POTRFDriverAPI<T>
         + DeviceAPI<T, Raw = Vec<T>>
         + DeviceComplexFloatAPI<T, Ix2>
+        + DeviceCreationTriAPI<T>
         + BlasThreadAPI,
 {
     let device = a.device().clone();
     let nthreads = device.get_num_threads();
-    device.with_num_threads(nthreads, || {
-        let a = POTRF::default().a(a).uplo(uplo).build()?.run()?;
-        Ok(a)
-    })
+    let mut result =
+        device.with_num_threads(nthreads, || POTRF::default().a(a).uplo(uplo).build()?.run())?;
+    match uplo {
+        Upper => triu(result.view_mut()),
+        Lower => tril(result.view_mut()),
+        _ => rstsr_invalid!(uplo)?,
+    };
+    Ok(result)
 }

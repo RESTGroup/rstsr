@@ -66,5 +66,9 @@ mod test {
         let a = asarray((vec_a, [3, 3].c(), &device)).into_dim::<Ix2>();
         let a_cholesky = cholesky((a, Lower));
         println!("{:?}", a_cholesky);
+        let vec_a = [1, 1, 2, 1, 3, 1, 2, 1, 8].iter().map(|&x| x as f64).collect::<Vec<_>>();
+        let a = asarray((vec_a, [3, 3].c(), &device)).into_dim::<Ix2>();
+        let a_cholesky = cholesky((a, Upper));
+        println!("{:?}", a_cholesky);
     }
 }
