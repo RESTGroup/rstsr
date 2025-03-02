@@ -11,7 +11,7 @@ readme = "readme.md"
 
 [dependencies]
 rstsr-core = { workspace = true }
-rstsr-openblas = { workspace = true, optional = true }
+rstsr-linalg-traits = { workspace = true, optional = true }
 
 [features]
 default = ["rstsr-core/default"]
@@ -20,4 +20,4 @@ f_prefer = ["rstsr-core/std"]
 rayon = ["rstsr-core/rayon"]
 faer = ["rstsr-core/faer"]
 faer_as_default = ["rstsr-core/faer_as_default"]
-openblas = ["dep:rstsr-openblas"]
+linalg = ["dep:rstsr-linalg-traits"]

@@ -1,7 +1,7 @@
 use crate::DeviceBLAS;
 use rstsr_blas_traits::prelude::*;
 use rstsr_core::prelude_dev::*;
-use rstsr_linalg_traits::prelude::*;
+use rstsr_linalg_traits::prelude_dev::*;
 
 impl<R, T> LinalgEighAPI<DeviceBLAS> for &TensorAny<R, T, DeviceBLAS, Ix2>
 where

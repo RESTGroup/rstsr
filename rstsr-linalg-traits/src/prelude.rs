@@ -1,13 +1,18 @@
-pub use crate::traits::cholesky::*;
-pub use crate::traits::eigh::*;
-pub use crate::traits::inv::*;
-pub use crate::traits::solve_general::*;
-pub use crate::traits::solve_symmetric::*;
-pub use crate::traits::solve_triangular::*;
+pub mod rstsr_traits {
+    pub use crate::traits::{
+        cholesky::LinalgCholeskyAPI, eigh::LinalgEighAPI, inv::LinalgInvAPI,
+        solve_general::LinalgSolveGeneralAPI, solve_symmetric::LinalgSolveSymmetricAPI,
+        solve_triangular::LinalgSolveTriangularAPI,
+    };
+}
 
-pub use crate::ref_impl_blas::cholesky::*;
-pub use crate::ref_impl_blas::eigh::*;
-pub use crate::ref_impl_blas::inv::*;
-pub use crate::ref_impl_blas::solve_general::*;
-pub use crate::ref_impl_blas::solve_symmetric::*;
-pub use crate::ref_impl_blas::solve_triangular::*;
+pub mod rstsr_funcs {
+    pub use crate::traits::{
+        cholesky::cholesky_f, eigh::eigh_f, inv::inv_f, solve_general::solve_general_f,
+        solve_symmetric::solve_symmetric_f, solve_triangular::solve_triangular_f,
+    };
+}
+
+pub mod rstsr_structs {
+    pub use crate::traits::eigh::{EighArgs, EighArgs_, EighArgs_Builder};
+}

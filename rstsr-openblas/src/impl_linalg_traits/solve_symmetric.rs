@@ -1,7 +1,7 @@
 use crate::DeviceBLAS;
 use rstsr_blas_traits::prelude::*;
 use rstsr_core::prelude_dev::*;
-use rstsr_linalg_traits::prelude::*;
+use rstsr_linalg_traits::prelude_dev::*;
 
 impl<Ra, Rb, T> LinalgSolveSymmetricAPI<DeviceBLAS>
     for (&TensorAny<Ra, T, DeviceBLAS, Ix2>, &TensorAny<Rb, T, DeviceBLAS, Ix2>, bool, FlagUpLo)
