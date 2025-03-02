@@ -56,7 +56,9 @@ where
 {
     type Out = Tensor<T, DeviceBLAS, Ix2>;
     fn inv_f(mut args: Self) -> Result<Self::Out> {
-        Ok(blas_inv_f(args.view_mut().into())?.into_owned())
+        let a = args.view_mut().into();
+        blas_inv_f(a)?;
+        Ok(args)
     }
 }
 

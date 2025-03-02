@@ -1,1 +1,3 @@
-pub mod basics;
+pub mod cholesky;
+pub mod eigh;
+pub mod inv;

@@ -1,3 +1,3 @@
-pub mod basics;
-
-pub use basics::*;
+pub mod cholesky;
+pub mod eigh;
+pub mod inv;
