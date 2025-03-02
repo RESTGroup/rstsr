@@ -8,7 +8,9 @@ pub trait LinalgSolveSymmetricAPI<Inp>: Sized {
     }
 }
 
-pub fn solve_symmetric_f<Args, Inp>(args: Args) -> Result<<Args as LinalgSolveSymmetricAPI<Inp>>::Out>
+pub fn solve_symmetric_f<Args, Inp>(
+    args: Args,
+) -> Result<<Args as LinalgSolveSymmetricAPI<Inp>>::Out>
 where
     Args: LinalgSolveSymmetricAPI<Inp>,
 {
