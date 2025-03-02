@@ -161,13 +161,13 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 | Type | Identifier | Minimal Description |
 |--|--|--|
 | flags | [flags][crate::flags] | Flags for tensor. |
-| enum | [`TensorIterOrder`] | The policy of tensor iterator. |
-| enum | [`TensorOrder`] | The order of tensor. |
+| enum | [`FlagOrder`] | The order of tensor. |
 | enum | [`FlagDiag`] | Unit-diagonal of matrix. |
 | enum | [`FlagSide`] | Side of matrix operation. |
 | enum | [`FlagTrans`] | Transposition of matrix operation. |
 | enum | [`FlagUpLo`] | Upper/Lower triangular of matrix operation. |
 | enum | [`FlagSymm`] | Symmetric of matrix operation. |
+| enum | [`TensorIterOrder`] | The policy of tensor iterator. |
 
 ## Tensor Manuplication
 
@@ -214,6 +214,8 @@ These functions are to be realized in future (concat, stack, etc).
 | fn | [`ones_like`] | New tensor filled with ones and having the same shape as an input tensor. |
 | fn | [`zeros`] | New tensor filled with zeros and having a specified shape. |
 | fn | [`zeros_like`] | New tensor filled with zeros and having the same shape as an input tensor. |
+| fn | [`tril`] | Returns the lower triangular part of a matrix (or a stack of matrices) x. |
+| fn | [`triu`] | Returns the upper triangular part of a matrix (or a stack of matrices) x. |
 
 ## Basic Operations
 

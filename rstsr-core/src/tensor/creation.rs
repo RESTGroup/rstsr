@@ -978,16 +978,16 @@ pub trait ZerosLikeAPI<Inp>: Sized {
 /// # See also
 ///
 /// - [Python array API standard: `zeros_like`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.zeros_like.html)
-pub fn zeros_like<Args, Inp, Rhs>(param: Args) -> Rhs
+pub fn zeros_like<Args, Inp>(param: Args) -> Args::Out
 where
-    Args: ZerosLikeAPI<Inp, Out = Rhs>,
+    Args: ZerosLikeAPI<Inp>,
 {
     return ZerosLikeAPI::zeros_like(param);
 }
 
-pub fn zeros_like_f<Args, Inp, Rhs>(param: Args) -> Result<Rhs>
+pub fn zeros_like_f<Args, Inp>(param: Args) -> Result<Args::Out>
 where
-    Args: ZerosLikeAPI<Inp, Out = Rhs>,
+    Args: ZerosLikeAPI<Inp>,
 {
     return ZerosLikeAPI::zeros_like_f(param);
 }
@@ -1079,6 +1079,284 @@ where
 
 /* #endregion */
 
+/* #region tril */
+
+pub trait TrilAPI<Inp>: Sized {
+    type Out;
+
+    fn tril_f(self) -> Result<Self::Out>;
+
+    fn tril(self) -> Self::Out {
+        Self::tril_f(self).unwrap()
+    }
+}
+
+/// Returns the lower triangular part of a matrix (or a stack of matrices) x.
+///
+/// # See also
+///
+/// - [Python array API standard: `tril`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.tril.html)
+pub fn tril<Args, Inp>(param: Args) -> Args::Out
+where
+    Args: TrilAPI<Inp>,
+{
+    return TrilAPI::tril(param);
+}
+
+pub fn tril_f<Args, Inp>(param: Args) -> Result<Args::Out>
+where
+    Args: TrilAPI<Inp>,
+{
+    return TrilAPI::tril_f(param);
+}
+
+impl<T, D, B> TrilAPI<T> for (TensorView<'_, T, B, D>, isize)
+where
+    T: Num + Clone,
+    D: DimAPI,
+    B: DeviceAPI<T>
+        + DeviceCreationTriAPI<T>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignArbitaryAPI<T, D, D>
+        + OpAssignAPI<T, D>,
+{
+    type Out = Tensor<T, B, D>;
+
+    fn tril_f(self) -> Result<Self::Out> {
+        let (x, k) = self;
+        let mut x = x.into_contig_f(FlagOrder::default())?;
+        let device = x.device().clone();
+        let layout = x.layout().clone();
+        device.tril_impl(x.raw_mut(), &layout, k)?;
+        Ok(x)
+    }
+}
+
+impl<T, D, B> TrilAPI<T> for TensorView<'_, T, B, D>
+where
+    T: Num + Clone,
+    D: DimAPI,
+    B: DeviceAPI<T>
+        + DeviceCreationTriAPI<T>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignArbitaryAPI<T, D, D>
+        + OpAssignAPI<T, D>,
+{
+    type Out = Tensor<T, B, D>;
+
+    fn tril_f(self) -> Result<Self::Out> {
+        tril_f((self, 0))
+    }
+}
+
+impl<T, D, B> TrilAPI<T> for (Tensor<T, B, D>, isize)
+where
+    T: Num + Clone,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationTriAPI<T> + DeviceCreationAnyAPI<T>,
+{
+    type Out = Tensor<T, B, D>;
+
+    fn tril_f(self) -> Result<Self::Out> {
+        let (mut x, k) = self;
+        let device = x.device().clone();
+        let layout = x.layout().clone();
+        device.tril_impl(x.raw_mut(), &layout, k)?;
+        Ok(x)
+    }
+}
+
+impl<T, D, B> TrilAPI<T> for Tensor<T, B, D>
+where
+    T: Num + Clone,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationTriAPI<T> + DeviceCreationAnyAPI<T>,
+{
+    type Out = Tensor<T, B, D>;
+
+    fn tril_f(self) -> Result<Self::Out> {
+        tril_f((self, 0))
+    }
+}
+
+impl<R, T, D, B> TrilAPI<T> for (&TensorAny<R, T, B, D>, isize)
+where
+    R: DataAPI<Data = B::Raw>,
+    T: Num + Clone,
+    D: DimAPI,
+    B: DeviceAPI<T>
+        + DeviceCreationTriAPI<T>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignArbitaryAPI<T, D, D>
+        + OpAssignAPI<T, D>,
+{
+    type Out = Tensor<T, B, D>;
+
+    fn tril_f(self) -> Result<Self::Out> {
+        let (x, k) = self;
+        tril_f((x.view(), k))
+    }
+}
+
+impl<R, T, D, B> TrilAPI<T> for &TensorAny<R, T, B, D>
+where
+    R: DataAPI<Data = B::Raw>,
+    T: Num + Clone,
+    D: DimAPI,
+    B: DeviceAPI<T>
+        + DeviceCreationTriAPI<T>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignArbitaryAPI<T, D, D>
+        + OpAssignAPI<T, D>,
+{
+    type Out = Tensor<T, B, D>;
+
+    fn tril_f(self) -> Result<Self::Out> {
+        tril_f((self.view(), 0))
+    }
+}
+
+/* #endregion */
+
+/* #region triu */
+
+pub trait TriuAPI<Inp>: Sized {
+    type Out;
+
+    fn triu_f(self) -> Result<Self::Out>;
+
+    fn triu(self) -> Self::Out {
+        Self::triu_f(self).unwrap()
+    }
+}
+
+/// Returns the upper triangular part of a matrix (or a stack of matrices) x.
+///
+/// # See also
+///
+/// - [Python array API standard: `triu`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.triu.html)
+pub fn triu<Args, Inp>(param: Args) -> Args::Out
+where
+    Args: TriuAPI<Inp>,
+{
+    return TriuAPI::triu(param);
+}
+
+pub fn triu_f<Args, Inp>(param: Args) -> Result<Args::Out>
+where
+    Args: TriuAPI<Inp>,
+{
+    return TriuAPI::triu_f(param);
+}
+
+impl<T, D, B> TriuAPI<T> for (TensorView<'_, T, B, D>, isize)
+where
+    T: Num + Clone,
+    D: DimAPI,
+    B: DeviceAPI<T>
+        + DeviceCreationTriAPI<T>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignArbitaryAPI<T, D, D>
+        + OpAssignAPI<T, D>,
+{
+    type Out = Tensor<T, B, D>;
+
+    fn triu_f(self) -> Result<Self::Out> {
+        let (x, k) = self;
+        let mut x = x.into_contig_f(FlagOrder::default())?;
+        let device = x.device().clone();
+        let layout = x.layout().clone();
+        device.triu_impl(x.raw_mut(), &layout, k)?;
+        Ok(x)
+    }
+}
+
+impl<T, D, B> TriuAPI<T> for TensorView<'_, T, B, D>
+where
+    T: Num + Clone,
+    D: DimAPI,
+    B: DeviceAPI<T>
+        + DeviceCreationTriAPI<T>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignArbitaryAPI<T, D, D>
+        + OpAssignAPI<T, D>,
+{
+    type Out = Tensor<T, B, D>;
+
+    fn triu_f(self) -> Result<Self::Out> {
+        triu_f((self, 0))
+    }
+}
+
+impl<T, D, B> TriuAPI<T> for (Tensor<T, B, D>, isize)
+where
+    T: Num + Clone,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationTriAPI<T> + DeviceCreationAnyAPI<T>,
+{
+    type Out = Tensor<T, B, D>;
+
+    fn triu_f(self) -> Result<Self::Out> {
+        let (mut x, k) = self;
+        let device = x.device().clone();
+        let layout = x.layout().clone();
+        device.triu_impl(x.raw_mut(), &layout, k)?;
+        Ok(x)
+    }
+}
+
+impl<T, D, B> TriuAPI<T> for Tensor<T, B, D>
+where
+    T: Num + Clone,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationTriAPI<T> + DeviceCreationAnyAPI<T>,
+{
+    type Out = Tensor<T, B, D>;
+
+    fn triu_f(self) -> Result<Self::Out> {
+        triu_f((self, 0))
+    }
+}
+
+impl<R, T, D, B> TriuAPI<T> for (&TensorAny<R, T, B, D>, isize)
+where
+    R: DataAPI<Data = B::Raw>,
+    T: Num + Clone,
+    D: DimAPI,
+    B: DeviceAPI<T>
+        + DeviceCreationTriAPI<T>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignArbitaryAPI<T, D, D>
+        + OpAssignAPI<T, D>,
+{
+    type Out = Tensor<T, B, D>;
+
+    fn triu_f(self) -> Result<Self::Out> {
+        let (x, k) = self;
+        triu_f((x.view(), k))
+    }
+}
+
+impl<R, T, D, B> TriuAPI<T> for &TensorAny<R, T, B, D>
+where
+    R: DataAPI<Data = B::Raw>,
+    T: Num + Clone,
+    D: DimAPI,
+    B: DeviceAPI<T>
+        + DeviceCreationTriAPI<T>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignArbitaryAPI<T, D, D>
+        + OpAssignAPI<T, D>,
+{
+    type Out = Tensor<T, B, D>;
+
+    fn triu_f(self) -> Result<Self::Out> {
+        triu_f((self.view(), 0))
+    }
+}
+
+/* #endregion */
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -1120,5 +1398,14 @@ mod test {
         println!("{a:6.3?}");
         let a = a.zeros_like();
         println!("{a:6.3?}");
+    }
+
+    #[test]
+    fn test_tril() {
+        let a = arange((1, 10)).into_shape((3, 3));
+        let b = a.view().tril();
+        println!("{b:6.3?}");
+        let b = triu((a, 1));
+        println!("{b:6.3?}");
     }
 }

@@ -116,6 +116,86 @@ where
     }
 }
 
+pub fn tril_cpu_serial<T, D>(raw: &mut [T], layout: &Layout<D>, k: isize) -> Result<()>
+where
+    T: Num + Clone,
+    D: DimAPI,
+{
+    let (la_rest, la_ix2) = layout.dim_split_at(-2)?;
+    let mut la_ix2 = la_ix2.into_dim::<Ix2>()?;
+    for offset in IterLayoutColMajor::new(&la_rest)? {
+        unsafe { la_ix2.set_offset(offset) };
+        tril_ix2_cpu_serial(raw, &la_ix2, k)?;
+    }
+    Ok(())
+}
+
+pub fn tril_ix2_cpu_serial<T>(raw: &mut [T], layout: &Layout<Ix2>, k: isize) -> Result<()>
+where
+    T: Num + Clone,
+{
+    let [nrow, ncol] = *layout.shape();
+    for i in 0..nrow {
+        let j_start = (i as isize + k + 1).max(0) as usize;
+        for j in j_start..ncol {
+            unsafe {
+                raw[layout.index_uncheck(&[i, j]) as usize] = T::zero();
+            }
+        }
+    }
+    Ok(())
+}
+
+pub fn triu_cpu_serial<T, D>(raw: &mut [T], layout: &Layout<D>, k: isize) -> Result<()>
+where
+    T: Num + Clone,
+    D: DimAPI,
+{
+    let (la_rest, la_ix2) = layout.dim_split_at(-2)?;
+    let mut la_ix2 = la_ix2.into_dim::<Ix2>()?;
+    for offset in IterLayoutColMajor::new(&la_rest)? {
+        unsafe { la_ix2.set_offset(offset) };
+        triu_ix2_cpu_serial(raw, &la_ix2, k)?;
+    }
+    Ok(())
+}
+
+pub fn triu_ix2_cpu_serial<T>(raw: &mut [T], layout: &Layout<Ix2>, k: isize) -> Result<()>
+where
+    T: Num + Clone,
+{
+    let [nrow, _] = *layout.shape();
+    for i in 0..nrow {
+        let j_end = (i as isize + k).max(0) as usize;
+        for j in 0..j_end {
+            unsafe {
+                raw[layout.index_uncheck(&[i, j]) as usize] = T::zero();
+            }
+        }
+    }
+    Ok(())
+}
+
+impl<T> DeviceCreationTriAPI<T> for DeviceCpuSerial
+where
+    T: Num + Clone,
+    DeviceCpuSerial: DeviceRawAPI<T, Raw = Vec<T>>,
+{
+    fn tril_impl<D>(&self, raw: &mut Vec<T>, layout: &Layout<D>, k: isize) -> Result<()>
+    where
+        D: DimAPI,
+    {
+        tril_cpu_serial(raw, layout, k)
+    }
+
+    fn triu_impl<D>(&self, raw: &mut Vec<T>, layout: &Layout<D>, k: isize) -> Result<()>
+    where
+        D: DimAPI,
+    {
+        triu_cpu_serial(raw, layout, k)
+    }
+}
+
 #[cfg(test)]
 mod test {
     #[test]
@@ -123,7 +203,7 @@ mod test {
         use super::*;
         use num::Complex;
 
-        let device = DeviceCpuSerial {};
+        let device = DeviceCpuSerial;
         let storage: Storage<_, f64, _> = device.zeros_impl(10).unwrap();
         println!("{:?}", storage);
         let storage: Storage<_, f64, _> = device.ones_impl(10).unwrap();
@@ -143,5 +223,16 @@ mod test {
         println!("{:?}", storage);
         let storage = device.arange_impl(0.0, 1.0, 0.1).unwrap();
         println!("{:?}", storage);
+
+        // tril/triu
+        let mut vec = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
+        let layout = [3, 3].c();
+        device.tril_impl(&mut vec, &layout, -1).unwrap();
+        println!("{:?}", vec);
+        assert_eq!(vec, vec![0, 0, 0, 4, 0, 0, 7, 8, 0]);
+        let mut vec = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
+        device.triu_impl(&mut vec, &layout, -1).unwrap();
+        println!("{:?}", vec);
+        assert_eq!(vec, vec![1, 2, 3, 4, 5, 6, 0, 8, 9]);
     }
 }

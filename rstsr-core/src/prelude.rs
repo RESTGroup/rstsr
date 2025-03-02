@@ -11,7 +11,7 @@ pub mod rstsr_traits {
     pub use crate::tensor::asarray::AsArrayAPI;
     pub use crate::tensor::creation::{
         ArangeAPI, EmptyAPI, EmptyLikeAPI, EyeAPI, FullAPI, FullLikeAPI, LinspaceAPI, OnesAPI,
-        OnesLikeAPI, ZerosAPI, ZerosLikeAPI,
+        OnesLikeAPI, TrilAPI, TriuAPI, ZerosAPI, ZerosLikeAPI,
     };
     pub use crate::tensor::creation_from_tensor::DiagAPI;
     pub use crate::tensor::operators::op_binary_common::{
@@ -56,8 +56,8 @@ pub mod rstsr_funcs {
     pub use crate::tensor::asarray::{asarray, asarray_f};
     pub use crate::tensor::creation::{
         arange, arange_f, empty, empty_f, empty_like, empty_like_f, eye, eye_f, full, full_f,
-        full_like, full_like_f, linspace, linspace_f, ones, ones_f, ones_like, ones_like_f, zeros,
-        zeros_f, zeros_like, zeros_like_f,
+        full_like, full_like_f, linspace, linspace_f, ones, ones_f, ones_like, ones_like_f, tril,
+        tril_f, triu, triu_f, zeros, zeros_f, zeros_like, zeros_like_f,
     };
     pub use crate::tensor::creation_from_tensor::{diag, diag_f};
     pub use crate::tensor::manuplication::{

@@ -135,8 +135,8 @@ Dropped support
 | | | `meshgrid` | Returns coordinate matrices from coordinate vectors. |
 | Y | [`ones`] | [`ones`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.ones.html) | Returns a new array having a specified shape and filled with ones. |
 | Y | [`ones_like`] | [`ones_like`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.ones_like.html) | Returns a new array filled with ones and having the same `shape` as an input array `x`. |
-| | | `tril` | Returns the lower triangular part of a matrix (or a stack of matrices) `x`. |
-| | | `triu` | Returns the upper triangular part of a matrix (or a stack of matrices) `x`. |
+| Y | [`tril`] | `tril` | Returns the lower triangular part of a matrix (or a stack of matrices) `x`. |
+| Y | [`triu`] | `triu` | Returns the upper triangular part of a matrix (or a stack of matrices) `x`. |
 | Y | [`zeros`] | [`zeros`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.zeros.html) | Returns a new array having a specified `shape` and filled with zeros. |
 | Y | [`zeros_like`] | [`zeros_like`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.zeros_like.html) | Returns a new array filled with zeros and having the same `shape` as an input array x. |
 

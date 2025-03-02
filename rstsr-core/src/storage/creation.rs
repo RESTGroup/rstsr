@@ -51,3 +51,16 @@ where
         step: T,
     ) -> Result<Storage<DataOwned<Self::Raw>, T, Self>>;
 }
+
+pub trait DeviceCreationTriAPI<T>
+where
+    T: Num,
+    Self: DeviceRawAPI<T>,
+{
+    fn tril_impl<D>(&self, raw: &mut Self::Raw, layout: &Layout<D>, k: isize) -> Result<()>
+    where
+        D: DimAPI;
+    fn triu_impl<D>(&self, raw: &mut Self::Raw, layout: &Layout<D>, k: isize) -> Result<()>
+    where
+        D: DimAPI;
+}

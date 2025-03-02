@@ -88,6 +88,26 @@ where
     }
 }
 
+impl<T> DeviceCreationTriAPI<T> for DeviceFaer
+where
+    T: Num + Clone,
+    Self: DeviceRawAPI<T, Raw = Vec<T>>,
+{
+    fn tril_impl<D>(&self, raw: &mut Self::Raw, layout: &Layout<D>, k: isize) -> Result<()>
+    where
+        D: DimAPI,
+    {
+        DeviceCpuSerial.tril_impl(raw, layout, k)
+    }
+
+    fn triu_impl<D>(&self, raw: &mut Self::Raw, layout: &Layout<D>, k: isize) -> Result<()>
+    where
+        D: DimAPI,
+    {
+        DeviceCpuSerial.triu_impl(raw, layout, k)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
