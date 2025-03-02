@@ -22,7 +22,7 @@ pub trait SYHEMMDriverAPI<T, const HERMI: bool> {
 /* #endregion */
 
 #[derive(Builder)]
-#[builder(pattern = "owned", no_std)]
+#[builder(pattern = "owned", no_std, build_fn(error = "Error"))]
 pub struct SYHEMM_<'a, 'b, 'c, B, T, const HERMI: bool>
 where
     T: BlasFloat,

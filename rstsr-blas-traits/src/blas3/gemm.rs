@@ -21,7 +21,7 @@ pub trait GEMMDriverAPI<T> {
 }
 
 #[derive(Builder)]
-#[builder(pattern = "owned", no_std)]
+#[builder(pattern = "owned", no_std, build_fn(error = "Error"))]
 pub struct GEMM_<'a, 'b, 'c, B, T>
 where
     T: BlasFloat,
