@@ -2,9 +2,9 @@ use crate::prelude_dev::*;
 
 macro_rules! trait_reduction {
     ($OpReduceAPI: ident, $fn: ident, $fn_f: ident, $fn_all: ident, $fn_all_f: ident) => {
-        pub fn $fn_all_f<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> Result<T>
+        pub fn $fn_all_f<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> Result<B::TOut>
         where
-            R: DataAPI<Data = B::Raw>,
+            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
             B: $OpReduceAPI<T, D>,
         {
@@ -14,11 +14,11 @@ macro_rules! trait_reduction {
         pub fn $fn_f<R, T, B, D, I>(
             tensor: &TensorAny<R, T, B, D>,
             axes: I,
-        ) -> Result<Tensor<T, B, IxD>>
+        ) -> Result<Tensor<B::TOut, B, IxD>>
         where
-            R: DataAPI<Data = B::Raw>,
+            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
-            B: $OpReduceAPI<T, D> + DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+            B: $OpReduceAPI<T, D> + DeviceCreationAnyAPI<B::TOut>,
             I: TryInto<AxesIndex<isize>>,
             Error: From<I::Error>,
         {
@@ -37,20 +37,23 @@ macro_rules! trait_reduction {
             Tensor::new_f(storage, layout)
         }
 
-        pub fn $fn_all<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> T
+        pub fn $fn_all<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> B::TOut
         where
-            R: DataAPI<Data = B::Raw>,
+            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
             B: $OpReduceAPI<T, D>,
         {
             $fn_all_f(tensor).unwrap()
         }
 
-        pub fn $fn<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, axes: I) -> Tensor<T, B, IxD>
+        pub fn $fn<R, T, B, D, I>(
+            tensor: &TensorAny<R, T, B, D>,
+            axes: I,
+        ) -> Tensor<B::TOut, B, IxD>
         where
-            R: DataAPI<Data = B::Raw>,
+            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
-            B: $OpReduceAPI<T, D> + DeviceCreationAnyAPI<T>,
+            B: $OpReduceAPI<T, D> + DeviceCreationAnyAPI<B::TOut>,
             I: TryInto<AxesIndex<isize>>,
             Error: From<I::Error>,
         {
@@ -59,30 +62,30 @@ macro_rules! trait_reduction {
 
         impl<R, T, B, D> TensorAny<R, T, B, D>
         where
-            R: DataAPI<Data = B::Raw>,
+            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
             B: $OpReduceAPI<T, D>,
         {
-            pub fn $fn_all_f(&self) -> Result<T> {
+            pub fn $fn_all_f(&self) -> Result<B::TOut> {
                 $fn_all_f(self)
             }
 
-            pub fn $fn_all(&self) -> T {
+            pub fn $fn_all(&self) -> B::TOut {
                 $fn_all(self)
             }
 
-            pub fn $fn_f<I>(&self, axes: I) -> Result<Tensor<T, B, IxD>>
+            pub fn $fn_f<I>(&self, axes: I) -> Result<Tensor<B::TOut, B, IxD>>
             where
-                B: DeviceCreationAnyAPI<T>,
+                B: DeviceCreationAnyAPI<B::TOut>,
                 I: TryInto<AxesIndex<isize>>,
                 Error: From<I::Error>,
             {
                 $fn_f(self, axes)
             }
 
-            pub fn $fn<I>(&self, axes: I) -> Tensor<T, B, IxD>
+            pub fn $fn<I>(&self, axes: I) -> Tensor<B::TOut, B, IxD>
             where
-                B: DeviceCreationAnyAPI<T>,
+                B: DeviceCreationAnyAPI<B::TOut>,
                 I: TryInto<AxesIndex<isize>>,
                 Error: From<I::Error>,
             {
@@ -102,6 +105,8 @@ trait_reduction!(OpStdAPI, std, std_f, std_all, std_all_f);
 
 #[cfg(test)]
 mod test {
+    use num::ToPrimitive;
+
     use super::*;
 
     #[test]
@@ -267,6 +272,19 @@ mod test {
         println!("{:}", m);
         assert!(allclose_f64(&m, &asarray(vec![2.49443826, 2.49443826, 3.09120617, 2.1602469])));
 
+        let vr = [8, 4, 2, 9, 3, 7, 2, 8, 1, 6, 10, 5];
+        let vi = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        let v = vr
+            .iter()
+            .zip(vi.iter())
+            .map(|(r, i)| num::Complex::new(r.to_f64().unwrap(), i.to_f64().unwrap()))
+            .collect::<Vec<_>>();
+        let a = asarray((&v, [4, 3].c(), &DeviceCpuSerial));
+
+        let m = a.std_all();
+        println!("{:}", m);
+        assert!((m - 4.508479664907993).abs() < 1e-10);
+
         // DeviceFaer
         let v = vec![8, 4, 2, 9, 3, 7, 2, 8, 1, 6, 10, 5];
         let a = asarray((&v, [4, 3].c())).mapv(|x| x as f64);
@@ -282,6 +300,19 @@ mod test {
         let m = a.std(1);
         println!("{:}", m);
         assert!(allclose_f64(&m, &asarray(vec![2.49443826, 2.49443826, 3.09120617, 2.1602469])));
+
+        let vr = [8, 4, 2, 9, 3, 7, 2, 8, 1, 6, 10, 5];
+        let vi = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        let v = vr
+            .iter()
+            .zip(vi.iter())
+            .map(|(r, i)| num::Complex::new(r.to_f64().unwrap(), i.to_f64().unwrap()))
+            .collect::<Vec<_>>();
+        let a = asarray((&v, [4, 3].c()));
+
+        let m = a.std_all();
+        println!("{:}", m);
+        assert!((m - 4.508479664907993).abs() < 1e-10);
     }
 
     #[test]

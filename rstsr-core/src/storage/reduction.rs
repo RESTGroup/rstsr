@@ -5,15 +5,23 @@ macro_rules! trait_reduction {
         pub trait $OpReduceAPI<T, D>
         where
             D: DimAPI,
-            Self: DeviceAPI<T>,
+            Self: DeviceAPI<T> + DeviceAPI<Self::TOut>,
         {
-            fn $func_all(&self, a: &Self::Raw, la: &Layout<D>) -> Result<T>;
+            type TOut;
+            fn $func_all(
+                &self,
+                a: &<Self as DeviceRawAPI<T>>::Raw,
+                la: &Layout<D>,
+            ) -> Result<Self::TOut>;
             fn $func(
                 &self,
-                a: &Self::Raw,
+                a: &<Self as DeviceRawAPI<T>>::Raw,
                 la: &Layout<D>,
                 axes: &[isize],
-            ) -> Result<(Storage<DataOwned<Self::Raw>, T, Self>, Layout<IxD>)>;
+            ) -> Result<(
+                Storage<DataOwned<<Self as DeviceRawAPI<Self::TOut>>::Raw>, Self::TOut, Self>,
+                Layout<IxD>,
+            )>;
         }
     };
 }
