@@ -1,8 +1,4 @@
-#[macro_export]
-macro_rules! macro_impl_rayon_op_binary_common {
-    ($Device: ident) => {
-
-use $crate::prelude_dev::*;
+use crate::prelude_dev::*;
 use core::ops::Div;
 use num::complex::ComplexFloat;
 use num::{Float, Num};
@@ -14,7 +10,7 @@ use rstsr_dtype_traits::{AbsAPI, ReImAPI};
 
 macro_rules! impl_same_type {
     ($DeviceOpAPI: ident, $NumTrait: ident, $func:expr, $func_inplace:expr) => {
-        impl<T, D> $DeviceOpAPI<T, D> for $Device
+        impl<T, D> $DeviceOpAPI<T, D> for DeviceRayonAutoImpl
         where
             T: Clone + Send + Sync + $NumTrait,
             D: DimAPI,
@@ -75,7 +71,7 @@ mod impl_same_type {
 
 macro_rules! impl_boolean_output {
     ($DeviceOpAPI: ident, $NumTrait: ident, $func:expr) => {
-        impl<T, D> $DeviceOpAPI<T, D> for $Device
+        impl<T, D> $DeviceOpAPI<T, D> for DeviceRayonAutoImpl
         where
             T: Clone + Send + Sync + $NumTrait,
             D: DimAPI,
@@ -114,7 +110,7 @@ mod impl_bool_output{
 
 /* #region complex specific implementation */
 
-impl<T, D> DeviceAbsAPI<T, D> for $Device
+impl<T, D> DeviceAbsAPI<T, D> for DeviceRayonAutoImpl
 where
     T: Clone + Send + Sync + AbsAPI,
     T::Out: Send + Sync,
@@ -144,7 +140,7 @@ where
     }
 }
 
-impl<T, D> DeviceImagAPI<T, D> for $Device
+impl<T, D> DeviceImagAPI<T, D> for DeviceRayonAutoImpl
 where
     T: Clone + Send + Sync + ReImAPI,
     T::Out: Send + Sync,
@@ -172,7 +168,7 @@ where
     }
 }
 
-impl<T, D> DeviceRealAPI<T, D> for $Device
+impl<T, D> DeviceRealAPI<T, D> for DeviceRayonAutoImpl
 where
     T: Clone + Send + Sync + ReImAPI,
     T::Out: Send + Sync,
@@ -202,7 +198,7 @@ where
     }
 }
 
-impl<T, D> DeviceSignAPI<T, D> for $Device
+impl<T, D> DeviceSignAPI<T, D> for DeviceRayonAutoImpl
 where
     T: Clone + Send + Sync + ComplexFloat + Div<T::Real, Output = T>,
     D: DimAPI,
@@ -225,6 +221,3 @@ where
 }
 
 /* #endregion */
-
-    };
-}

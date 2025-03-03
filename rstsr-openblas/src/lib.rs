@@ -5,10 +5,10 @@
 pub mod conversion;
 pub mod creation;
 pub mod device;
-pub mod macro_impl;
 pub mod matmul;
 pub mod matmul_impl;
 pub mod prelude_dev;
+pub mod rayon_auto_impl;
 
 pub mod impl_blas_traits;
 #[cfg(feature = "linalg")]
@@ -22,3 +22,6 @@ pub struct DeviceOpenBLAS {
 }
 
 pub(crate) use DeviceOpenBLAS as DeviceBLAS;
+pub(crate) use DeviceOpenBLAS as DeviceRayonAutoImpl;
+
+pub(crate) use rstsr_core::feature_rayon;

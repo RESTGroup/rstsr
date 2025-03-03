@@ -1,0 +1,1 @@
+../../feature_rayon/auto_impl/op_tri.rs

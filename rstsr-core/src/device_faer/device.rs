@@ -6,6 +6,8 @@ pub struct DeviceFaer {
     base: DeviceCpuRayon,
 }
 
+pub(crate) use DeviceFaer as DeviceRayonAutoImpl;
+
 impl DeviceFaer {
     pub fn new(num_threads: usize) -> Self {
         DeviceFaer { base: DeviceCpuRayon::new(num_threads) }

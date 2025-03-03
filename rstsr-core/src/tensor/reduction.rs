@@ -289,7 +289,7 @@ mod test {
     fn test_large_std() {
         let a = linspace((0.0, 1.0, 1048576)).into_shape([16, 256, 256]);
         let b = linspace((1.0, 2.0, 1048576)).into_shape([16, 256, 256]);
-        let c = &a % &b;
+        let c: Tensor<f64> = &a % &b;
 
         let c_mean = c.mean_all();
         println!("{:?}", c_mean);

@@ -1,15 +1,11 @@
-#[macro_export]
-macro_rules! macro_impl_rayon_op_ternary_common {
-    ($Device: ident) => {
-
-use $crate::prelude_dev::*;
+use crate::prelude_dev::*;
 use num::complex::ComplexFloat;
 use num::{pow::Pow, Float};
 use rstsr_dtype_traits::{FloorDivideAPI, MinMaxAPI};
 
 macro_rules! impl_same_binary {
     ($DeviceOpAPI: ident, $TOut: ident, $TraitT: ident, $func:expr) => {
-        impl<T, D> $DeviceOpAPI<T, T, D> for $Device
+        impl<T, D> $DeviceOpAPI<T, T, D> for DeviceRayonAutoImpl
         where
             T: Clone + Send + Sync + $TraitT,
             D: DimAPI,
@@ -50,7 +46,7 @@ mod impl_same_binary {
     impl_same_binary!(DeviceFloorDivideAPI  , T    , FloorDivideAPI , |c,  a,  b| *c = a.clone().floor_divide(b.clone()));
 }
 
-impl<TA, TB, D> DevicePowAPI<TA, TB, D> for $Device
+impl<TA, TB, D> DevicePowAPI<TA, TB, D> for DeviceRayonAutoImpl
 where
     TA: Clone + Send + Sync,
     TB: Clone + Send + Sync,
@@ -73,6 +69,4 @@ where
             *c = a.clone().pow(b.clone())
         })
     }
-}
-    };
 }

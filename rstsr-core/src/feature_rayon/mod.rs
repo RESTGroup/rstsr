@@ -5,7 +5,6 @@
 
 pub mod assignment;
 pub mod device;
-pub mod macro_impl;
 pub mod matmul_naive;
 pub mod operators;
 pub mod par_iter;
