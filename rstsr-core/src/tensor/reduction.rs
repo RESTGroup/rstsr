@@ -201,7 +201,7 @@ mod test {
         assert_eq!(m.to_vec(), vec![18.0, 6.0]);
 
         // DeviceFaer
-        let a = arange(24.0).into_shape((2, 3, 4));
+        let a: Tensor<f64> = arange(24.0).into_shape((2, 3, 4));
         let m = a.mean_all();
         assert_eq!(m, 11.5);
 

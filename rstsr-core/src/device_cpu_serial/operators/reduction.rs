@@ -187,17 +187,17 @@ where
     fn var_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T> {
         let size = la.size();
 
-        let f_init = T::zero;
-        let f = |acc, x| acc + x;
-        let f_sum = |acc, x| acc + x;
-        let f_out = |acc| acc / T::from_usize(size).unwrap();
+        let f_init = || (T::zero(), T::zero());
+        let f = |(acc_1, acc_2), x| (acc_1 + x, acc_2 + x * x);
+        let f_sum = |(acc_1, acc_2), (x_1, x_2)| (acc_1 + x_1, acc_2 + x_2);
+        let f_out = |(acc_1, acc_2)| {
+            let size = T::from_usize(size).unwrap();
+            let mean = acc_1 / size;
+            acc_2 / size - mean * mean
+        };
 
-        let e_x1 = reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)?;
-
-        let f = |acc: T, x: T| acc + x * x;
-
-        let e_x2 = reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)?;
-        Ok(e_x2 - e_x1 * e_x1)
+        let result = reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)?;
+        Ok(result)
     }
 
     fn var(
@@ -209,20 +209,19 @@ where
         let (layout_axes, _) = la.dim_split_axes(axes)?;
         let size = layout_axes.size();
 
-        let f_init = T::zero;
-        let f = |acc, x| acc + x;
-        let f_sum = |acc, x| acc + x;
-        let f_out = |acc| acc / T::from_usize(size).unwrap();
+        let f_init = || (T::zero(), T::zero());
+        let f = |(acc_1, acc_2), x| (acc_1 + x, acc_2 + x * x);
+        let f_sum = |(acc_1, acc_2), (x_1, x_2)| (acc_1 + x_1, acc_2 + x_2);
+        let f_out = |(acc_1, acc_2)| {
+            let size = T::from_usize(size).unwrap();
+            let mean = acc_1 / size;
+            acc_2 / size - mean * mean
+        };
 
-        let (mut e_x1, layout_out) =
-            reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+        let (out, layout_out) =
+            reduce_axes_difftype_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
 
-        let f = |acc: T, x: T| acc + x * x;
-
-        let (e_x2, _) = reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
-
-        e_x1.iter_mut().zip(e_x2.iter()).for_each(|(x1, x2)| *x1 = *x2 - *x1 * *x1);
-        Ok((Storage::new(e_x1.into(), self.clone()), layout_out))
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 }
 
@@ -234,17 +233,18 @@ where
     fn std_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T> {
         let size = la.size();
 
-        let f_init = T::zero;
-        let f = |acc, x| acc + x;
-        let f_sum = |acc, x| acc + x;
-        let f_out = |acc| acc / T::from_usize(size).unwrap();
+        let f_init = || (T::zero(), T::zero());
+        let f = |(acc_1, acc_2), x| (acc_1 + x, acc_2 + x * x);
+        let f_sum = |(acc_1, acc_2), (x_1, x_2)| (acc_1 + x_1, acc_2 + x_2);
+        let f_out = |(acc_1, acc_2)| {
+            let size = T::from_usize(size).unwrap();
+            let mean = acc_1 / size;
+            let var: T = acc_2 / size - mean * mean;
+            var.sqrt()
+        };
 
-        let e_x1 = reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)?;
-
-        let f = |acc: T, x: T| acc + x * x;
-
-        let e_x2 = reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)?;
-        Ok((e_x2 - e_x1 * e_x1).sqrt())
+        let result = reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)?;
+        Ok(result)
     }
 
     fn std(
@@ -256,19 +256,19 @@ where
         let (layout_axes, _) = la.dim_split_axes(axes)?;
         let size = layout_axes.size();
 
-        let f_init = T::zero;
-        let f = |acc, x| acc + x;
-        let f_sum = |acc, x| acc + x;
-        let f_out = |acc| acc / T::from_usize(size).unwrap();
+        let f_init = || (T::zero(), T::zero());
+        let f = |(acc_1, acc_2), x| (acc_1 + x, acc_2 + x * x);
+        let f_sum = |(acc_1, acc_2), (x_1, x_2)| (acc_1 + x_1, acc_2 + x_2);
+        let f_out = |(acc_1, acc_2)| {
+            let size = T::from_usize(size).unwrap();
+            let mean = acc_1 / size;
+            let var: T = acc_2 / size - mean * mean;
+            var.sqrt()
+        };
 
-        let (mut e_x1, layout_out) =
-            reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+        let (out, layout_out) =
+            reduce_axes_difftype_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
 
-        let f = |acc: T, x: T| acc + x * x;
-
-        let (e_x2, _) = reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
-
-        e_x1.iter_mut().zip(e_x2.iter()).for_each(|(x1, x2)| *x1 = (*x2 - *x1 * *x1).sqrt());
-        Ok((Storage::new(e_x1.into(), self.clone()), layout_out))
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 }
