@@ -31,6 +31,9 @@ pub mod rstsr_traits {
         TensorIntoOwnedAPI, TensorViewAPI, TensorViewMutAPI,
     };
     pub use core::ops::*;
+
+    #[cfg(feature = "rayon")]
+    pub use crate::feature_rayon::DeviceRayonAPI;
 }
 
 pub mod rstsr_structs {
