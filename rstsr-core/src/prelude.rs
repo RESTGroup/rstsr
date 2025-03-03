@@ -120,9 +120,10 @@ pub mod rstsr_funcs {
     };
     // reduction
     pub use crate::tensor::reduction::{
-        max, max_all, max_all_f, max_f, mean, mean_all, mean_all_f, mean_f, min, min_all,
-        min_all_f, min_f, prod, prod_all, prod_all_f, prod_f, std, std_all, std_all_f, std_f, sum,
-        sum_all, sum_all_f, sum_f, var, var_all, var_all_f, var_f,
+        l2_norm, l2_norm_all, l2_norm_all_f, l2_norm_f, max, max_all, max_all_f, max_f, mean,
+        mean_all, mean_all_f, mean_f, min, min_all, min_all_f, min_f, prod, prod_all, prod_all_f,
+        prod_f, std, std_all, std_all_f, std_f, sum, sum_all, sum_all_f, sum_f, var, var_all,
+        var_all_f, var_f,
     };
 }
 

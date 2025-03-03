@@ -33,3 +33,4 @@ trait_reduction!(OpProdAPI, prod, prod_all);
 trait_reduction!(OpMeanAPI, mean, mean_all);
 trait_reduction!(OpVarAPI, var, var_all);
 trait_reduction!(OpStdAPI, std, std_all);
+trait_reduction!(OpL2NormAPI, l2_norm, l2_norm_all);

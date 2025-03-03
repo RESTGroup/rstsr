@@ -321,3 +321,43 @@ where
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 }
+
+impl<T, D> OpL2NormAPI<T, D> for DeviceRayonAutoImpl
+where
+    T: Clone + Send + Sync + ComplexFloat + FromPrimitive,
+    T::Real: Clone + Send + Sync + ComplexFloat + FromPrimitive,
+    D: DimAPI,
+{
+    type TOut = T::Real;
+
+    fn l2_norm_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T::Real> {
+        let pool = self.get_pool();
+
+        let f_init = || T::Real::zero();
+        let f = |acc: T::Real, x: T| acc + (x * x.conj()).re();
+        let f_sum = |acc: T::Real, x: T::Real| acc + x;
+        let f_out = |acc: T::Real| acc.sqrt();
+
+        let result = reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)?;
+        Ok(result)
+    }
+
+    fn l2_norm(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<T::Real>>, T::Real, Self>, Layout<IxD>)> {
+        let pool = self.get_pool();
+
+        let f_init = || T::Real::zero();
+        let f = |acc: T::Real, x: T| acc + (x * x.conj()).re();
+        let f_sum = |acc: T::Real, x: T::Real| acc + x;
+        let f_out = |acc: T::Real| acc.sqrt();
+
+        let (out, layout_out) =
+            reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}

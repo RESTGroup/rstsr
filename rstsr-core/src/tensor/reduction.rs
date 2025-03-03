@@ -102,6 +102,7 @@ trait_reduction!(OpProdAPI, prod, prod_f, prod_all, prod_all_f);
 trait_reduction!(OpMeanAPI, mean, mean_f, mean_all, mean_all_f);
 trait_reduction!(OpVarAPI, var, var_f, var_all, var_all_f);
 trait_reduction!(OpStdAPI, std, std_f, std_all, std_all_f);
+trait_reduction!(OpL2NormAPI, l2_norm, l2_norm_f, l2_norm_all, l2_norm_all_f);
 
 #[cfg(test)]
 mod test {
@@ -313,6 +314,37 @@ mod test {
         let m = a.std_all();
         println!("{:}", m);
         assert!((m - 4.508479664907993).abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_l2_norm() {
+        // DeviceCpuSerial
+        let vr = [8, 4, 2, 9, 3, 7, 2, 8, 1, 6, 10, 5];
+        let vi = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        let v = vr
+            .iter()
+            .zip(vi.iter())
+            .map(|(r, i)| num::Complex::new(r.to_f64().unwrap(), i.to_f64().unwrap()))
+            .collect::<Vec<_>>();
+        let a = asarray((&v, [4, 3].c(), &DeviceCpuSerial));
+
+        let m = a.l2_norm_all();
+        println!("{:}", m);
+        assert!((m - 33.21144381083123).abs() < 1e-10);
+
+        // DeviceFaer
+        let vr = [8, 4, 2, 9, 3, 7, 2, 8, 1, 6, 10, 5];
+        let vi = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        let v = vr
+            .iter()
+            .zip(vi.iter())
+            .map(|(r, i)| num::Complex::new(r.to_f64().unwrap(), i.to_f64().unwrap()))
+            .collect::<Vec<_>>();
+        let a = asarray((&v, [4, 3].c()));
+
+        let m = a.l2_norm_all();
+        println!("{:}", m);
+        assert!((m - 33.21144381083123).abs() < 1e-10);
     }
 
     #[test]
