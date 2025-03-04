@@ -1,9 +1,12 @@
 use rstsr_core::error::Result;
 
-pub trait LinalgSolveTriangularAPI<Inp>: Sized {
+pub trait LinalgSolveTriangularAPI<Inp> {
     type Out;
     fn solve_triangular_f(args: Self) -> Result<Self::Out>;
-    fn solve_triangular(args: Self) -> Self::Out {
+    fn solve_triangular(args: Self) -> Self::Out
+    where
+        Self: Sized,
+    {
         Self::solve_triangular_f(args).unwrap()
     }
 }

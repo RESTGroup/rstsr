@@ -1,9 +1,12 @@
 use rstsr_core::error::Result;
 
-pub trait LinalgCholeskyAPI<Inp>: Sized {
+pub trait LinalgCholeskyAPI<Inp> {
     type Out;
     fn cholesky_f(args: Self) -> Result<Self::Out>;
-    fn cholesky(args: Self) -> Self::Out {
+    fn cholesky(args: Self) -> Self::Out
+    where
+        Self: Sized,
+    {
         Self::cholesky_f(args).unwrap()
     }
 }

@@ -3,10 +3,13 @@ use core::ops::*;
 
 macro_rules! trait_unary {
     ($op: ident, $op_f: ident, $TensorOpAPI: ident) => {
-        pub trait $TensorOpAPI: Sized {
+        pub trait $TensorOpAPI {
             type Output;
             fn $op_f(self) -> Result<Self::Output>;
-            fn $op(self) -> Self::Output {
+            fn $op(self) -> Self::Output
+            where
+                Self: Sized,
+            {
                 Self::$op_f(self).unwrap()
             }
         }

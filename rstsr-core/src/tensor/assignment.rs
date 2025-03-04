@@ -1,6 +1,6 @@
 use crate::prelude_dev::*;
 
-pub trait TensorAssignAPI<TRB>: Sized {
+pub trait TensorAssignAPI<TRB> {
     fn assign_f(a: &mut Self, b: TRB) -> Result<()>;
     fn assign(a: &mut Self, b: TRB) {
         Self::assign_f(a, b).unwrap()

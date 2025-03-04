@@ -4,10 +4,13 @@ use crate::prelude_dev::*;
 
 macro_rules! trait_binary_arithmetic {
     ($op: ident, $op_f: ident, $TensorOpAPI: ident) => {
-        pub trait $TensorOpAPI<TRB>: Sized {
+        pub trait $TensorOpAPI<TRB> {
             type Output;
             fn $op_f(a: Self, b: TRB) -> Result<Self::Output>;
-            fn $op(a: Self, b: TRB) -> Self::Output {
+            fn $op(a: Self, b: TRB) -> Self::Output
+            where
+                Self: Sized,
+            {
                 Self::$op_f(a, b).unwrap()
             }
         }

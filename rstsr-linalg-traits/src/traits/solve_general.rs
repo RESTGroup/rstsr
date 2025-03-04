@@ -1,9 +1,11 @@
 use rstsr_core::error::Result;
 
-pub trait LinalgSolveGeneralAPI<Inp>: Sized {
+pub trait LinalgSolveGeneralAPI<Inp> {
     type Out;
     fn solve_general_f(args: Self) -> Result<Self::Out>;
-    fn solve_general(args: Self) -> Self::Out {
+    fn solve_general(args: Self) -> Self::Out
+    where
+        Self: Sized, {
         Self::solve_general_f(args).unwrap()
     }
 }

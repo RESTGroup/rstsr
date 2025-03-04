@@ -26,12 +26,15 @@ use num::Num;
 
 /* #region arange */
 
-pub trait ArangeAPI<Inp>: Sized {
+pub trait ArangeAPI<Inp> {
     type Out;
 
     fn arange_f(self) -> Result<Self::Out>;
 
-    fn arange(self) -> Self::Out {
+    fn arange(self) -> Self::Out
+    where
+        Self: Sized,
+    {
         Self::arange_f(self).unwrap()
     }
 }
@@ -145,7 +148,7 @@ where
 
 /* #region empty */
 
-pub trait EmptyAPI<Inp>: Sized {
+pub trait EmptyAPI<Inp> {
     type Out;
 
     /// # Safety
@@ -156,7 +159,10 @@ pub trait EmptyAPI<Inp>: Sized {
     /// # Safety
     ///
     /// This function is unsafe because it creates a tensor with uninitialized.
-    unsafe fn empty(self) -> Self::Out {
+    unsafe fn empty(self) -> Self::Out
+    where
+        Self: Sized,
+    {
         Self::empty_f(self).unwrap()
     }
 }
@@ -221,7 +227,7 @@ where
 
 /* #region empty_like */
 
-pub trait EmptyLikeAPI<Inp>: Sized {
+pub trait EmptyLikeAPI<Inp> {
     type Out;
 
     /// # Safety
@@ -232,7 +238,10 @@ pub trait EmptyLikeAPI<Inp>: Sized {
     /// # Safety
     ///
     /// This function is unsafe because it creates a tensor with uninitialized.
-    unsafe fn empty_like(self) -> Self::Out {
+    unsafe fn empty_like(self) -> Self::Out
+    where
+        Self: Sized,
+    {
         Self::empty_like_f(self).unwrap()
     }
 }
@@ -328,12 +337,15 @@ where
 
 /* #region eye */
 
-pub trait EyeAPI<Inp>: Sized {
+pub trait EyeAPI<Inp> {
     type Out;
 
     fn eye_f(self) -> Result<Self::Out>;
 
-    fn eye(self) -> Self::Out {
+    fn eye(self) -> Self::Out
+    where
+        Self: Sized,
+    {
         Self::eye_f(self).unwrap()
     }
 }
@@ -447,12 +459,15 @@ where
 
 /* #region full */
 
-pub trait FullAPI<Inp>: Sized {
+pub trait FullAPI<Inp> {
     type Out;
 
     fn full_f(self) -> Result<Self::Out>;
 
-    fn full(self) -> Self::Out {
+    fn full(self) -> Self::Out
+    where
+        Self: Sized,
+    {
         Self::full_f(self).unwrap()
     }
 }
@@ -511,12 +526,15 @@ where
 
 /* #region full_like */
 
-pub trait FullLikeAPI<Inp>: Sized {
+pub trait FullLikeAPI<Inp> {
     type Out;
 
     fn full_like_f(self) -> Result<Self::Out>;
 
-    fn full_like(self) -> Self::Out {
+    fn full_like(self) -> Self::Out
+    where
+        Self: Sized,
+    {
         Self::full_like_f(self).unwrap()
     }
 }
@@ -622,12 +640,15 @@ where
 
 /* #region linspace */
 
-pub trait LinspaceAPI<Inp>: Sized {
+pub trait LinspaceAPI<Inp> {
     type Out;
 
     fn linspace_f(self) -> Result<Self::Out>;
 
-    fn linspace(self) -> Self::Out {
+    fn linspace(self) -> Self::Out
+    where
+        Self: Sized,
+    {
         Self::linspace_f(self).unwrap()
     }
 }
@@ -714,12 +735,15 @@ where
 
 /* #region ones */
 
-pub trait OnesAPI<Inp>: Sized {
+pub trait OnesAPI<Inp> {
     type Out;
 
     fn ones_f(self) -> Result<Self::Out>;
 
-    fn ones(self) -> Self::Out {
+    fn ones(self) -> Self::Out
+    where
+        Self: Sized,
+    {
         Self::ones_f(self).unwrap()
     }
 }
@@ -778,12 +802,15 @@ where
 
 /* #region ones_like */
 
-pub trait OnesLikeAPI<Inp>: Sized {
+pub trait OnesLikeAPI<Inp> {
     type Out;
 
     fn ones_like_f(self) -> Result<Self::Out>;
 
-    fn ones_like(self) -> Self::Out {
+    fn ones_like(self) -> Self::Out
+    where
+        Self: Sized,
+    {
         Self::ones_like_f(self).unwrap()
     }
 }
@@ -898,12 +925,15 @@ where
 
 /* #region zeros */
 
-pub trait ZerosAPI<Inp>: Sized {
+pub trait ZerosAPI<Inp> {
     type Out;
 
     fn zeros_f(self) -> Result<Self::Out>;
 
-    fn zeros(self) -> Self::Out {
+    fn zeros(self) -> Self::Out
+    where
+        Self: Sized,
+    {
         Self::zeros_f(self).unwrap()
     }
 }
@@ -962,12 +992,15 @@ where
 
 /* #region zeros_like */
 
-pub trait ZerosLikeAPI<Inp>: Sized {
+pub trait ZerosLikeAPI<Inp> {
     type Out;
 
     fn zeros_like_f(self) -> Result<Self::Out>;
 
-    fn zeros_like(self) -> Self::Out {
+    fn zeros_like(self) -> Self::Out
+    where
+        Self: Sized,
+    {
         Self::zeros_like_f(self).unwrap()
     }
 }
@@ -1081,12 +1114,15 @@ where
 
 /* #region tril */
 
-pub trait TrilAPI<Inp>: Sized {
+pub trait TrilAPI<Inp> {
     type Out;
 
     fn tril_f(self) -> Result<Self::Out>;
 
-    fn tril(self) -> Self::Out {
+    fn tril(self) -> Self::Out
+    where
+        Self: Sized,
+    {
         Self::tril_f(self).unwrap()
     }
 }
@@ -1258,12 +1294,15 @@ where
 
 /* #region triu */
 
-pub trait TriuAPI<Inp>: Sized {
+pub trait TriuAPI<Inp> {
     type Out;
 
     fn triu_f(self) -> Result<Self::Out>;
 
-    fn triu(self) -> Self::Out {
+    fn triu(self) -> Self::Out
+    where
+        Self: Sized,
+    {
         Self::triu_f(self).unwrap()
     }
 }

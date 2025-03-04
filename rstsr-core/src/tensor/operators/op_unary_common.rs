@@ -19,10 +19,13 @@ Most unary functions are of the same type. However, there are some exceptions, a
 
 macro_rules! trait_unary {
     ($op: ident, $op_f: ident, $TensorOpAPI: ident) => {
-        pub trait $TensorOpAPI: Sized {
+        pub trait $TensorOpAPI {
             type Output;
             fn $op_f(self) -> Result<Self::Output>;
-            fn $op(self) -> Self::Output {
+            fn $op(self) -> Self::Output
+            where
+                Self: Sized,
+            {
                 self.$op_f().unwrap()
             }
         }

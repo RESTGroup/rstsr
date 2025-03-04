@@ -4,12 +4,15 @@ use crate::prelude_dev::*;
 use core::mem::ManuallyDrop;
 use num::complex::{Complex32, Complex64};
 
-pub trait AsArrayAPI<Inp>: Sized {
+pub trait AsArrayAPI<Inp> {
     type Out;
 
     fn asarray_f(self) -> Result<Self::Out>;
 
-    fn asarray(self) -> Self::Out {
+    fn asarray(self) -> Self::Out
+    where
+        Self: Sized,
+    {
         Self::asarray_f(self).unwrap()
     }
 }

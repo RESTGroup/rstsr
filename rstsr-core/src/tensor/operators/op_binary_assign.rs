@@ -3,9 +3,12 @@ use core::ops::*;
 
 macro_rules! trait_binary_assign {
     ($op: ident, $op_f: ident, $TensorOpAPI: ident) => {
-        pub trait $TensorOpAPI<TRB>: Sized {
+        pub trait $TensorOpAPI<TRB> {
             fn $op_f(a: Self, b: TRB) -> Result<()>;
-            fn $op(a: Self, b: TRB) {
+            fn $op(a: Self, b: TRB)
+            where
+                Self: Sized,
+            {
                 Self::$op_f(a, b).unwrap()
             }
         }

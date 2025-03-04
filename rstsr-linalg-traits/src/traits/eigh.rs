@@ -2,10 +2,13 @@ use derive_builder::Builder;
 use rstsr_blas_traits::prelude::BlasFloat;
 use rstsr_core::prelude_dev::*;
 
-pub trait LinalgEighAPI<Inp>: Sized {
+pub trait LinalgEighAPI<Inp> {
     type Out;
     fn eigh_f(args: Self) -> Result<Self::Out>;
-    fn eigh(args: Self) -> Self::Out {
+    fn eigh(args: Self) -> Self::Out
+    where
+        Self: Sized,
+    {
         Self::eigh_f(args).unwrap()
     }
 }

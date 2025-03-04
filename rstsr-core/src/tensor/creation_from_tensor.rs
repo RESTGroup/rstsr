@@ -9,12 +9,15 @@ use crate::prelude_dev::*;
 
 /* #region diag */
 
-pub trait DiagAPI<Inp>: Sized {
+pub trait DiagAPI<Inp> {
     type Out;
 
     fn diag_f(self) -> Result<Self::Out>;
 
-    fn diag(self) -> Self::Out {
+    fn diag(self) -> Self::Out
+    where
+        Self: Sized,
+    {
         Self::diag_f(self).unwrap()
     }
 }

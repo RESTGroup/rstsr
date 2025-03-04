@@ -1,9 +1,12 @@
 use rstsr_core::error::Result;
 
-pub trait LinalgInvAPI<Inp>: Sized {
+pub trait LinalgInvAPI<Inp> {
     type Out;
     fn inv_f(args: Self) -> Result<Self::Out>;
-    fn inv(args: Self) -> Self::Out {
+    fn inv(args: Self) -> Self::Out
+    where
+        Self: Sized,
+    {
         Self::inv_f(args).unwrap()
     }
 }

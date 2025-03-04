@@ -1,7 +1,7 @@
 use crate::prelude_dev::*;
 
 #[allow(clippy::type_complexity)]
-pub trait TensorDeviceChangeAPI<'l, BOut>: Sized
+pub trait TensorDeviceChangeAPI<'l, BOut>
 where
     BOut: DeviceRawAPI<Self::Type>,
 {
@@ -23,14 +23,20 @@ where
         device: &BOut,
     ) -> Result<TensorAny<Self::ReprTo, Self::Type, BOut, Self::Dim>>;
 
-    fn change_device(self, device: &BOut) -> TensorAny<Self::Repr, Self::Type, BOut, Self::Dim> {
+    fn change_device(self, device: &BOut) -> TensorAny<Self::Repr, Self::Type, BOut, Self::Dim>
+    where
+        Self: Sized,
+    {
         self.change_device_f(device).unwrap()
     }
 
     fn into_device(
         self,
         device: &BOut,
-    ) -> TensorAny<DataOwned<BOut::Raw>, Self::Type, BOut, Self::Dim> {
+    ) -> TensorAny<DataOwned<BOut::Raw>, Self::Type, BOut, Self::Dim>
+    where
+        Self: Sized,
+    {
         self.into_device_f(device).unwrap()
     }
 
@@ -68,7 +74,7 @@ where
 }
 
 #[allow(clippy::type_complexity)]
-pub trait TensorChangeFromDevice<'l, BOut>: Sized
+pub trait TensorChangeFromDevice<'l, BOut>
 where
     BOut: DeviceRawAPI<Self::Type>,
 {
@@ -90,14 +96,20 @@ where
         device: &BOut,
     ) -> Result<TensorAny<Self::ReprTo, Self::Type, BOut, Self::Dim>>;
 
-    fn change_device(self, device: &BOut) -> TensorAny<Self::Repr, Self::Type, BOut, Self::Dim> {
+    fn change_device(self, device: &BOut) -> TensorAny<Self::Repr, Self::Type, BOut, Self::Dim>
+    where
+        Self: Sized,
+    {
         self.change_device_f(device).unwrap()
     }
 
     fn into_device(
         self,
         device: &BOut,
-    ) -> TensorAny<DataOwned<BOut::Raw>, Self::Type, BOut, Self::Dim> {
+    ) -> TensorAny<DataOwned<BOut::Raw>, Self::Type, BOut, Self::Dim>
+    where
+        Self: Sized,
+    {
         self.into_device_f(device).unwrap()
     }
 

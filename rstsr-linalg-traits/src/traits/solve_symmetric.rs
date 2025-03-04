@@ -1,9 +1,12 @@
 use rstsr_core::error::Result;
 
-pub trait LinalgSolveSymmetricAPI<Inp>: Sized {
+pub trait LinalgSolveSymmetricAPI<Inp> {
     type Out;
     fn solve_symmetric_f(args: Self) -> Result<Self::Out>;
-    fn solve_symmetric(args: Self) -> Self::Out {
+    fn solve_symmetric(args: Self) -> Self::Out
+    where
+        Self: Sized,
+    {
         Self::solve_symmetric_f(args).unwrap()
     }
 }
