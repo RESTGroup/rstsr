@@ -240,7 +240,7 @@ where
     ///
     /// This check is done by checking whether any stride of axis is zero.
     pub fn is_broadcasted(&self) -> bool {
-        self.stride().as_ref().iter().any(|&t| t == 0)
+        self.stride().as_ref().contains(&0)
     }
 }
 

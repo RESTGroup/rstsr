@@ -5,7 +5,8 @@ pub trait LinalgSolveGeneralAPI<Inp> {
     fn solve_general_f(args: Self) -> Result<Self::Out>;
     fn solve_general(args: Self) -> Self::Out
     where
-        Self: Sized, {
+        Self: Sized,
+    {
         Self::solve_general_f(args).unwrap()
     }
 }
