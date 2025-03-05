@@ -68,9 +68,9 @@ macro_rules! impl_gemm_blas_no_conj {
             let sc = lc.shape();
             let sa = la.shape();
             let sb = lb.shape();
-            debug_assert_eq!(sc[0], sa[0]);
-            debug_assert_eq!(sa[1], sb[0]);
-            debug_assert_eq!(sc[1], sb[1]);
+            rstsr_assert_eq!(sc[0], sa[0], InvalidLayout)?;
+            rstsr_assert_eq!(sa[1], sb[0], InvalidLayout)?;
+            rstsr_assert_eq!(sc[1], sb[1], InvalidLayout)?;
 
             let m = sc[0];
             let n = sc[1];
@@ -338,8 +338,8 @@ macro_rules! impl_syrk_blas_no_conj {
             // we assume that the layout is correct
             let sc = lc.shape();
             let sa = la.shape();
-            debug_assert_eq!(sc[0], sa[0]);
-            debug_assert_eq!(sc[1], sc[0]);
+            rstsr_assert_eq!(sc[0], sa[0], InvalidLayout)?;
+            rstsr_assert_eq!(sc[1], sc[0], InvalidLayout)?;
 
             let n = sc[0];
             let k = sa[1];
