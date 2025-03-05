@@ -757,7 +757,7 @@ where
     D: DimAPI,
     F: FnMut((usize, usize)),
 {
-    rstsr_assert_eq!(la.ndim(), lb.ndim(), InvalidLayout);
+    debug_assert!(la.ndim() == lb.ndim());
 
     #[cfg(feature = "dispatch_dim_layout_iter")]
     {
@@ -804,8 +804,8 @@ where
     D: DimAPI,
     F: FnMut((usize, usize, usize)),
 {
-    rstsr_assert_eq!(la.ndim(), lb.ndim(), InvalidLayout);
-    rstsr_assert_eq!(la.ndim(), lc.ndim(), InvalidLayout);
+    debug_assert!(la.ndim() == lb.ndim());
+    debug_assert!(la.ndim() == lc.ndim());
 
     #[cfg(feature = "dispatch_dim_layout_iter")]
     {
