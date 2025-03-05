@@ -103,8 +103,8 @@ fn quick_check(shape_out: &Vec<usize>, layout_in: &Layout<IxD>) -> Result<Option
 ///   of input tensor.
 /// * `Vec<isize>` - The minimum stride of the current batch.
 fn pop_layout_in(shape_in: &mut Vec<usize>, stride_in: &mut Vec<isize>) -> (usize, isize) {
-    debug_assert!(shape_in.len() == stride_in.len());
-    debug_assert!(!shape_in.is_empty());
+    rstsr_assert_eq!(shape_in.len(), stride_in.len(), RuntimeError).unwrap();
+    rstsr_assert!(!shape_in.is_empty(), RuntimeError).unwrap();
 
     let mut stride_min = stride_in.pop().unwrap();
     let mut size = shape_in.pop().unwrap();
@@ -141,7 +141,7 @@ fn pop_shape_out(
     mut size: usize,
     mut stride_min: isize,
 ) -> bool {
-    debug_assert!(!shape_out.is_empty());
+    rstsr_assert!(!shape_out.is_empty(), RuntimeError).unwrap();
 
     while size != 1 || shape_out.last().is_some_and(|&v| v == 1) {
         let s_out = shape_out.pop().unwrap();
@@ -178,8 +178,8 @@ fn complicated_reshape(shape_out: &[usize], layout_in: &Layout<IxD>) -> Option<L
             return None;
         }
     }
-    debug_assert!(shape_out.is_empty());
-    debug_assert!(stride_out.len() == shape_out_ref.len());
+    rstsr_assert!(shape_out.is_empty(), RuntimeError).unwrap();
+    rstsr_assert_eq!(stride_out.len(), shape_out_ref.len(), RuntimeError).unwrap();
     // note that stride_out is in reverse order in c-prefer
     // as contrary, shape_out is in reverse order in f-prefer
     match TensorOrder::default() {

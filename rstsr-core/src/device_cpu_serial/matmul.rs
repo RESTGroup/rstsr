@@ -208,9 +208,9 @@ where
         let sc = lc.shape();
         let sa = la.shape();
         let sb = lb.shape();
-        debug_assert_eq!(sc[0], sa[0]);
-        debug_assert_eq!(sa[1], sb[0]);
-        debug_assert_eq!(sc[1], sb[1]);
+        rstsr_assert_eq!(sc[0], sa[0], InvalidLayout)?;
+        rstsr_assert_eq!(sa[1], sb[0], InvalidLayout)?;
+        rstsr_assert_eq!(sc[1], sb[1], InvalidLayout)?;
         let (m, n, k) = (sc[0], sc[1], sa[1]);
 
         // naive iteration: assuming c-prefer
@@ -258,8 +258,8 @@ where
         let sc = lc.shape();
         let sa = la.shape();
         let sb = lb.shape();
-        debug_assert_eq!(sc[0], sa[0]);
-        debug_assert_eq!(sa[1], sb[0]);
+        rstsr_assert_eq!(sc[0], sa[0], InvalidLayout)?;
+        rstsr_assert_eq!(sa[1], sb[0], InvalidLayout)?;
         let (n, k) = (sa[0], sa[1]);
 
         // naive iteration: assuming c-prefer
@@ -293,8 +293,8 @@ where
         let sc = lc.shape();
         let sa = la.shape();
         let sb = lb.shape();
-        debug_assert_eq!(sc[0], sb[1]);
-        debug_assert_eq!(sa[0], sb[0]);
+        rstsr_assert_eq!(sc[0], sb[1], InvalidLayout)?;
+        rstsr_assert_eq!(sa[0], sb[0], InvalidLayout)?;
         let (n, k) = (sb[1], sb[0]);
 
         // naive iteration: assuming c-prefer
