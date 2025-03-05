@@ -63,6 +63,11 @@ pub mod rstsr_funcs {
         tril_f, triu, triu_f, zeros, zeros_f, zeros_like, zeros_like_f,
     };
     pub use crate::tensor::creation_from_tensor::{diag, diag_f};
+    pub use crate::tensor::indexing::{
+        diagonal, diagonal_f, diagonal_mut, diagonal_mut_f, into_diagonal, into_diagonal_f,
+        into_diagonal_mut, into_diagonal_mut_f, into_slice, into_slice_f, into_slice_mut,
+        into_slice_mut_f, slice, slice_f, slice_mut, slice_mut_f,
+    };
     pub use crate::tensor::manuplication::{
         broadcast_arrays, broadcast_arrays_f, change_contig, change_contig_f, change_layout,
         change_layout_f, change_shape, change_shape_f, expand_dims, expand_dims_f, flip, flip_f,

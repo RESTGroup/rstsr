@@ -217,6 +217,243 @@ where
 
 /* #endregion */
 
+/* #region diagonal */
+
+pub struct DiagonalArgs {
+    pub offset: Option<isize>,
+    pub axis1: Option<isize>,
+    pub axis2: Option<isize>,
+}
+
+impl From<(isize, isize, isize)> for DiagonalArgs {
+    fn from(args: (isize, isize, isize)) -> Self {
+        let (offset, axis1, axis2) = args;
+        Self { offset: Some(offset), axis1: Some(axis1), axis2: Some(axis2) }
+    }
+}
+
+impl From<(usize, isize, isize)> for DiagonalArgs {
+    fn from(args: (usize, isize, isize)) -> Self {
+        let (offset, axis1, axis2) = args;
+        Self { offset: Some(offset as isize), axis1: Some(axis1), axis2: Some(axis2) }
+    }
+}
+
+impl From<(usize, usize, usize)> for DiagonalArgs {
+    fn from(args: (usize, usize, usize)) -> Self {
+        let (offset, axis1, axis2) = args;
+        Self {
+            offset: Some(offset as isize),
+            axis1: Some(axis1 as isize),
+            axis2: Some(axis2 as isize),
+        }
+    }
+}
+
+impl From<isize> for DiagonalArgs {
+    fn from(offset: isize) -> Self {
+        Self { offset: Some(offset), axis1: None, axis2: None }
+    }
+}
+
+impl From<usize> for DiagonalArgs {
+    fn from(offset: usize) -> Self {
+        Self { offset: Some(offset as isize), axis1: None, axis2: None }
+    }
+}
+
+impl From<()> for DiagonalArgs {
+    fn from(_: ()) -> Self {
+        Self { offset: None, axis1: None, axis2: None }
+    }
+}
+
+impl From<Option<isize>> for DiagonalArgs {
+    fn from(offset: Option<isize>) -> Self {
+        Self { offset, axis1: None, axis2: None }
+    }
+}
+
+pub fn into_diagonal_f<S, D>(
+    tensor: TensorBase<S, D>,
+    diagonal_args: impl Into<DiagonalArgs>,
+) -> Result<TensorBase<S, D::SmallerOne>>
+where
+    D: DimAPI + DimSmallerOneAPI,
+    D::SmallerOne: DimAPI,
+{
+    let (data, layout) = tensor.into_raw_parts();
+    let DiagonalArgs { offset, axis1, axis2 } = diagonal_args.into();
+    let layout = layout.diagonal(offset, axis1, axis2)?;
+    return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
+}
+
+pub fn into_diagonal<S, D>(
+    tensor: TensorBase<S, D>,
+    diagonal_args: impl Into<DiagonalArgs>,
+) -> TensorBase<S, D::SmallerOne>
+where
+    D: DimAPI + DimSmallerOneAPI,
+    D::SmallerOne: DimAPI,
+{
+    into_diagonal_f(tensor, diagonal_args).unwrap()
+}
+
+pub fn diagonal_f<R, T, B, D>(
+    tensor: &TensorAny<R, T, B, D>,
+    diagonal_args: impl Into<DiagonalArgs>,
+) -> Result<TensorView<'_, T, B, D::SmallerOne>>
+where
+    D: DimAPI + DimSmallerOneAPI,
+    D::SmallerOne: DimAPI,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
+{
+    into_diagonal_f(tensor.view(), diagonal_args)
+}
+
+pub fn diagonal<R, T, B, D>(
+    tensor: &TensorAny<R, T, B, D>,
+    diagonal_args: impl Into<DiagonalArgs>,
+) -> TensorView<'_, T, B, D::SmallerOne>
+where
+    D: DimAPI + DimSmallerOneAPI,
+    D::SmallerOne: DimAPI,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
+{
+    diagonal_f(tensor, diagonal_args).unwrap()
+}
+
+impl<R, T, B, D> TensorAny<R, T, B, D>
+where
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
+    D: DimAPI + DimSmallerOneAPI,
+    D::SmallerOne: DimAPI,
+{
+    pub fn into_diagonal_f(
+        self,
+        diagonal_args: impl Into<DiagonalArgs>,
+    ) -> Result<TensorAny<R, T, B, D::SmallerOne>> {
+        into_diagonal_f(self, diagonal_args)
+    }
+
+    pub fn into_diagonal(
+        self,
+        diagonal_args: impl Into<DiagonalArgs>,
+    ) -> TensorAny<R, T, B, D::SmallerOne> {
+        into_diagonal(self, diagonal_args)
+    }
+
+    pub fn diagonal_f(
+        &self,
+        diagonal_args: impl Into<DiagonalArgs>,
+    ) -> Result<TensorView<'_, T, B, D::SmallerOne>> {
+        diagonal_f(self, diagonal_args)
+    }
+
+    pub fn diagonal(
+        &self,
+        diagonal_args: impl Into<DiagonalArgs>,
+    ) -> TensorView<'_, T, B, D::SmallerOne> {
+        diagonal(self, diagonal_args)
+    }
+}
+
+/* #endregion */
+
+/* #region diagonal_mut */
+
+pub fn into_diagonal_mut_f<S, D>(
+    tensor: TensorBase<S, D>,
+    diagonal_args: impl Into<DiagonalArgs>,
+) -> Result<TensorBase<S, D::SmallerOne>>
+where
+    D: DimAPI + DimSmallerOneAPI,
+    D::SmallerOne: DimAPI,
+{
+    let (data, layout) = tensor.into_raw_parts();
+    let DiagonalArgs { offset, axis1, axis2 } = diagonal_args.into();
+    let layout = layout.diagonal(offset, axis1, axis2)?;
+    return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
+}
+
+pub fn into_diagonal_mut<S, D>(
+    tensor: TensorBase<S, D>,
+    diagonal_args: impl Into<DiagonalArgs>,
+) -> TensorBase<S, D::SmallerOne>
+where
+    D: DimAPI + DimSmallerOneAPI,
+    D::SmallerOne: DimAPI,
+{
+    into_diagonal_mut_f(tensor, diagonal_args).unwrap()
+}
+
+pub fn diagonal_mut_f<R, T, B, D>(
+    tensor: &mut TensorAny<R, T, B, D>,
+    diagonal_args: impl Into<DiagonalArgs>,
+) -> Result<TensorMut<'_, T, B, D::SmallerOne>>
+where
+    D: DimAPI + DimSmallerOneAPI,
+    D::SmallerOne: DimAPI,
+    R: DataMutAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
+{
+    into_diagonal_mut_f(tensor.view_mut(), diagonal_args)
+}
+
+pub fn diagonal_mut<R, T, B, D>(
+    tensor: &mut TensorAny<R, T, B, D>,
+    diagonal_args: impl Into<DiagonalArgs>,
+) -> TensorMut<'_, T, B, D::SmallerOne>
+where
+    D: DimAPI + DimSmallerOneAPI,
+    D::SmallerOne: DimAPI,
+    R: DataMutAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
+{
+    diagonal_mut_f(tensor, diagonal_args).unwrap()
+}
+
+impl<R, T, B, D> TensorAny<R, T, B, D>
+where
+    R: DataMutAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
+    D: DimAPI + DimSmallerOneAPI,
+    D::SmallerOne: DimAPI,
+{
+    pub fn into_diagonal_mut_f(
+        self,
+        diagonal_args: impl Into<DiagonalArgs>,
+    ) -> Result<TensorAny<R, T, B, D::SmallerOne>> {
+        into_diagonal_mut_f(self, diagonal_args)
+    }
+
+    pub fn into_diagonal_mut(
+        self,
+        diagonal_args: impl Into<DiagonalArgs>,
+    ) -> TensorAny<R, T, B, D::SmallerOne> {
+        into_diagonal_mut(self, diagonal_args)
+    }
+
+    pub fn diagonal_mut_f(
+        &mut self,
+        diagonal_args: impl Into<DiagonalArgs>,
+    ) -> Result<TensorMut<'_, T, B, D::SmallerOne>> {
+        diagonal_mut_f(self, diagonal_args)
+    }
+
+    pub fn diagonal_mut(
+        &mut self,
+        diagonal_args: impl Into<DiagonalArgs>,
+    ) -> TensorMut<'_, T, B, D::SmallerOne> {
+        diagonal_mut(self, diagonal_args)
+    }
+}
+
+/* #endregion */
+
 /* #region indexing */
 
 // It seems that implementing Index for TensorBase is not possible because of
