@@ -85,6 +85,57 @@ where
     }
 }
 
+pub fn reduce_arg_all_cpu_serial<T, D, Fcomp, Feq>(
+    a: &[T],
+    la: &Layout<D>,
+    f_comp: Fcomp,
+    f_eq: Feq,
+) -> Result<D>
+where
+    T: Clone,
+    D: DimAPI,
+    Fcomp: Fn(Option<T>, T) -> Option<bool>,
+    Feq: Fn(Option<T>, T) -> Option<bool>,
+{
+    rstsr_assert!(la.size() > 0, InvalidLayout, "empty sequence is not allowed for reduce_arg.")?;
+
+    let fold_func = |acc: Option<(D, T)>, (cur_idx, cur_offset): (D, usize)| {
+        let cur_val = a[cur_offset].clone();
+
+        let comp = f_comp(acc.as_ref().map(|(_, val)| val.clone()), cur_val.clone());
+        if let Some(comp) = comp {
+            if comp {
+                // cond 1: current value is accepted
+                Some((cur_idx, cur_val))
+            } else {
+                let comp_eq = f_eq(acc.as_ref().map(|(_, val)| val.clone()), cur_val.clone());
+                if comp_eq.is_some_and(|x| x) {
+                    // cond 2: current value is same with previous value, return smaller index
+                    if let Some(acc_idx) = acc.as_ref().map(|(idx, _)| idx.clone()) {
+                        if cur_idx < acc_idx {
+                            Some((cur_idx, cur_val))
+                        } else {
+                            acc
+                        }
+                    } else {
+                        Some((cur_idx, cur_val))
+                    }
+                } else {
+                    // cond 3: current value is not accepted
+                    acc
+                }
+            }
+        } else {
+            // cond 4: current comparasion is not valid
+            acc
+        }
+    };
+
+    let iter_a = IndexedIterLayout::new(la, RowMajor)?;
+    let acc = iter_a.into_iter().fold(None, fold_func);
+    return Ok(acc.unwrap().0);
+}
+
 pub fn reduce_axes_cpu_serial<TI, TS, I, F, FSum, FOut>(
     a: &[TI],
     la: &Layout<IxD>,
@@ -162,6 +213,56 @@ where
         op_muta_func_cpu_serial(&mut out, &layout_out, fin_inplace)?;
         return Ok((out, layout_out));
     }
+}
+
+pub fn reduce_axes_arg_cpu_serial<T, D, Fcomp, Feq>(
+    a: &[T],
+    la: &Layout<D>,
+    axes: &[isize],
+    f_comp: Fcomp,
+    f_eq: Feq,
+) -> Result<(Vec<IxD>, Layout<IxD>)>
+where
+    T: Clone,
+    D: DimAPI,
+    Fcomp: Fn(Option<T>, T) -> Option<bool>,
+    Feq: Fn(Option<T>, T) -> Option<bool>,
+{
+    rstsr_assert!(la.size() > 0, InvalidLayout, "empty sequence is not allowed for reduce_arg.")?;
+
+    // split the layout into axes (to be summed) and the rest
+    let (layout_axes, layout_rest) = la.dim_split_axes(axes)?;
+
+    // generate layout for result (from layout_rest)
+    let layout_out = layout_for_array_copy(&layout_rest, TensorIterOrder::default())?;
+
+    // generate layouts for actual evaluation
+    let layouts_swapped =
+        translate_to_col_major(&[&layout_out, &layout_rest], TensorIterOrder::default())?;
+    let layout_out_swapped = &layouts_swapped[0];
+    let layout_rest_swapped = &layouts_swapped[1];
+
+    // iterate both layout_rest and layout_out
+    let iter_out_swapped = IterLayoutRowMajor::new(layout_out_swapped)?;
+    let iter_rest_swapped = IterLayoutRowMajor::new(layout_rest_swapped)?;
+
+    // inner layout is axes to be summed
+    let mut layout_inner = layout_axes.clone();
+
+    // prepare output
+    let len_out = layout_out.size();
+    let mut out = vec![IxD::default(); len_out];
+
+    // actual evaluation
+    izip!(iter_out_swapped, iter_rest_swapped).try_for_each(
+        |(idx_out, idx_rest)| -> Result<()> {
+            unsafe { layout_inner.set_offset(idx_rest) };
+            let acc = reduce_arg_all_cpu_serial(a, &layout_inner, &f_comp, &f_eq)?;
+            out[idx_out] = acc;
+            Ok(())
+        },
+    )?;
+    return Ok((out, layout_out));
 }
 
 pub fn reduce_axes_difftype_cpu_serial<TI, TS, TO, I, F, FSum, FOut>(

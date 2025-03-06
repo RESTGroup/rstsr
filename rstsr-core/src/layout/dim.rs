@@ -31,6 +31,8 @@ pub trait DimBaseAPI:
     + Into<Vec<usize>>
     + Send
     + Sync
+    + PartialOrd
+    + PartialEq
 {
     type Stride: AsMut<[isize]>
         + AsRef<[isize]>

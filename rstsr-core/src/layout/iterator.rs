@@ -712,6 +712,80 @@ where
 
 /* #endregion */
 
+/* #region layout iterator with index */
+
+#[derive(Clone, Debug)]
+pub struct IndexedIterLayout<D>
+where
+    D: DimDevAPI,
+{
+    pub(crate) layout_iter: IterLayout<D>,
+}
+
+impl<D> IndexedIterLayout<D>
+where
+    D: DimDevAPI,
+{
+    pub fn new(layout: &Layout<D>, order: FlagOrder) -> Result<Self> {
+        let order = match order {
+            RowMajor => TensorIterOrder::C,
+            ColMajor => TensorIterOrder::F,
+        };
+        Ok(Self { layout_iter: IterLayout::new(layout, order)? })
+    }
+}
+
+impl<D> Iterator for IndexedIterLayout<D>
+where
+    D: DimDevAPI,
+{
+    type Item = (D, usize);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let index = match &self.layout_iter {
+            IterLayout::ColMajor(iter_inner) => iter_inner.index_start.clone(),
+            IterLayout::RowMajor(iter_inner) => iter_inner.index_start.clone(),
+        };
+        self.layout_iter.next().map(|offset| (index, offset))
+    }
+}
+
+impl<D> DoubleEndedIterator for IndexedIterLayout<D>
+where
+    D: DimDevAPI,
+{
+    fn next_back(&mut self) -> Option<Self::Item> {
+        let index = match &self.layout_iter {
+            IterLayout::ColMajor(iter_inner) => iter_inner.index_start.clone(),
+            IterLayout::RowMajor(iter_inner) => iter_inner.index_start.clone(),
+        };
+        self.layout_iter.next_back().map(|offset| (index, offset))
+    }
+}
+
+impl<D> ExactSizeIterator for IndexedIterLayout<D>
+where
+    D: DimDevAPI,
+{
+    fn len(&self) -> usize {
+        self.layout_iter.len()
+    }
+}
+
+impl<D> IterSplitAtAPI for IndexedIterLayout<D>
+where
+    D: DimDevAPI,
+{
+    fn split_at(self, mid: usize) -> (Self, Self) {
+        let (lhs, rhs) = self.layout_iter.split_at(mid);
+        let lhs = IndexedIterLayout { layout_iter: lhs };
+        let rhs = IndexedIterLayout { layout_iter: rhs };
+        (lhs, rhs)
+    }
+}
+
+/* #endregion */
+
 /* #region col-major layout dim dispatch */
 
 #[allow(unused_mut)]
@@ -981,7 +1055,7 @@ mod test_col_major {
         let layout = Layout::new([10, 10, 10], [10, 1, 100], 0).unwrap();
         // np.array(np.nditer(a, order="C"))
         let layout_trans = translate_to_col_major_unary(&layout, Order::C).unwrap();
-        println!("{:?}", unsafe { layout.unravel_index_f(100) });
+        println!("{:?}", unsafe { layout.shape().unravel_index_f(100) });
         let iter = IterLayoutColMajor::new(&layout_trans).unwrap();
         let vec_next = iter.collect::<Vec<_>>();
         let iter = IterLayoutColMajor::new(&layout_trans).unwrap();

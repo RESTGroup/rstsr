@@ -328,3 +328,101 @@ where
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 }
+
+impl<T, D> OpArgMinAPI<T, D> for DeviceCpuSerial
+where
+    T: Clone + PartialOrd,
+    D: DimAPI,
+{
+    fn argmin(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<IxD>>, IxD, Self>, Layout<IxD>)> {
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y < x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let (out, layout_out) = reduce_axes_arg_cpu_serial(a, la, axes, f_comp, f_eq)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+
+    fn argmin_all(&self, a: &<Self as DeviceRawAPI<T>>::Raw, la: &Layout<D>) -> Result<D> {
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y < x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let result = reduce_arg_all_cpu_serial(a, la, f_comp, f_eq)?;
+        Ok(result)
+    }
+}
+
+impl<T, D> OpArgMaxAPI<T, D> for DeviceCpuSerial
+where
+    T: Clone + PartialOrd,
+    D: DimAPI,
+{
+    fn argmax(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<IxD>>, IxD, Self>, Layout<IxD>)> {
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y > x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let (out, layout_out) = reduce_axes_arg_cpu_serial(a, la, axes, f_comp, f_eq)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+
+    fn argmax_all(&self, a: &<Self as DeviceRawAPI<T>>::Raw, la: &Layout<D>) -> Result<D> {
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y > x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let result = reduce_arg_all_cpu_serial(a, la, f_comp, f_eq)?;
+        Ok(result)
+    }
+}

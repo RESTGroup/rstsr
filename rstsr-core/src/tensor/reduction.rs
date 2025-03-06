@@ -104,6 +104,93 @@ trait_reduction!(OpVarAPI, var, var_f, var_all, var_all_f);
 trait_reduction!(OpStdAPI, std, std_f, std_all, std_all_f);
 trait_reduction!(OpL2NormAPI, l2_norm, l2_norm_f, l2_norm_all, l2_norm_all_f);
 
+macro_rules! trait_reduction_arg {
+    ($OpReduceAPI: ident, $fn: ident, $fn_f: ident, $fn_all: ident, $fn_all_f: ident) => {
+        pub fn $fn_all_f<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> Result<D>
+        where
+            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+            D: DimAPI,
+            B: $OpReduceAPI<T, D>,
+        {
+            tensor.device().$fn_all(tensor.raw(), tensor.layout())
+        }
+
+        pub fn $fn_f<R, T, B, D, I>(
+            tensor: &TensorAny<R, T, B, D>,
+            axes: I,
+        ) -> Result<Tensor<IxD, B, IxD>>
+        where
+            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+            D: DimAPI,
+            B: $OpReduceAPI<T, D> + DeviceAPI<IxD>,
+            I: TryInto<AxesIndex<isize>>,
+            Error: From<I::Error>,
+        {
+            let axes = axes.try_into()?;
+
+            let (storage, layout) =
+                tensor.device().$fn(tensor.raw(), tensor.layout(), axes.as_ref())?;
+            Tensor::new_f(storage, layout)
+        }
+
+        pub fn $fn_all<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> D
+        where
+            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+            D: DimAPI,
+            B: $OpReduceAPI<T, D>,
+        {
+            $fn_all_f(tensor).unwrap()
+        }
+
+        pub fn $fn<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, axes: I) -> Tensor<IxD, B, IxD>
+        where
+            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+            D: DimAPI,
+            B: $OpReduceAPI<T, D> + DeviceAPI<IxD>,
+            I: TryInto<AxesIndex<isize>>,
+            Error: From<I::Error>,
+        {
+            $fn_f(tensor, axes).unwrap()
+        }
+
+        impl<R, T, B, D> TensorAny<R, T, B, D>
+        where
+            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+            D: DimAPI,
+            B: $OpReduceAPI<T, D>,
+        {
+            pub fn $fn_all_f(&self) -> Result<D> {
+                $fn_all_f(self)
+            }
+
+            pub fn $fn_all(&self) -> D {
+                $fn_all(self)
+            }
+
+            pub fn $fn_f<I>(&self, axes: I) -> Result<Tensor<IxD, B, IxD>>
+            where
+                B: DeviceAPI<IxD>,
+                I: TryInto<AxesIndex<isize>>,
+                Error: From<I::Error>,
+            {
+                $fn_f(self, axes)
+            }
+
+            pub fn $fn<I>(&self, axes: I) -> Tensor<IxD, B, IxD>
+            where
+                B: DeviceAPI<IxD>,
+                I: TryInto<AxesIndex<isize>>,
+                Error: From<I::Error>,
+            {
+                $fn(self, axes)
+            }
+        }
+    };
+}
+
+trait_reduction_arg!(OpArgMinAPI, argmin, argmin_f, argmin_all, argmin_all_f);
+trait_reduction_arg!(OpArgMaxAPI, argmax, argmax_f, argmax_all, argmax_all_f);
+
 #[cfg(test)]
 mod test {
     use num::ToPrimitive;
@@ -136,7 +223,7 @@ mod test {
 
         // np.arange(3240).reshape(12, 15, 18)
         //   .swapaxes(-1, -2)[2:-3, 1:-4:2, -1:3:-2].sum()
-        let a_owned = arange(3240).into_shape([12, 15, 18]).into_swapaxes(-1, -2);
+        let a_owned: Tensor<usize> = arange(3240).into_shape([12, 15, 18]).into_swapaxes(-1, -2);
         let a = a_owned.i((slice!(2, -3), slice!(1, -4, 2), slice!(-1, 3, -2)));
         let s = a.sum_all();
         assert_eq!(s, 446586);
@@ -149,17 +236,17 @@ mod test {
     #[test]
     fn test_sum_axes() {
         // DeviceCpuSerial
-        let s = arange((3240, &DeviceCpuSerial))
-            .into_shape([4, 6, 15, 9])
-            .transpose([2, 0, 3, 1])
-            .sum([0, -2]);
+        let a =
+            arange((3240, &DeviceCpuSerial)).into_shape([4, 6, 15, 9]).into_transpose([2, 0, 3, 1]);
+        let s = a.sum([0, -2]);
         println!("{:?}", s);
         assert_eq!(s[[0, 1]], 27270);
         assert_eq!(s[[1, 2]], 154845);
         assert_eq!(s[[3, 5]], 428220);
 
         // DeviceFaer
-        let s = arange(3240).into_shape([4, 6, 15, 9]).transpose([2, 0, 3, 1]).sum([0, -2]);
+        let a: Tensor<usize> = arange(3240).into_shape([4, 6, 15, 9]).into_transpose([2, 0, 3, 1]);
+        let s = a.sum([0, -2]);
         println!("{:?}", s);
         assert_eq!(s[[0, 1]], 27270);
         assert_eq!(s[[1, 2]], 154845);
@@ -367,5 +454,31 @@ mod test {
 
         let c_std_2 = c.std((1, 2));
         println!("{}", c_std_2);
+    }
+
+    #[test]
+    fn test_argmin() {
+        // DeviceCpuSerial
+        let v = vec![8, 4, 2, 9, 7, 1, 2, 1, 8, 6, 10, 5];
+        let a = asarray((&v, [4, 3].c(), &DeviceCpuSerial));
+        println!("{:}", a);
+        // [[ 8 4 2]
+        //  [ 9 7 1]
+        //  [ 2 1 8]
+        //  [ 6 10 5]]
+
+        let m = a.argmin_all();
+        println!("{:?}", m);
+        assert_eq!(m, vec![1, 2]);
+
+        let m = a.argmin(-1);
+        println!("{:?}", m);
+        let m_vec = m.raw();
+        assert_eq!(m_vec, &vec![vec![2], vec![2], vec![1], vec![2]]);
+
+        let m = a.argmin(0);
+        println!("{:?}", m);
+        let m_vec = m.raw();
+        assert_eq!(m_vec, &vec![vec![2], vec![2], vec![1]]);
     }
 }
