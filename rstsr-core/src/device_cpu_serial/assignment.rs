@@ -23,7 +23,10 @@ where
         let offset_c = lc.offset();
         let offset_a = la.offset();
         let size = lc.size();
-        c[offset_c..(offset_c + size)].clone_from_slice(&a[offset_a..(offset_a + size)]);
+        c[offset_c..(offset_c + size)]
+            .iter_mut()
+            .zip(a[offset_a..(offset_a + size)].iter())
+            .for_each(|(ci, ai)| *ci = ai.clone());
     } else {
         // determine order by layout preference
         let order = match TensorOrder::default() {
@@ -53,7 +56,10 @@ where
         let lc = &layouts_contig[0];
         let la = &layouts_contig[1];
         layout_col_major_dim_dispatch_2(lc, la, |(idx_c, idx_a)| {
-            c[idx_c..(idx_c + size_contig)].clone_from_slice(&a[idx_a..(idx_a + size_contig)]);
+            c[idx_c..(idx_c + size_contig)]
+                .iter_mut()
+                .zip(a[idx_a..(idx_a + size_contig)].iter())
+                .for_each(|(ci, ai)| *ci = ai.clone());
         })?;
     } else {
         let lc = &layouts_full[0];

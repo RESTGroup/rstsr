@@ -15,7 +15,7 @@ where
         let (b_prev, b_next) = b.split_at(i + 1);
         a = a_next;
         b = b_next;
-        a_prev.clone_from_slice(b_prev);
+        a_prev.iter_mut().zip(b_prev.iter()).for_each(|(ai, bi)| *ai = bi.clone());
     }
 }
 

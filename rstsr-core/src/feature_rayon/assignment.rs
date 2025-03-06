@@ -41,7 +41,10 @@ where
         let offset_c = lc.offset();
         let offset_a = la.offset();
         let size = lc.size();
-        c[offset_c..(offset_c + size)].clone_from_slice(&a[offset_a..(offset_a + size)]);
+        c[offset_c..(offset_c + size)]
+            .iter_mut()
+            .zip(a[offset_a..(offset_a + size)].iter())
+            .for_each(|(ci, ai)| *ci = ai.clone());
     } else {
         // determine order by layout preference
         let order = match TensorOrder::default() {

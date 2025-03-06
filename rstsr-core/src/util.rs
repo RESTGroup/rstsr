@@ -399,8 +399,8 @@ impl_from_tuple_to_axes_index!(usize);
 /// Caller must ensure that the vector is properly initialized before using it.
 pub unsafe fn uninitialized_vec<T>(size: usize) -> Vec<T> {
     let mut v: Vec<MaybeUninit<T>> = Vec::with_capacity(size);
-    v.set_len(size);
-    return transmute::<Vec<MaybeUninit<T>>, Vec<T>>(v);
+    unsafe { v.set_len(size) };
+    return unsafe { transmute::<Vec<MaybeUninit<T>>, Vec<T>>(v) };
 }
 
 /* #endregion */
