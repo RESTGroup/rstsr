@@ -214,7 +214,6 @@ impl<T, D, L> EmptyAPI<(T, D)> for L
 where
     L: Into<Layout<D>>,
     D: DimAPI,
-    T: Clone,
 {
     type Out = Tensor<T, DeviceCpu, IxD>;
 
@@ -321,7 +320,6 @@ where
 impl<R, T, B, D> EmptyLikeAPI<()> for &TensorAny<R, T, B, D>
 where
     R: DataAPI<Data = B::Raw>,
-    T: Clone,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
 {
@@ -493,6 +491,7 @@ where
 
 impl<T, D, B, L> FullAPI<(T, D)> for (L, T, &B)
 where
+    T: Clone,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
     L: Into<Layout<D>>,
@@ -561,6 +560,7 @@ where
 
 impl<R, T, B, D> FullLikeAPI<()> for (&TensorAny<R, T, B, D>, T, TensorIterOrder, &B)
 where
+    T: Clone,
     R: DataAPI<Data = B::Raw>,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
@@ -578,6 +578,7 @@ where
 
 impl<R, T, B, D> FullLikeAPI<()> for (&TensorAny<R, T, B, D>, T, &B)
 where
+    T: Clone,
     R: DataAPI<Data = B::Raw>,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
@@ -592,6 +593,7 @@ where
 
 impl<R, T, B, D> FullLikeAPI<()> for (&TensorAny<R, T, B, D>, T, TensorIterOrder)
 where
+    T: Clone,
     R: DataAPI<Data = B::Raw>,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
@@ -607,6 +609,7 @@ where
 
 impl<R, T, B, D> FullLikeAPI<()> for (&TensorAny<R, T, B, D>, T)
 where
+    T: Clone,
     R: DataAPI<Data = B::Raw>,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
@@ -1155,6 +1158,7 @@ where
         + DeviceCreationAnyAPI<T>
         + OpAssignArbitaryAPI<T, D, D>
         + OpAssignAPI<T, D>,
+    B::Raw: Clone,
 {
     type Out = Tensor<T, B, D>;
 
@@ -1177,6 +1181,7 @@ where
         + DeviceCreationAnyAPI<T>
         + OpAssignArbitaryAPI<T, D, D>
         + OpAssignAPI<T, D>,
+    B::Raw: Clone,
 {
     type Out = Tensor<T, B, D>;
 
@@ -1263,6 +1268,7 @@ where
         + DeviceCreationAnyAPI<T>
         + OpAssignArbitaryAPI<T, D, D>
         + OpAssignAPI<T, D>,
+    B::Raw: Clone,
 {
     type Out = Tensor<T, B, D>;
 
@@ -1282,6 +1288,7 @@ where
         + DeviceCreationAnyAPI<T>
         + OpAssignArbitaryAPI<T, D, D>
         + OpAssignAPI<T, D>,
+    B::Raw: Clone,
 {
     type Out = Tensor<T, B, D>;
 
@@ -1335,6 +1342,7 @@ where
         + DeviceCreationAnyAPI<T>
         + OpAssignArbitaryAPI<T, D, D>
         + OpAssignAPI<T, D>,
+    B::Raw: Clone,
 {
     type Out = Tensor<T, B, D>;
 
@@ -1357,6 +1365,7 @@ where
         + DeviceCreationAnyAPI<T>
         + OpAssignArbitaryAPI<T, D, D>
         + OpAssignAPI<T, D>,
+    B::Raw: Clone,
 {
     type Out = Tensor<T, B, D>;
 
@@ -1443,6 +1452,7 @@ where
         + DeviceCreationAnyAPI<T>
         + OpAssignArbitaryAPI<T, D, D>
         + OpAssignAPI<T, D>,
+    B::Raw: Clone,
 {
     type Out = Tensor<T, B, D>;
 
@@ -1462,6 +1472,7 @@ where
         + DeviceCreationAnyAPI<T>
         + OpAssignArbitaryAPI<T, D, D>
         + OpAssignAPI<T, D>,
+    B::Raw: Clone,
 {
     type Out = Tensor<T, B, D>;
 

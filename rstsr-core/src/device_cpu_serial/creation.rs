@@ -3,7 +3,6 @@ use num::{complex::ComplexFloat, Num};
 
 impl<T> DeviceCreationAnyAPI<T> for DeviceCpuSerial
 where
-    T: Clone,
     DeviceCpuSerial: DeviceRawAPI<T, Raw = Vec<T>>,
 {
     unsafe fn empty_impl(
@@ -18,7 +17,10 @@ where
         &self,
         len: usize,
         fill: T,
-    ) -> Result<Storage<DataOwned<Vec<T>>, T, DeviceCpuSerial>> {
+    ) -> Result<Storage<DataOwned<Vec<T>>, T, DeviceCpuSerial>>
+    where
+        T: Clone,
+    {
         let raw = vec![fill; len];
         Ok(Storage::new(raw.into(), self.clone()))
     }
@@ -27,7 +29,10 @@ where
         Ok(Storage::new(vec.into(), self.clone()))
     }
 
-    fn from_cpu_vec(&self, vec: &[T]) -> Result<Storage<DataOwned<Vec<T>>, T, DeviceCpuSerial>> {
+    fn from_cpu_vec(&self, vec: &[T]) -> Result<Storage<DataOwned<Vec<T>>, T, DeviceCpuSerial>>
+    where
+        T: Clone,
+    {
         Ok(Storage::new(vec.to_vec().into(), self.clone()))
     }
 }

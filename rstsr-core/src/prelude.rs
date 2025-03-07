@@ -5,7 +5,7 @@ pub mod rstsr_traits {
     };
     pub use crate::storage::conversion::DeviceChangeAPI;
     pub use crate::storage::data::{
-        DataAPI, DataForceMutAPI, DataIntoCowAPI, DataMutAPI, DataOwnedAPI,
+        DataAPI, DataCloneAPI, DataForceMutAPI, DataIntoCowAPI, DataMutAPI, DataOwnedAPI,
     };
     pub use crate::storage::device::{DeviceAPI, DeviceBaseAPI, DeviceRawAPI, DeviceStorageAPI};
     pub use crate::tensor::asarray::AsArrayAPI;

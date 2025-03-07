@@ -13,8 +13,8 @@ pub fn allclose_f64<RA, RB, DA, DB, BA, BB>(
     b: &TensorAny<RB, f64, BB, DB>,
 ) -> bool
 where
-    RA: DataAPI<Data = <BA as DeviceRawAPI<f64>>::Raw>,
-    RB: DataAPI<Data = <BB as DeviceRawAPI<f64>>::Raw>,
+    RA: DataCloneAPI<Data = <BA as DeviceRawAPI<f64>>::Raw>,
+    RB: DataCloneAPI<Data = <BB as DeviceRawAPI<f64>>::Raw>,
     DA: DimAPI,
     DB: DimAPI,
     BA: DeviceAPI<f64, Raw = Vec<f64>>,
@@ -60,7 +60,8 @@ where
         + OpAssignArbitaryAPI<T, IxD, D>
         + OpAssignArbitaryAPI<T, D, D>
         + DeviceMatMulAPI<T, T, T, IxD, IxD, IxD>,
-    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+    R: DataCloneAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+    <B as DeviceRawAPI<T>>::Raw: Clone,
     for<'a> R: DataIntoCowAPI<'a>,
 {
     let range = linspace((T::zero(), T::from(a.size()).unwrap(), a.size(), false, a.device()));

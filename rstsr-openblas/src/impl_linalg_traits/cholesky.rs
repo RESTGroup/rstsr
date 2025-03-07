@@ -6,7 +6,7 @@ use rstsr_linalg_traits::prelude_dev::*;
 impl<R, T> LinalgCholeskyAPI<DeviceBLAS> for (&TensorAny<R, T, DeviceBLAS, Ix2>, FlagUpLo)
 where
     T: BlasFloat + Send + Sync,
-    R: DataAPI<Data = Vec<T>>,
+    R: DataCloneAPI<Data = Vec<T>>,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>> + DeviceComplexFloatAPI<T, Ix2> + POTRFDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, Ix2>;

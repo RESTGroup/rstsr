@@ -73,7 +73,7 @@ where
 impl<'a, R, T, B, D> TensorAny<R, T, B, D>
 where
     T: Clone,
-    R: DataAPI<Data = B::Raw>,
+    R: DataCloneAPI<Data = B::Raw>,
     D: DimAPI,
     B: DeviceAPI<T, Raw = Vec<T>> + 'a,
 {
@@ -417,7 +417,7 @@ where
 impl<'a, R, T, B, D> TensorAny<R, T, B, D>
 where
     T: Clone,
-    R: DataAPI<Data = B::Raw>,
+    R: DataCloneAPI<Data = B::Raw>,
     D: DimAPI,
     B: DeviceAPI<T, Raw = Vec<T>> + 'a,
 {

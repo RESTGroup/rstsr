@@ -5,7 +5,7 @@ pub trait DeviceBaseAPI: Default + Clone {
 }
 
 pub trait DeviceRawAPI<T>: DeviceBaseAPI {
-    type Raw: Clone;
+    type Raw;
 }
 
 #[derive(Debug)]
@@ -30,12 +30,15 @@ pub trait DeviceStorageAPI<T>: DeviceRawAPI<T> {
     }
     fn to_cpu_vec<R>(storage: &Storage<R, T, Self>) -> Result<Vec<T>>
     where
-        R: DataAPI<Data = Self::Raw>;
+        Self::Raw: Clone,
+        R: DataCloneAPI<Data = Self::Raw>;
     fn into_cpu_vec<R>(storage: Storage<R, T, Self>) -> Result<Vec<T>>
     where
-        R: DataAPI<Data = Self::Raw>;
+        Self::Raw: Clone,
+        R: DataCloneAPI<Data = Self::Raw>;
     fn get_index<R>(storage: &Storage<R, T, Self>, index: usize) -> T
     where
+        T: Clone,
         R: DataAPI<Data = Self::Raw>;
     fn get_index_ptr<R>(storage: &Storage<R, T, Self>, index: usize) -> *const T
     where
@@ -81,16 +84,27 @@ where
         B::is_empty(self)
     }
 
-    pub fn to_cpu_vec(&self) -> Result<Vec<T>> {
+    pub fn to_cpu_vec(&self) -> Result<Vec<T>>
+    where
+        B::Raw: Clone,
+        R: DataCloneAPI<Data = B::Raw>,
+    {
         B::to_cpu_vec(self)
     }
 
-    pub fn into_cpu_vec(self) -> Result<Vec<T>> {
+    pub fn into_cpu_vec(self) -> Result<Vec<T>>
+    where
+        B::Raw: Clone,
+        R: DataCloneAPI<Data = B::Raw>,
+    {
         B::into_cpu_vec(self)
     }
 
     #[inline]
-    pub fn get_index(&self, index: usize) -> T {
+    pub fn get_index(&self, index: usize) -> T
+    where
+        T: Clone,
+    {
         B::get_index(self, index)
     }
 

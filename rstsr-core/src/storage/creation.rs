@@ -9,10 +9,14 @@ where
     ///
     /// This function is unsafe because it does not initialize the memory.
     unsafe fn empty_impl(&self, len: usize) -> Result<Storage<DataOwned<Self::Raw>, T, Self>>;
-    fn full_impl(&self, len: usize, fill: T) -> Result<Storage<DataOwned<Self::Raw>, T, Self>>;
+    fn full_impl(&self, len: usize, fill: T) -> Result<Storage<DataOwned<Self::Raw>, T, Self>>
+    where
+        T: Clone;
     fn outof_cpu_vec(&self, vec: Vec<T>) -> Result<Storage<DataOwned<Self::Raw>, T, Self>>;
     #[allow(clippy::wrong_self_convention)]
-    fn from_cpu_vec(&self, vec: &[T]) -> Result<Storage<DataOwned<Self::Raw>, T, Self>>;
+    fn from_cpu_vec(&self, vec: &[T]) -> Result<Storage<DataOwned<Self::Raw>, T, Self>>
+    where
+        T: Clone;
 }
 
 pub trait DeviceCreationNumAPI<T>

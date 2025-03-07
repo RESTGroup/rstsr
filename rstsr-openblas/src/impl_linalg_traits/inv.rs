@@ -6,7 +6,7 @@ use rstsr_linalg_traits::prelude_dev::*;
 impl<R, T> LinalgInvAPI<DeviceBLAS> for &TensorAny<R, T, DeviceBLAS, Ix2>
 where
     T: BlasFloat + Send + Sync,
-    R: DataAPI<Data = Vec<T>>,
+    R: DataCloneAPI<Data = Vec<T>>,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
         + GETRIDriverAPI<T>
         + GETRFDriverAPI<T>

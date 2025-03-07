@@ -7,8 +7,8 @@ impl<Ra, Rb, T> LinalgSolveSymmetricAPI<DeviceBLAS>
     for (&TensorAny<Ra, T, DeviceBLAS, Ix2>, &TensorAny<Rb, T, DeviceBLAS, Ix2>, bool, FlagUpLo)
 where
     T: BlasFloat + Send + Sync,
-    Ra: DataAPI<Data = Vec<T>>,
-    Rb: DataAPI<Data = Vec<T>>,
+    Ra: DataCloneAPI<Data = Vec<T>>,
+    Rb: DataCloneAPI<Data = Vec<T>>,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<blasint, Raw = Vec<blasint>>
         + DeviceComplexFloatAPI<T, Ix2>
@@ -47,7 +47,7 @@ impl<R, T> LinalgSolveSymmetricAPI<DeviceBLAS>
     for (&TensorAny<R, T, DeviceBLAS, Ix2>, Tensor<T, DeviceBLAS, Ix2>, bool, FlagUpLo)
 where
     T: BlasFloat + Send + Sync,
-    R: DataAPI<Data = Vec<T>>,
+    R: DataCloneAPI<Data = Vec<T>>,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<blasint, Raw = Vec<blasint>>
         + DeviceComplexFloatAPI<T, Ix2>

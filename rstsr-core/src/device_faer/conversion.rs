@@ -124,7 +124,7 @@ impl<'a, R, T, D> DeviceChangeAPI<'a, DeviceCpuSerial, R, T, D> for DeviceFaer
 where
     T: Clone + Send + Sync + 'a,
     D: DimAPI,
-    R: DataAPI<Data = Vec<T>>,
+    R: DataCloneAPI<Data = Vec<T>>,
 {
     type Repr = R;
     type ReprTo = DataRef<'a, Vec<T>>;
@@ -161,7 +161,7 @@ impl<'a, R, T, D> DeviceChangeAPI<'a, DeviceFaer, R, T, D> for DeviceCpuSerial
 where
     T: Clone + Send + Sync + 'a,
     D: DimAPI,
-    R: DataAPI<Data = Vec<T>>,
+    R: DataCloneAPI<Data = Vec<T>>,
 {
     type Repr = R;
     type ReprTo = DataRef<'a, Vec<T>>;

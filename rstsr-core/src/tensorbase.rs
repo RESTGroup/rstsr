@@ -2,7 +2,6 @@ use crate::prelude_dev::*;
 
 pub trait TensorBaseAPI {}
 
-#[derive(Clone)]
 pub struct TensorBase<S, D>
 where
     D: DimAPI,
