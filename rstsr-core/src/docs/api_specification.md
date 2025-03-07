@@ -81,6 +81,7 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 | enum | [`DataCow<'l, C>`][crate::storage::data::DataCow] | Enum wrapper for mutable reference of raw data (or manually-dropped data). |
 | struct | [`DataArc<C>`][crate::storage::data::DataArc] | Struct wrapper for atomic reference-counted raw data pointer. |
 | trait | [`DataAPI`] | Interface of immutable operations for data representations. |
+| trait | [`DataCloneAPI`] | Interface of underlying data cloning for data representations. |
 | trait | [`DataMutAPI`] | Interface of mutable operations for data representations. |
 | trait | [`DataIntoCowAPI<'l>`][DataIntoCowAPI] | Interface for generating [`DataCow<'l, C>`][crate::storage::data::DataCow]. |
 | trait | [`DataForceMutAPI`] | Interface for generating mutable reference, ignoring lifetime and borrow checks. |

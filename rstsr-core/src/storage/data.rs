@@ -6,7 +6,7 @@ use core::mem::{transmute, ManuallyDrop};
 
 /* #region definitions */
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct DataOwned<C> {
     pub(crate) raw: C,
 }
@@ -172,13 +172,20 @@ impl<C> DataReference<'_, C> {
 /* #region data traits */
 
 pub trait DataAPI {
-    type Data: Clone;
+    type Data;
     fn raw(&self) -> &Self::Data;
-    fn into_owned(self) -> DataOwned<Self::Data>;
-    fn into_shared(self) -> DataArc<Self::Data>;
     fn as_ref(&self) -> DataRef<Self::Data> {
         DataRef::from(self.raw())
     }
+}
+
+pub trait DataCloneAPI
+where
+    Self: DataAPI,
+    Self::Data: Clone,
+{
+    fn into_owned(self) -> DataOwned<Self::Data>;
+    fn into_shared(self) -> DataArc<Self::Data>;
 }
 
 pub trait DataMutAPI: DataAPI {
@@ -200,19 +207,21 @@ pub trait DataForceMutAPI<C>: DataAPI<Data = C> {
 
 /* #endregion */
 
-/* #region impl DataAPI */
+/* #region impl DataCloneAPI */
 
-impl<C> DataAPI for DataOwned<C>
-where
-    C: Clone,
-{
+impl<C> DataAPI for DataOwned<C> {
     type Data = C;
 
     #[inline]
     fn raw(&self) -> &Self::Data {
         &self.raw
     }
+}
 
+impl<C> DataCloneAPI for DataOwned<C>
+where
+    C: Clone,
+{
     #[inline]
     fn into_owned(self) -> DataOwned<Self::Data> {
         self
@@ -224,10 +233,7 @@ where
     }
 }
 
-impl<C> DataAPI for DataRef<'_, C>
-where
-    C: Clone,
-{
+impl<C> DataAPI for DataRef<'_, C> {
     type Data = C;
 
     #[inline]
@@ -237,7 +243,12 @@ where
             DataRef::ManuallyDropOwned(raw) => raw,
         }
     }
+}
 
+impl<C> DataCloneAPI for DataRef<'_, C>
+where
+    C: Clone,
+{
     #[inline]
     fn into_owned(self) -> DataOwned<Self::Data> {
         match self {
@@ -257,10 +268,7 @@ where
     }
 }
 
-impl<C> DataAPI for DataMut<'_, C>
-where
-    C: Clone,
-{
+impl<C> DataAPI for DataMut<'_, C> {
     type Data = C;
 
     #[inline]
@@ -270,7 +278,12 @@ where
             DataMut::ManuallyDropOwned(raw) => raw,
         }
     }
+}
 
+impl<C> DataCloneAPI for DataMut<'_, C>
+where
+    C: Clone,
+{
     #[inline]
     fn into_owned(self) -> DataOwned<Self::Data> {
         match self {
@@ -290,10 +303,7 @@ where
     }
 }
 
-impl<C> DataAPI for DataCow<'_, C>
-where
-    C: Clone,
-{
+impl<C> DataAPI for DataCow<'_, C> {
     type Data = C;
 
     #[inline]
@@ -303,7 +313,12 @@ where
             DataCow::Ref(data) => data.raw(),
         }
     }
+}
 
+impl<C> DataCloneAPI for DataCow<'_, C>
+where
+    C: Clone,
+{
     #[inline]
     fn into_owned(self) -> DataOwned<Self::Data> {
         match self {
@@ -321,17 +336,19 @@ where
     }
 }
 
-impl<C> DataAPI for DataArc<C>
-where
-    C: Clone,
-{
+impl<C> DataAPI for DataArc<C> {
     type Data = C;
 
     #[inline]
     fn raw(&self) -> &Self::Data {
         &self.raw
     }
+}
 
+impl<C> DataCloneAPI for DataArc<C>
+where
+    C: Clone,
+{
     #[inline]
     fn into_owned(self) -> DataOwned<Self::Data> {
         DataOwned::from(Arc::try_unwrap(self.raw).ok().unwrap())
@@ -343,10 +360,7 @@ where
     }
 }
 
-impl<C> DataAPI for DataReference<'_, C>
-where
-    C: Clone,
-{
+impl<C> DataAPI for DataReference<'_, C> {
     type Data = C;
 
     #[inline]
@@ -356,7 +370,12 @@ where
             DataReference::Mut(data) => data.raw(),
         }
     }
+}
 
+impl<C> DataCloneAPI for DataReference<'_, C>
+where
+    C: Clone,
+{
     #[inline]
     fn into_owned(self) -> DataOwned<Self::Data> {
         match self {
@@ -378,20 +397,14 @@ where
 
 /* #region impl DataMutAPI */
 
-impl<C> DataMutAPI for DataOwned<C>
-where
-    C: Clone,
-{
+impl<C> DataMutAPI for DataOwned<C> {
     #[inline]
     fn raw_mut(&mut self) -> &mut Self::Data {
         &mut self.raw
     }
 }
 
-impl<C> DataMutAPI for DataMut<'_, C>
-where
-    C: Clone,
-{
+impl<C> DataMutAPI for DataMut<'_, C> {
     #[inline]
     fn raw_mut(&mut self) -> &mut Self::Data {
         match self {
@@ -415,10 +428,7 @@ where
 
 /* #region impl DataForceMutAPI */
 
-impl<T> DataForceMutAPI<Vec<T>> for DataRef<'_, Vec<T>>
-where
-    T: Clone,
-{
+impl<T> DataForceMutAPI<Vec<T>> for DataRef<'_, Vec<T>> {
     unsafe fn force_mut(&self) -> DataMut<'_, Vec<T>> {
         let (ptr, len) = match self {
             DataRef::TrueRef(raw) => (raw.as_ptr(), raw.len()),
@@ -432,10 +442,7 @@ where
 
 macro_rules! impl_data_force_vec {
     ($data: ty) => {
-        impl<T> DataForceMutAPI<Vec<T>> for $data
-        where
-            T: Clone,
-        {
+        impl<T> DataForceMutAPI<Vec<T>> for $data {
             unsafe fn force_mut(&self) -> DataMut<'_, Vec<T>> {
                 transmute(self.as_ref().force_mut())
             }
@@ -453,34 +460,28 @@ impl_data_force_vec!(DataReference<'_, Vec<T>>);
 
 /* #region DataCow */
 
-pub trait DataIntoCowAPI<'a>: DataAPI {
+pub trait DataIntoCowAPI<'a>
+where
+    Self: DataAPI,
+{
     fn into_cow(self) -> DataCow<'a, Self::Data>;
 }
 
-impl<'a, C> DataIntoCowAPI<'a> for DataOwned<C>
-where
-    C: Clone,
-{
+impl<'a, C> DataIntoCowAPI<'a> for DataOwned<C> {
     #[inline]
     fn into_cow(self) -> DataCow<'a, C> {
         DataCow::Owned(self)
     }
 }
 
-impl<'a, C> DataIntoCowAPI<'a> for DataRef<'a, C>
-where
-    C: Clone,
-{
+impl<'a, C> DataIntoCowAPI<'a> for DataRef<'a, C> {
     #[inline]
     fn into_cow(self) -> DataCow<'a, C> {
         DataCow::Ref(self)
     }
 }
 
-impl<'a, C> DataIntoCowAPI<'a> for DataMut<'a, C>
-where
-    C: Clone,
-{
+impl<'a, C> DataIntoCowAPI<'a> for DataMut<'a, C> {
     #[inline]
     fn into_cow(self) -> DataCow<'a, C> {
         match self {
@@ -490,10 +491,7 @@ where
     }
 }
 
-impl<'a, C> DataIntoCowAPI<'a> for DataCow<'a, C>
-where
-    C: Clone,
-{
+impl<'a, C> DataIntoCowAPI<'a> for DataCow<'a, C> {
     #[inline]
     fn into_cow(self) -> DataCow<'a, C> {
         self
@@ -510,10 +508,7 @@ where
     }
 }
 
-impl<'a, C> DataIntoCowAPI<'a> for DataReference<'a, C>
-where
-    C: Clone,
-{
+impl<'a, C> DataIntoCowAPI<'a> for DataReference<'a, C> {
     #[inline]
     fn into_cow(self) -> DataCow<'a, C> {
         match self {

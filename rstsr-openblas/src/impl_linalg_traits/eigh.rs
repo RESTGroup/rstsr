@@ -6,7 +6,7 @@ use rstsr_linalg_traits::prelude_dev::*;
 impl<R, T> LinalgEighAPI<DeviceBLAS> for &TensorAny<R, T, DeviceBLAS, Ix2>
 where
     T: BlasFloat + Send + Sync,
-    R: DataAPI<Data = Vec<T>>,
+    R: DataCloneAPI<Data = Vec<T>>,
     DeviceBLAS: BlasThreadAPI
         + DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<T::Real, Raw = Vec<T::Real>>
@@ -53,8 +53,8 @@ impl<Ra, Rb, T> LinalgEighAPI<DeviceBLAS>
     for (&TensorAny<Ra, T, DeviceBLAS, Ix2>, &TensorAny<Rb, T, DeviceBLAS, Ix2>)
 where
     T: BlasFloat + Send + Sync,
-    Ra: DataAPI<Data = Vec<T>>,
-    Rb: DataAPI<Data = Vec<T>>,
+    Ra: DataCloneAPI<Data = Vec<T>>,
+    Rb: DataCloneAPI<Data = Vec<T>>,
     DeviceBLAS: BlasThreadAPI
         + DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<T::Real, Raw = Vec<T::Real>>

@@ -1134,7 +1134,7 @@ where
         + DeviceCreationAnyAPI<T>
         + OpAssignArbitaryAPI<T, IxD, D>
         + OpAssignAPI<T, IxD>,
-    B::Raw: 'a,
+    B::Raw: Clone + 'a,
 {
     change_shape_f(tensor, shape).map(|v| v.into_owned())
 }
@@ -1150,7 +1150,7 @@ where
         + DeviceCreationAnyAPI<T>
         + OpAssignArbitaryAPI<T, IxD, D>
         + OpAssignAPI<T, IxD>,
-    B::Raw: 'a,
+    B::Raw: Clone + 'a,
 {
     into_shape_f(tensor, shape).unwrap()
 }
@@ -1241,7 +1241,7 @@ where
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
-        B::Raw: 'a,
+        B::Raw: Clone + 'a,
     {
         into_shape_f(self, shape)
     }
@@ -1250,7 +1250,7 @@ where
     where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
-        B::Raw: 'a,
+        B::Raw: Clone + 'a,
     {
         into_shape(self, shape)
     }
@@ -1368,7 +1368,7 @@ where
     D2: DimAPI,
     T: Clone,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D> + OpAssignAPI<T, D2>,
-    B::Raw: 'a,
+    B::Raw: Clone + 'a,
 {
     change_layout_f(tensor, layout).map(|v| v.into_owned())
 }
@@ -1383,7 +1383,7 @@ where
     D2: DimAPI,
     T: Clone,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D> + OpAssignAPI<T, D2>,
-    B::Raw: 'a,
+    B::Raw: Clone + 'a,
 {
     into_layout_f(tensor, layout).unwrap()
 }
@@ -1433,7 +1433,7 @@ where
     where
         D2: DimAPI,
         B: OpAssignArbitaryAPI<T, D2, D> + OpAssignAPI<T, D2>,
-        B::Raw: 'a,
+        B::Raw: Clone + 'a,
     {
         into_layout_f(self, layout)
     }
@@ -1442,7 +1442,7 @@ where
     where
         D2: DimAPI,
         B: OpAssignArbitaryAPI<T, D2, D> + OpAssignAPI<T, D2>,
-        B::Raw: 'a,
+        B::Raw: Clone + 'a,
     {
         into_layout(self, layout)
     }
@@ -1506,7 +1506,7 @@ where
     D: DimAPI,
     T: Clone,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D, D> + OpAssignAPI<T, D>,
-    B::Raw: 'a,
+    B::Raw: Clone + 'a,
 {
     change_contig_f(tensor, order).map(|v| v.into_owned())
 }
@@ -1544,7 +1544,7 @@ where
     D: DimAPI,
     T: Clone,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D, D> + OpAssignAPI<T, D>,
-    B::Raw: 'a,
+    B::Raw: Clone + 'a,
 {
     into_contig_f(tensor, order).unwrap()
 }
@@ -1574,7 +1574,7 @@ where
     pub fn into_contig_f(self, order: TensorOrder) -> Result<Tensor<T, B, D>>
     where
         B: OpAssignArbitaryAPI<T, D, D> + OpAssignAPI<T, D>,
-        B::Raw: 'a,
+        B::Raw: Clone + 'a,
     {
         into_contig_f(self, order)
     }
@@ -1582,7 +1582,7 @@ where
     pub fn into_contig(self, order: TensorOrder) -> Tensor<T, B, D>
     where
         B: OpAssignArbitaryAPI<T, D, D> + OpAssignAPI<T, D>,
-        B::Raw: 'a,
+        B::Raw: Clone + 'a,
     {
         into_contig(self, order)
     }
@@ -1645,7 +1645,7 @@ where
     D: DimAPI,
     T: Clone,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D, D> + OpAssignAPI<T, D>,
-    B::Raw: 'a,
+    B::Raw: Clone + 'a,
 {
     change_prefer_f(tensor, order).map(|v| v.into_owned())
 }
@@ -1683,7 +1683,7 @@ where
     D: DimAPI,
     T: Clone,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D, D> + OpAssignAPI<T, D>,
-    B::Raw: 'a,
+    B::Raw: Clone + 'a,
 {
     into_prefer_f(tensor, order).unwrap()
 }
@@ -1713,7 +1713,7 @@ where
     pub fn into_prefer_f(self, order: TensorOrder) -> Result<Tensor<T, B, D>>
     where
         B: OpAssignArbitaryAPI<T, D, D> + OpAssignAPI<T, D>,
-        B::Raw: 'a,
+        B::Raw: Clone + 'a,
     {
         into_prefer_f(self, order)
     }
@@ -1721,7 +1721,7 @@ where
     pub fn into_prefer(self, order: TensorOrder) -> Tensor<T, B, D>
     where
         B: OpAssignArbitaryAPI<T, D, D> + OpAssignAPI<T, D>,
-        B::Raw: 'a,
+        B::Raw: Clone + 'a,
     {
         into_prefer(self, order)
     }

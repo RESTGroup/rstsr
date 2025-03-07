@@ -51,7 +51,11 @@ where
     /// [`Tensor::into_owned`] keep data in some conditions, otherwise clone.
     /// This function can avoid cases where data memory bulk is large, but
     /// tensor view is small.
-    pub fn into_owned_keep_layout(self) -> Tensor<T, B, D> {
+    pub fn into_owned_keep_layout(self) -> Tensor<T, B, D>
+    where
+        R::Data: Clone,
+        R: DataCloneAPI,
+    {
         let (storage, layout) = self.into_raw_parts();
         let (data, device) = storage.into_raw_parts();
         let storage = Storage::new(data.into_owned(), device);
@@ -69,7 +73,11 @@ where
     /// [`Tensor::into_shared`] keep data in some conditions, otherwise clone.
     /// This function can avoid cases where data memory bulk is large, but
     /// tensor view is small.
-    pub fn into_shared_keep_layout(self) -> TensorArc<T, B, D> {
+    pub fn into_shared_keep_layout(self) -> TensorArc<T, B, D>
+    where
+        R::Data: Clone,
+        R: DataCloneAPI,
+    {
         let (storage, layout) = self.into_raw_parts();
         let (data, device) = storage.into_raw_parts();
         let storage = Storage::new(data.into_shared(), device);
@@ -79,7 +87,7 @@ where
 
 impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = B::Raw>,
+    R: DataCloneAPI<Data = B::Raw>,
     R::Data: Clone,
     D: DimAPI,
     T: Clone,
@@ -197,7 +205,8 @@ where
 
 impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = B::Raw>,
+    R: DataCloneAPI<Data = B::Raw>,
+    B::Raw: Clone,
     T: Clone,
     D: DimAPI,
     B: DeviceAPI<T>,
@@ -325,7 +334,8 @@ where
 
 impl<R, T, B, D> TensorIntoOwnedAPI<T, B, D> for TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = B::Raw>,
+    R: DataCloneAPI<Data = B::Raw>,
+    B::Raw: Clone,
     T: Clone,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,

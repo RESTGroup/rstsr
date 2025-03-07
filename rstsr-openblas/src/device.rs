@@ -41,17 +41,11 @@ impl DeviceBaseAPI for DeviceBLAS {
     }
 }
 
-impl<T> DeviceRawAPI<T> for DeviceBLAS
-where
-    T: Clone,
-{
+impl<T> DeviceRawAPI<T> for DeviceBLAS {
     type Raw = Vec<T>;
 }
 
-impl<T> DeviceStorageAPI<T> for DeviceBLAS
-where
-    T: Clone,
-{
+impl<T> DeviceStorageAPI<T> for DeviceBLAS {
     fn len<R>(storage: &Storage<R, T, Self>) -> usize
     where
         R: DataAPI<Data = Self::Raw>,
@@ -61,14 +55,16 @@ where
 
     fn to_cpu_vec<R>(storage: &Storage<R, T, Self>) -> Result<Vec<T>>
     where
-        R: DataAPI<Data = Self::Raw>,
+        Self::Raw: Clone,
+        R: DataCloneAPI<Data = Self::Raw>,
     {
         Ok(storage.raw().clone())
     }
 
     fn into_cpu_vec<R>(storage: Storage<R, T, Self>) -> Result<Vec<T>>
     where
-        R: DataAPI<Data = Self::Raw>,
+        Self::Raw: Clone,
+        R: DataCloneAPI<Data = Self::Raw>,
     {
         let (raw, _) = storage.into_raw_parts();
         Ok(raw.into_owned().into_raw())
@@ -77,6 +73,7 @@ where
     #[inline]
     fn get_index<R>(storage: &Storage<R, T, Self>, index: usize) -> T
     where
+        T: Clone,
         R: DataAPI<Data = Self::Raw>,
     {
         storage.raw()[index].clone()
@@ -107,7 +104,7 @@ where
     }
 }
 
-impl<T> DeviceAPI<T> for DeviceBLAS where T: Clone {}
+impl<T> DeviceAPI<T> for DeviceBLAS {}
 impl<T, D> DeviceComplexFloatAPI<T, D> for DeviceBLAS
 where
     T: ComplexFloat + Send + Sync,

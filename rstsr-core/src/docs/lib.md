@@ -35,7 +35,7 @@ For NumPy users, in this meantime, [fullfillment for Array API standard](`array_
 | `B` | Backend (device) type (applies [`DeviceAPI`]) |
 | `D` | Dimensional (applies [`DimAPI`]) |
 | `S` | Storage (struct [`storage::Storage`]) |
-| `R` | Data with lifetime and mutability (applies [`DataAPI`]) |
+| `R` | Data with lifetime and mutability (applies [`DataCloneAPI`]) |
 | `C` | Content (usually `Vec<T>` for CPU devices) |
 
 ### Variable or Names

@@ -6,7 +6,7 @@ macro_rules! impl_change_device {
         where
             T: Clone + Send + Sync + 'a,
             D: DimAPI,
-            R: DataAPI<Data = Vec<T>>,
+            R: DataCloneAPI<Data = Vec<T>>,
         {
             type Repr = R;
             type ReprTo = DataRef<'a, Vec<T>>;
@@ -43,7 +43,7 @@ macro_rules! impl_change_device {
         where
             T: Clone + Send + Sync + 'a,
             D: DimAPI,
-            R: DataAPI<Data = Vec<T>>,
+            R: DataCloneAPI<Data = Vec<T>>,
         {
             type Repr = R;
             type ReprTo = DataRef<'a, Vec<T>>;
