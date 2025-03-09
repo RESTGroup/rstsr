@@ -95,14 +95,14 @@ macro_rules! trait_reduction {
     };
 }
 
-trait_reduction!(OpSumAPI, sum, sum_f, sum_all, sum_all_f);
-trait_reduction!(OpMinAPI, min, min_f, min_all, min_all_f);
-trait_reduction!(OpMaxAPI, max, max_f, max_all, max_all_f);
-trait_reduction!(OpProdAPI, prod, prod_f, prod_all, prod_all_f);
-trait_reduction!(OpMeanAPI, mean, mean_f, mean_all, mean_all_f);
-trait_reduction!(OpVarAPI, var, var_f, var_all, var_all_f);
-trait_reduction!(OpStdAPI, std, std_f, std_all, std_all_f);
-trait_reduction!(OpL2NormAPI, l2_norm, l2_norm_f, l2_norm_all, l2_norm_all_f);
+trait_reduction!(OpSumAPI, sum_axes, sum_axes_f, sum_all, sum_all_f);
+trait_reduction!(OpMinAPI, min_axes, min_axes_f, min_all, min_all_f);
+trait_reduction!(OpMaxAPI, max_axes, max_axes_f, max_all, max_all_f);
+trait_reduction!(OpProdAPI, prod_axes, prod_axes_f, prod_all, prod_all_f);
+trait_reduction!(OpMeanAPI, mean_axes, mean_axes_f, mean_all, mean_all_f);
+trait_reduction!(OpVarAPI, var_axes, var_axes_f, var_all, var_all_f);
+trait_reduction!(OpStdAPI, std_axes, std_axes_f, std_all, std_all_f);
+trait_reduction!(OpL2NormAPI, l2_norm_axes, l2_norm_axes_f, l2_norm_all, l2_norm_all_f);
 
 macro_rules! trait_reduction_arg {
     ($OpReduceAPI: ident, $fn: ident, $fn_f: ident, $fn_all: ident, $fn_all_f: ident) => {
@@ -188,8 +188,8 @@ macro_rules! trait_reduction_arg {
     };
 }
 
-trait_reduction_arg!(OpArgMinAPI, argmin, argmin_f, argmin_all, argmin_all_f);
-trait_reduction_arg!(OpArgMaxAPI, argmax, argmax_f, argmax_all, argmax_all_f);
+trait_reduction_arg!(OpArgMinAPI, argmin_axes, argmin_axes_f, argmin_all, argmin_all_f);
+trait_reduction_arg!(OpArgMaxAPI, argmax_axes, argmax_axes_f, argmax_all, argmax_all_f);
 
 #[cfg(test)]
 mod test {
@@ -212,7 +212,7 @@ mod test {
         let s = a.sum_all();
         assert_eq!(s, 446586);
 
-        let s = a.sum(());
+        let s = a.sum_axes(());
         println!("{:?}", s);
         assert_eq!(s.to_scalar(), 446586);
 
@@ -228,7 +228,7 @@ mod test {
         let s = a.sum_all();
         assert_eq!(s, 446586);
 
-        let s = a.sum(());
+        let s = a.sum_axes(());
         println!("{:?}", s);
         assert_eq!(s.to_scalar(), 446586);
     }
@@ -238,7 +238,7 @@ mod test {
         // DeviceCpuSerial
         let a =
             arange((3240, &DeviceCpuSerial)).into_shape([4, 6, 15, 9]).into_transpose([2, 0, 3, 1]);
-        let s = a.sum([0, -2]);
+        let s = a.sum_axes([0, -2]);
         println!("{:?}", s);
         assert_eq!(s[[0, 1]], 27270);
         assert_eq!(s[[1, 2]], 154845);
@@ -246,7 +246,7 @@ mod test {
 
         // DeviceFaer
         let a: Tensor<usize> = arange(3240).into_shape([4, 6, 15, 9]).into_transpose([2, 0, 3, 1]);
-        let s = a.sum([0, -2]);
+        let s = a.sum_axes([0, -2]);
         println!("{:?}", s);
         assert_eq!(s[[0, 1]], 27270);
         assert_eq!(s[[1, 2]], 154845);
@@ -259,9 +259,9 @@ mod test {
         let v = vec![8, 4, 2, 9, 3, 7, 2, 8, 1, 6, 10, 5];
         let a = asarray((&v, [4, 3].c(), &DeviceCpuSerial));
         println!("{:}", a);
-        let m = a.min(0);
+        let m = a.min_axes(0);
         assert_eq!(m.to_vec(), vec![2, 3, 1]);
-        let m = a.min(1);
+        let m = a.min_axes(1);
         assert_eq!(m.to_vec(), vec![2, 3, 1, 5]);
         let m = a.min_all();
         assert_eq!(m, 1);
@@ -270,9 +270,9 @@ mod test {
         let v = vec![8, 4, 2, 9, 3, 7, 2, 8, 1, 6, 10, 5];
         let a = asarray((&v, [4, 3].c()));
         println!("{:}", a);
-        let m = a.min(0);
+        let m = a.min_axes(0);
         assert_eq!(m.to_vec(), vec![2, 3, 1]);
-        let m = a.min(1);
+        let m = a.min_axes(1);
         assert_eq!(m.to_vec(), vec![2, 3, 1, 5]);
         let m = a.min_all();
         assert_eq!(m, 1);
@@ -285,11 +285,11 @@ mod test {
         let m = a.mean_all();
         assert_eq!(m, 11.5);
 
-        let m = a.mean((0, 2));
+        let m = a.mean_axes((0, 2));
         println!("{:}", m);
         assert_eq!(m.to_vec(), vec![7.5, 11.5, 15.5]);
 
-        let m = a.i((slice!(None, None, -1), .., slice!(None, None, -2))).mean((-1, 1));
+        let m = a.i((slice!(None, None, -1), .., slice!(None, None, -2))).mean_axes((-1, 1));
         println!("{:}", m);
         assert_eq!(m.to_vec(), vec![18.0, 6.0]);
 
@@ -298,11 +298,11 @@ mod test {
         let m = a.mean_all();
         assert_eq!(m, 11.5);
 
-        let m = a.mean((0, 2));
+        let m = a.mean_axes((0, 2));
         println!("{:}", m);
         assert_eq!(m.to_vec(), vec![7.5, 11.5, 15.5]);
 
-        let m = a.i((slice!(None, None, -1), .., slice!(None, None, -2))).mean((-1, 1));
+        let m = a.i((slice!(None, None, -1), .., slice!(None, None, -2))).mean_axes((-1, 1));
         println!("{:}", m);
         assert_eq!(m.to_vec(), vec![18.0, 6.0]);
     }
@@ -317,11 +317,11 @@ mod test {
         println!("{:}", m);
         assert!((m - 8.409722222222221).abs() < 1e-10);
 
-        let m = a.var(0);
+        let m = a.var_axes(0);
         println!("{:}", m);
         assert!(allclose_f64(&m, &asarray(vec![7.1875, 8.1875, 5.6875])));
 
-        let m = a.var(1);
+        let m = a.var_axes(1);
         println!("{:}", m);
         assert!(allclose_f64(&m, &asarray(vec![6.22222222, 6.22222222, 9.55555556, 4.66666667])));
 
@@ -333,11 +333,11 @@ mod test {
         println!("{:}", m);
         assert!((m - 8.409722222222221).abs() < 1e-10);
 
-        let m = a.var(0);
+        let m = a.var_axes(0);
         println!("{:}", m);
         assert!(allclose_f64(&m, &asarray(vec![7.1875, 8.1875, 5.6875])));
 
-        let m = a.var(1);
+        let m = a.var_axes(1);
         println!("{:}", m);
         assert!(allclose_f64(&m, &asarray(vec![6.22222222, 6.22222222, 9.55555556, 4.66666667])));
     }
@@ -352,11 +352,11 @@ mod test {
         println!("{:}", m);
         assert!((m - 2.899952106884219).abs() < 1e-10);
 
-        let m = a.std(0);
+        let m = a.std_axes(0);
         println!("{:}", m);
         assert!(allclose_f64(&m, &asarray(vec![2.68095132, 2.86138079, 2.384848])));
 
-        let m = a.std(1);
+        let m = a.std_axes(1);
         println!("{:}", m);
         assert!(allclose_f64(&m, &asarray(vec![2.49443826, 2.49443826, 3.09120617, 2.1602469])));
 
@@ -381,11 +381,11 @@ mod test {
         println!("{:}", m);
         assert!((m - 2.899952106884219).abs() < 1e-10);
 
-        let m = a.std(0);
+        let m = a.std_axes(0);
         println!("{:}", m);
         assert!(allclose_f64(&m, &asarray(vec![2.68095132, 2.86138079, 2.384848])));
 
-        let m = a.std(1);
+        let m = a.std_axes(1);
         println!("{:}", m);
         assert!(allclose_f64(&m, &asarray(vec![2.49443826, 2.49443826, 3.09120617, 2.1602469])));
 
@@ -449,10 +449,10 @@ mod test {
         println!("{:?}", c_std);
         assert!((c_std - 148.88523481701804) < 1e-6);
 
-        let c_std_1 = c.std((0, 1));
+        let c_std_1 = c.std_axes((0, 1));
         println!("{}", c_std_1);
 
-        let c_std_2 = c.std((1, 2));
+        let c_std_2 = c.std_axes((1, 2));
         println!("{}", c_std_2);
     }
 
@@ -471,12 +471,12 @@ mod test {
         println!("{:?}", m);
         assert_eq!(m, vec![1, 2]);
 
-        let m = a.argmin(-1);
+        let m = a.argmin_axes(-1);
         println!("{:?}", m);
         let m_vec = m.raw();
         assert_eq!(m_vec, &vec![vec![2], vec![2], vec![1], vec![2]]);
 
-        let m = a.argmin(0);
+        let m = a.argmin_axes(0);
         println!("{:?}", m);
         let m_vec = m.raw();
         assert_eq!(m_vec, &vec![vec![2], vec![2], vec![1]]);

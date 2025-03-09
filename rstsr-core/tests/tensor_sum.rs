@@ -17,7 +17,7 @@ mod test {
 
             let vec_b: Vec<f64> = (0..4 * n * n).map(|_| rng.gen()).collect::<_>();
             let b_full = rt::asarray((vec_b, [4, n, n], &DeviceCpuSerial));
-            b_full.sum(0)
+            b_full.sum_axes(0)
         };
         println!("{:} usec", time.elapsed().as_micros());
         let t_rstsr = t_rstsr.reshape(-1).to_vec();
@@ -29,7 +29,7 @@ mod test {
 
             let vec_b: Vec<f64> = (0..4 * n * n).map(|_| rng.gen()).collect::<_>();
             let b_full = rt::asarray((vec_b, [4, n, n]));
-            b_full.sum(0)
+            b_full.sum_axes(0)
         };
         println!("{:} usec", time.elapsed().as_micros());
         let t_rayon = t_rayon.reshape(-1).to_vec();
@@ -73,7 +73,7 @@ mod test {
 
             let vec_b: Vec<f64> = (0..4 * n * n).map(|_| rng.gen()).collect::<_>();
             let b_full = rt::asarray((vec_b, [4, n, n], &DeviceCpuSerial));
-            b_full.sum([-1, -2])
+            b_full.sum_axes([-1, -2])
         };
         println!("{:} usec", time.elapsed().as_micros());
         let t_rstsr = t_rstsr.reshape(-1).to_vec();
@@ -85,7 +85,7 @@ mod test {
 
             let vec_b: Vec<f64> = (0..4 * n * n).map(|_| rng.gen()).collect::<_>();
             let b_full = rt::asarray((vec_b, [4, n, n]));
-            b_full.sum([-1, -2])
+            b_full.sum_axes([-1, -2])
         };
         println!("{:} usec", time.elapsed().as_micros());
         let t_rayon = t_rayon.reshape(-1).to_vec();

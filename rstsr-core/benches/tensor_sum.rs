@@ -45,7 +45,7 @@ fn rstsr_serial_4096(criterion: &mut Criterion) {
     criterion.bench_function("rstsr serial simple sum 4096 leading dimension", |bencher| {
         bencher.iter(|| {
             // let c = b.i(0) + b.i(1) + b.i(2) + b.i(3);
-            let c = b.sum(0);
+            let c = b.sum_axes(0);
             black_box(c);
         })
     });
@@ -54,7 +54,7 @@ fn rstsr_serial_4096(criterion: &mut Criterion) {
     let b = b_full.reshape([4, n, n]);
     criterion.bench_function("rstsr serial simple sum 4096 last dimension", |bencher| {
         bencher.iter(|| {
-            let c = b.sum([-1, -2]);
+            let c = b.sum_axes([-1, -2]);
             black_box(c);
         })
     });
@@ -102,7 +102,7 @@ fn rstsr_rayon_4096(criterion: &mut Criterion) {
     criterion.bench_function("rstsr rayon simple sum 4096 leading dimension", |bencher| {
         bencher.iter(|| {
             // let c = b.i(0) + b.i(1) + b.i(2) + b.i(3);
-            let c = b.sum(0);
+            let c = b.sum_axes(0);
             black_box(c);
         })
     });
@@ -111,7 +111,7 @@ fn rstsr_rayon_4096(criterion: &mut Criterion) {
     let b = b_full.reshape([4, n, n]);
     criterion.bench_function("rstsr serial simple sum 4096 last dimension", |bencher| {
         bencher.iter(|| {
-            let c = b.sum([-1, -2]);
+            let c = b.sum_axes([-1, -2]);
             black_box(c);
         })
     });

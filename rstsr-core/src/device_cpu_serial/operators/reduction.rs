@@ -21,7 +21,7 @@ where
         reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)
     }
 
-    fn sum(
+    fn sum_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -57,7 +57,7 @@ where
         reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)
     }
 
-    fn min(
+    fn min_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -98,7 +98,7 @@ where
         reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)
     }
 
-    fn max(
+    fn max_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -135,7 +135,7 @@ where
         reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)
     }
 
-    fn prod(
+    fn prod_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -170,7 +170,7 @@ where
         Ok(sum)
     }
 
-    fn mean(
+    fn mean_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -214,7 +214,7 @@ where
         Ok(result)
     }
 
-    fn var(
+    fn var_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -266,7 +266,7 @@ where
         Ok(result)
     }
 
-    fn std(
+    fn std_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -311,7 +311,7 @@ where
         Ok(result)
     }
 
-    fn l2_norm(
+    fn l2_norm_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -334,7 +334,7 @@ where
     T: Clone + PartialOrd,
     D: DimAPI,
 {
-    fn argmin(
+    fn argmin_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -383,7 +383,7 @@ where
     T: Clone + PartialOrd,
     D: DimAPI,
 {
-    fn argmax(
+    fn argmax_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,

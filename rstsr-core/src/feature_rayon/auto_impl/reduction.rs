@@ -23,7 +23,7 @@ where
         reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
     }
 
-    fn sum(
+    fn sum_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -64,7 +64,7 @@ where
         reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
     }
 
-    fn min(
+    fn min_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -109,7 +109,7 @@ where
         reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
     }
 
-    fn max(
+    fn max_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -150,7 +150,7 @@ where
         reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
     }
 
-    fn prod(
+    fn prod_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -189,7 +189,7 @@ where
         Ok(sum)
     }
 
-    fn mean(
+    fn mean_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -237,7 +237,7 @@ where
         Ok(result)
     }
 
-    fn var(
+    fn var_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -293,7 +293,7 @@ where
         Ok(result)
     }
 
-    fn std(
+    fn std_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -342,7 +342,7 @@ where
         Ok(result)
     }
 
-    fn l2_norm(
+    fn l2_norm_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
