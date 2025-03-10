@@ -90,8 +90,8 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 
 | Type | Identifier | Minimal Description |
 |--|--|--|
-| assoc/fn | [`slice`][crate::tensor::indexing::slice] <br/> [`slice_mut`][crate::tensor::indexing::slice_mut] | Basic slicing to tensor, generating view of smaller tensor. |
-| assoc | [`i`][Tensor::i] <br/> [`i_mut`][Tensor::i_mut] | Alias to [`slice`][crate::tensor::indexing::slice] and [`slice_mut`][crate::tensor::indexing::slice_mut]. |
+| assoc/fn | [`slice`][prim@slice] <br/> [`slice_mut`] | Basic slicing to tensor, generating view of smaller tensor. |
+| assoc | [`i`][Tensor::i] <br/> [`i_mut`][Tensor::i_mut] | Alias to [`slice`][prim@slice] and [`slice_mut`]. |
 | core ops | operator `[]` <br/> [`Index`] <br/> [`IndexMut`] | Indexing tensor element, giving reference of scalar value (not efficient due to boundary check). |
 | assoc | [`index_uncheck`][Tensor::index_uncheck] <br/>[`index_mut_uncheck`][Tensor::index_mut_uncheck] | Indexing tensor element, giving reference of scalar value. |
 
@@ -267,6 +267,10 @@ Trait function calls like associated methods, so we also do not recommend usage 
 ### Statistical functions
 
 [`max`], [`mean`], [`min`], [`prod`], [`std`], [`sum`], [`var`]
+
+### Sorting, searching and counting functions
+
+[`argmin`], [`argmax`], [`unraveled_argmin`], [`unraveled_argmax`]
 
 ## Developer Area
 

@@ -307,8 +307,8 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| | | `argmax` | Returns the indices of the maximum values along a specified axis. |
-| | | `argmin` | Returns the indices of the minimum values along a specified axis. |
+| Y | [`argmax`], [`argmax_axes`] | `argmax` | Returns the indices of the maximum values along a specified axis. |
+| Y | [`argmin`], [`argmin_axes`] | `argmin` | Returns the indices of the minimum values along a specified axis. |
 | | | `nonzero` | Returns the indices of the array elements which are non-zero. |
 | | | `searchsorted` | Finds the indices into x1 such that, if the corresponding elements in x2 were inserted before the indices, the order of x1, when sorted in ascending order, would be preserved. |
 | | | `where` | Returns elements chosen from x1 or x2 depending on condition. |
@@ -334,13 +334,13 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 | status | implementation | Python API | description |
 |-|-|-|-|
 | | | `cumulative_sum` | Calculates the cumulative sum of elements in the input array x. |
-| Y | [`max`] | `max` | Calculates the maximum value of the input array x. |
-| Y | [`mean`] | `mean` | Calculates the arithmetic mean of the input array x. |
-| Y | [`min`] | `min` | Calculates the minimum value of the input array x. |
-| Y | [`prod`] | `prod` | Calculates the product of input array x elements. |
-| Y | [`std`] | `std` | Calculates the standard deviation of the input array x. |
-| Y | [`sum`] | `sum` | Calculates the sum of the input array x. |
-| Y | [`var`] | `var` | Calculates the variance of the input array x. |
+| Y | [`max`], [`max_axes`] | `max` | Calculates the maximum value of the input array x. |
+| Y | [`mean`], [`mean_axes`] | `mean` | Calculates the arithmetic mean of the input array x. |
+| Y | [`min`], [`min_axes`] | `min` | Calculates the minimum value of the input array x. |
+| Y | [`prod`], [`prod_axes`] | `prod` | Calculates the product of input array x elements. |
+| Y | [`std`], [`std_axes`] | `std` | Calculates the standard deviation of the input array x. |
+| Y | [`sum`], [`sum_axes`] | `sum` | Calculates the sum of the input array x. |
+| Y | [`var`], [`var_axes`] | `var` | Calculates the variance of the input array x. |
 
 ## Utility Functions
 
