@@ -7,7 +7,8 @@ impl<R, T, D> LinalgEighAPI<DeviceBLAS> for &TensorAny<R, T, DeviceBLAS, D>
 where
     T: BlasFloat + Send + Sync,
     R: DataCloneAPI<Data = Vec<T>>,
-    D: DimAPI,
+    D: DimAPI + DimSmallerOneAPI,
+    D::SmallerOne: DimAPI,
     DeviceBLAS: BlasThreadAPI
         + DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<T::Real, Raw = Vec<T::Real>>
@@ -20,13 +21,14 @@ where
         + SYEVDriverAPI<T>
         + SYEVDDriverAPI<T>,
 {
-    type Out = (Tensor<T::Real, DeviceBLAS, Ix1>, Tensor<T, DeviceBLAS, D>);
+    type Out = (Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>);
     fn eigh_f(args: Self) -> Result<Self::Out> {
         let a = args;
         rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let a_view = a.view().into_dim::<Ix2>();
         let eigh_args = EighArgs::default().a(a_view).build()?;
         let (v, w) = blas_eigh_simple_f(eigh_args)?;
+        let v = v.into_dim::<IxD>().into_dim::<D::SmallerOne>();
         let w = w.unwrap().into_owned().into_dim::<IxD>().into_dim::<D>();
         return Ok((v, w));
     }
@@ -35,7 +37,8 @@ where
 impl<T, D> LinalgEighAPI<DeviceBLAS> for TensorView<'_, T, DeviceBLAS, D>
 where
     T: BlasFloat + Send + Sync,
-    D: DimAPI,
+    D: DimAPI + DimSmallerOneAPI,
+    D::SmallerOne: DimAPI,
     DeviceBLAS: BlasThreadAPI
         + DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<T::Real, Raw = Vec<T::Real>>
@@ -48,7 +51,7 @@ where
         + SYEVDriverAPI<T>
         + SYEVDDriverAPI<T>,
 {
-    type Out = (Tensor<T::Real, DeviceBLAS, Ix1>, Tensor<T, DeviceBLAS, D>);
+    type Out = (Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>);
     fn eigh_f(args: Self) -> Result<Self::Out> {
         LinalgEighAPI::<DeviceBLAS>::eigh_f(&args)
     }
@@ -58,7 +61,8 @@ impl<Ra, Rb, T, D> LinalgEighAPI<DeviceBLAS>
     for (&TensorAny<Ra, T, DeviceBLAS, D>, &TensorAny<Rb, T, DeviceBLAS, D>)
 where
     T: BlasFloat + Send + Sync,
-    D: DimAPI,
+    D: DimAPI + DimSmallerOneAPI,
+    D::SmallerOne: DimAPI,
     Ra: DataCloneAPI<Data = Vec<T>>,
     Rb: DataCloneAPI<Data = Vec<T>>,
     DeviceBLAS: BlasThreadAPI
@@ -73,7 +77,7 @@ where
         + SYEVDriverAPI<T>
         + SYEVDDriverAPI<T>,
 {
-    type Out = (Tensor<T::Real, DeviceBLAS, Ix1>, Tensor<T, DeviceBLAS, D>);
+    type Out = (Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>);
     fn eigh_f(args: Self) -> Result<Self::Out> {
         let (a, b) = args;
         rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
@@ -82,15 +86,18 @@ where
         let b_view = b.view().into_dim::<Ix2>();
         let eigh_args = EighArgs::default().a(a_view).b(b_view).build()?;
         let (v, w) = blas_eigh_simple_f(eigh_args)?;
+        let v = v.into_dim::<IxD>().into_dim::<D::SmallerOne>();
         let w = w.unwrap().into_owned().into_dim::<IxD>().into_dim::<D>();
         return Ok((v, w));
     }
 }
 
-impl<T> LinalgEighAPI<DeviceBLAS>
-    for (TensorView<'_, T, DeviceBLAS, Ix2>, TensorView<'_, T, DeviceBLAS, Ix2>)
+impl<T, D> LinalgEighAPI<DeviceBLAS>
+    for (TensorView<'_, T, DeviceBLAS, D>, TensorView<'_, T, DeviceBLAS, D>)
 where
     T: BlasFloat + Send + Sync,
+    D: DimAPI + DimSmallerOneAPI,
+    D::SmallerOne: DimAPI,
     DeviceBLAS: BlasThreadAPI
         + DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<T::Real, Raw = Vec<T::Real>>
@@ -103,7 +110,7 @@ where
         + SYEVDriverAPI<T>
         + SYEVDDriverAPI<T>,
 {
-    type Out = (Tensor<T::Real, DeviceBLAS, Ix1>, Tensor<T, DeviceBLAS, Ix2>);
+    type Out = (Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>);
     fn eigh_f(args: Self) -> Result<Self::Out> {
         let (a, b) = args;
         LinalgEighAPI::<DeviceBLAS>::eigh_f((&a, &b))
