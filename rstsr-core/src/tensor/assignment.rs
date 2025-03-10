@@ -1,5 +1,7 @@
 use crate::prelude_dev::*;
 
+/* #region assign */
+
 pub trait TensorAssignAPI<TRB> {
     fn assign_f(a: &mut Self, b: TRB) -> Result<()>;
     fn assign(a: &mut Self, b: TRB) {
@@ -83,3 +85,68 @@ where
         assign(self, b)
     }
 }
+
+/* #endregion */
+
+/* #region fill */
+
+pub trait TensorFillAPI<T> {
+    fn fill_f(a: &mut Self, b: T) -> Result<()>;
+    fn fill(a: &mut Self, b: T) {
+        Self::fill_f(a, b).unwrap()
+    }
+}
+
+pub fn fill_f<TRA, T>(a: &mut TRA, b: T) -> Result<()>
+where
+    TRA: TensorFillAPI<T>,
+{
+    TRA::fill_f(a, b)
+}
+
+pub fn fill<TRA, T>(a: &mut TRA, b: T)
+where
+    TRA: TensorFillAPI<T>,
+{
+    TRA::fill(a, b)
+}
+
+impl<RA, DA, T, B> TensorFillAPI<T> for TensorAny<RA, T, B, DA>
+where
+    RA: DataMutAPI<Data = B::Raw>,
+    DA: DimAPI,
+    B: DeviceAPI<T> + OpAssignAPI<T, DA>,
+{
+    fn fill_f(a: &mut Self, b: T) -> Result<()> {
+        // check layout
+        rstsr_assert!(
+            !a.layout().is_broadcasted(),
+            InvalidLayout,
+            "cannot fill broadcasted tensor"
+        )?;
+        let la = a.layout().clone();
+        let device = a.device().clone();
+        device.fill(a.raw_mut(), &la, b)
+    }
+}
+
+impl<S, D> TensorBase<S, D>
+where
+    D: DimAPI,
+{
+    pub fn fill_f<T>(&mut self, b: T) -> Result<()>
+    where
+        Self: TensorFillAPI<T>,
+    {
+        fill_f(self, b)
+    }
+
+    pub fn fill<T>(&mut self, b: T)
+    where
+        Self: TensorFillAPI<T>,
+    {
+        fill(self, b)
+    }
+}
+
+/* #endregion */
