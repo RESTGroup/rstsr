@@ -33,6 +33,7 @@ pub use rstsr_traits::*;
 
 #[cfg(feature = "linalg")]
 pub mod linalg {
+    pub use rstsr_linalg_traits::prelude::rstsr_funcs::*;
     pub use rstsr_linalg_traits::prelude::rstsr_structs::*;
     pub use rstsr_linalg_traits::prelude::rstsr_traits::*;
 }
