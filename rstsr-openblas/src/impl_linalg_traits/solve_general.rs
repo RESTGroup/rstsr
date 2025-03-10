@@ -3,12 +3,13 @@ use rstsr_blas_traits::prelude::*;
 use rstsr_core::prelude_dev::*;
 use rstsr_linalg_traits::prelude_dev::*;
 
-impl<Ra, Rb, T> LinalgSolveGeneralAPI<DeviceBLAS>
-    for (&TensorAny<Ra, T, DeviceBLAS, Ix2>, &TensorAny<Rb, T, DeviceBLAS, Ix2>)
+impl<Ra, Rb, T, D> LinalgSolveGeneralAPI<DeviceBLAS>
+    for (&TensorAny<Ra, T, DeviceBLAS, D>, &TensorAny<Rb, T, DeviceBLAS, D>)
 where
     T: BlasFloat + Send + Sync,
     Ra: DataCloneAPI<Data = Vec<T>>,
     Rb: DataCloneAPI<Data = Vec<T>>,
+    D: DimAPI,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<blasint, Raw = Vec<blasint>>
         + DeviceComplexFloatAPI<T, Ix2>
@@ -16,17 +17,23 @@ where
         + BlasThreadAPI
         + GESVDriverAPI<T>,
 {
-    type Out = Tensor<T, DeviceBLAS, Ix2>;
+    type Out = Tensor<T, DeviceBLAS, D>;
     fn solve_general_f(args: Self) -> Result<Self::Out> {
         let (a, b) = args;
-        Ok(blas_solve_general_f(a.view().into(), b.view().into())?.into_owned())
+        rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
+        rstsr_assert_eq!(b.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
+        let a_view = a.view().into_dim::<Ix2>();
+        let b_view = b.view().into_dim::<Ix2>();
+        let result = blas_solve_general_f(a_view.into(), b_view.into())?;
+        Ok(result.into_owned().into_dim::<IxD>().into_dim::<D>())
     }
 }
 
-impl<T> LinalgSolveGeneralAPI<DeviceBLAS>
-    for (TensorView<'_, T, DeviceBLAS, Ix2>, TensorView<'_, T, DeviceBLAS, Ix2>)
+impl<T, D> LinalgSolveGeneralAPI<DeviceBLAS>
+    for (TensorView<'_, T, DeviceBLAS, D>, TensorView<'_, T, DeviceBLAS, D>)
 where
     T: BlasFloat + Send + Sync,
+    D: DimAPI,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<blasint, Raw = Vec<blasint>>
         + DeviceComplexFloatAPI<T, Ix2>
@@ -34,18 +41,19 @@ where
         + BlasThreadAPI
         + GESVDriverAPI<T>,
 {
-    type Out = Tensor<T, DeviceBLAS, Ix2>;
+    type Out = Tensor<T, DeviceBLAS, D>;
     fn solve_general_f(args: Self) -> Result<Self::Out> {
         let (a, b) = args;
-        solve_general_f((&a, &b))
+        LinalgSolveGeneralAPI::<DeviceBLAS>::solve_general_f((&a, &b))
     }
 }
 
-impl<R, T> LinalgSolveGeneralAPI<DeviceBLAS>
-    for (&TensorAny<R, T, DeviceBLAS, Ix2>, Tensor<T, DeviceBLAS, Ix2>)
+impl<R, T, D> LinalgSolveGeneralAPI<DeviceBLAS>
+    for (&TensorAny<R, T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>)
 where
     T: BlasFloat + Send + Sync,
     R: DataCloneAPI<Data = Vec<T>>,
+    D: DimAPI,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<blasint, Raw = Vec<blasint>>
         + DeviceComplexFloatAPI<T, Ix2>
@@ -53,18 +61,23 @@ where
         + BlasThreadAPI
         + GESVDriverAPI<T>,
 {
-    type Out = Tensor<T, DeviceBLAS, Ix2>;
+    type Out = Tensor<T, DeviceBLAS, D>;
     fn solve_general_f(args: Self) -> Result<Self::Out> {
         let (a, mut b) = args;
-        blas_solve_general_f(a.view().into(), b.view_mut().into())?;
+        rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
+        rstsr_assert_eq!(b.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
+        let a_view = a.view().into_dim::<Ix2>();
+        let b_view = b.view_mut().into_dim::<Ix2>();
+        blas_solve_general_f(a_view.into(), b_view.into())?;
         Ok(b)
     }
 }
 
-impl<T> LinalgSolveGeneralAPI<DeviceBLAS>
-    for (TensorView<'_, T, DeviceBLAS, Ix2>, Tensor<T, DeviceBLAS, Ix2>)
+impl<T, D> LinalgSolveGeneralAPI<DeviceBLAS>
+    for (TensorView<'_, T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>)
 where
     T: BlasFloat + Send + Sync,
+    D: DimAPI,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<blasint, Raw = Vec<blasint>>
         + DeviceComplexFloatAPI<T, Ix2>
@@ -72,17 +85,18 @@ where
         + BlasThreadAPI
         + GESVDriverAPI<T>,
 {
-    type Out = Tensor<T, DeviceBLAS, Ix2>;
+    type Out = Tensor<T, DeviceBLAS, D>;
     fn solve_general_f(args: Self) -> Result<Self::Out> {
         let (a, b) = args;
-        solve_general_f((&a, b))
+        LinalgSolveGeneralAPI::<DeviceBLAS>::solve_general_f((&a, b))
     }
 }
 
-impl<T> LinalgSolveGeneralAPI<DeviceBLAS>
-    for (Tensor<T, DeviceBLAS, Ix2>, Tensor<T, DeviceBLAS, Ix2>)
+impl<T, D> LinalgSolveGeneralAPI<DeviceBLAS>
+    for (Tensor<T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>)
 where
     T: BlasFloat + Send + Sync,
+    D: DimAPI,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<blasint, Raw = Vec<blasint>>
         + DeviceComplexFloatAPI<T, Ix2>
@@ -90,10 +104,14 @@ where
         + BlasThreadAPI
         + GESVDriverAPI<T>,
 {
-    type Out = Tensor<T, DeviceBLAS, Ix2>;
+    type Out = Tensor<T, DeviceBLAS, D>;
     fn solve_general_f(args: Self) -> Result<Self::Out> {
         let (mut a, mut b) = args;
-        blas_solve_general_f(a.view_mut().into(), b.view_mut().into())?;
+        rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
+        rstsr_assert_eq!(b.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
+        let a_view = a.view_mut().into_dim::<Ix2>();
+        let b_view = b.view_mut().into_dim::<Ix2>();
+        blas_solve_general_f(a_view.into(), b_view.into())?;
         Ok(b)
     }
 }
@@ -107,8 +125,8 @@ mod test {
         let device = DeviceBLAS::default();
         let vec_a = vec![1.0, 2.0, 3.0, 4.0];
         let vec_b = vec![5.0, 6.0, 7.0, 8.0, 9.0, 10.0];
-        let a = asarray((vec_a, [2, 2].c(), &device)).into_dim::<Ix2>();
-        let b = asarray((vec_b, [2, 3].c(), &device)).into_dim::<Ix2>();
+        let a = asarray((vec_a, [2, 2].c(), &device));
+        let b = asarray((vec_b, [2, 3].c(), &device));
         let ptr_b = b.as_ptr();
         let x = solve_general((&a, &b));
         println!("{:?}", x);
