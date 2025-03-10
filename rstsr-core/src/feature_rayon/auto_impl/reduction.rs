@@ -23,7 +23,7 @@ where
         reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
     }
 
-    fn sum(
+    fn sum_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -64,7 +64,7 @@ where
         reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
     }
 
-    fn min(
+    fn min_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -109,7 +109,7 @@ where
         reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
     }
 
-    fn max(
+    fn max_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -150,7 +150,7 @@ where
         reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
     }
 
-    fn prod(
+    fn prod_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -189,7 +189,7 @@ where
         Ok(sum)
     }
 
-    fn mean(
+    fn mean_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -237,7 +237,7 @@ where
         Ok(result)
     }
 
-    fn var(
+    fn var_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -293,7 +293,7 @@ where
         Ok(result)
     }
 
-    fn std(
+    fn std_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -342,7 +342,7 @@ where
         Ok(result)
     }
 
-    fn l2_norm(
+    fn l2_norm_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -359,5 +359,233 @@ where
             reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
 
         Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, D> OpArgMinAPI<T, D> for DeviceRayonAutoImpl
+where
+    T: Clone + PartialOrd + Send + Sync,
+    D: DimAPI,
+{
+    type TOut = usize;
+
+    fn argmin_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<usize>>, Self::TOut, Self>, Layout<IxD>)> {
+        let pool = self.get_pool();
+
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y < x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let (out, layout_out) =
+            reduce_axes_arg_cpu_rayon(a, la, axes, f_comp, f_eq, RowMajor, pool)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+
+    fn argmin_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<Self::TOut> {
+        let pool = self.get_pool();
+
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y < x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let result = reduce_all_arg_cpu_rayon(a, la, f_comp, f_eq, RowMajor, pool)?;
+        Ok(result)
+    }
+}
+
+impl<T, D> OpArgMaxAPI<T, D> for DeviceRayonAutoImpl
+where
+    T: Clone + PartialOrd + Send + Sync,
+    D: DimAPI,
+{
+    type TOut = usize;
+
+    fn argmax_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<usize>>, Self::TOut, Self>, Layout<IxD>)> {
+        let pool = self.get_pool();
+
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y > x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let (out, layout_out) =
+            reduce_axes_arg_cpu_rayon(a, la, axes, f_comp, f_eq, RowMajor, pool)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+
+    fn argmax_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<Self::TOut> {
+        let pool = self.get_pool();
+
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y > x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let result = reduce_all_arg_cpu_rayon(a, la, f_comp, f_eq, RowMajor, pool)?;
+        Ok(result)
+    }
+}
+
+impl<T, D> OpUnraveledArgMinAPI<T, D> for DeviceRayonAutoImpl
+where
+    T: Clone + PartialOrd + Send + Sync,
+    D: DimAPI,
+{
+    fn unraveled_argmin_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<IxD>>, IxD, Self>, Layout<IxD>)> {
+        let pool = self.get_pool();
+
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y < x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let (out, layout_out) =
+            reduce_axes_unraveled_arg_cpu_rayon(a, la, axes, f_comp, f_eq, pool)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+
+    fn unraveled_argmin_all(
+        &self,
+        a: &<Self as DeviceRawAPI<T>>::Raw,
+        la: &Layout<D>,
+    ) -> Result<D> {
+        let pool = self.get_pool();
+
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y < x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let result = reduce_all_unraveled_arg_cpu_rayon(a, la, f_comp, f_eq, pool)?;
+        Ok(result)
+    }
+}
+
+impl<T, D> OpUnraveledArgMaxAPI<T, D> for DeviceRayonAutoImpl
+where
+    T: Clone + PartialOrd + Send + Sync,
+    D: DimAPI,
+{
+    fn unraveled_argmax_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<IxD>>, IxD, Self>, Layout<IxD>)> {
+        let pool = self.get_pool();
+
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y > x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let (out, layout_out) =
+            reduce_axes_unraveled_arg_cpu_rayon(a, la, axes, f_comp, f_eq, pool)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+
+    fn unraveled_argmax_all(
+        &self,
+        a: &<Self as DeviceRawAPI<T>>::Raw,
+        la: &Layout<D>,
+    ) -> Result<D> {
+        let pool = self.get_pool();
+
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y > x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let result = reduce_all_unraveled_arg_cpu_rayon(a, la, f_comp, f_eq, pool)?;
+        Ok(result)
     }
 }

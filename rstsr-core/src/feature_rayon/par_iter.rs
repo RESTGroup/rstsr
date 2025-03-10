@@ -77,7 +77,7 @@ macro_rules! impl_par_iter_layout {
         where
             D: DimDevAPI,
         {
-            type Item = usize;
+            type Item = <$IterLayout<D> as Iterator>::Item;
             type Iter = ParIterRSTSR<Self>;
 
             fn into_par_iter(self) -> Self::Iter {
@@ -90,19 +90,20 @@ macro_rules! impl_par_iter_layout {
 impl_par_iter_layout!(IterLayoutColMajor);
 impl_par_iter_layout!(IterLayoutRowMajor);
 impl_par_iter_layout!(IterLayout);
+impl_par_iter_layout!(IndexedIterLayout);
 
 /* #endregion */
 
 /* #region tensor iterator */
 
 macro_rules! impl_par_iter_tensor {
-    ($IterTensor: ident, $item_type: ty) => {
+    ($IterTensor: ident) => {
         impl<'a, T, D> IntoParallelIterator for $IterTensor<'a, T, D>
         where
             D: DimDevAPI,
             T: Send + Sync,
         {
-            type Item = $item_type;
+            type Item = <$IterTensor<'a, T, D> as Iterator>::Item;
             type Iter = ParIterRSTSR<Self>;
 
             fn into_par_iter(self) -> Self::Iter {
@@ -112,20 +113,20 @@ macro_rules! impl_par_iter_tensor {
     };
 }
 
-impl_par_iter_tensor!(IterVecView, &'a T);
-impl_par_iter_tensor!(IterVecMut, &'a mut T);
-impl_par_iter_tensor!(IndexedIterVecView, (D, &'a T));
-impl_par_iter_tensor!(IndexedIterVecMut, (D, &'a mut T));
+impl_par_iter_tensor!(IterVecView);
+impl_par_iter_tensor!(IterVecMut);
+impl_par_iter_tensor!(IndexedIterVecView);
+impl_par_iter_tensor!(IndexedIterVecMut);
 
 macro_rules! impl_par_axes_iter_tensor {
-    ($IterTensor: ident, $item_type: ty) => {
+    ($IterTensor: ident) => {
         impl<'a, T, B> IntoParallelIterator for $IterTensor<'a, T, B>
         where
             T: Send + Sync,
             B::Raw: Send,
             B: DeviceAPI<T> + Send,
         {
-            type Item = $item_type;
+            type Item = <$IterTensor<'a, T, B> as Iterator>::Item;
             type Iter = ParIterRSTSR<Self>;
 
             fn into_par_iter(self) -> Self::Iter {
@@ -135,10 +136,10 @@ macro_rules! impl_par_axes_iter_tensor {
     };
 }
 
-impl_par_axes_iter_tensor!(IterAxesView, TensorView<'a, T, B, IxD>);
-impl_par_axes_iter_tensor!(IterAxesMut, TensorMut<'a, T, B, IxD>);
-impl_par_axes_iter_tensor!(IndexedIterAxesView, (IxD, TensorView<'a, T, B, IxD>));
-impl_par_axes_iter_tensor!(IndexedIterAxesMut, (IxD, TensorMut<'a, T, B, IxD>));
+impl_par_axes_iter_tensor!(IterAxesView);
+impl_par_axes_iter_tensor!(IterAxesMut);
+impl_par_axes_iter_tensor!(IndexedIterAxesView);
+impl_par_axes_iter_tensor!(IndexedIterAxesMut);
 
 /* #endregion */
 

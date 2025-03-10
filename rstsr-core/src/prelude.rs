@@ -128,10 +128,17 @@ pub mod rstsr_funcs {
     };
     // reduction
     pub use crate::tensor::reduction::{
-        l2_norm, l2_norm_all, l2_norm_all_f, l2_norm_f, max, max_all, max_all_f, max_f, mean,
-        mean_all, mean_all_f, mean_f, min, min_all, min_all_f, min_f, prod, prod_all, prod_all_f,
-        prod_f, std, std_all, std_all_f, std_f, sum, sum_all, sum_all_f, sum_f, var, var_all,
-        var_all_f, var_f,
+        argmax, argmax_all, argmax_all_f, argmax_axes, argmax_axes_f, argmax_f, argmin, argmin_all,
+        argmin_all_f, argmin_axes, argmin_axes_f, argmin_f, l2_norm, l2_norm_all, l2_norm_all_f,
+        l2_norm_axes, l2_norm_axes_f, l2_norm_f, max, max_all, max_all_f, max_axes, max_axes_f,
+        max_f, mean, mean_all, mean_all_f, mean_axes, mean_axes_f, mean_f, min, min_all, min_all_f,
+        min_axes, min_axes_f, min_f, prod, prod_all, prod_all_f, prod_axes, prod_axes_f, prod_f,
+        std, std_all, std_all_f, std_axes, std_axes_f, std_f, sum, sum_all, sum_all_f, sum_axes,
+        sum_axes_f, sum_f, unraveled_argmax, unraveled_argmax_all, unraveled_argmax_all_f,
+        unraveled_argmax_axes, unraveled_argmax_axes_f, unraveled_argmax_f, unraveled_argmin,
+        unraveled_argmin_all, unraveled_argmin_all_f, unraveled_argmin_axes,
+        unraveled_argmin_axes_f, unraveled_argmin_f, var, var_all, var_all_f, var_axes, var_axes_f,
+        var_f,
     };
 }
 

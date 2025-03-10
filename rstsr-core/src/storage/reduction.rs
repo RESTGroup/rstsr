@@ -26,14 +26,16 @@ macro_rules! trait_reduction {
     };
 }
 
-trait_reduction!(OpSumAPI, sum, sum_all);
-trait_reduction!(OpMinAPI, min, min_all);
-trait_reduction!(OpMaxAPI, max, max_all);
-trait_reduction!(OpProdAPI, prod, prod_all);
-trait_reduction!(OpMeanAPI, mean, mean_all);
-trait_reduction!(OpVarAPI, var, var_all);
-trait_reduction!(OpStdAPI, std, std_all);
-trait_reduction!(OpL2NormAPI, l2_norm, l2_norm_all);
+trait_reduction!(OpSumAPI, sum_axes, sum_all);
+trait_reduction!(OpMinAPI, min_axes, min_all);
+trait_reduction!(OpMaxAPI, max_axes, max_all);
+trait_reduction!(OpProdAPI, prod_axes, prod_all);
+trait_reduction!(OpMeanAPI, mean_axes, mean_all);
+trait_reduction!(OpVarAPI, var_axes, var_all);
+trait_reduction!(OpStdAPI, std_axes, std_all);
+trait_reduction!(OpL2NormAPI, l2_norm_axes, l2_norm_all);
+trait_reduction!(OpArgMinAPI, argmin_axes, argmin_all);
+trait_reduction!(OpArgMaxAPI, argmax_axes, argmax_all);
 
 macro_rules! trait_reduction_arg {
     ($OpReduceAPI: ident, $func: ident, $func_all: ident) => {
@@ -58,5 +60,5 @@ macro_rules! trait_reduction_arg {
     };
 }
 
-trait_reduction_arg!(OpArgMinAPI, argmin, argmin_all);
-trait_reduction_arg!(OpArgMaxAPI, argmax, argmax_all);
+trait_reduction_arg!(OpUnraveledArgMinAPI, unraveled_argmin_axes, unraveled_argmin_all);
+trait_reduction_arg!(OpUnraveledArgMaxAPI, unraveled_argmax_axes, unraveled_argmax_all);

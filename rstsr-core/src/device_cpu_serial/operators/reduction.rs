@@ -21,7 +21,7 @@ where
         reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)
     }
 
-    fn sum(
+    fn sum_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -57,7 +57,7 @@ where
         reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)
     }
 
-    fn min(
+    fn min_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -98,7 +98,7 @@ where
         reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)
     }
 
-    fn max(
+    fn max_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -135,7 +135,7 @@ where
         reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)
     }
 
-    fn prod(
+    fn prod_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -170,7 +170,7 @@ where
         Ok(sum)
     }
 
-    fn mean(
+    fn mean_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -214,7 +214,7 @@ where
         Ok(result)
     }
 
-    fn var(
+    fn var_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -266,7 +266,7 @@ where
         Ok(result)
     }
 
-    fn std(
+    fn std_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -311,7 +311,7 @@ where
         Ok(result)
     }
 
-    fn l2_norm(
+    fn l2_norm_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -334,12 +334,14 @@ where
     T: Clone + PartialOrd,
     D: DimAPI,
 {
-    fn argmin(
+    type TOut = usize;
+
+    fn argmin_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
         axes: &[isize],
-    ) -> Result<(Storage<DataOwned<Vec<IxD>>, IxD, Self>, Layout<IxD>)> {
+    ) -> Result<(Storage<DataOwned<Vec<usize>>, Self::TOut, Self>, Layout<IxD>)> {
         let f_comp = |x: Option<T>, y: T| -> Option<bool> {
             if let Some(x) = x {
                 Some(y < x)
@@ -354,11 +356,11 @@ where
                 Some(false)
             }
         };
-        let (out, layout_out) = reduce_axes_arg_cpu_serial(a, la, axes, f_comp, f_eq)?;
+        let (out, layout_out) = reduce_axes_arg_cpu_serial(a, la, axes, f_comp, f_eq, RowMajor)?;
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 
-    fn argmin_all(&self, a: &<Self as DeviceRawAPI<T>>::Raw, la: &Layout<D>) -> Result<D> {
+    fn argmin_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<Self::TOut> {
         let f_comp = |x: Option<T>, y: T| -> Option<bool> {
             if let Some(x) = x {
                 Some(y < x)
@@ -373,7 +375,7 @@ where
                 Some(false)
             }
         };
-        let result = reduce_arg_all_cpu_serial(a, la, f_comp, f_eq)?;
+        let result = reduce_all_arg_cpu_serial(a, la, f_comp, f_eq, RowMajor)?;
         Ok(result)
     }
 }
@@ -383,7 +385,111 @@ where
     T: Clone + PartialOrd,
     D: DimAPI,
 {
-    fn argmax(
+    type TOut = usize;
+
+    fn argmax_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<usize>>, Self::TOut, Self>, Layout<IxD>)> {
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y > x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let (out, layout_out) = reduce_axes_arg_cpu_serial(a, la, axes, f_comp, f_eq, RowMajor)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+
+    fn argmax_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<Self::TOut> {
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y > x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let result = reduce_all_arg_cpu_serial(a, la, f_comp, f_eq, RowMajor)?;
+        Ok(result)
+    }
+}
+
+impl<T, D> OpUnraveledArgMinAPI<T, D> for DeviceCpuSerial
+where
+    T: Clone + PartialOrd,
+    D: DimAPI,
+{
+    fn unraveled_argmin_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<IxD>>, IxD, Self>, Layout<IxD>)> {
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y < x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let (out, layout_out) = reduce_axes_unraveled_arg_cpu_serial(a, la, axes, f_comp, f_eq)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+
+    fn unraveled_argmin_all(
+        &self,
+        a: &<Self as DeviceRawAPI<T>>::Raw,
+        la: &Layout<D>,
+    ) -> Result<D> {
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y < x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let result = reduce_all_unraveled_arg_cpu_serial(a, la, f_comp, f_eq)?;
+        Ok(result)
+    }
+}
+
+impl<T, D> OpUnraveledArgMaxAPI<T, D> for DeviceCpuSerial
+where
+    T: Clone + PartialOrd,
+    D: DimAPI,
+{
+    fn unraveled_argmax_axes(
         &self,
         a: &Vec<T>,
         la: &Layout<D>,
@@ -403,11 +509,15 @@ where
                 Some(false)
             }
         };
-        let (out, layout_out) = reduce_axes_arg_cpu_serial(a, la, axes, f_comp, f_eq)?;
+        let (out, layout_out) = reduce_axes_unraveled_arg_cpu_serial(a, la, axes, f_comp, f_eq)?;
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 
-    fn argmax_all(&self, a: &<Self as DeviceRawAPI<T>>::Raw, la: &Layout<D>) -> Result<D> {
+    fn unraveled_argmax_all(
+        &self,
+        a: &<Self as DeviceRawAPI<T>>::Raw,
+        la: &Layout<D>,
+    ) -> Result<D> {
         let f_comp = |x: Option<T>, y: T| -> Option<bool> {
             if let Some(x) = x {
                 Some(y > x)
@@ -422,7 +532,7 @@ where
                 Some(false)
             }
         };
-        let result = reduce_arg_all_cpu_serial(a, la, f_comp, f_eq)?;
+        let result = reduce_all_unraveled_arg_cpu_serial(a, la, f_comp, f_eq)?;
         Ok(result)
     }
 }

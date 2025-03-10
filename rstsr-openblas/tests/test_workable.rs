@@ -26,10 +26,10 @@ mod test {
         println!("{:?}", c_std);
         assert!((c_std - 148.88523481701804) < 1e-6);
 
-        let c_std_1 = c.std((0, 1));
+        let c_std_1 = c.std_axes((0, 1));
         println!("{}", c_std_1);
 
-        let c_std_2 = c.std((1, 2));
+        let c_std_2 = c.std_axes((1, 2));
         println!("{}", c_std_2);
     }
 }

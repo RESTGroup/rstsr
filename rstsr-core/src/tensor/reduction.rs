@@ -1,7 +1,7 @@
 use crate::prelude_dev::*;
 
 macro_rules! trait_reduction {
-    ($OpReduceAPI: ident, $fn: ident, $fn_f: ident, $fn_all: ident, $fn_all_f: ident) => {
+    ($OpReduceAPI: ident, $fn: ident, $fn_f: ident, $fn_axes: ident, $fn_axes_f: ident, $fn_all: ident, $fn_all_f: ident) => {
         pub fn $fn_all_f<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> Result<B::TOut>
         where
             R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
@@ -11,7 +11,7 @@ macro_rules! trait_reduction {
             tensor.device().$fn_all(tensor.raw(), tensor.layout())
         }
 
-        pub fn $fn_f<R, T, B, D, I>(
+        pub fn $fn_axes_f<R, T, B, D, I>(
             tensor: &TensorAny<R, T, B, D>,
             axes: I,
         ) -> Result<Tensor<B::TOut, B, IxD>>
@@ -33,7 +33,7 @@ macro_rules! trait_reduction {
             }
 
             let (storage, layout) =
-                tensor.device().$fn(tensor.raw(), tensor.layout(), axes.as_ref())?;
+                tensor.device().$fn_axes(tensor.raw(), tensor.layout(), axes.as_ref())?;
             Tensor::new_f(storage, layout)
         }
 
@@ -46,7 +46,7 @@ macro_rules! trait_reduction {
             $fn_all_f(tensor).unwrap()
         }
 
-        pub fn $fn<R, T, B, D, I>(
+        pub fn $fn_axes<R, T, B, D, I>(
             tensor: &TensorAny<R, T, B, D>,
             axes: I,
         ) -> Tensor<B::TOut, B, IxD>
@@ -57,7 +57,25 @@ macro_rules! trait_reduction {
             I: TryInto<AxesIndex<isize>>,
             Error: From<I::Error>,
         {
-            $fn_f(tensor, axes).unwrap()
+            $fn_axes_f(tensor, axes).unwrap()
+        }
+
+        pub fn $fn_f<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> Result<B::TOut>
+        where
+            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+            D: DimAPI,
+            B: $OpReduceAPI<T, D>,
+        {
+            $fn_all_f(tensor)
+        }
+
+        pub fn $fn<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> B::TOut
+        where
+            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+            D: DimAPI,
+            B: $OpReduceAPI<T, D>,
+        {
+            $fn_all(tensor)
         }
 
         impl<R, T, B, D> TensorAny<R, T, B, D>
@@ -74,38 +92,53 @@ macro_rules! trait_reduction {
                 $fn_all(self)
             }
 
-            pub fn $fn_f<I>(&self, axes: I) -> Result<Tensor<B::TOut, B, IxD>>
+            pub fn $fn_axes_f<I>(&self, axes: I) -> Result<Tensor<B::TOut, B, IxD>>
             where
                 B: DeviceCreationAnyAPI<B::TOut>,
                 I: TryInto<AxesIndex<isize>>,
                 Error: From<I::Error>,
             {
-                $fn_f(self, axes)
+                $fn_axes_f(self, axes)
             }
 
-            pub fn $fn<I>(&self, axes: I) -> Tensor<B::TOut, B, IxD>
+            pub fn $fn_axes<I>(&self, axes: I) -> Tensor<B::TOut, B, IxD>
             where
                 B: DeviceCreationAnyAPI<B::TOut>,
                 I: TryInto<AxesIndex<isize>>,
                 Error: From<I::Error>,
             {
-                $fn(self, axes)
+                $fn_axes(self, axes)
+            }
+
+            pub fn $fn_f(&self) -> Result<B::TOut> {
+                $fn_f(self)
+            }
+
+            pub fn $fn(&self) -> B::TOut {
+                $fn(self)
             }
         }
     };
 }
 
-trait_reduction!(OpSumAPI, sum, sum_f, sum_all, sum_all_f);
-trait_reduction!(OpMinAPI, min, min_f, min_all, min_all_f);
-trait_reduction!(OpMaxAPI, max, max_f, max_all, max_all_f);
-trait_reduction!(OpProdAPI, prod, prod_f, prod_all, prod_all_f);
-trait_reduction!(OpMeanAPI, mean, mean_f, mean_all, mean_all_f);
-trait_reduction!(OpVarAPI, var, var_f, var_all, var_all_f);
-trait_reduction!(OpStdAPI, std, std_f, std_all, std_all_f);
-trait_reduction!(OpL2NormAPI, l2_norm, l2_norm_f, l2_norm_all, l2_norm_all_f);
+#[rustfmt::skip]
+mod impl_trait_reduction {
+    use super::*;
+    trait_reduction!(OpSumAPI, sum, sum_f, sum_axes, sum_axes_f, sum_all, sum_all_f);
+    trait_reduction!(OpMinAPI, min, min_f, min_axes, min_axes_f, min_all, min_all_f);
+    trait_reduction!(OpMaxAPI, max, max_f, max_axes, max_axes_f, max_all, max_all_f);
+    trait_reduction!(OpProdAPI, prod, prod_f, prod_axes, prod_axes_f, prod_all, prod_all_f);
+    trait_reduction!(OpMeanAPI, mean, mean_f, mean_axes, mean_axes_f, mean_all, mean_all_f);
+    trait_reduction!(OpVarAPI, var, var_f, var_axes, var_axes_f, var_all, var_all_f);
+    trait_reduction!(OpStdAPI, std, std_f, std_axes, std_axes_f, std_all, std_all_f);
+    trait_reduction!(OpL2NormAPI, l2_norm, l2_norm_f, l2_norm_axes, l2_norm_axes_f, l2_norm_all, l2_norm_all_f);
+    trait_reduction!(OpArgMinAPI, argmin, argmin_f, argmin_axes, argmin_axes_f, argmin_all, argmin_all_f);
+    trait_reduction!(OpArgMaxAPI, argmax, argmax_f, argmax_axes, argmax_axes_f, argmax_all, argmax_all_f);
+}
+pub use impl_trait_reduction::*;
 
 macro_rules! trait_reduction_arg {
-    ($OpReduceAPI: ident, $fn: ident, $fn_f: ident, $fn_all: ident, $fn_all_f: ident) => {
+    ($OpReduceAPI: ident, $fn: ident, $fn_f: ident, $fn_axes: ident, $fn_axes_f: ident, $fn_all: ident, $fn_all_f: ident) => {
         pub fn $fn_all_f<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> Result<D>
         where
             R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
@@ -115,7 +148,7 @@ macro_rules! trait_reduction_arg {
             tensor.device().$fn_all(tensor.raw(), tensor.layout())
         }
 
-        pub fn $fn_f<R, T, B, D, I>(
+        pub fn $fn_axes_f<R, T, B, D, I>(
             tensor: &TensorAny<R, T, B, D>,
             axes: I,
         ) -> Result<Tensor<IxD, B, IxD>>
@@ -129,7 +162,7 @@ macro_rules! trait_reduction_arg {
             let axes = axes.try_into()?;
 
             let (storage, layout) =
-                tensor.device().$fn(tensor.raw(), tensor.layout(), axes.as_ref())?;
+                tensor.device().$fn_axes(tensor.raw(), tensor.layout(), axes.as_ref())?;
             Tensor::new_f(storage, layout)
         }
 
@@ -142,7 +175,10 @@ macro_rules! trait_reduction_arg {
             $fn_all_f(tensor).unwrap()
         }
 
-        pub fn $fn<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, axes: I) -> Tensor<IxD, B, IxD>
+        pub fn $fn_axes<R, T, B, D, I>(
+            tensor: &TensorAny<R, T, B, D>,
+            axes: I,
+        ) -> Tensor<IxD, B, IxD>
         where
             R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
@@ -150,7 +186,25 @@ macro_rules! trait_reduction_arg {
             I: TryInto<AxesIndex<isize>>,
             Error: From<I::Error>,
         {
-            $fn_f(tensor, axes).unwrap()
+            $fn_axes_f(tensor, axes).unwrap()
+        }
+
+        pub fn $fn_f<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> Result<D>
+        where
+            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+            D: DimAPI,
+            B: $OpReduceAPI<T, D>,
+        {
+            $fn_all_f(tensor)
+        }
+
+        pub fn $fn<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> D
+        where
+            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+            D: DimAPI,
+            B: $OpReduceAPI<T, D>,
+        {
+            $fn_all(tensor)
         }
 
         impl<R, T, B, D> TensorAny<R, T, B, D>
@@ -167,29 +221,53 @@ macro_rules! trait_reduction_arg {
                 $fn_all(self)
             }
 
-            pub fn $fn_f<I>(&self, axes: I) -> Result<Tensor<IxD, B, IxD>>
+            pub fn $fn_axes_f<I>(&self, axes: I) -> Result<Tensor<IxD, B, IxD>>
             where
                 B: DeviceAPI<IxD>,
                 I: TryInto<AxesIndex<isize>>,
                 Error: From<I::Error>,
             {
-                $fn_f(self, axes)
+                $fn_axes_f(self, axes)
             }
 
-            pub fn $fn<I>(&self, axes: I) -> Tensor<IxD, B, IxD>
+            pub fn $fn_axes<I>(&self, axes: I) -> Tensor<IxD, B, IxD>
             where
                 B: DeviceAPI<IxD>,
                 I: TryInto<AxesIndex<isize>>,
                 Error: From<I::Error>,
             {
-                $fn(self, axes)
+                $fn_axes(self, axes)
+            }
+
+            pub fn $fn_f(&self) -> Result<D> {
+                $fn_f(self)
+            }
+
+            pub fn $fn(&self) -> D {
+                $fn(self)
             }
         }
     };
 }
 
-trait_reduction_arg!(OpArgMinAPI, argmin, argmin_f, argmin_all, argmin_all_f);
-trait_reduction_arg!(OpArgMaxAPI, argmax, argmax_f, argmax_all, argmax_all_f);
+trait_reduction_arg!(
+    OpUnraveledArgMinAPI,
+    unraveled_argmin,
+    unraveled_argmin_f,
+    unraveled_argmin_axes,
+    unraveled_argmin_axes_f,
+    unraveled_argmin_all,
+    unraveled_argmin_all_f
+);
+trait_reduction_arg!(
+    OpUnraveledArgMaxAPI,
+    unraveled_argmax,
+    unraveled_argmax_f,
+    unraveled_argmax_axes,
+    unraveled_argmax_axes_f,
+    unraveled_argmax_all,
+    unraveled_argmax_all_f
+);
 
 #[cfg(test)]
 mod test {
@@ -212,7 +290,7 @@ mod test {
         let s = a.sum_all();
         assert_eq!(s, 446586);
 
-        let s = a.sum(());
+        let s = a.sum_axes(());
         println!("{:?}", s);
         assert_eq!(s.to_scalar(), 446586);
 
@@ -228,7 +306,7 @@ mod test {
         let s = a.sum_all();
         assert_eq!(s, 446586);
 
-        let s = a.sum(());
+        let s = a.sum_axes(());
         println!("{:?}", s);
         assert_eq!(s.to_scalar(), 446586);
     }
@@ -238,7 +316,7 @@ mod test {
         // DeviceCpuSerial
         let a =
             arange((3240, &DeviceCpuSerial)).into_shape([4, 6, 15, 9]).into_transpose([2, 0, 3, 1]);
-        let s = a.sum([0, -2]);
+        let s = a.sum_axes([0, -2]);
         println!("{:?}", s);
         assert_eq!(s[[0, 1]], 27270);
         assert_eq!(s[[1, 2]], 154845);
@@ -246,7 +324,7 @@ mod test {
 
         // DeviceFaer
         let a: Tensor<usize> = arange(3240).into_shape([4, 6, 15, 9]).into_transpose([2, 0, 3, 1]);
-        let s = a.sum([0, -2]);
+        let s = a.sum_axes([0, -2]);
         println!("{:?}", s);
         assert_eq!(s[[0, 1]], 27270);
         assert_eq!(s[[1, 2]], 154845);
@@ -259,9 +337,9 @@ mod test {
         let v = vec![8, 4, 2, 9, 3, 7, 2, 8, 1, 6, 10, 5];
         let a = asarray((&v, [4, 3].c(), &DeviceCpuSerial));
         println!("{:}", a);
-        let m = a.min(0);
+        let m = a.min_axes(0);
         assert_eq!(m.to_vec(), vec![2, 3, 1]);
-        let m = a.min(1);
+        let m = a.min_axes(1);
         assert_eq!(m.to_vec(), vec![2, 3, 1, 5]);
         let m = a.min_all();
         assert_eq!(m, 1);
@@ -270,9 +348,9 @@ mod test {
         let v = vec![8, 4, 2, 9, 3, 7, 2, 8, 1, 6, 10, 5];
         let a = asarray((&v, [4, 3].c()));
         println!("{:}", a);
-        let m = a.min(0);
+        let m = a.min_axes(0);
         assert_eq!(m.to_vec(), vec![2, 3, 1]);
-        let m = a.min(1);
+        let m = a.min_axes(1);
         assert_eq!(m.to_vec(), vec![2, 3, 1, 5]);
         let m = a.min_all();
         assert_eq!(m, 1);
@@ -285,11 +363,11 @@ mod test {
         let m = a.mean_all();
         assert_eq!(m, 11.5);
 
-        let m = a.mean((0, 2));
+        let m = a.mean_axes((0, 2));
         println!("{:}", m);
         assert_eq!(m.to_vec(), vec![7.5, 11.5, 15.5]);
 
-        let m = a.i((slice!(None, None, -1), .., slice!(None, None, -2))).mean((-1, 1));
+        let m = a.i((slice!(None, None, -1), .., slice!(None, None, -2))).mean_axes((-1, 1));
         println!("{:}", m);
         assert_eq!(m.to_vec(), vec![18.0, 6.0]);
 
@@ -298,11 +376,11 @@ mod test {
         let m = a.mean_all();
         assert_eq!(m, 11.5);
 
-        let m = a.mean((0, 2));
+        let m = a.mean_axes((0, 2));
         println!("{:}", m);
         assert_eq!(m.to_vec(), vec![7.5, 11.5, 15.5]);
 
-        let m = a.i((slice!(None, None, -1), .., slice!(None, None, -2))).mean((-1, 1));
+        let m = a.i((slice!(None, None, -1), .., slice!(None, None, -2))).mean_axes((-1, 1));
         println!("{:}", m);
         assert_eq!(m.to_vec(), vec![18.0, 6.0]);
     }
@@ -317,11 +395,11 @@ mod test {
         println!("{:}", m);
         assert!((m - 8.409722222222221).abs() < 1e-10);
 
-        let m = a.var(0);
+        let m = a.var_axes(0);
         println!("{:}", m);
         assert!(allclose_f64(&m, &asarray(vec![7.1875, 8.1875, 5.6875])));
 
-        let m = a.var(1);
+        let m = a.var_axes(1);
         println!("{:}", m);
         assert!(allclose_f64(&m, &asarray(vec![6.22222222, 6.22222222, 9.55555556, 4.66666667])));
 
@@ -333,11 +411,11 @@ mod test {
         println!("{:}", m);
         assert!((m - 8.409722222222221).abs() < 1e-10);
 
-        let m = a.var(0);
+        let m = a.var_axes(0);
         println!("{:}", m);
         assert!(allclose_f64(&m, &asarray(vec![7.1875, 8.1875, 5.6875])));
 
-        let m = a.var(1);
+        let m = a.var_axes(1);
         println!("{:}", m);
         assert!(allclose_f64(&m, &asarray(vec![6.22222222, 6.22222222, 9.55555556, 4.66666667])));
     }
@@ -352,11 +430,11 @@ mod test {
         println!("{:}", m);
         assert!((m - 2.899952106884219).abs() < 1e-10);
 
-        let m = a.std(0);
+        let m = a.std_axes(0);
         println!("{:}", m);
         assert!(allclose_f64(&m, &asarray(vec![2.68095132, 2.86138079, 2.384848])));
 
-        let m = a.std(1);
+        let m = a.std_axes(1);
         println!("{:}", m);
         assert!(allclose_f64(&m, &asarray(vec![2.49443826, 2.49443826, 3.09120617, 2.1602469])));
 
@@ -381,11 +459,11 @@ mod test {
         println!("{:}", m);
         assert!((m - 2.899952106884219).abs() < 1e-10);
 
-        let m = a.std(0);
+        let m = a.std_axes(0);
         println!("{:}", m);
         assert!(allclose_f64(&m, &asarray(vec![2.68095132, 2.86138079, 2.384848])));
 
-        let m = a.std(1);
+        let m = a.std_axes(1);
         println!("{:}", m);
         assert!(allclose_f64(&m, &asarray(vec![2.49443826, 2.49443826, 3.09120617, 2.1602469])));
 
@@ -449,11 +527,37 @@ mod test {
         println!("{:?}", c_std);
         assert!((c_std - 148.88523481701804) < 1e-6);
 
-        let c_std_1 = c.std((0, 1));
+        let c_std_1 = c.std_axes((0, 1));
         println!("{}", c_std_1);
 
-        let c_std_2 = c.std((1, 2));
+        let c_std_2 = c.std_axes((1, 2));
         println!("{}", c_std_2);
+    }
+
+    #[test]
+    fn test_unraveled_argmin() {
+        // DeviceCpuSerial
+        let v = vec![8, 4, 2, 9, 7, 1, 2, 1, 8, 6, 10, 5];
+        let a = asarray((&v, [4, 3].c(), &DeviceCpuSerial));
+        println!("{:}", a);
+        // [[ 8 4 2]
+        //  [ 9 7 1]
+        //  [ 2 1 8]
+        //  [ 6 10 5]]
+
+        let m = a.unraveled_argmin_all();
+        println!("{:?}", m);
+        assert_eq!(m, vec![1, 2]);
+
+        let m = a.unraveled_argmin_axes(-1);
+        println!("{:?}", m);
+        let m_vec = m.raw();
+        assert_eq!(m_vec, &vec![vec![2], vec![2], vec![1], vec![2]]);
+
+        let m = a.unraveled_argmin_axes(0);
+        println!("{:?}", m);
+        let m_vec = m.raw();
+        assert_eq!(m_vec, &vec![vec![2], vec![2], vec![1]]);
     }
 
     #[test]
@@ -469,16 +573,16 @@ mod test {
 
         let m = a.argmin_all();
         println!("{:?}", m);
-        assert_eq!(m, vec![1, 2]);
+        assert_eq!(m, 5);
 
-        let m = a.argmin(-1);
+        let m = a.argmin_axes(-1);
         println!("{:?}", m);
         let m_vec = m.raw();
-        assert_eq!(m_vec, &vec![vec![2], vec![2], vec![1], vec![2]]);
+        assert_eq!(m_vec, &vec![2, 2, 1, 2]);
 
-        let m = a.argmin(0);
+        let m = a.argmin_axes(0);
         println!("{:?}", m);
         let m_vec = m.raw();
-        assert_eq!(m_vec, &vec![vec![2], vec![2], vec![1]]);
+        assert_eq!(m_vec, &vec![2, 2, 1]);
     }
 }

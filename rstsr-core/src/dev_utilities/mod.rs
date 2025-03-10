@@ -47,7 +47,7 @@ where
 /// # See also
 ///
 /// PySCF `pyscf.lib.misc.fingerprint`
-/// https://github.com/pyscf/pyscf/blob/6f6d3741bf42543e02ccaa1d4ef43d9bf83b3dda/pyscf/lib/misc.py#L1249-L1253
+/// <https://github.com/pyscf/pyscf/blob/6f6d3741bf42543e02ccaa1d4ef43d9bf83b3dda/pyscf/lib/misc.py#L1249-L1253>
 pub fn fingerprint<R, T, B, D>(a: &TensorAny<R, T, B, D>) -> T
 where
     T: ComplexFloat,
