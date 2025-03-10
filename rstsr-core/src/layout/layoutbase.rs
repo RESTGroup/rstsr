@@ -307,7 +307,8 @@ where
         let shape_sorted = indices.iter().map(|&k| shape[k]).collect::<Vec<_>>();
         let stride_sorted = indices.iter().map(|&k| stride[k].unsigned_abs()).collect::<Vec<_>>();
 
-        for i in 0..indices.len() - 1 {
+        // note: `indices.len() - 1` can be smaller than 0, so `.max(1)` is used
+        for i in 0..indices.len().max(1) - 1 {
             // following function also checks that stride could not be zero
             rstsr_pattern!(
                 shape_sorted[i] * stride_sorted[i],
