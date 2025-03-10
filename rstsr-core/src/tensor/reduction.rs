@@ -103,6 +103,8 @@ trait_reduction!(OpMeanAPI, mean_axes, mean_axes_f, mean_all, mean_all_f);
 trait_reduction!(OpVarAPI, var_axes, var_axes_f, var_all, var_all_f);
 trait_reduction!(OpStdAPI, std_axes, std_axes_f, std_all, std_all_f);
 trait_reduction!(OpL2NormAPI, l2_norm_axes, l2_norm_axes_f, l2_norm_all, l2_norm_all_f);
+trait_reduction!(OpArgMinAPI, argmin_axes, argmin_axes_f, argmin_all, argmin_all_f);
+trait_reduction!(OpArgMaxAPI, argmax_axes, argmax_axes_f, argmax_all, argmax_all_f);
 
 macro_rules! trait_reduction_arg {
     ($OpReduceAPI: ident, $fn: ident, $fn_f: ident, $fn_all: ident, $fn_all_f: ident) => {
@@ -188,8 +190,20 @@ macro_rules! trait_reduction_arg {
     };
 }
 
-trait_reduction_arg!(OpArgMinAPI, argmin_axes, argmin_axes_f, argmin_all, argmin_all_f);
-trait_reduction_arg!(OpArgMaxAPI, argmax_axes, argmax_axes_f, argmax_all, argmax_all_f);
+trait_reduction_arg!(
+    OpUnraveledArgMinAPI,
+    unraveled_argmin_axes,
+    unraveled_argmin_axes_f,
+    unraveled_argmin_all,
+    unraveled_argmin_all_f
+);
+trait_reduction_arg!(
+    OpUnraveledArgMaxAPI,
+    unraveled_argmax_axes,
+    unraveled_argmax_axes_f,
+    unraveled_argmax_all,
+    unraveled_argmax_all_f
+);
 
 #[cfg(test)]
 mod test {
@@ -457,6 +471,32 @@ mod test {
     }
 
     #[test]
+    fn test_unraveled_argmin() {
+        // DeviceCpuSerial
+        let v = vec![8, 4, 2, 9, 7, 1, 2, 1, 8, 6, 10, 5];
+        let a = asarray((&v, [4, 3].c(), &DeviceCpuSerial));
+        println!("{:}", a);
+        // [[ 8 4 2]
+        //  [ 9 7 1]
+        //  [ 2 1 8]
+        //  [ 6 10 5]]
+
+        let m = a.unraveled_argmin_all();
+        println!("{:?}", m);
+        assert_eq!(m, vec![1, 2]);
+
+        let m = a.unraveled_argmin_axes(-1);
+        println!("{:?}", m);
+        let m_vec = m.raw();
+        assert_eq!(m_vec, &vec![vec![2], vec![2], vec![1], vec![2]]);
+
+        let m = a.unraveled_argmin_axes(0);
+        println!("{:?}", m);
+        let m_vec = m.raw();
+        assert_eq!(m_vec, &vec![vec![2], vec![2], vec![1]]);
+    }
+
+    #[test]
     fn test_argmin() {
         // DeviceCpuSerial
         let v = vec![8, 4, 2, 9, 7, 1, 2, 1, 8, 6, 10, 5];
@@ -469,16 +509,16 @@ mod test {
 
         let m = a.argmin_all();
         println!("{:?}", m);
-        assert_eq!(m, vec![1, 2]);
+        assert_eq!(m, 5);
 
         let m = a.argmin_axes(-1);
         println!("{:?}", m);
         let m_vec = m.raw();
-        assert_eq!(m_vec, &vec![vec![2], vec![2], vec![1], vec![2]]);
+        assert_eq!(m_vec, &vec![2, 2, 1, 2]);
 
         let m = a.argmin_axes(0);
         println!("{:?}", m);
         let m_vec = m.raw();
-        assert_eq!(m_vec, &vec![vec![2], vec![2], vec![1]]);
+        assert_eq!(m_vec, &vec![2, 2, 1]);
     }
 }
