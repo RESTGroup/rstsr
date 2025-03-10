@@ -3,61 +3,80 @@ use rstsr_blas_traits::prelude::*;
 use rstsr_core::prelude_dev::*;
 use rstsr_linalg_traits::prelude_dev::*;
 
-impl<R, T> LinalgInvAPI<DeviceBLAS> for &TensorAny<R, T, DeviceBLAS, Ix2>
+impl<R, T, D> LinalgInvAPI<DeviceBLAS> for &TensorAny<R, T, DeviceBLAS, D>
 where
     T: BlasFloat + Send + Sync,
     R: DataCloneAPI<Data = Vec<T>>,
+    D: DimAPI,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
         + GETRIDriverAPI<T>
         + GETRFDriverAPI<T>
         + DeviceComplexFloatAPI<T, Ix2>,
 {
-    type Out = Tensor<T, DeviceBLAS, Ix2>;
+    type Out = Tensor<T, DeviceBLAS, D>;
     fn inv_f(args: Self) -> Result<Self::Out> {
-        Ok(blas_inv_f(args.view().into())?.into_owned())
+        rstsr_assert_eq!(
+            args.ndim(),
+            2,
+            InvalidLayout,
+            "Currently we can only handle 2-D matrix."
+        )?;
+        let a = args.view().into_dim::<Ix2>();
+        let result = blas_inv_f(a.into())?.into_owned();
+        Ok(result.into_dim::<IxD>().into_dim::<D>())
     }
 }
 
-impl<T> LinalgInvAPI<DeviceBLAS> for TensorView<'_, T, DeviceBLAS, Ix2>
+impl<T, D> LinalgInvAPI<DeviceBLAS> for TensorView<'_, T, DeviceBLAS, D>
 where
     T: BlasFloat + Send + Sync,
+    D: DimAPI,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
         + GETRIDriverAPI<T>
         + GETRFDriverAPI<T>
         + DeviceComplexFloatAPI<T, Ix2>,
 {
-    type Out = Tensor<T, DeviceBLAS, Ix2>;
+    type Out = Tensor<T, DeviceBLAS, D>;
     fn inv_f(args: Self) -> Result<Self::Out> {
-        Ok(blas_inv_f(args.into())?.into_owned())
+        LinalgInvAPI::<DeviceBLAS>::inv_f(&args)
     }
 }
 
-impl<'a, T> LinalgInvAPI<DeviceBLAS> for TensorMut<'a, T, DeviceBLAS, Ix2>
+impl<'a, T, D> LinalgInvAPI<DeviceBLAS> for TensorMut<'a, T, DeviceBLAS, D>
 where
     T: BlasFloat + Send + Sync,
+    D: DimAPI,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
         + GETRIDriverAPI<T>
         + GETRFDriverAPI<T>
         + DeviceComplexFloatAPI<T, Ix2>,
 {
-    type Out = TensorMutable<'a, T, DeviceBLAS, Ix2>;
+    type Out = TensorMutable<'a, T, DeviceBLAS, D>;
     fn inv_f(args: Self) -> Result<Self::Out> {
-        blas_inv_f(args.into())
+        rstsr_assert_eq!(
+            args.ndim(),
+            2,
+            InvalidLayout,
+            "Currently we can only handle 2-D matrix."
+        )?;
+        let a = args.into_dim::<Ix2>();
+        let result = blas_inv_f(a.into())?;
+        Ok(result.into_dim::<IxD>().into_dim::<D>())
     }
 }
 
-impl<T> LinalgInvAPI<DeviceBLAS> for Tensor<T, DeviceBLAS, Ix2>
+impl<T, D> LinalgInvAPI<DeviceBLAS> for Tensor<T, DeviceBLAS, D>
 where
     T: BlasFloat + Send + Sync,
+    D: DimAPI,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
         + GETRIDriverAPI<T>
         + GETRFDriverAPI<T>
         + DeviceComplexFloatAPI<T, Ix2>,
 {
-    type Out = Tensor<T, DeviceBLAS, Ix2>;
+    type Out = Tensor<T, DeviceBLAS, D>;
     fn inv_f(mut args: Self) -> Result<Self::Out> {
-        let a = args.view_mut().into();
-        blas_inv_f(a)?;
+        LinalgInvAPI::<DeviceBLAS>::inv_f(args.view_mut())?;
         Ok(args)
     }
 }
