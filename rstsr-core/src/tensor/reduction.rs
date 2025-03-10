@@ -1,7 +1,7 @@
 use crate::prelude_dev::*;
 
 macro_rules! trait_reduction {
-    ($OpReduceAPI: ident, $fn: ident, $fn_f: ident, $fn_all: ident, $fn_all_f: ident) => {
+    ($OpReduceAPI: ident, $fn: ident, $fn_f: ident, $fn_axes: ident, $fn_axes_f: ident, $fn_all: ident, $fn_all_f: ident) => {
         pub fn $fn_all_f<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> Result<B::TOut>
         where
             R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
@@ -11,7 +11,7 @@ macro_rules! trait_reduction {
             tensor.device().$fn_all(tensor.raw(), tensor.layout())
         }
 
-        pub fn $fn_f<R, T, B, D, I>(
+        pub fn $fn_axes_f<R, T, B, D, I>(
             tensor: &TensorAny<R, T, B, D>,
             axes: I,
         ) -> Result<Tensor<B::TOut, B, IxD>>
@@ -33,7 +33,7 @@ macro_rules! trait_reduction {
             }
 
             let (storage, layout) =
-                tensor.device().$fn(tensor.raw(), tensor.layout(), axes.as_ref())?;
+                tensor.device().$fn_axes(tensor.raw(), tensor.layout(), axes.as_ref())?;
             Tensor::new_f(storage, layout)
         }
 
@@ -46,7 +46,7 @@ macro_rules! trait_reduction {
             $fn_all_f(tensor).unwrap()
         }
 
-        pub fn $fn<R, T, B, D, I>(
+        pub fn $fn_axes<R, T, B, D, I>(
             tensor: &TensorAny<R, T, B, D>,
             axes: I,
         ) -> Tensor<B::TOut, B, IxD>
@@ -57,7 +57,25 @@ macro_rules! trait_reduction {
             I: TryInto<AxesIndex<isize>>,
             Error: From<I::Error>,
         {
-            $fn_f(tensor, axes).unwrap()
+            $fn_axes_f(tensor, axes).unwrap()
+        }
+
+        pub fn $fn_f<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> Result<B::TOut>
+        where
+            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+            D: DimAPI,
+            B: $OpReduceAPI<T, D>,
+        {
+            $fn_all_f(tensor)
+        }
+
+        pub fn $fn<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> B::TOut
+        where
+            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+            D: DimAPI,
+            B: $OpReduceAPI<T, D>,
+        {
+            $fn_all(tensor)
         }
 
         impl<R, T, B, D> TensorAny<R, T, B, D>
@@ -74,40 +92,53 @@ macro_rules! trait_reduction {
                 $fn_all(self)
             }
 
-            pub fn $fn_f<I>(&self, axes: I) -> Result<Tensor<B::TOut, B, IxD>>
+            pub fn $fn_axes_f<I>(&self, axes: I) -> Result<Tensor<B::TOut, B, IxD>>
             where
                 B: DeviceCreationAnyAPI<B::TOut>,
                 I: TryInto<AxesIndex<isize>>,
                 Error: From<I::Error>,
             {
-                $fn_f(self, axes)
+                $fn_axes_f(self, axes)
             }
 
-            pub fn $fn<I>(&self, axes: I) -> Tensor<B::TOut, B, IxD>
+            pub fn $fn_axes<I>(&self, axes: I) -> Tensor<B::TOut, B, IxD>
             where
                 B: DeviceCreationAnyAPI<B::TOut>,
                 I: TryInto<AxesIndex<isize>>,
                 Error: From<I::Error>,
             {
-                $fn(self, axes)
+                $fn_axes(self, axes)
+            }
+
+            pub fn $fn_f(&self) -> Result<B::TOut> {
+                $fn_f(self)
+            }
+
+            pub fn $fn(&self) -> B::TOut {
+                $fn(self)
             }
         }
     };
 }
 
-trait_reduction!(OpSumAPI, sum_axes, sum_axes_f, sum_all, sum_all_f);
-trait_reduction!(OpMinAPI, min_axes, min_axes_f, min_all, min_all_f);
-trait_reduction!(OpMaxAPI, max_axes, max_axes_f, max_all, max_all_f);
-trait_reduction!(OpProdAPI, prod_axes, prod_axes_f, prod_all, prod_all_f);
-trait_reduction!(OpMeanAPI, mean_axes, mean_axes_f, mean_all, mean_all_f);
-trait_reduction!(OpVarAPI, var_axes, var_axes_f, var_all, var_all_f);
-trait_reduction!(OpStdAPI, std_axes, std_axes_f, std_all, std_all_f);
-trait_reduction!(OpL2NormAPI, l2_norm_axes, l2_norm_axes_f, l2_norm_all, l2_norm_all_f);
-trait_reduction!(OpArgMinAPI, argmin_axes, argmin_axes_f, argmin_all, argmin_all_f);
-trait_reduction!(OpArgMaxAPI, argmax_axes, argmax_axes_f, argmax_all, argmax_all_f);
+#[rustfmt::skip]
+mod impl_trait_reduction {
+    use super::*;
+    trait_reduction!(OpSumAPI, sum, sum_f, sum_axes, sum_axes_f, sum_all, sum_all_f);
+    trait_reduction!(OpMinAPI, min, min_f, min_axes, min_axes_f, min_all, min_all_f);
+    trait_reduction!(OpMaxAPI, max, max_f, max_axes, max_axes_f, max_all, max_all_f);
+    trait_reduction!(OpProdAPI, prod, prod_f, prod_axes, prod_axes_f, prod_all, prod_all_f);
+    trait_reduction!(OpMeanAPI, mean, mean_f, mean_axes, mean_axes_f, mean_all, mean_all_f);
+    trait_reduction!(OpVarAPI, var, var_f, var_axes, var_axes_f, var_all, var_all_f);
+    trait_reduction!(OpStdAPI, std, std_f, std_axes, std_axes_f, std_all, std_all_f);
+    trait_reduction!(OpL2NormAPI, l2_norm, l2_norm_f, l2_norm_axes, l2_norm_axes_f, l2_norm_all, l2_norm_all_f);
+    trait_reduction!(OpArgMinAPI, argmin, argmin_f, argmin_axes, argmin_axes_f, argmin_all, argmin_all_f);
+    trait_reduction!(OpArgMaxAPI, argmax, argmax_f, argmax_axes, argmax_axes_f, argmax_all, argmax_all_f);
+}
+pub use impl_trait_reduction::*;
 
 macro_rules! trait_reduction_arg {
-    ($OpReduceAPI: ident, $fn: ident, $fn_f: ident, $fn_all: ident, $fn_all_f: ident) => {
+    ($OpReduceAPI: ident, $fn: ident, $fn_f: ident, $fn_axes: ident, $fn_axes_f: ident, $fn_all: ident, $fn_all_f: ident) => {
         pub fn $fn_all_f<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> Result<D>
         where
             R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
@@ -117,7 +148,7 @@ macro_rules! trait_reduction_arg {
             tensor.device().$fn_all(tensor.raw(), tensor.layout())
         }
 
-        pub fn $fn_f<R, T, B, D, I>(
+        pub fn $fn_axes_f<R, T, B, D, I>(
             tensor: &TensorAny<R, T, B, D>,
             axes: I,
         ) -> Result<Tensor<IxD, B, IxD>>
@@ -131,7 +162,7 @@ macro_rules! trait_reduction_arg {
             let axes = axes.try_into()?;
 
             let (storage, layout) =
-                tensor.device().$fn(tensor.raw(), tensor.layout(), axes.as_ref())?;
+                tensor.device().$fn_axes(tensor.raw(), tensor.layout(), axes.as_ref())?;
             Tensor::new_f(storage, layout)
         }
 
@@ -144,7 +175,10 @@ macro_rules! trait_reduction_arg {
             $fn_all_f(tensor).unwrap()
         }
 
-        pub fn $fn<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, axes: I) -> Tensor<IxD, B, IxD>
+        pub fn $fn_axes<R, T, B, D, I>(
+            tensor: &TensorAny<R, T, B, D>,
+            axes: I,
+        ) -> Tensor<IxD, B, IxD>
         where
             R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
@@ -152,7 +186,25 @@ macro_rules! trait_reduction_arg {
             I: TryInto<AxesIndex<isize>>,
             Error: From<I::Error>,
         {
-            $fn_f(tensor, axes).unwrap()
+            $fn_axes_f(tensor, axes).unwrap()
+        }
+
+        pub fn $fn_f<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> Result<D>
+        where
+            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+            D: DimAPI,
+            B: $OpReduceAPI<T, D>,
+        {
+            $fn_all_f(tensor)
+        }
+
+        pub fn $fn<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> D
+        where
+            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+            D: DimAPI,
+            B: $OpReduceAPI<T, D>,
+        {
+            $fn_all(tensor)
         }
 
         impl<R, T, B, D> TensorAny<R, T, B, D>
@@ -169,22 +221,30 @@ macro_rules! trait_reduction_arg {
                 $fn_all(self)
             }
 
-            pub fn $fn_f<I>(&self, axes: I) -> Result<Tensor<IxD, B, IxD>>
+            pub fn $fn_axes_f<I>(&self, axes: I) -> Result<Tensor<IxD, B, IxD>>
             where
                 B: DeviceAPI<IxD>,
                 I: TryInto<AxesIndex<isize>>,
                 Error: From<I::Error>,
             {
-                $fn_f(self, axes)
+                $fn_axes_f(self, axes)
             }
 
-            pub fn $fn<I>(&self, axes: I) -> Tensor<IxD, B, IxD>
+            pub fn $fn_axes<I>(&self, axes: I) -> Tensor<IxD, B, IxD>
             where
                 B: DeviceAPI<IxD>,
                 I: TryInto<AxesIndex<isize>>,
                 Error: From<I::Error>,
             {
-                $fn(self, axes)
+                $fn_axes(self, axes)
+            }
+
+            pub fn $fn_f(&self) -> Result<D> {
+                $fn_f(self)
+            }
+
+            pub fn $fn(&self) -> D {
+                $fn(self)
             }
         }
     };
@@ -192,6 +252,8 @@ macro_rules! trait_reduction_arg {
 
 trait_reduction_arg!(
     OpUnraveledArgMinAPI,
+    unraveled_argmin,
+    unraveled_argmin_f,
     unraveled_argmin_axes,
     unraveled_argmin_axes_f,
     unraveled_argmin_all,
@@ -199,6 +261,8 @@ trait_reduction_arg!(
 );
 trait_reduction_arg!(
     OpUnraveledArgMaxAPI,
+    unraveled_argmax,
+    unraveled_argmax_f,
     unraveled_argmax_axes,
     unraveled_argmax_axes_f,
     unraveled_argmax_all,
