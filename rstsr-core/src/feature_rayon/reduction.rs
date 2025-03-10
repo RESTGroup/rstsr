@@ -355,8 +355,7 @@ where
         (Some((idx1, val1)), Some((idx2, _))) => fold_func(
             Some((idx1, val1)),
             (idx2.clone(), unsafe { la.index_uncheck(idx2.as_ref()) as usize }),
-        )
-        .map(|(idx, val)| (idx, val)),
+        ),
         (Some((idx1, val1)), None) => Some((idx1, val1)),
         (None, Some((idx2, val2))) => Some((idx2, val2)),
         (None, None) => None,
