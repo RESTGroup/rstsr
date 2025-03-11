@@ -1,0 +1,11 @@
+# Changelog
+
+## v0.1.0
+
+Initial release. Most features in Python Array API has been implemented.
+
+## v0.2.0 - 2025-03-11
+
+This release features on BLAS and linalg implementations. Currently, functions such as `cholesky`, `eigh`, `solve_general` in `rstsr-linalg-traits` have been implemented.
+
+Also many enhancements in `rstsr-core`.

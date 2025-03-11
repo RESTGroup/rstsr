@@ -15,9 +15,11 @@ rstsr-linalg-traits = { workspace = true, optional = true }
 
 [features]
 default = ["rstsr-core/default"]
+# rstsr-core features
 std = ["rstsr-core/std"]
-f_prefer = ["rstsr-core/std"]
 rayon = ["rstsr-core/rayon"]
 faer = ["rstsr-core/faer"]
 faer_as_default = ["rstsr-core/faer_as_default"]
+dispatch_dim_layout_iter = ["rstsr-core/dispatch_dim_layout_iter"]
+# dependencies specification
 linalg = ["dep:rstsr-linalg-traits"]
