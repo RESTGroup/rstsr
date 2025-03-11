@@ -7,6 +7,7 @@ members = [
     "rstsr-openblas-ffi",
     "rstsr-dtype-traits",
     "rstsr-blas-traits",
+    "rstsr-test-manifest",
     "rstsr-linalg-traits",
 ]
 
