@@ -9,6 +9,7 @@ members = [
     "rstsr-blas-traits",
     "rstsr-test-manifest",
     "rstsr-linalg-traits",
+    "rstsr-hdf5",
 ]
 
 [workspace.package]
@@ -30,6 +31,7 @@ rstsr-test-manifest = { path = "./rstsr-test-manifest", default-features = false
 rstsr-openblas = { path = "./rstsr-openblas", default-features = false, version = "0.2.0" }
 rstsr-blas-traits = { path = "./rstsr-blas-traits", default-features = false, version = "0.2.0" }
 rstsr-linalg-traits = { path = "./rstsr-linalg-traits", default-features = false, version = "0.2.0" }
+rstsr-hdf5 = { path = "./rstsr-hdf5", default-features = false, version = "0.2.0" }
 # basic dependencies
 num = { version = "0.4" }
 thiserror = { version = "1.0" }
@@ -41,12 +43,13 @@ rayon = { version = "1.10" }
 faer = { version = "0.19" }
 faer-ext = { version = "0.3" }
 faer-entity = { version = "0.19" }
+hdf5-metno = { version = "0.10" }
+ndarray = { version = "0.15" }
 # dev dependencies
 npyz = { version = "0.8", features = ["complex"] }
 anyhow = { version = "1.0" }
 rand = { version = "0.8" }
 approx = { version = "0.5" }
-ndarray = { version = "0.15" }
 criterion = { version = "0.5" }
 cpu-time = { version = "1.0" }
 
