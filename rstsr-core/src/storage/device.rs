@@ -36,19 +36,6 @@ pub trait DeviceStorageAPI<T>: DeviceRawAPI<T> {
     where
         Self::Raw: Clone,
         R: DataCloneAPI<Data = Self::Raw>;
-    fn get_index<R>(storage: &Storage<R, T, Self>, index: usize) -> T
-    where
-        T: Clone,
-        R: DataAPI<Data = Self::Raw>;
-    fn get_index_ptr<R>(storage: &Storage<R, T, Self>, index: usize) -> *const T
-    where
-        R: DataAPI<Data = Self::Raw>;
-    fn get_index_mut_ptr<R>(storage: &mut Storage<R, T, Self>, index: usize) -> *mut T
-    where
-        R: DataMutAPI<Data = Self::Raw>;
-    fn set_index<R>(storage: &mut Storage<R, T, Self>, index: usize, value: T)
-    where
-        R: DataMutAPI<Data = Self::Raw>;
 }
 
 impl<R, T, B> Storage<R, T, B>
@@ -98,35 +85,6 @@ where
         R: DataCloneAPI<Data = B::Raw>,
     {
         B::into_cpu_vec(self)
-    }
-
-    #[inline]
-    pub fn get_index(&self, index: usize) -> T
-    where
-        T: Clone,
-    {
-        B::get_index(self, index)
-    }
-
-    #[inline]
-    pub fn get_index_ptr(&self, index: usize) -> *const T {
-        B::get_index_ptr(self, index)
-    }
-
-    #[inline]
-    pub fn get_index_mut_ptr(&mut self, index: usize) -> *mut T
-    where
-        R: DataMutAPI<Data = B::Raw>,
-    {
-        B::get_index_mut_ptr(self, index)
-    }
-
-    #[inline]
-    pub fn set_index(&mut self, index: usize, value: T)
-    where
-        R: DataMutAPI<Data = B::Raw>,
-    {
-        B::set_index(self, index, value)
     }
 }
 
