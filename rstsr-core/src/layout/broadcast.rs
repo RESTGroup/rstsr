@@ -239,8 +239,10 @@ where
     /// Check whether current layout has been broadcasted.
     ///
     /// This check is done by checking whether any stride of axis is zero.
+    /// Additionally, for certain dimension, if (shape, stride) = (1, 0), then
+    /// this dimension is not considered as broadcasted.
     pub fn is_broadcasted(&self) -> bool {
-        self.stride().as_ref().contains(&0)
+        self.stride().as_ref().iter().zip(self.shape().as_ref()).any(|(&s, &d)| s == 0 && d != 1)
     }
 }
 
