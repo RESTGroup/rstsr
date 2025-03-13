@@ -1,0 +1,14 @@
+[package]
+name = "rstsr-hdf5"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+license.workspace = true
+
+[dependencies]
+rstsr-core = { workspace = true, default-features = false }
+hdf5-metno = { workspace = true }
+ndarray = { workspace = true }

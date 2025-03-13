@@ -76,39 +76,6 @@ impl<T> DeviceStorageAPI<T> for DeviceFaer {
         let (raw, _) = storage.into_raw_parts();
         Ok(raw.into_owned().into_raw())
     }
-
-    #[inline]
-    fn get_index<R>(storage: &Storage<R, T, Self>, index: usize) -> T
-    where
-        T: Clone,
-        R: DataAPI<Data = Self::Raw>,
-    {
-        storage.raw()[index].clone()
-    }
-
-    #[inline]
-    fn get_index_ptr<R>(storage: &Storage<R, T, Self>, index: usize) -> *const T
-    where
-        R: DataAPI<Data = Self::Raw>,
-    {
-        &storage.raw()[index] as *const T
-    }
-
-    #[inline]
-    fn get_index_mut_ptr<R>(storage: &mut Storage<R, T, Self>, index: usize) -> *mut T
-    where
-        R: DataMutAPI<Data = Self::Raw>,
-    {
-        storage.raw_mut().get_mut(index).unwrap() as *mut T
-    }
-
-    #[inline]
-    fn set_index<R>(storage: &mut Storage<R, T, Self>, index: usize, value: T)
-    where
-        R: DataMutAPI<Data = Self::Raw>,
-    {
-        storage.raw_mut()[index] = value;
-    }
 }
 
 impl<T> DeviceAPI<T> for DeviceFaer {}

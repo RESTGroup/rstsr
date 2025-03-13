@@ -13,6 +13,11 @@ pub enum Indexer {
     Insert,
     /// Expand dimensions.
     Ellipsis,
+    /// Broadcast dimensions.
+    ///
+    /// This option is not designed to be used by general users. `Broadcast(1)`
+    /// is equilvalent to `Insert`.
+    Broadcast(usize),
 }
 
 pub use Indexer::Ellipsis;
@@ -273,6 +278,10 @@ pub trait IndexerLargerOneAPI {
     /// Insert dimension after, with shape 1. Number of dimension will increase
     /// by 1.
     fn dim_insert(&self, axis: isize) -> Result<Layout<Self::DOut>>;
+
+    /// Insert dimension after, with shape broadcasted. Number of dimension will
+    /// increase by 1.
+    fn dim_broadcast(&self, axis: isize, num: usize) -> Result<Layout<Self::DOut>>;
 }
 
 impl<D> IndexerLargerOneAPI for Layout<D>
@@ -309,6 +318,24 @@ where
             shape.insert(axis, 1);
             stride.insert(axis, stride[axis]);
         }
+
+        let layout = Layout::new(shape, stride, offset)?;
+        return layout.into_dim();
+    }
+
+    fn dim_broadcast(&self, axis: isize, num: usize) -> Result<Layout<Self::DOut>> {
+        // dimension check
+        let axis = if axis < 0 { self.ndim() as isize + axis + 1 } else { axis };
+        rstsr_pattern!(axis, 0..(self.ndim() + 1) as isize, ValueOutOfRange)?;
+        let axis = axis as usize;
+
+        // get essential information
+        let mut shape = self.shape().as_ref().to_vec();
+        let mut stride = self.stride().as_ref().to_vec();
+        let offset = self.offset();
+
+        shape.insert(axis, num);
+        stride.insert(axis, 0);
 
         let layout = Layout::new(shape, stride, offset)?;
         return layout.into_dim();
@@ -350,7 +377,7 @@ where
                     Some(_) => rstsr_raise!(InvalidValue, "Only one ellipsis indexer allowed.")?,
                     None => idx_ellipsis = Some(n),
                 },
-                _ => {},
+                Indexer::Insert | Indexer::Broadcast(_) => {},
             }
         }
 
@@ -391,6 +418,9 @@ where
                 },
                 Indexer::Insert => {
                     layout = layout.dim_insert(cur_dim)?;
+                },
+                Indexer::Broadcast(num) => {
+                    layout = layout.dim_broadcast(cur_dim, *num)?;
                 },
                 _ => rstsr_raise!(InvalidValue, "Invalid indexer found : {:?}", indexer)?,
             }
