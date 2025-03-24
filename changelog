@@ -9,3 +9,8 @@ Initial release. Most features in Python Array API has been implemented.
 This release features on BLAS and linalg implementations. Currently, functions such as `cholesky`, `eigh`, `solve_general` in `rstsr-linalg-traits` have been implemented.
 
 Also many enhancements in `rstsr-core`.
+
+## v0.2.1 - 2025-03-24
+
+Bug fix:
+- fix rayon pool memory blow up ([#13](https://github.com/RESTGroup/rstsr/pull/13))
