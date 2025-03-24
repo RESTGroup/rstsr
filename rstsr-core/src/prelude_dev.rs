@@ -9,6 +9,8 @@ pub use core::fmt::{Debug, Display, Write};
 pub use core::marker::PhantomData;
 
 pub use itertools::{izip, Itertools};
+
+#[cfg(feature = "rayon")]
 pub use rayon::ThreadPool;
 
 pub use crate::error::{Error, Result};
