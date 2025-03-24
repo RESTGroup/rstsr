@@ -250,7 +250,7 @@ where
                             // clone alpha and beta
                             let alpha = alpha.clone();
                             let beta = beta.clone();
-                            let serial_pool = self.get_serial_pool();
+                            let serial_pool = self.get_pool();
                             gemm_blas_no_conj_dispatch(
                                 c,
                                 &lc_m,

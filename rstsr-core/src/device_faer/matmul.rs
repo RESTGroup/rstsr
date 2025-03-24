@@ -248,7 +248,7 @@ where
                             &lb_m,
                             alpha,
                             beta,
-                            self.get_serial_pool(),
+                            self.get_pool(),
                         )
                     },
                 )

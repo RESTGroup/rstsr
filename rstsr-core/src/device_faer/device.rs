@@ -12,10 +12,6 @@ impl DeviceFaer {
     pub fn new(num_threads: usize) -> Self {
         DeviceFaer { base: DeviceCpuRayon::new(num_threads) }
     }
-
-    pub fn var_num_threads(&self) -> usize {
-        self.base.var_num_threads()
-    }
 }
 
 impl DeviceRayonAPI for DeviceFaer {
@@ -31,8 +27,8 @@ impl DeviceRayonAPI for DeviceFaer {
         self.base.get_pool()
     }
 
-    fn get_serial_pool(&self) -> &ThreadPool {
-        self.base.get_serial_pool()
+    fn get_current_pool(&self) -> Option<&ThreadPool> {
+        self.base.get_current_pool()
     }
 }
 
@@ -44,7 +40,7 @@ impl Default for DeviceFaer {
 
 impl DeviceBaseAPI for DeviceFaer {
     fn same_device(&self, other: &Self) -> bool {
-        self.var_num_threads() == other.var_num_threads()
+        self.get_num_threads() == other.get_num_threads()
     }
 }
 
