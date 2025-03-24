@@ -27,7 +27,7 @@ macro_rules! impl_gemm_blas_no_conj {
             lb: &Layout<Ix2>,
             alpha: $ty,
             beta: $ty,
-            pool: &rayon::ThreadPool,
+            pool: &ThreadPool,
         ) -> Result<()> {
             // nthreads is only used for `assign_cpu_rayon`.
             // the threading of openblas should be handled outside this function.
@@ -309,7 +309,7 @@ macro_rules! impl_syrk_blas_no_conj {
             a: &[$ty],
             la: &Layout<Ix2>,
             alpha: $ty,
-            pool: &rayon::ThreadPool,
+            pool: &ThreadPool,
         ) -> Result<()> {
             // nthreads is only used for `assign_cpu_rayon`.
             // the threading of openblas should be handled outside this function.

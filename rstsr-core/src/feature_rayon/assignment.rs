@@ -16,7 +16,7 @@ pub fn assign_arbitary_cpu_rayon<T, DC, DA>(
     lc: &Layout<DC>,
     a: &[T],
     la: &Layout<DA>,
-    pool: &rayon::ThreadPool,
+    pool: &ThreadPool,
 ) -> Result<()>
 where
     T: Clone + Send + Sync,
@@ -69,7 +69,7 @@ pub fn assign_cpu_rayon<T, D>(
     lc: &Layout<D>,
     a: &[T],
     la: &Layout<D>,
-    pool: &rayon::ThreadPool,
+    pool: &ThreadPool,
 ) -> Result<()>
 where
     T: Clone + Send + Sync,
@@ -112,12 +112,7 @@ where
     return Ok(());
 }
 
-pub fn fill_cpu_rayon<T, D>(
-    c: &mut [T],
-    lc: &Layout<D>,
-    fill: T,
-    pool: &rayon::ThreadPool,
-) -> Result<()>
+pub fn fill_cpu_rayon<T, D>(c: &mut [T], lc: &Layout<D>, fill: T, pool: &ThreadPool) -> Result<()>
 where
     T: Clone + Send + Sync,
     D: DimAPI,

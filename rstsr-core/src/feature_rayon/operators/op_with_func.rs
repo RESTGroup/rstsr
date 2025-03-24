@@ -22,7 +22,7 @@ pub fn op_mutc_refa_refb_func_cpu_rayon<TA, TB, TC, D, F>(
     b: &[TB],
     lb: &Layout<D>,
     f: &mut F,
-    pool: &rayon::ThreadPool,
+    pool: &ThreadPool,
 ) -> Result<()>
 where
     TA: Send + Sync,
@@ -88,7 +88,7 @@ pub fn op_mutc_refa_numb_func_cpu_rayon<TA, TB, TC, D, F>(
     la: &Layout<D>,
     b: TB,
     f: &mut F,
-    pool: &rayon::ThreadPool,
+    pool: &ThreadPool,
 ) -> Result<()>
 where
     TA: Send + Sync,
@@ -152,7 +152,7 @@ pub fn op_mutc_numa_refb_func_cpu_rayon<TA, TB, TC, D, F>(
     b: &[TB],
     lb: &Layout<D>,
     f: &mut F,
-    pool: &rayon::ThreadPool,
+    pool: &ThreadPool,
 ) -> Result<()>
 where
     TA: Send + Sync,
@@ -215,7 +215,7 @@ pub fn op_muta_refb_func_cpu_rayon<TA, TB, D, F>(
     b: &[TB],
     lb: &Layout<D>,
     f: &mut F,
-    pool: &rayon::ThreadPool,
+    pool: &ThreadPool,
 ) -> Result<()>
 where
     TA: Send + Sync,
@@ -276,7 +276,7 @@ pub fn op_muta_numb_func_cpu_rayon<TA, TB, D, F>(
     la: &Layout<D>,
     b: TB,
     f: &mut F,
-    pool: &rayon::ThreadPool,
+    pool: &ThreadPool,
 ) -> Result<()>
 where
     TA: Send + Sync,
@@ -332,7 +332,7 @@ pub fn op_muta_func_cpu_rayon<T, D, F>(
     a: &mut [T],
     la: &Layout<D>,
     f: &mut F,
-    pool: &rayon::ThreadPool,
+    pool: &ThreadPool,
 ) -> Result<()>
 where
     T: Send + Sync,

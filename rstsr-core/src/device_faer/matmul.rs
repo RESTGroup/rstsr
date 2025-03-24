@@ -26,7 +26,7 @@ pub fn gemm_faer_dispatch<TA, TB, TC>(
     lb: &Layout<Ix2>,
     alpha: TC,
     beta: TC,
-    pool: &rayon::ThreadPool,
+    pool: &ThreadPool,
 ) -> Result<()>
 where
     TA: Clone + Send + Sync + 'static,

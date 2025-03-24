@@ -28,7 +28,7 @@ pub fn fn_name(
     lb: &Layout<Ix2>,
     alpha: ty,
     beta: ty,
-    pool: &rayon::ThreadPool,
+    pool: &ThreadPool,
 ) -> Result<()>
 where {
     let nthreads = pool.current_num_threads();
@@ -98,7 +98,7 @@ pub fn fn_name(
     uplo: FlagUpLo,
     alpha: ty,
     beta: ty,
-    pool: &rayon::ThreadPool,
+    pool: &ThreadPool,
 ) -> Result<()> {
     let nthreads = pool.current_num_threads();
 
@@ -170,7 +170,7 @@ pub fn fn_name(
     la: &Layout<Ix2>,
     alpha: ty,
     beta: ty,
-    pool: &rayon::ThreadPool,
+    pool: &ThreadPool,
 ) -> Result<()> {
     let nthreads = pool.current_num_threads();
 

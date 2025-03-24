@@ -20,11 +20,11 @@ impl DeviceRayonAPI for DeviceBLAS {
         self.base.get_num_threads()
     }
 
-    fn get_pool(&self) -> &rayon::ThreadPool {
+    fn get_pool(&self) -> &ThreadPool {
         self.base.get_pool()
     }
 
-    fn get_serial_pool(&self) -> &rayon::ThreadPool {
+    fn get_serial_pool(&self) -> &ThreadPool {
         self.base.get_serial_pool()
     }
 }

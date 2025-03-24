@@ -25,7 +25,7 @@ pub fn reduce_all_cpu_rayon<TI, TS, TO, D, I, F, FSum, FOut>(
     f: F,
     f_sum: FSum,
     f_out: FOut,
-    pool: &rayon::ThreadPool,
+    pool: &ThreadPool,
 ) -> Result<TO>
 where
     TI: Clone + Send + Sync,
@@ -110,7 +110,7 @@ pub fn reduce_axes_cpu_rayon<TI, TS, I, F, FSum, FOut>(
     f: F,
     f_sum: FSum,
     f_out: FOut,
-    pool: &rayon::ThreadPool,
+    pool: &ThreadPool,
 ) -> Result<(Vec<TS>, Layout<IxD>)>
 where
     TI: Clone + Send + Sync,
@@ -202,7 +202,7 @@ pub fn reduce_axes_difftype_cpu_rayon<TI, TS, TO, I, F, FSum, FOut>(
     f: F,
     f_sum: FSum,
     f_out: FOut,
-    pool: &rayon::ThreadPool,
+    pool: &ThreadPool,
 ) -> Result<(Vec<TO>, Layout<IxD>)>
 where
     TI: Clone + Send + Sync,
@@ -304,7 +304,7 @@ pub fn reduce_all_unraveled_arg_cpu_rayon<T, D, Fcomp, Feq>(
     la: &Layout<D>,
     f_comp: Fcomp,
     f_eq: Feq,
-    pool: &rayon::ThreadPool,
+    pool: &ThreadPool,
 ) -> Result<D>
 where
     T: Clone + Send + Sync,
@@ -376,7 +376,7 @@ pub fn reduce_axes_unraveled_arg_cpu_rayon<T, D, Fcomp, Feq>(
     axes: &[isize],
     f_comp: Fcomp,
     f_eq: Feq,
-    pool: &rayon::ThreadPool,
+    pool: &ThreadPool,
 ) -> Result<(Vec<IxD>, Layout<IxD>)>
 where
     T: Clone + Send + Sync,
@@ -437,7 +437,7 @@ pub fn reduce_all_arg_cpu_rayon<T, D, Fcomp, Feq>(
     f_comp: Fcomp,
     f_eq: Feq,
     order: FlagOrder,
-    pool: &rayon::ThreadPool,
+    pool: &ThreadPool,
 ) -> Result<usize>
 where
     T: Clone + Send + Sync,
@@ -461,7 +461,7 @@ pub fn reduce_axes_arg_cpu_rayon<T, D, Fcomp, Feq>(
     f_comp: Fcomp,
     f_eq: Feq,
     order: FlagOrder,
-    pool: &rayon::ThreadPool,
+    pool: &ThreadPool,
 ) -> Result<(Vec<usize>, Layout<IxD>)>
 where
     T: Clone + Send + Sync,

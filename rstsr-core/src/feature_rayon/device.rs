@@ -6,8 +6,8 @@ use alloc::sync::Arc;
 pub trait DeviceRayonAPI {
     fn set_num_threads(&mut self, num_threads: usize);
     fn get_num_threads(&self) -> usize;
-    fn get_pool(&self) -> &rayon::ThreadPool;
-    fn get_serial_pool(&self) -> &rayon::ThreadPool;
+    fn get_pool(&self) -> &ThreadPool;
+    fn get_serial_pool(&self) -> &ThreadPool;
 }
 
 /// This is base device for Parallel CPU device.
@@ -19,8 +19,8 @@ pub trait DeviceRayonAPI {
 #[derive(Clone, Debug)]
 pub struct DeviceCpuRayon {
     num_threads: usize,
-    pool: Arc<rayon::ThreadPool>,
-    serial_pool: Arc<rayon::ThreadPool>,
+    pool: Arc<ThreadPool>,
+    serial_pool: Arc<ThreadPool>,
 }
 
 impl DeviceCpuRayon {
@@ -34,7 +34,7 @@ impl DeviceCpuRayon {
         self.num_threads
     }
 
-    fn generate_pool(n: usize) -> Result<rayon::ThreadPool> {
+    fn generate_pool(n: usize) -> Result<ThreadPool> {
         rayon::ThreadPoolBuilder::new().num_threads(n).build().map_err(Error::from)
     }
 }
@@ -74,7 +74,7 @@ impl DeviceRayonAPI for DeviceCpuRayon {
         }
     }
 
-    fn get_pool(&self) -> &rayon::ThreadPool {
+    fn get_pool(&self) -> &ThreadPool {
         if self.get_num_threads() == 1 || rayon::current_thread_index().is_some() {
             self.serial_pool.as_ref()
         } else {
@@ -82,7 +82,7 @@ impl DeviceRayonAPI for DeviceCpuRayon {
         }
     }
 
-    fn get_serial_pool(&self) -> &rayon::ThreadPool {
+    fn get_serial_pool(&self) -> &ThreadPool {
         self.serial_pool.as_ref()
     }
 }

@@ -19,7 +19,7 @@ pub fn gemm_naive_rayon<TA, TB, TC>(
     lb: &Layout<Ix2>,
     alpha: TC,
     beta: TC,
-    pool: &rayon::ThreadPool,
+    pool: &ThreadPool,
 ) -> Result<()>
 where
     TA: Clone + Send + Sync + Mul<TB, Output = TC>,
@@ -60,7 +60,7 @@ pub fn inner_dot_naive_rayon<TA, TB, TC>(
     lb: &Layout<Ix1>,
     alpha: TC,
     beta: TC,
-    pool: &rayon::ThreadPool,
+    pool: &ThreadPool,
 ) -> Result<()>
 where
     TA: Clone + Send + Sync + Mul<TB, Output = TC>,
