@@ -133,6 +133,6 @@ mod test {
 
         let x = solve_general((&a, b));
         println!("{:?}", x);
-        assert!(x.as_ptr() == ptr_b);
+        assert_eq!(x.as_ptr(), ptr_b);
     }
 }

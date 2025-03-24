@@ -138,6 +138,6 @@ mod test {
 
         let x = solve_symmetric((&a, b, false, Upper));
         println!("{:?}", x);
-        assert!(x.as_ptr() == ptr_b);
+        assert_eq!(x.as_ptr(), ptr_b);
     }
 }
