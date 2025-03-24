@@ -67,6 +67,7 @@ impl DeviceBaseAPI for DeviceCpuRayon {
 }
 
 impl DeviceRayonAPI for DeviceCpuRayon {
+    #[inline]
     fn set_num_threads(&mut self, num_threads: usize) {
         let num_threads_old = self.num_threads;
         if num_threads_old != num_threads {
@@ -76,14 +77,20 @@ impl DeviceRayonAPI for DeviceCpuRayon {
         }
     }
 
+    #[inline]
     fn get_num_threads(&self) -> usize {
-        self.num_threads
+        match self.num_threads {
+            0 => self.pool.current_num_threads(),
+            _ => self.num_threads,
+        }
     }
 
+    #[inline]
     fn get_pool(&self) -> &ThreadPool {
         self.pool.as_ref()
     }
 
+    #[inline]
     fn get_current_pool(&self) -> Option<&ThreadPool> {
         match rayon::current_thread_index() {
             Some(_) => None,

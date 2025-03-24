@@ -106,8 +106,11 @@ where
             return Ok(());
         }
 
-        let nthreads = self.get_num_threads();
         let pool = self.get_current_pool();
+        let nthreads = match pool {
+            Some(pool) => pool.current_num_threads(),
+            None => 1,
+        };
 
         // handle special cases
         match (la.ndim(), lb.ndim(), lc.ndim()) {
