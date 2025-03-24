@@ -40,7 +40,7 @@ where
     // determine whether to use parallel iteration
     let nthreads = pool.current_num_threads();
     let size = la.size();
-    if size < PARALLEL_SWITCH * nthreads {
+    if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
         return reduce_all_cpu_serial(a, la, init, f, f_sum, f_out);
     }
 
@@ -123,7 +123,7 @@ where
     // determine whether to use parallel iteration
     let nthreads = pool.current_num_threads();
     let size = la.size();
-    if size < PARALLEL_SWITCH * nthreads {
+    if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
         return reduce_axes_cpu_serial(a, la, axes, init, f, f_sum, f_out);
     }
 
@@ -216,7 +216,7 @@ where
     // determine whether to use parallel iteration
     let nthreads = pool.current_num_threads();
     let size = la.size();
-    if size < PARALLEL_SWITCH * nthreads {
+    if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
         return reduce_axes_difftype_cpu_serial(a, la, axes, init, f, f_sum, f_out);
     }
 
@@ -316,7 +316,7 @@ where
 
     let nthreads = pool.current_num_threads();
     let size = la.size();
-    if size < PARALLEL_SWITCH * nthreads {
+    if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
         return reduce_all_unraveled_arg_cpu_serial(a, la, f_comp, f_eq);
     }
 
@@ -387,7 +387,7 @@ where
     // determine whether to use parallel iteration
     let nthreads = pool.current_num_threads();
     let size = la.size();
-    if size < PARALLEL_SWITCH * nthreads {
+    if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
         return reduce_axes_unraveled_arg_cpu_serial(a, la, axes, f_comp, f_eq);
     }
 
