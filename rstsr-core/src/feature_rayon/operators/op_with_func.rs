@@ -4,10 +4,9 @@ use rayon::prelude::*;
 // this value is used to determine whether to use contiguous inner iteration
 const CONTIG_SWITCH: usize = 16;
 // This value is used to determine when to use parallel iteration.
-// Actual switch value is PARALLEL_SWITCH * RAYON_NUM_THREADS.
 // Since current task is not intensive to each element, this value is large.
 // 64 kB for f64
-const PARALLEL_SWITCH: usize = 1024;
+const PARALLEL_SWITCH: usize = 16384;
 // Currently, we do not make contiguous parts to be parallel. Only outer
 // iteration is parallelized.
 
@@ -22,7 +21,7 @@ pub fn op_mutc_refa_refb_func_cpu_rayon<TA, TB, TC, D, F>(
     b: &[TB],
     lb: &Layout<D>,
     f: &mut F,
-    pool: &ThreadPool,
+    pool: Option<&ThreadPool>,
 ) -> Result<()>
 where
     TA: Send + Sync,
@@ -32,9 +31,8 @@ where
     F: Fn(&mut TC, &TA, &TB) + ?Sized + Sync + Send,
 {
     // determine whether to use parallel iteration
-    let nthreads = pool.current_num_threads();
     let size = lc.size();
-    if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
+    if size < PARALLEL_SWITCH {
         return op_mutc_refa_refb_func_cpu_serial(c, lc, a, la, b, lb, f);
     }
 
@@ -49,7 +47,7 @@ where
         let lc = &layouts_outer[0];
         let la = &layouts_outer[1];
         let lb = &layouts_outer[2];
-        if size_contig < PARALLEL_SWITCH * nthreads {
+        if size_contig < PARALLEL_SWITCH {
             // not parallel inner iteration
             let func = |(idx_c, idx_a, idx_b)| unsafe {
                 let c_ptr = c.as_ptr().add(idx_c) as *mut TC;
@@ -57,7 +55,8 @@ where
                     f(&mut *c_ptr.add(idx), &a[idx_a + idx], &b[idx_b + idx]);
                 });
             };
-            pool.install(|| layout_col_major_dim_dispatch_par_3(lc, la, lb, func))
+            let task = || layout_col_major_dim_dispatch_par_3(lc, la, lb, func);
+            pool.map_or_else(task, |pool| pool.install(task))
         } else {
             // parallel inner iteration
             let func = |(idx_c, idx_a, idx_b)| unsafe {
@@ -66,7 +65,8 @@ where
                     f(&mut *c_ptr, &a[idx_a + idx], &b[idx_b + idx]);
                 });
             };
-            pool.install(|| layout_col_major_dim_dispatch_par_3(lc, la, lb, func))
+            let task = || layout_col_major_dim_dispatch_par_3(lc, la, lb, func);
+            pool.map_or_else(task, |pool| pool.install(task))
         }
     } else {
         // not possible for contiguous assign
@@ -77,7 +77,8 @@ where
             let c_ptr = c.as_ptr() as *mut TC;
             f(&mut *c_ptr.add(idx_c), &a[idx_a], &b[idx_b]);
         };
-        pool.install(|| layout_col_major_dim_dispatch_par_3(lc, la, lb, func))
+        let task = || layout_col_major_dim_dispatch_par_3(lc, la, lb, func);
+        pool.map_or_else(task, |pool| pool.install(task))
     }
 }
 
@@ -88,7 +89,7 @@ pub fn op_mutc_refa_numb_func_cpu_rayon<TA, TB, TC, D, F>(
     la: &Layout<D>,
     b: TB,
     f: &mut F,
-    pool: &ThreadPool,
+    pool: Option<&ThreadPool>,
 ) -> Result<()>
 where
     TA: Send + Sync,
@@ -98,9 +99,8 @@ where
     F: Fn(&mut TC, &TA, &TB) + ?Sized + Send + Sync,
 {
     // determine whether to use parallel iteration
-    let nthreads = pool.current_num_threads();
     let size = lc.size();
-    if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
+    if size < PARALLEL_SWITCH {
         return op_mutc_refa_numb_func_cpu_serial(c, lc, a, la, b, f);
     }
 
@@ -114,7 +114,7 @@ where
         // parallel for outer iteration
         let lc = &layouts_outer[0];
         let la = &layouts_outer[1];
-        if size_contig < PARALLEL_SWITCH * nthreads {
+        if size_contig < PARALLEL_SWITCH {
             // not parallel inner iteration
             let func = |(idx_c, idx_a)| unsafe {
                 let c_ptr = c.as_ptr().add(idx_c) as *mut TC;
@@ -122,7 +122,8 @@ where
                     f(&mut *c_ptr.add(idx), &a[idx_a + idx], &b);
                 });
             };
-            pool.install(|| layout_col_major_dim_dispatch_par_2(lc, la, func))
+            let task = || layout_col_major_dim_dispatch_par_2(lc, la, func);
+            pool.map_or_else(task, |pool| pool.install(task))
         } else {
             // parallel inner iteration
             let func = |(idx_c, idx_a)| unsafe {
@@ -131,7 +132,8 @@ where
                     f(&mut *c_ptr, &a[idx_a + idx], &b);
                 });
             };
-            pool.install(|| layout_col_major_dim_dispatch_par_2(lc, la, func))
+            let task = || layout_col_major_dim_dispatch_par_2(lc, la, func);
+            pool.map_or_else(task, |pool| pool.install(task))
         }
     } else {
         // not possible for contiguous assign
@@ -141,7 +143,8 @@ where
             let c_ptr = c.as_ptr() as *mut TC;
             f(&mut *c_ptr.add(idx_c), &a[idx_a], &b);
         };
-        pool.install(|| layout_col_major_dim_dispatch_par_2(lc, la, func))
+        let task = || layout_col_major_dim_dispatch_par_2(lc, la, func);
+        pool.map_or_else(task, |pool| pool.install(task))
     }
 }
 
@@ -152,7 +155,7 @@ pub fn op_mutc_numa_refb_func_cpu_rayon<TA, TB, TC, D, F>(
     b: &[TB],
     lb: &Layout<D>,
     f: &mut F,
-    pool: &ThreadPool,
+    pool: Option<&ThreadPool>,
 ) -> Result<()>
 where
     TA: Send + Sync,
@@ -162,9 +165,8 @@ where
     F: Fn(&mut TC, &TA, &TB) + ?Sized + Send + Sync,
 {
     // determine whether to use parallel iteration
-    let nthreads = pool.current_num_threads();
     let size = lc.size();
-    if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
+    if size < PARALLEL_SWITCH {
         return op_mutc_numa_refb_func_cpu_serial(c, lc, a, b, lb, f);
     }
 
@@ -178,7 +180,7 @@ where
         // parallel for outer iteration
         let lc = &layouts_outer[0];
         let lb = &layouts_outer[1];
-        if size_contig < PARALLEL_SWITCH * nthreads {
+        if size_contig < PARALLEL_SWITCH {
             // not parallel inner iteration
             let func = |(idx_c, idx_b)| unsafe {
                 let c_ptr = c.as_ptr().add(idx_c) as *mut TC;
@@ -186,7 +188,8 @@ where
                     f(&mut *c_ptr.add(idx), &a, &b[idx_b + idx]);
                 });
             };
-            pool.install(|| layout_col_major_dim_dispatch_par_2(lc, lb, func))
+            let task = || layout_col_major_dim_dispatch_par_2(lc, lb, func);
+            pool.map_or_else(task, |pool| pool.install(task))
         } else {
             // parallel inner iteration
             let func = |(idx_c, idx_b)| unsafe {
@@ -195,7 +198,8 @@ where
                     f(&mut *c_ptr, &a, &b[idx_b + idx]);
                 });
             };
-            pool.install(|| layout_col_major_dim_dispatch_par_2(lc, lb, func))
+            let task = || layout_col_major_dim_dispatch_par_2(lc, lb, func);
+            pool.map_or_else(task, |pool| pool.install(task))
         }
     } else {
         // not possible for contiguous assign
@@ -205,7 +209,8 @@ where
             let c_ptr = c.as_ptr() as *mut TC;
             f(&mut *c_ptr.add(idx_c), &a, &b[idx_b]);
         };
-        pool.install(|| layout_col_major_dim_dispatch_par_2(lc, lb, func))
+        let task = || layout_col_major_dim_dispatch_par_2(lc, lb, func);
+        pool.map_or_else(task, |pool| pool.install(task))
     }
 }
 
@@ -215,7 +220,7 @@ pub fn op_muta_refb_func_cpu_rayon<TA, TB, D, F>(
     b: &[TB],
     lb: &Layout<D>,
     f: &mut F,
-    pool: &ThreadPool,
+    pool: Option<&ThreadPool>,
 ) -> Result<()>
 where
     TA: Send + Sync,
@@ -224,9 +229,8 @@ where
     F: Fn(&mut TA, &TB) + ?Sized + Send + Sync,
 {
     // determine whether to use parallel iteration
-    let nthreads = pool.current_num_threads();
     let size = la.size();
-    if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
+    if size < PARALLEL_SWITCH {
         return op_muta_refb_func_cpu_serial(a, la, b, lb, f);
     }
 
@@ -240,7 +244,7 @@ where
         // parallel for outer iteration
         let la = &layouts_outer[0];
         let lb = &layouts_outer[1];
-        if size_contig < PARALLEL_SWITCH * nthreads {
+        if size_contig < PARALLEL_SWITCH {
             // not parallel inner iteration
             let func = |(idx_a, idx_b)| unsafe {
                 let a_ptr = a.as_ptr().add(idx_a) as *mut TA;
@@ -248,7 +252,8 @@ where
                     f(&mut *a_ptr.add(idx), &b[idx_b + idx]);
                 });
             };
-            pool.install(|| layout_col_major_dim_dispatch_par_2(la, lb, func))
+            let task = || layout_col_major_dim_dispatch_par_2(la, lb, func);
+            pool.map_or_else(task, |pool| pool.install(task))
         } else {
             // parallel inner iteration
             let func = |(idx_a, idx_b)| unsafe {
@@ -257,7 +262,8 @@ where
                     f(&mut *a_ptr, &b[idx_b + idx]);
                 });
             };
-            pool.install(|| layout_col_major_dim_dispatch_par_2(la, lb, func))
+            let task = || layout_col_major_dim_dispatch_par_2(la, lb, func);
+            pool.map_or_else(task, |pool| pool.install(task))
         }
     } else {
         // not possible for contiguous assign
@@ -267,7 +273,8 @@ where
             let a_ptr = a.as_ptr() as *mut TA;
             f(&mut *a_ptr.add(idx_a), &b[idx_b]);
         };
-        pool.install(|| layout_col_major_dim_dispatch_par_2(la, lb, func))
+        let task = || layout_col_major_dim_dispatch_par_2(la, lb, func);
+        pool.map_or_else(task, |pool| pool.install(task))
     }
 }
 
@@ -276,7 +283,7 @@ pub fn op_muta_numb_func_cpu_rayon<TA, TB, D, F>(
     la: &Layout<D>,
     b: TB,
     f: &mut F,
-    pool: &ThreadPool,
+    pool: Option<&ThreadPool>,
 ) -> Result<()>
 where
     TA: Send + Sync,
@@ -285,9 +292,8 @@ where
     F: Fn(&mut TA, &TB) + ?Sized + Send + Sync,
 {
     // determine whether to use parallel iteration
-    let nthreads = pool.current_num_threads();
     let size = la.size();
-    if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
+    if size < PARALLEL_SWITCH {
         return op_muta_numb_func_cpu_serial(a, la, b, f);
     }
 
@@ -299,7 +305,7 @@ where
     if size_contig >= CONTIG_SWITCH {
         // parallel for outer iteration
         let la = &layout_contig[0];
-        if size_contig < PARALLEL_SWITCH * nthreads {
+        if size_contig < PARALLEL_SWITCH {
             // not parallel inner iteration
             let func = |idx_a| unsafe {
                 let a_ptr = a.as_ptr().add(idx_a) as *mut TA;
@@ -307,7 +313,8 @@ where
                     f(&mut *a_ptr.add(idx), &b);
                 });
             };
-            pool.install(|| layout_col_major_dim_dispatch_par_1(la, func))
+            let task = || layout_col_major_dim_dispatch_par_1(la, func);
+            pool.map_or_else(task, |pool| pool.install(task))
         } else {
             // parallel inner iteration
             let func = |idx_a| unsafe {
@@ -316,7 +323,8 @@ where
                     f(&mut *a_ptr, &b);
                 });
             };
-            pool.install(|| layout_col_major_dim_dispatch_par_1(la, func))
+            let task = || layout_col_major_dim_dispatch_par_1(la, func);
+            pool.map_or_else(task, |pool| pool.install(task))
         }
     } else {
         // not possible for contiguous assign
@@ -324,7 +332,8 @@ where
             let a_ptr = a.as_ptr() as *mut TA;
             f(&mut *a_ptr.add(idx_a), &b);
         };
-        pool.install(|| layout_col_major_dim_dispatch_par_1(&layout, func))
+        let task = || layout_col_major_dim_dispatch_par_1(&layout, func);
+        pool.map_or_else(task, |pool| pool.install(task))
     }
 }
 
@@ -332,7 +341,7 @@ pub fn op_muta_func_cpu_rayon<T, D, F>(
     a: &mut [T],
     la: &Layout<D>,
     f: &mut F,
-    pool: &ThreadPool,
+    pool: Option<&ThreadPool>,
 ) -> Result<()>
 where
     T: Send + Sync,
@@ -340,9 +349,8 @@ where
     F: Fn(&mut T) + ?Sized + Send + Sync,
 {
     // determine whether to use parallel iteration
-    let nthreads = pool.current_num_threads();
     let size = la.size();
-    if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
+    if size < PARALLEL_SWITCH {
         return op_muta_func_cpu_serial(a, la, f);
     }
 
@@ -353,7 +361,7 @@ where
     // actual parallel iteration
     if size_contig >= CONTIG_SWITCH {
         let la = &layout_contig[0];
-        if size_contig < PARALLEL_SWITCH * nthreads {
+        if size_contig < PARALLEL_SWITCH {
             // not parallel inner iteration
             let func = |idx_a| unsafe {
                 let a_ptr = a.as_ptr().add(idx_a) as *mut T;
@@ -361,7 +369,8 @@ where
                     f(&mut *a_ptr.add(idx));
                 });
             };
-            pool.install(|| layout_col_major_dim_dispatch_par_1(la, func))
+            let task = || layout_col_major_dim_dispatch_par_1(la, func);
+            pool.map_or_else(task, |pool| pool.install(task))
         } else {
             // parallel inner iteration
             let func = |idx_a| unsafe {
@@ -370,13 +379,15 @@ where
                     f(&mut *a_ptr);
                 });
             };
-            pool.install(|| layout_col_major_dim_dispatch_par_1(la, func))
+            let task = || layout_col_major_dim_dispatch_par_1(la, func);
+            pool.map_or_else(task, |pool| pool.install(task))
         }
     } else {
         let func = |idx_a| unsafe {
             let a_ptr = a.as_ptr() as *mut T;
             f(&mut *a_ptr.add(idx_a));
         };
-        pool.install(|| layout_col_major_dim_dispatch_par_1(&layout, func))
+        let task = || layout_col_major_dim_dispatch_par_1(&layout, func);
+        pool.map_or_else(task, |pool| pool.install(task))
     }
 }

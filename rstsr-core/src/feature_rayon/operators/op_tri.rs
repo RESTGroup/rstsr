@@ -11,7 +11,7 @@ pub fn pack_tri_cpu_rayon<T>(
     b: &[T],
     lb: &Layout<IxD>,
     uplo: FlagUpLo,
-    nthreads: usize,
+    pool: Option<&ThreadPool>,
 ) -> Result<()>
 where
     T: Clone + Send + Sync,
@@ -48,8 +48,7 @@ where
     let thr_a = AtomicPtr::new(a.as_mut_ptr());
     let len_a = a.len();
 
-    let pool = rayon::ThreadPoolBuilder::new().num_threads(nthreads).build()?;
-    pool.install(|| -> Result<()> {
+    let task = || -> Result<()> {
         match uplo {
             FlagUpLo::U => match (c_contig, f_contig) {
                 (true, _) => {
@@ -118,7 +117,12 @@ where
             _ => rstsr_invalid!(uplo)?,
         }
         Ok(())
-    })
+    };
+
+    match pool {
+        Some(pool) => pool.install(task),
+        None => task(),
+    }
 }
 
 pub fn unpack_tri_cpu_rayon<T>(
@@ -128,7 +132,7 @@ pub fn unpack_tri_cpu_rayon<T>(
     lb: &Layout<IxD>,
     uplo: FlagUpLo,
     symm: FlagSymm,
-    nthreads: usize,
+    pool: Option<&ThreadPool>,
 ) -> Result<()>
 where
     T: ComplexFloat + Send + Sync,
@@ -165,8 +169,7 @@ where
     let thr_a = AtomicPtr::new(a.as_mut_ptr());
     let len_a = a.len();
 
-    let pool = rayon::ThreadPoolBuilder::new().num_threads(nthreads).build()?;
-    pool.install(|| -> Result<()> {
+    let task = || -> Result<()> {
         match uplo {
             FlagUpLo::U => match (c_contig, f_contig) {
                 (true, _) => {
@@ -235,5 +238,10 @@ where
             _ => rstsr_invalid!(uplo)?,
         }
         Ok(())
-    })
+    };
+
+    match pool {
+        Some(pool) => pool.install(task),
+        None => task(),
+    }
 }

@@ -9,6 +9,7 @@ pub fn blas_eigh_simple_f<'a, B, T>(
 where
     T: BlasFloat + Send + Sync,
     B: BlasThreadAPI
+        + DeviceRayonAPI
         + DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<T::Real, Raw = Vec<T::Real>>
         + DeviceAPI<blasint, Raw = Vec<blasint>>
@@ -31,32 +32,38 @@ where
         driver,
     } = eigh_args;
     let device = a.device().clone();
-    let nthreads = device.get_num_threads();
+    let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
 
     let jobz = if eigvals_only { 'N' } else { 'V' };
     if b.is_some() {
         let driver = driver.unwrap_or("gvd");
         let (w, v) = match driver {
-            "gv" => device.with_num_threads(nthreads, || {
-                SYGV::default()
-                    .a(a)
-                    .b(b.unwrap())
-                    .jobz(jobz)
-                    .itype(eig_type)
-                    .uplo(uplo)
-                    .build()?
-                    .run()
-            })?,
-            "gvd" => device.with_num_threads(nthreads, || {
-                SYGVD::default()
-                    .a(a)
-                    .b(b.unwrap())
-                    .jobz(jobz)
-                    .itype(eig_type)
-                    .uplo(uplo)
-                    .build()?
-                    .run()
-            })?,
+            "gv" => {
+                let task = || {
+                    SYGV::default()
+                        .a(a)
+                        .b(b.unwrap())
+                        .jobz(jobz)
+                        .itype(eig_type)
+                        .uplo(uplo)
+                        .build()?
+                        .run()
+                };
+                device.with_blas_num_threads(nthreads, task)?
+            },
+            "gvd" => {
+                let task = || {
+                    SYGVD::default()
+                        .a(a)
+                        .b(b.unwrap())
+                        .jobz(jobz)
+                        .itype(eig_type)
+                        .uplo(uplo)
+                        .build()?
+                        .run()
+                };
+                device.with_blas_num_threads(nthreads, task)?
+            },
             _ => rstsr_invalid!(driver)?,
         };
         match eigvals_only {
@@ -66,12 +73,14 @@ where
     } else {
         let driver = driver.unwrap_or("evd");
         let (w, v) = match driver {
-            "ev" => device.with_num_threads(nthreads, || {
-                SYEV::default().a(a).jobz(jobz).uplo(uplo).build()?.run()
-            })?,
-            "evd" => device.with_num_threads(nthreads, || {
-                SYEVD::default().a(a).jobz(jobz).uplo(uplo).build()?.run()
-            })?,
+            "ev" => {
+                let task = || SYEV::default().a(a).jobz(jobz).uplo(uplo).build()?.run();
+                device.with_blas_num_threads(nthreads, task)?
+            },
+            "evd" => {
+                let task = || SYEVD::default().a(a).jobz(jobz).uplo(uplo).build()?.run();
+                device.with_blas_num_threads(nthreads, task)?
+            },
             _ => rstsr_invalid!(driver)?,
         };
         match eigvals_only {
