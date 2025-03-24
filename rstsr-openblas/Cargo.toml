@@ -12,6 +12,7 @@ readme = "readme.md"
 [dependencies]
 rayon = { workspace = true }
 num = { workspace = true }
+duplicate = { workspace = true }
 rstsr-core = { workspace = true, features = ["rayon"] }
 rstsr-dtype-traits = { workspace = true, features = ["half"] }
 rstsr-openblas-ffi = { workspace = true }

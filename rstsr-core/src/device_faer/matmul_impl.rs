@@ -28,10 +28,10 @@ pub fn fn_name(
     lb: &Layout<Ix2>,
     alpha: ty,
     beta: ty,
-    pool: &ThreadPool,
+    pool: Option<&ThreadPool>,
 ) -> Result<()>
 where {
-    let nthreads = pool.current_num_threads();
+    let nthreads = pool.map_or_else(|| 1, |pool| pool.current_num_threads());
 
     // shape check
     let sc = lc.shape();
@@ -98,9 +98,9 @@ pub fn fn_name(
     uplo: FlagUpLo,
     alpha: ty,
     beta: ty,
-    pool: &ThreadPool,
+    pool: Option<&ThreadPool>,
 ) -> Result<()> {
-    let nthreads = pool.current_num_threads();
+    let nthreads = pool.map_or_else(|| 1, |pool| pool.current_num_threads());
 
     // shape check
     let sc = lc.shape();
@@ -170,9 +170,9 @@ pub fn fn_name(
     la: &Layout<Ix2>,
     alpha: ty,
     beta: ty,
-    pool: &ThreadPool,
+    pool: Option<&ThreadPool>,
 ) -> Result<()> {
-    let nthreads = pool.current_num_threads();
+    let nthreads = pool.map_or_else(|| 1, |pool| pool.current_num_threads());
 
     // This function performs c = beta * c + alpha * a * a^T
     // Note that we do not assume c is symmetric, so if beta != 0, we fall back to
@@ -231,15 +231,16 @@ mod test {
         let lc = [m, n].c();
 
         let pool = rayon::ThreadPoolBuilder::new().num_threads(16).build().unwrap();
+        let pool = Some(&pool);
 
         let start = Instant::now();
-        gemm_faer_f64(&mut c, &lc, &a, &la, &b, &lb, 1.0, 0.0, &pool).unwrap();
+        gemm_faer_f64(&mut c, &lc, &a, &la, &b, &lb, 1.0, 0.0, pool).unwrap();
         println!("time: {:?}", start.elapsed());
         let start = Instant::now();
-        gemm_faer_f64(&mut c, &lc, &a, &la, &b, &lb, 1.0, 0.0, &pool).unwrap();
+        gemm_faer_f64(&mut c, &lc, &a, &la, &b, &lb, 1.0, 0.0, pool).unwrap();
         println!("time: {:?}", start.elapsed());
         let start = Instant::now();
-        gemm_faer_f64(&mut c, &lc, &a, &la, &b, &lb, 1.0, 0.0, &pool).unwrap();
+        gemm_faer_f64(&mut c, &lc, &a, &la, &b, &lb, 1.0, 0.0, pool).unwrap();
         println!("time: {:?}", start.elapsed());
     }
 
@@ -250,7 +251,8 @@ mod test {
         let la = [2, 2].c();
         let lc = [2, 2].c();
         let pool = rayon::ThreadPoolBuilder::new().num_threads(16).build().unwrap();
-        syrk_faer_f64(&mut c, &lc, &a, &la, FlagUpLo::L, 2.0, 1.0, &pool).unwrap();
+        let pool = Some(&pool);
+        syrk_faer_f64(&mut c, &lc, &a, &la, FlagUpLo::L, 2.0, 1.0, pool).unwrap();
         println!("{:?}", c);
     }
 }

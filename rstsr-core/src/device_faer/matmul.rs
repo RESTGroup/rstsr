@@ -26,7 +26,7 @@ pub fn gemm_faer_dispatch<TA, TB, TC>(
     lb: &Layout<Ix2>,
     alpha: TC,
     beta: TC,
-    pool: &ThreadPool,
+    pool: Option<&ThreadPool>,
 ) -> Result<()>
 where
     TA: Clone + Send + Sync + 'static,
@@ -104,7 +104,7 @@ where
         beta: TC,
     ) -> Result<()> {
         let nthreads = self.get_num_threads();
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
 
         // handle special cases
         match (la.ndim(), lb.ndim(), lc.ndim()) {
@@ -218,7 +218,7 @@ where
         let itc_rest = IterLayoutColMajor::new(&lc_rest)?;
         if n_task > 4 * nthreads {
             // parallel outer, sequential matmul
-            pool.install(|| {
+            let task = || {
                 ita_rest.into_par_iter().zip(itb_rest).zip(itc_rest).try_for_each(
                     |((ia_rest, ib_rest), ic_rest)| -> Result<()> {
                         // prepare layout
@@ -239,20 +239,14 @@ where
                         // clone alpha and beta
                         let alpha = alpha.clone();
                         let beta = beta.clone();
-                        gemm_faer_dispatch(
-                            c,
-                            &lc_m,
-                            a,
-                            &la_m,
-                            b,
-                            &lb_m,
-                            alpha,
-                            beta,
-                            self.get_pool(),
-                        )
+                        gemm_faer_dispatch(c, &lc_m, a, &la_m, b, &lb_m, alpha, beta, None)
                     },
                 )
-            })?;
+            };
+            match pool {
+                Some(pool) => pool.install(task)?,
+                None => task()?,
+            };
         } else {
             // sequential outer, parallel matmul
             for (ia_rest, ib_rest, ic_rest) in izip!(ita_rest, itb_rest, itc_rest) {
