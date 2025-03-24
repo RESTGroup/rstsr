@@ -23,7 +23,7 @@ pub fn gemm_blas_no_conj_dispatch<TA, TB, TC>(
     lb: &Layout<Ix2>,
     alpha: TC,
     beta: TC,
-    pool: &rayon::ThreadPool,
+    pool: Option<&ThreadPool>,
 ) -> Result<()>
 where
     TA: Clone + Send + Sync + 'static,
@@ -106,8 +106,11 @@ where
             return Ok(());
         }
 
-        let nthreads = self.get_num_threads();
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
+        let nthreads = match pool {
+            Some(pool) => pool.current_num_threads(),
+            None => 1,
+        };
 
         // handle special cases
         match (la.ndim(), lb.ndim(), lc.ndim()) {
@@ -229,7 +232,7 @@ where
         if n_task >= 4 * nthreads {
             // parallel outer, sequential matmul
             openblas_with_num_threads(1, || {
-                pool.install(|| {
+                let task = || {
                     ita_rest.into_par_iter().zip(itb_rest).zip(itc_rest).try_for_each(
                         |((ia_rest, ib_rest), ic_rest)| -> Result<()> {
                             // prepare layout
@@ -250,21 +253,16 @@ where
                             // clone alpha and beta
                             let alpha = alpha.clone();
                             let beta = beta.clone();
-                            let serial_pool = self.get_serial_pool();
                             gemm_blas_no_conj_dispatch(
-                                c,
-                                &lc_m,
-                                a,
-                                &la_m,
-                                b,
-                                &lb_m,
-                                alpha,
-                                beta,
-                                serial_pool,
+                                c, &lc_m, a, &la_m, b, &lb_m, alpha, beta, None,
                             )
                         },
                     )
-                })
+                };
+                match pool {
+                    Some(pool) => pool.install(task),
+                    None => task(),
+                }
             })
         } else {
             // sequential outer, parallel matmul

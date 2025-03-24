@@ -5,27 +5,27 @@ impl DeviceBLAS {
     pub fn new(num_threads: usize) -> Self {
         DeviceBLAS { base: DeviceCpuRayon::new(num_threads) }
     }
-
-    pub fn var_num_threads(&self) -> usize {
-        self.base.var_num_threads()
-    }
 }
 
 impl DeviceRayonAPI for DeviceBLAS {
+    #[inline]
     fn set_num_threads(&mut self, num_threads: usize) {
         self.base.set_num_threads(num_threads);
     }
 
+    #[inline]
     fn get_num_threads(&self) -> usize {
         self.base.get_num_threads()
     }
 
-    fn get_pool(&self) -> &rayon::ThreadPool {
+    #[inline]
+    fn get_pool(&self) -> &ThreadPool {
         self.base.get_pool()
     }
 
-    fn get_serial_pool(&self) -> &rayon::ThreadPool {
-        self.base.get_serial_pool()
+    #[inline]
+    fn get_current_pool(&self) -> Option<&ThreadPool> {
+        self.base.get_current_pool()
     }
 }
 
@@ -37,7 +37,7 @@ impl Default for DeviceBLAS {
 
 impl DeviceBaseAPI for DeviceBLAS {
     fn same_device(&self, other: &Self) -> bool {
-        self.var_num_threads() == other.var_num_threads()
+        self.get_num_threads() == other.get_num_threads()
     }
 }
 

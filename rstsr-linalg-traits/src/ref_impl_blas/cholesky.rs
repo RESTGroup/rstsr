@@ -12,12 +12,13 @@ where
         + DeviceAPI<T, Raw = Vec<T>>
         + DeviceComplexFloatAPI<T, Ix2>
         + DeviceCreationTriAPI<T>
-        + BlasThreadAPI,
+        + BlasThreadAPI
+        + DeviceRayonAPI,
 {
     let device = a.device().clone();
-    let nthreads = device.get_num_threads();
-    let mut result =
-        device.with_num_threads(nthreads, || POTRF::default().a(a).uplo(uplo).build()?.run())?;
+    let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
+    let task = || POTRF::default().a(a).uplo(uplo).build()?.run();
+    let mut result = device.with_blas_num_threads(nthreads, task)?;
     match uplo {
         Upper => triu(result.view_mut()),
         Lower => tril(result.view_mut()),

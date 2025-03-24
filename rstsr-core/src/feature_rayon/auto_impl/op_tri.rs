@@ -14,8 +14,8 @@ where
         lb: &Layout<IxD>,
         uplo: FlagUpLo,
     ) -> Result<()> {
-        let nthreads = self.get_num_threads();
-        pack_tri_cpu_rayon(a, la, b, lb, uplo, nthreads)
+        let pool = self.get_current_pool();
+        pack_tri_cpu_rayon(a, la, b, lb, uplo, pool)
     }
 }
 
@@ -32,7 +32,7 @@ where
         uplo: FlagUpLo,
         symm: FlagSymm,
     ) -> Result<()> {
-        let nthreads = self.get_num_threads();
-        unpack_tri_cpu_rayon(a, la, b, lb, uplo, symm, nthreads)
+        let pool = self.get_current_pool();
+        unpack_tri_cpu_rayon(a, la, b, lb, uplo, symm, pool)
     }
 }

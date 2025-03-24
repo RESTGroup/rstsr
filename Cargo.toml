@@ -36,6 +36,7 @@ thiserror = { version = "1.0" }
 itertools = { version = "0.13" }
 half = { version = "2.4", features = ["num-traits"] }
 derive_builder = { version = "0.20" }
+duplicate = { version = "2.0" }
 # optional dependencies
 rayon = { version = "1.10" }
 faer = { version = "0.19" }

@@ -6,7 +6,7 @@ const CONTIG_SWITCH: usize = 16;
 // Actual switch value is PARALLEL_SWITCH * RAYON_NUM_THREADS.
 // Since current task is not intensive to each element, this value is large.
 // 64 kB for f64
-const PARALLEL_SWITCH: usize = 1024;
+const PARALLEL_SWITCH: usize = 16384;
 // For assignment, it is fully memory bounded; contiguous assignment is better
 // handled by serial code. So we only do parallel in outer iteration
 // (non-contiguous part).
@@ -16,7 +16,7 @@ pub fn assign_arbitary_cpu_rayon<T, DC, DA>(
     lc: &Layout<DC>,
     a: &[T],
     la: &Layout<DA>,
-    pool: &rayon::ThreadPool,
+    pool: Option<&ThreadPool>,
 ) -> Result<()>
 where
     T: Clone + Send + Sync,
@@ -24,9 +24,8 @@ where
     DA: DimAPI,
 {
     // determine whether to use parallel iteration
-    let nthreads = pool.current_num_threads();
     let size = lc.size();
-    if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
+    if size < PARALLEL_SWITCH || pool.is_none() {
         return assign_arbitary_cpu_serial(c, lc, a, la);
     }
 
@@ -45,6 +44,7 @@ where
             .iter_mut()
             .zip(a[offset_a..(offset_a + size)].iter())
             .for_each(|(ci, ai)| *ci = ai.clone());
+        return Ok(());
     } else {
         // determine order by layout preference
         let order = match TensorOrder::default() {
@@ -59,9 +59,9 @@ where
             let c_ptr = c.as_ptr() as *mut T;
             *c_ptr.add(idx_c) = a[idx_a].clone();
         };
-        pool.install(|| layout_col_major_dim_dispatch_par_2diff(&lc, &la, func))?;
+        let task = || layout_col_major_dim_dispatch_par_2diff(&lc, &la, func);
+        pool.map_or_else(task, |pool| pool.install(task))
     }
-    return Ok(());
 }
 
 pub fn assign_cpu_rayon<T, D>(
@@ -69,16 +69,15 @@ pub fn assign_cpu_rayon<T, D>(
     lc: &Layout<D>,
     a: &[T],
     la: &Layout<D>,
-    pool: &rayon::ThreadPool,
+    pool: Option<&ThreadPool>,
 ) -> Result<()>
 where
     T: Clone + Send + Sync,
     D: DimAPI,
 {
     // determine whether to use parallel iteration
-    let nthreads = pool.current_num_threads();
     let size = lc.size();
-    if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
+    if size < PARALLEL_SWITCH || pool.is_none() {
         return assign_cpu_serial(c, lc, a, la);
     }
 
@@ -96,7 +95,8 @@ where
             let c_ptr = c.as_ptr() as *mut T;
             *c_ptr.add(idx_c) = a[idx_a].clone();
         };
-        pool.install(|| layout_col_major_dim_dispatch_par_2(lc, la, func))?;
+        let task = || layout_col_major_dim_dispatch_par_2(lc, la, func);
+        pool.map_or_else(task, |pool| pool.install(task))
     } else {
         // parallel for outer iteration
         let lc = &layouts_contig[0];
@@ -107,25 +107,24 @@ where
                 *c_ptr.add(idx) = a[idx_a + idx].clone();
             })
         };
-        pool.install(|| layout_col_major_dim_dispatch_par_2(lc, la, func))?;
+        let task = || layout_col_major_dim_dispatch_par_2(lc, la, func);
+        pool.map_or_else(task, |pool| pool.install(task))
     }
-    return Ok(());
 }
 
 pub fn fill_cpu_rayon<T, D>(
     c: &mut [T],
     lc: &Layout<D>,
     fill: T,
-    pool: &rayon::ThreadPool,
+    pool: Option<&ThreadPool>,
 ) -> Result<()>
 where
     T: Clone + Send + Sync,
     D: DimAPI,
 {
     // determine whether to use parallel iteration
-    let nthreads = pool.current_num_threads();
     let size = lc.size();
-    if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
+    if size < PARALLEL_SWITCH || pool.is_none() {
         return fill_cpu_serial(c, lc, fill);
     }
 
@@ -142,7 +141,8 @@ where
             let c_ptr = c.as_ptr() as *mut T;
             *c_ptr.add(idx_c) = fill.clone();
         };
-        pool.install(|| layout_col_major_dim_dispatch_par_1(lc, func))?;
+        let task = || layout_col_major_dim_dispatch_par_1(lc, func);
+        pool.map_or_else(task, |pool| pool.install(task))
     } else {
         // parallel for outer iteration
         let lc = &layouts_contig[0];
@@ -152,7 +152,7 @@ where
                 *c_ptr.add(idx) = fill.clone();
             })
         };
-        pool.install(|| layout_col_major_dim_dispatch_par_1(lc, func))?;
+        let task = || layout_col_major_dim_dispatch_par_1(lc, func);
+        pool.map_or_else(task, |pool| pool.install(task))
     }
-    return Ok(());
 }

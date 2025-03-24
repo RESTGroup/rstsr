@@ -13,10 +13,12 @@ where
         + DeviceAPI<blasint, Raw = Vec<blasint>>
         + DeviceComplexFloatAPI<T, Ix2>
         + DeviceNumAPI<blasint, Ix1>
-        + BlasThreadAPI,
+        + BlasThreadAPI
+        + DeviceRayonAPI,
 {
     let device = a.device().clone();
-    let nthreads = device.get_num_threads();
-    let result = device.with_num_threads(nthreads, || GESV::default().a(a).b(b).build()?.run())?;
+    let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
+    let task = || GESV::default().a(a).b(b).build()?.run();
+    let result = device.with_blas_num_threads(nthreads, task)?;
     Ok(result.1)
 }

@@ -13,7 +13,7 @@ where
         a: &Vec<T>,
         la: &Layout<DA>,
     ) -> Result<()> {
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
         assign_arbitary_cpu_rayon(c, lc, a, la, pool)
     }
 }
@@ -24,12 +24,12 @@ where
     D: DimAPI,
 {
     fn assign(&self, c: &mut Vec<T>, lc: &Layout<D>, a: &Vec<T>, la: &Layout<D>) -> Result<()> {
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
         assign_cpu_rayon(c, lc, a, la, pool)
     }
 
     fn fill(&self, c: &mut Vec<T>, lc: &Layout<D>, fill: T) -> Result<()> {
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
         fill_cpu_rayon(c, lc, fill, pool)
     }
 }

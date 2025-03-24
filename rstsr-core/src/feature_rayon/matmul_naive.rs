@@ -19,7 +19,7 @@ pub fn gemm_naive_rayon<TA, TB, TC>(
     lb: &Layout<Ix2>,
     alpha: TC,
     beta: TC,
-    pool: &rayon::ThreadPool,
+    pool: Option<&ThreadPool>,
 ) -> Result<()>
 where
     TA: Clone + Send + Sync + Mul<TB, Output = TC>,
@@ -35,7 +35,7 @@ where
     rstsr_assert_eq!(sc[1], sb[1], InvalidLayout)?;
     let (m, n, k) = (sc[0], sc[1], sa[1]);
 
-    pool.install(|| {
+    let task = || {
         (0..n).into_par_iter().for_each(|j| {
             (0..m).into_par_iter().for_each(|i| unsafe {
                 let ptr_c = c.as_ptr().offset(lc.index_uncheck(&[i, j])) as *mut TC;
@@ -47,7 +47,9 @@ where
                     }) * alpha.clone();
             });
         });
-    });
+    };
+
+    pool.map_or_else(task, |pool| pool.install(task));
     return Ok(());
 }
 
@@ -60,7 +62,7 @@ pub fn inner_dot_naive_rayon<TA, TB, TC>(
     lb: &Layout<Ix1>,
     alpha: TC,
     beta: TC,
-    pool: &rayon::ThreadPool,
+    pool: Option<&ThreadPool>,
 ) -> Result<()>
 where
     TA: Clone + Send + Sync + Mul<TB, Output = TC>,
@@ -73,7 +75,7 @@ where
     rstsr_assert_eq!(sa[0], sb[0], InvalidLayout)?;
     let n = sa[0];
 
-    let c_innerdot = pool.install(|| {
+    let task = || {
         (0..n)
             .into_par_iter()
             .fold(
@@ -85,7 +87,8 @@ where
             )
             .reduce_with(|a, b| a + b)
             .unwrap_or(TC::zero())
-    });
+    };
+    let c_innerdot = pool.map_or_else(task, |pool| pool.install(task));
     *c = c_innerdot * alpha + c.clone() * beta;
     return Ok(());
 }

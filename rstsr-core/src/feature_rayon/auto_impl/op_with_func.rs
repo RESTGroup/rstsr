@@ -20,7 +20,7 @@ where
         lb: &Layout<D>,
         f: &mut F,
     ) -> Result<()> {
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
         op_mutc_refa_refb_func_cpu_rayon(c, lc, a, la, b, lb, f, pool)
     }
 }
@@ -42,7 +42,7 @@ where
         b: TB,
         f: &mut F,
     ) -> Result<()> {
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
         op_mutc_refa_numb_func_cpu_rayon(c, lc, a, la, b, f, pool)
     }
 }
@@ -64,7 +64,7 @@ where
         lb: &Layout<D>,
         f: &mut F,
     ) -> Result<()> {
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
         op_mutc_numa_refb_func_cpu_rayon(c, lc, a, b, lb, f, pool)
     }
 }
@@ -84,7 +84,7 @@ where
         lb: &Layout<D>,
         f: &mut F,
     ) -> Result<()> {
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
         op_muta_refb_func_cpu_rayon(a, la, b, lb, f, pool)
     }
 }
@@ -97,7 +97,7 @@ where
     F: Fn(&mut TA, &TB) + ?Sized + Send + Sync,
 {
     fn op_muta_numb_func(&self, a: &mut Vec<TA>, la: &Layout<D>, b: TB, f: &mut F) -> Result<()> {
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
         op_muta_numb_func_cpu_rayon(a, la, b, f, pool)
     }
 }
@@ -109,7 +109,7 @@ where
     F: Fn(&mut T) + ?Sized + Send + Sync,
 {
     fn op_muta_func(&self, a: &mut Vec<T>, la: &Layout<D>, f: &mut F) -> Result<()> {
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
         op_muta_func_cpu_rayon(a, la, f, pool)
     }
 }

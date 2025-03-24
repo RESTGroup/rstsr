@@ -26,7 +26,7 @@ pub fn gemm_faer_dispatch<TA, TB, TC>(
     lb: &Layout<Ix2>,
     alpha: TC,
     beta: TC,
-    pool: &rayon::ThreadPool,
+    pool: Option<&ThreadPool>,
 ) -> Result<()>
 where
     TA: Clone + Send + Sync + 'static,
@@ -35,7 +35,6 @@ where
     TA: Mul<TB, Output = TC>,
     TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + PartialEq,
 {
-    let nthreads = pool.current_num_threads();
     // check if syrk could be applicable
     let able_syrk = beta == TC::zero()
         && same_type::<TA, TC>()
@@ -59,9 +58,9 @@ where
                 let alpha = unsafe { *(&alpha as *const TC as *const $ty) };
                 let beta = unsafe { *(&beta as *const TC as *const $ty) };
                 if able_syrk {
-                    $fn_syrk_name(c_slice, lc, a_slice, la, alpha, beta, nthreads)?;
+                    $fn_syrk_name(c_slice, lc, a_slice, la, alpha, beta, pool)?;
                 } else {
-                    $fn_gemm_name(c_slice, lc, a_slice, la, b_slice, lb, alpha, beta, nthreads)?;
+                    $fn_gemm_name(c_slice, lc, a_slice, la, b_slice, lb, alpha, beta, pool)?;
                 }
                 return Ok(());
             }
@@ -104,8 +103,11 @@ where
         alpha: TC,
         beta: TC,
     ) -> Result<()> {
-        let nthreads = self.get_num_threads();
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
+        let nthreads = match pool {
+            Some(pool) => pool.current_num_threads(),
+            None => 1,
+        };
 
         // handle special cases
         match (la.ndim(), lb.ndim(), lc.ndim()) {
@@ -219,7 +221,7 @@ where
         let itc_rest = IterLayoutColMajor::new(&lc_rest)?;
         if n_task > 4 * nthreads {
             // parallel outer, sequential matmul
-            pool.install(|| {
+            let task = || {
                 ita_rest.into_par_iter().zip(itb_rest).zip(itc_rest).try_for_each(
                     |((ia_rest, ib_rest), ic_rest)| -> Result<()> {
                         // prepare layout
@@ -240,20 +242,14 @@ where
                         // clone alpha and beta
                         let alpha = alpha.clone();
                         let beta = beta.clone();
-                        gemm_faer_dispatch(
-                            c,
-                            &lc_m,
-                            a,
-                            &la_m,
-                            b,
-                            &lb_m,
-                            alpha,
-                            beta,
-                            self.get_serial_pool(),
-                        )
+                        gemm_faer_dispatch(c, &lc_m, a, &la_m, b, &lb_m, alpha, beta, None)
                     },
                 )
-            })?;
+            };
+            match pool {
+                Some(pool) => pool.install(task)?,
+                None => task()?,
+            };
         } else {
             // sequential outer, parallel matmul
             for (ia_rest, ib_rest, ic_rest) in izip!(ita_rest, itb_rest, itc_rest) {

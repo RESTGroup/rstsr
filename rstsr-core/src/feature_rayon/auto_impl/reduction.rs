@@ -13,7 +13,7 @@ where
     type TOut = T;
 
     fn sum_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T> {
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
 
         let f_init = T::zero;
         let f = |acc, x| acc + x;
@@ -29,7 +29,7 @@ where
         la: &Layout<D>,
         axes: &[isize],
     ) -> Result<(Storage<DataOwned<Vec<T>>, T, Self>, Layout<IxD>)> {
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
 
         let f_init = T::zero;
         let f = |acc, x| acc + x;
@@ -54,7 +54,7 @@ where
             rstsr_raise!(InvalidValue, "zero-size array is not supported for min")?;
         }
 
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
 
         let f_init = T::max_value;
         let f = |acc: T, x: T| acc.min(x);
@@ -74,7 +74,7 @@ where
             rstsr_raise!(InvalidValue, "zero-size array is not supported for min")?;
         }
 
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
 
         let f_init = T::max_value;
         let f = |acc: T, x: T| acc.min(x);
@@ -99,7 +99,7 @@ where
             rstsr_raise!(InvalidValue, "zero-size array is not supported for max")?;
         }
 
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
 
         let f_init = T::min_value;
         let f = |acc: T, x: T| acc.max(x);
@@ -119,7 +119,7 @@ where
             rstsr_raise!(InvalidValue, "zero-size array is not supported for max")?;
         }
 
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
 
         let f_init = T::min_value;
         let f = |acc: T, x: T| acc.max(x);
@@ -140,7 +140,7 @@ where
     type TOut = T;
 
     fn prod_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T> {
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
 
         let f_init = T::one;
         let f = |acc, x| acc * x;
@@ -156,7 +156,7 @@ where
         la: &Layout<D>,
         axes: &[isize],
     ) -> Result<(Storage<DataOwned<Vec<T>>, T, Self>, Layout<IxD>)> {
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
 
         let f_init = T::one;
         let f = |acc, x| acc * x;
@@ -177,7 +177,7 @@ where
     type TOut = T;
 
     fn mean_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T> {
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
 
         let size = la.size();
         let f_init = T::zero;
@@ -195,7 +195,7 @@ where
         la: &Layout<D>,
         axes: &[isize],
     ) -> Result<(Storage<DataOwned<Vec<T>>, T, Self>, Layout<IxD>)> {
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
 
         let (layout_axes, _) = la.dim_split_axes(axes)?;
         let size = layout_axes.size();
@@ -219,7 +219,7 @@ where
     type TOut = T::Real;
 
     fn var_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T::Real> {
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
 
         let size = la.size();
 
@@ -243,7 +243,7 @@ where
         la: &Layout<D>,
         axes: &[isize],
     ) -> Result<(Storage<DataOwned<Vec<T::Real>>, T::Real, Self>, Layout<IxD>)> {
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
 
         let (layout_axes, _) = la.dim_split_axes(axes)?;
         let size = layout_axes.size();
@@ -274,7 +274,7 @@ where
     type TOut = T::Real;
 
     fn std_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T::Real> {
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
 
         let size = la.size();
 
@@ -299,7 +299,7 @@ where
         la: &Layout<D>,
         axes: &[isize],
     ) -> Result<(Storage<DataOwned<Vec<T::Real>>, T::Real, Self>, Layout<IxD>)> {
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
 
         let (layout_axes, _) = la.dim_split_axes(axes)?;
         let size = layout_axes.size();
@@ -331,7 +331,7 @@ where
     type TOut = T::Real;
 
     fn l2_norm_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T::Real> {
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
 
         let f_init = || T::Real::zero();
         let f = |acc: T::Real, x: T| acc + (x * x.conj()).re();
@@ -348,7 +348,7 @@ where
         la: &Layout<D>,
         axes: &[isize],
     ) -> Result<(Storage<DataOwned<Vec<T::Real>>, T::Real, Self>, Layout<IxD>)> {
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
 
         let f_init = || T::Real::zero();
         let f = |acc: T::Real, x: T| acc + (x * x.conj()).re();
@@ -375,7 +375,7 @@ where
         la: &Layout<D>,
         axes: &[isize],
     ) -> Result<(Storage<DataOwned<Vec<usize>>, Self::TOut, Self>, Layout<IxD>)> {
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
 
         let f_comp = |x: Option<T>, y: T| -> Option<bool> {
             if let Some(x) = x {
@@ -397,7 +397,7 @@ where
     }
 
     fn argmin_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<Self::TOut> {
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
 
         let f_comp = |x: Option<T>, y: T| -> Option<bool> {
             if let Some(x) = x {
@@ -431,7 +431,7 @@ where
         la: &Layout<D>,
         axes: &[isize],
     ) -> Result<(Storage<DataOwned<Vec<usize>>, Self::TOut, Self>, Layout<IxD>)> {
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
 
         let f_comp = |x: Option<T>, y: T| -> Option<bool> {
             if let Some(x) = x {
@@ -453,7 +453,7 @@ where
     }
 
     fn argmax_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<Self::TOut> {
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
 
         let f_comp = |x: Option<T>, y: T| -> Option<bool> {
             if let Some(x) = x {
@@ -485,7 +485,7 @@ where
         la: &Layout<D>,
         axes: &[isize],
     ) -> Result<(Storage<DataOwned<Vec<IxD>>, IxD, Self>, Layout<IxD>)> {
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
 
         let f_comp = |x: Option<T>, y: T| -> Option<bool> {
             if let Some(x) = x {
@@ -511,7 +511,7 @@ where
         a: &<Self as DeviceRawAPI<T>>::Raw,
         la: &Layout<D>,
     ) -> Result<D> {
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
 
         let f_comp = |x: Option<T>, y: T| -> Option<bool> {
             if let Some(x) = x {
@@ -543,7 +543,7 @@ where
         la: &Layout<D>,
         axes: &[isize],
     ) -> Result<(Storage<DataOwned<Vec<IxD>>, IxD, Self>, Layout<IxD>)> {
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
 
         let f_comp = |x: Option<T>, y: T| -> Option<bool> {
             if let Some(x) = x {
@@ -569,7 +569,7 @@ where
         a: &<Self as DeviceRawAPI<T>>::Raw,
         la: &Layout<D>,
     ) -> Result<D> {
-        let pool = self.get_pool();
+        let pool = self.get_current_pool();
 
         let f_comp = |x: Option<T>, y: T| -> Option<bool> {
             if let Some(x) = x {

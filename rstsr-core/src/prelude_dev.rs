@@ -9,6 +9,7 @@ pub use core::fmt::{Debug, Display, Write};
 pub use core::marker::PhantomData;
 
 pub use itertools::{izip, Itertools};
+pub use rayon::ThreadPool;
 
 pub use crate::error::{Error, Result};
 pub use crate::flags::*;

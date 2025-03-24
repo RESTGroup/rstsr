@@ -25,7 +25,7 @@ pub fn reduce_all_cpu_rayon<TI, TS, TO, D, I, F, FSum, FOut>(
     f: F,
     f_sum: FSum,
     f_out: FOut,
-    pool: &rayon::ThreadPool,
+    pool: Option<&ThreadPool>,
 ) -> Result<TO>
 where
     TI: Clone + Send + Sync,
@@ -38,9 +38,8 @@ where
     FOut: Fn(TS) -> TO + Send + Sync,
 {
     // determine whether to use parallel iteration
-    let nthreads = pool.current_num_threads();
     let size = la.size();
-    if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
+    if size < PARALLEL_SWITCH {
         return reduce_all_cpu_serial(a, la, init, f, f_sum, f_out);
     }
 
@@ -51,23 +50,27 @@ where
     // actual parallel iteration
     if size_contig >= CONTIG_SWITCH {
         // parallel for outer iteration
-        let mut acc = init();
         let iter_a = IterLayoutColMajor::new(&layout_contig[0])?;
-        if size_contig < PARALLEL_SWITCH * nthreads {
+        if size_contig < PARALLEL_SWITCH {
             // not parallel inner iteration
-            pool.install(|| {
-                acc = iter_a
+            let task = || {
+                iter_a
                     .into_par_iter()
                     .fold(&init, |acc_inner, idx_a| {
                         let slc = &a[idx_a..idx_a + size_contig];
                         f_sum(acc_inner, unrolled_reduce(slc, &init, &f, &f_sum))
                     })
-                    .reduce(&init, &f_sum);
-            });
+                    .reduce(&init, &f_sum)
+            };
+            let acc = match pool {
+                None => task(),
+                Some(pool) => pool.install(task),
+            };
+            return Ok(f_out(acc));
         } else {
             // parallel inner iteration
-            let chunk = PARALLEL_CHUNK_MAX.min(size_contig / nthreads + 1);
-            acc = pool.install(|| {
+            let chunk = PARALLEL_CHUNK_MAX;
+            let task = || {
                 iter_a
                     .into_par_iter()
                     .fold(&init, |acc_inner, idx_a| {
@@ -84,19 +87,26 @@ where
                         f_sum(acc_inner, res)
                     })
                     .reduce(&init, &f_sum)
-            });
+            };
+            let acc = match pool {
+                None => task(),
+                Some(pool) => pool.install(task),
+            };
+            return Ok(f_out(acc));
         }
-        return Ok(f_out(acc));
     } else {
         // manual fold when not contiguous
         let iter_a = IterLayoutColMajor::new(&layout)?;
-        let mut acc = init();
-        pool.install(|| {
-            acc = iter_a
+        let task = || {
+            iter_a
                 .into_par_iter()
                 .fold(&init, |acc, idx| f(acc, a[idx].clone()))
-                .reduce(&init, &f_sum);
-        });
+                .reduce(&init, &f_sum)
+        };
+        let acc = match pool {
+            None => task(),
+            Some(pool) => pool.install(task),
+        };
         return Ok(f_out(acc));
     }
 }
@@ -110,7 +120,7 @@ pub fn reduce_axes_cpu_rayon<TI, TS, I, F, FSum, FOut>(
     f: F,
     f_sum: FSum,
     f_out: FOut,
-    pool: &rayon::ThreadPool,
+    pool: Option<&ThreadPool>,
 ) -> Result<(Vec<TS>, Layout<IxD>)>
 where
     TI: Clone + Send + Sync,
@@ -121,9 +131,8 @@ where
     FOut: Fn(TS) -> TS + Send + Sync,
 {
     // determine whether to use parallel iteration
-    let nthreads = pool.current_num_threads();
     let size = la.size();
-    if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
+    if size < PARALLEL_SWITCH {
         return reduce_axes_cpu_serial(a, la, axes, init, f, f_sum, f_out);
     }
 
@@ -153,7 +162,7 @@ where
         let out_ptr = AtomicPtr::new(out.as_mut_ptr());
 
         // actual evaluation
-        pool.install(|| {
+        let task = || {
             (iter_out_swapped, iter_rest_swapped).into_par_iter().try_for_each(
                 |(idx_out, idx_rest)| -> Result<()> {
                     let out_ptr = out_ptr.load(Ordering::Relaxed);
@@ -166,7 +175,11 @@ where
                     Ok(())
                 },
             )
-        })?;
+        };
+        match pool {
+            None => task()?,
+            Some(pool) => pool.install(task)?,
+        };
         return Ok((out, layout_out));
     } else {
         // iterate layout_axes
@@ -202,7 +215,7 @@ pub fn reduce_axes_difftype_cpu_rayon<TI, TS, TO, I, F, FSum, FOut>(
     f: F,
     f_sum: FSum,
     f_out: FOut,
-    pool: &rayon::ThreadPool,
+    pool: Option<&ThreadPool>,
 ) -> Result<(Vec<TO>, Layout<IxD>)>
 where
     TI: Clone + Send + Sync,
@@ -214,9 +227,8 @@ where
     FOut: Fn(TS) -> TO + Send + Sync,
 {
     // determine whether to use parallel iteration
-    let nthreads = pool.current_num_threads();
     let size = la.size();
-    if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
+    if size < PARALLEL_SWITCH {
         return reduce_axes_difftype_cpu_serial(a, la, axes, init, f, f_sum, f_out);
     }
 
@@ -246,7 +258,7 @@ where
         let out_ptr = AtomicPtr::new(out.as_mut_ptr());
 
         // actual evaluation
-        pool.install(|| {
+        let task = || {
             (iter_out_swapped, iter_rest_swapped).into_par_iter().try_for_each(
                 |(idx_out, idx_rest)| -> Result<()> {
                     let out_ptr = out_ptr.load(Ordering::Relaxed);
@@ -259,7 +271,11 @@ where
                     Ok(())
                 },
             )
-        })?;
+        };
+        match pool {
+            None => task()?,
+            Some(pool) => pool.install(task)?,
+        };
         return Ok((out, layout_out));
     } else {
         // iterate layout_axes
@@ -304,7 +320,7 @@ pub fn reduce_all_unraveled_arg_cpu_rayon<T, D, Fcomp, Feq>(
     la: &Layout<D>,
     f_comp: Fcomp,
     f_eq: Feq,
-    pool: &rayon::ThreadPool,
+    pool: Option<&ThreadPool>,
 ) -> Result<D>
 where
     T: Clone + Send + Sync,
@@ -314,9 +330,8 @@ where
 {
     rstsr_assert!(la.size() > 0, InvalidLayout, "empty sequence is not allowed for reduce_arg.")?;
 
-    let nthreads = pool.current_num_threads();
     let size = la.size();
-    if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
+    if size < PARALLEL_SWITCH {
         return reduce_all_unraveled_arg_cpu_serial(a, la, f_comp, f_eq);
     }
 
@@ -362,8 +377,11 @@ where
     };
 
     let iter_a = IndexedIterLayout::new(la, RowMajor)?;
-    let acc =
-        pool.install(|| iter_a.into_par_iter().fold(|| None, fold_func).reduce(|| None, sum_func));
+    let task = || iter_a.into_par_iter().fold(|| None, fold_func).reduce(|| None, sum_func);
+    let acc = match pool {
+        None => task(),
+        Some(pool) => pool.install(task),
+    };
     if acc.is_none() {
         rstsr_raise!(InvalidValue, "reduce_arg seems not returning a valid value.")?;
     }
@@ -376,7 +394,7 @@ pub fn reduce_axes_unraveled_arg_cpu_rayon<T, D, Fcomp, Feq>(
     axes: &[isize],
     f_comp: Fcomp,
     f_eq: Feq,
-    pool: &rayon::ThreadPool,
+    pool: Option<&ThreadPool>,
 ) -> Result<(Vec<IxD>, Layout<IxD>)>
 where
     T: Clone + Send + Sync,
@@ -385,9 +403,8 @@ where
     Feq: Fn(Option<T>, T) -> Option<bool> + Send + Sync,
 {
     // determine whether to use parallel iteration
-    let nthreads = pool.current_num_threads();
     let size = la.size();
-    if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
+    if size < PARALLEL_SWITCH {
         return reduce_axes_unraveled_arg_cpu_serial(a, la, axes, f_comp, f_eq);
     }
 
@@ -414,7 +431,7 @@ where
     let out_ptr = AtomicPtr::new(out.as_mut_ptr());
 
     // actual evaluation
-    pool.install(|| {
+    let task = || {
         (iter_out_swapped, iter_rest_swapped).into_par_iter().try_for_each(
             |(idx_out, idx_rest)| -> Result<()> {
                 let out_ptr = out_ptr.load(Ordering::Relaxed);
@@ -427,7 +444,11 @@ where
                 Ok(())
             },
         )
-    })?;
+    };
+    match pool {
+        None => task()?,
+        Some(pool) => pool.install(task)?,
+    };
     return Ok((out, layout_out));
 }
 
@@ -437,7 +458,7 @@ pub fn reduce_all_arg_cpu_rayon<T, D, Fcomp, Feq>(
     f_comp: Fcomp,
     f_eq: Feq,
     order: FlagOrder,
-    pool: &rayon::ThreadPool,
+    pool: Option<&ThreadPool>,
 ) -> Result<usize>
 where
     T: Clone + Send + Sync,
@@ -461,7 +482,7 @@ pub fn reduce_axes_arg_cpu_rayon<T, D, Fcomp, Feq>(
     f_comp: Fcomp,
     f_eq: Feq,
     order: FlagOrder,
-    pool: &rayon::ThreadPool,
+    pool: Option<&ThreadPool>,
 ) -> Result<(Vec<usize>, Layout<IxD>)>
 where
     T: Clone + Send + Sync,
@@ -475,11 +496,15 @@ where
         RowMajor => pseudo_shape.c(),
         ColMajor => pseudo_shape.f(),
     };
-    let out = pool.install(|| {
+    let task = || {
         idx.into_par_iter()
             .map(|x| unsafe { pseudo_layout.index_uncheck(x.as_ref()) as usize })
             .collect()
-    });
+    };
+    let out = match pool {
+        None => task(),
+        Some(pool) => pool.install(task),
+    };
     return Ok((out, layout));
 }
 
