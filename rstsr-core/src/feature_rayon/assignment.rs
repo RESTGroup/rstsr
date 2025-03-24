@@ -25,7 +25,7 @@ where
 {
     // determine whether to use parallel iteration
     let size = lc.size();
-    if size < PARALLEL_SWITCH {
+    if size < PARALLEL_SWITCH || pool.is_none() {
         return assign_arbitary_cpu_serial(c, lc, a, la);
     }
 
@@ -77,7 +77,7 @@ where
 {
     // determine whether to use parallel iteration
     let size = lc.size();
-    if size < PARALLEL_SWITCH {
+    if size < PARALLEL_SWITCH || pool.is_none() {
         return assign_cpu_serial(c, lc, a, la);
     }
 
@@ -124,7 +124,7 @@ where
 {
     // determine whether to use parallel iteration
     let size = lc.size();
-    if size < PARALLEL_SWITCH {
+    if size < PARALLEL_SWITCH || pool.is_none() {
         return fill_cpu_serial(c, lc, fill);
     }
 
