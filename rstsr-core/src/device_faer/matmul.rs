@@ -35,7 +35,6 @@ where
     TA: Mul<TB, Output = TC>,
     TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + PartialEq,
 {
-    let nthreads = pool.current_num_threads();
     // check if syrk could be applicable
     let able_syrk = beta == TC::zero()
         && same_type::<TA, TC>()
@@ -59,9 +58,9 @@ where
                 let alpha = unsafe { *(&alpha as *const TC as *const $ty) };
                 let beta = unsafe { *(&beta as *const TC as *const $ty) };
                 if able_syrk {
-                    $fn_syrk_name(c_slice, lc, a_slice, la, alpha, beta, nthreads)?;
+                    $fn_syrk_name(c_slice, lc, a_slice, la, alpha, beta, pool)?;
                 } else {
-                    $fn_gemm_name(c_slice, lc, a_slice, la, b_slice, lb, alpha, beta, nthreads)?;
+                    $fn_gemm_name(c_slice, lc, a_slice, la, b_slice, lb, alpha, beta, pool)?;
                 }
                 return Ok(());
             }
