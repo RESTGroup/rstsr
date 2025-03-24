@@ -125,7 +125,7 @@ where
     // determine whether to use parallel iteration
     let nthreads = pool.current_num_threads();
     let size = lc.size();
-    if size < PARALLEL_SWITCH * nthreads {
+    if size < PARALLEL_SWITCH * nthreads || nthreads == 1 {
         return fill_cpu_serial(c, lc, fill);
     }
 

@@ -43,7 +43,7 @@ where
         && unsafe {
             let a_ptr = a.as_ptr().add(la.offset()) as *const TC;
             let b_ptr = b.as_ptr().add(lb.offset()) as *const TC;
-            let equal_ptr = a_ptr == b_ptr;
+            let equal_ptr = core::ptr::eq(a_ptr, b_ptr);
             let equal_shape = la.shape() == lb.reverse_axes().shape();
             let equal_stride = la.stride() == lb.reverse_axes().stride();
             equal_ptr && equal_shape && equal_stride
