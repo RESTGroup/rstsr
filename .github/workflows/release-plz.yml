@@ -27,7 +27,6 @@ jobs:
         uses: release-plz/action@v0.5
         with:
           command: release
-          registry: rstsr-test-manifest
           manifest_path: ./rstsr-test-manifest/Cargo.toml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
