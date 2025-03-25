@@ -9,10 +9,6 @@ categories.workspace = true
 license.workspace = true
 
 [dependencies]
-rstsr-core = { workspace = true, default-features = false }
-rstsr-blas-traits = { workspace = true, default-features = false, optional = true }
+rstsr-core = { workspace = true, default-features = false, features = ["rayon"] }
+rstsr-blas-traits = { workspace = true, default-features = false }
 derive_builder = { workspace = true }
-
-[features]
-default = ["blas"]
-blas = ["dep:rstsr-blas-traits", "rstsr-core/rayon"]
