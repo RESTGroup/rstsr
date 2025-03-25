@@ -5,7 +5,7 @@ use num::ToPrimitive;
 
 impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataMutAPI<Data = B::Raw>,
+    R: DataAPI<Data = B::Raw>,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
     B: DeviceAPI<T> + DeviceOpPackTriAPI<T> + DeviceCreationAnyAPI<T>,

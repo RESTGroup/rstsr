@@ -12,7 +12,7 @@ where
     let mut b = &b[offset_b..];
     for i in 0..n {
         let (a_prev, a_next) = a.split_at_mut(i + 1);
-        let (b_prev, b_next) = b.split_at(i + 1);
+        let (b_prev, b_next) = b.split_at(n);
         a = a_next;
         b = b_next;
         a_prev.iter_mut().zip(b_prev.iter()).for_each(|(ai, bi)| *ai = bi.clone());
