@@ -14,3 +14,10 @@ Also many enhancements in `rstsr-core`.
 
 Bug fix:
 - fix rayon pool memory blow up ([#13](https://github.com/RESTGroup/rstsr/pull/13))
+
+## v0.2.2 - 2025-03-25
+
+API breaking changes:
+- Rayon thread pool getter function `get_pool` changed, added `get_current_pool`, removed `get_serial_pool` ([#14](https://github.com/RESTGroup/rstsr/pull/14)).
+
+Code style changes ([#15](https://github.com/RESTGroup/rstsr/pull/15))
