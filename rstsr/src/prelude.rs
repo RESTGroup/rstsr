@@ -12,6 +12,11 @@ pub mod rstsr_structs {
     pub mod linalg {
         pub use rstsr_linalg_traits::prelude::rstsr_structs::*;
     }
+
+    #[cfg(feature = "openblas")]
+    pub use rstsr_openblas::DeviceOpenBLAS;
+    #[cfg(feature = "openblas")]
+    pub type DeviceBLAS = DeviceOpenBLAS;
 }
 
 pub mod rstsr_funcs {

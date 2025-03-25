@@ -71,75 +71,51 @@ where
 
 /* #region layout iterator */
 
-macro_rules! impl_par_iter_layout {
-    ($IterLayout: ident) => {
-        impl<D> IntoParallelIterator for $IterLayout<D>
-        where
-            D: DimDevAPI,
-        {
-            type Item = <$IterLayout<D> as Iterator>::Item;
-            type Iter = ParIterRSTSR<Self>;
+#[duplicate_item(IterLayout; [IterLayoutColMajor]; [IterLayoutRowMajor]; [IterLayout]; [IndexedIterLayout])]
+impl<D> IntoParallelIterator for IterLayout<D>
+where
+    D: DimDevAPI,
+{
+    type Item = <IterLayout<D> as Iterator>::Item;
+    type Iter = ParIterRSTSR<Self>;
 
-            fn into_par_iter(self) -> Self::Iter {
-                Self::Iter { iter: self }
-            }
-        }
-    };
+    fn into_par_iter(self) -> Self::Iter {
+        Self::Iter { iter: self }
+    }
 }
-
-impl_par_iter_layout!(IterLayoutColMajor);
-impl_par_iter_layout!(IterLayoutRowMajor);
-impl_par_iter_layout!(IterLayout);
-impl_par_iter_layout!(IndexedIterLayout);
 
 /* #endregion */
 
 /* #region tensor iterator */
 
-macro_rules! impl_par_iter_tensor {
-    ($IterTensor: ident) => {
-        impl<'a, T, D> IntoParallelIterator for $IterTensor<'a, T, D>
-        where
-            D: DimDevAPI,
-            T: Send + Sync,
-        {
-            type Item = <$IterTensor<'a, T, D> as Iterator>::Item;
-            type Iter = ParIterRSTSR<Self>;
+#[duplicate_item(IterTensor; [IterVecView]; [IterVecMut]; [IndexedIterVecView]; [IndexedIterVecMut])]
+impl<'a, T, D> IntoParallelIterator for IterTensor<'a, T, D>
+where
+    D: DimDevAPI,
+    T: Send + Sync,
+{
+    type Item = <IterTensor<'a, T, D> as Iterator>::Item;
+    type Iter = ParIterRSTSR<Self>;
 
-            fn into_par_iter(self) -> Self::Iter {
-                Self::Iter { iter: self }
-            }
-        }
-    };
+    fn into_par_iter(self) -> Self::Iter {
+        Self::Iter { iter: self }
+    }
 }
 
-impl_par_iter_tensor!(IterVecView);
-impl_par_iter_tensor!(IterVecMut);
-impl_par_iter_tensor!(IndexedIterVecView);
-impl_par_iter_tensor!(IndexedIterVecMut);
+#[duplicate_item(IterTensor; [IterAxesView]; [IterAxesMut]; [IndexedIterAxesView]; [IndexedIterAxesMut])]
+impl<'a, T, B> IntoParallelIterator for IterTensor<'a, T, B>
+where
+    T: Send + Sync,
+    B::Raw: Send,
+    B: DeviceAPI<T> + Send,
+{
+    type Item = <IterTensor<'a, T, B> as Iterator>::Item;
+    type Iter = ParIterRSTSR<Self>;
 
-macro_rules! impl_par_axes_iter_tensor {
-    ($IterTensor: ident) => {
-        impl<'a, T, B> IntoParallelIterator for $IterTensor<'a, T, B>
-        where
-            T: Send + Sync,
-            B::Raw: Send,
-            B: DeviceAPI<T> + Send,
-        {
-            type Item = <$IterTensor<'a, T, B> as Iterator>::Item;
-            type Iter = ParIterRSTSR<Self>;
-
-            fn into_par_iter(self) -> Self::Iter {
-                Self::Iter { iter: self }
-            }
-        }
-    };
+    fn into_par_iter(self) -> Self::Iter {
+        Self::Iter { iter: self }
+    }
 }
-
-impl_par_axes_iter_tensor!(IterAxesView);
-impl_par_axes_iter_tensor!(IterAxesMut);
-impl_par_axes_iter_tensor!(IndexedIterAxesView);
-impl_par_axes_iter_tensor!(IndexedIterAxesMut);
 
 /* #endregion */
 

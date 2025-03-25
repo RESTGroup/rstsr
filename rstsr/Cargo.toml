@@ -12,14 +12,20 @@ readme = "readme.md"
 [dependencies]
 rstsr-core = { workspace = true }
 rstsr-linalg-traits = { workspace = true, optional = true }
+rstsr-openblas = { workspace = true, optional = true }
 
 [features]
 default = ["rstsr-core/default"]
+
 # rstsr-core features
 std = ["rstsr-core/std"]
 rayon = ["rstsr-core/rayon"]
 faer = ["rstsr-core/faer"]
 faer_as_default = ["rstsr-core/faer_as_default"]
 dispatch_dim_layout_iter = ["rstsr-core/dispatch_dim_layout_iter"]
+
+# rstsr-openblas features
+openblas = ["dep:rstsr-openblas"]
+
 # dependencies specification
 linalg = ["dep:rstsr-linalg-traits"]
