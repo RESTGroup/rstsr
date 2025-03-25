@@ -21,3 +21,8 @@ API breaking changes:
 - Rayon thread pool getter function `get_pool` changed, added `get_current_pool`, removed `get_serial_pool` ([#14](https://github.com/RESTGroup/rstsr/pull/14)).
 
 Code style changes ([#15](https://github.com/RESTGroup/rstsr/pull/15))
+
+## v0.2.4 -- 2025-03-25
+
+Bug fix:
+- fix `pack_tril` (correctness fix, trait bound fix).
