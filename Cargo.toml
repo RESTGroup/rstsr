@@ -12,7 +12,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.2.2"
+version = "0.2.3"
 edition = "2021"
 description = "An n-Dimension Rust Tensor Toolkit"
 repository = "https://github.com/RESTGroup/rstsr"
@@ -21,15 +21,15 @@ categories = ["science"]
 license = "Apache-2.0"
 
 [workspace.dependencies]
-rstsr-core = { path = "./rstsr-core", default-features = false, version = "0.2.2" }
+rstsr-core = { path = "./rstsr-core", default-features = false, version = "0.2.3" }
 # members without core
-rstsr-openblas-ffi = { path = "./rstsr-openblas-ffi", default-features = false, version = "0.2.2" }
-rstsr-dtype-traits = { path = "./rstsr-dtype-traits", default-features = false, version = "0.2.2" }
-rstsr-test-manifest = { path = "./rstsr-test-manifest", default-features = false, version = "0.2.2" }
+rstsr-openblas-ffi = { path = "./rstsr-openblas-ffi", default-features = false, version = "0.2.3" }
+rstsr-dtype-traits = { path = "./rstsr-dtype-traits", default-features = false, version = "0.2.3" }
+rstsr-test-manifest = { path = "./rstsr-test-manifest", default-features = false, version = "0.2.3" }
 # members
-rstsr-openblas = { path = "./rstsr-openblas", default-features = false, version = "0.2.2" }
-rstsr-blas-traits = { path = "./rstsr-blas-traits", default-features = false, version = "0.2.2" }
-rstsr-linalg-traits = { path = "./rstsr-linalg-traits", default-features = false, version = "0.2.2" }
+rstsr-openblas = { path = "./rstsr-openblas", default-features = false, version = "0.2.3" }
+rstsr-blas-traits = { path = "./rstsr-blas-traits", default-features = false, version = "0.2.3" }
+rstsr-linalg-traits = { path = "./rstsr-linalg-traits", default-features = false, version = "0.2.3" }
 # basic dependencies
 num = { version = "0.4" }
 thiserror = { version = "1.0" }
