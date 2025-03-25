@@ -67,54 +67,59 @@ where
     }
 }
 
-macro_rules! impl_into_rstsr {
-    ($ty: ty, $ty_faer: ty) => {
-        impl<'a> IntoRSTSR for MatRef<'a, $ty_faer> {
-            type RSTSR = TensorView<'a, $ty, DeviceFaer, Ix2>;
+#[duplicate_item(
+     ty             ty_faer;
+    [f32]          [f32];
+    [f64]          [f64];
+    [Complex<f32>] [c32];
+    [Complex<f64>] [c64];
+)]
+impl<'a> IntoRSTSR for MatRef<'a, ty_faer> {
+    type RSTSR = TensorView<'a, ty, DeviceFaer, Ix2>;
 
-            fn into_rstsr(self) -> Self::RSTSR {
-                let nrows = self.nrows();
-                let ncols = self.ncols();
-                let row_stride = self.row_stride();
-                let col_stride = self.col_stride();
-                let ptr = self.as_ptr();
+    fn into_rstsr(self) -> Self::RSTSR {
+        let nrows = self.nrows();
+        let ncols = self.ncols();
+        let row_stride = self.row_stride();
+        let col_stride = self.col_stride();
+        let ptr = self.as_ptr();
 
-                let layout = Layout::new([nrows, ncols], [row_stride, col_stride], 0).unwrap();
-                let (_, upper_bound) = layout.bounds_index().unwrap();
-                let raw = unsafe { Vec::from_raw_parts(ptr as *mut $ty, upper_bound, upper_bound) };
-                let data = DataRef::from_manually_drop(ManuallyDrop::new(raw));
-                let storage = Storage::new(data, DeviceFaer::default());
-                let tensor = unsafe { TensorView::new_unchecked(storage, layout) };
-                return tensor;
-            }
-        }
-
-        impl<'a> IntoRSTSR for MatMut<'a, $ty_faer> {
-            type RSTSR = TensorViewMut<'a, $ty, DeviceFaer, Ix2>;
-
-            fn into_rstsr(self) -> Self::RSTSR {
-                let nrows = self.nrows();
-                let ncols = self.ncols();
-                let row_stride = self.row_stride();
-                let col_stride = self.col_stride();
-                let ptr = self.as_ptr();
-
-                let layout = Layout::new([nrows, ncols], [row_stride, col_stride], 0).unwrap();
-                let (_, upper_bound) = layout.bounds_index().unwrap();
-                let raw = unsafe { Vec::from_raw_parts(ptr as *mut $ty, upper_bound, upper_bound) };
-                let data = DataMut::from_manually_drop(ManuallyDrop::new(raw));
-                let storage = Storage::new(data, DeviceFaer::default());
-                let tensor = unsafe { TensorMut::new_unchecked(storage, layout) };
-                return tensor;
-            }
-        }
-    };
+        let layout = Layout::new([nrows, ncols], [row_stride, col_stride], 0).unwrap();
+        let (_, upper_bound) = layout.bounds_index().unwrap();
+        let raw = unsafe { Vec::from_raw_parts(ptr as *mut ty, upper_bound, upper_bound) };
+        let data = DataRef::from_manually_drop(ManuallyDrop::new(raw));
+        let storage = Storage::new(data, DeviceFaer::default());
+        let tensor = unsafe { TensorView::new_unchecked(storage, layout) };
+        return tensor;
+    }
 }
 
-impl_into_rstsr!(f32, f32);
-impl_into_rstsr!(f64, f64);
-impl_into_rstsr!(Complex<f32>, c32);
-impl_into_rstsr!(Complex<f64>, c64);
+#[duplicate_item(
+    ty             ty_faer;
+   [f32]          [f32];
+   [f64]          [f64];
+   [Complex<f32>] [c32];
+   [Complex<f64>] [c64];
+)]
+impl<'a> IntoRSTSR for MatMut<'a, ty_faer> {
+    type RSTSR = TensorViewMut<'a, ty, DeviceFaer, Ix2>;
+
+    fn into_rstsr(self) -> Self::RSTSR {
+        let nrows = self.nrows();
+        let ncols = self.ncols();
+        let row_stride = self.row_stride();
+        let col_stride = self.col_stride();
+        let ptr = self.as_ptr();
+
+        let layout = Layout::new([nrows, ncols], [row_stride, col_stride], 0).unwrap();
+        let (_, upper_bound) = layout.bounds_index().unwrap();
+        let raw = unsafe { Vec::from_raw_parts(ptr as *mut ty, upper_bound, upper_bound) };
+        let data = DataMut::from_manually_drop(ManuallyDrop::new(raw));
+        let storage = Storage::new(data, DeviceFaer::default());
+        let tensor = unsafe { TensorMut::new_unchecked(storage, layout) };
+        return tensor;
+    }
+}
 
 /* #endregion */
 

@@ -460,118 +460,111 @@ where
 // the lifetime issue. However, directly implementing each struct can avoid such
 // problem.
 
-macro_rules! impl_Index_for_Tensor {
-    ($tensor_struct: ty) => {
-        impl<T, D, B, I> Index<I> for $tensor_struct
-        where
-            T: Clone,
-            D: DimAPI,
-            B: DeviceAPI<T, Raw = Vec<T>>,
-            I: AsRef<[usize]>,
-        {
-            type Output = T;
+#[duplicate_item(
+    TensorStruct;
+    [Tensor<T, B, D>];
+    [TensorView<'_, T, B, D>];
+    [TensorViewMut<'_, T, B, D>];
+    [TensorCow<'_, T, B, D>];
+)]
+impl<T, D, B, I> Index<I> for TensorStruct
+where
+    T: Clone,
+    D: DimAPI,
+    B: DeviceAPI<T, Raw = Vec<T>>,
+    I: AsRef<[usize]>,
+{
+    type Output = T;
 
-            #[inline]
-            fn index(&self, index: I) -> &Self::Output {
-                let index = index.as_ref().iter().map(|&v| v as isize).collect::<Vec<_>>();
-                let i = self.layout().index(index.as_ref());
-                let raw = self.raw();
-                raw.index(i)
-            }
-        }
-    };
+    #[inline]
+    fn index(&self, index: I) -> &Self::Output {
+        let index = index.as_ref().iter().map(|&v| v as isize).collect::<Vec<_>>();
+        let i = self.layout().index(index.as_ref());
+        let raw = self.raw();
+        raw.index(i)
+    }
 }
 
-impl_Index_for_Tensor!(Tensor<T, B, D>);
-impl_Index_for_Tensor!(TensorView<'_, T, B, D>);
-impl_Index_for_Tensor!(TensorViewMut<'_, T, B, D>);
-impl_Index_for_Tensor!(TensorCow<'_, T, B, D>);
-
-macro_rules! impl_IndexMut_for_Tensor {
-    ($tensor_struct: ty) => {
-        impl<T, D, B, I> IndexMut<I> for $tensor_struct
-        where
-            T: Clone,
-            D: DimAPI,
-            B: DeviceAPI<T, Raw = Vec<T>>,
-            I: AsRef<[usize]>,
-        {
-            #[inline]
-            fn index_mut(&mut self, index: I) -> &mut Self::Output {
-                let index = index.as_ref().iter().map(|&v| v as isize).collect::<Vec<_>>();
-                let i = self.layout().index(index.as_ref());
-                let raw = self.raw_mut();
-                raw.index_mut(i)
-            }
-        }
-    };
+#[duplicate_item(
+    TensorStruct;
+    [Tensor<T, B, D>];
+    [TensorViewMut<'_, T, B, D>];
+)]
+impl<T, D, B, I> IndexMut<I> for TensorStruct
+where
+    T: Clone,
+    D: DimAPI,
+    B: DeviceAPI<T, Raw = Vec<T>>,
+    I: AsRef<[usize]>,
+{
+    #[inline]
+    fn index_mut(&mut self, index: I) -> &mut Self::Output {
+        let index = index.as_ref().iter().map(|&v| v as isize).collect::<Vec<_>>();
+        let i = self.layout().index(index.as_ref());
+        let raw = self.raw_mut();
+        raw.index_mut(i)
+    }
 }
-
-impl_IndexMut_for_Tensor!(Tensor<T, B, D>);
-impl_IndexMut_for_Tensor!(TensorViewMut<'_, T, B, D>);
 
 /* #endregion */
 
 /* #region indexing (unchecked) */
 
-macro_rules! impl_IndexUncheck_for_Tensor {
-    ($tensor_struct: ty) => {
-        impl<T, B, D> $tensor_struct
-        where
-            T: Clone,
-            D: DimAPI,
-            B: DeviceAPI<T, Raw = Vec<T>>,
-        {
-            /// # Safety
-            ///
-            /// This function is unsafe because it does not check the validity of the
-            /// index.
-            #[inline]
-            pub unsafe fn index_uncheck<I>(&self, index: I) -> &T
-            where
-                I: AsRef<[usize]>,
-            {
-                let index = index.as_ref();
-                let i = unsafe { self.layout().index_uncheck(index) } as usize;
-                let raw = self.raw();
-                raw.index(i)
-            }
-        }
-    };
+#[duplicate_item(
+    TensorStruct;
+    [Tensor<T, B, D>];
+    [TensorView<'_, T, B, D>];
+    [TensorViewMut<'_, T, B, D>];
+    [TensorCow<'_, T, B, D>];
+)]
+impl<T, B, D> TensorStruct
+where
+    T: Clone,
+    D: DimAPI,
+    B: DeviceAPI<T, Raw = Vec<T>>,
+{
+    /// # Safety
+    ///
+    /// This function is unsafe because it does not check the validity of the
+    /// index.
+    #[inline]
+    pub unsafe fn index_uncheck<I>(&self, index: I) -> &T
+    where
+        I: AsRef<[usize]>,
+    {
+        let index = index.as_ref();
+        let i = unsafe { self.layout().index_uncheck(index) } as usize;
+        let raw = self.raw();
+        raw.index(i)
+    }
 }
 
-impl_IndexUncheck_for_Tensor!(Tensor<T, B, D>);
-impl_IndexUncheck_for_Tensor!(TensorView<'_, T, B, D>);
-impl_IndexUncheck_for_Tensor!(TensorViewMut<'_, T, B, D>);
-impl_IndexUncheck_for_Tensor!(TensorCow<'_, T, B, D>);
-
-macro_rules! impl_IndexMutUncheck_for_Tensor {
-    ($tensor_struct: ty) => {
-        impl<T, B, D> $tensor_struct
-        where
-            T: Clone,
-            D: DimAPI,
-            B: DeviceAPI<T, Raw = Vec<T>>,
-        {
-            /// # Safety
-            ///
-            /// This function is unsafe because it does not check the validity of the
-            /// index.
-            #[inline]
-            pub unsafe fn index_mut_uncheck<I>(&mut self, index: I) -> &mut T
-            where
-                I: AsRef<[usize]>,
-            {
-                let index = index.as_ref();
-                let i = unsafe { self.layout().index_uncheck(index) } as usize;
-                let raw = self.raw_mut();
-                raw.index_mut(i)
-            }
-        }
-    };
+#[duplicate_item(
+    TensorStruct;
+    [Tensor<T, B, D>];
+    [TensorViewMut<'_, T, B, D>];
+)]
+impl<T, B, D> TensorStruct
+where
+    T: Clone,
+    D: DimAPI,
+    B: DeviceAPI<T, Raw = Vec<T>>,
+{
+    /// # Safety
+    ///
+    /// This function is unsafe because it does not check the validity of the
+    /// index.
+    #[inline]
+    pub unsafe fn index_mut_uncheck<I>(&mut self, index: I) -> &mut T
+    where
+        I: AsRef<[usize]>,
+    {
+        let index = index.as_ref();
+        let i = unsafe { self.layout().index_uncheck(index) } as usize;
+        let raw = self.raw_mut();
+        raw.index_mut(i)
+    }
 }
-impl_IndexMutUncheck_for_Tensor!(Tensor<T, B, D>);
-impl_IndexMutUncheck_for_Tensor!(TensorViewMut<'_, T, B, D>);
 
 /* #endregion */
 

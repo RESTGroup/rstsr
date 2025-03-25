@@ -13,8 +13,8 @@ type c64 = Complex<f64>;
 
 /* #region gemm */
 
-#[duplicate::duplicate_item(
-    ty    fn_name                 cblas_wrap        ;
+#[duplicate_item(
+     ty    fn_name                 cblas_wrap       ;
     [f32] [gemm_blas_no_conj_f32] [cblas_sgemm_wrap];
     [f64] [gemm_blas_no_conj_f64] [cblas_dgemm_wrap];
     [c32] [gemm_blas_no_conj_c32] [cblas_cgemm_wrap];
@@ -297,8 +297,8 @@ unsafe fn cblas_zgemm_wrap(
 
 /* #region syrk */
 
-#[duplicate::duplicate_item(
-    ty    fn_name                 cblas_wrap        ;
+#[duplicate_item(
+     ty    fn_name                 cblas_wrap       ;
     [f32] [syrk_blas_no_conj_f32] [cblas_ssyrk_wrap];
     [f64] [syrk_blas_no_conj_f64] [cblas_dsyrk_wrap];
     [c32] [syrk_blas_no_conj_c32] [cblas_csyrk_wrap];

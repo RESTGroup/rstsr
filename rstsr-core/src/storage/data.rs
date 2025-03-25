@@ -3,6 +3,7 @@ extern crate alloc;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use core::mem::{transmute, ManuallyDrop};
+use duplicate::duplicate_item;
 
 /* #region definitions */
 
@@ -440,21 +441,19 @@ impl<T> DataForceMutAPI<Vec<T>> for DataRef<'_, Vec<T>> {
     }
 }
 
-macro_rules! impl_data_force_vec {
-    ($data: ty) => {
-        impl<T> DataForceMutAPI<Vec<T>> for $data {
-            unsafe fn force_mut(&self) -> DataMut<'_, Vec<T>> {
-                transmute(self.as_ref().force_mut())
-            }
-        }
-    };
+#[duplicate_item(
+    Data;
+    [DataOwned<Vec<T>>];
+    [DataMut<'_, Vec<T>>];
+    [DataCow<'_, Vec<T>>];
+    [DataArc<Vec<T>>];
+    [DataReference<'_, Vec<T>>];
+)]
+impl<T> DataForceMutAPI<Vec<T>> for Data {
+    unsafe fn force_mut(&self) -> DataMut<'_, Vec<T>> {
+        transmute(self.as_ref().force_mut())
+    }
 }
-
-impl_data_force_vec!(DataOwned<Vec<T>>);
-impl_data_force_vec!(DataMut<'_, Vec<T>>);
-impl_data_force_vec!(DataCow<'_, Vec<T>>);
-impl_data_force_vec!(DataArc<Vec<T>>);
-impl_data_force_vec!(DataReference<'_, Vec<T>>);
 
 /* #endregion */
 

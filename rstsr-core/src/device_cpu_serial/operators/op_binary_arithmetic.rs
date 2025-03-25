@@ -1,163 +1,136 @@
 use crate::prelude_dev::*;
+use core::ops::*;
 
-macro_rules! impl_op_muta_refb_assign {
-    ($DeviceOpAPI:ident, $Op:ident, $func:expr) => {
-        impl<TA, TB, D> $DeviceOpAPI<TA, TB, D> for DeviceCpuSerial
-        where
-            TA: Clone + $Op<TB>,
-            TB: Clone,
-            D: DimAPI,
-        {
-            fn op_muta_refb(
-                &self,
-                a: &mut Vec<TA>,
-                la: &Layout<D>,
-                b: &Vec<TB>,
-                lb: &Layout<D>,
-            ) -> Result<()> {
-                self.op_muta_refb_func(a, la, b, lb, &mut $func)
-            }
+#[duplicate_item(
+     DeviceOpAPI             Op             func                    ;
+    [DeviceAddAssignAPI   ] [AddAssign   ] [|a, b| *a +=  b.clone()];
+    [DeviceSubAssignAPI   ] [SubAssign   ] [|a, b| *a -=  b.clone()];
+    [DeviceMulAssignAPI   ] [MulAssign   ] [|a, b| *a *=  b.clone()];
+    [DeviceDivAssignAPI   ] [DivAssign   ] [|a, b| *a /=  b.clone()];
+    [DeviceRemAssignAPI   ] [RemAssign   ] [|a, b| *a %=  b.clone()];
+    [DeviceBitOrAssignAPI ] [BitOrAssign ] [|a, b| *a |=  b.clone()];
+    [DeviceBitAndAssignAPI] [BitAndAssign] [|a, b| *a &=  b.clone()];
+    [DeviceBitXorAssignAPI] [BitXorAssign] [|a, b| *a ^=  b.clone()];
+    [DeviceShlAssignAPI   ] [ShlAssign   ] [|a, b| *a <<= b.clone()];
+    [DeviceShrAssignAPI   ] [ShrAssign   ] [|a, b| *a >>= b.clone()];
+)]
+impl<TA, TB, D> DeviceOpAPI<TA, TB, D> for DeviceCpuSerial
+where
+    TA: Clone + Op<TB>,
+    TB: Clone,
+    D: DimAPI,
+{
+    fn op_muta_refb(
+        &self,
+        a: &mut Vec<TA>,
+        la: &Layout<D>,
+        b: &Vec<TB>,
+        lb: &Layout<D>,
+    ) -> Result<()> {
+        self.op_muta_refb_func(a, la, b, lb, &mut func)
+    }
 
-            fn op_muta_numb(&self, a: &mut Vec<TA>, la: &Layout<D>, b: TB) -> Result<()> {
-                self.op_muta_numb_func(a, la, b, &mut $func)
-            }
-        }
-    };
+    fn op_muta_numb(&self, a: &mut Vec<TA>, la: &Layout<D>, b: TB) -> Result<()> {
+        self.op_muta_numb_func(a, la, b, &mut func)
+    }
 }
 
-#[rustfmt::skip]
-mod impl_op_muta_refb_assign {
-    use super::*;
-    use core::ops::*;
-    impl_op_muta_refb_assign!(DeviceAddAssignAPI   , AddAssign   , |a, b| *a +=  b.clone());
-    impl_op_muta_refb_assign!(DeviceSubAssignAPI   , SubAssign   , |a, b| *a -=  b.clone());
-    impl_op_muta_refb_assign!(DeviceMulAssignAPI   , MulAssign   , |a, b| *a *=  b.clone());
-    impl_op_muta_refb_assign!(DeviceDivAssignAPI   , DivAssign   , |a, b| *a /=  b.clone());
-    impl_op_muta_refb_assign!(DeviceRemAssignAPI   , RemAssign   , |a, b| *a %=  b.clone());
-    impl_op_muta_refb_assign!(DeviceBitOrAssignAPI , BitOrAssign , |a, b| *a |=  b.clone());
-    impl_op_muta_refb_assign!(DeviceBitAndAssignAPI, BitAndAssign, |a, b| *a &=  b.clone());
-    impl_op_muta_refb_assign!(DeviceBitXorAssignAPI, BitXorAssign, |a, b| *a ^=  b.clone());
-    impl_op_muta_refb_assign!(DeviceShlAssignAPI   , ShlAssign   , |a, b| *a <<= b.clone());
-    impl_op_muta_refb_assign!(DeviceShrAssignAPI   , ShrAssign   , |a, b| *a >>= b.clone());
+#[duplicate_item(
+     DeviceOpAPI               Op       func                               ;
+    [DeviceLConsumeAddAPI   ] [Add   ] [|a, b| *a = a.clone() +  b.clone()];
+    [DeviceLConsumeSubAPI   ] [Sub   ] [|a, b| *a = a.clone() -  b.clone()];
+    [DeviceLConsumeMulAPI   ] [Mul   ] [|a, b| *a = a.clone() *  b.clone()];
+    [DeviceLConsumeDivAPI   ] [Div   ] [|a, b| *a = a.clone() /  b.clone()];
+    [DeviceLConsumeRemAPI   ] [Rem   ] [|a, b| *a = a.clone() %  b.clone()];
+    [DeviceLConsumeBitOrAPI ] [BitOr ] [|a, b| *a = a.clone() |  b.clone()];
+    [DeviceLConsumeBitAndAPI] [BitAnd] [|a, b| *a = a.clone() &  b.clone()];
+    [DeviceLConsumeBitXorAPI] [BitXor] [|a, b| *a = a.clone() ^  b.clone()];
+    [DeviceLConsumeShlAPI   ] [Shl   ] [|a, b| *a = a.clone() << b.clone()];
+    [DeviceLConsumeShrAPI   ] [Shr   ] [|a, b| *a = a.clone() >> b.clone()];
+)]
+impl<TA, TB, D> DeviceOpAPI<TA, TB, D> for DeviceCpuSerial
+where
+    TA: Clone + Op<TB, Output = TA>,
+    TB: Clone,
+    D: DimAPI,
+{
+    fn op_muta_refb(
+        &self,
+        a: &mut Vec<TA>,
+        la: &Layout<D>,
+        b: &Vec<TB>,
+        lb: &Layout<D>,
+    ) -> Result<()> {
+        self.op_muta_refb_func(a, la, b, lb, &mut func)
+    }
+
+    fn op_muta_numb(&self, a: &mut Vec<TA>, la: &Layout<D>, b: TB) -> Result<()> {
+        self.op_muta_numb_func(a, la, b, &mut func)
+    }
 }
 
-macro_rules! impl_op_muta_refb_l_consume {
-    ($DeviceOpAPI:ident, $Op:ident, $func:expr) => {
-        impl<TA, TB, D> $DeviceOpAPI<TA, TB, D> for DeviceCpuSerial
-        where
-            TA: Clone + $Op<TB, Output = TA>,
-            TB: Clone,
-            D: DimAPI,
-        {
-            fn op_muta_refb(
-                &self,
-                a: &mut Vec<TA>,
-                la: &Layout<D>,
-                b: &Vec<TB>,
-                lb: &Layout<D>,
-            ) -> Result<()> {
-                self.op_muta_refb_func(a, la, b, lb, &mut $func)
-            }
+#[duplicate_item(
+     DeviceOpAPI               Op       func                               ;
+    [DeviceRConsumeAddAPI   ] [Add   ] [|a, b| *a = b.clone() +  a.clone()];
+    [DeviceRConsumeSubAPI   ] [Sub   ] [|a, b| *a = b.clone() -  a.clone()];
+    [DeviceRConsumeMulAPI   ] [Mul   ] [|a, b| *a = b.clone() *  a.clone()];
+    [DeviceRConsumeDivAPI   ] [Div   ] [|a, b| *a = b.clone() /  a.clone()];
+    [DeviceRConsumeRemAPI   ] [Rem   ] [|a, b| *a = b.clone() %  a.clone()];
+    [DeviceRConsumeBitOrAPI ] [BitOr ] [|a, b| *a = b.clone() |  a.clone()];
+    [DeviceRConsumeBitAndAPI] [BitAnd] [|a, b| *a = b.clone() &  a.clone()];
+    [DeviceRConsumeBitXorAPI] [BitXor] [|a, b| *a = b.clone() ^  a.clone()];
+    [DeviceRConsumeShlAPI   ] [Shl   ] [|a, b| *a = b.clone() << a.clone()];
+    [DeviceRConsumeShrAPI   ] [Shr   ] [|a, b| *a = b.clone() >> a.clone()];
+)]
+impl<TA, TB, D> DeviceOpAPI<TA, TB, D> for DeviceCpuSerial
+where
+    TA: Clone + Op<TB, Output = TB>,
+    TB: Clone,
+    D: DimAPI,
+{
+    fn op_muta_refb(
+        &self,
+        b: &mut Vec<TB>,
+        lb: &Layout<D>,
+        a: &Vec<TA>,
+        la: &Layout<D>,
+    ) -> Result<()> {
+        self.op_muta_refb_func(b, lb, a, la, &mut func)
+    }
 
-            fn op_muta_numb(&self, a: &mut Vec<TA>, la: &Layout<D>, b: TB) -> Result<()> {
-                self.op_muta_numb_func(a, la, b, &mut $func)
-            }
-        }
-    };
+    fn op_muta_numb(&self, b: &mut Vec<TB>, lb: &Layout<D>, a: TA) -> Result<()> {
+        self.op_muta_numb_func(b, lb, a, &mut func)
+    }
 }
 
-#[rustfmt::skip]
-mod impl_op_muta_refb_l_consume {
-    use super::*;
-    use core::ops::*;
-    impl_op_muta_refb_l_consume!(DeviceLConsumeAddAPI   , Add   , |a, b| *a = a.clone() +  b.clone());
-    impl_op_muta_refb_l_consume!(DeviceLConsumeSubAPI   , Sub   , |a, b| *a = a.clone() -  b.clone());
-    impl_op_muta_refb_l_consume!(DeviceLConsumeMulAPI   , Mul   , |a, b| *a = a.clone() *  b.clone());
-    impl_op_muta_refb_l_consume!(DeviceLConsumeDivAPI   , Div   , |a, b| *a = a.clone() /  b.clone());
-    impl_op_muta_refb_l_consume!(DeviceLConsumeRemAPI   , Rem   , |a, b| *a = a.clone() %  b.clone());
-    impl_op_muta_refb_l_consume!(DeviceLConsumeBitOrAPI , BitOr , |a, b| *a = a.clone() |  b.clone());
-    impl_op_muta_refb_l_consume!(DeviceLConsumeBitAndAPI, BitAnd, |a, b| *a = a.clone() &  b.clone());
-    impl_op_muta_refb_l_consume!(DeviceLConsumeBitXorAPI, BitXor, |a, b| *a = a.clone() ^  b.clone());
-    impl_op_muta_refb_l_consume!(DeviceLConsumeShlAPI   , Shl   , |a, b| *a = a.clone() << b.clone());
-    impl_op_muta_refb_l_consume!(DeviceLConsumeShrAPI   , Shr   , |a, b| *a = a.clone() >> b.clone());
-}
+#[duplicate_item(
+     DeviceOpAPI    Op    func                     func_inplace        ;
+    [DeviceNegAPI] [Neg] [|a, b| *a = -b.clone()] [|a| *a = -a.clone()];
+    [DeviceNotAPI] [Not] [|a, b| *a = !b.clone()] [|a| *a = !a.clone()];
+)]
+impl<TA, TB, D> DeviceOpAPI<TA, TB, D> for DeviceCpuSerial
+where
+    TA: Clone,
+    TB: Clone,
+    D: DimAPI,
+{
+    fn op_muta_refb(
+        &self,
+        a: &mut Vec<TA>,
+        la: &Layout<D>,
+        b: &Vec<TB>,
+        lb: &Layout<D>,
+    ) -> Result<()>
+    where
+        TB: Op<Output = TA>,
+    {
+        self.op_muta_refb_func(a, la, b, lb, &mut func)
+    }
 
-macro_rules! impl_op_muta_refb_r_consume {
-    ($DeviceOpAPI:ident, $Op:ident, $func:expr) => {
-        impl<TA, TB, D> $DeviceOpAPI<TA, TB, D> for DeviceCpuSerial
-        where
-            TA: Clone + $Op<TB, Output = TB>,
-            TB: Clone,
-            D: DimAPI,
-        {
-            fn op_muta_refb(
-                &self,
-                b: &mut Vec<TB>,
-                lb: &Layout<D>,
-                a: &Vec<TA>,
-                la: &Layout<D>,
-            ) -> Result<()> {
-                self.op_muta_refb_func(b, lb, a, la, &mut $func)
-            }
-
-            fn op_muta_numb(&self, b: &mut Vec<TB>, lb: &Layout<D>, a: TA) -> Result<()> {
-                self.op_muta_numb_func(b, lb, a, &mut $func)
-            }
-        }
-    };
-}
-
-#[rustfmt::skip]
-mod impl_op_muta_refb_r_consume {
-    use super::*;
-    use core::ops::*;
-    impl_op_muta_refb_r_consume!(DeviceRConsumeAddAPI   , Add   , |a, b| *a = b.clone() +  a.clone());
-    impl_op_muta_refb_r_consume!(DeviceRConsumeSubAPI   , Sub   , |a, b| *a = b.clone() -  a.clone());
-    impl_op_muta_refb_r_consume!(DeviceRConsumeMulAPI   , Mul   , |a, b| *a = b.clone() *  a.clone());
-    impl_op_muta_refb_r_consume!(DeviceRConsumeDivAPI   , Div   , |a, b| *a = b.clone() /  a.clone());
-    impl_op_muta_refb_r_consume!(DeviceRConsumeRemAPI   , Rem   , |a, b| *a = b.clone() %  a.clone());
-    impl_op_muta_refb_r_consume!(DeviceRConsumeBitOrAPI , BitOr , |a, b| *a = b.clone() |  a.clone());
-    impl_op_muta_refb_r_consume!(DeviceRConsumeBitAndAPI, BitAnd, |a, b| *a = b.clone() &  a.clone());
-    impl_op_muta_refb_r_consume!(DeviceRConsumeBitXorAPI, BitXor, |a, b| *a = b.clone() ^  a.clone());
-    impl_op_muta_refb_r_consume!(DeviceRConsumeShlAPI   , Shl   , |a, b| *a = b.clone() << a.clone());
-    impl_op_muta_refb_r_consume!(DeviceRConsumeShrAPI   , Shr   , |a, b| *a = b.clone() >> a.clone());
-}
-
-macro_rules! impl_op_muta_refb_unary {
-    ($DeviceOpAPI:ident, $Op:ident, $func:expr, $func_inplace:expr) => {
-        impl<TA, TB, D> $DeviceOpAPI<TA, TB, D> for DeviceCpuSerial
-        where
-            TA: Clone,
-            TB: Clone,
-            D: DimAPI,
-        {
-            fn op_muta_refb(
-                &self,
-                a: &mut Vec<TA>,
-                la: &Layout<D>,
-                b: &Vec<TB>,
-                lb: &Layout<D>,
-            ) -> Result<()>
-            where
-                TB: $Op<Output = TA>,
-            {
-                self.op_muta_refb_func(a, la, b, lb, &mut $func)
-            }
-
-            fn op_muta(&self, a: &mut Vec<TA>, la: &Layout<D>) -> Result<()>
-            where
-                TA: $Op<Output = TA>,
-            {
-                self.op_muta_func(a, la, &mut $func_inplace)
-            }
-        }
-    };
-}
-
-#[rustfmt::skip]
-mod impl_op_muta_refb_unary {
-    use super::*;
-    use core::ops::*;
-    impl_op_muta_refb_unary!(DeviceNegAPI, Neg, |a, b| *a = -b.clone(), |a| *a = -a.clone());
-    impl_op_muta_refb_unary!(DeviceNotAPI, Not, |a, b| *a = !b.clone(), |a| *a = !a.clone());
+    fn op_muta(&self, a: &mut Vec<TA>, la: &Layout<D>) -> Result<()>
+    where
+        TA: Op<Output = TA>,
+    {
+        self.op_muta_func(a, la, &mut func_inplace)
+    }
 }

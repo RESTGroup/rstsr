@@ -12,8 +12,8 @@ const PARALLEL_SWITCH: usize = 64;
 
 /* #region gemm */
 
-#[duplicate::duplicate_item(
-    ty             ty_faer                     fn_name        ;
+#[duplicate_item(
+     ty             ty_faer                     fn_name       ;
     [f32]          [f32]                       [gemm_faer_f32];
     [f64]          [f64]                       [gemm_faer_f64];
     [Complex<f32>] [faer::complex_native::c32] [gemm_faer_c32];
@@ -83,8 +83,8 @@ where {
 
 /* #region syrk */
 
-#[duplicate::duplicate_item(
-    ty             ty_faer                     fn_name        ;
+#[duplicate_item(
+     ty             ty_faer                     fn_name       ;
     [f32]          [f32]                       [syrk_faer_f32];
     [f64]          [f64]                       [syrk_faer_f64];
     [Complex<f32>] [faer::complex_native::c32] [syrk_faer_c32];
@@ -156,8 +156,8 @@ pub fn fn_name(
     return Ok(());
 }
 
-#[duplicate::duplicate_item(
-    ty             fn_name                   gemm_name       syrk_name      ;
+#[duplicate_item(
+     ty             fn_name                   gemm_name       syrk_name     ;
     [f32]          [gemm_with_syrk_faer_f32] [gemm_faer_f32] [syrk_faer_f32];
     [f64]          [gemm_with_syrk_faer_f64] [gemm_faer_f64] [syrk_faer_f64];
     [Complex<f32>] [gemm_with_syrk_faer_c32] [gemm_faer_c32] [syrk_faer_c32];
