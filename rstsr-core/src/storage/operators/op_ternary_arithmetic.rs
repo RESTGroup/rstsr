@@ -1,4 +1,5 @@
 use crate::prelude_dev::*;
+use core::ops::*;
 
 #[duplicate_item(
      DeviceOpAPI       Op     ;
