@@ -167,4 +167,23 @@ mod tests {
         let b = a_tril.unpack_tril(FlagSymm::Ah);
         println!("{:20.5}", b);
     }
+
+    #[test]
+    fn test_correctness() {
+        let a = {
+            let a = arange((16., &DeviceCpuSerial));
+            let storage_a = a.into_raw_parts().0;
+            Tensor::new(storage_a, [4, 4].c())
+        };
+        println!("{:}", a);
+
+        let a_tril1 = a.pack_tril();
+        println!("{:}", a_tril1);
+
+        let a = a.to_contig(FlagOrder::F);
+        let a_tril2 = a.pack_tril();
+        println!("{:}", a_tril2);
+
+        assert!((&a_tril1 - &a_tril2).l2_norm_all() < 1e-6);
+    }
 }

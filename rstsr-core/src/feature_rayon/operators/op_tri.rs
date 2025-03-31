@@ -42,7 +42,6 @@ where
 
     // contiguous flags
     let c_contig = la_inner.c_contig() && lb_inner.c_contig();
-    let f_contig = la_inner.f_contig() && lb_inner.f_contig();
 
     // pass mutable reference in parallel region
     let thr_a = AtomicPtr::new(a.as_mut_ptr());
@@ -50,22 +49,15 @@ where
 
     let task = || -> Result<()> {
         match uplo {
-            FlagUpLo::U => match (c_contig, f_contig) {
-                (true, _) => {
+            FlagUpLo::U => match c_contig {
+                true => {
                     la_rest_iter.zip(lb_rest_iter).for_each(|(offset_a, offset_b)| {
                         let ptr_a = thr_a.load(Ordering::Relaxed);
                         let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
                         inner_pack_triu_c_contig(slice_a, offset_a, b, offset_b, n);
                     });
                 },
-                (_, true) => {
-                    la_rest_iter.zip(lb_rest_iter).for_each(|(offset_a, offset_b)| {
-                        let ptr_a = thr_a.load(Ordering::Relaxed);
-                        let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
-                        inner_pack_tril_c_contig(slice_a, offset_a, b, offset_b, n);
-                    });
-                },
-                _ => {
+                false => {
                     la_rest_iter.zip(lb_rest_iter).try_for_each(
                         |(offset_a, offset_b)| -> Result<()> {
                             let mut la_inner = la_inner.to_dim::<Ix1>()?;
@@ -82,22 +74,15 @@ where
                     )?;
                 },
             },
-            FlagUpLo::L => match (c_contig, f_contig) {
-                (true, _) => {
+            FlagUpLo::L => match c_contig {
+                true => {
                     la_rest_iter.zip(lb_rest_iter).for_each(|(offset_a, offset_b)| {
                         let ptr_a = thr_a.load(Ordering::Relaxed);
                         let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
                         inner_pack_tril_c_contig(slice_a, offset_a, b, offset_b, n);
                     });
                 },
-                (_, true) => {
-                    la_rest_iter.zip(lb_rest_iter).for_each(|(offset_a, offset_b)| {
-                        let ptr_a = thr_a.load(Ordering::Relaxed);
-                        let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
-                        inner_pack_triu_c_contig(slice_a, offset_a, b, offset_b, n);
-                    });
-                },
-                _ => {
+                false => {
                     la_rest_iter.zip(lb_rest_iter).try_for_each(
                         |(offset_a, offset_b)| -> Result<()> {
                             let mut la_inner = la_inner.to_dim::<Ix1>()?;
@@ -163,7 +148,6 @@ where
 
     // contiguous flags
     let c_contig = la_inner.c_contig() && lb_inner.c_contig();
-    let f_contig = la_inner.f_contig() && lb_inner.f_contig();
 
     // pass mutable reference in parallel region
     let thr_a = AtomicPtr::new(a.as_mut_ptr());
@@ -171,22 +155,15 @@ where
 
     let task = || -> Result<()> {
         match uplo {
-            FlagUpLo::U => match (c_contig, f_contig) {
-                (true, _) => {
+            FlagUpLo::U => match c_contig {
+                true => {
                     la_rest_iter.zip(lb_rest_iter).for_each(|(offset_a, offset_b)| {
                         let ptr_a = thr_a.load(Ordering::Relaxed);
                         let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
                         inner_unpack_triu_c_contig(slice_a, offset_a, b, offset_b, n, symm);
                     });
                 },
-                (_, true) => {
-                    la_rest_iter.zip(lb_rest_iter).for_each(|(offset_a, offset_b)| {
-                        let ptr_a = thr_a.load(Ordering::Relaxed);
-                        let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
-                        inner_unpack_tril_c_contig(slice_a, offset_a, b, offset_b, n, symm);
-                    });
-                },
-                _ => {
+                false => {
                     la_rest_iter.zip(lb_rest_iter).try_for_each(
                         |(offset_a, offset_b)| -> Result<()> {
                             let mut la_inner = la_inner.to_dim::<Ix2>()?;
@@ -203,22 +180,15 @@ where
                     )?;
                 },
             },
-            FlagUpLo::L => match (c_contig, f_contig) {
-                (true, _) => {
+            FlagUpLo::L => match c_contig {
+                true => {
                     la_rest_iter.zip(lb_rest_iter).for_each(|(offset_a, offset_b)| {
                         let ptr_a = thr_a.load(Ordering::Relaxed);
                         let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
                         inner_unpack_tril_c_contig(slice_a, offset_a, b, offset_b, n, symm);
                     });
                 },
-                (_, true) => {
-                    la_rest_iter.zip(lb_rest_iter).for_each(|(offset_a, offset_b)| {
-                        let ptr_a = thr_a.load(Ordering::Relaxed);
-                        let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
-                        inner_unpack_triu_c_contig(slice_a, offset_a, b, offset_b, n, symm);
-                    });
-                },
-                _ => {
+                false => {
                     la_rest_iter.zip(lb_rest_iter).try_for_each(
                         |(offset_a, offset_b)| -> Result<()> {
                             let mut la_inner = la_inner.to_dim::<Ix2>()?;

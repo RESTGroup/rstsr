@@ -110,21 +110,15 @@ where
 
     // contiguous flags
     let c_contig = la_inner.c_contig() && lb_inner.c_contig();
-    let f_contig = la_inner.f_contig() && lb_inner.f_contig();
 
     match uplo {
-        FlagUpLo::U => match (c_contig, f_contig) {
-            (true, _) => {
+        FlagUpLo::U => match c_contig {
+            true => {
                 for (offset_a, offset_b) in izip!(la_rest_iter, lb_rest_iter) {
                     inner_pack_triu_c_contig(a, offset_a, b, offset_b, n);
                 }
             },
-            (_, true) => {
-                for (offset_a, offset_b) in izip!(la_rest_iter, lb_rest_iter) {
-                    inner_pack_tril_c_contig(a, offset_a, b, offset_b, n);
-                }
-            },
-            _ => {
+            false => {
                 let mut la_inner = la_inner.to_dim::<Ix1>()?;
                 let mut lb_inner = lb_inner.to_dim::<Ix2>()?;
                 for (offset_a, offset_b) in izip!(la_rest_iter, lb_rest_iter) {
@@ -136,18 +130,13 @@ where
                 }
             },
         },
-        FlagUpLo::L => match (c_contig, f_contig) {
-            (true, _) => {
+        FlagUpLo::L => match c_contig {
+            true => {
                 for (offset_a, offset_b) in izip!(la_rest_iter, lb_rest_iter) {
                     inner_pack_tril_c_contig(a, offset_a, b, offset_b, n);
                 }
             },
-            (_, true) => {
-                for (offset_a, offset_b) in izip!(la_rest_iter, lb_rest_iter) {
-                    inner_pack_triu_c_contig(a, offset_a, b, offset_b, n);
-                }
-            },
-            _ => {
+            false => {
                 let mut la_inner = la_inner.to_dim::<Ix1>()?;
                 let mut lb_inner = lb_inner.to_dim::<Ix2>()?;
                 for (offset_a, offset_b) in izip!(la_rest_iter, lb_rest_iter) {
@@ -494,21 +483,15 @@ where
 
     // contiguous flags
     let c_contig = la_inner.c_contig() && lb_inner.c_contig();
-    let f_contig = la_inner.f_contig() && lb_inner.f_contig();
 
     match uplo {
-        FlagUpLo::U => match (c_contig, f_contig) {
-            (true, _) => {
+        FlagUpLo::U => match c_contig {
+            true => {
                 for (offset_a, offset_b) in izip!(la_rest_iter, lb_rest_iter) {
                     inner_unpack_triu_c_contig(a, offset_a, b, offset_b, n, symm);
                 }
             },
-            (_, true) => {
-                for (offset_a, offset_b) in izip!(la_rest_iter, lb_rest_iter) {
-                    inner_unpack_tril_c_contig(a, offset_a, b, offset_b, n, symm);
-                }
-            },
-            _ => {
+            false => {
                 let mut la_inner = la_inner.to_dim::<Ix2>()?;
                 let mut lb_inner = lb_inner.to_dim::<Ix1>()?;
                 for (offset_a, offset_b) in izip!(la_rest_iter, lb_rest_iter) {
@@ -520,18 +503,13 @@ where
                 }
             },
         },
-        FlagUpLo::L => match (c_contig, f_contig) {
-            (true, _) => {
+        FlagUpLo::L => match c_contig {
+            true => {
                 for (offset_a, offset_b) in izip!(la_rest_iter, lb_rest_iter) {
                     inner_unpack_tril_c_contig(a, offset_a, b, offset_b, n, symm);
                 }
             },
-            (_, true) => {
-                for (offset_a, offset_b) in izip!(la_rest_iter, lb_rest_iter) {
-                    inner_unpack_triu_c_contig(a, offset_a, b, offset_b, n, symm);
-                }
-            },
-            _ => {
+            false => {
                 let mut la_inner = la_inner.to_dim::<Ix2>()?;
                 let mut lb_inner = lb_inner.to_dim::<Ix1>()?;
                 for (offset_a, offset_b) in izip!(la_rest_iter, lb_rest_iter) {
