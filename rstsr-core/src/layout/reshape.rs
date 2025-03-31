@@ -213,79 +213,179 @@ mod test {
     use super::*;
 
     #[test]
+    fn test_playground() {
+        #[cfg(not(feature = "col_major"))]
+        {
+            let a1 = linspace((1.0, 24.0, 24));
+            let a2 = a1.to_shape([2, 3, 4]);
+            println!("{:?}", a2);
+            println!("{:?}", core::ptr::eq(a1.as_ptr(), a2.as_ptr()));
+
+            let v = layout_reshapeable(a1.layout(), &vec![2, 3, 4]).unwrap();
+            println!("{:?}", v);
+
+            let b1 = linspace((1.0, 24.0, 24)).into_layout(vec![2, 3, 4].f());
+            let b2 = b1.to_shape([24]);
+            println!("{:?}", b2);
+            println!("{:?}", core::ptr::eq(b1.as_ptr(), b2.as_ptr()));
+
+            let v = layout_reshapeable(b1.layout(), &vec![24]).unwrap();
+            println!("{:?}", v);
+        }
+        #[cfg(feature = "col_major")]
+        {
+            let a1 = linspace((1.0, 24.0, 24));
+            let a2 = a1.to_shape([2, 3, 4]);
+            println!("{:?}", a2);
+            println!("{:?}", core::ptr::eq(a1.as_ptr(), a2.as_ptr()));
+            println!("a2[:, :, 0] =\n{:}", a2.i((.., .., 0)));
+            println!("a2[:, :, 1] =\n{:}", a2.i((.., .., 1)));
+            println!("a2[:, :, 2] =\n{:}", a2.i((.., .., 2)));
+            println!("a2[:, :, 3] =\n{:}", a2.i((.., .., 3)));
+
+            let v = layout_reshapeable(a1.layout(), &vec![2, 3, 4]).unwrap();
+            println!("{:?}", v);
+
+            let b1 = linspace((1.0, 24.0, 24)).into_layout(vec![2, 3, 4].f());
+            let b2 = b1.to_shape([24]);
+            println!("{:?}", b2);
+            println!("{:?}", core::ptr::eq(b1.as_ptr(), b2.as_ptr()));
+
+            let v = layout_reshapeable(b1.layout(), &vec![24]).unwrap();
+            println!("{:?}", v);
+        }
+    }
+
+    #[test]
     fn test_contig() {
-        let layout_in = vec![2, 3, 4].c();
-        let layout_out = layout_reshapeable(&layout_in, &vec![2, 3, 4]).unwrap();
-        assert_eq!(layout_out.unwrap(), vec![2, 3, 4].c());
+        #[cfg(not(feature = "col_major"))]
+        {
+            let layout_in = vec![2, 3, 4].c();
+            let layout_out = layout_reshapeable(&layout_in, &vec![2, 3, 4]).unwrap();
+            assert_eq!(layout_out.unwrap(), vec![2, 3, 4].c());
 
-        let layout_out = layout_reshapeable(&layout_in, &vec![3, 2, 4]).unwrap();
-        assert_eq!(layout_out.unwrap(), vec![3, 2, 4].c());
+            let layout_out = layout_reshapeable(&layout_in, &vec![3, 2, 4]).unwrap();
+            assert_eq!(layout_out.unwrap(), vec![3, 2, 4].c());
 
-        let layout_out = layout_reshapeable(&layout_in, &vec![1, 4, 1, 6]).unwrap();
-        assert_eq!(layout_out.unwrap(), vec![1, 4, 1, 6].c());
+            let layout_out = layout_reshapeable(&layout_in, &vec![1, 4, 1, 6]).unwrap();
+            assert_eq!(layout_out.unwrap(), vec![1, 4, 1, 6].c());
+        }
+        #[cfg(feature = "col_major")]
+        {
+            let layout_in = vec![2, 3, 4].f();
+            let layout_out = layout_reshapeable(&layout_in, &vec![2, 3, 4]).unwrap();
+            assert_eq!(layout_out.unwrap(), vec![2, 3, 4].f());
+
+            let layout_out = layout_reshapeable(&layout_in, &vec![3, 2, 4]).unwrap();
+            assert_eq!(layout_out.unwrap(), vec![3, 2, 4].f());
+
+            let layout_out = layout_reshapeable(&layout_in, &vec![1, 4, 1, 6]).unwrap();
+            assert_eq!(layout_out.unwrap(), vec![1, 4, 1, 6].f());
+        }
     }
 
     #[test]
     fn test_partial_contig() {
-        // np.zeros(12, 15, 18); a[3:, :, ::3]
-        // this case is actually contiguous, but with stride 3
-        let layout_in = Layout::new(vec![9, 15, 6], vec![270, 18, 3], 810).unwrap();
+        #[cfg(not(feature = "col_major"))]
+        {
+            // np.zeros(12, 15, 18); a[3:, :, ::3]
+            // this case is actually contiguous, but with stride 3
+            let layout_in = Layout::new(vec![9, 15, 6], vec![270, 18, 3], 810).unwrap();
 
-        let layout_out = layout_reshapeable(&layout_in, &vec![15, 9, 2, 3]).unwrap();
-        assert_eq!(layout_out.as_ref().unwrap().shape(), &vec![15, 9, 2, 3]);
-        assert_eq!(layout_out.as_ref().unwrap().stride(), &vec![162, 18, 9, 3]);
-        assert_eq!(layout_out.as_ref().unwrap().offset(), layout_in.offset());
+            let layout_out = layout_reshapeable(&layout_in, &vec![15, 9, 2, 3]).unwrap();
+            assert_eq!(layout_out.as_ref().unwrap().shape(), &vec![15, 9, 2, 3]);
+            assert_eq!(layout_out.as_ref().unwrap().stride(), &vec![162, 18, 9, 3]);
+            assert_eq!(layout_out.as_ref().unwrap().offset(), layout_in.offset());
 
-        let layout_out = layout_reshapeable(&layout_in, &vec![10, 27, 3]).unwrap();
-        assert_eq!(layout_out.as_ref().unwrap().shape(), &vec![10, 27, 3]);
-        assert_eq!(layout_out.as_ref().unwrap().stride(), &vec![243, 9, 3]);
-        assert_eq!(layout_out.as_ref().unwrap().offset(), layout_in.offset());
+            let layout_out = layout_reshapeable(&layout_in, &vec![10, 27, 3]).unwrap();
+            assert_eq!(layout_out.as_ref().unwrap().shape(), &vec![10, 27, 3]);
+            assert_eq!(layout_out.as_ref().unwrap().stride(), &vec![243, 9, 3]);
+            assert_eq!(layout_out.as_ref().unwrap().offset(), layout_in.offset());
 
-        // insert some new axes
-        let layout_out = layout_reshapeable(&layout_in, &vec![1, 10, 1, 27, 3]).unwrap();
-        assert_eq!(layout_out.as_ref().unwrap().shape(), &vec![1, 10, 1, 27, 3]);
-        // strides follows c-contiguous, but zero is also valid for broadcast
-        assert_eq!(layout_out.as_ref().unwrap().stride(), &vec![2430, 243, 243, 9, 3]);
+            // insert some new axes
+            let layout_out = layout_reshapeable(&layout_in, &vec![1, 10, 1, 27, 3]).unwrap();
+            assert_eq!(layout_out.as_ref().unwrap().shape(), &vec![1, 10, 1, 27, 3]);
+            // strides follows c-contiguous, but zero is also valid for broadcast
+            assert_eq!(layout_out.as_ref().unwrap().stride(), &vec![2430, 243, 243, 9, 3]);
 
-        // np.zeros(12, 15, 18); a[3:, :, 3:15:2]
-        // this case is not contiguous in last two dimensions
-        let layout_in = Layout::new(vec![9, 15, 6], vec![270, 18, 2], 813).unwrap();
+            // np.zeros(12, 15, 18); a[3:, :, 3:15:2]
+            // this case is not contiguous in last two dimensions
+            let layout_in = Layout::new(vec![9, 15, 6], vec![270, 18, 2], 813).unwrap();
 
-        let layout_out = layout_reshapeable(&layout_in, &vec![15, 9, 2, 3]).unwrap();
-        assert_eq!(layout_out.as_ref().unwrap().shape(), &vec![15, 9, 2, 3]);
-        assert_eq!(layout_out.as_ref().unwrap().stride(), &vec![162, 18, 6, 2]);
-        assert_eq!(layout_out.as_ref().unwrap().offset(), layout_in.offset());
+            let layout_out = layout_reshapeable(&layout_in, &vec![15, 9, 2, 3]).unwrap();
+            assert_eq!(layout_out.as_ref().unwrap().shape(), &vec![15, 9, 2, 3]);
+            assert_eq!(layout_out.as_ref().unwrap().stride(), &vec![162, 18, 6, 2]);
+            assert_eq!(layout_out.as_ref().unwrap().offset(), layout_in.offset());
 
-        let layout_out = layout_reshapeable(&layout_in, &vec![10, 27, 3]).unwrap();
-        assert!(layout_out.is_none());
+            let layout_out = layout_reshapeable(&layout_in, &vec![10, 27, 3]).unwrap();
+            assert!(layout_out.is_none());
+        }
+        #[cfg(feature = "col_major")]
+        {
+            let layout_in = Layout::new(vec![6, 15, 9], vec![3, 18, 270], 810).unwrap();
+
+            let layout_out = layout_reshapeable(&layout_in, &vec![3, 2, 9, 15]).unwrap();
+            assert_eq!(layout_out.as_ref().unwrap().shape(), &vec![3, 2, 9, 15]);
+            assert_eq!(layout_out.as_ref().unwrap().stride(), &vec![3, 9, 18, 162]);
+            assert_eq!(layout_out.as_ref().unwrap().offset(), layout_in.offset());
+
+            let layout_out = layout_reshapeable(&layout_in, &vec![3, 27, 10]).unwrap();
+            assert_eq!(layout_out.as_ref().unwrap().shape(), &vec![3, 27, 10]);
+            assert_eq!(layout_out.as_ref().unwrap().stride(), &vec![3, 9, 243]);
+            assert_eq!(layout_out.as_ref().unwrap().offset(), layout_in.offset());
+
+            // insert some new axes
+            let layout_out = layout_reshapeable(&layout_in, &vec![3, 27, 1, 10, 1]).unwrap();
+            assert_eq!(layout_out.as_ref().unwrap().shape(), &vec![3, 27, 1, 10, 1]);
+            // strides follows f-contiguous, but zero is also valid for broadcast
+            assert_eq!(layout_out.as_ref().unwrap().stride(), &vec![3, 9, 243, 243, 2430]);
+
+            // np.zeros(12, 15, 18); a[3:, :, 3:15:2]
+            // this case is not contiguous in last two dimensions
+            let layout_in = Layout::new(vec![6, 15, 9], vec![2, 18, 270], 813).unwrap();
+
+            let layout_out = layout_reshapeable(&layout_in, &vec![3, 2, 9, 15]).unwrap();
+            assert_eq!(layout_out.as_ref().unwrap().shape(), &vec![3, 2, 9, 15]);
+            assert_eq!(layout_out.as_ref().unwrap().stride(), &vec![2, 6, 18, 162]);
+            assert_eq!(layout_out.as_ref().unwrap().offset(), layout_in.offset());
+
+            let layout_out = layout_reshapeable(&layout_in, &vec![10, 27, 3]).unwrap();
+            assert!(layout_out.is_none());
+        }
     }
 
     #[test]
     fn test_minus_stride() {
-        // np.zeros(12, 15, 18); a[3:, ::-1, ::-3]
-        // this case should be seen contiguous in last two dimensions
-        let layout_in = Layout::new(vec![9, 15, 6], vec![270, -18, -3], 1079).unwrap();
+        #[cfg(not(feature = "col_major"))]
+        {
+            // np.zeros(12, 15, 18); a[3:, ::-1, ::-3]
+            // this case should be seen contiguous in last two dimensions
+            let layout_in = Layout::new(vec![9, 15, 6], vec![270, -18, -3], 1079).unwrap();
 
-        let layout_out = layout_reshapeable(&layout_in, &vec![15, 9, 2, 3]).unwrap();
-        assert!(layout_out.is_none());
+            let layout_out = layout_reshapeable(&layout_in, &vec![15, 9, 2, 3]).unwrap();
+            assert!(layout_out.is_none());
 
-        let layout_out = layout_reshapeable(&layout_in, &vec![3, 3, 10, 9]).unwrap();
-        assert_eq!(layout_out.as_ref().unwrap().shape(), &vec![3, 3, 10, 9]);
-        assert_eq!(layout_out.as_ref().unwrap().stride(), &vec![810, 270, -27, -3]);
+            let layout_out = layout_reshapeable(&layout_in, &vec![3, 3, 10, 9]).unwrap();
+            assert_eq!(layout_out.as_ref().unwrap().shape(), &vec![3, 3, 10, 9]);
+            assert_eq!(layout_out.as_ref().unwrap().stride(), &vec![810, 270, -27, -3]);
+        }
     }
 
     #[test]
     fn test_broadcast_reshape() {
-        // a = np.zeros(12, 15, 18);
-        // b = np.broadcast_to(a[:, None], (12, 16, 15, 18))
-        let layout_in =
-            unsafe { Layout::new_unchecked(vec![12, 16, 15, 18], vec![270, 0, 18, 1], 0) };
+        #[cfg(not(feature = "col_major"))]
+        {
+            // a = np.zeros(12, 15, 18);
+            // b = np.broadcast_to(a[:, None], (12, 16, 15, 18))
+            let layout_in =
+                unsafe { Layout::new_unchecked(vec![12, 16, 15, 18], vec![270, 0, 18, 1], 0) };
 
-        let layout_out = layout_reshapeable(&layout_in, &vec![4, 3, 4, 4, 9, 1, 30]).unwrap();
-        assert_eq!(layout_out.as_ref().unwrap().shape(), &vec![4, 3, 4, 4, 9, 1, 30]);
-        assert_eq!(layout_out.as_ref().unwrap().stride(), &vec![810, 270, 0, 0, 30, 30, 1]);
+            let layout_out = layout_reshapeable(&layout_in, &vec![4, 3, 4, 4, 9, 1, 30]).unwrap();
+            assert_eq!(layout_out.as_ref().unwrap().shape(), &vec![4, 3, 4, 4, 9, 1, 30]);
+            assert_eq!(layout_out.as_ref().unwrap().stride(), &vec![810, 270, 0, 0, 30, 30, 1]);
 
-        let layout_out = layout_reshapeable(&layout_in, &vec![16, 12, 15, 18]).unwrap();
-        assert!(layout_out.is_none());
+            let layout_out = layout_reshapeable(&layout_in, &vec![16, 12, 15, 18]).unwrap();
+            assert!(layout_out.is_none());
+        }
     }
 }

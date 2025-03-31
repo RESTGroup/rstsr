@@ -289,20 +289,23 @@ mod test {
         let b = linspace((0.0, 14.0, 15, &device));
         println!("{:}", &a % &b);
 
-        let a = linspace((0.0, 2.0, 3, &device));
-        let b = linspace((0.0, 29.0, 30, &device)).into_shape_assume_contig([2, 3, 5]);
-        println!("{:}", &a % &b);
+        #[cfg(not(feature = "col_major"))]
+        {
+            let a = linspace((0.0, 2.0, 3, &device));
+            let b = linspace((0.0, 29.0, 30, &device)).into_shape_assume_contig([2, 3, 5]);
+            println!("{:}", &a % &b);
 
-        let a = linspace((0.0, 29.0, 30, &device)).into_shape_assume_contig([2, 3, 5]);
-        let b = linspace((0.0, 4.0, 5, &device));
-        println!("{:}", &a % &b);
+            let a = linspace((0.0, 29.0, 30, &device)).into_shape_assume_contig([2, 3, 5]);
+            let b = linspace((0.0, 4.0, 5, &device));
+            println!("{:}", &a % &b);
 
-        let a = linspace((0.0, 14.0, 15, &device)).into_shape_assume_contig([5, 3]);
-        let b = linspace((0.0, 29.0, 30, &device)).into_shape_assume_contig([2, 3, 5]);
-        println!("{:}", &a % &b);
+            let a = linspace((0.0, 14.0, 15, &device)).into_shape_assume_contig([5, 3]);
+            let b = linspace((0.0, 29.0, 30, &device)).into_shape_assume_contig([2, 3, 5]);
+            println!("{:}", &a % &b);
 
-        let a = linspace((0.0, 29.0, 30, &device)).into_shape_assume_contig([2, 3, 5]);
-        let b = linspace((0.0, 14.0, 15, &device)).into_shape_assume_contig([5, 3]);
-        println!("{:}", &a % &b);
+            let a = linspace((0.0, 29.0, 30, &device)).into_shape_assume_contig([2, 3, 5]);
+            let b = linspace((0.0, 14.0, 15, &device)).into_shape_assume_contig([5, 3]);
+            println!("{:}", &a % &b);
+        }
     }
 }

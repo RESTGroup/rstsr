@@ -6,6 +6,8 @@ Layout manuplication for matmul and other linalg operations
 
 We refer [Python array API](https://data-apis.org/array-api/2023.12/specification/generated/array_api.matmul.html) for more information.
 
+Please note that the following rule only applies to row-major.
+
 | Id | A | B | C |
 |----|---|---|---|
 | 1. | `        N` | `        N` | `         ` |
@@ -15,6 +17,8 @@ We refer [Python array API](https://data-apis.org/array-api/2023.12/specificatio
 | 5. | `     M, K` | `..., K, N` | `..., M, N` |
 | 6. | `..., M, K` | `     K, N` | `..., M, N` |
 | 7. | `..., M, K` | `..., K, N` | `..., M, N` |
+
+For col-major, only rule 1, 2, (part of) 3, (part of) 4 are valid.
 
 */
 
@@ -107,17 +111,9 @@ impl LayoutMatMulAPI<Ix2, Ix2> for LayoutMatMulConfig<Ix2, Ix2> {
         let lc = match order {
             Order::C => sc.c(),
             Order::F => sc.f(),
-            Order::A | Order::K => {
-                if la.c_prefer() && lb.c_prefer() {
-                    sc.c()
-                } else if la.f_prefer() && lb.f_prefer() {
-                    sc.f()
-                } else {
-                    match TensorOrder::default() {
-                        TensorOrder::C => sc.c(),
-                        TensorOrder::F => sc.f(),
-                    }
-                }
+            Order::A | Order::K => match TensorOrder::default() {
+                TensorOrder::C => sc.c(),
+                TensorOrder::F => sc.f(),
             },
             _ => rstsr_invalid!(order)?,
         };
@@ -135,6 +131,7 @@ impl LayoutMatMulAPI<Ix2, Ix2> for LayoutMatMulConfig<Ix2, Ix2> {
     }
 }
 
+#[cfg(not(feature = "col_major"))]
 impl LayoutMatMulAPI<IxD, IxD> for LayoutMatMulConfig<IxD, IxD> {
     type DC = IxD;
     fn layout_matmul(la: &Layout<IxD>, lb: &Layout<IxD>, order: Order) -> Result<Self> {
@@ -165,17 +162,9 @@ impl LayoutMatMulAPI<IxD, IxD> for LayoutMatMulConfig<IxD, IxD> {
                 let lc = match order {
                     Order::C => sc.c(),
                     Order::F => sc.f(),
-                    Order::A | Order::K => {
-                        if la.c_prefer() && lb.c_prefer() {
-                            sc.c()
-                        } else if la.f_prefer() && lb.f_prefer() {
-                            sc.f()
-                        } else {
-                            match TensorOrder::default() {
-                                TensorOrder::C => sc.c(),
-                                TensorOrder::F => sc.f(),
-                            }
-                        }
+                    Order::A | Order::K => match TensorOrder::default() {
+                        TensorOrder::C => sc.c(),
+                        TensorOrder::F => sc.f(),
                     },
                     _ => rstsr_invalid!(order)?,
                 };
@@ -202,17 +191,9 @@ impl LayoutMatMulAPI<IxD, IxD> for LayoutMatMulConfig<IxD, IxD> {
                 let lc = match order {
                     Order::C => sc.c(),
                     Order::F => sc.f(),
-                    Order::A => {
-                        if lb.c_prefer() {
-                            sc.c()
-                        } else if lb.f_prefer() {
-                            sc.f()
-                        } else {
-                            match TensorOrder::default() {
-                                TensorOrder::C => sc.c(),
-                                TensorOrder::F => sc.f(),
-                            }
-                        }
+                    Order::A => match TensorOrder::default() {
+                        TensorOrder::C => sc.c(),
+                        TensorOrder::F => sc.f(),
                     },
                     Order::K => {
                         let lb_ord = lb.dim_select(-2, 0)?;
@@ -246,17 +227,9 @@ impl LayoutMatMulAPI<IxD, IxD> for LayoutMatMulConfig<IxD, IxD> {
                 let lc = match order {
                     Order::C => sc.c(),
                     Order::F => sc.f(),
-                    Order::A => {
-                        if lb.c_prefer() {
-                            sc.c()
-                        } else if lb.f_prefer() {
-                            sc.f()
-                        } else {
-                            match TensorOrder::default() {
-                                TensorOrder::C => sc.c(),
-                                TensorOrder::F => sc.f(),
-                            }
-                        }
+                    Order::A => match TensorOrder::default() {
+                        TensorOrder::C => sc.c(),
+                        TensorOrder::F => sc.f(),
                     },
                     Order::K => {
                         let la_ord = la.dim_select(-1, 0)?;
@@ -290,17 +263,9 @@ impl LayoutMatMulAPI<IxD, IxD> for LayoutMatMulConfig<IxD, IxD> {
                 let lc = match order {
                     Order::C => sc.c(),
                     Order::F => sc.f(),
-                    Order::A => {
-                        if lb.c_prefer() {
-                            sc.c()
-                        } else if lb.f_prefer() {
-                            sc.f()
-                        } else {
-                            match TensorOrder::default() {
-                                TensorOrder::C => sc.c(),
-                                TensorOrder::F => sc.f(),
-                            }
-                        }
+                    Order::A => match TensorOrder::default() {
+                        TensorOrder::C => sc.c(),
+                        TensorOrder::F => sc.f(),
                     },
                     Order::K => {
                         let (_, permute) = greedy_layout(lb, true);
@@ -333,17 +298,9 @@ impl LayoutMatMulAPI<IxD, IxD> for LayoutMatMulConfig<IxD, IxD> {
                 let lc = match order {
                     Order::C => sc.c(),
                     Order::F => sc.f(),
-                    Order::A => {
-                        if lb.c_prefer() {
-                            sc.c()
-                        } else if lb.f_prefer() {
-                            sc.f()
-                        } else {
-                            match TensorOrder::default() {
-                                TensorOrder::C => sc.c(),
-                                TensorOrder::F => sc.f(),
-                            }
-                        }
+                    Order::A => match TensorOrder::default() {
+                        TensorOrder::C => sc.c(),
+                        TensorOrder::F => sc.f(),
                     },
                     Order::K => {
                         let (_, permute) = greedy_layout(la, true);
@@ -377,31 +334,17 @@ impl LayoutMatMulAPI<IxD, IxD> for LayoutMatMulConfig<IxD, IxD> {
                 let lc = match order {
                     Order::C => sc.c(),
                     Order::F => sc.f(),
-                    Order::A => {
-                        if lb.c_prefer() {
-                            sc.c()
-                        } else if lb.f_prefer() {
-                            sc.f()
-                        } else {
-                            match TensorOrder::default() {
-                                TensorOrder::C => sc.c(),
-                                TensorOrder::F => sc.f(),
-                            }
-                        }
+                    Order::A => match TensorOrder::default() {
+                        TensorOrder::C => sc.c(),
+                        TensorOrder::F => sc.f(),
                     },
                     Order::K => {
                         let (_, a_permute) = greedy_layout(la, true);
                         let (_, b_permute) = greedy_layout(lb, true);
                         if a_permute != b_permute {
-                            if lb.c_prefer() {
-                                sc.c()
-                            } else if lb.f_prefer() {
-                                sc.f()
-                            } else {
-                                match TensorOrder::default() {
-                                    TensorOrder::C => sc.c(),
-                                    TensorOrder::F => sc.f(),
-                                }
+                            match TensorOrder::default() {
+                                TensorOrder::C => sc.c(),
+                                TensorOrder::F => sc.f(),
                             }
                         } else {
                             let sc_perm = sc.f().transpose(&a_permute)?.shape().clone();
@@ -422,6 +365,98 @@ impl LayoutMatMulAPI<IxD, IxD> for LayoutMatMulConfig<IxD, IxD> {
                     lb_matmul: lb_matmul.to_dim()?,
                     lc_matmul: lc_matmul.to_dim()?,
                 })
+            },
+            (0, _) | (_, 0) => rstsr_invalid!((na, nb), "In matmul, 0-dim is not allowed."),
+        }
+    }
+}
+
+#[cfg(feature = "col_major")]
+impl LayoutMatMulAPI<IxD, IxD> for LayoutMatMulConfig<IxD, IxD> {
+    type DC = IxD;
+    fn layout_matmul(la: &Layout<IxD>, lb: &Layout<IxD>, order: Order) -> Result<Self> {
+        let na = la.ndim();
+        let nb = lb.ndim();
+        match (na, nb) {
+            (1, 1) => {
+                // rule 1: vector inner dot
+                rstsr_assert_eq!(la.shape(), lb.shape(), InvalidLayout)?;
+                let lc = unsafe { Layout::new_unchecked(vec![], vec![], 0) };
+                Ok(LayoutMatMulConfig {
+                    matmul_type: MatMulType::InnerDot,
+                    lc: lc.clone(),
+                    la_rest: None,
+                    lb_rest: None,
+                    lc_rest: None,
+                    la_matmul: la.to_dim()?,
+                    lb_matmul: lb.to_dim()?,
+                    lc_matmul: lc.to_dim()?,
+                })
+            },
+            (2, 2) => {
+                // rule 2: matrix multiplication
+                // check and generate shape
+                rstsr_assert_eq!(la.shape()[1], lb.shape()[0], InvalidLayout)?;
+                let sc = vec![la.shape()[0], lb.shape()[1]];
+                // layout order determination
+                let lc = match order {
+                    Order::C => sc.c(),
+                    Order::F => sc.f(),
+                    Order::A | Order::K => match TensorOrder::default() {
+                        TensorOrder::C => sc.c(),
+                        TensorOrder::F => sc.f(),
+                    },
+                    _ => rstsr_invalid!(order)?,
+                };
+                // return layout configuration
+                Ok(LayoutMatMulConfig {
+                    matmul_type: MatMulType::GEMM22,
+                    lc: lc.clone(),
+                    la_rest: None,
+                    lb_rest: None,
+                    lc_rest: None,
+                    la_matmul: la.to_dim()?,
+                    lb_matmul: lb.to_dim()?,
+                    lc_matmul: lc.to_dim()?,
+                })
+            },
+            (1, 2) => {
+                // rule 3: | `        K` | `     K, N` | `        N` |
+                // check and generate shape
+                rstsr_assert_eq!(la.shape()[0], lb.shape()[0], InvalidLayout)?;
+                let sc = vec![lb.shape()[1]];
+                let lc = sc.f();
+                Ok(LayoutMatMulConfig {
+                    matmul_type: MatMulType::GEVM,
+                    lc: lc.to_dim()?,
+                    la_rest: None,
+                    lb_rest: None,
+                    lc_rest: None,
+                    la_matmul: la.to_dim()?,
+                    lb_matmul: lb.to_dim()?,
+                    lc_matmul: lc.to_dim()?,
+                })
+            },
+            (2, 1) => {
+                // rule 4: | `     M, K` | `        K` | `        M` |
+                // check and generate shape
+                rstsr_assert_eq!(la.shape()[1], lb.shape()[0], InvalidLayout)?;
+                let sc = vec![la.shape()[0]];
+                let lc = sc.f();
+                // return layout configuration
+                Ok(LayoutMatMulConfig {
+                    matmul_type: MatMulType::GEMV,
+                    lc: lc.to_dim()?,
+                    la_rest: None,
+                    lb_rest: None,
+                    lc_rest: None,
+                    la_matmul: la.to_dim()?,
+                    lb_matmul: lb.to_dim()?,
+                    lc_matmul: lc.to_dim()?,
+                })
+            },
+            (1, 3..) | (3.., 1) | (2, 3..) | (3.., 2) | (3.., 3..) => {
+                rstsr_raise!(InvalidLayout, "Broadcasting matmul is not supported in col-major.")
             },
             (0, _) | (_, 0) => rstsr_invalid!((na, nb), "In matmul, 0-dim is not allowed."),
         }
@@ -521,46 +556,49 @@ impl_fixed!(IxD, Ix9, IxD);
 
 #[cfg(test)]
 mod test_fixed {
-    use super::*;
 
     #[test]
     fn test_layout_matmul() {
-        let la = [4].c();
-        let lb = [4].c();
-        let config = LayoutMatMulConfig::layout_matmul(&la, &lb, Order::C).unwrap();
-        assert_eq!(config.matmul_type, MatMulType::InnerDot);
-        assert_eq!(config.lc.shape(), &[]);
-        assert_eq!(config.la_matmul.shape(), &[4]);
-        assert_eq!(config.lb_matmul.shape(), &[4]);
+        #[cfg(not(feature = "col_major"))]
+        {
+            use super::*;
+            let la = [4].c();
+            let lb = [4].c();
+            let config = LayoutMatMulConfig::layout_matmul(&la, &lb, Order::C).unwrap();
+            assert_eq!(config.matmul_type, MatMulType::InnerDot);
+            assert_eq!(config.lc.shape(), &[]);
+            assert_eq!(config.la_matmul.shape(), &[4]);
+            assert_eq!(config.lb_matmul.shape(), &[4]);
 
-        let la = [5].c();
-        let lb = [3, 4, 5, 6].f().swapaxes(0, 1).unwrap();
-        let config = LayoutMatMulConfig::layout_matmul(&la, &lb, Order::K).unwrap();
-        assert_eq!(config.lc, Layout::new([4, 3, 6], [3, 1, 12], 0).unwrap());
+            let la = [5].c();
+            let lb = [3, 4, 5, 6].f().swapaxes(0, 1).unwrap();
+            let config = LayoutMatMulConfig::layout_matmul(&la, &lb, Order::K).unwrap();
+            assert_eq!(config.lc, Layout::new([4, 3, 6], [3, 1, 12], 0).unwrap());
 
-        let la = [3, 4, 5, 6].f().swapaxes(0, 1).unwrap();
-        let lb = [6].c();
-        let config = LayoutMatMulConfig::layout_matmul(&la, &lb, Order::K).unwrap();
-        assert_eq!(config.lc, Layout::new([4, 3, 5], [3, 1, 12], 0).unwrap());
+            let la = [3, 4, 5, 6].f().swapaxes(0, 1).unwrap();
+            let lb = [6].c();
+            let config = LayoutMatMulConfig::layout_matmul(&la, &lb, Order::K).unwrap();
+            assert_eq!(config.lc, Layout::new([4, 3, 5], [3, 1, 12], 0).unwrap());
 
-        let la = [7, 6].c();
-        let lb = [2, 3, 4, 5, 6].f().swapaxes(-1, -2).unwrap();
-        let config = LayoutMatMulConfig::layout_matmul(&la, &lb, Order::K).unwrap();
-        assert_eq!(config.lc, Layout::new([2, 3, 4, 7, 5], [1, 2, 6, 120, 24], 0).unwrap());
+            let la = [7, 6].c();
+            let lb = [2, 3, 4, 5, 6].f().swapaxes(-1, -2).unwrap();
+            let config = LayoutMatMulConfig::layout_matmul(&la, &lb, Order::K).unwrap();
+            assert_eq!(config.lc, Layout::new([2, 3, 4, 7, 5], [1, 2, 6, 120, 24], 0).unwrap());
 
-        let la = [2, 3, 4, 5, 6].f().swapaxes(-1, -2).unwrap();
-        let lb = [5, 7].c();
-        let config = LayoutMatMulConfig::layout_matmul(&la, &lb, Order::K).unwrap();
-        assert_eq!(config.lc, Layout::new([2, 3, 4, 6, 7], [1, 2, 6, 168, 24], 0).unwrap());
+            let la = [2, 3, 4, 5, 6].f().swapaxes(-1, -2).unwrap();
+            let lb = [5, 7].c();
+            let config = LayoutMatMulConfig::layout_matmul(&la, &lb, Order::K).unwrap();
+            assert_eq!(config.lc, Layout::new([2, 3, 4, 6, 7], [1, 2, 6, 168, 24], 0).unwrap());
 
-        let la = [4, 1, 2, 5, 6].f().swapaxes(0, 2).unwrap();
-        let lb = [4, 3, 1, 6, 7].f().swapaxes(0, 2).unwrap();
-        let config = LayoutMatMulConfig::layout_matmul(&la, &lb, Order::K).unwrap();
-        assert_eq!(config.lc, Layout::new([2, 3, 4, 5, 7], [420, 140, 35, 7, 1], 0).unwrap());
+            let la = [4, 1, 2, 5, 6].f().swapaxes(0, 2).unwrap();
+            let lb = [4, 3, 1, 6, 7].f().swapaxes(0, 2).unwrap();
+            let config = LayoutMatMulConfig::layout_matmul(&la, &lb, Order::K).unwrap();
+            assert_eq!(config.lc, Layout::new([2, 3, 4, 5, 7], [1, 2, 6, 24, 120], 0).unwrap());
 
-        let la = [4, 3, 2, 5, 6].f().swapaxes(0, 2).unwrap();
-        let lb = [4, 3, 2, 6, 7].f().swapaxes(0, 2).unwrap();
-        let config = LayoutMatMulConfig::layout_matmul(&la, &lb, Order::K).unwrap();
-        assert_eq!(config.lc, Layout::new([2, 3, 4, 5, 7], [12, 4, 1, 24, 120], 0).unwrap());
+            let la = [4, 3, 2, 5, 6].f().swapaxes(0, 2).unwrap();
+            let lb = [4, 3, 2, 6, 7].f().swapaxes(0, 2).unwrap();
+            let config = LayoutMatMulConfig::layout_matmul(&la, &lb, Order::K).unwrap();
+            assert_eq!(config.lc, Layout::new([2, 3, 4, 5, 7], [12, 4, 1, 24, 120], 0).unwrap());
+        }
     }
 }
