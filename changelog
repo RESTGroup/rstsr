@@ -26,3 +26,8 @@ Code style changes ([#15](https://github.com/RESTGroup/rstsr/pull/15))
 
 Bug fix:
 - fix `pack_tril` (correctness fix, trait bound fix).
+
+## v0.2.5 -- 2025-03-31
+
+Bug fix:
+- fix `pack_tril` (correctness fix for col-major case).
