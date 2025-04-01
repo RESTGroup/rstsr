@@ -52,14 +52,14 @@ where
         let Self { a, b, alpha, side, uplo, transa, diag, order } = self;
 
         // determine preferred layout
-        let order_a = (a.c_prefer(), a.f_prefer());
         let order_b = (b.c_prefer(), b.f_prefer());
         let order = order.map(|order| match order {
             ColMajor => (true, false),
             RowMajor => (false, true),
         });
 
-        let order = get_order_row_preferred(&[order, Some(order_b)], &[order_a]);
+        let default_order = b.device().default_order();
+        let order = get_output_order(&[order, Some(order_b)], &[], default_order);
         if order == ColMajor {
             let (transa_new, a_cow) = flip_trans(ColMajor, transa, a, false)?;
             let uplo = if transa_new != transa { uplo.flip()? } else { uplo };

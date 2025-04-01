@@ -54,15 +54,14 @@ where
         let Self { a, b, c, alpha, beta, side, uplo, order } = self;
 
         // determine preferred layout
-        let order_a = (a.c_prefer(), a.f_prefer());
-        let order_b = (b.c_prefer(), b.f_prefer());
         let order_c = c.as_ref().map(|c| (c.c_prefer(), c.f_prefer()));
         let order = order.map(|order| match order {
             ColMajor => (true, false),
             RowMajor => (false, true),
         });
 
-        let order = get_order_row_preferred(&[order, order_c], &[order_a, order_b]);
+        let default_order = a.device().default_order();
+        let order = get_output_order(&[order, order_c], &[], default_order);
         if order == ColMajor {
             let (uplo, a_cow) = match (HERMI, a.f_prefer()) {
                 (false, false) => (uplo.flip()?, a.to_contig_f(ColMajor)?),
