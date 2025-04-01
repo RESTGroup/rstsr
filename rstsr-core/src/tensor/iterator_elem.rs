@@ -73,7 +73,8 @@ where
     }
 
     pub fn iter_f(&self) -> Result<IterVecView<'a, T, D>> {
-        let order = match FlagOrder::default() {
+        let default_order = self.device().default_order();
+        let order = match default_order {
             RowMajor => TensorIterOrder::C,
             ColMajor => TensorIterOrder::F,
         };
@@ -166,7 +167,8 @@ where
     }
 
     pub fn iter_mut_f(&'a mut self) -> Result<IterVecMut<'a, T, D>> {
-        let order = match FlagOrder::default() {
+        let default_order = self.device().default_order();
+        let order = match default_order {
             RowMajor => TensorIterOrder::C,
             ColMajor => TensorIterOrder::F,
         };
@@ -269,7 +271,8 @@ where
     }
 
     pub fn indexed_iter_f(&self) -> Result<IndexedIterVecView<'a, T, D>> {
-        let order = match FlagOrder::default() {
+        let default_order = self.device().default_order();
+        let order = match default_order {
             RowMajor => TensorIterOrder::C,
             ColMajor => TensorIterOrder::F,
         };
@@ -381,7 +384,8 @@ where
     }
 
     pub fn indexed_iter_mut_f(&'a mut self) -> Result<IndexedIterVecMut<'a, T, D>> {
-        let order = match FlagOrder::default() {
+        let default_order = self.device().default_order();
+        let order = match default_order {
             RowMajor => TensorIterOrder::C,
             ColMajor => TensorIterOrder::F,
         };

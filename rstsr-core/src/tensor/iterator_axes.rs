@@ -499,7 +499,8 @@ where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
     {
-        let order = match FlagOrder::default() {
+        let default_order = self.device().default_order();
+        let order = match default_order {
             RowMajor => TensorIterOrder::C,
             ColMajor => TensorIterOrder::F,
         };
@@ -681,7 +682,8 @@ where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
     {
-        let order = match FlagOrder::default() {
+        let default_order = self.device().default_order();
+        let order = match default_order {
             RowMajor => TensorIterOrder::C,
             ColMajor => TensorIterOrder::F,
         };

@@ -69,7 +69,7 @@ where
     let lc = if lc_from_a == lc_from_b {
         lc_from_a
     } else {
-        match FlagOrder::default() {
+        match a.device().default_order() {
             RowMajor => la_b.shape().c(),
             ColMajor => la_b.shape().f(),
         }

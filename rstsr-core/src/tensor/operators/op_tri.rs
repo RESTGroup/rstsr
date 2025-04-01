@@ -31,7 +31,7 @@ where
         let la = match (lb.c_prefer(), lb.f_prefer()) {
             (true, false) => la_shape.c(),
             (false, true) => la_shape.f(),
-            _ => match FlagOrder::default() {
+            _ => match self.device().default_order() {
                 RowMajor => la_shape.c(),
                 ColMajor => la_shape.f(),
             },
@@ -98,7 +98,7 @@ where
         let la = match (lb.c_prefer(), lb.f_prefer()) {
             (true, false) => la_shape.c(),
             (false, true) => la_shape.f(),
-            _ => match FlagOrder::default() {
+            _ => match self.device().default_order() {
                 RowMajor => la_shape.c(),
                 ColMajor => la_shape.f(),
             },

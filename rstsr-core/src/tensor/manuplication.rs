@@ -947,14 +947,17 @@ where
 
 /* #region reshape_assume_contig */
 
-pub fn into_shape_assume_contig_f<S, D, D2>(
-    tensor: TensorBase<S, D>,
+pub fn into_shape_assume_contig_f<R, T, B, D, D2>(
+    tensor: TensorAny<R, T, B, D>,
     shape: D2,
-) -> Result<TensorBase<S, D2>>
+) -> Result<TensorAny<R, T, B, D2>>
 where
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
     D: DimAPI,
     D2: DimAPI,
 {
+    let default_order = tensor.device().default_order();
     let (storage, layout) = tensor.into_raw_parts();
 
     rstsr_assert_eq!(
@@ -964,12 +967,14 @@ where
         "Number of elements not same."
     )?;
 
-    let new_layout = if FlagOrder::default() == FlagOrder::C && layout.c_contig() {
-        shape.new_c_contig(Some(layout.offset))
-    } else if FlagOrder::default() == FlagOrder::F && layout.f_contig() {
-        shape.new_f_contig(Some(layout.offset))
-    } else {
-        rstsr_raise!(InvalidLayout, "This array is not contiguous by {:?}", FlagOrder::default())?
+    let new_layout = {
+        if default_order == FlagOrder::C && layout.c_contig() {
+            shape.new_c_contig(Some(layout.offset))
+        } else if default_order == FlagOrder::F && layout.f_contig() {
+            shape.new_f_contig(Some(layout.offset))
+        } else {
+            rstsr_raise!(InvalidLayout, "This array is not contiguous by {:?}", default_order)?
+        }
     };
     unsafe { Ok(TensorBase::new_unchecked(storage, new_layout)) }
 }
@@ -1008,8 +1013,13 @@ where
     into_shape_assume_contig_f(tensor.view(), shape)
 }
 
-pub fn into_shape_assume_contig<S, D, D2>(tensor: TensorBase<S, D>, shape: D2) -> TensorBase<S, D2>
+pub fn into_shape_assume_contig<R, T, B, D, D2>(
+    tensor: TensorAny<R, T, B, D>,
+    shape: D2,
+) -> TensorAny<R, T, B, D2>
 where
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
     D: DimAPI,
     D2: DimAPI,
 {
@@ -1315,7 +1325,8 @@ where
         tensor.c_contig() && layout.c_contig() && tensor.layout().offset() == layout.offset();
     let contig_f =
         tensor.f_contig() && layout.f_contig() && tensor.layout().offset() == layout.offset();
-    let contig = match FlagOrder::default() {
+    let default_order = tensor.device().default_order();
+    let contig = match default_order {
         RowMajor => contig_c,
         ColMajor => contig_f,
     };
