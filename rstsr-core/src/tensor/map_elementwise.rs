@@ -494,8 +494,12 @@ mod tests_fnmut {
         let a = linspace((1., 6., 6, &device)).into_shape_assume_contig([2, 3]);
         let b = linspace((1., 3., 3, &device));
         let c = a.mapvb_fnmut(&b, f);
-        assert!(allclose_f64(&c, &vec![5., 10., 15., 11., 16., 21.].into()));
         assert_eq!(i, 6);
+        println!("{:?}", c);
+        #[cfg(not(feature = "col_major"))]
+        assert!(allclose_f64(&c, &vec![5., 10., 15., 11., 16., 21.].into()));
+        #[cfg(feature = "col_major")]
+        assert!(allclose_f64(&c, &vec![5., 11., 10., 16., 15., 21.].into()));
     }
 }
 

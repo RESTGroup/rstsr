@@ -1826,8 +1826,11 @@ mod tests {
         let a = linspace((0.0, 15.0, 16));
         let a = a.into_shape_assume_contig_f([4, 1, 4]).unwrap();
         let a = a.to_broadcast_f([6, 4, 3, 4]).unwrap();
-        assert_eq!(a.layout(), unsafe { &Layout::new_unchecked([6, 4, 3, 4], [0, 4, 0, 1], 0) });
         println!("{:?}", a);
+        #[cfg(not(feature = "col_major"))]
+        assert_eq!(a.layout(), unsafe { &Layout::new_unchecked([6, 4, 3, 4], [0, 4, 0, 1], 0) });
+        #[cfg(feature = "col_major")]
+        assert_eq!(a.layout(), unsafe { &Layout::new_unchecked([6, 4, 3, 4], [0, 1, 0, 4], 0) });
     }
 
     #[test]
