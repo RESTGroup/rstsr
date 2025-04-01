@@ -61,8 +61,8 @@ where
     B: DeviceMatMulAPI<TA, TB, TC, DA, DB, DC>,
 {
     rstsr_assert!(b.device().same_device(b.device()), DeviceMismatch)?;
-    let order = TensorIterOrder::default();
-    let cfg = LayoutMatMulConfig::<DA, DB>::layout_matmul(a.layout(), b.layout(), order)?;
+    let default_order = a.device().default_order();
+    let cfg = LayoutMatMulConfig::<DA, DB>::layout_matmul(a.layout(), b.layout(), default_order)?;
     let lc = cfg.lc;
     let mut c: Tensor<TC, B, _> = unsafe { empty((lc, a.device())) }.into_dim_f()?;
     op_mutc_refa_refb_matmul(&mut c, a, b, alpha, TC::zero())?;

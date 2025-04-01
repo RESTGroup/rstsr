@@ -95,8 +95,8 @@ impl From<FlagSide> for CblasSide {
 impl From<FlagOrder> for CblasLayout {
     fn from(order: FlagOrder) -> Self {
         match order {
-            RowMajor => CblasOrder::RowMajor,
-            ColMajor => CblasOrder::ColMajor,
+            FlagOrder::RowMajor => CblasOrder::RowMajor,
+            FlagOrder::ColMajor => CblasOrder::ColMajor,
         }
     }
 }
