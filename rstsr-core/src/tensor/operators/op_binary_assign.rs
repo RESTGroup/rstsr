@@ -97,9 +97,13 @@ macro_rules! impl_binary_assign {
                 rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch)?;
                 let la = a.layout();
                 let lb = b.layout();
+                let default_order = a.device().default_order();
                 // check layout broadcast
-                let (la_b, lb_b) =
-                    broadcast_layout_to_first(&la.to_dim::<IxD>()?, &lb.to_dim::<IxD>()?)?;
+                let (la_b, lb_b) = broadcast_layout_to_first(
+                    &la.to_dim::<IxD>()?,
+                    &lb.to_dim::<IxD>()?,
+                    default_order,
+                )?;
                 rstsr_assert_eq!(la_b, la.to_dim::<IxD>()?, InvalidLayout)?;
                 // op provided by device
                 let device = a.device().clone();

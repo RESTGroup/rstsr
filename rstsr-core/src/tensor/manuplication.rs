@@ -9,19 +9,34 @@ use crate::prelude_dev::*;
 /// # See also
 ///
 /// [Python Array API standard: `broadcast_arrays`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.broadcast_arrays.html)
-pub fn broadcast_arrays<S>(tensors: Vec<TensorBase<S, IxD>>) -> Vec<TensorBase<S, IxD>> {
+pub fn broadcast_arrays<R, T, B>(
+    tensors: Vec<TensorAny<R, T, B, IxD>>,
+) -> Vec<TensorAny<R, T, B, IxD>>
+where
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
+{
     broadcast_arrays_f(tensors).unwrap()
 }
 
-pub fn broadcast_arrays_f<S>(tensors: Vec<TensorBase<S, IxD>>) -> Result<Vec<TensorBase<S, IxD>>> {
+pub fn broadcast_arrays_f<R, T, B>(
+    tensors: Vec<TensorAny<R, T, B, IxD>>,
+) -> Result<Vec<TensorAny<R, T, B, IxD>>>
+where
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
+{
     // fast return if there is only zero/one tensor
     if tensors.len() <= 1 {
         return Ok(tensors);
     }
+    let device_b = tensors[0].device().clone();
+    let default_order = device_b.default_order();
     let mut shape_b = tensors[0].shape().clone();
     for tensor in tensors.iter().skip(1) {
+        rstsr_assert!(device_b.same_device(tensor.device()), DeviceMismatch)?;
         let shape = tensor.shape();
-        let (shape, _, _) = broadcast_shape(shape, &shape_b)?;
+        let (shape, _, _) = broadcast_shape(shape, &shape_b, default_order)?;
         shape_b = shape;
     }
     let mut tensors_new = Vec::with_capacity(tensors.len());
@@ -36,16 +51,22 @@ pub fn broadcast_arrays_f<S>(tensors: Vec<TensorBase<S, IxD>>) -> Result<Vec<Ten
 
 /* #region broadcast_to */
 
-pub fn into_broadcast_f<S, D, D2>(tensor: TensorBase<S, D>, shape: D2) -> Result<TensorBase<S, D2>>
+pub fn into_broadcast_f<R, T, B, D, D2>(
+    tensor: TensorAny<R, T, B, D>,
+    shape: D2,
+) -> Result<TensorAny<R, T, B, D2>>
 where
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
     D: DimAPI + DimMaxAPI<D2, Max = D2>,
     D2: DimAPI,
 {
     let shape1 = tensor.shape();
     let shape2 = &shape;
-    let (shape, tp1, _) = broadcast_shape(shape1, shape2)?;
+    let default_order = tensor.device().default_order();
+    let (shape, tp1, _) = broadcast_shape(shape1, shape2, default_order)?;
     let (storage, layout) = tensor.into_raw_parts();
-    let layout = update_layout_by_shape(&layout, &shape, &tp1)?;
+    let layout = update_layout_by_shape(&layout, &shape, &tp1, default_order)?;
     unsafe { Ok(TensorBase::new_unchecked(storage, layout)) }
 }
 
@@ -80,8 +101,13 @@ where
     into_broadcast_f(tensor.view(), shape)
 }
 
-pub fn into_broadcast<S, D, D2>(tensor: TensorBase<S, D>, shape: D2) -> TensorBase<S, D2>
+pub fn into_broadcast<R, T, B, D, D2>(
+    tensor: TensorAny<R, T, B, D>,
+    shape: D2,
+) -> TensorAny<R, T, B, D2>
 where
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
     D: DimAPI + DimMaxAPI<D2, Max = D2>,
     D2: DimAPI,
 {
@@ -1839,14 +1865,26 @@ mod tests {
 
     #[test]
     fn test_broadcast_to() {
-        let a = linspace((0.0, 15.0, 16));
-        let a = a.into_shape_assume_contig_f([4, 1, 4]).unwrap();
-        let a = a.to_broadcast_f([6, 4, 3, 4]).unwrap();
-        println!("{:?}", a);
         #[cfg(not(feature = "col_major"))]
-        assert_eq!(a.layout(), unsafe { &Layout::new_unchecked([6, 4, 3, 4], [0, 4, 0, 1], 0) });
+        {
+            let a = linspace((0.0, 15.0, 16));
+            let a = a.into_shape_assume_contig_f([4, 1, 4]).unwrap();
+            let a = a.to_broadcast_f([6, 4, 3, 4]).unwrap();
+            println!("{:?}", a);
+            assert_eq!(a.layout(), unsafe {
+                &Layout::new_unchecked([6, 4, 3, 4], [0, 4, 0, 1], 0)
+            });
+        }
         #[cfg(feature = "col_major")]
-        assert_eq!(a.layout(), unsafe { &Layout::new_unchecked([6, 4, 3, 4], [0, 1, 0, 4], 0) });
+        {
+            let a = linspace((0.0, 15.0, 16));
+            let a = a.into_shape_assume_contig_f([4, 1, 4]).unwrap();
+            let a = a.to_broadcast_f([4, 3, 4, 6]).unwrap();
+            println!("{:?}", a);
+            assert_eq!(a.layout(), unsafe {
+                &Layout::new_unchecked([4, 3, 4, 6], [1, 0, 4, 0], 0)
+            });
+        }
     }
 
     #[test]

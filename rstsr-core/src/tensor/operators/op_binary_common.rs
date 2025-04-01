@@ -48,7 +48,8 @@ macro_rules! trait_binary {
                 // check and broadcast layout
                 let la = self.layout();
                 let lb = b.layout();
-                let (la_b, lb_b) = broadcast_layout(la, lb)?;
+                let default_order = self.device().default_order();
+                let (la_b, lb_b) = broadcast_layout(la, lb, default_order)?;
                 let lc_from_a = layout_for_array_copy(&la_b, TensorIterOrder::default())?;
                 let lc_from_b = layout_for_array_copy(&lb_b, TensorIterOrder::default())?;
                 let lc = if lc_from_a == lc_from_b {

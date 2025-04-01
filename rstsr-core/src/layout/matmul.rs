@@ -246,7 +246,7 @@ fn layout_matmul_dyn_row_major(
             let (la_rest, la_matmul) = la.dim_split_at(-2)?;
             let (lb_rest, lb_matmul) = lb.dim_split_at(-2)?;
             rstsr_assert_eq!(la_matmul.shape()[1], lb_matmul.shape()[0], InvalidLayout)?;
-            let (la_rest_b, lb_rest_b) = broadcast_layout(&la_rest, &lb_rest)?;
+            let (la_rest_b, lb_rest_b) = broadcast_layout(&la_rest, &lb_rest, RowMajor)?;
             // layout order determination
             let mut sc = la_rest_b.shape().clone();
             sc.append(&mut vec![la_matmul.shape()[0], lb_matmul.shape()[1]]);

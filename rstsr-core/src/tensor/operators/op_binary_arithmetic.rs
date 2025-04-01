@@ -159,7 +159,8 @@ macro_rules! impl_binary_arithmetic_ref {
                 rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch)?;
                 let la = a.layout();
                 let lb = b.layout();
-                let (la_b, lb_b) = broadcast_layout(la, lb)?;
+                let default_order = a.device().default_order();
+                let (la_b, lb_b) = broadcast_layout(la, lb, default_order)?;
                 // generate output layout
                 let lc_from_a = layout_for_array_copy(&la_b, TensorIterOrder::default())?;
                 let lc_from_b = layout_for_array_copy(&lb_b, TensorIterOrder::default())?;
@@ -305,7 +306,8 @@ macro_rules! impl_binary_lr_consume {
                 let device = a.device().clone();
                 let la = a.layout();
                 let lb = b.layout();
-                let broadcast_result = broadcast_layout_to_first(la, lb);
+                let default_order = a.device().default_order();
+                let broadcast_result = broadcast_layout_to_first(la, lb, default_order);
                 if a.layout().is_broadcasted() || broadcast_result.is_err() {
                     // not broadcastable for output a
                     $TensorOpAPI::$op_f(&a, b)
@@ -355,7 +357,8 @@ macro_rules! impl_binary_lr_consume {
                 let device = b.device().clone();
                 let la = a.layout();
                 let lb = b.layout();
-                let broadcast_result = broadcast_layout_to_first(lb, la);
+                let default_order = b.device().default_order();
+                let broadcast_result = broadcast_layout_to_first(lb, la, default_order);
                 if b.layout().is_broadcasted() || broadcast_result.is_err() {
                     // not broadcastable for output a
                     $TensorOpAPI::$op_f(a, &b)
@@ -451,14 +454,15 @@ macro_rules! impl_binary_lr_consume {
                 rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch)?;
                 let la = a.layout();
                 let lb = b.layout();
-                let broadcast_result = broadcast_layout_to_first(la, lb);
+                let default_order = a.device().default_order();
+                let broadcast_result = broadcast_layout_to_first(la, lb, default_order);
                 if !a.layout().is_broadcasted() && broadcast_result.is_ok() {
                     let (la_b, _) = broadcast_result?;
                     if la_b == *la {
                         return $TensorOpAPI::$op_f(a, &b);
                     }
                 }
-                let broadcast_result = broadcast_layout_to_first(lb, la);
+                let broadcast_result = broadcast_layout_to_first(lb, la, default_order);
                 if !b.layout().is_broadcasted() && broadcast_result.is_ok() {
                     let (lb_b, _) = broadcast_result?;
                     if lb_b == *lb {
@@ -524,11 +528,12 @@ macro_rules! impl_binary_with_output {
             let lc = c.layout();
             let la = a.layout();
             let lb = b.layout();
+            let default_order = c.device().default_order();
             // all layouts should be broadcastable to lc
             // we can first generate broadcasted shape, then check this
-            let (lc_b, la_b) = broadcast_layout_to_first(lc, la)?;
+            let (lc_b, la_b) = broadcast_layout_to_first(lc, la, default_order)?;
             rstsr_assert_eq!(lc_b, *lc, InvalidLayout)?;
-            let (lc_b, lb_b) = broadcast_layout_to_first(lc, lb)?;
+            let (lc_b, lb_b) = broadcast_layout_to_first(lc, lb, default_order)?;
             rstsr_assert_eq!(lc_b, *lc, InvalidLayout)?;
             // op provided by device
             let device = c.device().clone();
