@@ -193,9 +193,8 @@ where
     return EmptyAPI::empty_f(param);
 }
 
-impl<T, D, B, L> EmptyAPI<(T, D)> for (L, &B)
+impl<T, D, B> EmptyAPI<(T, D)> for (Layout<D>, &B)
 where
-    L: Into<Layout<D>>,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
 {
@@ -203,16 +202,33 @@ where
 
     unsafe fn empty_f(self) -> Result<Self::Out> {
         let (layout, device) = self;
-        let layout = layout.into();
         let (_, idx_max) = layout.bounds_index()?;
         let storage = B::empty_impl(device, idx_max)?;
         unsafe { Ok(Tensor::new_unchecked(storage, layout.into_dim()?)) }
     }
 }
 
-impl<T, D, L> EmptyAPI<(T, D)> for L
+impl<T, D, B> EmptyAPI<(T, D)> for (D, &B)
 where
-    L: Into<Layout<D>>,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+{
+    type Out = Tensor<T, B, IxD>;
+
+    unsafe fn empty_f(self) -> Result<Self::Out> {
+        let (shape, device) = self;
+        let default_order = device.default_order();
+        let layout = match default_order {
+            RowMajor => shape.c(),
+            ColMajor => shape.f(),
+        };
+        empty_f((layout, device))
+    }
+}
+
+#[duplicate_item(L; [D]; [Layout<D>])]
+impl<T, D> EmptyAPI<(T, D)> for L
+where
     D: DimAPI,
 {
     type Out = Tensor<T, DeviceCpu, IxD>;
@@ -398,7 +414,8 @@ where
     fn eye_f(self) -> Result<Self::Out> {
         // (n_rows, n_cols, k, device) -> (n_rows, n_cols, k, C, device)
         let (n_rows, n_cols, k, device) = self;
-        eye_f((n_rows, n_cols, k, FlagOrder::default(), device))
+        let default_order = device.default_order();
+        eye_f((n_rows, n_cols, k, default_order, device))
     }
 }
 
@@ -412,7 +429,8 @@ where
     fn eye_f(self) -> Result<Self::Out> {
         // (n_rows, n_cols, k, device) -> (n_rows, n_cols, k, C, device)
         let (n_rows, device) = self;
-        eye_f((n_rows, n_rows, 0, FlagOrder::default(), device))
+        let default_order = device.default_order();
+        eye_f((n_rows, n_rows, 0, default_order, device))
     }
 }
 
@@ -437,7 +455,9 @@ where
     fn eye_f(self) -> Result<Self::Out> {
         // (n_rows, n_cols, k) -> (n_rows, n_cols, k, C)
         let (n_rows, n_cols, k) = self;
-        eye_f((n_rows, n_cols, k, FlagOrder::default(), &DeviceCpu::default()))
+        let device = DeviceCpu::default();
+        let default_order = device.default_order();
+        eye_f((n_rows, n_cols, k, default_order, &device))
     }
 }
 
@@ -449,7 +469,9 @@ where
 
     fn eye_f(self) -> Result<Self::Out> {
         // n_rows -> (n_rows, n_rows, 0, C)
-        eye_f((self, self, 0, FlagOrder::default(), &DeviceCpu::default()))
+        let device = DeviceCpu::default();
+        let default_order = device.default_order();
+        eye_f((self, self, 0, default_order, &device))
     }
 }
 
@@ -489,35 +511,52 @@ where
     return FullAPI::full_f(param);
 }
 
-impl<T, D, B, L> FullAPI<(T, D)> for (L, T, &B)
+impl<T, D, B> FullAPI<(T, D)> for (Layout<D>, T, &B)
 where
     T: Clone,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
-    L: Into<Layout<D>>,
 {
     type Out = Tensor<T, B, IxD>;
 
     fn full_f(self) -> Result<Self::Out> {
         let (layout, fill, device) = self;
-        let layout = layout.into();
         let idx_max = layout.size();
         let storage = device.full_impl(idx_max, fill)?;
         unsafe { Ok(Tensor::new_unchecked(storage, layout.into_dim()?)) }
     }
 }
 
-impl<T, D, L> FullAPI<(T, D)> for (L, T)
+impl<T, D, B> FullAPI<(T, D)> for (D, T, &B)
+where
+    T: Clone,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+{
+    type Out = Tensor<T, B, IxD>;
+
+    fn full_f(self) -> Result<Self::Out> {
+        let (shape, fill, device) = self;
+        let default_order = device.default_order();
+        let layout = match default_order {
+            RowMajor => shape.c(),
+            ColMajor => shape.f(),
+        };
+        full_f((layout, fill, device))
+    }
+}
+
+#[duplicate_item(L; [D]; [Layout<D>])]
+impl<T, D> FullAPI<(T, D)> for (L, T)
 where
     D: DimAPI,
     T: Clone,
-    L: Into<Layout<D>>,
 {
     type Out = Tensor<T, DeviceCpu, IxD>;
 
     fn full_f(self) -> Result<Self::Out> {
-        let (layout, fill) = self;
-        full_f((layout, fill, &DeviceCpu::default()))
+        let (shape, fill) = self;
+        full_f((shape, fill, &DeviceCpu::default()))
     }
 }
 
@@ -770,29 +809,46 @@ where
     return OnesAPI::ones_f(param);
 }
 
-impl<T, D, B, L> OnesAPI<(T, D)> for (L, &B)
+impl<T, D, B> OnesAPI<(T, D)> for (Layout<D>, &B)
 where
     T: Num,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
-    L: Into<Layout<D>>,
 {
     type Out = Tensor<T, B, IxD>;
 
     fn ones_f(self) -> Result<Self::Out> {
         let (layout, device) = self;
-        let layout = layout.into();
         let (_, idx_max) = layout.bounds_index()?;
         let storage = device.ones_impl(idx_max)?;
         unsafe { Ok(Tensor::new_unchecked(storage, layout.into_dim()?)) }
     }
 }
 
-impl<T, D, L> OnesAPI<(T, D)> for L
+impl<T, D, B> OnesAPI<(T, D)> for (D, &B)
+where
+    T: Num,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
+{
+    type Out = Tensor<T, B, IxD>;
+
+    fn ones_f(self) -> Result<Self::Out> {
+        let (shape, device) = self;
+        let default_order = device.default_order();
+        let layout = match default_order {
+            RowMajor => shape.c(),
+            ColMajor => shape.f(),
+        };
+        ones_f((layout, device))
+    }
+}
+
+#[duplicate_item(L; [D]; [Layout<D>])]
+impl<T, D> OnesAPI<(T, D)> for L
 where
     T: Num + Clone,
     D: DimAPI,
-    L: Into<Layout<D>>,
 {
     type Out = Tensor<T, DeviceCpu, IxD>;
 
@@ -960,29 +1016,46 @@ where
     return ZerosAPI::zeros_f(param);
 }
 
-impl<T, D, B, L> ZerosAPI<(T, D)> for (L, &B)
+impl<T, D, B> ZerosAPI<(T, D)> for (Layout<D>, &B)
 where
     T: Num,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
-    L: Into<Layout<D>>,
 {
     type Out = Tensor<T, B, IxD>;
 
     fn zeros_f(self) -> Result<Self::Out> {
         let (layout, device) = self;
-        let layout: Layout<D> = layout.into();
         let (_, idx_max) = layout.bounds_index()?;
         let storage = B::zeros_impl(device, idx_max)?;
         unsafe { Ok(Tensor::new_unchecked(storage, layout.into_dim()?)) }
     }
 }
 
-impl<T, D, L> ZerosAPI<(T, D)> for L
+impl<T, D, B> ZerosAPI<(T, D)> for (D, &B)
+where
+    T: Num,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
+{
+    type Out = Tensor<T, B, IxD>;
+
+    fn zeros_f(self) -> Result<Self::Out> {
+        let (shape, device) = self;
+        let default_order = device.default_order();
+        let layout = match default_order {
+            RowMajor => shape.c(),
+            ColMajor => shape.f(),
+        };
+        zeros_f((layout, device))
+    }
+}
+
+#[duplicate_item(L; [D]; [Layout<D>])]
+impl<T, D> ZerosAPI<(T, D)> for L
 where
     T: Num + Clone,
     D: DimAPI,
-    L: Into<Layout<D>>,
 {
     type Out = Tensor<T, DeviceCpu, IxD>;
 
@@ -1164,7 +1237,8 @@ where
 
     fn tril_f(self) -> Result<Self::Out> {
         let (x, k) = self;
-        let mut x = x.into_contig_f(FlagOrder::default())?;
+        let default_order = x.device().default_order();
+        let mut x = x.into_contig_f(default_order)?;
         let device = x.device().clone();
         let layout = x.layout().clone();
         device.tril_impl(x.raw_mut(), &layout, k)?;
@@ -1348,7 +1422,8 @@ where
 
     fn triu_f(self) -> Result<Self::Out> {
         let (x, k) = self;
-        let mut x = x.into_contig_f(FlagOrder::default())?;
+        let default_order = x.device().default_order();
+        let mut x = x.into_contig_f(default_order)?;
         let device = x.device().clone();
         let layout = x.layout().clone();
         device.triu_impl(x.raw_mut(), &layout, k)?;

@@ -133,17 +133,15 @@ where
     }
 }
 
-impl<T, B, D, L> AsArrayAPI<D> for (Vec<T>, L, &B)
+impl<T, B, D> AsArrayAPI<D> for (Vec<T>, Layout<D>, &B)
 where
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
-    L: Into<Layout<D>>,
 {
     type Out = Tensor<T, B, IxD>;
 
     fn asarray_f(self) -> Result<Self::Out> {
         let (input, layout, device) = self;
-        let layout = layout.into();
         rstsr_assert_eq!(
             layout.bounds_index()?,
             (0, layout.size()),
@@ -162,6 +160,24 @@ where
     }
 }
 
+impl<T, B, D> AsArrayAPI<D> for (Vec<T>, D, &B)
+where
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+{
+    type Out = Tensor<T, B, IxD>;
+
+    fn asarray_f(self) -> Result<Self::Out> {
+        let (input, shape, device) = self;
+        let default_order = device.default_order();
+        let layout = match default_order {
+            RowMajor => shape.c(),
+            ColMajor => shape.f(),
+        };
+        asarray_f((input, layout, device))
+    }
+}
+
 impl<T> AsArrayAPI<()> for Vec<T>
 where
     T: Clone,
@@ -173,11 +189,11 @@ where
     }
 }
 
-impl<T, D, L> AsArrayAPI<D> for (Vec<T>, L)
+#[duplicate_item(L; [D]; [Layout<D>])]
+impl<T, D> AsArrayAPI<D> for (Vec<T>, L)
 where
     T: Clone,
     D: DimAPI,
-    L: Into<Layout<D>>,
 {
     type Out = Tensor<T, DeviceCpu, IxD>;
 
@@ -200,18 +216,16 @@ where
 
 /* #region slice-like input */
 
-impl<'a, T, B, D, L> AsArrayAPI<D> for (&'a [T], L, &B)
+impl<'a, T, B, D> AsArrayAPI<D> for (&'a [T], Layout<D>, &B)
 where
     T: Clone,
     B: DeviceAPI<T, Raw = Vec<T>>,
     D: DimAPI,
-    L: Into<Layout<D>>,
 {
     type Out = TensorView<'a, T, B, IxD>;
 
     fn asarray_f(self) -> Result<Self::Out> {
         let (input, layout, device) = self;
-        let layout: Layout<D> = layout.into();
         rstsr_assert_eq!(
             layout.bounds_index()?,
             (0, layout.size()),
@@ -235,6 +249,25 @@ where
         let storage = Storage::new(data, device);
         let tensor = unsafe { TensorView::new_unchecked(storage, layout.into_dim()?) };
         return Ok(tensor);
+    }
+}
+
+impl<'a, T, B, D> AsArrayAPI<D> for (&'a [T], D, &B)
+where
+    T: Clone,
+    B: DeviceAPI<T, Raw = Vec<T>>,
+    D: DimAPI,
+{
+    type Out = TensorView<'a, T, B, IxD>;
+
+    fn asarray_f(self) -> Result<Self::Out> {
+        let (input, shape, device) = self;
+        let default_order = device.default_order();
+        let layout = match default_order {
+            RowMajor => shape.c(),
+            ColMajor => shape.f(),
+        };
+        asarray_f((input, layout, device))
     }
 }
 
@@ -263,11 +296,11 @@ where
     }
 }
 
-impl<'a, T, D, L> AsArrayAPI<D> for (&'a [T], L)
+#[duplicate_item(L; [D]; [Layout<D>])]
+impl<'a, T, D> AsArrayAPI<D> for (&'a [T], L)
 where
     T: Clone,
     D: DimAPI,
-    L: Into<Layout<D>>,
 {
     type Out = TensorView<'a, T, DeviceCpu, IxD>;
 
@@ -288,12 +321,12 @@ where
     }
 }
 
-impl<'a, T, B, D, L> AsArrayAPI<D> for (&'a Vec<T>, L, &B)
+#[duplicate_item(L; [D]; [Layout<D>])]
+impl<'a, T, B, D> AsArrayAPI<D> for (&'a Vec<T>, L, &B)
 where
     T: Clone,
     B: DeviceAPI<T, Raw = Vec<T>> + 'a,
     D: DimAPI,
-    L: Into<Layout<D>>,
 {
     type Out = TensorView<'a, T, B, IxD>;
 
@@ -316,11 +349,11 @@ where
     }
 }
 
-impl<'a, T, D, L> AsArrayAPI<D> for (&'a Vec<T>, L)
+#[duplicate_item(L; [D]; [Layout<D>])]
+impl<'a, T, D> AsArrayAPI<D> for (&'a Vec<T>, L)
 where
     T: Clone,
     D: DimAPI,
-    L: Into<Layout<D>>,
 {
     type Out = TensorView<'a, T, DeviceCpu, IxD>;
 
@@ -363,18 +396,16 @@ where
 
 /* #region slice-like mutable input */
 
-impl<'a, T, B, D, L> AsArrayAPI<D> for (&'a mut [T], L, &B)
+impl<'a, T, B, D> AsArrayAPI<D> for (&'a mut [T], Layout<D>, &B)
 where
     T: Clone,
     B: DeviceAPI<T, Raw = Vec<T>>,
     D: DimAPI,
-    L: Into<Layout<D>>,
 {
     type Out = TensorMut<'a, T, B, IxD>;
 
     fn asarray_f(self) -> Result<Self::Out> {
         let (input, layout, device) = self;
-        let layout = layout.into();
         rstsr_assert_eq!(
             layout.bounds_index()?,
             (0, layout.size()),
@@ -398,6 +429,25 @@ where
         let storage = Storage::new(data, device);
         let tensor = unsafe { TensorMut::new_unchecked(storage, layout.into_dim()?) };
         return Ok(tensor);
+    }
+}
+
+impl<'a, T, B, D> AsArrayAPI<D> for (&'a mut [T], D, &B)
+where
+    T: Clone,
+    B: DeviceAPI<T, Raw = Vec<T>>,
+    D: DimAPI,
+{
+    type Out = TensorMut<'a, T, B, IxD>;
+
+    fn asarray_f(self) -> Result<Self::Out> {
+        let (input, shape, device) = self;
+        let default_order = device.default_order();
+        let layout = match default_order {
+            RowMajor => shape.c(),
+            ColMajor => shape.f(),
+        };
+        asarray_f((input, layout, device))
     }
 }
 
@@ -426,11 +476,11 @@ where
     }
 }
 
-impl<'a, T, D, L> AsArrayAPI<D> for (&'a mut [T], L)
+#[duplicate_item(L; [D]; [Layout<D>])]
+impl<'a, T, D> AsArrayAPI<D> for (&'a mut [T], L)
 where
     T: Clone,
     D: DimAPI,
-    L: Into<Layout<D>>,
 {
     type Out = TensorMut<'a, T, DeviceCpu, IxD>;
 
@@ -451,12 +501,12 @@ where
     }
 }
 
-impl<'a, T, B, D, L> AsArrayAPI<D> for (&'a mut Vec<T>, L, &B)
+#[duplicate_item(L; [D]; [Layout<D>])]
+impl<'a, T, B, D> AsArrayAPI<D> for (&'a mut Vec<T>, L, &B)
 where
     T: Clone,
     B: DeviceAPI<T, Raw = Vec<T>>,
     D: DimAPI,
-    L: Into<Layout<D>>,
 {
     type Out = TensorMut<'a, T, B, IxD>;
 
@@ -479,11 +529,11 @@ where
     }
 }
 
-impl<'a, T, D, L> AsArrayAPI<D> for (&'a mut Vec<T>, L)
+#[duplicate_item(L; [D]; [Layout<D>])]
+impl<'a, T, D> AsArrayAPI<D> for (&'a mut Vec<T>, L)
 where
     T: Clone,
     D: DimAPI,
-    L: Into<Layout<D>>,
 {
     type Out = TensorMut<'a, T, DeviceCpu, IxD>;
 
