@@ -94,9 +94,9 @@ impl<const N: usize> DimShapeAPI for Ix<N> {
     }
 
     fn stride_contig(&self) -> [isize; N] {
-        match TensorOrder::default() {
-            TensorOrder::C => Self::stride_c_contig(self),
-            TensorOrder::F => Self::stride_f_contig(self),
+        match FlagOrder::default() {
+            RowMajor => Self::stride_c_contig(self),
+            ColMajor => Self::stride_f_contig(self),
         }
     }
 
@@ -204,9 +204,9 @@ impl DimShapeAPI for IxD {
     }
 
     fn stride_contig(&self) -> Vec<isize> {
-        match TensorOrder::default() {
-            TensorOrder::C => Self::stride_c_contig(self),
-            TensorOrder::F => Self::stride_f_contig(self),
+        match FlagOrder::default() {
+            RowMajor => Self::stride_c_contig(self),
+            ColMajor => Self::stride_f_contig(self),
         }
     }
 

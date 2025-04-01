@@ -499,9 +499,9 @@ where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
     {
-        let order = match TensorOrder::default() {
-            TensorOrder::C => TensorIterOrder::C,
-            TensorOrder::F => TensorIterOrder::F,
+        let order = match FlagOrder::default() {
+            RowMajor => TensorIterOrder::C,
+            ColMajor => TensorIterOrder::F,
         };
         self.indexed_axes_iter_with_order_f(axes, order)
     }
@@ -681,9 +681,9 @@ where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
     {
-        let order = match TensorOrder::default() {
-            TensorOrder::C => TensorIterOrder::C,
-            TensorOrder::F => TensorIterOrder::F,
+        let order = match FlagOrder::default() {
+            RowMajor => TensorIterOrder::C,
+            ColMajor => TensorIterOrder::F,
         };
         self.indexed_axes_iter_mut_with_order_f(axes, order)
     }

@@ -964,12 +964,12 @@ where
         "Number of elements not same."
     )?;
 
-    let new_layout = if TensorOrder::default() == TensorOrder::C && layout.c_contig() {
+    let new_layout = if FlagOrder::default() == FlagOrder::C && layout.c_contig() {
         shape.new_c_contig(Some(layout.offset))
-    } else if TensorOrder::default() == TensorOrder::F && layout.f_contig() {
+    } else if FlagOrder::default() == FlagOrder::F && layout.f_contig() {
         shape.new_f_contig(Some(layout.offset))
     } else {
-        rstsr_raise!(InvalidLayout, "This array is not contiguous by {:?}", TensorOrder::default())?
+        rstsr_raise!(InvalidLayout, "This array is not contiguous by {:?}", FlagOrder::default())?
     };
     unsafe { Ok(TensorBase::new_unchecked(storage, new_layout)) }
 }
@@ -1099,7 +1099,11 @@ where
         // clone underlying data by assign_arbitary
         let (storage, layout) = tensor.into_raw_parts();
         let device = storage.device();
-        let layout_new = shape_new.new_contig(None);
+        let default_order = device.default_order();
+        let layout_new = match default_order {
+            RowMajor => shape_new.new_c_contig(None),
+            ColMajor => shape_new.new_f_contig(None),
+        };
         let mut storage_new = unsafe { device.empty_impl(layout_new.size())? };
         device.assign_arbitary(storage_new.raw_mut(), &layout_new, storage.raw(), &layout)?;
         return unsafe { Ok(TensorBase::new_unchecked(storage_new, layout_new).into_cow()) };
@@ -1309,9 +1313,9 @@ where
         tensor.c_contig() && layout.c_contig() && tensor.layout().offset() == layout.offset();
     let contig_f =
         tensor.f_contig() && layout.f_contig() && tensor.layout().offset() == layout.offset();
-    let contig = match TensorOrder::default() {
-        TensorOrder::C => contig_c,
-        TensorOrder::F => contig_f,
+    let contig = match FlagOrder::default() {
+        RowMajor => contig_c,
+        ColMajor => contig_f,
     };
     if same_layout || contig {
         // no data cloned
@@ -1470,7 +1474,7 @@ where
 
 pub fn change_contig_f<'a, R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
-    order: TensorOrder,
+    order: FlagOrder,
 ) -> Result<TensorCow<'a, T, B, D>>
 where
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
@@ -1479,15 +1483,15 @@ where
 {
     let shape = tensor.shape();
     let layout_new = match order {
-        TensorOrder::C => shape.new_c_contig(None),
-        TensorOrder::F => shape.new_f_contig(None),
+        RowMajor => shape.new_c_contig(None),
+        ColMajor => shape.new_f_contig(None),
     };
     change_layout_f(tensor, layout_new)
 }
 
 pub fn to_contig_f<R, T, B, D>(
     tensor: &TensorAny<R, T, B, D>,
-    order: TensorOrder,
+    order: FlagOrder,
 ) -> Result<TensorCow<'_, T, B, D>>
 where
     R: DataAPI<Data = B::Raw>,
@@ -1499,7 +1503,7 @@ where
 
 pub fn into_contig_f<'a, R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
-    order: TensorOrder,
+    order: FlagOrder,
 ) -> Result<Tensor<T, B, D>>
 where
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
@@ -1513,7 +1517,7 @@ where
 
 pub fn change_contig<'a, R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
-    order: TensorOrder,
+    order: FlagOrder,
 ) -> TensorCow<'a, T, B, D>
 where
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
@@ -1525,7 +1529,7 @@ where
 
 pub fn to_contig<R, T, B, D>(
     tensor: &TensorAny<R, T, B, D>,
-    order: TensorOrder,
+    order: FlagOrder,
 ) -> TensorCow<'_, T, B, D>
 where
     R: DataAPI<Data = B::Raw>,
@@ -1537,7 +1541,7 @@ where
 
 pub fn into_contig<'a, R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
-    order: TensorOrder,
+    order: FlagOrder,
 ) -> Tensor<T, B, D>
 where
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
@@ -1557,21 +1561,21 @@ where
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
 {
     /// Convert tensor to contiguous, with specified layout.
-    pub fn to_contig(&self, order: TensorOrder) -> TensorCow<'_, T, B, D>
+    pub fn to_contig(&self, order: FlagOrder) -> TensorCow<'_, T, B, D>
     where
         B: OpAssignArbitaryAPI<T, D, D>,
     {
         to_contig(self, order)
     }
 
-    pub fn to_contig_f(&self, order: TensorOrder) -> Result<TensorCow<'_, T, B, D>>
+    pub fn to_contig_f(&self, order: FlagOrder) -> Result<TensorCow<'_, T, B, D>>
     where
         B: OpAssignArbitaryAPI<T, D, D>,
     {
         to_contig_f(self, order)
     }
 
-    pub fn into_contig_f(self, order: TensorOrder) -> Result<Tensor<T, B, D>>
+    pub fn into_contig_f(self, order: FlagOrder) -> Result<Tensor<T, B, D>>
     where
         B: OpAssignArbitaryAPI<T, D, D> + OpAssignAPI<T, D>,
         B::Raw: Clone + 'a,
@@ -1579,7 +1583,7 @@ where
         into_contig_f(self, order)
     }
 
-    pub fn into_contig(self, order: TensorOrder) -> Tensor<T, B, D>
+    pub fn into_contig(self, order: FlagOrder) -> Tensor<T, B, D>
     where
         B: OpAssignArbitaryAPI<T, D, D> + OpAssignAPI<T, D>,
         B::Raw: Clone + 'a,
@@ -1587,14 +1591,14 @@ where
         into_contig(self, order)
     }
 
-    pub fn change_contig_f(self, order: TensorOrder) -> Result<TensorCow<'a, T, B, D>>
+    pub fn change_contig_f(self, order: FlagOrder) -> Result<TensorCow<'a, T, B, D>>
     where
         B: OpAssignArbitaryAPI<T, D, D>,
     {
         change_contig_f(self, order)
     }
 
-    pub fn change_contig(self, order: TensorOrder) -> TensorCow<'a, T, B, D>
+    pub fn change_contig(self, order: FlagOrder) -> TensorCow<'a, T, B, D>
     where
         B: OpAssignArbitaryAPI<T, D, D>,
     {
@@ -1608,15 +1612,14 @@ where
 
 pub fn change_prefer_f<'a, R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
-    order: TensorOrder,
+    order: FlagOrder,
 ) -> Result<TensorCow<'a, T, B, D>>
 where
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D, D>,
 {
-    if (order == TensorOrder::C && tensor.c_prefer())
-        || (order == TensorOrder::F && tensor.f_prefer())
+    if (order == FlagOrder::C && tensor.c_prefer()) || (order == FlagOrder::F && tensor.f_prefer())
     {
         Ok(tensor.into_cow())
     } else {
@@ -1626,7 +1629,7 @@ where
 
 pub fn to_prefer_f<R, T, B, D>(
     tensor: &TensorAny<R, T, B, D>,
-    order: TensorOrder,
+    order: FlagOrder,
 ) -> Result<TensorCow<'_, T, B, D>>
 where
     R: DataAPI<Data = B::Raw>,
@@ -1638,7 +1641,7 @@ where
 
 pub fn into_prefer_f<'a, R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
-    order: TensorOrder,
+    order: FlagOrder,
 ) -> Result<Tensor<T, B, D>>
 where
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
@@ -1652,7 +1655,7 @@ where
 
 pub fn change_prefer<'a, R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
-    order: TensorOrder,
+    order: FlagOrder,
 ) -> TensorCow<'a, T, B, D>
 where
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
@@ -1664,7 +1667,7 @@ where
 
 pub fn to_prefer<R, T, B, D>(
     tensor: &TensorAny<R, T, B, D>,
-    order: TensorOrder,
+    order: FlagOrder,
 ) -> TensorCow<'_, T, B, D>
 where
     R: DataAPI<Data = B::Raw>,
@@ -1676,7 +1679,7 @@ where
 
 pub fn into_prefer<'a, R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
-    order: TensorOrder,
+    order: FlagOrder,
 ) -> Tensor<T, B, D>
 where
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
@@ -1696,21 +1699,21 @@ where
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
 {
     /// Convert tensor to contiguous, with specified layout.
-    pub fn to_prefer(&self, order: TensorOrder) -> TensorCow<'_, T, B, D>
+    pub fn to_prefer(&self, order: FlagOrder) -> TensorCow<'_, T, B, D>
     where
         B: OpAssignArbitaryAPI<T, D, D>,
     {
         to_prefer(self, order)
     }
 
-    pub fn to_prefer_f(&self, order: TensorOrder) -> Result<TensorCow<'_, T, B, D>>
+    pub fn to_prefer_f(&self, order: FlagOrder) -> Result<TensorCow<'_, T, B, D>>
     where
         B: OpAssignArbitaryAPI<T, D, D>,
     {
         to_prefer_f(self, order)
     }
 
-    pub fn into_prefer_f(self, order: TensorOrder) -> Result<Tensor<T, B, D>>
+    pub fn into_prefer_f(self, order: FlagOrder) -> Result<Tensor<T, B, D>>
     where
         B: OpAssignArbitaryAPI<T, D, D> + OpAssignAPI<T, D>,
         B::Raw: Clone + 'a,
@@ -1718,7 +1721,7 @@ where
         into_prefer_f(self, order)
     }
 
-    pub fn into_prefer(self, order: TensorOrder) -> Tensor<T, B, D>
+    pub fn into_prefer(self, order: FlagOrder) -> Tensor<T, B, D>
     where
         B: OpAssignArbitaryAPI<T, D, D> + OpAssignAPI<T, D>,
         B::Raw: Clone + 'a,
@@ -1726,14 +1729,14 @@ where
         into_prefer(self, order)
     }
 
-    pub fn change_prefer_f(self, order: TensorOrder) -> Result<TensorCow<'a, T, B, D>>
+    pub fn change_prefer_f(self, order: FlagOrder) -> Result<TensorCow<'a, T, B, D>>
     where
         B: OpAssignArbitaryAPI<T, D, D>,
     {
         change_prefer_f(self, order)
     }
 
-    pub fn change_prefer(self, order: TensorOrder) -> TensorCow<'a, T, B, D>
+    pub fn change_prefer(self, order: FlagOrder) -> TensorCow<'a, T, B, D>
     where
         B: OpAssignArbitaryAPI<T, D, D>,
     {

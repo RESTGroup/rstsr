@@ -73,9 +73,9 @@ where
     }
 
     pub fn iter_f(&self) -> Result<IterVecView<'a, T, D>> {
-        let order = match TensorOrder::default() {
-            TensorOrder::C => TensorIterOrder::C,
-            TensorOrder::F => TensorIterOrder::F,
+        let order = match FlagOrder::default() {
+            RowMajor => TensorIterOrder::C,
+            ColMajor => TensorIterOrder::F,
         };
         self.iter_with_order_f(order)
     }
@@ -166,9 +166,9 @@ where
     }
 
     pub fn iter_mut_f(&'a mut self) -> Result<IterVecMut<'a, T, D>> {
-        let order = match TensorOrder::default() {
-            TensorOrder::C => TensorIterOrder::C,
-            TensorOrder::F => TensorIterOrder::F,
+        let order = match FlagOrder::default() {
+            RowMajor => TensorIterOrder::C,
+            ColMajor => TensorIterOrder::F,
         };
         self.iter_mut_with_order_f(order)
     }
@@ -269,9 +269,9 @@ where
     }
 
     pub fn indexed_iter_f(&self) -> Result<IndexedIterVecView<'a, T, D>> {
-        let order = match TensorOrder::default() {
-            TensorOrder::C => TensorIterOrder::C,
-            TensorOrder::F => TensorIterOrder::F,
+        let order = match FlagOrder::default() {
+            RowMajor => TensorIterOrder::C,
+            ColMajor => TensorIterOrder::F,
         };
         self.indexed_iter_with_order_f(order)
     }
@@ -381,9 +381,9 @@ where
     }
 
     pub fn indexed_iter_mut_f(&'a mut self) -> Result<IndexedIterVecMut<'a, T, D>> {
-        let order = match TensorOrder::default() {
-            TensorOrder::C => TensorIterOrder::C,
-            TensorOrder::F => TensorIterOrder::F,
+        let order = match FlagOrder::default() {
+            RowMajor => TensorIterOrder::C,
+            ColMajor => TensorIterOrder::F,
         };
         self.indexed_iter_mut_with_order_f(order)
     }

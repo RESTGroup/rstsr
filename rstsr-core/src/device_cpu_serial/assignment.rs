@@ -8,15 +8,16 @@ pub fn assign_arbitary_cpu_serial<T, DC, DA>(
     lc: &Layout<DC>,
     a: &[T],
     la: &Layout<DA>,
+    order: FlagOrder,
 ) -> Result<()>
 where
     T: Clone,
     DC: DimAPI,
     DA: DimAPI,
 {
-    let contig = match TensorOrder::default() {
-        TensorOrder::C => lc.c_contig() && la.c_contig(),
-        TensorOrder::F => lc.f_contig() && la.f_contig(),
+    let contig = match order {
+        RowMajor => lc.c_contig() && la.c_contig(),
+        ColMajor => lc.f_contig() && la.f_contig(),
     };
     if contig {
         // contiguous case
@@ -29,9 +30,9 @@ where
             .for_each(|(ci, ai)| *ci = ai.clone());
     } else {
         // determine order by layout preference
-        let order = match TensorOrder::default() {
-            TensorOrder::C => TensorIterOrder::C,
-            TensorOrder::F => TensorIterOrder::F,
+        let order = match order {
+            RowMajor => TensorIterOrder::C,
+            ColMajor => TensorIterOrder::F,
         };
         // generate col-major iterator
         let lc = translate_to_col_major_unary(lc, order)?;
@@ -105,7 +106,8 @@ where
         a: &Vec<T>,
         la: &Layout<DA>,
     ) -> Result<()> {
-        return assign_arbitary_cpu_serial(c, lc, a, la);
+        let default_order = self.default_order();
+        return assign_arbitary_cpu_serial(c, lc, a, la, default_order);
     }
 }
 

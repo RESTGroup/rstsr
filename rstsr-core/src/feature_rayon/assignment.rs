@@ -16,6 +16,7 @@ pub fn assign_arbitary_cpu_rayon<T, DC, DA>(
     lc: &Layout<DC>,
     a: &[T],
     la: &Layout<DA>,
+    default_order: FlagOrder,
     pool: Option<&ThreadPool>,
 ) -> Result<()>
 where
@@ -26,13 +27,13 @@ where
     // determine whether to use parallel iteration
     let size = lc.size();
     if size < PARALLEL_SWITCH || pool.is_none() {
-        return assign_arbitary_cpu_serial(c, lc, a, la);
+        return assign_arbitary_cpu_serial(c, lc, a, la, default_order);
     }
 
     // actual parallel iteration
-    let contig = match TensorOrder::default() {
-        TensorOrder::C => lc.c_contig() && la.c_contig(),
-        TensorOrder::F => lc.f_contig() && la.f_contig(),
+    let contig = match default_order {
+        RowMajor => lc.c_contig() && la.c_contig(),
+        ColMajor => lc.f_contig() && la.f_contig(),
     };
     if contig {
         // contiguous case
@@ -47,9 +48,9 @@ where
         return Ok(());
     } else {
         // determine order by layout preference
-        let order = match TensorOrder::default() {
-            TensorOrder::C => TensorIterOrder::C,
-            TensorOrder::F => TensorIterOrder::F,
+        let order = match default_order {
+            RowMajor => TensorIterOrder::C,
+            ColMajor => TensorIterOrder::F,
         };
         // generate col-major iterator
         let lc = translate_to_col_major_unary(lc, order)?;

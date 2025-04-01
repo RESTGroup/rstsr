@@ -69,7 +69,7 @@ where
     /// - `C`: return c-contig layout
     /// - `F`: return f-contig layout
     /// - `A`: c/f-contig if input is contiguous, otherwise return layout based
-    ///   on default tensor order (`TensorOrder::default()`)
+    ///   on default tensor order (`FlagOrder::default()`)
     /// - `K`:
     ///   - rule 1 (vector): no effect (order is not of that important);
     ///   - rule 7 (tensor-gemm): if input layouts returns the same
@@ -111,9 +111,9 @@ impl LayoutMatMulAPI<Ix2, Ix2> for LayoutMatMulConfig<Ix2, Ix2> {
         let lc = match order {
             Order::C => sc.c(),
             Order::F => sc.f(),
-            Order::A | Order::K => match TensorOrder::default() {
-                TensorOrder::C => sc.c(),
-                TensorOrder::F => sc.f(),
+            Order::A | Order::K => match FlagOrder::default() {
+                RowMajor => sc.c(),
+                ColMajor => sc.f(),
             },
             _ => rstsr_invalid!(order)?,
         };
@@ -162,9 +162,9 @@ impl LayoutMatMulAPI<IxD, IxD> for LayoutMatMulConfig<IxD, IxD> {
                 let lc = match order {
                     Order::C => sc.c(),
                     Order::F => sc.f(),
-                    Order::A | Order::K => match TensorOrder::default() {
-                        TensorOrder::C => sc.c(),
-                        TensorOrder::F => sc.f(),
+                    Order::A | Order::K => match FlagOrder::default() {
+                        RowMajor => sc.c(),
+                        ColMajor => sc.f(),
                     },
                     _ => rstsr_invalid!(order)?,
                 };
@@ -191,9 +191,9 @@ impl LayoutMatMulAPI<IxD, IxD> for LayoutMatMulConfig<IxD, IxD> {
                 let lc = match order {
                     Order::C => sc.c(),
                     Order::F => sc.f(),
-                    Order::A => match TensorOrder::default() {
-                        TensorOrder::C => sc.c(),
-                        TensorOrder::F => sc.f(),
+                    Order::A => match FlagOrder::default() {
+                        RowMajor => sc.c(),
+                        ColMajor => sc.f(),
                     },
                     Order::K => {
                         let lb_ord = lb.dim_select(-2, 0)?;
@@ -227,9 +227,9 @@ impl LayoutMatMulAPI<IxD, IxD> for LayoutMatMulConfig<IxD, IxD> {
                 let lc = match order {
                     Order::C => sc.c(),
                     Order::F => sc.f(),
-                    Order::A => match TensorOrder::default() {
-                        TensorOrder::C => sc.c(),
-                        TensorOrder::F => sc.f(),
+                    Order::A => match FlagOrder::default() {
+                        RowMajor => sc.c(),
+                        ColMajor => sc.f(),
                     },
                     Order::K => {
                         let la_ord = la.dim_select(-1, 0)?;
@@ -263,9 +263,9 @@ impl LayoutMatMulAPI<IxD, IxD> for LayoutMatMulConfig<IxD, IxD> {
                 let lc = match order {
                     Order::C => sc.c(),
                     Order::F => sc.f(),
-                    Order::A => match TensorOrder::default() {
-                        TensorOrder::C => sc.c(),
-                        TensorOrder::F => sc.f(),
+                    Order::A => match FlagOrder::default() {
+                        RowMajor => sc.c(),
+                        ColMajor => sc.f(),
                     },
                     Order::K => {
                         let (_, permute) = greedy_layout(lb, true);
@@ -298,9 +298,9 @@ impl LayoutMatMulAPI<IxD, IxD> for LayoutMatMulConfig<IxD, IxD> {
                 let lc = match order {
                     Order::C => sc.c(),
                     Order::F => sc.f(),
-                    Order::A => match TensorOrder::default() {
-                        TensorOrder::C => sc.c(),
-                        TensorOrder::F => sc.f(),
+                    Order::A => match FlagOrder::default() {
+                        RowMajor => sc.c(),
+                        ColMajor => sc.f(),
                     },
                     Order::K => {
                         let (_, permute) = greedy_layout(la, true);
@@ -334,17 +334,17 @@ impl LayoutMatMulAPI<IxD, IxD> for LayoutMatMulConfig<IxD, IxD> {
                 let lc = match order {
                     Order::C => sc.c(),
                     Order::F => sc.f(),
-                    Order::A => match TensorOrder::default() {
-                        TensorOrder::C => sc.c(),
-                        TensorOrder::F => sc.f(),
+                    Order::A => match FlagOrder::default() {
+                        RowMajor => sc.c(),
+                        ColMajor => sc.f(),
                     },
                     Order::K => {
                         let (_, a_permute) = greedy_layout(la, true);
                         let (_, b_permute) = greedy_layout(lb, true);
                         if a_permute != b_permute {
-                            match TensorOrder::default() {
-                                TensorOrder::C => sc.c(),
-                                TensorOrder::F => sc.f(),
+                            match FlagOrder::default() {
+                                RowMajor => sc.c(),
+                                ColMajor => sc.f(),
                             }
                         } else {
                             let sc_perm = sc.f().transpose(&a_permute)?.shape().clone();
@@ -402,9 +402,9 @@ impl LayoutMatMulAPI<IxD, IxD> for LayoutMatMulConfig<IxD, IxD> {
                 let lc = match order {
                     Order::C => sc.c(),
                     Order::F => sc.f(),
-                    Order::A | Order::K => match TensorOrder::default() {
-                        TensorOrder::C => sc.c(),
-                        TensorOrder::F => sc.f(),
+                    Order::A | Order::K => match FlagOrder::default() {
+                        RowMajor => sc.c(),
+                        ColMajor => sc.f(),
                     },
                     _ => rstsr_invalid!(order)?,
                 };

@@ -77,13 +77,13 @@ fn quick_check(shape_out: &Vec<usize>, layout_in: &Layout<IxD>) -> Result<Option
     }
 
     // check if contiguous
-    match TensorOrder::default() {
-        TensorOrder::C => {
+    match FlagOrder::default() {
+        RowMajor => {
             if layout_in.c_contig() {
                 return Ok(Some(shape_out.new_c_contig(Some(layout_in.offset()))));
             }
         },
-        TensorOrder::F => {
+        ColMajor => {
             if layout_in.f_contig() {
                 return Ok(Some(shape_out.new_f_contig(Some(layout_in.offset()))));
             }
@@ -166,7 +166,7 @@ fn complicated_reshape(shape_out: &[usize], layout_in: &Layout<IxD>) -> Option<L
     let offset = layout_in.offset();
 
     // f-prefer handled by reversing everything
-    if TensorOrder::default() == TensorOrder::F {
+    if FlagOrder::default() == FlagOrder::F {
         shape_in.reverse();
         stride_in.reverse();
         shape_out.reverse();
@@ -182,9 +182,9 @@ fn complicated_reshape(shape_out: &[usize], layout_in: &Layout<IxD>) -> Option<L
     rstsr_assert_eq!(stride_out.len(), shape_out_ref.len(), RuntimeError).unwrap();
     // note that stride_out is in reverse order in c-prefer
     // as contrary, shape_out is in reverse order in f-prefer
-    match TensorOrder::default() {
-        TensorOrder::C => stride_out.reverse(),
-        TensorOrder::F => shape_out.reverse(),
+    match FlagOrder::default() {
+        RowMajor => stride_out.reverse(),
+        ColMajor => shape_out.reverse(),
     };
 
     let layout_out =

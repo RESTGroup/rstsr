@@ -368,7 +368,7 @@ where
     return EyeAPI::eye_f(param);
 }
 
-impl<T, B> EyeAPI<(T, B)> for (usize, usize, isize, TensorOrder, &B)
+impl<T, B> EyeAPI<(T, B)> for (usize, usize, isize, FlagOrder, &B)
 where
     T: Num,
     B: DeviceAPI<T> + DeviceCreationNumAPI<T> + OpAssignAPI<T, Ix1>,
@@ -378,8 +378,8 @@ where
     fn eye_f(self) -> Result<Self::Out> {
         let (n_rows, n_cols, k, order, device) = self;
         let layout = match order {
-            TensorOrder::C => [n_rows, n_cols].c(),
-            TensorOrder::F => [n_cols, n_rows].f(),
+            RowMajor => [n_rows, n_cols].c(),
+            ColMajor => [n_cols, n_rows].f(),
         };
         let mut storage = device.zeros_impl(layout.size())?;
         let layout_diag = layout.diagonal(Some(k), Some(0), Some(1))?;
@@ -398,7 +398,7 @@ where
     fn eye_f(self) -> Result<Self::Out> {
         // (n_rows, n_cols, k, device) -> (n_rows, n_cols, k, C, device)
         let (n_rows, n_cols, k, device) = self;
-        eye_f((n_rows, n_cols, k, TensorOrder::default(), device))
+        eye_f((n_rows, n_cols, k, FlagOrder::default(), device))
     }
 }
 
@@ -412,11 +412,11 @@ where
     fn eye_f(self) -> Result<Self::Out> {
         // (n_rows, n_cols, k, device) -> (n_rows, n_cols, k, C, device)
         let (n_rows, device) = self;
-        eye_f((n_rows, n_rows, 0, TensorOrder::default(), device))
+        eye_f((n_rows, n_rows, 0, FlagOrder::default(), device))
     }
 }
 
-impl<T> EyeAPI<T> for (usize, usize, isize, TensorOrder)
+impl<T> EyeAPI<T> for (usize, usize, isize, FlagOrder)
 where
     T: Num + Clone + Send + Sync,
 {
@@ -437,7 +437,7 @@ where
     fn eye_f(self) -> Result<Self::Out> {
         // (n_rows, n_cols, k) -> (n_rows, n_cols, k, C)
         let (n_rows, n_cols, k) = self;
-        eye_f((n_rows, n_cols, k, TensorOrder::default(), &DeviceCpu::default()))
+        eye_f((n_rows, n_cols, k, FlagOrder::default(), &DeviceCpu::default()))
     }
 }
 
@@ -449,7 +449,7 @@ where
 
     fn eye_f(self) -> Result<Self::Out> {
         // n_rows -> (n_rows, n_rows, 0, C)
-        eye_f((self, self, 0, TensorOrder::default(), &DeviceCpu::default()))
+        eye_f((self, self, 0, FlagOrder::default(), &DeviceCpu::default()))
     }
 }
 

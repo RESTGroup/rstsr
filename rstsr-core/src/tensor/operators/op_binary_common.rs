@@ -54,9 +54,9 @@ macro_rules! trait_binary {
                 let lc = if lc_from_a == lc_from_b {
                     lc_from_a
                 } else {
-                    match TensorOrder::default() {
-                        TensorOrder::C => la_b.shape().c(),
-                        TensorOrder::F => la_b.shape().f(),
+                    match FlagOrder::default() {
+                        RowMajor => la_b.shape().c(),
+                        ColMajor => la_b.shape().f(),
                     }
                 };
 

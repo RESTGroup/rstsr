@@ -136,8 +136,8 @@ where
                 layout.shape().f()
             } else {
                 match TensorOrder::default() {
-                    TensorOrder::C => layout.shape().c(),
-                    TensorOrder::F => layout.shape().f(),
+                    RowMajor => layout.shape().c(),
+                    ColMajor => layout.shape().f(),
                 }
             }
         },
@@ -204,9 +204,9 @@ where
                 match (c_prefer, f_prefer) {
                     (true, false) => fn_c(layout),
                     (false, true) => fn_f(layout),
-                    (_, _) => match TensorOrder::default() {
-                        TensorOrder::C => fn_c(layout),
-                        TensorOrder::F => fn_f(layout),
+                    (_, _) => match FlagOrder::default() {
+                        RowMajor => fn_c(layout),
+                        ColMajor => fn_f(layout),
                     },
                 }
             }
@@ -230,7 +230,7 @@ where
 /// - K: greedy layout for the one which have the largest non-broadcast-size,
 ///   otherwise left-most layout (usually for mutable-assign/inplace-op)
 /// - G: invalid option here
-/// - B:sequential memory; valid option if `size = bound_max - bound_min`,
+/// - B: sequential memory; valid option if `size = bound_max - bound_min`,
 ///   otherwise raise err
 ///
 /// This operation will not flip any strides.
@@ -265,16 +265,16 @@ where
             let c_contig = layouts.iter().all(|&l| l.c_contig());
             let f_contig = layouts.iter().all(|&l| l.f_contig());
             if c_contig || f_contig {
-                fn_single(layouts, TensorIterOrder::B)
+                fn_single(layouts, Order::B)
             } else {
                 let c_prefer = layouts.iter().all(|&l| l.c_contig());
                 let f_prefer = layouts.iter().all(|&l| l.f_contig());
                 match (c_prefer, f_prefer) {
-                    (true, false) => fn_single(layouts, TensorIterOrder::C),
-                    (false, true) => fn_single(layouts, TensorIterOrder::F),
-                    (_, _) => match TensorOrder::default() {
-                        TensorOrder::C => fn_single(layouts, TensorIterOrder::C),
-                        TensorOrder::F => fn_single(layouts, TensorIterOrder::F),
+                    (true, false) => fn_single(layouts, Order::C),
+                    (false, true) => fn_single(layouts, Order::F),
+                    (_, _) => match FlagOrder::default() {
+                        RowMajor => fn_single(layouts, Order::C),
+                        ColMajor => fn_single(layouts, Order::F),
                     },
                 }
             }

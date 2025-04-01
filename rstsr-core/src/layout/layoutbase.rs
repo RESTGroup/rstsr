@@ -605,15 +605,6 @@ pub trait DimLayoutContigAPI: DimBaseAPI + DimShapeAPI + DimStrideAPI {
         unsafe { Layout::new_unchecked(shape, stride, offset.unwrap_or(0)) }
     }
 
-    /// Generate new layout by providing shape and offset; Whether c-contiguous
-    /// or f-contiguous depends on cargo feature `f_prefer`.
-    fn new_contig(&self, offset: Option<usize>) -> Layout<Self> {
-        match TensorOrder::default() {
-            TensorOrder::C => self.new_c_contig(offset),
-            TensorOrder::F => self.new_f_contig(offset),
-        }
-    }
-
     /// Simplified function to generate c-contiguous layout. See also
     /// [DimLayoutContigAPI::new_c_contig].
     fn c(&self) -> Layout<Self> {

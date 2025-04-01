@@ -64,6 +64,12 @@ pub enum FlagOrder {
     F = 102,
 }
 
+#[allow(non_upper_case_globals)]
+impl FlagOrder {
+    pub const RowMajor: Self = FlagOrder::C;
+    pub const ColMajor: Self = FlagOrder::F;
+}
+
 #[allow(clippy::derivable_impls)]
 impl Default for FlagOrder {
     fn default() -> Self {
