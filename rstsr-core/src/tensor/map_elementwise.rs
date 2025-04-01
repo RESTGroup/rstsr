@@ -470,7 +470,7 @@ mod tests_fnmut {
 
     #[test]
     fn test_mapv() {
-        let device = DeviceCpuSerial;
+        let device = DeviceCpuSerial::default();
         let mut i = 0;
         let f = |x| {
             i += 1;
@@ -485,7 +485,7 @@ mod tests_fnmut {
 
     #[test]
     fn test_mapv_binary() {
-        let device = DeviceCpuSerial;
+        let device = DeviceCpuSerial::default();
         let mut i = 0;
         let f = |x, y| {
             i += 1;

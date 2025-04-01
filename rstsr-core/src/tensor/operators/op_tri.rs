@@ -141,7 +141,7 @@ mod tests {
     #[test]
     fn test_pack_tri() {
         let a = {
-            let a = arange((48., &DeviceCpuSerial));
+            let a = arange((48., &DeviceCpuSerial::default()));
             let storage_a = a.into_raw_parts().0;
             Tensor::new(storage_a, [3, 4, 4].f())
         };
@@ -171,7 +171,7 @@ mod tests {
     #[test]
     fn test_correctness() {
         let a = {
-            let a = arange((16., &DeviceCpuSerial));
+            let a = arange((16., &DeviceCpuSerial::default()));
             let storage_a = a.into_raw_parts().0;
             Tensor::new(storage_a, [4, 4].c())
         };

@@ -278,14 +278,15 @@ mod test {
     #[test]
     fn test_sum_all() {
         // DeviceCpuSerial
-        let a = arange((24, &DeviceCpuSerial));
+        let a = arange((24, &DeviceCpuSerial::default()));
         let s = sum_all(&a);
         assert_eq!(s, 276);
 
         // np.arange(3240).reshape(12, 15, 18)
         //   .swapaxes(-1, -2)[2:-3, 1:-4:2, -1:3:-2].sum()
-        let a_owned =
-            arange((3240, &DeviceCpuSerial)).into_shape([12, 15, 18]).into_swapaxes(-1, -2);
+        let a_owned = arange((3240, &DeviceCpuSerial::default()))
+            .into_shape([12, 15, 18])
+            .into_swapaxes(-1, -2);
         let a = a_owned.i((slice!(2, -3), slice!(1, -4, 2), slice!(-1, 3, -2)));
         let s = a.sum_all();
         assert_eq!(s, 446586);
@@ -314,8 +315,9 @@ mod test {
     #[test]
     fn test_sum_axes() {
         // DeviceCpuSerial
-        let a =
-            arange((3240, &DeviceCpuSerial)).into_shape([4, 6, 15, 9]).into_transpose([2, 0, 3, 1]);
+        let a = arange((3240, &DeviceCpuSerial::default()))
+            .into_shape([4, 6, 15, 9])
+            .into_transpose([2, 0, 3, 1]);
         let s = a.sum_axes([0, -2]);
         println!("{:?}", s);
         assert_eq!(s[[0, 1]], 27270);
@@ -335,7 +337,7 @@ mod test {
     fn test_min() {
         // DeviceCpuSerial
         let v = vec![8, 4, 2, 9, 3, 7, 2, 8, 1, 6, 10, 5];
-        let a = asarray((&v, [4, 3].c(), &DeviceCpuSerial));
+        let a = asarray((&v, [4, 3].c(), &DeviceCpuSerial::default()));
         println!("{:}", a);
         let m = a.min_axes(0);
         assert_eq!(m.to_vec(), vec![2, 3, 1]);
@@ -359,7 +361,7 @@ mod test {
     #[test]
     fn test_mean() {
         // DeviceCpuSerial
-        let a = arange((24.0, &DeviceCpuSerial)).into_shape((2, 3, 4));
+        let a = arange((24.0, &DeviceCpuSerial::default())).into_shape((2, 3, 4));
         let m = a.mean_all();
         assert_eq!(m, 11.5);
 
@@ -389,7 +391,7 @@ mod test {
     fn test_var() {
         // DeviceCpuSerial
         let v = vec![8, 4, 2, 9, 3, 7, 2, 8, 1, 6, 10, 5];
-        let a = asarray((&v, [4, 3].c(), &DeviceCpuSerial)).mapv(|x| x as f64);
+        let a = asarray((&v, [4, 3].c(), &DeviceCpuSerial::default())).mapv(|x| x as f64);
 
         let m = a.var_all();
         println!("{:}", m);
@@ -424,7 +426,7 @@ mod test {
     fn test_std() {
         // DeviceCpuSerial
         let v = vec![8, 4, 2, 9, 3, 7, 2, 8, 1, 6, 10, 5];
-        let a = asarray((&v, [4, 3].c(), &DeviceCpuSerial)).mapv(|x| x as f64);
+        let a = asarray((&v, [4, 3].c(), &DeviceCpuSerial::default())).mapv(|x| x as f64);
 
         let m = a.std_all();
         println!("{:}", m);
@@ -445,7 +447,7 @@ mod test {
             .zip(vi.iter())
             .map(|(r, i)| num::Complex::new(r.to_f64().unwrap(), i.to_f64().unwrap()))
             .collect::<Vec<_>>();
-        let a = asarray((&v, [4, 3].c(), &DeviceCpuSerial));
+        let a = asarray((&v, [4, 3].c(), &DeviceCpuSerial::default()));
 
         let m = a.std_all();
         println!("{:}", m);
@@ -491,7 +493,7 @@ mod test {
             .zip(vi.iter())
             .map(|(r, i)| num::Complex::new(r.to_f64().unwrap(), i.to_f64().unwrap()))
             .collect::<Vec<_>>();
-        let a = asarray((&v, [4, 3].c(), &DeviceCpuSerial));
+        let a = asarray((&v, [4, 3].c(), &DeviceCpuSerial::default()));
 
         let m = a.l2_norm_all();
         println!("{:}", m);
@@ -538,7 +540,7 @@ mod test {
     fn test_unraveled_argmin() {
         // DeviceCpuSerial
         let v = vec![8, 4, 2, 9, 7, 1, 2, 1, 8, 6, 10, 5];
-        let a = asarray((&v, [4, 3].c(), &DeviceCpuSerial));
+        let a = asarray((&v, [4, 3].c(), &DeviceCpuSerial::default()));
         println!("{:}", a);
         // [[ 8 4 2]
         //  [ 9 7 1]
@@ -564,7 +566,7 @@ mod test {
     fn test_argmin() {
         // DeviceCpuSerial
         let v = vec![8, 4, 2, 9, 7, 1, 2, 1, 8, 6, 10, 5];
-        let a = asarray((&v, [4, 3].c(), &DeviceCpuSerial));
+        let a = asarray((&v, [4, 3].c(), &DeviceCpuSerial::default()));
         println!("{:}", a);
         // [[ 8 4 2]
         //  [ 9 7 1]

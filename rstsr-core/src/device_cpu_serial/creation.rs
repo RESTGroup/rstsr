@@ -208,7 +208,7 @@ mod test {
         use super::*;
         use num::Complex;
 
-        let device = DeviceCpuSerial;
+        let device = DeviceCpuSerial::default();
         let storage: Storage<_, f64, _> = device.zeros_impl(10).unwrap();
         println!("{:?}", storage);
         let storage: Storage<_, f64, _> = device.ones_impl(10).unwrap();

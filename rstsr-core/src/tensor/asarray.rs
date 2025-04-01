@@ -590,7 +590,7 @@ mod tests {
     fn test_asarray_scalar() {
         let tensor = asarray_f(1).unwrap();
         println!("{:?}", tensor);
-        let tensor = asarray_f((Complex64::new(0., 1.), &DeviceCpuSerial)).unwrap();
+        let tensor = asarray_f((Complex64::new(0., 1.), &DeviceCpuSerial::default())).unwrap();
         println!("{:?}", tensor);
     }
 }

@@ -11,8 +11,8 @@ fn rstsr_serial_4096(criterion: &mut Criterion) {
 
     let vec_a: Vec<f64> = (0..2 * n * 2 * n).map(|_| rng.gen()).collect::<_>();
     let vec_b: Vec<f64> = (0..2 * n * 2 * n).map(|_| rng.gen()).collect::<_>();
-    let a_full = rt::asarray((vec_a, [2 * n, 2 * n], &DeviceCpuSerial));
-    let b_full = rt::asarray((vec_b, [2 * n, 2 * n], &DeviceCpuSerial));
+    let a_full = rt::asarray((vec_a, [2 * n, 2 * n], &DeviceCpuSerial::default()));
+    let b_full = rt::asarray((vec_b, [2 * n, 2 * n], &DeviceCpuSerial::default()));
 
     criterion.bench_function("rstsr serial add 8192 contiguous", |bencher| {
         bencher.iter(|| {

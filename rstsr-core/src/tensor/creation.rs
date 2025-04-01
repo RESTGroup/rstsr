@@ -1496,7 +1496,7 @@ mod test {
         println!("{a:6.3?}");
         let a = arange((15.0, &DeviceCpu::default()));
         println!("{a:6.3?}");
-        let a: Tensor<f64, _> = unsafe { empty(([15, 18].f(), &DeviceCpuSerial)) };
+        let a: Tensor<f64, _> = unsafe { empty(([15, 18].f(), &DeviceCpuSerial::default())) };
         println!("{a:6.3?}");
         let a = unsafe { a.empty_like() };
         println!("{a:6.3?}");
@@ -1520,7 +1520,7 @@ mod test {
         println!("{a:6.3?}");
         let a: Tensor<f64> = zeros([2, 2]);
         println!("{a:6.3?}");
-        let a: Tensor<f64, _> = zeros(([2, 2], &DeviceCpuSerial));
+        let a: Tensor<f64, _> = zeros(([2, 2], &DeviceCpuSerial::default()));
         println!("{a:6.3?}");
         let a = a.zeros_like();
         println!("{a:6.3?}");

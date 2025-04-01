@@ -10,7 +10,7 @@ fn rstsr_serial_4096(criterion: &mut Criterion) {
     let mut rng = StdRng::seed_from_u64(42);
 
     let vec_a: Vec<f64> = (0..n * n).map(|_| rng.gen()).collect::<_>();
-    let a = rt::asarray((vec_a, [n, n], &DeviceCpuSerial));
+    let a = rt::asarray((vec_a, [n, n], &DeviceCpuSerial::default()));
 
     criterion.bench_function("rstsr serial simple sum 4096", |bencher| {
         bencher.iter(|| {
@@ -20,7 +20,7 @@ fn rstsr_serial_4096(criterion: &mut Criterion) {
     });
 
     let vec_b: Vec<f64> = (0..4 * n * n).map(|_| rng.gen()).collect::<_>();
-    let b_full = rt::asarray((vec_b, [2 * n, 2 * n], &DeviceCpuSerial));
+    let b_full = rt::asarray((vec_b, [2 * n, 2 * n], &DeviceCpuSerial::default()));
 
     // contiguous slice
     let b = b_full.slice([0..n, 0..n]);

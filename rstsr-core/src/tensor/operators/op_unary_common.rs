@@ -253,7 +253,7 @@ mod test {
 
     #[test]
     fn test_cpuserial() {
-        let a = linspace((1.0, 5.0, 5, &DeviceCpuSerial));
+        let a = linspace((1.0, 5.0, 5, &DeviceCpuSerial::default()));
         let b = a.sin();
         println!("{:}", b);
     }

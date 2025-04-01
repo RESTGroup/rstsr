@@ -41,12 +41,13 @@ pub trait DeviceRayonAPI {
 pub struct DeviceCpuRayon {
     num_threads: usize,
     pool: Arc<ThreadPool>,
+    default_order: FlagOrder,
 }
 
 impl DeviceCpuRayon {
     pub fn new(num_threads: usize) -> Self {
         let pool = Arc::new(Self::generate_pool(num_threads).unwrap());
-        DeviceCpuRayon { num_threads, pool }
+        DeviceCpuRayon { num_threads, pool, default_order: FlagOrder::default() }
     }
 
     fn generate_pool(n: usize) -> Result<ThreadPool> {
@@ -62,7 +63,15 @@ impl Default for DeviceCpuRayon {
 
 impl DeviceBaseAPI for DeviceCpuRayon {
     fn same_device(&self, other: &Self) -> bool {
-        self.num_threads == other.num_threads
+        self.default_order == other.default_order
+    }
+
+    fn default_order(&self) -> FlagOrder {
+        self.default_order
+    }
+
+    fn set_default_order(&mut self, order: FlagOrder) {
+        self.default_order = order;
     }
 }
 
