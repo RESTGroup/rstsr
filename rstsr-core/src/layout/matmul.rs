@@ -593,7 +593,7 @@ mod test_fixed {
             let la = [4, 1, 2, 5, 6].f().swapaxes(0, 2).unwrap();
             let lb = [4, 3, 1, 6, 7].f().swapaxes(0, 2).unwrap();
             let config = LayoutMatMulConfig::layout_matmul(&la, &lb, Order::K).unwrap();
-            assert_eq!(config.lc, Layout::new([2, 3, 4, 5, 7], [1, 2, 6, 24, 120], 0).unwrap());
+            assert_eq!(config.lc, Layout::new([2, 3, 4, 5, 7], [420, 140, 35, 7, 1], 0).unwrap());
 
             let la = [4, 3, 2, 5, 6].f().swapaxes(0, 2).unwrap();
             let lb = [4, 3, 2, 6, 7].f().swapaxes(0, 2).unwrap();
