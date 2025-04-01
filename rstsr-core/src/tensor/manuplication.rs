@@ -1090,7 +1090,10 @@ where
 {
     // own shape, this is cheap operation
     let shape_new = reshape_substitute_negatives(shape.try_into()?.as_ref(), tensor.size())?;
-    if let Some(layout_new) = layout_reshapeable(&tensor.layout().to_dim()?, &shape_new)? {
+    let default_order = tensor.device().default_order();
+    if let Some(layout_new) =
+        layout_reshapeable(&tensor.layout().to_dim()?, &shape_new, default_order)?
+    {
         // shape does not need to be changed
         let (storage, _) = tensor.into_raw_parts();
         let layout = layout_new.into_dim::<IxD>()?;
@@ -1099,7 +1102,6 @@ where
         // clone underlying data by assign_arbitary
         let (storage, layout) = tensor.into_raw_parts();
         let device = storage.device();
-        let default_order = device.default_order();
         let layout_new = match default_order {
             RowMajor => shape_new.new_c_contig(None),
             ColMajor => shape_new.new_f_contig(None),
