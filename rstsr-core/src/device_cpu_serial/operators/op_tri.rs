@@ -542,7 +542,16 @@ where
         lb: &Layout<IxD>,
         uplo: FlagUpLo,
     ) -> Result<()> {
-        pack_tri_cpu_serial(a, la, b, lb, uplo)
+        let default_order = self.default_order();
+        match default_order {
+            RowMajor => pack_tri_cpu_serial(a, la, b, lb, uplo),
+            ColMajor => {
+                let la = la.reverse_axes();
+                let lb = lb.reverse_axes();
+                let uplo = uplo.flip()?;
+                pack_tri_cpu_serial(a, &la, b, &lb, uplo)
+            },
+        }
     }
 }
 
@@ -559,7 +568,16 @@ where
         uplo: FlagUpLo,
         symm: FlagSymm,
     ) -> Result<()> {
-        unpack_tri_cpu_serial(a, la, b, lb, uplo, symm)
+        let default_order = self.default_order();
+        match default_order {
+            RowMajor => unpack_tri_cpu_serial(a, la, b, lb, uplo, symm),
+            ColMajor => {
+                let la = la.reverse_axes();
+                let lb = lb.reverse_axes();
+                let uplo = uplo.flip()?;
+                unpack_tri_cpu_serial(a, &la, b, &lb, uplo, symm)
+            },
+        }
     }
 }
 

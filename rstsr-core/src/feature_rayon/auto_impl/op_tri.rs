@@ -15,7 +15,16 @@ where
         uplo: FlagUpLo,
     ) -> Result<()> {
         let pool = self.get_current_pool();
-        pack_tri_cpu_rayon(a, la, b, lb, uplo, pool)
+        let default_order = self.default_order();
+        match default_order {
+            RowMajor => pack_tri_cpu_rayon(a, la, b, lb, uplo, pool),
+            ColMajor => {
+                let la = la.reverse_axes();
+                let lb = lb.reverse_axes();
+                let uplo = uplo.flip()?;
+                pack_tri_cpu_rayon(a, &la, b, &lb, uplo, pool)
+            },
+        }
     }
 }
 
@@ -33,6 +42,15 @@ where
         symm: FlagSymm,
     ) -> Result<()> {
         let pool = self.get_current_pool();
-        unpack_tri_cpu_rayon(a, la, b, lb, uplo, symm, pool)
+        let default_order = self.default_order();
+        match default_order {
+            RowMajor => unpack_tri_cpu_rayon(a, la, b, lb, uplo, symm, pool),
+            ColMajor => {
+                let la = la.reverse_axes();
+                let lb = lb.reverse_axes();
+                let uplo = uplo.flip()?;
+                unpack_tri_cpu_rayon(a, &la, b, &lb, uplo, symm, pool)
+            },
+        }
     }
 }
