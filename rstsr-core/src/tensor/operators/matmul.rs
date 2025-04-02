@@ -464,34 +464,54 @@ mod test {
         let b = linspace((0.0, 14.0, 15));
         println!("{:}", &a % &b);
 
-        let a = linspace((0.0, 2.0, 3));
-        let b = linspace((0.0, 29.0, 30)).into_shape_assume_contig([2, 3, 5]);
-        println!("{:}", &a % &b);
+        #[cfg(not(feature = "col_major"))]
+        {
+            let a = linspace((0.0, 2.0, 3));
+            let b = linspace((0.0, 29.0, 30)).into_shape_assume_contig([2, 3, 5]);
+            println!("{:}", &a % &b);
 
-        let a = linspace((0.0, 29.0, 30)).into_shape_assume_contig([2, 3, 5]);
-        let b = linspace((0.0, 4.0, 5));
-        println!("{:}", &a % &b);
+            let a = linspace((0.0, 29.0, 30)).into_shape_assume_contig([2, 3, 5]);
+            let b = linspace((0.0, 4.0, 5));
+            println!("{:}", &a % &b);
 
-        let a = linspace((0.0, 14.0, 15)).into_shape_assume_contig([5, 3]);
-        let b = linspace((0.0, 29.0, 30)).into_shape_assume_contig([2, 3, 5]);
-        println!("{:}", &a % &b);
+            let a = linspace((0.0, 14.0, 15)).into_shape_assume_contig([5, 3]);
+            let b = linspace((0.0, 29.0, 30)).into_shape_assume_contig([2, 3, 5]);
+            println!("{:}", &a % &b);
 
-        let a = linspace((0.0, 29.0, 30)).into_shape_assume_contig([2, 3, 5]);
-        let b = linspace((0.0, 14.0, 15)).into_shape_assume_contig([5, 3]);
-        println!("{:}", &a % &b);
+            let a = linspace((0.0, 29.0, 30)).into_shape_assume_contig([2, 3, 5]);
+            let b = linspace((0.0, 14.0, 15)).into_shape_assume_contig([5, 3]);
+            println!("{:}", &a % &b);
+        }
     }
 
     #[test]
     fn test_matmul_from() {
-        let a = linspace((0.0, 14.0, 15)).into_shape([3, 5]);
-        let b = linspace((0.0, 19.0, 20)).into_shape([5, 4]);
-        let mut c = linspace((0.0, 11.0, 12)).into_shape([3, 4]);
-        c.matmul_from(&a, &b, 2.0, 1.5);
-        println!("{c}");
+        #[cfg(not(feature = "col_major"))]
+        {
+            let a = linspace((0.0, 14.0, 15)).into_shape([3, 5]);
+            let b = linspace((0.0, 19.0, 20)).into_shape([5, 4]);
+            let mut c = linspace((0.0, 11.0, 12)).into_shape([3, 4]);
+            c.matmul_from(&a, &b, 2.0, 1.5);
+            println!("{c}");
 
-        let c_ref_vec =
-            vec![240., 261.5, 283., 304.5, 646., 717.5, 789., 860.5, 1052., 1173.5, 1295., 1416.5];
-        let c_ref = asarray(c_ref_vec);
-        assert!(allclose_f64(&c, &c_ref));
+            let c_ref = vec![
+                240., 261.5, 283., 304.5, 646., 717.5, 789., 860.5, 1052., 1173.5, 1295., 1416.5,
+            ];
+            assert!(allclose_f64(&c.raw().into(), &c_ref.into()));
+        }
+        #[cfg(feature = "col_major")]
+        {
+            let a = linspace((0.0, 14.0, 15)).into_shape([3, 5]);
+            let b = linspace((0.0, 19.0, 20)).into_shape([5, 4]);
+            let mut c = linspace((0.0, 11.0, 12)).into_shape([3, 4]);
+            c.matmul_from(&a, &b, 2.0, 1.5);
+            println!("{c}");
+
+            let c_ref = vec![
+                180.0, 201.5, 223.0, 484.5, 556.0, 627.5, 789.0, 910.5, 1032.0, 1093.5, 1265.0,
+                1436.5,
+            ];
+            assert!(allclose_f64(&c.raw().into(), &c_ref.into()));
+        }
     }
 }

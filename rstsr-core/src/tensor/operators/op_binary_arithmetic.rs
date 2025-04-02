@@ -855,7 +855,8 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_add() {
+    #[cfg(not(feature = "col_major"))]
+    fn test_add_row_major() {
         // contiguous
         let a = linspace((1.0, 5.0, 5));
         let b = linspace((2.0, 10.0, 5));
@@ -932,6 +933,81 @@ mod test {
     }
 
     #[test]
+    #[cfg(feature = "col_major")]
+    fn test_add_col_major() {
+        // contiguous
+        let a = linspace((1.0, 5.0, 5));
+        let b = linspace((2.0, 10.0, 5));
+        let c = &a + &b;
+        let c_ref = vec![3., 6., 9., 12., 15.].into();
+        assert!(allclose_f64(&c, &c_ref));
+
+        let a = linspace((1.0, 5.0, 5));
+        let b = linspace((2.0, 10.0, 5));
+        let c = add(&a, &b);
+        let c_ref = vec![3., 6., 9., 12., 15.].into();
+        assert!(allclose_f64(&c, &c_ref));
+
+        // broadcast
+        // [3, 2] + [3]
+        let a = linspace((1.0, 6.0, 6)).into_shape_assume_contig([3, 2]);
+        let b = linspace((2.0, 6.0, 3));
+        let c = &a + &b;
+        let c_ref = vec![3., 6., 9., 6., 9., 12.];
+        assert!(allclose_f64(&c.raw().into(), &c_ref.into()));
+
+        // broadcast
+        // [3, 2, 1] + [1, 2, 1, 5]
+        let a = linspace((1.0, 6.0, 6));
+        let a = a.into_shape_assume_contig([3, 2, 1]);
+        let b = linspace((1.0, 10.0, 10));
+        let b = b.into_shape_assume_contig([1, 2, 1, 5]);
+        let c = &a + &b;
+        let c_ref = vec![
+            2., 3., 4., 6., 7., 8., 4., 5., 6., 8., 9., 10., 6., 7., 8., 10., 11., 12., 8., 9.,
+            10., 12., 13., 14., 10., 11., 12., 14., 15., 16.,
+        ];
+        assert!(allclose_f64(&c.raw().into(), &c_ref.into()));
+
+        // transposed
+        let a = linspace((1.0, 9.0, 9));
+        let a = a.into_shape_assume_contig([3, 3]);
+        let b = linspace((2.0, 18.0, 9));
+        let b = b.into_shape_assume_contig([3, 3]).into_reverse_axes();
+        let c = &a + &b;
+        let c_ref = vec![3., 10., 17., 8., 15., 22., 13., 20., 27.];
+        assert!(allclose_f64(&c.raw().into(), &c_ref.into()));
+
+        // negative strides
+        let a = linspace((1.0, 5.0, 5));
+        let b = linspace((2.0, 10.0, 5));
+        let a = a.flip(0);
+        let c = &a + &b;
+        let c_ref = vec![7., 8., 9., 10., 11.];
+        assert!(allclose_f64(&c.raw().into(), &c_ref.into()));
+
+        let a = linspace((1.0, 5.0, 5));
+        let b = linspace((2.0, 10.0, 5));
+        let b = b.flip(0);
+        let c = &a + &b;
+        let c_ref = vec![11., 10., 9., 8., 7.];
+        assert!(allclose_f64(&c.raw().into(), &c_ref.into()));
+
+        // view
+        let a = linspace((1.0, 5.0, 5));
+        let b = linspace((2.0, 10.0, 5));
+        let c = a.view() + &b;
+        let c_ref = vec![3., 6., 9., 12., 15.];
+        assert!(allclose_f64(&c.raw().into(), &c_ref.into()));
+
+        let a = linspace((1.0, 5.0, 5));
+        let b = linspace((2.0, 10.0, 5));
+        let c = &a + b.view();
+        let c_ref = vec![3., 6., 9., 12., 15.];
+        assert!(allclose_f64(&c.raw().into(), &c_ref.into()));
+    }
+
+    #[test]
     fn test_sub() {
         // contiguous
         let a = linspace((1.0, 5.0, 5));
@@ -952,7 +1028,8 @@ mod test {
     }
 
     #[test]
-    fn test_add_consume() {
+    #[cfg(not(feature = "col_major"))]
+    fn test_add_consume_row_major() {
         // a + &b, same shape
         let a = linspace((1.0, 5.0, 5));
         let b = linspace((2.0, 10.0, 5));
@@ -1010,6 +1087,65 @@ mod test {
     }
 
     #[test]
+    #[cfg(feature = "col_major")]
+    fn test_add_consume_col_major() {
+        // a + &b, same shape
+        let a = linspace((1.0, 5.0, 5));
+        let b = linspace((2.0, 10.0, 5));
+        let a_ptr = a.raw().as_ptr();
+        let c = a + &b;
+        let c_ptr = c.raw().as_ptr();
+        let c_ref = vec![3., 6., 9., 12., 15.];
+        assert!(allclose_f64(&c.raw().into(), &c_ref.into()));
+        assert_eq!(a_ptr, c_ptr);
+        // a + &b, broadcastable
+        let a = linspace((1.0, 10.0, 10)).into_shape_assume_contig([5, 2]);
+        let b = linspace((2.0, 10.0, 5));
+        let a_ptr = a.raw().as_ptr();
+        let c = a + &b;
+        let c_ptr = c.raw().as_ptr();
+        let c_ref = vec![3., 6., 9., 12., 15., 8., 11., 14., 17., 20.];
+        assert!(allclose_f64(&c.raw().into(), &c_ref.into()));
+        assert_eq!(a_ptr, c_ptr);
+        // a + &b, non-broadcastable
+        let a = linspace((2.0, 10.0, 5));
+        let b = linspace((1.0, 10.0, 10)).into_shape_assume_contig([5, 2]);
+        let a_ptr = a.raw().as_ptr();
+        let c = a + &b;
+        let c_ptr = c.raw().as_ptr();
+        let c_ref = vec![3., 6., 9., 12., 15., 8., 11., 14., 17., 20.];
+        assert!(allclose_f64(&c.raw().into(), &c_ref.into()));
+        assert_ne!(a_ptr, c_ptr);
+        // &a + b
+        let a = linspace((1.0, 5.0, 5));
+        let b = linspace((2.0, 10.0, 5));
+        let b_ptr = b.raw().as_ptr();
+        let c = &a + b;
+        let c_ptr = c.raw().as_ptr();
+        let c_ref = vec![3., 6., 9., 12., 15.];
+        assert!(allclose_f64(&c.raw().into(), &c_ref.into()));
+        assert_eq!(b_ptr, c_ptr);
+        // &a + b, non-broadcastable
+        let a = linspace((1.0, 10.0, 10)).into_shape_assume_contig([5, 2]);
+        let b = linspace((2.0, 10.0, 5));
+        let b_ptr = b.raw().as_ptr();
+        let c = &a + b;
+        let c_ptr = c.raw().as_ptr();
+        let c_ref = vec![3., 6., 9., 12., 15., 8., 11., 14., 17., 20.];
+        assert!(allclose_f64(&c.raw().into(), &c_ref.into()));
+        assert_ne!(b_ptr, c_ptr);
+        // a + b, same shape
+        let a = linspace((1.0, 5.0, 5));
+        let b = linspace((2.0, 10.0, 5));
+        let a_ptr = a.raw().as_ptr();
+        let c = a + b;
+        let c_ptr = c.raw().as_ptr();
+        let c_ref = vec![3., 6., 9., 12., 15.];
+        assert!(allclose_f64(&c.raw().into(), &c_ref.into()));
+        assert_eq!(a_ptr, c_ptr);
+    }
+
+    #[test]
     fn test_sub_consume() {
         // &a - b
         let a = linspace((1.0, 5.0, 5));
@@ -1047,12 +1183,24 @@ mod test_with_output {
 
     #[test]
     fn test_op_binary_with_output() {
-        let a = linspace((1.0, 10.0, 10)).into_shape_assume_contig([2, 5]);
-        let b = linspace((2.0, 10.0, 5)).into_layout([5].c());
-        let mut c = linspace((1.0, 10.0, 10)).into_shape_assume_contig([2, 5]);
-        let c_view = c.view_mut();
-        add_with_output(&a, b, c_view);
-        println!("{:?}", c);
+        #[cfg(not(feature = "col_major"))]
+        {
+            let a = linspace((1.0, 10.0, 10)).into_shape_assume_contig([2, 5]);
+            let b = linspace((2.0, 10.0, 5)).into_layout([5].c());
+            let mut c = linspace((1.0, 10.0, 10)).into_shape_assume_contig([2, 5]);
+            let c_view = c.view_mut();
+            add_with_output(&a, b, c_view);
+            println!("{:?}", c);
+        }
+        #[cfg(feature = "col_major")]
+        {
+            let a = linspace((1.0, 10.0, 10)).into_shape_assume_contig([5, 2]);
+            let b = linspace((2.0, 10.0, 5)).into_layout([5].c());
+            let mut c = linspace((1.0, 10.0, 10)).into_shape_assume_contig([5, 2]);
+            let c_view = c.view_mut();
+            add_with_output(&a, b, c_view);
+            println!("{:?}", c);
+        }
     }
 }
 

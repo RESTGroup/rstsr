@@ -276,7 +276,8 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_sum_all() {
+    #[cfg(not(feature = "col_major"))]
+    fn test_sum_all_row_major() {
         // DeviceCpuSerial
         let a = arange((24, &DeviceCpuSerial::default()));
         let s = sum_all(&a);
@@ -313,24 +314,92 @@ mod test {
     }
 
     #[test]
-    fn test_sum_axes() {
+    #[cfg(feature = "col_major")]
+    fn test_sum_all_col_major() {
         // DeviceCpuSerial
-        let a = arange((3240, &DeviceCpuSerial::default()))
-            .into_shape([4, 6, 15, 9])
-            .into_transpose([2, 0, 3, 1]);
-        let s = a.sum_axes([0, -2]);
+        let a = arange((24, &DeviceCpuSerial::default()));
+        let s = sum_all(&a);
+        assert_eq!(s, 276);
+
+        // a = reshape(range(0, 3239), (12, 15, 18));
+        // a = permutedims(a, (1, 3, 2));
+        // a = a[3:9, 2:2:15, 15:-2:4];
+        // sum(a)
+        let a_owned = arange((3240, &DeviceCpuSerial::default()))
+            .into_shape([12, 15, 18])
+            .into_swapaxes(-1, -2);
+        let a = a_owned.i((slice!(2, -3), slice!(1, -4, 2), slice!(-1, 3, -2)));
+        let s = a.sum_all();
+        assert_eq!(s, 403662);
+
+        let s = a.sum_axes(());
         println!("{:?}", s);
-        assert_eq!(s[[0, 1]], 27270);
-        assert_eq!(s[[1, 2]], 154845);
-        assert_eq!(s[[3, 5]], 428220);
+        assert_eq!(s.to_scalar(), 403662);
 
         // DeviceFaer
-        let a: Tensor<usize> = arange(3240).into_shape([4, 6, 15, 9]).into_transpose([2, 0, 3, 1]);
-        let s = a.sum_axes([0, -2]);
+        let a = arange(24);
+        let s = sum_all(&a);
+        assert_eq!(s, 276);
+
+        let a_owned: Tensor<usize> = arange(3240).into_shape([12, 15, 18]).into_swapaxes(-1, -2);
+        let a = a_owned.i((slice!(2, -3), slice!(1, -4, 2), slice!(-1, 3, -2)));
+        let s = a.sum_all();
+        assert_eq!(s, 403662);
+
+        let s = a.sum_axes(());
         println!("{:?}", s);
-        assert_eq!(s[[0, 1]], 27270);
-        assert_eq!(s[[1, 2]], 154845);
-        assert_eq!(s[[3, 5]], 428220);
+        assert_eq!(s.to_scalar(), 403662);
+    }
+
+    #[test]
+    fn test_sum_axes() {
+        #[cfg(not(feature = "col_major"))]
+        {
+            // a = np.arange(3240).reshape(4, 6, 15, 9).transpose(2, 0, 3, 1)
+            // a.sum(axis=(0, -2))
+            // DeviceCpuSerial
+            let a = arange((3240, &DeviceCpuSerial::default()))
+                .into_shape([4, 6, 15, 9])
+                .into_transpose([2, 0, 3, 1]);
+            let s = a.sum_axes([0, -2]);
+            println!("{:?}", s);
+            assert_eq!(s[[0, 1]], 27270);
+            assert_eq!(s[[1, 2]], 154845);
+            assert_eq!(s[[3, 5]], 428220);
+
+            // DeviceFaer
+            let a: Tensor<usize> =
+                arange(3240).into_shape([4, 6, 15, 9]).into_transpose([2, 0, 3, 1]);
+            let s = a.sum_axes([0, -2]);
+            println!("{:?}", s);
+            assert_eq!(s[[0, 1]], 27270);
+            assert_eq!(s[[1, 2]], 154845);
+            assert_eq!(s[[3, 5]], 428220);
+        }
+        #[cfg(feature = "col_major")]
+        {
+            // a = reshape(range(0, 3239), (4, 6, 15, 9));
+            // a = permutedims(a, (3, 1, 4, 2));
+            // sum(a, dims=(1, 3))
+            // DeviceCpuSerial
+            let a = arange((3240, &DeviceCpuSerial::default()))
+                .into_shape([4, 6, 15, 9])
+                .into_transpose([2, 0, 3, 1]);
+            let s = a.sum_axes([0, -2]);
+            println!("{:?}", s);
+            assert_eq!(s[[0, 1]], 217620);
+            assert_eq!(s[[1, 2]], 218295);
+            assert_eq!(s[[3, 5]], 220185);
+
+            // DeviceFaer
+            let a: Tensor<usize> =
+                arange(3240).into_shape([4, 6, 15, 9]).into_transpose([2, 0, 3, 1]);
+            let s = a.sum_axes([0, -2]);
+            println!("{:?}", s);
+            assert_eq!(s[[0, 1]], 217620);
+            assert_eq!(s[[1, 2]], 218295);
+            assert_eq!(s[[3, 5]], 220185);
+        }
     }
 
     #[test]
@@ -360,31 +429,62 @@ mod test {
 
     #[test]
     fn test_mean() {
-        // DeviceCpuSerial
-        let a = arange((24.0, &DeviceCpuSerial::default())).into_shape((2, 3, 4));
-        let m = a.mean_all();
-        assert_eq!(m, 11.5);
+        #[cfg(not(feature = "col_major"))]
+        {
+            // DeviceCpuSerial
+            let a = arange((24.0, &DeviceCpuSerial::default())).into_shape((2, 3, 4));
+            let m = a.mean_all();
+            assert_eq!(m, 11.5);
 
-        let m = a.mean_axes((0, 2));
-        println!("{:}", m);
-        assert_eq!(m.to_vec(), vec![7.5, 11.5, 15.5]);
+            let m = a.mean_axes((0, 2));
+            println!("{:}", m);
+            assert_eq!(m.to_vec(), vec![7.5, 11.5, 15.5]);
 
-        let m = a.i((slice!(None, None, -1), .., slice!(None, None, -2))).mean_axes((-1, 1));
-        println!("{:}", m);
-        assert_eq!(m.to_vec(), vec![18.0, 6.0]);
+            let m = a.i((slice!(None, None, -1), .., slice!(None, None, -2))).mean_axes((-1, 1));
+            println!("{:}", m);
+            assert_eq!(m.to_vec(), vec![18.0, 6.0]);
 
-        // DeviceFaer
-        let a: Tensor<f64> = arange(24.0).into_shape((2, 3, 4));
-        let m = a.mean_all();
-        assert_eq!(m, 11.5);
+            // DeviceFaer
+            let a: Tensor<f64> = arange(24.0).into_shape((2, 3, 4));
+            let m = a.mean_all();
+            assert_eq!(m, 11.5);
 
-        let m = a.mean_axes((0, 2));
-        println!("{:}", m);
-        assert_eq!(m.to_vec(), vec![7.5, 11.5, 15.5]);
+            let m = a.mean_axes((0, 2));
+            println!("{:}", m);
+            assert_eq!(m.to_vec(), vec![7.5, 11.5, 15.5]);
 
-        let m = a.i((slice!(None, None, -1), .., slice!(None, None, -2))).mean_axes((-1, 1));
-        println!("{:}", m);
-        assert_eq!(m.to_vec(), vec![18.0, 6.0]);
+            let m = a.i((slice!(None, None, -1), .., slice!(None, None, -2))).mean_axes((-1, 1));
+            println!("{:}", m);
+            assert_eq!(m.to_vec(), vec![18.0, 6.0]);
+        }
+        #[cfg(feature = "col_major")]
+        {
+            // DeviceCpuSerial
+            let a = arange((24.0, &DeviceCpuSerial::default())).into_shape((2, 3, 4));
+            let m = a.mean_all();
+            assert_eq!(m, 11.5);
+
+            let m = a.mean_axes((0, 2));
+            println!("{:}", m);
+            assert_eq!(m.to_vec(), vec![9.5, 11.5, 13.5]);
+
+            let m = a.i((slice!(None, None, -1), .., slice!(None, None, -2))).mean_axes((-1, 1));
+            println!("{:}", m);
+            assert_eq!(m.to_vec(), vec![15.0, 14.0]);
+
+            // // DeviceFaer
+            let a: Tensor<f64> = arange(24.0).into_shape((2, 3, 4));
+            let m = a.mean_all();
+            assert_eq!(m, 11.5);
+
+            let m = a.mean_axes((0, 2));
+            println!("{:}", m);
+            assert_eq!(m.to_vec(), vec![9.5, 11.5, 13.5]);
+
+            let m = a.i((slice!(None, None, -1), .., slice!(None, None, -2))).mean_axes((-1, 1));
+            println!("{:}", m);
+            assert_eq!(m.to_vec(), vec![15.0, 14.0]);
+        }
     }
 
     #[test]
@@ -517,23 +617,72 @@ mod test {
     #[test]
     #[cfg(feature = "rayon")]
     fn test_large_std() {
-        let a = linspace((0.0, 1.0, 1048576)).into_shape([16, 256, 256]);
-        let b = linspace((1.0, 2.0, 1048576)).into_shape([16, 256, 256]);
-        let c: Tensor<f64> = &a % &b;
+        #[cfg(not(feature = "col_major"))]
+        {
+            // a = np.linspace(0, 1, 1048576).reshape(16, 256, 256)
+            // b = np.linspace(1, 2, 1048576).reshape(16, 256, 256)
+            // c = a @ b
+            // print(c.mean(), c.std())
+            // print(c.std(axis=(0, 1))[[0, -1]])
+            // print(c.std(axis=(1, 2))[[0, -1]])
+            let a = linspace((0.0, 1.0, 1048576)).into_shape([16, 256, 256]);
+            let b = linspace((1.0, 2.0, 1048576)).into_shape([16, 256, 256]);
+            let c: Tensor<f64> = &a % &b;
 
-        let c_mean = c.mean_all();
-        println!("{:?}", c_mean);
-        assert!((c_mean - 213.2503660477036) < 1e-6);
+            let c_mean = c.mean_all();
+            println!("{:?}", c_mean);
+            assert!((c_mean - 213.2503660477036) < 1e-6);
 
-        let c_std = c.std_all();
-        println!("{:?}", c_std);
-        assert!((c_std - 148.88523481701804) < 1e-6);
+            let c_std = c.std_all();
+            println!("{:?}", c_std);
+            assert!((c_std - 148.88523481701804) < 1e-6);
 
-        let c_std_1 = c.std_axes((0, 1));
-        println!("{}", c_std_1);
+            let c_std_1 = c.std_axes((0, 1));
+            println!("{}", c_std_1);
+            assert!(c_std_1[[0]] - 148.8763226818815 < 1e-6);
+            assert!(c_std_1[[255]] - 148.8941462322758 < 1e-6);
 
-        let c_std_2 = c.std_axes((1, 2));
-        println!("{}", c_std_2);
+            let c_std_2 = c.std_axes((1, 2));
+            println!("{}", c_std_2);
+            assert!(c_std_2[[0]] - 4.763105902995575 < 1e-6);
+            assert!(c_std_2[[15]] - 9.093224903569157 < 1e-6);
+        }
+        #[cfg(feature = "col_major")]
+        {
+            // a = reshape(LinRange(0, 1, 1048576), (256, 256, 16));
+            // b = reshape(LinRange(1, 2, 1048576), (256, 256, 16));
+            // c = Array{Float64}(undef, 256, 256, 16);
+            // for i in 1:16
+            //     c[:, :, i] = a[:, :, i] * b[:, :, i]
+            // end
+            // mean(c), std(c)
+            // std(c, dims=(2, 3))
+            // std(c, dims=(1, 2))
+            let a = linspace((0.0, 1.0, 1048576)).into_shape([256, 256, 16]);
+            let b = linspace((1.0, 2.0, 1048576)).into_shape([256, 256, 16]);
+            let mut c: Tensor<f64> = zeros([256, 256, 16]);
+            for i in 0..16 {
+                c.i_mut((.., .., i)).assign(&a.i((.., .., i)) % &b.i((.., .., i)));
+            }
+
+            let c_mean = c.mean_all();
+            println!("{:?}", c_mean);
+            assert!((c_mean - 213.25036604770355) < 1e-6);
+
+            let c_std = c.std_all();
+            println!("{:?}", c_std);
+            assert!((c_std - 148.7419537312827) < 1e-6);
+
+            let c_std_1 = c.std_axes((1, 2));
+            println!("{}", c_std_1);
+            assert!(c_std_1[[0]] - 148.75113653867191 < 1e-6);
+            assert!(c_std_1[[255]] - 148.7689445622776 < 1e-6);
+
+            let c_std_2 = c.std_axes((0, 1));
+            println!("{}", c_std_2);
+            assert!(c_std_2[[0]] - 0.145530296246335 < 1e-6);
+            assert!(c_std_2[[15]] - 4.474611918106057 < 1e-6);
+        }
     }
 
     #[test]
