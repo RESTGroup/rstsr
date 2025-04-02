@@ -31,3 +31,8 @@ Bug fix:
 
 Bug fix:
 - fix `pack_tril` (correctness fix for col-major case).
+
+## v0.2.6 -- 2025-03-31
+
+Feature addition:
+- Column major is now supported ([#16](https://github.com/RESTGroup/rstsr/pull/16)).

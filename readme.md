@@ -24,6 +24,7 @@ This crate will be a building block for scientific computation in native Rust, s
 - Fast on multi-threading CPU.
     - Matmul is provided by backends (such as [faer](https://github.com/sarah-quinones/faer-rs/) or [OpenBLAS](https://github.com/OpenMathLib/OpenBLAS/)).
     - Other cases (summation, element-wise operations) are on-par or even much faster than NumPy (by fast layout iterators and [rayon](https://github.com/rayon-rs/rayon/) threading).
+- Either row-major or column-major is supported (controled by cargo feature). Dynamic row/col-major control can also be performed by device setting.
 
 ## Illustrative Example
 
