@@ -1,3 +1,5 @@
+#![cfg(not(feature = "col_major"))]
+
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 
@@ -8,7 +10,6 @@ mod test {
     use super::*;
 
     #[test]
-    #[cfg(not(feature = "col_major"))]
     fn test_tensor_sum_leading() {
         let n = 512;
         let time = Instant::now();
@@ -65,7 +66,6 @@ mod test {
     }
 
     #[test]
-    #[cfg(not(feature = "col_major"))]
     fn test_tensor_sum_last() {
         let n = 512;
         let time = Instant::now();
