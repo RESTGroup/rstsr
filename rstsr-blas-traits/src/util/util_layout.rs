@@ -1,25 +1,24 @@
-use rstsr_core::flags::TensorOrder;
+use rstsr_core::flags::{ColMajor, FlagOrder, RowMajor};
 
-pub fn get_order_row_preferred(
+pub fn get_output_order(
     by_first: &[Option<(bool, bool)>],
     by_all: &[(bool, bool)],
-) -> TensorOrder {
+    default_order: FlagOrder,
+) -> FlagOrder {
     // inputs are in the form of (c_prefer, f_prefer)
     for x in by_first {
-        if let &Some((c_prefer, f_prefer)) = x {
-            if c_prefer {
-                return TensorOrder::C;
-            } else if f_prefer {
-                return TensorOrder::F;
-            }
+        match x {
+            Some((true, false)) => return RowMajor,
+            Some((false, true)) => return ColMajor,
+            _ => continue,
         }
     }
 
     if by_all.iter().any(|&(c_prefer, _)| c_prefer) {
-        TensorOrder::C
+        RowMajor
     } else if by_all.iter().any(|&(_, f_prefer)| f_prefer) {
-        TensorOrder::F
+        ColMajor
     } else {
-        TensorOrder::default()
+        default_order
     }
 }

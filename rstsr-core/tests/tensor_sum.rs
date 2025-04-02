@@ -1,3 +1,5 @@
+#![cfg(not(feature = "col_major"))]
+
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 
@@ -16,7 +18,7 @@ mod test {
             let mut rng = StdRng::seed_from_u64(42);
 
             let vec_b: Vec<f64> = (0..4 * n * n).map(|_| rng.gen()).collect::<_>();
-            let b_full = rt::asarray((vec_b, [4, n, n], &DeviceCpuSerial));
+            let b_full = rt::asarray((vec_b, [4, n, n], &DeviceCpuSerial::default()));
             b_full.sum_axes(0)
         };
         println!("{:} usec", time.elapsed().as_micros());
@@ -72,7 +74,7 @@ mod test {
             let mut rng = StdRng::seed_from_u64(42);
 
             let vec_b: Vec<f64> = (0..4 * n * n).map(|_| rng.gen()).collect::<_>();
-            let b_full = rt::asarray((vec_b, [4, n, n], &DeviceCpuSerial));
+            let b_full = rt::asarray((vec_b, [4, n, n], &DeviceCpuSerial::default()));
             b_full.sum_axes([-1, -2])
         };
         println!("{:} usec", time.elapsed().as_micros());

@@ -18,7 +18,7 @@ where
     let order = match (a.f_prefer(), a.c_prefer()) {
         (true, false) => ColMajor,
         (false, true) => RowMajor,
-        _ => FlagOrder::default(),
+        _ => a.device().default_order(),
     };
     let a = if a.is_ref() {
         TensorMutable::Owned(TensorView::from(a).into_contig_f(order)?)
@@ -62,7 +62,7 @@ where
 /* #region flip */
 
 pub fn flip_trans<T, B>(
-    order: TensorOrder,
+    order: FlagOrder,
     trans: FlagTrans,
     view: TensorView<'_, T, B, Ix2>,
     hermi: bool,
@@ -76,8 +76,7 @@ where
         + OpAssignAPI<T, Ix2>,
 {
     // row-major
-    if (order == TensorOrder::C && view.c_prefer()) || (order == TensorOrder::F && view.f_prefer())
-    {
+    if (order == FlagOrder::C && view.c_prefer()) || (order == FlagOrder::F && view.f_prefer()) {
         // tensor is already in the preferred order
         Ok((trans, view.into_cow()))
     } else {

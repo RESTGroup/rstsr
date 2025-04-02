@@ -37,7 +37,17 @@ impl Default for DeviceBLAS {
 
 impl DeviceBaseAPI for DeviceBLAS {
     fn same_device(&self, other: &Self) -> bool {
-        self.get_num_threads() == other.get_num_threads()
+        let same_num_threads = self.get_num_threads() == other.get_num_threads();
+        let same_default_order = self.default_order() == other.default_order();
+        same_num_threads && same_default_order
+    }
+
+    fn default_order(&self) -> FlagOrder {
+        self.base.default_order()
+    }
+
+    fn set_default_order(&mut self, order: FlagOrder) {
+        self.base.set_default_order(order);
     }
 }
 
@@ -105,6 +115,7 @@ impl<T> DeviceStorageAPI<T> for DeviceBLAS {
 }
 
 impl<T> DeviceAPI<T> for DeviceBLAS {}
+
 impl<T, D> DeviceComplexFloatAPI<T, D> for DeviceBLAS
 where
     T: ComplexFloat + Send + Sync,

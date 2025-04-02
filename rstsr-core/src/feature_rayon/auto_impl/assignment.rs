@@ -14,7 +14,8 @@ where
         la: &Layout<DA>,
     ) -> Result<()> {
         let pool = self.get_current_pool();
-        assign_arbitary_cpu_rayon(c, lc, a, la, pool)
+        let default_order = self.default_order();
+        assign_arbitary_cpu_rayon(c, lc, a, la, default_order, pool)
     }
 }
 

@@ -30,12 +30,18 @@ criterion = { workspace = true }
 cpu-time = { workspace = true }
 
 [features]
-default = ["faer", "faer_as_default"]
+default = ["row_major", "faer", "faer_as_default"]
 std = []
-f_prefer = []  # NOTE: THIS FEATURE IS NOT STABLE
 rayon = ["dep:rayon"]
 faer = ["rayon", "dep:faer", "dep:faer-ext", "dep:faer-entity"]
 faer_as_default = []
+
+# Row-major or Col-major will be contractidary features.
+# Only one is accepted, otherwise this will panic in runtime.
+# - Row-major convention: similar to NumPy (with same behavior of versatile broadcasting)
+# - Col-major convention: similar to Julia (limited broadcasting)
+row_major = []
+col_major = []
 
 # Dispatch dimensinoality in layout iterators
 # This option is recommended for efficiency for large tensor, especially with non-contiguous strides.

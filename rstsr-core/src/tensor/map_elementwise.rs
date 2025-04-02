@@ -138,16 +138,17 @@ where
         rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch)?;
         let la = a.layout();
         let lb = b.layout();
-        let (la_b, lb_b) = broadcast_layout(la, lb)?;
+        let default_order = a.device().default_order();
+        let (la_b, lb_b) = broadcast_layout(la, lb, default_order)?;
         // generate output layout
         let lc_from_a = layout_for_array_copy(&la_b, TensorIterOrder::default())?;
         let lc_from_b = layout_for_array_copy(&lb_b, TensorIterOrder::default())?;
         let lc = if lc_from_a == lc_from_b {
             lc_from_a
         } else {
-            match TensorOrder::default() {
-                TensorOrder::C => la_b.shape().c(),
-                TensorOrder::F => la_b.shape().f(),
+            match self.device().default_order() {
+                RowMajor => la_b.shape().c(),
+                ColMajor => la_b.shape().f(),
             }
         };
         let device = self.device();
@@ -364,16 +365,17 @@ where
         rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch)?;
         let la = a.layout();
         let lb = b.layout();
-        let (la_b, lb_b) = broadcast_layout(la, lb)?;
+        let default_order = a.device().default_order();
+        let (la_b, lb_b) = broadcast_layout(la, lb, default_order)?;
         // generate output layout
         let lc_from_a = layout_for_array_copy(&la_b, TensorIterOrder::default())?;
         let lc_from_b = layout_for_array_copy(&lb_b, TensorIterOrder::default())?;
         let lc = if lc_from_a == lc_from_b {
             lc_from_a
         } else {
-            match TensorOrder::default() {
-                TensorOrder::C => la_b.shape().c(),
-                TensorOrder::F => la_b.shape().f(),
+            match self.device().default_order() {
+                RowMajor => la_b.shape().c(),
+                ColMajor => la_b.shape().f(),
             }
         };
         let device = self.device();
@@ -470,7 +472,7 @@ mod tests_fnmut {
 
     #[test]
     fn test_mapv() {
-        let device = DeviceCpuSerial;
+        let device = DeviceCpuSerial::default();
         let mut i = 0;
         let f = |x| {
             i += 1;
@@ -485,17 +487,36 @@ mod tests_fnmut {
 
     #[test]
     fn test_mapv_binary() {
-        let device = DeviceCpuSerial;
+        let device = DeviceCpuSerial::default();
         let mut i = 0;
         let f = |x, y| {
             i += 1;
             2.0 * x + 3.0 * y
         };
-        let a = linspace((1., 6., 6, &device)).into_shape_assume_contig([2, 3]);
-        let b = linspace((1., 3., 3, &device));
-        let c = a.mapvb_fnmut(&b, f);
-        assert!(allclose_f64(&c, &vec![5., 10., 15., 11., 16., 21.].into()));
-        assert_eq!(i, 6);
+        #[cfg(not(feature = "col_major"))]
+        {
+            // a = np.arange(1, 7).reshape(2, 3)
+            // b = np.arange(1, 4)
+            // (2 * a + 3 * b).reshape(-1)
+            let a = linspace((1., 6., 6, &device)).into_shape_assume_contig([2, 3]);
+            let b = linspace((1., 3., 3, &device));
+            let c = a.mapvb_fnmut(&b, f);
+            assert_eq!(i, 6);
+            println!("{:?}", c);
+            assert!(allclose_f64(&c.raw().into(), &vec![5., 10., 15., 11., 16., 21.].into()));
+        }
+        #[cfg(feature = "col_major")]
+        {
+            // a = reshape(range(1, 6), (3, 2))
+            // b = reshape(range(1, 3), 3)
+            // 2 * a .+ 3 * b
+            let a = linspace((1., 6., 6, &device)).into_shape_assume_contig([3, 2]);
+            let b = linspace((1., 3., 3, &device));
+            let c = a.mapvb_fnmut(&b, f);
+            assert_eq!(i, 6);
+            println!("{:?}", c);
+            assert!(allclose_f64(&c.raw().into(), &vec![5., 10., 15., 11., 16., 21.].into()));
+        }
     }
 }
 
@@ -515,9 +536,25 @@ mod tests_sync {
     #[test]
     fn test_mapv_binary() {
         let f = |x, y| 2.0 * x + 3.0 * y;
-        let a = linspace((1., 6., 6)).into_shape_assume_contig([2, 3]);
-        let b = linspace((1., 3., 3));
-        let c = a.mapvb(&b, f);
-        assert!(allclose_f64(&c, &vec![5., 10., 15., 11., 16., 21.].into()));
+        #[cfg(not(feature = "col_major"))]
+        {
+            // a = np.arange(1, 7).reshape(2, 3)
+            // b = np.arange(1, 4)
+            // (2 * a + 3 * b).reshape(-1)
+            let a = linspace((1., 6., 6)).into_shape_assume_contig([2, 3]);
+            let b = linspace((1., 3., 3));
+            let c = a.mapvb(&b, f);
+            assert!(allclose_f64(&c.raw().into(), &vec![5., 10., 15., 11., 16., 21.].into()));
+        }
+        #[cfg(feature = "col_major")]
+        {
+            // a = reshape(range(1, 6), (3, 2))
+            // b = reshape(range(1, 3), 3)
+            // 2 * a .+ 3 * b
+            let a = linspace((1., 6., 6)).into_shape_assume_contig([3, 2]);
+            let b = linspace((1., 3., 3));
+            let c = a.mapvb(&b, f);
+            assert!(allclose_f64(&c.raw().into(), &vec![5., 10., 15., 11., 16., 21.].into()));
+        }
     }
 }

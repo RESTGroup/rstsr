@@ -28,11 +28,12 @@ where
     let lc = c.layout();
     let la = a.layout();
     let lb = b.layout();
+    let default_order = c.device().default_order();
     // all layouts should be broadcastable to lc
     // we can first generate broadcasted shape, then check this
-    let (lc_b, la_b) = broadcast_layout_to_first(lc, la)?;
+    let (lc_b, la_b) = broadcast_layout_to_first(lc, la, default_order)?;
     rstsr_assert_eq!(lc_b, *lc, InvalidLayout)?;
-    let (lc_b, lb_b) = broadcast_layout_to_first(lc, lb)?;
+    let (lc_b, lb_b) = broadcast_layout_to_first(lc, lb, default_order)?;
     rstsr_assert_eq!(lc_b, *lc, InvalidLayout)?;
     // op provided by device
     let device = c.device().clone();
@@ -62,16 +63,17 @@ where
     rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch)?;
     let la = a.layout();
     let lb = b.layout();
-    let (la_b, lb_b) = broadcast_layout(la, lb)?;
+    let default_order = a.device().default_order();
+    let (la_b, lb_b) = broadcast_layout(la, lb, default_order)?;
     // generate output layout
     let lc_from_a = layout_for_array_copy(&la_b, TensorIterOrder::K)?;
     let lc_from_b = layout_for_array_copy(&lb_b, TensorIterOrder::K)?;
     let lc = if lc_from_a == lc_from_b {
         lc_from_a
     } else {
-        match TensorOrder::default() {
-            TensorOrder::C => la_b.shape().c(),
-            TensorOrder::F => la_b.shape().f(),
+        match default_order {
+            RowMajor => la_b.shape().c(),
+            ColMajor => la_b.shape().f(),
         }
     };
     // generate empty c
@@ -104,9 +106,10 @@ where
     rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch)?;
     let la = a.layout();
     let lb = b.layout();
+    let default_order = a.device().default_order();
     // all layouts should be broadcastable to lc
     // we can first generate broadcasted shape, then check this
-    let (la_b, lb_b) = broadcast_layout_to_first(la, lb)?;
+    let (la_b, lb_b) = broadcast_layout_to_first(la, lb, default_order)?;
     rstsr_assert_eq!(la_b, *la, InvalidLayout)?;
     // op provided by device
     let device = a.device().clone();

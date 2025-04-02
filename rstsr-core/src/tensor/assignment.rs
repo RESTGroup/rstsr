@@ -46,7 +46,8 @@ where
         )?;
         let la = a.layout().to_dim::<IxD>()?;
         let lb = b.layout().to_dim::<IxD>()?;
-        let (la_b, lb_b) = broadcast_layout_to_first(&la, &lb)?;
+        let default_order = a.device().default_order();
+        let (la_b, lb_b) = broadcast_layout_to_first(&la, &lb, default_order)?;
         let la_b = la_b.into_dim::<DA>()?;
         let lb_b = lb_b.into_dim::<DA>()?;
         // assign

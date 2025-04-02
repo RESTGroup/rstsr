@@ -1,10 +1,12 @@
 use crate::prelude_dev::*;
 
-pub trait DeviceBaseAPI: Default + Clone {
+pub trait DeviceBaseAPI {
     fn same_device(&self, other: &Self) -> bool;
+    fn default_order(&self) -> FlagOrder;
+    fn set_default_order(&mut self, order: FlagOrder);
 }
 
-pub trait DeviceRawAPI<T>: DeviceBaseAPI {
+pub trait DeviceRawAPI<T>: DeviceBaseAPI + Clone {
     type Raw;
 }
 
@@ -150,4 +152,7 @@ where
     }
 }
 
-pub trait DeviceAPI<T>: DeviceBaseAPI + DeviceRawAPI<T> + DeviceStorageAPI<T> {}
+pub trait DeviceAPI<T>:
+    DeviceBaseAPI + DeviceRawAPI<T> + DeviceStorageAPI<T> + Clone + Default
+{
+}

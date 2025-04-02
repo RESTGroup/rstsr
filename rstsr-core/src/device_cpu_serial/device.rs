@@ -1,18 +1,22 @@
 use crate::prelude_dev::*;
 use num::{complex::ComplexFloat, Num};
 
-#[derive(Clone, Debug)]
-pub struct DeviceCpuSerial;
-
-impl Default for DeviceCpuSerial {
-    fn default() -> Self {
-        DeviceCpuSerial
-    }
+#[derive(Clone, Debug, Default)]
+pub struct DeviceCpuSerial {
+    default_order: FlagOrder,
 }
 
 impl DeviceBaseAPI for DeviceCpuSerial {
-    fn same_device(&self, _other: &Self) -> bool {
-        true
+    fn same_device(&self, other: &Self) -> bool {
+        self.default_order == other.default_order
+    }
+
+    fn default_order(&self) -> FlagOrder {
+        self.default_order
+    }
+
+    fn set_default_order(&mut self, order: FlagOrder) {
+        self.default_order = order;
     }
 }
 
@@ -80,6 +84,7 @@ impl<T> DeviceStorageAPI<T> for DeviceCpuSerial {
 }
 
 impl<T> DeviceAPI<T> for DeviceCpuSerial {}
+
 impl<T, D> DeviceComplexFloatAPI<T, D> for DeviceCpuSerial
 where
     T: ComplexFloat,
@@ -100,21 +105,21 @@ mod tests {
 
     #[test]
     fn test_cpu_device_same_device() {
-        let device1 = DeviceCpuSerial;
-        let device2 = DeviceCpuSerial;
+        let device1 = DeviceCpuSerial::default();
+        let device2 = DeviceCpuSerial::default();
         assert!(device1.same_device(&device2));
     }
 
     #[test]
     fn test_cpu_storage_to_vec() {
-        let storage = Storage::new(DataOwned::from(vec![1, 2, 3]), DeviceCpuSerial);
+        let storage = Storage::new(DataOwned::from(vec![1, 2, 3]), DeviceCpuSerial::default());
         let vec = storage.to_cpu_vec().unwrap();
         assert_eq!(vec, vec![1, 2, 3]);
     }
 
     #[test]
     fn test_cpu_storage_into_vec() {
-        let storage = Storage::new(DataOwned::from(vec![1, 2, 3]), DeviceCpuSerial);
+        let storage = Storage::new(DataOwned::from(vec![1, 2, 3]), DeviceCpuSerial::default());
         let vec = storage.into_cpu_vec().unwrap();
         assert_eq!(vec, vec![1, 2, 3]);
     }

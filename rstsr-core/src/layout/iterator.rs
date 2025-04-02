@@ -634,12 +634,12 @@ where
                 let iter = IterLayoutColMajor::new(layout)?;
                 return Ok(Self::ColMajor(iter));
             },
-            A => match TensorOrder::default() {
-                TensorOrder::C => {
+            A => match FlagOrder::default() {
+                RowMajor => {
                     let iter = IterLayoutRowMajor::new(layout)?;
                     return Ok(Self::RowMajor(iter));
                 },
-                TensorOrder::F => {
+                ColMajor => {
                     let iter = IterLayoutColMajor::new(layout)?;
                     return Ok(Self::ColMajor(iter));
                 },

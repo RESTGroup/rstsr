@@ -34,6 +34,7 @@ where
         alpha: TC,
         beta: TC,
     ) -> Result<()> {
+        let default_order = self.default_order();
         match (la.ndim(), lb.ndim(), lc.ndim()) {
             (1, 1, 0) => {
                 // rule 1: vector inner dot
@@ -66,6 +67,9 @@ where
             (1, 2.., _) => {
                 // rule 3: | `        K` | `..., K, N` | `   ..., N` |
                 rstsr_assert_eq!(lb.ndim(), lc.ndim() + 1, InvalidLayout)?;
+                if default_order == ColMajor && lb.ndim() > 2 {
+                    rstsr_raise!(InvalidLayout, "Broadcasting matmul is not supported in col-major.")?;
+                }
                 let la = &la.clone().into_dim::<Ix1>().unwrap();
                 let (lb_rest, lb_matmul) = lb.dim_split_at(-2)?;
                 let (lc_rest, lc_matmul) = lc.dim_split_at(-1)?;
@@ -84,6 +88,9 @@ where
             (2.., 1, _) => {
                 // rule 4: | `..., M, K` | `        K` | `   ..., M` |
                 rstsr_assert_eq!(la.ndim(), lc.ndim() + 1, InvalidLayout)?;
+                if default_order == ColMajor && la.ndim() > 2 {
+                    rstsr_raise!(InvalidLayout, "Broadcasting matmul is not supported in col-major.")?;
+                }
                 let lb = &lb.clone().into_dim::<Ix1>().unwrap();
                 let (la_rest, la_matmul) = la.dim_split_at(-2)?;
                 let (lc_rest, lc_matmul) = lc.dim_split_at(-1)?;
@@ -102,6 +109,9 @@ where
             (2, 3.., _) => {
                 // rule 5: | `     M, K` | `..., K, N` | `..., M, N` |
                 rstsr_assert_eq!(lb.ndim(), lc.ndim(), InvalidLayout)?;
+                if default_order == ColMajor {
+                    rstsr_raise!(InvalidLayout, "Broadcasting matmul is not supported in col-major.")?;
+                }
                 let la = &la.clone().into_dim::<Ix2>().unwrap();
                 let (lb_rest, lb_matmul) = lb.dim_split_at(-2)?;
                 let (lc_rest, lc_matmul) = lc.dim_split_at(-2)?;
@@ -120,6 +130,9 @@ where
             (3.., 2, _) => {
                 // rule 6: | `..., M, K` | `     K, N` | `..., M, N` |
                 rstsr_assert_eq!(la.ndim(), lc.ndim(), InvalidLayout)?;
+                if default_order == ColMajor {
+                    rstsr_raise!(InvalidLayout, "Broadcasting matmul is not supported in col-major.")?;
+                }
                 let lb = &lb.clone().into_dim::<Ix2>().unwrap();
                 let (la_rest, la_matmul) = la.dim_split_at(-2)?;
                 let (lc_rest, lc_matmul) = lc.dim_split_at(-2)?;
@@ -139,6 +152,9 @@ where
                 // rule 7: | `..., M, K` | `..., K, N` | `..., M, N` |
                 rstsr_assert_eq!(la.ndim(), lc.ndim(), InvalidLayout)?;
                 rstsr_assert_eq!(lb.ndim(), lc.ndim(), InvalidLayout)?;
+                if default_order == ColMajor {
+                    rstsr_raise!(InvalidLayout, "Broadcasting matmul is not supported in col-major.")?;
+                }
                 let (la_rest, la_matmul) = la.dim_split_at(-2)?;
                 let (lb_rest, lb_matmul) = lb.dim_split_at(-2)?;
                 let (lc_rest, lc_matmul) = lc.dim_split_at(-2)?;

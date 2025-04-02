@@ -48,15 +48,16 @@ macro_rules! trait_binary {
                 // check and broadcast layout
                 let la = self.layout();
                 let lb = b.layout();
-                let (la_b, lb_b) = broadcast_layout(la, lb)?;
+                let default_order = self.device().default_order();
+                let (la_b, lb_b) = broadcast_layout(la, lb, default_order)?;
                 let lc_from_a = layout_for_array_copy(&la_b, TensorIterOrder::default())?;
                 let lc_from_b = layout_for_array_copy(&lb_b, TensorIterOrder::default())?;
                 let lc = if lc_from_a == lc_from_b {
                     lc_from_a
                 } else {
-                    match TensorOrder::default() {
-                        TensorOrder::C => la_b.shape().c(),
-                        TensorOrder::F => la_b.shape().f(),
+                    match self.device().default_order() {
+                        RowMajor => la_b.shape().c(),
+                        ColMajor => la_b.shape().f(),
                     }
                 };
 
@@ -165,42 +166,88 @@ mod test {
 
     #[test]
     fn test_pow() {
-        let a = arange(6u32).into_shape([2, 3]);
-        let b = arange(3u32);
-        let c = pow(&a, &b);
-        println!("{:?}", c);
-        assert_eq!(c.reshape([6]).to_vec(), vec![1, 1, 4, 1, 4, 25]);
+        #[cfg(not(feature = "col_major"))]
+        {
+            let a = arange(6u32).into_shape([2, 3]);
+            let b = arange(3u32);
+            let c = pow(&a, &b);
+            println!("{:?}", c);
+            assert_eq!(c.reshape([6]).to_vec(), vec![1, 1, 4, 1, 4, 25]);
 
-        let a = arange(6.0).into_shape([2, 3]);
+            let a = arange(6.0).into_shape([2, 3]);
 
-        let b = arange(3.0);
-        let c = pow(&a, &b);
-        println!("{:?}", c);
-        assert_eq!(c.reshape([6]).to_vec(), vec![1.0, 1.0, 4.0, 1.0, 4.0, 25.0]);
+            let b = arange(3.0);
+            let c = pow(&a, &b);
+            println!("{:?}", c);
+            assert_eq!(c.reshape([6]).to_vec(), vec![1.0, 1.0, 4.0, 1.0, 4.0, 25.0]);
 
-        let b = arange(3);
-        let c = pow(&a, &b);
-        println!("{:?}", c);
-        assert_eq!(c.reshape([6]).to_vec(), vec![1.0, 1.0, 4.0, 1.0, 4.0, 25.0]);
+            let b = arange(3);
+            let c = pow(&a, &b);
+            println!("{:?}", c);
+            assert_eq!(c.reshape([6]).to_vec(), vec![1.0, 1.0, 4.0, 1.0, 4.0, 25.0]);
+        }
+        #[cfg(feature = "col_major")]
+        {
+            let a = arange(6u32).into_shape([3, 2]);
+            let b = arange(3u32);
+            let c = pow(&a, &b);
+            println!("{:?}", c);
+            assert_eq!(c.reshape([6]).to_vec(), vec![1, 1, 4, 1, 4, 25]);
+
+            let a = arange(6.0).into_shape([3, 2]);
+
+            let b = arange(3.0);
+            let c = pow(&a, &b);
+            println!("{:?}", c);
+            assert_eq!(c.reshape([6]).to_vec(), vec![1.0, 1.0, 4.0, 1.0, 4.0, 25.0]);
+
+            let b = arange(3);
+            let c = pow(&a, &b);
+            println!("{:?}", c);
+            assert_eq!(c.reshape([6]).to_vec(), vec![1.0, 1.0, 4.0, 1.0, 4.0, 25.0]);
+        }
     }
 
     #[test]
     fn test_floor_divide() {
-        let a = arange(6u32).into_shape([2, 3]);
-        let b = asarray(vec![1, 2, 2]);
-        let c = a.floor_divide(&b);
-        println!("{:?}", c);
-        assert_eq!(c.reshape([6]).to_vec(), vec![0, 0, 1, 3, 2, 2]);
+        #[cfg(not(feature = "col_major"))]
+        {
+            let a = arange(6u32).into_shape([2, 3]);
+            let b = asarray(vec![1, 2, 2]);
+            let c = a.floor_divide(&b);
+            println!("{:?}", c);
+            assert_eq!(c.reshape([6]).to_vec(), vec![0, 0, 1, 3, 2, 2]);
 
-        let a = arange(6.0).into_shape([2, 3]);
+            let a = arange(6.0).into_shape([2, 3]);
 
-        let b = asarray(vec![1.0, 2.0, 2.0]);
-        let c = a.floor_divide(&b);
-        println!("{:?}", c);
-        assert_eq!(c.reshape([6]).to_vec(), vec![0.0, 0.0, 1.0, 3.0, 2.0, 2.0]);
+            let b = asarray(vec![1.0, 2.0, 2.0]);
+            let c = a.floor_divide(&b);
+            println!("{:?}", c);
+            assert_eq!(c.reshape([6]).to_vec(), vec![0.0, 0.0, 1.0, 3.0, 2.0, 2.0]);
 
-        let b = asarray(vec![0.0, 2.0, 2.0]);
-        let c = a.floor_divide_f(&b);
-        println!("{:?}", c);
+            let b = asarray(vec![0.0, 2.0, 2.0]);
+            let c = a.floor_divide_f(&b);
+            println!("{:?}", c);
+        }
+        #[cfg(feature = "col_major")]
+        {
+            // [3, 2] + [3]
+            let a = arange(6u32).into_shape([3, 2]);
+            let b = asarray(vec![1, 2, 2]);
+            let c = a.floor_divide(&b);
+            println!("{:?}", c);
+            assert_eq!(c.reshape([6]).to_vec(), vec![0, 0, 1, 3, 2, 2]);
+
+            let a = arange(6.0).into_shape([3, 2]);
+
+            let b = asarray(vec![1.0, 2.0, 2.0]);
+            let c = a.floor_divide(&b);
+            println!("{:?}", c);
+            assert_eq!(c.reshape([6]).to_vec(), vec![0.0, 0.0, 1.0, 3.0, 2.0, 2.0]);
+
+            let b = asarray(vec![0.0, 2.0, 2.0]);
+            let c = a.floor_divide_f(&b);
+            println!("{:?}", c);
+        }
     }
 }

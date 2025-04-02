@@ -97,9 +97,13 @@ macro_rules! impl_binary_assign {
                 rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch)?;
                 let la = a.layout();
                 let lb = b.layout();
+                let default_order = a.device().default_order();
                 // check layout broadcast
-                let (la_b, lb_b) =
-                    broadcast_layout_to_first(&la.to_dim::<IxD>()?, &lb.to_dim::<IxD>()?)?;
+                let (la_b, lb_b) = broadcast_layout_to_first(
+                    &la.to_dim::<IxD>()?,
+                    &lb.to_dim::<IxD>()?,
+                    default_order,
+                )?;
                 rstsr_assert_eq!(la_b, la.to_dim::<IxD>()?, InvalidLayout)?;
                 // op provided by device
                 let device = a.device().clone();
@@ -172,7 +176,6 @@ mod test {
     use super::*;
 
     #[test]
-    #[allow(clippy::deref_addrof)]
     fn test_add_assign() {
         // contiguous
         let mut c = linspace((1.0, 5.0, 5));
@@ -184,25 +187,41 @@ mod test {
         let c_ref = vec![5., 10., 15., 20., 25.].into();
         assert!(allclose_f64(&c, &c_ref));
 
-        // broadcast
-        // [2, 3] + [3]
-        let c = linspace((1.0, 6.0, 6));
-        let mut c = c.into_shape_assume_contig([2, 3]);
-        let b = linspace((2.0, 6.0, 3));
-        // let mut c_mut = c.view_mut();
-        // c_mut += &b;
-        *&mut c.view_mut() += &b;
-        let c_ref = vec![3., 6., 9., 6., 9., 12.].into();
-        assert!(allclose_f64(&c, &c_ref));
+        #[cfg(not(feature = "col_major"))]
+        {
+            // broadcast
+            // [2, 3] + [3]
+            let c = linspace((1.0, 6.0, 6));
+            let mut c = c.into_shape_assume_contig([2, 3]);
+            let b = linspace((2.0, 6.0, 3));
+            *&mut c.view_mut() += &b;
+            let c_ref = vec![3., 6., 9., 6., 9., 12.].into();
+            assert!(allclose_f64(&c, &c_ref));
 
-        // scalar
-        c *= 2.0;
-        let c_ref = vec![6., 12., 18., 12., 18., 24.].into();
-        assert!(allclose_f64(&c, &c_ref));
+            // scalar
+            c *= 2.0;
+            let c_ref = vec![6., 12., 18., 12., 18., 24.].into();
+            assert!(allclose_f64(&c, &c_ref));
+        }
+        #[cfg(feature = "col_major")]
+        {
+            // broadcast
+            // [3, 2] + [3]
+            let c = linspace((1.0, 6.0, 6));
+            let mut c = c.into_shape_assume_contig([3, 2]);
+            let b = linspace((2.0, 6.0, 3));
+            *&mut c.view_mut() += &b;
+            let c_ref = vec![3., 6., 9., 6., 9., 12.];
+            assert!(allclose_f64(&c.raw().into(), &c_ref.into()));
+
+            // scalar
+            c *= 2.0;
+            let c_ref = vec![6., 12., 18., 12., 18., 24.];
+            assert!(allclose_f64(&c.raw().into(), &c_ref.into()));
+        }
     }
 
     #[test]
-    #[allow(clippy::deref_addrof)]
     fn test_sub_assign() {
         // contiguous
         let mut c = linspace((1.0, 5.0, 5));
@@ -211,15 +230,31 @@ mod test {
         let c_ref = vec![-1., -2., -3., -4., -5.].into();
         assert!(allclose_f64(&c, &c_ref));
 
-        // broadcast
-        // [2, 3] + [3]
-        let c = linspace((1.0, 6.0, 6));
-        let mut c = c.into_shape_assume_contig([2, 3]);
-        let b = linspace((2.0, 6.0, 3));
-        // let mut c_mut = c.view_mut();
-        // c_mut += &b;
-        *&mut c.view_mut() -= &b;
-        let c_ref = vec![-1., -2., -3., 2., 1., 0.].into();
-        assert!(allclose_f64(&c, &c_ref));
+        #[cfg(not(feature = "col_major"))]
+        {
+            // broadcast
+            // [2, 3] + [3]
+            let c = linspace((1.0, 6.0, 6));
+            let mut c = c.into_shape_assume_contig([2, 3]);
+            let b = linspace((2.0, 6.0, 3));
+            // let mut c_mut = c.view_mut();
+            // c_mut += &b;
+            *&mut c.view_mut() -= &b;
+            let c_ref = vec![-1., -2., -3., 2., 1., 0.].into();
+            assert!(allclose_f64(&c, &c_ref));
+        }
+        #[cfg(feature = "col_major")]
+        {
+            // broadcast
+            // [3, 2] + [3]
+            let c = linspace((1.0, 6.0, 6));
+            let mut c = c.into_shape_assume_contig([3, 2]);
+            let b = linspace((2.0, 6.0, 3));
+            // let mut c_mut = c.view_mut();
+            // c_mut += &b;
+            *&mut c.view_mut() -= &b;
+            let c_ref = vec![-1., -2., -3., 2., 1., 0.];
+            assert!(allclose_f64(&c.raw().into(), &c_ref.into()));
+        }
     }
 }

@@ -499,9 +499,10 @@ where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
     {
-        let order = match TensorOrder::default() {
-            TensorOrder::C => TensorIterOrder::C,
-            TensorOrder::F => TensorIterOrder::F,
+        let default_order = self.device().default_order();
+        let order = match default_order {
+            RowMajor => TensorIterOrder::C,
+            ColMajor => TensorIterOrder::F,
         };
         self.indexed_axes_iter_with_order_f(axes, order)
     }
@@ -681,9 +682,10 @@ where
         I: TryInto<AxesIndex<isize>>,
         Error: From<I::Error>,
     {
-        let order = match TensorOrder::default() {
-            TensorOrder::C => TensorIterOrder::C,
-            TensorOrder::F => TensorIterOrder::F,
+        let default_order = self.device().default_order();
+        let order = match default_order {
+            RowMajor => TensorIterOrder::C,
+            ColMajor => TensorIterOrder::F,
         };
         self.indexed_axes_iter_mut_with_order_f(axes, order)
     }
@@ -726,7 +728,20 @@ mod tests_serial {
                 view[[1, 2]]
             })
             .collect::<Vec<_>>();
-        assert_eq!(res, vec![22, 27, 32, 37, 82, 87, 92, 97]);
+        #[cfg(not(feature = "col_major"))]
+        {
+            // import numpy as np
+            // a = np.arange(120).reshape(2, 3, 4, 5)
+            // a[:, 1, :, 2].reshape(-1)
+            assert_eq!(res, vec![22, 27, 32, 37, 82, 87, 92, 97]);
+        }
+        #[cfg(feature = "col_major")]
+        {
+            // a = range(0, 119) |> collect;
+            // a = reshape(a, (2, 3, 4, 5));
+            // reshape(a[:, 2, :, 3], 8)'
+            assert_eq!(res, vec![50, 51, 56, 57, 62, 63, 68, 69]);
+        }
     }
 
     #[test]
@@ -742,7 +757,20 @@ mod tests_serial {
             })
             .collect::<Vec<_>>();
         println!("{:?}", res);
-        assert_eq!(res, vec![23, 28, 33, 38, 83, 88, 93, 98]);
+        #[cfg(not(feature = "col_major"))]
+        {
+            // import numpy as np
+            // a = np.arange(120).reshape(2, 3, 4, 5)
+            // a[:, 1, :, 2].reshape(-1) + 1
+            assert_eq!(res, vec![23, 28, 33, 38, 83, 88, 93, 98]);
+        }
+        #[cfg(feature = "col_major")]
+        {
+            // a = range(0, 119) |> collect;
+            // a = reshape(a, (2, 3, 4, 5));
+            // reshape(a[:, 2, :, 3]', 8)' .+ 1
+            assert_eq!(res, vec![51, 57, 63, 69, 52, 58, 64, 70]);
+        }
     }
 
     #[test]
@@ -757,16 +785,38 @@ mod tests_serial {
                 (index, view[[1, 2]])
             })
             .collect::<Vec<_>>();
-        assert_eq!(res, vec![
-            (vec![0, 0], 22),
-            (vec![0, 1], 27),
-            (vec![0, 2], 32),
-            (vec![0, 3], 37),
-            (vec![1, 0], 82),
-            (vec![1, 1], 87),
-            (vec![1, 2], 92),
-            (vec![1, 3], 97)
-        ]);
+        #[cfg(not(feature = "col_major"))]
+        {
+            // import numpy as np
+            // a = np.arange(120).reshape(2, 3, 4, 5)
+            // a[:, 1, :, 2].reshape(-1)
+            assert_eq!(res, vec![
+                (vec![0, 0], 22),
+                (vec![0, 1], 27),
+                (vec![0, 2], 32),
+                (vec![0, 3], 37),
+                (vec![1, 0], 82),
+                (vec![1, 1], 87),
+                (vec![1, 2], 92),
+                (vec![1, 3], 97)
+            ]);
+        }
+        #[cfg(feature = "col_major")]
+        {
+            // a = range(0, 119) |> collect;
+            // a = reshape(a, (2, 3, 4, 5));
+            // reshape(a[:, 2, :, 3], 8)'
+            assert_eq!(res, vec![
+                (vec![0, 0], 50),
+                (vec![1, 0], 51),
+                (vec![0, 1], 56),
+                (vec![1, 1], 57),
+                (vec![0, 2], 62),
+                (vec![1, 2], 63),
+                (vec![0, 3], 68),
+                (vec![1, 3], 69)
+            ]);
+        }
     }
 }
 
@@ -790,8 +840,24 @@ mod tests_parallel {
             })
             .collect::<Vec<_>>();
         println!("{:?}", res);
-        assert_eq!(res[..17], vec![
-            259, 275, 291, 307, 323, 339, 355, 371, 387, 403, 419, 435, 451, 467, 483, 499, 4355
-        ]);
+        #[cfg(not(feature = "col_major"))]
+        {
+            // a = np.arange(65536).reshape(16, 16, 16, 16)
+            // a[:, 1, :, 2].reshape(-1)[:17] + 1
+            assert_eq!(res[..17], vec![
+                259, 275, 291, 307, 323, 339, 355, 371, 387, 403, 419, 435, 451, 467, 483, 499,
+                4355
+            ]);
+        }
+        #[cfg(feature = "col_major")]
+        {
+            // a = range(0, 65535) |> collect;
+            // a = reshape(a, (16, 16, 16, 16))
+            // (reshape(a[:, 2, :, 3], 16 * 16) .+ 1)[1:17]
+            assert_eq!(res[..17], vec![
+                8209, 8210, 8211, 8212, 8213, 8214, 8215, 8216, 8217, 8218, 8219, 8220, 8221, 8222,
+                8223, 8224, 8465
+            ]);
+        }
     }
 }

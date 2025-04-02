@@ -49,7 +49,7 @@ pub type CBLAS_SIDE = u32;
 
 /* #region flag into */
 
-use rstsr_core::flags::{FlagDiag, FlagSide, FlagTrans, FlagUpLo, TensorOrder};
+use rstsr_core::flags::{FlagDiag, FlagOrder, FlagSide, FlagTrans, FlagUpLo};
 
 impl From<FlagTrans> for CblasTranspose {
     fn from(flag: FlagTrans) -> Self {
@@ -92,11 +92,11 @@ impl From<FlagSide> for CblasSide {
     }
 }
 
-impl From<TensorOrder> for CblasLayout {
-    fn from(order: TensorOrder) -> Self {
+impl From<FlagOrder> for CblasLayout {
+    fn from(order: FlagOrder) -> Self {
         match order {
-            TensorOrder::C => CblasOrder::RowMajor,
-            TensorOrder::F => CblasOrder::ColMajor,
+            FlagOrder::RowMajor => CblasOrder::RowMajor,
+            FlagOrder::ColMajor => CblasOrder::ColMajor,
         }
     }
 }

@@ -7,7 +7,7 @@ where
     Self: DeviceRawAPI<T, Raw = Vec<T>>,
 {
     unsafe fn empty_impl(&self, len: usize) -> Result<Storage<DataOwned<Vec<T>>, T, Self>> {
-        let storage = DeviceCpuSerial.empty_impl(len)?;
+        let storage = DeviceCpuSerial::default().empty_impl(len)?;
         let (data, _) = storage.into_raw_parts();
         Ok(Storage::new(data, self.clone()))
     }
@@ -16,7 +16,7 @@ where
     where
         T: Clone,
     {
-        let storage = DeviceCpuSerial.full_impl(len, fill)?;
+        let storage = DeviceCpuSerial::default().full_impl(len, fill)?;
         let (data, _) = storage.into_raw_parts();
         Ok(Storage::new(data, self.clone()))
     }
@@ -40,19 +40,19 @@ where
     Self: DeviceRawAPI<T, Raw = Vec<T>>,
 {
     fn zeros_impl(&self, len: usize) -> Result<Storage<DataOwned<Vec<T>>, T, Self>> {
-        let storage = DeviceCpuSerial.zeros_impl(len)?;
+        let storage = DeviceCpuSerial::default().zeros_impl(len)?;
         let (data, _) = storage.into_raw_parts();
         Ok(Storage::new(data, self.clone()))
     }
 
     fn ones_impl(&self, len: usize) -> Result<Storage<DataOwned<Vec<T>>, T, Self>> {
-        let storage = DeviceCpuSerial.ones_impl(len)?;
+        let storage = DeviceCpuSerial::default().ones_impl(len)?;
         let (data, _) = storage.into_raw_parts();
         Ok(Storage::new(data, self.clone()))
     }
 
     fn arange_int_impl(&self, len: usize) -> Result<Storage<DataOwned<Vec<T>>, T, Self>> {
-        let storage = DeviceCpuSerial.arange_int_impl(len)?;
+        let storage = DeviceCpuSerial::default().arange_int_impl(len)?;
         let (data, _) = storage.into_raw_parts();
         Ok(Storage::new(data, self.clone()))
     }
@@ -69,7 +69,7 @@ where
         end: T,
         step: T,
     ) -> Result<Storage<DataOwned<Vec<T>>, T, Self>> {
-        let storage = DeviceCpuSerial.arange_impl(start, end, step)?;
+        let storage = DeviceCpuSerial::default().arange_impl(start, end, step)?;
         let (data, _) = storage.into_raw_parts();
         Ok(Storage::new(data, self.clone()))
     }
@@ -87,7 +87,7 @@ where
         n: usize,
         endpoint: bool,
     ) -> Result<Storage<DataOwned<Vec<T>>, T, Self>> {
-        let storage = DeviceCpuSerial.linspace_impl(start, end, n, endpoint)?;
+        let storage = DeviceCpuSerial::default().linspace_impl(start, end, n, endpoint)?;
         let (data, _) = storage.into_raw_parts();
         Ok(Storage::new(data, self.clone()))
     }
@@ -102,14 +102,14 @@ where
     where
         D: DimAPI,
     {
-        DeviceCpuSerial.tril_impl(raw, layout, k)
+        DeviceCpuSerial::default().tril_impl(raw, layout, k)
     }
 
     fn triu_impl<D>(&self, raw: &mut Self::Raw, layout: &Layout<D>, k: isize) -> Result<()>
     where
         D: DimAPI,
     {
-        DeviceCpuSerial.triu_impl(raw, layout, k)
+        DeviceCpuSerial::default().triu_impl(raw, layout, k)
     }
 }
 

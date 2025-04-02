@@ -73,9 +73,10 @@ where
     }
 
     pub fn iter_f(&self) -> Result<IterVecView<'a, T, D>> {
-        let order = match TensorOrder::default() {
-            TensorOrder::C => TensorIterOrder::C,
-            TensorOrder::F => TensorIterOrder::F,
+        let default_order = self.device().default_order();
+        let order = match default_order {
+            RowMajor => TensorIterOrder::C,
+            ColMajor => TensorIterOrder::F,
         };
         self.iter_with_order_f(order)
     }
@@ -166,9 +167,10 @@ where
     }
 
     pub fn iter_mut_f(&'a mut self) -> Result<IterVecMut<'a, T, D>> {
-        let order = match TensorOrder::default() {
-            TensorOrder::C => TensorIterOrder::C,
-            TensorOrder::F => TensorIterOrder::F,
+        let default_order = self.device().default_order();
+        let order = match default_order {
+            RowMajor => TensorIterOrder::C,
+            ColMajor => TensorIterOrder::F,
         };
         self.iter_mut_with_order_f(order)
     }
@@ -269,9 +271,10 @@ where
     }
 
     pub fn indexed_iter_f(&self) -> Result<IndexedIterVecView<'a, T, D>> {
-        let order = match TensorOrder::default() {
-            TensorOrder::C => TensorIterOrder::C,
-            TensorOrder::F => TensorIterOrder::F,
+        let default_order = self.device().default_order();
+        let order = match default_order {
+            RowMajor => TensorIterOrder::C,
+            ColMajor => TensorIterOrder::F,
         };
         self.indexed_iter_with_order_f(order)
     }
@@ -381,9 +384,10 @@ where
     }
 
     pub fn indexed_iter_mut_f(&'a mut self) -> Result<IndexedIterVecMut<'a, T, D>> {
-        let order = match TensorOrder::default() {
-            TensorOrder::C => TensorIterOrder::C,
-            TensorOrder::F => TensorIterOrder::F,
+        let default_order = self.device().default_order();
+        let order = match default_order {
+            RowMajor => TensorIterOrder::C,
+            ColMajor => TensorIterOrder::F,
         };
         self.indexed_iter_mut_with_order_f(order)
     }
@@ -408,7 +412,18 @@ mod tests_serial {
 
         let iter_t = a.t().iter();
         let vec_t = iter_t.collect::<Vec<_>>();
-        assert_eq!(vec_t, vec![&0, &2, &4, &1, &3, &5]);
+        #[cfg(not(feature = "col_major"))]
+        {
+            // a = np.arange(6).reshape(3, 2)
+            // a.T.reshape(-1)
+            assert_eq!(vec_t, vec![&0, &2, &4, &1, &3, &5]);
+        }
+        #[cfg(feature = "col_major")]
+        {
+            // a = reshape(range(0, 5), (3, 2));
+            // reshape(a', 6)
+            assert_eq!(vec_t, vec![&0, &3, &1, &4, &2, &5]);
+        }
     }
 
     #[test]
@@ -425,6 +440,7 @@ mod tests_serial {
         let a = arange(6).into_layout([3, 2].c());
         let iter = a.indexed_iter_with_order(TensorIterOrder::C);
         let vec = iter.collect::<Vec<_>>();
+        #[cfg(not(feature = "col_major"))]
         assert_eq!(vec, vec![
             ([0, 0], &0),
             ([0, 1], &1),
@@ -433,15 +449,34 @@ mod tests_serial {
             ([2, 0], &4),
             ([2, 1], &5)
         ]);
+        #[cfg(feature = "col_major")]
+        assert_eq!(vec, vec![
+            ([0, 0], &0),
+            ([0, 1], &3),
+            ([1, 0], &1),
+            ([1, 1], &4),
+            ([2, 0], &2),
+            ([2, 1], &5)
+        ]);
 
         let iter_t = a.t().indexed_iter_with_order(TensorIterOrder::C);
         let vec_t = iter_t.collect::<Vec<_>>();
+        #[cfg(not(feature = "col_major"))]
         assert_eq!(vec_t, vec![
             ([0, 0], &0),
             ([0, 1], &2),
             ([0, 2], &4),
             ([1, 0], &1),
             ([1, 1], &3),
+            ([1, 2], &5)
+        ]);
+        #[cfg(feature = "col_major")]
+        assert_eq!(vec_t, vec![
+            ([0, 0], &0),
+            ([0, 1], &1),
+            ([0, 2], &2),
+            ([1, 0], &3),
+            ([1, 1], &4),
             ([1, 2], &5)
         ]);
     }
@@ -462,6 +497,9 @@ mod tests_parallel {
 
         let iter_t = a.t().iter().into_par_iter();
         let vec_t = iter_t.collect::<Vec<_>>();
+        // since we only collect the first 6 elements, the order is the same for col and
+        // row major however, if more elements are collected, the order will be
+        // different
         assert_eq!(vec_t[..6], vec![&0, &128, &256, &384, &512, &640]);
     }
 

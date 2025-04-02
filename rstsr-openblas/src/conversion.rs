@@ -88,7 +88,7 @@ mod test {
 
     #[test]
     fn test_device_conversion_cpu_serial() {
-        let device_serial = DeviceCpuSerial {};
+        let device_serial = DeviceCpuSerial::default();
         let device_openblas = DeviceBLAS::new(0);
         let a = linspace((1.0, 5.0, 5, &device_openblas));
         let b = a.to_device(&device_serial);
