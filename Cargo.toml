@@ -7,7 +7,6 @@ members = [
     "rstsr-openblas-ffi",
     "rstsr-dtype-traits",
     "rstsr-blas-traits",
-    "rstsr-test-manifest",
     "rstsr-linalg-traits",
 ]
 
@@ -25,11 +24,12 @@ rstsr-core = { path = "./rstsr-core", default-features = false, version = "0.2.6
 # members without core
 rstsr-openblas-ffi = { path = "./rstsr-openblas-ffi", default-features = false, version = "0.2.6" }
 rstsr-dtype-traits = { path = "./rstsr-dtype-traits", default-features = false, version = "0.2.6" }
-rstsr-test-manifest = { path = "./rstsr-test-manifest", default-features = false, version = "0.2.6" }
 # members
 rstsr-openblas = { path = "./rstsr-openblas", default-features = false, version = "0.2.6" }
 rstsr-blas-traits = { path = "./rstsr-blas-traits", default-features = false, version = "0.2.6" }
 rstsr-linalg-traits = { path = "./rstsr-linalg-traits", default-features = false, version = "0.2.6" }
+# develop dependencies that should not publish
+rstsr-test-manifest = { path = "./rstsr-test-manifest", default-features = false }
 # basic dependencies
 num = { version = "0.4" }
 thiserror = { version = "1.0" }
