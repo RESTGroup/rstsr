@@ -23,14 +23,6 @@ jobs:
           fetch-depth: 0
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
-      - name: Run release-plz in rstsr-test-manifest
-        uses: release-plz/action@v0.5
-        with:
-          command: release
-          manifest_path: ./rstsr-test-manifest/Cargo.toml
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
       - name: Run release-plz
         uses: release-plz/action@v0.5
         with:
