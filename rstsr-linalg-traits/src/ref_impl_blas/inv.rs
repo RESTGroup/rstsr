@@ -1,5 +1,4 @@
 use rstsr_blas_traits::prelude::*;
-use rstsr_core::error::Result;
 use rstsr_core::prelude_dev::*;
 
 pub fn blas_inv_f<T, B>(a: TensorReference<T, B, Ix2>) -> Result<TensorMutable<T, B, Ix2>>

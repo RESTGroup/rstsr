@@ -5,9 +5,9 @@ where
     D: DimDevAPI,
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        let shape = self.shape.as_ref();
-        let stride = self.stride.as_ref();
-        let offset = self.offset;
+        let shape = self.shape().as_ref();
+        let stride = self.stride().as_ref();
+        let offset = self.offset();
         let is_c_contig = self.c_contig();
         let is_f_contig = self.f_contig();
         let is_c_prefer = self.c_prefer();

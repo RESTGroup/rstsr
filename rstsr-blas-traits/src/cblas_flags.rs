@@ -49,7 +49,7 @@ pub type CBLAS_SIDE = u32;
 
 /* #region flag into */
 
-use rstsr_core::flags::{FlagDiag, FlagOrder, FlagSide, FlagTrans, FlagUpLo};
+use rstsr_core::prelude::rstsr_structs::{FlagDiag, FlagOrder, FlagSide, FlagTrans, FlagUpLo};
 
 impl From<FlagTrans> for CblasTranspose {
     fn from(flag: FlagTrans) -> Self {

@@ -1,0 +1,36 @@
+[package]
+name = "rstsr-common"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+license.workspace = true
+
+[dependencies]
+duplicate = { workspace = true }
+itertools = { workspace = true }
+num = { workspace = true }
+derive_builder = { workspace = true }
+rayon = { workspace = true, optional = true }
+
+[dev-dependencies]
+rstsr-core = { workspace = true }
+
+[features]
+std = []
+rayon = ["dep:rayon"]
+
+# Row-major or Col-major will be contractidary features.
+# Only one is accepted, otherwise this will panic in runtime.
+# - Row-major convention: similar to NumPy (with same behavior of versatile broadcasting)
+# - Col-major convention: similar to Julia (limited broadcasting)
+row_major = []
+col_major = []
+
+# Dispatch dimensinoality in layout iterators
+# This option is recommended for efficiency for large tensor, especially with non-contiguous strides.
+# However, this feature will add runtime overhead for small tensor.
+# And more importantly, this feature will hugely increase compile time.
+dispatch_dim_layout_iter = []

@@ -1,4 +1,4 @@
-use rstsr_core::error::Result;
+use rstsr_core::prelude::rt::Result;
 
 pub trait LinalgSolveTriangularAPI<Inp> {
     type Out;
