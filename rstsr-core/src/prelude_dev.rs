@@ -14,11 +14,7 @@ pub use itertools::{izip, Itertools};
 #[cfg(feature = "rayon")]
 pub use rayon::ThreadPool;
 
-pub use crate::error::{Error, Result};
-pub use crate::flags::*;
-pub use crate::util::*;
-
-pub use crate::layout::*;
+pub use rstsr_common::prelude_dev::*;
 
 pub use crate::storage::assignment::*;
 pub use crate::storage::combined_trait::*;
@@ -62,10 +58,3 @@ pub use crate::feature_rayon::par_iter::*;
 pub use crate::device_faer::device::*;
 
 pub use crate::tensorbase::*;
-
-pub use crate::impl_from_tuple_to_axes_index;
-pub use crate::{
-    rstsr_assert, rstsr_assert_eq, rstsr_errcode, rstsr_error, rstsr_invalid, rstsr_pattern,
-    rstsr_raise,
-};
-pub use crate::{s, slice};

@@ -1,7 +1,7 @@
 use crate::DeviceBLAS;
 use num::Complex;
 use rstsr_blas_traits::prelude::*;
-use rstsr_core::flags::*;
+use rstsr_core::prelude::*;
 
 impl SYEVDriverAPI<f32> for DeviceBLAS {
     unsafe fn driver_syev(

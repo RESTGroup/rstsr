@@ -17,15 +17,7 @@ use crate::prelude::rstsr_traits::*;
 pub mod prelude;
 pub mod prelude_dev;
 
-pub mod error;
-pub mod flags;
-pub mod util;
-
-pub mod layout;
-pub use layout::{DimAPI, Layout};
-
 pub mod storage;
-
 pub mod tensor;
 pub mod tensorbase;
 pub use tensorbase::{

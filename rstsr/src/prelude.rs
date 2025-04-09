@@ -57,5 +57,5 @@ pub mod rt {
     #[cfg(feature = "linalg")]
     pub use super::linalg;
 
-    pub use rstsr_core::error::{Error, Result};
+    pub use rstsr_core::prelude::rt::{Error, Result};
 }

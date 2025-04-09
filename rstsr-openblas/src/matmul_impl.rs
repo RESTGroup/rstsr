@@ -4,7 +4,7 @@ use crate::prelude_dev::*;
 use num::complex::Complex;
 use num::traits::ConstZero;
 use rayon::prelude::*;
-use rstsr_core::util::uninitialized_vec;
+use rstsr_core::prelude_dev::uninitialized_vec;
 use rstsr_openblas_ffi::{cblas, ffi};
 use std::ffi::c_void;
 

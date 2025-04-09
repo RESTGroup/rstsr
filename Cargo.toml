@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "rstsr",
     "rstsr-core",
+    "rstsr-common",
     "rstsr-openblas",
     "rstsr-openblas-ffi",
     "rstsr-dtype-traits",
@@ -22,6 +23,7 @@ license = "Apache-2.0"
 [workspace.dependencies]
 rstsr-core = { path = "./rstsr-core", default-features = false, version = "0.2.6" }
 # members without core
+rstsr-common = { path = "./rstsr-common", default-features = false, version = "0.2.6" }
 rstsr-openblas-ffi = { path = "./rstsr-openblas-ffi", default-features = false, version = "0.2.6" }
 rstsr-dtype-traits = { path = "./rstsr-dtype-traits", default-features = false, version = "0.2.6" }
 # members

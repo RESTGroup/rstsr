@@ -204,7 +204,7 @@ where
     return Ok((layout1, layout2));
 }
 
-pub(crate) fn update_layout_by_shape<D, DMax>(
+pub fn update_layout_by_shape<D, DMax>(
     layout: &Layout<D>,
     shape: &DMax,
     broadcast_type: &[BroadcastType],

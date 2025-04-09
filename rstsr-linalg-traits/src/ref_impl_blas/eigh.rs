@@ -1,6 +1,5 @@
 use crate::traits::eigh::EighArgs_;
 use rstsr_blas_traits::prelude::*;
-use rstsr_core::error::Result;
 use rstsr_core::prelude_dev::*;
 
 pub fn blas_eigh_simple_f<'a, B, T>(

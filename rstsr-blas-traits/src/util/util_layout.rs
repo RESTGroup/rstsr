@@ -1,4 +1,4 @@
-use rstsr_core::flags::{ColMajor, FlagOrder, RowMajor};
+use rstsr_core::prelude::rstsr_structs::*;
 
 pub fn get_output_order(
     by_first: &[Option<(bool, bool)>],

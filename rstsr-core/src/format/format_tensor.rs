@@ -199,10 +199,10 @@ pub fn print_vec_with_layout<T, D>(
 ) -> core::fmt::Result
 where
     T: Clone + Display,
-    D: crate::layout::DimAPI,
+    D: DimAPI,
 {
     let idx_prev = vec![];
-    let offset = layout.offset;
+    let offset = layout.offset();
     let mut config =
         FnPrintVecWithLayout { vec, layout, offset, idx_prev, max_print, min_print, fmt };
     print_vec_with_layout_dfs(&mut config)
@@ -410,10 +410,10 @@ pub fn print_vec_with_layout_debug<T, D>(
 ) -> core::fmt::Result
 where
     T: Clone + Debug,
-    D: crate::layout::DimAPI,
+    D: DimAPI,
 {
     let idx_prev = vec![];
-    let offset = layout.offset;
+    let offset = layout.offset();
     let mut config =
         FnPrintVecWithLayout { vec, layout, offset, idx_prev, max_print, min_print, fmt };
     print_vec_with_layout_dfs_debug(&mut config)
@@ -473,8 +473,6 @@ mod playground {
 
     #[test]
     fn playground() {
-        use crate::layout::*;
-
         let mut s = String::new();
 
         s.clear();

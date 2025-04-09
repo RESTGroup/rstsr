@@ -200,8 +200,8 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         let index = match &self.layout_iter {
-            IterLayout::ColMajor(iter_inner) => iter_inner.index_start.clone(),
-            IterLayout::RowMajor(iter_inner) => iter_inner.index_start.clone(),
+            IterLayout::ColMajor(iter_inner) => iter_inner.index_start().clone(),
+            IterLayout::RowMajor(iter_inner) => iter_inner.index_start().clone(),
         };
         self.layout_iter.next().map(|offset| (index, &self.view[offset]))
     }
@@ -213,8 +213,8 @@ where
 {
     fn next_back(&mut self) -> Option<Self::Item> {
         let index = match &self.layout_iter {
-            IterLayout::ColMajor(iter_inner) => iter_inner.index_start.clone(),
-            IterLayout::RowMajor(iter_inner) => iter_inner.index_start.clone(),
+            IterLayout::ColMajor(iter_inner) => iter_inner.index_start().clone(),
+            IterLayout::RowMajor(iter_inner) => iter_inner.index_start().clone(),
         };
         self.layout_iter.next_back().map(|offset| (index, &self.view[offset]))
     }
@@ -303,8 +303,8 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         let index = match &self.layout_iter {
-            IterLayout::ColMajor(iter_inner) => iter_inner.index_start.clone(),
-            IterLayout::RowMajor(iter_inner) => iter_inner.index_start.clone(),
+            IterLayout::ColMajor(iter_inner) => iter_inner.index_start().clone(),
+            IterLayout::RowMajor(iter_inner) => iter_inner.index_start().clone(),
         };
         self.layout_iter
             .next()
@@ -318,8 +318,8 @@ where
 {
     fn next_back(&mut self) -> Option<Self::Item> {
         let index = match &self.layout_iter {
-            IterLayout::ColMajor(iter_inner) => iter_inner.index_start.clone(),
-            IterLayout::RowMajor(iter_inner) => iter_inner.index_start.clone(),
+            IterLayout::ColMajor(iter_inner) => iter_inner.index_start().clone(),
+            IterLayout::RowMajor(iter_inner) => iter_inner.index_start().clone(),
         };
         self.layout_iter
             .next_back()

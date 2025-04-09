@@ -1,5 +1,4 @@
 use rstsr_blas_traits::prelude::*;
-use rstsr_core::error::Result;
 use rstsr_core::prelude_dev::*;
 
 pub fn blas_solve_general_f<'b, T, B>(
