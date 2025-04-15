@@ -39,6 +39,35 @@ impl<D> IterLayoutColMajor<D>
 where
     D: DimDevAPI,
 {
+    pub fn index_start(&self) -> &D {
+        &self.index_start
+    }
+
+    pub fn index_end(&self) -> &D {
+        &self.index_end
+    }
+
+    pub fn iter_start(&self) -> usize {
+        self.iter_start
+    }
+
+    pub fn iter_end(&self) -> usize {
+        self.iter_end
+    }
+
+    pub fn offset_start(&self) -> isize {
+        self.offset_start
+    }
+
+    pub fn offset_end(&self) -> isize {
+        self.offset_end
+    }
+}
+
+impl<D> IterLayoutColMajor<D>
+where
+    D: DimDevAPI,
+{
     /// This function generates col-major (f-prefer) layout, then give its
     /// iterator object.
     pub fn new(layout: &Layout<D>) -> Result<Self> {
@@ -333,6 +362,35 @@ where
     pub(crate) index_end: D, // this is not used for buffer-order
     pub(crate) iter_end: usize,
     pub(crate) offset_end: isize,
+}
+
+impl<D> IterLayoutRowMajor<D>
+where
+    D: DimDevAPI,
+{
+    pub fn index_start(&self) -> &D {
+        &self.index_start
+    }
+
+    pub fn index_end(&self) -> &D {
+        &self.index_end
+    }
+
+    pub fn iter_start(&self) -> usize {
+        self.iter_start
+    }
+
+    pub fn iter_end(&self) -> usize {
+        self.iter_end
+    }
+
+    pub fn offset_start(&self) -> isize {
+        self.offset_start
+    }
+
+    pub fn offset_end(&self) -> isize {
+        self.offset_end
+    }
 }
 
 impl<D> IterLayoutRowMajor<D>

@@ -3,8 +3,8 @@ resolver = "2"
 members = [
     "rstsr",
     "rstsr-core",
+    "rstsr-common",
     "rstsr-openblas",
-    "rstsr-openblas-ffi",
     "rstsr-dtype-traits",
     "rstsr-blas-traits",
     "rstsr-linalg-traits",
@@ -22,7 +22,7 @@ license = "Apache-2.0"
 [workspace.dependencies]
 rstsr-core = { path = "./rstsr-core", default-features = false, version = "0.2.6" }
 # members without core
-rstsr-openblas-ffi = { path = "./rstsr-openblas-ffi", default-features = false, version = "0.2.6" }
+rstsr-common = { path = "./rstsr-common", default-features = false, version = "0.2.6" }
 rstsr-dtype-traits = { path = "./rstsr-dtype-traits", default-features = false, version = "0.2.6" }
 # members
 rstsr-openblas = { path = "./rstsr-openblas", default-features = false, version = "0.2.6" }
@@ -30,6 +30,9 @@ rstsr-blas-traits = { path = "./rstsr-blas-traits", default-features = false, ve
 rstsr-linalg-traits = { path = "./rstsr-linalg-traits", default-features = false, version = "0.2.6" }
 # develop dependencies that should not publish
 rstsr-test-manifest = { path = "./rstsr-test-manifest", default-features = false }
+# ffi dependencies
+rstsr-lapack-ffi = { version = "0.1.1" }
+rstsr-openblas-ffi = { version = "0.3.1" }
 # basic dependencies
 num = { version = "0.4" }
 thiserror = { version = "1.0" }

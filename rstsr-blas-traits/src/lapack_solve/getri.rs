@@ -7,8 +7,8 @@ pub trait GETRIDriverAPI<T> {
         n: usize,
         a: *mut T,
         lda: usize,
-        ipiv: *mut blasint,
-    ) -> blasint;
+        ipiv: *mut blas_int,
+    ) -> blas_int;
 }
 
 #[derive(Builder)]
@@ -16,11 +16,11 @@ pub trait GETRIDriverAPI<T> {
 pub struct GETRI_<'a, 'ipiv, B, T>
 where
     T: BlasFloat,
-    B: DeviceAPI<T> + DeviceAPI<blasint>,
+    B: DeviceAPI<T> + DeviceAPI<blas_int>,
 {
     #[builder(setter(into))]
     pub a: TensorReference<'a, T, B, Ix2>,
-    pub ipiv: TensorView<'ipiv, blasint, B, Ix1>,
+    pub ipiv: TensorView<'ipiv, blas_int, B, Ix1>,
 }
 
 impl<'a, B, T> GETRI_<'a, '_, B, T>
@@ -28,9 +28,9 @@ where
     T: BlasFloat,
     B: GETRIDriverAPI<T>
         + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<blasint, Raw = Vec<blasint>>
+        + DeviceAPI<blas_int, Raw = Vec<blas_int>>
         + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceNumAPI<blasint, Ix1>,
+        + DeviceNumAPI<blas_int, Ix1>,
 {
     pub fn internal_run(self) -> Result<TensorMutable2<'a, T, B>> {
         let Self { a, ipiv } = self;

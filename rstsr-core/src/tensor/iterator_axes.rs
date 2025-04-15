@@ -366,8 +366,8 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         let index = match &self.axes_iter {
-            IterLayout::ColMajor(iter_inner) => iter_inner.index_start.clone(),
-            IterLayout::RowMajor(iter_inner) => iter_inner.index_start.clone(),
+            IterLayout::ColMajor(iter_inner) => iter_inner.index_start().clone(),
+            IterLayout::RowMajor(iter_inner) => iter_inner.index_start().clone(),
         };
         self.axes_iter.next().map(|offset| {
             self.update_offset(offset);
@@ -382,8 +382,8 @@ where
 {
     fn next_back(&mut self) -> Option<Self::Item> {
         let index = match &self.axes_iter {
-            IterLayout::ColMajor(iter_inner) => iter_inner.index_start.clone(),
-            IterLayout::RowMajor(iter_inner) => iter_inner.index_start.clone(),
+            IterLayout::ColMajor(iter_inner) => iter_inner.index_start().clone(),
+            IterLayout::RowMajor(iter_inner) => iter_inner.index_start().clone(),
         };
         self.axes_iter.next_back().map(|offset| {
             self.update_offset(offset);
@@ -557,8 +557,8 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         let index = match &self.axes_iter {
-            IterLayout::ColMajor(iter_inner) => iter_inner.index_start.clone(),
-            IterLayout::RowMajor(iter_inner) => iter_inner.index_start.clone(),
+            IterLayout::ColMajor(iter_inner) => iter_inner.index_start().clone(),
+            IterLayout::RowMajor(iter_inner) => iter_inner.index_start().clone(),
         };
         self.axes_iter.next().map(|offset| {
             self.update_offset(offset);
@@ -573,8 +573,8 @@ where
 {
     fn next_back(&mut self) -> Option<Self::Item> {
         let index = match &self.axes_iter {
-            IterLayout::ColMajor(iter_inner) => iter_inner.index_start.clone(),
-            IterLayout::RowMajor(iter_inner) => iter_inner.index_start.clone(),
+            IterLayout::ColMajor(iter_inner) => iter_inner.index_start().clone(),
+            IterLayout::RowMajor(iter_inner) => iter_inner.index_start().clone(),
         };
         self.axes_iter.next_back().map(|offset| {
             self.update_offset(offset);

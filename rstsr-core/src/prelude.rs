@@ -1,8 +1,6 @@
 pub mod rstsr_traits {
-    pub use crate::layout::{
-        DimAPI, DimBaseAPI, DimBroadcastableAPI, DimDevAPI, DimIntoAPI, DimLargerOneAPI,
-        DimLayoutContigAPI, DimMaxAPI, DimShapeAPI, DimSmallerOneAPI, DimStrideAPI,
-    };
+    pub use rstsr_common::prelude::rstsr_traits::*;
+
     pub use crate::storage::conversion::DeviceChangeAPI;
     pub use crate::storage::data::{
         DataAPI, DataCloneAPI, DataForceMutAPI, DataIntoCowAPI, DataMutAPI, DataOwnedAPI,
@@ -30,24 +28,19 @@ pub mod rstsr_traits {
     pub use crate::tensor::ownership_conversion::{
         TensorIntoOwnedAPI, TensorViewAPI, TensorViewMutAPI,
     };
-    pub use core::ops::*;
 
     #[cfg(feature = "rayon")]
     pub use crate::feature_rayon::DeviceRayonAPI;
 }
 
 pub mod rstsr_structs {
+    pub use rstsr_common::prelude::rstsr_structs::*;
+
     pub use crate::device_cpu_serial::device::DeviceCpuSerial;
     #[cfg(feature = "faer")]
     pub use crate::device_faer::device::DeviceFaer;
     pub use crate::DeviceCpu;
 
-    pub use crate::flags::{
-        FlagDiag, FlagOrder, FlagSide, FlagSymm, FlagTrans, FlagUpLo, TensorCopyPolicy, TensorDiag,
-        TensorIterOrder, TensorOrder, TensorSide, TensorSymm, TensorTrans, TensorUpLo,
-    };
-    pub use crate::layout::indexer::{Ellipsis, NewAxis};
-    pub use crate::layout::{Ix, Ix1, Ix2, Ix3, Ix4, Ix5, Ix6, Ix7, Ix8, Ix9, IxD, IxDyn, Layout};
     pub use crate::tensor::tensor_mutable::TensorMutable;
     pub use crate::{
         Tensor, TensorAny, TensorArc, TensorBase, TensorCow, TensorMut, TensorRef, TensorReference,
@@ -143,11 +136,7 @@ pub mod rstsr_funcs {
 }
 
 pub mod rstsr_macros {
-    pub use crate::{
-        rstsr_assert, rstsr_assert_eq, rstsr_errcode, rstsr_error, rstsr_invalid, rstsr_pattern,
-        rstsr_raise,
-    };
-    pub use crate::{s, slice};
+    pub use rstsr_common::prelude::rstsr_macros::*;
 }
 
 // final re-exports
@@ -156,7 +145,10 @@ pub use rstsr_macros::*;
 pub use rstsr_structs::*;
 pub use rstsr_traits::*;
 
+#[allow(unused_imports)]
 pub mod rt {
+    pub use rstsr_common::prelude::rt::*;
+
     pub use super::rstsr_funcs;
     pub use super::rstsr_macros;
     pub use super::rstsr_structs;
@@ -166,6 +158,4 @@ pub mod rt {
     pub use super::rstsr_macros::*;
     pub use super::rstsr_structs::*;
     pub use super::rstsr_traits::*;
-
-    pub use crate::error::{Error, Result};
 }

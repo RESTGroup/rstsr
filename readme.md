@@ -46,7 +46,7 @@ let b = b.reshape((-1, 4, 3));
 let c = &b % &a;
 
 // print the result
-println!("{:6.1}", c)
+println!("{:6.1}", c);
 // output:
 // [[[   23.0   14.0]
 //   [   86.0   47.0]

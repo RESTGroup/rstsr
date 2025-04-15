@@ -13,9 +13,10 @@ readme = "readme.md"
 rayon = { workspace = true }
 num = { workspace = true }
 duplicate = { workspace = true }
+rstsr-openblas-ffi = { workspace = true }
+rstsr-lapack-ffi = { workspace = true }
 rstsr-core = { workspace = true, features = ["rayon"] }
 rstsr-dtype-traits = { workspace = true, features = ["half"] }
-rstsr-openblas-ffi = { workspace = true }
 rstsr-blas-traits = { workspace = true }
 rstsr-linalg-traits = { workspace = true, optional = true }
 
@@ -23,7 +24,7 @@ rstsr-linalg-traits = { workspace = true, optional = true }
 rstsr-test-manifest = { workspace = true }
 
 [features]
+openmp = []
 faer = ["rstsr-core/faer"]
-ilp64 = ["rstsr-openblas-ffi/ilp64", "rstsr-blas-traits/ilp64"]
-openmp = ["rstsr-openblas-ffi/openmp"]
+ilp64 = ["rstsr-openblas-ffi/ilp64", "rstsr-lapack-ffi/ilp64", "rstsr-blas-traits/ilp64"]
 linalg = ["dep:rstsr-linalg-traits"]

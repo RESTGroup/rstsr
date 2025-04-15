@@ -4,7 +4,17 @@
 use core::ffi::c_int;
 use std::sync::Mutex;
 
-use crate::ffi::cblas::{OPENBLAS_OPENMP, OPENBLAS_SEQUENTIAL, OPENBLAS_THREAD};
+use rstsr_openblas_ffi::cblas::{OPENBLAS_OPENMP, OPENBLAS_SEQUENTIAL, OPENBLAS_THREAD};
+
+/* #region required openmp ffi */
+
+#[cfg(feature = "openmp")]
+extern "C" {
+    pub fn omp_set_num_threads(arg1: c_int);
+    pub fn omp_get_num_threads() -> c_int;
+}
+
+/* #endregion */
 
 /* #region parallel scheme */
 
@@ -17,7 +27,7 @@ pub enum OpenBLASParallel {
 
 pub fn get_parallel() -> OpenBLASParallel {
     unsafe {
-        match crate::ffi::cblas::openblas_get_parallel().try_into().unwrap() {
+        match rstsr_openblas_ffi::cblas::openblas_get_parallel().try_into().unwrap() {
             OPENBLAS_SEQUENTIAL => OpenBLASParallel::Sequential,
             OPENBLAS_THREAD => OpenBLASParallel::Thread,
             OPENBLAS_OPENMP => {
@@ -48,9 +58,9 @@ impl OpenBLASConfig {
     fn set_num_threads(&mut self, n: usize) {
         unsafe {
             match self.get_parallel() {
-                OPENBLAS_THREAD => crate::ffi::cblas::openblas_set_num_threads(n as i32),
+                OPENBLAS_THREAD => rstsr_openblas_ffi::cblas::openblas_set_num_threads(n as i32),
                 #[cfg(feature = "openmp")]
-                OPENBLAS_OPENMP => crate::ffi::openmp::omp_set_num_threads(n as c_int),
+                OPENBLAS_OPENMP => omp_set_num_threads(n as c_int),
                 _ => (),
             }
         }
@@ -59,9 +69,9 @@ impl OpenBLASConfig {
     fn get_num_threads(&mut self) -> usize {
         unsafe {
             match self.get_parallel() {
-                OPENBLAS_THREAD => crate::ffi::cblas::openblas_get_num_threads() as usize,
+                OPENBLAS_THREAD => rstsr_openblas_ffi::cblas::openblas_get_num_threads() as usize,
                 #[cfg(feature = "openmp")]
-                OPENBLAS_OPENMP => crate::ffi::openmp::omp_get_num_threads() as usize,
+                OPENBLAS_OPENMP => omp_get_num_threads() as usize,
                 _ => 1,
             }
         }
@@ -71,7 +81,7 @@ impl OpenBLASConfig {
         match self.parallel {
             Some(p) => p,
             None => {
-                let p = unsafe { crate::ffi::cblas::openblas_get_parallel() } as u32;
+                let p = unsafe { rstsr_openblas_ffi::cblas::openblas_get_parallel() } as u32;
                 #[cfg(not(feature = "openmp"))]
                 if p == OPENBLAS_OPENMP {
                     panic!(concat!(

@@ -4,12 +4,17 @@ use crate::prelude_dev::*;
 use num::complex::Complex;
 use num::traits::ConstZero;
 use rayon::prelude::*;
-use rstsr_core::util::uninitialized_vec;
-use rstsr_openblas_ffi::{cblas, ffi};
+use rstsr_core::prelude_dev::uninitialized_vec;
+use rstsr_lapack_ffi::cblas;
 use std::ffi::c_void;
 
 type c32 = Complex<f32>;
 type c64 = Complex<f64>;
+
+use cblas::CBLAS_LAYOUT::CblasColMajor as ColMajor;
+use cblas::CBLAS_TRANSPOSE::CblasNoTrans as NoTrans;
+use cblas::CBLAS_TRANSPOSE::CblasTrans as Trans;
+use cblas::CBLAS_UPLO::CblasUpper as Upper;
 
 /* #region gemm */
 
@@ -83,26 +88,26 @@ pub fn fn_name(
     let mut a_data: Option<Vec<ty>> = None;
     let mut b_data: Option<Vec<ty>> = None;
     let (a_trans, la) = if la.f_prefer() {
-        (cblas::NoTrans, la.clone())
+        (NoTrans, la.clone())
     } else if la.c_prefer() {
-        (cblas::Trans, la.reverse_axes())
+        (Trans, la.reverse_axes())
     } else {
         let len = la.size();
         a_data = unsafe { Some(uninitialized_vec(len)) };
         let la_data = la.shape().new_f_contig(None);
         assign_cpu_rayon(a_data.as_mut().unwrap(), &la_data, a, la, pool)?;
-        (cblas::NoTrans, la_data)
+        (NoTrans, la_data)
     };
     let (b_trans, lb) = if lb.f_prefer() {
-        (cblas::NoTrans, lb.clone())
+        (NoTrans, lb.clone())
     } else if lb.c_prefer() {
-        (cblas::Trans, lb.reverse_axes())
+        (Trans, lb.reverse_axes())
     } else {
         let len = lb.size();
         b_data = unsafe { Some(uninitialized_vec(len)) };
         let lb_data = lb.shape().new_f_contig(None);
         assign_cpu_rayon(b_data.as_mut().unwrap(), &lb_data, b, lb, pool)?;
-        (cblas::NoTrans, lb_data)
+        (NoTrans, lb_data)
     };
 
     // final configuration
@@ -126,20 +131,7 @@ pub fn fn_name(
     // actual computation
     unsafe {
         cblas_wrap(
-            cblas::ColMajor,
-            a_trans,
-            b_trans,
-            m,
-            n,
-            k,
-            alpha,
-            ptr_a,
-            lda,
-            ptr_b,
-            ldb,
-            beta,
-            ptr_c,
-            ldc,
+            ColMajor, a_trans, b_trans, m, n, k, alpha, ptr_a, lda, ptr_b, ldb, beta, ptr_c, ldc,
         );
     }
     Ok(())
@@ -147,9 +139,9 @@ pub fn fn_name(
 
 #[allow(clippy::too_many_arguments)]
 unsafe fn cblas_sgemm_wrap(
-    order: cblas::CblasLayout,
-    a_trans: cblas::CblasTranspose,
-    b_trans: cblas::CblasTranspose,
+    order: cblas::CBLAS_LAYOUT,
+    a_trans: cblas::CBLAS_TRANSPOSE,
+    b_trans: cblas::CBLAS_TRANSPOSE,
     m: usize,
     n: usize,
     k: usize,
@@ -163,30 +155,30 @@ unsafe fn cblas_sgemm_wrap(
     ldc: isize,
 ) {
     unsafe {
-        ffi::cblas::cblas_sgemm(
-            order as ffi::cblas::CBLAS_ORDER,
-            a_trans as ffi::cblas::CBLAS_TRANSPOSE,
-            b_trans as ffi::cblas::CBLAS_TRANSPOSE,
-            m as ffi::cblas::blasint,
-            n as ffi::cblas::blasint,
-            k as ffi::cblas::blasint,
+        cblas::cblas_sgemm(
+            order as cblas::CBLAS_LAYOUT,
+            a_trans as cblas::CBLAS_TRANSPOSE,
+            b_trans as cblas::CBLAS_TRANSPOSE,
+            m as cblas::blas_int,
+            n as cblas::blas_int,
+            k as cblas::blas_int,
             alpha,
             ptr_a,
-            lda as ffi::cblas::blasint,
+            lda as cblas::blas_int,
             ptr_b,
-            ldb as ffi::cblas::blasint,
+            ldb as cblas::blas_int,
             beta,
             ptr_c,
-            ldc as ffi::cblas::blasint,
+            ldc as cblas::blas_int,
         );
     }
 }
 
 #[allow(clippy::too_many_arguments)]
 unsafe fn cblas_dgemm_wrap(
-    order: cblas::CblasLayout,
-    a_trans: cblas::CblasTranspose,
-    b_trans: cblas::CblasTranspose,
+    order: cblas::CBLAS_LAYOUT,
+    a_trans: cblas::CBLAS_TRANSPOSE,
+    b_trans: cblas::CBLAS_TRANSPOSE,
     m: usize,
     n: usize,
     k: usize,
@@ -200,30 +192,30 @@ unsafe fn cblas_dgemm_wrap(
     ldc: isize,
 ) {
     unsafe {
-        ffi::cblas::cblas_dgemm(
-            order as ffi::cblas::CBLAS_ORDER,
-            a_trans as ffi::cblas::CBLAS_TRANSPOSE,
-            b_trans as ffi::cblas::CBLAS_TRANSPOSE,
-            m as ffi::cblas::blasint,
-            n as ffi::cblas::blasint,
-            k as ffi::cblas::blasint,
+        cblas::cblas_dgemm(
+            order as cblas::CBLAS_LAYOUT,
+            a_trans as cblas::CBLAS_TRANSPOSE,
+            b_trans as cblas::CBLAS_TRANSPOSE,
+            m as cblas::blas_int,
+            n as cblas::blas_int,
+            k as cblas::blas_int,
             alpha,
             ptr_a,
-            lda as ffi::cblas::blasint,
+            lda as cblas::blas_int,
             ptr_b,
-            ldb as ffi::cblas::blasint,
+            ldb as cblas::blas_int,
             beta,
             ptr_c,
-            ldc as ffi::cblas::blasint,
+            ldc as cblas::blas_int,
         );
     }
 }
 
 #[allow(clippy::too_many_arguments)]
 unsafe fn cblas_cgemm_wrap(
-    order: cblas::CblasLayout,
-    a_trans: cblas::CblasTranspose,
-    b_trans: cblas::CblasTranspose,
+    order: cblas::CBLAS_LAYOUT,
+    a_trans: cblas::CBLAS_TRANSPOSE,
+    b_trans: cblas::CBLAS_TRANSPOSE,
     m: usize,
     n: usize,
     k: usize,
@@ -237,30 +229,30 @@ unsafe fn cblas_cgemm_wrap(
     ldc: isize,
 ) {
     unsafe {
-        ffi::cblas::cblas_cgemm(
-            order as ffi::cblas::CBLAS_ORDER,
-            a_trans as ffi::cblas::CBLAS_TRANSPOSE,
-            b_trans as ffi::cblas::CBLAS_TRANSPOSE,
-            m as ffi::cblas::blasint,
-            n as ffi::cblas::blasint,
-            k as ffi::cblas::blasint,
+        cblas::cblas_cgemm(
+            order as cblas::CBLAS_LAYOUT,
+            a_trans as cblas::CBLAS_TRANSPOSE,
+            b_trans as cblas::CBLAS_TRANSPOSE,
+            m as cblas::blas_int,
+            n as cblas::blas_int,
+            k as cblas::blas_int,
             &alpha as *const _ as *const c_void,
             ptr_a as *const c_void,
-            lda as ffi::cblas::blasint,
+            lda as cblas::blas_int,
             ptr_b as *const c_void,
-            ldb as ffi::cblas::blasint,
+            ldb as cblas::blas_int,
             &beta as *const _ as *const c_void,
             ptr_c as *mut c_void,
-            ldc as ffi::cblas::blasint,
+            ldc as cblas::blas_int,
         );
     }
 }
 
 #[allow(clippy::too_many_arguments)]
 unsafe fn cblas_zgemm_wrap(
-    order: cblas::CblasLayout,
-    a_trans: cblas::CblasTranspose,
-    b_trans: cblas::CblasTranspose,
+    order: cblas::CBLAS_LAYOUT,
+    a_trans: cblas::CBLAS_TRANSPOSE,
+    b_trans: cblas::CBLAS_TRANSPOSE,
     m: usize,
     n: usize,
     k: usize,
@@ -274,21 +266,21 @@ unsafe fn cblas_zgemm_wrap(
     ldc: isize,
 ) {
     unsafe {
-        ffi::cblas::cblas_zgemm(
-            order as ffi::cblas::CBLAS_ORDER,
-            a_trans as ffi::cblas::CBLAS_TRANSPOSE,
-            b_trans as ffi::cblas::CBLAS_TRANSPOSE,
-            m as ffi::cblas::blasint,
-            n as ffi::cblas::blasint,
-            k as ffi::cblas::blasint,
+        cblas::cblas_zgemm(
+            order as cblas::CBLAS_LAYOUT,
+            a_trans as cblas::CBLAS_TRANSPOSE,
+            b_trans as cblas::CBLAS_TRANSPOSE,
+            m as cblas::blas_int,
+            n as cblas::blas_int,
+            k as cblas::blas_int,
             &alpha as *const _ as *const c_void,
             ptr_a as *const c_void,
-            lda as ffi::cblas::blasint,
+            lda as cblas::blas_int,
             ptr_b as *const c_void,
-            ldb as ffi::cblas::blasint,
+            ldb as cblas::blas_int,
             &beta as *const _ as *const c_void,
             ptr_c as *mut c_void,
-            ldc as ffi::cblas::blasint,
+            ldc as cblas::blas_int,
         );
     }
 }
@@ -344,15 +336,15 @@ pub fn fn_name(
     // determine trans/layout and clone data if necessary
     let mut a_data: Option<Vec<ty>> = None;
     let (a_trans, la) = if la.f_prefer() {
-        (cblas::NoTrans, la.clone())
+        (NoTrans, la.clone())
     } else if la.c_prefer() {
-        (cblas::Trans, la.reverse_axes())
+        (Trans, la.reverse_axes())
     } else {
         let len = la.size();
         a_data = unsafe { Some(uninitialized_vec(len)) };
         let la_data = la.shape().new_f_contig(None);
         assign_cpu_rayon(a_data.as_mut().unwrap(), &la_data, a, la, pool)?;
-        (cblas::NoTrans, la_data)
+        (NoTrans, la_data)
     };
 
     // final configuration
@@ -369,19 +361,7 @@ pub fn fn_name(
 
     // actual computation
     unsafe {
-        cblas_wrap(
-            cblas::ColMajor,
-            cblas::Upper,
-            a_trans,
-            n,
-            k,
-            alpha,
-            ptr_a,
-            lda,
-            <ty>::ZERO,
-            ptr_c,
-            ldc,
-        );
+        cblas_wrap(ColMajor, Upper, a_trans, n, k, alpha, ptr_a, lda, <ty>::ZERO, ptr_c, ldc);
     }
 
     // write back to lower triangle
@@ -404,9 +384,9 @@ pub fn fn_name(
 
 #[allow(clippy::too_many_arguments)]
 unsafe fn cblas_ssyrk_wrap(
-    order: cblas::CblasLayout,
-    uplo: cblas::CblasUplo,
-    a_trans: cblas::CblasTranspose,
+    order: cblas::CBLAS_LAYOUT,
+    uplo: cblas::CBLAS_UPLO,
+    a_trans: cblas::CBLAS_TRANSPOSE,
     n: usize,
     k: usize,
     alpha: f32,
@@ -417,27 +397,27 @@ unsafe fn cblas_ssyrk_wrap(
     ldc: isize,
 ) {
     unsafe {
-        ffi::cblas::cblas_ssyrk(
-            order as ffi::cblas::CBLAS_ORDER,
-            uplo as ffi::cblas::CBLAS_UPLO,
-            a_trans as ffi::cblas::CBLAS_TRANSPOSE,
-            n as ffi::cblas::blasint,
-            k as ffi::cblas::blasint,
+        cblas::cblas_ssyrk(
+            order as cblas::CBLAS_LAYOUT,
+            uplo as cblas::CBLAS_UPLO,
+            a_trans as cblas::CBLAS_TRANSPOSE,
+            n as cblas::blas_int,
+            k as cblas::blas_int,
             alpha,
             ptr_a,
-            lda as ffi::cblas::blasint,
+            lda as cblas::blas_int,
             beta,
             ptr_c,
-            ldc as ffi::cblas::blasint,
+            ldc as cblas::blas_int,
         );
     }
 }
 
 #[allow(clippy::too_many_arguments)]
 unsafe fn cblas_dsyrk_wrap(
-    order: cblas::CblasLayout,
-    uplo: cblas::CblasUplo,
-    a_trans: cblas::CblasTranspose,
+    order: cblas::CBLAS_LAYOUT,
+    uplo: cblas::CBLAS_UPLO,
+    a_trans: cblas::CBLAS_TRANSPOSE,
     n: usize,
     k: usize,
     alpha: f64,
@@ -448,27 +428,27 @@ unsafe fn cblas_dsyrk_wrap(
     ldc: isize,
 ) {
     unsafe {
-        ffi::cblas::cblas_dsyrk(
-            order as ffi::cblas::CBLAS_ORDER,
-            uplo as ffi::cblas::CBLAS_UPLO,
-            a_trans as ffi::cblas::CBLAS_TRANSPOSE,
-            n as ffi::cblas::blasint,
-            k as ffi::cblas::blasint,
+        cblas::cblas_dsyrk(
+            order as cblas::CBLAS_LAYOUT,
+            uplo as cblas::CBLAS_UPLO,
+            a_trans as cblas::CBLAS_TRANSPOSE,
+            n as cblas::blas_int,
+            k as cblas::blas_int,
             alpha,
             ptr_a,
-            lda as ffi::cblas::blasint,
+            lda as cblas::blas_int,
             beta,
             ptr_c,
-            ldc as ffi::cblas::blasint,
+            ldc as cblas::blas_int,
         );
     }
 }
 
 #[allow(clippy::too_many_arguments)]
 unsafe fn cblas_csyrk_wrap(
-    order: cblas::CblasLayout,
-    uplo: cblas::CblasUplo,
-    a_trans: cblas::CblasTranspose,
+    order: cblas::CBLAS_LAYOUT,
+    uplo: cblas::CBLAS_UPLO,
+    a_trans: cblas::CBLAS_TRANSPOSE,
     n: usize,
     k: usize,
     alpha: c32,
@@ -479,27 +459,27 @@ unsafe fn cblas_csyrk_wrap(
     ldc: isize,
 ) {
     unsafe {
-        ffi::cblas::cblas_csyrk(
-            order as ffi::cblas::CBLAS_ORDER,
-            uplo as ffi::cblas::CBLAS_UPLO,
-            a_trans as ffi::cblas::CBLAS_TRANSPOSE,
-            n as ffi::cblas::blasint,
-            k as ffi::cblas::blasint,
+        cblas::cblas_csyrk(
+            order as cblas::CBLAS_LAYOUT,
+            uplo as cblas::CBLAS_UPLO,
+            a_trans as cblas::CBLAS_TRANSPOSE,
+            n as cblas::blas_int,
+            k as cblas::blas_int,
             &alpha as *const _ as *const c_void,
             ptr_a as *const c_void,
-            lda as ffi::cblas::blasint,
+            lda as cblas::blas_int,
             &beta as *const _ as *const c_void,
             ptr_c as *mut c_void,
-            ldc as ffi::cblas::blasint,
+            ldc as cblas::blas_int,
         );
     }
 }
 
 #[allow(clippy::too_many_arguments)]
 unsafe fn cblas_zsyrk_wrap(
-    order: cblas::CblasLayout,
-    uplo: cblas::CblasUplo,
-    a_trans: cblas::CblasTranspose,
+    order: cblas::CBLAS_LAYOUT,
+    uplo: cblas::CBLAS_UPLO,
+    a_trans: cblas::CBLAS_TRANSPOSE,
     n: usize,
     k: usize,
     alpha: c64,
@@ -510,18 +490,18 @@ unsafe fn cblas_zsyrk_wrap(
     ldc: isize,
 ) {
     unsafe {
-        ffi::cblas::cblas_zsyrk(
-            order as ffi::cblas::CBLAS_ORDER,
-            uplo as ffi::cblas::CBLAS_UPLO,
-            a_trans as ffi::cblas::CBLAS_TRANSPOSE,
-            n as ffi::cblas::blasint,
-            k as ffi::cblas::blasint,
+        cblas::cblas_zsyrk(
+            order as cblas::CBLAS_LAYOUT,
+            uplo as cblas::CBLAS_UPLO,
+            a_trans as cblas::CBLAS_TRANSPOSE,
+            n as cblas::blas_int,
+            k as cblas::blas_int,
             &alpha as *const _ as *const c_void,
             ptr_a as *const c_void,
-            lda as ffi::cblas::blasint,
+            lda as cblas::blas_int,
             &beta as *const _ as *const c_void,
             ptr_c as *mut c_void,
-            ldc as ffi::cblas::blasint,
+            ldc as cblas::blas_int,
         );
     }
 }

@@ -1,7 +1,7 @@
 use crate::DeviceBLAS;
 use num::Complex;
 use rstsr_blas_traits::prelude::*;
-use rstsr_core::flags::*;
+use rstsr_core::prelude::*;
 
 impl SYGVDDriverAPI<f32> for DeviceBLAS {
     unsafe fn driver_sygvd(
@@ -15,8 +15,8 @@ impl SYGVDDriverAPI<f32> for DeviceBLAS {
         b: *mut f32,
         ldb: usize,
         w: *mut f32,
-    ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_ssygvd(
+    ) -> blas_int {
+        rstsr_lapack_ffi::lapacke::LAPACKE_ssygvd(
             order as _,
             itype as _,
             jobz as _,
@@ -43,8 +43,8 @@ impl SYGVDDriverAPI<f64> for DeviceBLAS {
         b: *mut f64,
         ldb: usize,
         w: *mut f64,
-    ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_dsygvd(
+    ) -> blas_int {
+        rstsr_lapack_ffi::lapacke::LAPACKE_dsygvd(
             order as _,
             itype as _,
             jobz as _,
@@ -71,8 +71,8 @@ impl SYGVDDriverAPI<Complex<f32>> for DeviceBLAS {
         b: *mut Complex<f32>,
         ldb: usize,
         w: *mut f32,
-    ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_chegvd(
+    ) -> blas_int {
+        rstsr_lapack_ffi::lapacke::LAPACKE_chegvd(
             order as _,
             itype as _,
             jobz as _,
@@ -99,8 +99,8 @@ impl SYGVDDriverAPI<Complex<f64>> for DeviceBLAS {
         b: *mut Complex<f64>,
         ldb: usize,
         w: *mut f64,
-    ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_zhegvd(
+    ) -> blas_int {
+        rstsr_lapack_ffi::lapacke::LAPACKE_zhegvd(
             order as _,
             itype as _,
             jobz as _,

@@ -13,6 +13,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: unittest
         run: cargo test -p rstsr-core --lib
+      - name: unittest (common)
+        run: cargo test -p rstsr-common --lib
 
   unittests-col-major:
     runs-on: ubuntu-latest

@@ -1,7 +1,7 @@
 use crate::DeviceBLAS;
 use num::Complex;
 use rstsr_blas_traits::blas3::syhemm::*;
-use rstsr_core::flags::*;
+use rstsr_core::prelude::*;
 
 impl<const HERMI: bool> SYHEMMDriverAPI<f32, HERMI> for DeviceBLAS {
     unsafe fn driver_syhemm(
@@ -19,9 +19,20 @@ impl<const HERMI: bool> SYHEMMDriverAPI<f32, HERMI> for DeviceBLAS {
         c: *mut f32,
         ldc: usize,
     ) {
-        rstsr_openblas_ffi::ffi::cblas::cblas_ssymm(
-            order as _, side as _, uplo as _, m as _, n as _, alpha, a, lda as _, b, ldb as _,
-            beta, c, ldc as _,
+        rstsr_lapack_ffi::cblas::cblas_ssymm(
+            order.into(),
+            side.into(),
+            uplo.into(),
+            m as _,
+            n as _,
+            alpha,
+            a,
+            lda as _,
+            b,
+            ldb as _,
+            beta,
+            c,
+            ldc as _,
         );
     }
 }
@@ -42,9 +53,20 @@ impl<const HERMI: bool> SYHEMMDriverAPI<f64, HERMI> for DeviceBLAS {
         c: *mut f64,
         ldc: usize,
     ) {
-        rstsr_openblas_ffi::ffi::cblas::cblas_dsymm(
-            order as _, side as _, uplo as _, m as _, n as _, alpha, a, lda as _, b, ldb as _,
-            beta, c, ldc as _,
+        rstsr_lapack_ffi::cblas::cblas_dsymm(
+            order.into(),
+            side.into(),
+            uplo.into(),
+            m as _,
+            n as _,
+            alpha,
+            a,
+            lda as _,
+            b,
+            ldb as _,
+            beta,
+            c,
+            ldc as _,
         );
     }
 }
@@ -65,10 +87,10 @@ impl SYHEMMDriverAPI<Complex<f32>, false> for DeviceBLAS {
         c: *mut Complex<f32>,
         ldc: usize,
     ) {
-        rstsr_openblas_ffi::ffi::cblas::cblas_csymm(
-            order as _,
-            side as _,
-            uplo as _,
+        rstsr_lapack_ffi::cblas::cblas_csymm(
+            order.into(),
+            side.into(),
+            uplo.into(),
             m as _,
             n as _,
             &alpha as *const _ as *const _,
@@ -99,10 +121,10 @@ impl SYHEMMDriverAPI<Complex<f32>, true> for DeviceBLAS {
         c: *mut Complex<f32>,
         ldc: usize,
     ) {
-        rstsr_openblas_ffi::ffi::cblas::cblas_chemm(
-            order as _,
-            side as _,
-            uplo as _,
+        rstsr_lapack_ffi::cblas::cblas_chemm(
+            order.into(),
+            side.into(),
+            uplo.into(),
             m as _,
             n as _,
             &alpha as *const _ as *const _,
@@ -133,10 +155,10 @@ impl SYHEMMDriverAPI<Complex<f64>, false> for DeviceBLAS {
         c: *mut Complex<f64>,
         ldc: usize,
     ) {
-        rstsr_openblas_ffi::ffi::cblas::cblas_zsymm(
-            order as _,
-            side as _,
-            uplo as _,
+        rstsr_lapack_ffi::cblas::cblas_zsymm(
+            order.into(),
+            side.into(),
+            uplo.into(),
             m as _,
             n as _,
             &alpha as *const _ as *const _,
@@ -167,10 +189,10 @@ impl SYHEMMDriverAPI<Complex<f64>, true> for DeviceBLAS {
         c: *mut Complex<f64>,
         ldc: usize,
     ) {
-        rstsr_openblas_ffi::ffi::cblas::cblas_zhemm(
-            order as _,
-            side as _,
-            uplo as _,
+        rstsr_lapack_ffi::cblas::cblas_zhemm(
+            order.into(),
+            side.into(),
+            uplo.into(),
             m as _,
             n as _,
             &alpha as *const _ as *const _,

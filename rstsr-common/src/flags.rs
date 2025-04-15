@@ -2,6 +2,7 @@
 
 use crate::prelude_dev::*;
 use core::ffi::c_char;
+use rstsr_lapack_ffi::cblas::{CBLAS_DIAG, CBLAS_LAYOUT, CBLAS_SIDE, CBLAS_TRANSPOSE, CBLAS_UPLO};
 
 /* #region changeable default */
 
@@ -73,13 +74,6 @@ impl FlagOrder {
 #[allow(clippy::derivable_impls)]
 impl Default for FlagOrder {
     fn default() -> Self {
-        if cfg!(feature = "row_major") && cfg!(feature = "col_major") {
-            panic!(concat!(
-                "`row_major` and `col_major` are not compatible with each other. ",
-                "Please choose one of them in cargo features.",
-            ));
-        }
-
         if cfg!(feature = "col_major") {
             return FlagOrder::F;
         } else {
@@ -292,6 +286,38 @@ impl From<FlagTrans> for c_char {
     }
 }
 
+impl From<c_char> for FlagTrans {
+    fn from(val: c_char) -> Self {
+        match val as u8 {
+            b'N' => FlagTrans::N,
+            b'T' => FlagTrans::T,
+            b'C' => FlagTrans::C,
+            _ => rstsr_invalid!(val).unwrap(),
+        }
+    }
+}
+
+impl From<CBLAS_TRANSPOSE> for FlagTrans {
+    fn from(val: CBLAS_TRANSPOSE) -> Self {
+        match val {
+            CBLAS_TRANSPOSE::CblasNoTrans => FlagTrans::N,
+            CBLAS_TRANSPOSE::CblasTrans => FlagTrans::T,
+            CBLAS_TRANSPOSE::CblasConjTrans => FlagTrans::C,
+        }
+    }
+}
+
+impl From<FlagTrans> for CBLAS_TRANSPOSE {
+    fn from(val: FlagTrans) -> Self {
+        match val {
+            FlagTrans::N => CBLAS_TRANSPOSE::CblasNoTrans,
+            FlagTrans::T => CBLAS_TRANSPOSE::CblasTrans,
+            FlagTrans::C => CBLAS_TRANSPOSE::CblasConjTrans,
+            _ => rstsr_invalid!(val).unwrap(),
+        }
+    }
+}
+
 impl From<char> for FlagDiag {
     fn from(val: char) -> Self {
         match val {
@@ -317,6 +343,35 @@ impl From<FlagDiag> for c_char {
         match val {
             FlagDiag::N => b'N' as c_char,
             FlagDiag::U => b'U' as c_char,
+            _ => rstsr_invalid!(val).unwrap(),
+        }
+    }
+}
+
+impl From<c_char> for FlagDiag {
+    fn from(val: c_char) -> Self {
+        match val as u8 {
+            b'N' => FlagDiag::N,
+            b'U' => FlagDiag::U,
+            _ => rstsr_invalid!(val).unwrap(),
+        }
+    }
+}
+
+impl From<CBLAS_DIAG> for FlagDiag {
+    fn from(val: CBLAS_DIAG) -> Self {
+        match val {
+            CBLAS_DIAG::CblasNonUnit => FlagDiag::N,
+            CBLAS_DIAG::CblasUnit => FlagDiag::U,
+        }
+    }
+}
+
+impl From<FlagDiag> for CBLAS_DIAG {
+    fn from(val: FlagDiag) -> Self {
+        match val {
+            FlagDiag::N => CBLAS_DIAG::CblasNonUnit,
+            FlagDiag::U => CBLAS_DIAG::CblasUnit,
             _ => rstsr_invalid!(val).unwrap(),
         }
     }
@@ -352,6 +407,35 @@ impl From<FlagSide> for c_char {
     }
 }
 
+impl From<c_char> for FlagSide {
+    fn from(val: c_char) -> Self {
+        match val as u8 {
+            b'L' => FlagSide::L,
+            b'R' => FlagSide::R,
+            _ => rstsr_invalid!(val).unwrap(),
+        }
+    }
+}
+
+impl From<CBLAS_SIDE> for FlagSide {
+    fn from(val: CBLAS_SIDE) -> Self {
+        match val {
+            CBLAS_SIDE::CblasLeft => FlagSide::L,
+            CBLAS_SIDE::CblasRight => FlagSide::R,
+        }
+    }
+}
+
+impl From<FlagSide> for CBLAS_SIDE {
+    fn from(val: FlagSide) -> Self {
+        match val {
+            FlagSide::L => CBLAS_SIDE::CblasLeft,
+            FlagSide::R => CBLAS_SIDE::CblasRight,
+            _ => rstsr_invalid!(val).unwrap(),
+        }
+    }
+}
+
 impl From<char> for FlagUpLo {
     fn from(val: char) -> Self {
         match val {
@@ -378,6 +462,53 @@ impl From<FlagUpLo> for c_char {
             FlagUpLo::U => b'U' as c_char,
             FlagUpLo::L => b'L' as c_char,
             _ => rstsr_invalid!(val).unwrap(),
+        }
+    }
+}
+
+impl From<c_char> for FlagUpLo {
+    fn from(val: c_char) -> Self {
+        match val as u8 {
+            b'U' => FlagUpLo::U,
+            b'L' => FlagUpLo::L,
+            _ => rstsr_invalid!(val).unwrap(),
+        }
+    }
+}
+
+impl From<CBLAS_UPLO> for FlagUpLo {
+    fn from(val: CBLAS_UPLO) -> Self {
+        match val {
+            CBLAS_UPLO::CblasUpper => FlagUpLo::U,
+            CBLAS_UPLO::CblasLower => FlagUpLo::L,
+        }
+    }
+}
+
+impl From<FlagUpLo> for CBLAS_UPLO {
+    fn from(val: FlagUpLo) -> Self {
+        match val {
+            FlagUpLo::U => CBLAS_UPLO::CblasUpper,
+            FlagUpLo::L => CBLAS_UPLO::CblasLower,
+            _ => rstsr_invalid!(val).unwrap(),
+        }
+    }
+}
+
+impl From<CBLAS_LAYOUT> for FlagOrder {
+    fn from(val: CBLAS_LAYOUT) -> Self {
+        match val {
+            CBLAS_LAYOUT::CblasRowMajor => FlagOrder::C,
+            CBLAS_LAYOUT::CblasColMajor => FlagOrder::F,
+        }
+    }
+}
+
+impl From<FlagOrder> for CBLAS_LAYOUT {
+    fn from(val: FlagOrder) -> Self {
+        match val {
+            FlagOrder::C => CBLAS_LAYOUT::CblasRowMajor,
+            FlagOrder::F => CBLAS_LAYOUT::CblasColMajor,
         }
     }
 }

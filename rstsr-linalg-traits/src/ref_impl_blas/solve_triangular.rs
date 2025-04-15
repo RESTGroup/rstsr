@@ -1,5 +1,4 @@
 use rstsr_blas_traits::prelude::*;
-use rstsr_core::error::Result;
 use rstsr_core::prelude_dev::*;
 
 pub fn blas_solve_triangular_f<'b, T, B>(
@@ -11,9 +10,9 @@ where
     T: BlasFloat + Send + Sync,
     B: TRSMDriverAPI<T>
         + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<blasint, Raw = Vec<blasint>>
+        + DeviceAPI<blas_int, Raw = Vec<blas_int>>
         + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceNumAPI<blasint, Ix1>
+        + DeviceNumAPI<blas_int, Ix1>
         + BlasThreadAPI
         + DeviceRayonAPI,
 {

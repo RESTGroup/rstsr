@@ -4,9 +4,9 @@
 #![allow(clippy::type_complexity)]
 
 #[cfg(not(feature = "ilp64"))]
-pub type blasint = i32;
+pub type blas_int = i32;
 #[cfg(feature = "ilp64")]
-pub type blasint = i64;
+pub type blas_int = i64;
 
 pub mod blas_scalar;
 pub mod cblas_flags;

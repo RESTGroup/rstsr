@@ -1,7 +1,7 @@
 use crate::DeviceBLAS;
 use num::Complex;
 use rstsr_blas_traits::prelude::*;
-use rstsr_core::flags::*;
+use rstsr_core::prelude::*;
 
 impl POTRFDriverAPI<f32> for DeviceBLAS {
     unsafe fn driver_potrf(
@@ -10,14 +10,8 @@ impl POTRFDriverAPI<f32> for DeviceBLAS {
         n: usize,
         a: *mut f32,
         lda: usize,
-    ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_spotrf(
-            order as _,
-            uplo.into(),
-            n as _,
-            a,
-            lda as _,
-        )
+    ) -> blas_int {
+        rstsr_lapack_ffi::lapacke::LAPACKE_spotrf(order as _, uplo.into(), n as _, a, lda as _)
     }
 }
 
@@ -28,14 +22,8 @@ impl POTRFDriverAPI<f64> for DeviceBLAS {
         n: usize,
         a: *mut f64,
         lda: usize,
-    ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_dpotrf(
-            order as _,
-            uplo.into(),
-            n as _,
-            a,
-            lda as _,
-        )
+    ) -> blas_int {
+        rstsr_lapack_ffi::lapacke::LAPACKE_dpotrf(order as _, uplo.into(), n as _, a, lda as _)
     }
 }
 
@@ -46,8 +34,8 @@ impl POTRFDriverAPI<Complex<f32>> for DeviceBLAS {
         n: usize,
         a: *mut Complex<f32>,
         lda: usize,
-    ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_cpotrf(
+    ) -> blas_int {
+        rstsr_lapack_ffi::lapacke::LAPACKE_cpotrf(
             order as _,
             uplo.into(),
             n as _,
@@ -64,8 +52,8 @@ impl POTRFDriverAPI<Complex<f64>> for DeviceBLAS {
         n: usize,
         a: *mut Complex<f64>,
         lda: usize,
-    ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_zpotrf(
+    ) -> blas_int {
+        rstsr_lapack_ffi::lapacke::LAPACKE_zpotrf(
             order as _,
             uplo.into(),
             n as _,

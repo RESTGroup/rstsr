@@ -13,7 +13,7 @@ where
         a: *mut T,
         lda: usize,
         w: *mut T::Real,
-    ) -> blasint;
+    ) -> blas_int;
 }
 
 #[derive(Builder)]

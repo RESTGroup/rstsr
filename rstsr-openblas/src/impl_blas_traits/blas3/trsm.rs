@@ -1,7 +1,7 @@
 use crate::DeviceBLAS;
 use num::Complex;
 use rstsr_blas_traits::blas3::trsm::*;
-use rstsr_core::flags::*;
+use rstsr_core::prelude::*;
 
 impl TRSMDriverAPI<f32> for DeviceBLAS {
     unsafe fn driver_trsm(
@@ -18,12 +18,12 @@ impl TRSMDriverAPI<f32> for DeviceBLAS {
         b: *mut f32,
         ldb: usize,
     ) {
-        rstsr_openblas_ffi::ffi::cblas::cblas_strsm(
-            order as _,
-            side as _,
-            uplo as _,
-            transa as _,
-            diag as _,
+        rstsr_lapack_ffi::cblas::cblas_strsm(
+            order.into(),
+            side.into(),
+            uplo.into(),
+            transa.into(),
+            diag.into(),
             m as _,
             n as _,
             alpha,
@@ -50,12 +50,12 @@ impl TRSMDriverAPI<f64> for DeviceBLAS {
         b: *mut f64,
         ldb: usize,
     ) {
-        rstsr_openblas_ffi::ffi::cblas::cblas_dtrsm(
-            order as _,
-            side as _,
-            uplo as _,
-            transa as _,
-            diag as _,
+        rstsr_lapack_ffi::cblas::cblas_dtrsm(
+            order.into(),
+            side.into(),
+            uplo.into(),
+            transa.into(),
+            diag.into(),
             m as _,
             n as _,
             alpha,
@@ -82,12 +82,12 @@ impl TRSMDriverAPI<Complex<f32>> for DeviceBLAS {
         b: *mut Complex<f32>,
         ldb: usize,
     ) {
-        rstsr_openblas_ffi::ffi::cblas::cblas_ctrsm(
-            order as _,
-            side as _,
-            uplo as _,
-            transa as _,
-            diag as _,
+        rstsr_lapack_ffi::cblas::cblas_ctrsm(
+            order.into(),
+            side.into(),
+            uplo.into(),
+            transa.into(),
+            diag.into(),
             m as _,
             n as _,
             &alpha as *const _ as *const _,
@@ -114,12 +114,12 @@ impl TRSMDriverAPI<Complex<f64>> for DeviceBLAS {
         b: *mut Complex<f64>,
         ldb: usize,
     ) {
-        rstsr_openblas_ffi::ffi::cblas::cblas_ztrsm(
-            order as _,
-            side as _,
-            uplo as _,
-            transa as _,
-            diag as _,
+        rstsr_lapack_ffi::cblas::cblas_ztrsm(
+            order.into(),
+            side.into(),
+            uplo.into(),
+            transa.into(),
+            diag.into(),
             m as _,
             n as _,
             &alpha as *const _ as *const _,

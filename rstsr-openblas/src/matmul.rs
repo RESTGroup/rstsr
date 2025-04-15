@@ -1,12 +1,12 @@
 use crate::matmul_impl::*;
 use crate::prelude_dev::*;
+use crate::threading::with_num_threads as openblas_with_num_threads;
 use core::any::TypeId;
 use core::ops::{Add, Mul};
 use core::slice::{from_raw_parts, from_raw_parts_mut};
 use num::{Complex, Zero};
 use rayon::prelude::*;
 use rstsr_core::feature_rayon::matmul_naive::*;
-use rstsr_openblas_ffi::with_num_threads as openblas_with_num_threads;
 
 // code from ndarray
 fn same_type<A: 'static, B: 'static>() -> bool {
