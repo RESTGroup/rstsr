@@ -36,3 +36,9 @@ Bug fix:
 
 Feature addition:
 - Column major is now supported ([#16](https://github.com/RESTGroup/rstsr/pull/16)).
+
+## v0.2.7 -- 2025-04-15
+
+Internal refactor:
+- Move out crate `rstsr-openblas-ffi` to rstsr-ffi repository, changes FFI bindings ([#19](https://github.com/RESTGroup/rstsr/pull/19)).
+- Now `row_major` and `col_major` features are mutually exclusive in complie time.
