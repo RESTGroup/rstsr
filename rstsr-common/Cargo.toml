@@ -30,6 +30,11 @@ rayon = ["dep:rayon"]
 row_major = []
 col_major = []
 
+# Use aligned allocation in some cases (64-byte alignment for vector larger than 128 elements).
+# If this feature not specified, for CPU it will use default allocator of `Vec<T>`.
+# This feature is not intended for pinned-memory allocation (to memory pages), only for (possible) SIMD and cache line.
+aligned_alloc = []
+
 # Dispatch dimensinoality in layout iterators
 # This option is recommended for efficiency for large tensor, especially with non-contiguous strides.
 # However, this feature will add runtime overhead for small tensor.

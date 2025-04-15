@@ -5,6 +5,8 @@ use crate::prelude_dev::*;
 use core::convert::Infallible;
 use core::num::TryFromIntError;
 use derive_builder::UninitializedFieldError;
+use std::alloc::LayoutError;
+use std::collections::TryReserveError;
 
 #[non_exhaustive]
 #[derive(Debug)]
@@ -15,6 +17,7 @@ pub enum Error {
     RuntimeError(String),
     DeviceMismatch(String),
     UnImplemented(String),
+    MemoryError(String),
 
     TryFromIntError(String),
     Infallible,
@@ -61,6 +64,18 @@ impl From<rayon::ThreadPoolBuildError> for Error {
 impl From<UninitializedFieldError> for Error {
     fn from(e: UninitializedFieldError) -> Self {
         Error::BuilderError(e)
+    }
+}
+
+impl From<TryReserveError> for Error {
+    fn from(e: TryReserveError) -> Self {
+        Error::MemoryError(format!("{:?}", e))
+    }
+}
+
+impl From<LayoutError> for Error {
+    fn from(e: LayoutError) -> Self {
+        Error::MemoryError(format!("{:?}", e))
     }
 }
 

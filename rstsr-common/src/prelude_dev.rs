@@ -11,6 +11,8 @@ pub use core::marker::PhantomData;
 pub use duplicate::{duplicate_item, substitute_item};
 pub use itertools::{izip, Itertools};
 
+pub use crate::alloc_vec::*;
+pub use crate::axis_index::*;
 pub use crate::error::{Error, Result};
 pub use crate::flags::*;
 pub use crate::layout::*;

@@ -9,7 +9,7 @@ where
         &self,
         len: usize,
     ) -> Result<Storage<DataOwned<Vec<T>>, T, DeviceCpuSerial>> {
-        let raw = uninitialized_vec(len);
+        let raw = uninitialized_vec(len)?;
         Ok(Storage::new(raw.into(), self.clone()))
     }
 

@@ -24,6 +24,7 @@ faer = ["rstsr-core/faer"]
 faer_as_default = ["rstsr-core/faer_as_default"]
 row_major = ["rstsr-core/row_major"]
 col_major = ["rstsr-core/col_major"]
+aligned_alloc = ["rstsr-core/aligned_alloc"]
 dispatch_dim_layout_iter = ["rstsr-core/dispatch_dim_layout_iter"]
 
 # rstsr-openblas features
