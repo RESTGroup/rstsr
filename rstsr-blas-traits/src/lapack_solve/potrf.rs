@@ -8,7 +8,7 @@ pub trait POTRFDriverAPI<T> {
         n: usize,
         a: *mut T,
         lda: usize,
-    ) -> blasint;
+    ) -> blas_int;
 }
 
 #[derive(Builder)]

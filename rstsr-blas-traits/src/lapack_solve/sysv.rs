@@ -9,10 +9,10 @@ pub trait SYSVDriverAPI<T, const HERMI: bool> {
         nrhs: usize,
         a: *mut T,
         lda: usize,
-        ipiv: *mut blasint,
+        ipiv: *mut blas_int,
         b: *mut T,
         ldb: usize,
-    ) -> blasint;
+    ) -> blas_int;
 }
 
 #[derive(Builder)]
@@ -36,13 +36,13 @@ where
     T: BlasFloat,
     B: SYSVDriverAPI<T, HERMI>
         + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<blasint, Raw = Vec<blasint>>
+        + DeviceAPI<blas_int, Raw = Vec<blas_int>>
         + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceNumAPI<blasint, Ix1>,
+        + DeviceNumAPI<blas_int, Ix1>,
 {
     pub fn internal_run(
         self,
-    ) -> Result<(TensorMutable2<'a, T, B>, TensorMutable2<'b, T, B>, Tensor<blasint, B, Ix1>)> {
+    ) -> Result<(TensorMutable2<'a, T, B>, TensorMutable2<'b, T, B>, Tensor<blas_int, B, Ix1>)> {
         let Self { a, b, uplo } = self;
 
         let device = a.device().clone();
@@ -72,7 +72,7 @@ where
 
     pub fn run(
         self,
-    ) -> Result<(TensorMutable2<'a, T, B>, TensorMutable2<'b, T, B>, Tensor<blasint, B, Ix1>)> {
+    ) -> Result<(TensorMutable2<'a, T, B>, TensorMutable2<'b, T, B>, Tensor<blas_int, B, Ix1>)> {
         self.internal_run()
     }
 }

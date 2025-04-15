@@ -15,7 +15,7 @@ impl SYGVDriverAPI<f32> for DeviceBLAS {
         b: *mut f32,
         ldb: usize,
         w: *mut f32,
-    ) -> blasint {
+    ) -> blas_int {
         rstsr_lapack_ffi::lapacke::LAPACKE_ssygv(
             order as _,
             itype as _,
@@ -43,7 +43,7 @@ impl SYGVDriverAPI<f64> for DeviceBLAS {
         b: *mut f64,
         ldb: usize,
         w: *mut f64,
-    ) -> blasint {
+    ) -> blas_int {
         rstsr_lapack_ffi::lapacke::LAPACKE_dsygv(
             order as _,
             itype as _,
@@ -71,7 +71,7 @@ impl SYGVDriverAPI<Complex<f32>> for DeviceBLAS {
         b: *mut Complex<f32>,
         ldb: usize,
         w: *mut f32,
-    ) -> blasint {
+    ) -> blas_int {
         rstsr_lapack_ffi::lapacke::LAPACKE_chegv(
             order as _,
             itype as _,
@@ -99,7 +99,7 @@ impl SYGVDriverAPI<Complex<f64>> for DeviceBLAS {
         b: *mut Complex<f64>,
         ldb: usize,
         w: *mut f64,
-    ) -> blasint {
+    ) -> blas_int {
         rstsr_lapack_ffi::lapacke::LAPACKE_zhegv(
             order as _,
             itype as _,

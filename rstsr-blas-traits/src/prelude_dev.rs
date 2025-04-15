@@ -7,7 +7,7 @@ pub use std::ffi::{c_char, c_void};
 
 // internal imports
 pub use crate::blas_scalar::*;
-pub use crate::blasint;
+pub use crate::blas_int;
 pub use crate::cblas_flags::*;
 pub use crate::threading::*;
 pub use crate::util::util_layout::*;

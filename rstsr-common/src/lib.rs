@@ -8,9 +8,9 @@ pub mod prelude_dev;
 
 pub mod error;
 pub mod flags;
+pub mod format_layout;
 pub mod layout;
 pub mod util;
-pub mod format_layout;
 
 #[cfg(feature = "rayon")]
 pub mod par_iter;

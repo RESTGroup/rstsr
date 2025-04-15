@@ -10,10 +10,10 @@ impl GESVDriverAPI<f32> for DeviceBLAS {
         nrhs: usize,
         a: *mut f32,
         lda: usize,
-        ipiv: *mut blasint,
+        ipiv: *mut blas_int,
         b: *mut f32,
         ldb: usize,
-    ) -> blasint {
+    ) -> blas_int {
         rstsr_lapack_ffi::lapacke::LAPACKE_sgesv(
             order as _, n as _, nrhs as _, a, lda as _, ipiv, b, ldb as _,
         )
@@ -27,10 +27,10 @@ impl GESVDriverAPI<f64> for DeviceBLAS {
         nrhs: usize,
         a: *mut f64,
         lda: usize,
-        ipiv: *mut blasint,
+        ipiv: *mut blas_int,
         b: *mut f64,
         ldb: usize,
-    ) -> blasint {
+    ) -> blas_int {
         rstsr_lapack_ffi::lapacke::LAPACKE_dgesv(
             order as _, n as _, nrhs as _, a, lda as _, ipiv, b, ldb as _,
         )
@@ -44,10 +44,10 @@ impl GESVDriverAPI<Complex<f32>> for DeviceBLAS {
         nrhs: usize,
         a: *mut Complex<f32>,
         lda: usize,
-        ipiv: *mut blasint,
+        ipiv: *mut blas_int,
         b: *mut Complex<f32>,
         ldb: usize,
-    ) -> blasint {
+    ) -> blas_int {
         rstsr_lapack_ffi::lapacke::LAPACKE_cgesv(
             order as _,
             n as _,
@@ -68,10 +68,10 @@ impl GESVDriverAPI<Complex<f64>> for DeviceBLAS {
         nrhs: usize,
         a: *mut Complex<f64>,
         lda: usize,
-        ipiv: *mut blasint,
+        ipiv: *mut blas_int,
         b: *mut Complex<f64>,
         ldb: usize,
-    ) -> blasint {
+    ) -> blas_int {
         rstsr_lapack_ffi::lapacke::LAPACKE_zgesv(
             order as _,
             n as _,

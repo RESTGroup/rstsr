@@ -11,10 +11,10 @@ impl<const HERMI: bool> SYSVDriverAPI<f32, HERMI> for DeviceBLAS {
         nrhs: usize,
         a: *mut f32,
         lda: usize,
-        ipiv: *mut blasint,
+        ipiv: *mut blas_int,
         b: *mut f32,
         ldb: usize,
-    ) -> blasint {
+    ) -> blas_int {
         rstsr_lapack_ffi::lapacke::LAPACKE_ssysv(
             order as _,
             uplo.into(),
@@ -37,10 +37,10 @@ impl<const HERMI: bool> SYSVDriverAPI<f64, HERMI> for DeviceBLAS {
         nrhs: usize,
         a: *mut f64,
         lda: usize,
-        ipiv: *mut blasint,
+        ipiv: *mut blas_int,
         b: *mut f64,
         ldb: usize,
-    ) -> blasint {
+    ) -> blas_int {
         rstsr_lapack_ffi::lapacke::LAPACKE_dsysv(
             order as _,
             uplo.into(),
@@ -63,10 +63,10 @@ impl SYSVDriverAPI<Complex<f32>, false> for DeviceBLAS {
         nrhs: usize,
         a: *mut Complex<f32>,
         lda: usize,
-        ipiv: *mut blasint,
+        ipiv: *mut blas_int,
         b: *mut Complex<f32>,
         ldb: usize,
-    ) -> blasint {
+    ) -> blas_int {
         rstsr_lapack_ffi::lapacke::LAPACKE_csysv(
             order as _,
             uplo.into(),
@@ -89,10 +89,10 @@ impl SYSVDriverAPI<Complex<f64>, false> for DeviceBLAS {
         nrhs: usize,
         a: *mut Complex<f64>,
         lda: usize,
-        ipiv: *mut blasint,
+        ipiv: *mut blas_int,
         b: *mut Complex<f64>,
         ldb: usize,
-    ) -> blasint {
+    ) -> blas_int {
         rstsr_lapack_ffi::lapacke::LAPACKE_zsysv(
             order as _,
             uplo.into(),
@@ -115,10 +115,10 @@ impl SYSVDriverAPI<Complex<f32>, true> for DeviceBLAS {
         nrhs: usize,
         a: *mut Complex<f32>,
         lda: usize,
-        ipiv: *mut blasint,
+        ipiv: *mut blas_int,
         b: *mut Complex<f32>,
         ldb: usize,
-    ) -> blasint {
+    ) -> blas_int {
         rstsr_lapack_ffi::lapacke::LAPACKE_chesv(
             order as _,
             uplo.into(),
@@ -141,10 +141,10 @@ impl SYSVDriverAPI<Complex<f64>, true> for DeviceBLAS {
         nrhs: usize,
         a: *mut Complex<f64>,
         lda: usize,
-        ipiv: *mut blasint,
+        ipiv: *mut blas_int,
         b: *mut Complex<f64>,
         ldb: usize,
-    ) -> blasint {
+    ) -> blas_int {
         rstsr_lapack_ffi::lapacke::LAPACKE_zhesv(
             order as _,
             uplo.into(),

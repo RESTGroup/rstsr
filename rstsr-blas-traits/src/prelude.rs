@@ -1,5 +1,5 @@
 pub use crate::blas_scalar::BlasFloat;
-pub use crate::blasint;
+pub use crate::blas_int;
 pub use crate::threading::*;
 
 pub use crate::blas3::*;

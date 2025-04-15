@@ -11,9 +11,9 @@ where
     Rb: DataCloneAPI<Data = Vec<T>>,
     D: DimAPI,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<blasint, Raw = Vec<blasint>>
+        + DeviceAPI<blas_int, Raw = Vec<blas_int>>
         + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceNumAPI<blasint, Ix1>
+        + DeviceNumAPI<blas_int, Ix1>
         + BlasThreadAPI
         + GESVDriverAPI<T>,
 {
@@ -35,9 +35,9 @@ where
     T: BlasFloat + Send + Sync,
     D: DimAPI,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<blasint, Raw = Vec<blasint>>
+        + DeviceAPI<blas_int, Raw = Vec<blas_int>>
         + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceNumAPI<blasint, Ix1>
+        + DeviceNumAPI<blas_int, Ix1>
         + BlasThreadAPI
         + GESVDriverAPI<T>,
 {
@@ -55,9 +55,9 @@ where
     R: DataCloneAPI<Data = Vec<T>>,
     D: DimAPI,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<blasint, Raw = Vec<blasint>>
+        + DeviceAPI<blas_int, Raw = Vec<blas_int>>
         + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceNumAPI<blasint, Ix1>
+        + DeviceNumAPI<blas_int, Ix1>
         + BlasThreadAPI
         + GESVDriverAPI<T>,
 {
@@ -79,9 +79,9 @@ where
     T: BlasFloat + Send + Sync,
     D: DimAPI,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<blasint, Raw = Vec<blasint>>
+        + DeviceAPI<blas_int, Raw = Vec<blas_int>>
         + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceNumAPI<blasint, Ix1>
+        + DeviceNumAPI<blas_int, Ix1>
         + BlasThreadAPI
         + GESVDriverAPI<T>,
 {
@@ -98,9 +98,9 @@ where
     T: BlasFloat + Send + Sync,
     D: DimAPI,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<blasint, Raw = Vec<blasint>>
+        + DeviceAPI<blas_int, Raw = Vec<blas_int>>
         + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceNumAPI<blasint, Ix1>
+        + DeviceNumAPI<blas_int, Ix1>
         + BlasThreadAPI
         + GESVDriverAPI<T>,
 {

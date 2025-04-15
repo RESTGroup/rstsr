@@ -10,9 +10,9 @@ where
     T: BlasFloat + Send + Sync,
     B: TRSMDriverAPI<T>
         + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<blasint, Raw = Vec<blasint>>
+        + DeviceAPI<blas_int, Raw = Vec<blas_int>>
         + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceNumAPI<blasint, Ix1>
+        + DeviceNumAPI<blas_int, Ix1>
         + BlasThreadAPI
         + DeviceRayonAPI,
 {
