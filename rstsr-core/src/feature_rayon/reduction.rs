@@ -158,7 +158,7 @@ where
 
         // prepare output
         let len_out = layout_out.size();
-        let mut out: Vec<TS> = unsafe { uninitialized_vec(len_out) };
+        let mut out: Vec<TS> = unsafe { uninitialized_vec(len_out)? };
         let out_ptr = AtomicPtr::new(out.as_mut_ptr());
 
         // actual evaluation
@@ -254,7 +254,7 @@ where
 
         // prepare output
         let len_out = layout_out.size();
-        let mut out: Vec<TO> = unsafe { uninitialized_vec(len_out) };
+        let mut out: Vec<TO> = unsafe { uninitialized_vec(len_out)? };
         let out_ptr = AtomicPtr::new(out.as_mut_ptr());
 
         // actual evaluation
@@ -297,7 +297,7 @@ where
             op_muta_refb_func_cpu_rayon(&mut out, &layout_out, a, &layout_inner, &mut f_add, pool)?;
         }
 
-        let mut out_converted = unsafe { uninitialized_vec(len_out) };
+        let mut out_converted = unsafe { uninitialized_vec(len_out)? };
         let mut f_out = |a: &mut TO, b: &TS| *a = f_out(b.clone());
         op_muta_refb_func_cpu_rayon(
             &mut out_converted,
@@ -427,7 +427,7 @@ where
 
     // prepare output
     let len_out = layout_out.size();
-    let mut out: Vec<IxD> = unsafe { uninitialized_vec(len_out) };
+    let mut out: Vec<IxD> = unsafe { uninitialized_vec(len_out)? };
     let out_ptr = AtomicPtr::new(out.as_mut_ptr());
 
     // actual evaluation

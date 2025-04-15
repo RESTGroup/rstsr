@@ -15,11 +15,11 @@ use core::ptr::NonNull;
 /// This is not a very good function, since `set_len` on uninitialized memory is
 /// undefined-behavior (UB).
 /// Nevertheless, if `T` is some type of `MaybeUninit`, then this will not UB.
-pub unsafe fn uninitialized_vec<T>(size: usize) -> Vec<T> {
+pub unsafe fn uninitialized_vec<T>(size: usize) -> Result<Vec<T>> {
     #[cfg(not(feature = "aligned_alloc"))]
-    return unaligned_uninitialized_vec(size).unwrap();
+    return unaligned_uninitialized_vec(size);
     #[cfg(feature = "aligned_alloc")]
-    return aligned_uninitialized_vec::<T, 128>(size, 64).unwrap();
+    return aligned_uninitialized_vec::<T, 128>(size, 64);
 }
 
 /// Create an unaligned uninitialized vector with the given size.

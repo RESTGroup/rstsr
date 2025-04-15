@@ -129,7 +129,7 @@ where
 
         // prepare output
         let len_out = layout_out.size();
-        let mut out = unsafe { uninitialized_vec(len_out) };
+        let mut out = unsafe { uninitialized_vec(len_out)? };
 
         // actual evaluation
         izip!(iter_out_swapped, iter_rest_swapped).try_for_each(
@@ -208,7 +208,7 @@ where
 
         // prepare output
         let len_out = layout_out.size();
-        let mut out = unsafe { uninitialized_vec(len_out) };
+        let mut out = unsafe { uninitialized_vec(len_out)? };
 
         // actual evaluation
         izip!(iter_out_swapped, iter_rest_swapped).try_for_each(
@@ -240,7 +240,7 @@ where
             op_muta_refb_func_cpu_serial(&mut out, &layout_out, a, &layout_inner, f_add)?;
         }
 
-        let mut out_converted = unsafe { uninitialized_vec(len_out) };
+        let mut out_converted = unsafe { uninitialized_vec(len_out)? };
         let f_out = |a: &mut TO, b: &TS| *a = f_out(b.clone());
         op_muta_refb_func_cpu_serial(&mut out_converted, &layout_out, &out, &layout_out, f_out)?;
         return Ok((out_converted, layout_out));

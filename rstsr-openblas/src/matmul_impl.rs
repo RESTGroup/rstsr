@@ -60,7 +60,7 @@ pub fn fn_name(
         } else {
             // not c-prefer, allocate new buffer and copy back
             let lc_new = lc.shape().new_f_contig(None);
-            let mut c_new = unsafe { uninitialized_vec(lc_new.size()) };
+            let mut c_new = unsafe { uninitialized_vec(lc_new.size())? };
             if beta == <ty>::ZERO {
                 fill_cpu_rayon(&mut c_new, &lc_new, <ty>::ZERO, pool)?;
             } else {
@@ -93,7 +93,7 @@ pub fn fn_name(
         (Trans, la.reverse_axes())
     } else {
         let len = la.size();
-        a_data = unsafe { Some(uninitialized_vec(len)) };
+        a_data = unsafe { Some(uninitialized_vec(len)?) };
         let la_data = la.shape().new_f_contig(None);
         assign_cpu_rayon(a_data.as_mut().unwrap(), &la_data, a, la, pool)?;
         (NoTrans, la_data)
@@ -104,7 +104,7 @@ pub fn fn_name(
         (Trans, lb.reverse_axes())
     } else {
         let len = lb.size();
-        b_data = unsafe { Some(uninitialized_vec(len)) };
+        b_data = unsafe { Some(uninitialized_vec(len)?) };
         let lb_data = lb.shape().new_f_contig(None);
         assign_cpu_rayon(b_data.as_mut().unwrap(), &lb_data, b, lb, pool)?;
         (NoTrans, lb_data)
@@ -316,7 +316,7 @@ pub fn fn_name(
         } else {
             // not c-prefer, allocate new buffer and copy back
             let lc_new = lc.shape().new_f_contig(None);
-            let mut c_new = unsafe { uninitialized_vec(lc_new.size()) };
+            let mut c_new = unsafe { uninitialized_vec(lc_new.size())? };
             fill_cpu_rayon(&mut c_new, &lc_new, <ty>::ZERO, pool)?;
             fn_name(&mut c_new, &lc_new, a, la, alpha, pool)?;
             assign_cpu_rayon(c, lc, &c_new, &lc_new, pool)?;
@@ -341,7 +341,7 @@ pub fn fn_name(
         (Trans, la.reverse_axes())
     } else {
         let len = la.size();
-        a_data = unsafe { Some(uninitialized_vec(len)) };
+        a_data = unsafe { Some(uninitialized_vec(len)?) };
         let la_data = la.shape().new_f_contig(None);
         assign_cpu_rayon(a_data.as_mut().unwrap(), &la_data, a, la, pool)?;
         (NoTrans, la_data)
