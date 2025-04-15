@@ -74,13 +74,6 @@ impl FlagOrder {
 #[allow(clippy::derivable_impls)]
 impl Default for FlagOrder {
     fn default() -> Self {
-        if cfg!(feature = "row_major") && cfg!(feature = "col_major") {
-            panic!(concat!(
-                "`row_major` and `col_major` are not compatible with each other. ",
-                "Please choose one of them in cargo features.",
-            ));
-        }
-
         if cfg!(feature = "col_major") {
             return FlagOrder::F;
         } else {
