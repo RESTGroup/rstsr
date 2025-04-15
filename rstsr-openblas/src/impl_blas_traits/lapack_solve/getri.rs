@@ -11,7 +11,7 @@ impl GETRIDriverAPI<f32> for DeviceBLAS {
         lda: usize,
         ipiv: *mut blasint,
     ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_sgetri(order as _, n as _, a, lda as _, ipiv)
+        rstsr_lapack_ffi::lapacke::LAPACKE_sgetri(order as _, n as _, a, lda as _, ipiv)
     }
 }
 
@@ -23,7 +23,7 @@ impl GETRIDriverAPI<f64> for DeviceBLAS {
         lda: usize,
         ipiv: *mut blasint,
     ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_dgetri(order as _, n as _, a, lda as _, ipiv)
+        rstsr_lapack_ffi::lapacke::LAPACKE_dgetri(order as _, n as _, a, lda as _, ipiv)
     }
 }
 
@@ -35,13 +35,7 @@ impl GETRIDriverAPI<Complex<f32>> for DeviceBLAS {
         lda: usize,
         ipiv: *mut blasint,
     ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_cgetri(
-            order as _,
-            n as _,
-            a as *mut _,
-            lda as _,
-            ipiv,
-        )
+        rstsr_lapack_ffi::lapacke::LAPACKE_cgetri(order as _, n as _, a as *mut _, lda as _, ipiv)
     }
 }
 
@@ -53,12 +47,6 @@ impl GETRIDriverAPI<Complex<f64>> for DeviceBLAS {
         lda: usize,
         ipiv: *mut blasint,
     ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_zgetri(
-            order as _,
-            n as _,
-            a as *mut _,
-            lda as _,
-            ipiv,
-        )
+        rstsr_lapack_ffi::lapacke::LAPACKE_zgetri(order as _, n as _, a as *mut _, lda as _, ipiv)
     }
 }

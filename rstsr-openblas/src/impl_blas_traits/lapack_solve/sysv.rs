@@ -15,7 +15,7 @@ impl<const HERMI: bool> SYSVDriverAPI<f32, HERMI> for DeviceBLAS {
         b: *mut f32,
         ldb: usize,
     ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_ssysv(
+        rstsr_lapack_ffi::lapacke::LAPACKE_ssysv(
             order as _,
             uplo.into(),
             n as _,
@@ -41,7 +41,7 @@ impl<const HERMI: bool> SYSVDriverAPI<f64, HERMI> for DeviceBLAS {
         b: *mut f64,
         ldb: usize,
     ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_dsysv(
+        rstsr_lapack_ffi::lapacke::LAPACKE_dsysv(
             order as _,
             uplo.into(),
             n as _,
@@ -67,7 +67,7 @@ impl SYSVDriverAPI<Complex<f32>, false> for DeviceBLAS {
         b: *mut Complex<f32>,
         ldb: usize,
     ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_csysv(
+        rstsr_lapack_ffi::lapacke::LAPACKE_csysv(
             order as _,
             uplo.into(),
             n as _,
@@ -93,7 +93,7 @@ impl SYSVDriverAPI<Complex<f64>, false> for DeviceBLAS {
         b: *mut Complex<f64>,
         ldb: usize,
     ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_zsysv(
+        rstsr_lapack_ffi::lapacke::LAPACKE_zsysv(
             order as _,
             uplo.into(),
             n as _,
@@ -119,7 +119,7 @@ impl SYSVDriverAPI<Complex<f32>, true> for DeviceBLAS {
         b: *mut Complex<f32>,
         ldb: usize,
     ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_chesv(
+        rstsr_lapack_ffi::lapacke::LAPACKE_chesv(
             order as _,
             uplo.into(),
             n as _,
@@ -145,7 +145,7 @@ impl SYSVDriverAPI<Complex<f64>, true> for DeviceBLAS {
         b: *mut Complex<f64>,
         ldb: usize,
     ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_zhesv(
+        rstsr_lapack_ffi::lapacke::LAPACKE_zhesv(
             order as _,
             uplo.into(),
             n as _,

@@ -16,7 +16,7 @@ impl SYGVDDriverAPI<f32> for DeviceBLAS {
         ldb: usize,
         w: *mut f32,
     ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_ssygvd(
+        rstsr_lapack_ffi::lapacke::LAPACKE_ssygvd(
             order as _,
             itype as _,
             jobz as _,
@@ -44,7 +44,7 @@ impl SYGVDDriverAPI<f64> for DeviceBLAS {
         ldb: usize,
         w: *mut f64,
     ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_dsygvd(
+        rstsr_lapack_ffi::lapacke::LAPACKE_dsygvd(
             order as _,
             itype as _,
             jobz as _,
@@ -72,7 +72,7 @@ impl SYGVDDriverAPI<Complex<f32>> for DeviceBLAS {
         ldb: usize,
         w: *mut f32,
     ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_chegvd(
+        rstsr_lapack_ffi::lapacke::LAPACKE_chegvd(
             order as _,
             itype as _,
             jobz as _,
@@ -100,7 +100,7 @@ impl SYGVDDriverAPI<Complex<f64>> for DeviceBLAS {
         ldb: usize,
         w: *mut f64,
     ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_zhegvd(
+        rstsr_lapack_ffi::lapacke::LAPACKE_zhegvd(
             order as _,
             itype as _,
             jobz as _,

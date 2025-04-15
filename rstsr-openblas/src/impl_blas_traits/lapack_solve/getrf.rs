@@ -12,9 +12,7 @@ impl GETRFDriverAPI<f32> for DeviceBLAS {
         lda: usize,
         ipiv: *mut blasint,
     ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_sgetrf(
-            order as _, m as _, n as _, a, lda as _, ipiv,
-        )
+        rstsr_lapack_ffi::lapacke::LAPACKE_sgetrf(order as _, m as _, n as _, a, lda as _, ipiv)
     }
 }
 
@@ -27,9 +25,7 @@ impl GETRFDriverAPI<f64> for DeviceBLAS {
         lda: usize,
         ipiv: *mut blasint,
     ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_dgetrf(
-            order as _, m as _, n as _, a, lda as _, ipiv,
-        )
+        rstsr_lapack_ffi::lapacke::LAPACKE_dgetrf(order as _, m as _, n as _, a, lda as _, ipiv)
     }
 }
 
@@ -42,7 +38,7 @@ impl GETRFDriverAPI<Complex<f32>> for DeviceBLAS {
         lda: usize,
         ipiv: *mut blasint,
     ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_cgetrf(
+        rstsr_lapack_ffi::lapacke::LAPACKE_cgetrf(
             order as _,
             m as _,
             n as _,
@@ -62,7 +58,7 @@ impl GETRFDriverAPI<Complex<f64>> for DeviceBLAS {
         lda: usize,
         ipiv: *mut blasint,
     ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_zgetrf(
+        rstsr_lapack_ffi::lapacke::LAPACKE_zgetrf(
             order as _,
             m as _,
             n as _,

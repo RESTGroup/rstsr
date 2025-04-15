@@ -13,7 +13,7 @@ impl SYEVDriverAPI<f32> for DeviceBLAS {
         lda: usize,
         w: *mut f32,
     ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_ssyev(
+        rstsr_lapack_ffi::lapacke::LAPACKE_ssyev(
             order as _,
             jobz as _,
             uplo.into(),
@@ -35,7 +35,7 @@ impl SYEVDriverAPI<f64> for DeviceBLAS {
         lda: usize,
         w: *mut f64,
     ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_dsyev(
+        rstsr_lapack_ffi::lapacke::LAPACKE_dsyev(
             order as _,
             jobz as _,
             uplo.into(),
@@ -57,7 +57,7 @@ impl SYEVDriverAPI<Complex<f32>> for DeviceBLAS {
         lda: usize,
         w: *mut f32,
     ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_cheev(
+        rstsr_lapack_ffi::lapacke::LAPACKE_cheev(
             order as _,
             jobz as _,
             uplo.into(),
@@ -79,7 +79,7 @@ impl SYEVDriverAPI<Complex<f64>> for DeviceBLAS {
         lda: usize,
         w: *mut f64,
     ) -> blasint {
-        rstsr_openblas_ffi::ffi::lapacke::LAPACKE_zheev(
+        rstsr_lapack_ffi::lapacke::LAPACKE_zheev(
             order as _,
             jobz as _,
             uplo.into(),

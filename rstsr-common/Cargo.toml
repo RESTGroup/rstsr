@@ -14,6 +14,7 @@ itertools = { workspace = true }
 num = { workspace = true }
 derive_builder = { workspace = true }
 rayon = { workspace = true, optional = true }
+rstsr-lapack-ffi = { workspace = true }
 
 [dev-dependencies]
 rstsr-core = { workspace = true }

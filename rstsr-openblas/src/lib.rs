@@ -9,6 +9,7 @@ pub mod matmul;
 pub mod matmul_impl;
 pub mod prelude_dev;
 pub mod rayon_auto_impl;
+pub mod threading;
 
 pub mod impl_blas_traits;
 #[cfg(feature = "linalg")]

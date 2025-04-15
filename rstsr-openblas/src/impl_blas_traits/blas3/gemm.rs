@@ -20,10 +20,10 @@ impl GEMMDriverAPI<f32> for DeviceBLAS {
         c: *mut f32,
         ldc: usize,
     ) {
-        rstsr_openblas_ffi::ffi::cblas::cblas_sgemm(
-            order as _,
-            transa as _,
-            transb as _,
+        rstsr_lapack_ffi::cblas::cblas_sgemm(
+            order.into(),
+            transa.into(),
+            transb.into(),
             m as _,
             n as _,
             k as _,
@@ -56,10 +56,10 @@ impl GEMMDriverAPI<f64> for DeviceBLAS {
         c: *mut f64,
         ldc: usize,
     ) {
-        rstsr_openblas_ffi::ffi::cblas::cblas_dgemm(
-            order as _,
-            transa as _,
-            transb as _,
+        rstsr_lapack_ffi::cblas::cblas_dgemm(
+            order.into(),
+            transa.into(),
+            transb.into(),
             m as _,
             n as _,
             k as _,
@@ -92,10 +92,10 @@ impl GEMMDriverAPI<Complex<f32>> for DeviceBLAS {
         c: *mut Complex<f32>,
         ldc: usize,
     ) {
-        rstsr_openblas_ffi::ffi::cblas::cblas_cgemm(
-            order as _,
-            transa as _,
-            transb as _,
+        rstsr_lapack_ffi::cblas::cblas_cgemm(
+            order.into(),
+            transa.into(),
+            transb.into(),
             m as _,
             n as _,
             k as _,
@@ -128,10 +128,10 @@ impl GEMMDriverAPI<Complex<f64>> for DeviceBLAS {
         c: *mut Complex<f64>,
         ldc: usize,
     ) {
-        rstsr_openblas_ffi::ffi::cblas::cblas_zgemm(
-            order as _,
-            transa as _,
-            transb as _,
+        rstsr_lapack_ffi::cblas::cblas_zgemm(
+            order.into(),
+            transa.into(),
+            transb.into(),
             m as _,
             n as _,
             k as _,
@@ -171,7 +171,7 @@ mod test {
         assert!((fingerprint(&c) - -4118.154714656608).abs() < 1e-8);
         let driver = GEMM::default().a(a.t()).b(b.t()).transa('T').build().unwrap();
         let c = driver.run().unwrap().into_owned();
-        assert!(c.f_contig());
+        assert!(c.c_contig());
         assert!((fingerprint(&c) - -4118.154714656608).abs() < 1e-8);
     }
 }
