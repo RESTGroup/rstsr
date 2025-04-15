@@ -12,6 +12,7 @@ pub mod flags;
 pub mod format_layout;
 pub mod layout;
 pub mod util;
+pub mod alloc_vec;
 
 #[cfg(feature = "rayon")]
 pub mod par_iter;
