@@ -12,6 +12,7 @@ readme = "readme.md"
 [dependencies]
 rstsr-common = { workspace = true }
 rstsr-dtype-traits = { workspace = true, features = ["half"] }
+rstsr-native-impl = { workspace = true }
 num = { workspace = true }
 itertools = { workspace = true }
 half = { workspace = true }
@@ -33,7 +34,7 @@ cpu-time = { workspace = true }
 [features]
 default = ["row_major", "aligned_alloc", "faer", "faer_as_default"]
 std = ["rstsr-common/std"]
-rayon = ["dep:rayon", "rstsr-common/rayon"]
+rayon = ["dep:rayon", "rstsr-common/rayon", "rstsr-native-impl/rayon"]
 faer = ["rayon", "dep:faer", "dep:faer-ext", "dep:faer-entity"]
 faer_as_default = []
 

@@ -121,66 +121,6 @@ where
     }
 }
 
-pub fn tril_cpu_serial<T, D>(raw: &mut [T], layout: &Layout<D>, k: isize) -> Result<()>
-where
-    T: Num + Clone,
-    D: DimAPI,
-{
-    let (la_rest, la_ix2) = layout.dim_split_at(-2)?;
-    let mut la_ix2 = la_ix2.into_dim::<Ix2>()?;
-    for offset in IterLayoutColMajor::new(&la_rest)? {
-        unsafe { la_ix2.set_offset(offset) };
-        tril_ix2_cpu_serial(raw, &la_ix2, k)?;
-    }
-    Ok(())
-}
-
-pub fn tril_ix2_cpu_serial<T>(raw: &mut [T], layout: &Layout<Ix2>, k: isize) -> Result<()>
-where
-    T: Num + Clone,
-{
-    let [nrow, ncol] = *layout.shape();
-    for i in 0..nrow {
-        let j_start = (i as isize + k + 1).max(0) as usize;
-        for j in j_start..ncol {
-            unsafe {
-                raw[layout.index_uncheck(&[i, j]) as usize] = T::zero();
-            }
-        }
-    }
-    Ok(())
-}
-
-pub fn triu_cpu_serial<T, D>(raw: &mut [T], layout: &Layout<D>, k: isize) -> Result<()>
-where
-    T: Num + Clone,
-    D: DimAPI,
-{
-    let (la_rest, la_ix2) = layout.dim_split_at(-2)?;
-    let mut la_ix2 = la_ix2.into_dim::<Ix2>()?;
-    for offset in IterLayoutColMajor::new(&la_rest)? {
-        unsafe { la_ix2.set_offset(offset) };
-        triu_ix2_cpu_serial(raw, &la_ix2, k)?;
-    }
-    Ok(())
-}
-
-pub fn triu_ix2_cpu_serial<T>(raw: &mut [T], layout: &Layout<Ix2>, k: isize) -> Result<()>
-where
-    T: Num + Clone,
-{
-    let [nrow, _] = *layout.shape();
-    for i in 0..nrow {
-        let j_end = (i as isize + k).max(0) as usize;
-        for j in 0..j_end {
-            unsafe {
-                raw[layout.index_uncheck(&[i, j]) as usize] = T::zero();
-            }
-        }
-    }
-    Ok(())
-}
-
 impl<T> DeviceCreationTriAPI<T> for DeviceCpuSerial
 where
     T: Num + Clone,

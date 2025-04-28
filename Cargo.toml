@@ -8,6 +8,7 @@ members = [
     "rstsr-dtype-traits",
     "rstsr-blas-traits",
     "rstsr-linalg-traits",
+    "rstsr-native-impl",
 ]
 
 [workspace.package]
@@ -24,6 +25,7 @@ rstsr-core = { path = "./rstsr-core", default-features = false, version = "0.2.7
 # members without core
 rstsr-common = { path = "./rstsr-common", default-features = false, version = "0.2.7" }
 rstsr-dtype-traits = { path = "./rstsr-dtype-traits", default-features = false, version = "0.2.7" }
+rstsr-native-impl = { path = "./rstsr-native-impl", default-features = false, version = "0.2.7" }
 # members
 rstsr-openblas = { path = "./rstsr-openblas", default-features = false, version = "0.2.7" }
 rstsr-blas-traits = { path = "./rstsr-blas-traits", default-features = false, version = "0.2.7" }

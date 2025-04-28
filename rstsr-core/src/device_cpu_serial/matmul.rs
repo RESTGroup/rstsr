@@ -15,13 +15,10 @@ where
     DB: DimAPI,
     DC: DimAPI,
     TA: Mul<TB, Output = TC>,
+    TB: Mul<TA, Output = TC>,
     TC: Mul<TC, Output = TC> + Add<TC, Output = TC>,
-    Self: DeviceGEMMAPI<TA, TB, TC>
-        + DeviceGEMVAPI<TA, TB, TC>
-        + DeviceInnerDotAPI<TA, TB, TC>
-        + DeviceAPI<TA, Raw = Vec<TA>>
-        + DeviceAPI<TB, Raw = Vec<TB>>
-        + DeviceAPI<TC, Raw = Vec<TC>>,
+    Self:
+        DeviceAPI<TA, Raw = Vec<TA>> + DeviceAPI<TB, Raw = Vec<TB>> + DeviceAPI<TC, Raw = Vec<TC>>,
 {
     fn matmul(
         &self,
@@ -35,337 +32,78 @@ where
         beta: TC,
     ) -> Result<()> {
         let default_order = self.default_order();
-        match (la.ndim(), lb.ndim(), lc.ndim()) {
-            (1, 1, 0) => {
-                // rule 1: vector inner dot
-                let la = &la.clone().into_dim::<Ix1>().unwrap();
-                let lb = &lb.clone().into_dim::<Ix1>().unwrap();
-                let lc = &lc.clone().into_dim::<Ix0>().unwrap();
-                self.inner_dot(c, lc, a, la, b, lb, alpha, beta)?;
-            },
-            (2, 2, 2) => {
-                // rule 2: matrix multiplication
-                let la = &la.clone().into_dim::<Ix2>().unwrap();
-                let lb = &lb.clone().into_dim::<Ix2>().unwrap();
-                let lc = &lc.clone().into_dim::<Ix2>().unwrap();
-                self.gemm(c, lc, a, la, b, lb, alpha, beta)?;
-            },
-            (2, 1, 1) => {
-                // rule 4 special: 2 x 1
-                let la = &la.clone().into_dim::<Ix2>().unwrap();
-                let lb = &lb.clone().into_dim::<Ix1>().unwrap();
-                let lc = &lc.clone().into_dim::<Ix1>().unwrap();
-                self.gemv(c, lc, a, la, b, lb, alpha, beta)?;
-            },
-            (1, 2, 1) => {
-                // rule 3 special: 1 x 2
-                let la = &la.clone().into_dim::<Ix1>().unwrap();
-                let lb = &lb.clone().into_dim::<Ix2>().unwrap();
-                let lc = &lc.clone().into_dim::<Ix1>().unwrap();
-                self.gevm(c, lc, a, la, b, lb, alpha, beta)?;
-            },
-            (1, 2.., _) => {
-                // rule 3: | `        K` | `..., K, N` | `   ..., N` |
-                rstsr_assert_eq!(lb.ndim(), lc.ndim() + 1, InvalidLayout)?;
-                if default_order == ColMajor && lb.ndim() > 2 {
-                    rstsr_raise!(InvalidLayout, "Broadcasting matmul is not supported in col-major.")?;
-                }
-                let la = &la.clone().into_dim::<Ix1>().unwrap();
-                let (lb_rest, lb_matmul) = lb.dim_split_at(-2)?;
-                let (lc_rest, lc_matmul) = lc.dim_split_at(-1)?;
-                let lb_matmul = &mut lb_matmul.into_dim::<Ix2>()?;
-                let lc_matmul = &mut lc_matmul.into_dim::<Ix1>()?;
-                let l_rest = translate_to_col_major(&[&lc_rest, &lb_rest], TensorIterOrder::K)?;
-                let (lc_rest, lb_rest) = (&l_rest[0], &l_rest[1]);
-                let itb_rest = IterLayoutColMajor::new(lb_rest)?;
-                let itc_rest = IterLayoutColMajor::new(lc_rest)?;
-                for (ib_rest, ic_rest) in izip!(itb_rest, itc_rest) {
-                    unsafe { lb_matmul.set_offset(ib_rest) };
-                    unsafe { lc_matmul.set_offset(ic_rest) };
-                    self.gevm(c, lc_matmul, a, la, b, lb_matmul, alpha.clone(), beta.clone())?;
-                }
-            },
-            (2.., 1, _) => {
-                // rule 4: | `..., M, K` | `        K` | `   ..., M` |
-                rstsr_assert_eq!(la.ndim(), lc.ndim() + 1, InvalidLayout)?;
-                if default_order == ColMajor && la.ndim() > 2 {
-                    rstsr_raise!(InvalidLayout, "Broadcasting matmul is not supported in col-major.")?;
-                }
-                let lb = &lb.clone().into_dim::<Ix1>().unwrap();
-                let (la_rest, la_matmul) = la.dim_split_at(-2)?;
-                let (lc_rest, lc_matmul) = lc.dim_split_at(-1)?;
-                let la_matmul = &mut la_matmul.into_dim::<Ix2>()?;
-                let lc_matmul = &mut lc_matmul.into_dim::<Ix1>()?;
-                let l_rest = translate_to_col_major(&[&lc_rest, &la_rest], TensorIterOrder::K)?;
-                let (lc_rest, la_rest) = (&l_rest[0], &l_rest[1]);
-                let ita_rest = IterLayoutColMajor::new(la_rest)?;
-                let itc_rest = IterLayoutColMajor::new(lc_rest)?;
-                for (ib_rest, ic_rest) in izip!(ita_rest, itc_rest) {
-                    unsafe { la_matmul.set_offset(ib_rest) };
-                    unsafe { lc_matmul.set_offset(ic_rest) };
-                    self.gemv(c, lc_matmul, a, la_matmul, b, lb, alpha.clone(), beta.clone())?;
-                }
-            },
-            (2, 3.., _) => {
-                // rule 5: | `     M, K` | `..., K, N` | `..., M, N` |
-                rstsr_assert_eq!(lb.ndim(), lc.ndim(), InvalidLayout)?;
-                if default_order == ColMajor {
-                    rstsr_raise!(InvalidLayout, "Broadcasting matmul is not supported in col-major.")?;
-                }
-                let la = &la.clone().into_dim::<Ix2>().unwrap();
-                let (lb_rest, lb_matmul) = lb.dim_split_at(-2)?;
-                let (lc_rest, lc_matmul) = lc.dim_split_at(-2)?;
-                let lb_matmul = &mut lb_matmul.into_dim::<Ix2>()?;
-                let lc_matmul = &mut lc_matmul.into_dim::<Ix2>()?;
-                let l_rest = translate_to_col_major(&[&lc_rest, &lb_rest], TensorIterOrder::K)?;
-                let (lc_rest, lb_rest) = (&l_rest[0], &l_rest[1]);
-                let itb_rest = IterLayoutColMajor::new(lb_rest)?;
-                let itc_rest = IterLayoutColMajor::new(lc_rest)?;
-                for (ib_rest, ic_rest) in izip!(itb_rest, itc_rest) {
-                    unsafe { lb_matmul.set_offset(ib_rest) };
-                    unsafe { lc_matmul.set_offset(ic_rest) };
-                    self.gemm(c, lc_matmul, a, la, b, lb_matmul, alpha.clone(), beta.clone())?;
-                }
-            },
-            (3.., 2, _) => {
-                // rule 6: | `..., M, K` | `     K, N` | `..., M, N` |
-                rstsr_assert_eq!(la.ndim(), lc.ndim(), InvalidLayout)?;
-                if default_order == ColMajor {
-                    rstsr_raise!(InvalidLayout, "Broadcasting matmul is not supported in col-major.")?;
-                }
-                let lb = &lb.clone().into_dim::<Ix2>().unwrap();
-                let (la_rest, la_matmul) = la.dim_split_at(-2)?;
-                let (lc_rest, lc_matmul) = lc.dim_split_at(-2)?;
-                let la_matmul = &mut la_matmul.into_dim::<Ix2>()?;
-                let lc_matmul = &mut lc_matmul.into_dim::<Ix2>()?;
-                let l_rest = translate_to_col_major(&[&lc_rest, &la_rest], TensorIterOrder::K)?;
-                let (lc_rest, la_rest) = (&l_rest[0], &l_rest[1]);
-                let ita_rest = IterLayoutColMajor::new(la_rest)?;
-                let itc_rest = IterLayoutColMajor::new(lc_rest)?;
-                for (ib_rest, ic_rest) in izip!(ita_rest, itc_rest) {
-                    unsafe { la_matmul.set_offset(ib_rest) };
-                    unsafe { lc_matmul.set_offset(ic_rest) };
-                    self.gemm(c, lc_matmul, a, la_matmul, b, lb, alpha.clone(), beta.clone())?;
-                }
-            },
-            (3.., 3.., _) => {
-                // rule 7: | `..., M, K` | `..., K, N` | `..., M, N` |
-                rstsr_assert_eq!(la.ndim(), lc.ndim(), InvalidLayout)?;
-                rstsr_assert_eq!(lb.ndim(), lc.ndim(), InvalidLayout)?;
-                if default_order == ColMajor {
-                    rstsr_raise!(InvalidLayout, "Broadcasting matmul is not supported in col-major.")?;
-                }
-                let (la_rest, la_matmul) = la.dim_split_at(-2)?;
-                let (lb_rest, lb_matmul) = lb.dim_split_at(-2)?;
-                let (lc_rest, lc_matmul) = lc.dim_split_at(-2)?;
-                let la_matmul = &mut la_matmul.into_dim::<Ix2>()?;
-                let lb_matmul = &mut lb_matmul.into_dim::<Ix2>()?;
-                let lc_matmul = &mut lc_matmul.into_dim::<Ix2>()?;
-                let l_rest =
-                    translate_to_col_major(&[&lc_rest, &la_rest, &lb_rest], TensorIterOrder::K)?;
-                let (lc_rest, la_rest, lb_rest) = (&l_rest[0], &l_rest[1], &l_rest[2]);
-                let ita_rest = IterLayoutColMajor::new(la_rest)?;
-                let itb_rest = IterLayoutColMajor::new(lb_rest)?;
-                let itc_rest = IterLayoutColMajor::new(lc_rest)?;
-                for (ia_rest, ib_rest, ic_rest) in izip!(ita_rest, itb_rest, itc_rest) {
-                    unsafe { la_matmul.set_offset(ia_rest) };
-                    unsafe { lb_matmul.set_offset(ib_rest) };
-                    unsafe { lc_matmul.set_offset(ic_rest) };
-                    self.gemm(
-                        c,
-                        lc_matmul,
-                        a,
-                        la_matmul,
-                        b,
-                        lb_matmul,
-                        alpha.clone(),
-                        beta.clone(),
-                    )?;
-                }
-            },
-            // handle other cases
-            (0, _, _) | (_, 0, _) // zero-dimension input
-            | (1, 1, 1..) // rule 1 invalid
-            | (2, 2, 3..) | (2, 2, 0..2) // rule 2 invalid
-            => {
-                rstsr_raise!(
-                    InvalidLayout,
-                    "Invalid ndim for matmul: {}, {}, {}",
-                    la.ndim(),
-                    lb.ndim(),
-                    lc.ndim()
-                )?;
+        match default_order {
+            RowMajor => matmul_naive_cpu_serial(c, lc, a, la, b, lb, alpha, beta),
+            ColMajor => {
+                let la = la.reverse_axes();
+                let lb = lb.reverse_axes();
+                let lc = lc.reverse_axes();
+                matmul_naive_cpu_serial(c, &lc, b, &lb, a, &la, alpha, beta)
             },
         }
-        return Ok(());
     }
 }
 
-impl<TA, TB, TC> DeviceGEMMAPI<TA, TB, TC> for DeviceCpuSerial
-where
-    TA: Clone,
-    TB: Clone,
-    TC: Clone,
-    TA: Mul<TB, Output = TC>,
-    TC: Mul<TC, Output = TC> + Add<TC, Output = TC>,
-{
-    fn gemm(
-        &self,
-        c: &mut Vec<TC>,
-        lc: &Layout<Ix2>,
-        a: &Vec<TA>,
-        la: &Layout<Ix2>,
-        b: &Vec<TB>,
-        lb: &Layout<Ix2>,
-        alpha: TC,
-        beta: TC,
-    ) -> Result<()> {
-        // shape check
-        let sc = lc.shape();
-        let sa = la.shape();
-        let sb = lb.shape();
-        rstsr_assert_eq!(sc[0], sa[0], InvalidLayout)?;
-        rstsr_assert_eq!(sa[1], sb[0], InvalidLayout)?;
-        rstsr_assert_eq!(sc[1], sb[1], InvalidLayout)?;
-        let (m, n, k) = (sc[0], sc[1], sa[1]);
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::prelude::*;
 
-        // naive iteration: assuming c-prefer
-        unsafe {
-            for i_m in 0..m {
-                for i_n in 0..n {
-                    let idx_c = lc.index_uncheck(&[i_m, i_n]) as usize;
-                    c[idx_c] = beta.clone() * c[idx_c].clone();
-                }
-                for i_k in 0..k {
-                    let idx_a = la.index_uncheck(&[i_m, i_k]) as usize;
-                    for i_n in 0..n {
-                        let idx_c = lc.index_uncheck(&[i_m, i_n]) as usize;
-                        let idx_b = lb.index_uncheck(&[i_k, i_n]) as usize;
-                        c[idx_c] = alpha.clone() * (a[idx_a].clone() * b[idx_b].clone())
-                            + c[idx_c].clone();
-                    }
-                }
-            }
-        }
-        return Ok(());
-    }
-}
+    #[test]
+    fn test_row_major() {
+        /* Python code
+            a = np.linspace(1, 24, 24).reshape(2, 3, 4)
+            b = np.linspace(1, 20, 20).reshape(4, 5)
+            c = np.linspace(1, 30, 30).reshape(2, 3, 5)
+            (1.5 * a @ b + 2.0 * c).reshape(-1)
+        */
+        let mut device = DeviceCpuSerial::default();
+        device.set_default_order(RowMajor);
+        let a = rt::linspace((1.0, 24.0, 24, &device)).into_shape((2, 3, 4));
+        let b = rt::linspace((1.0, 20.0, 20, &device)).into_shape((4, 5));
+        let mut c = rt::linspace((1.0, 30.0, 30, &device)).into_shape((2, 3, 5));
+        let alpha = 1.5;
+        let beta = 2.0;
+        let la = a.layout();
+        let lb = b.layout();
+        let lc = c.layout().clone();
+        device.matmul(c.raw_mut(), &lc, a.raw(), la, b.raw(), lb, alpha, beta).unwrap();
+        println!("Result c: {:?}", c);
 
-impl<TA, TB, TC> DeviceGEMVAPI<TA, TB, TC> for DeviceCpuSerial
-where
-    TA: Clone,
-    TB: Clone,
-    TC: Clone,
-    TA: Mul<TB, Output = TC>,
-    TC: Mul<TC, Output = TC> + Add<TC, Output = TC>,
-{
-    fn gemv(
-        &self,
-        c: &mut Vec<TC>,
-        lc: &Layout<Ix1>,
-        a: &Vec<TA>,
-        la: &Layout<Ix2>,
-        b: &Vec<TB>,
-        lb: &Layout<Ix1>,
-        alpha: TC,
-        beta: TC,
-    ) -> Result<()> {
-        // shape check
-        let sc = lc.shape();
-        let sa = la.shape();
-        let sb = lb.shape();
-        rstsr_assert_eq!(sc[0], sa[0], InvalidLayout)?;
-        rstsr_assert_eq!(sa[1], sb[0], InvalidLayout)?;
-        let (n, k) = (sa[0], sa[1]);
-
-        // naive iteration: assuming c-prefer
-        unsafe {
-            for i_n in 0..n {
-                let idx_c = lc.index_uncheck(&[i_n]) as usize;
-                c[idx_c] = beta.clone() * c[idx_c].clone();
-                for i_k in 0..k {
-                    let idx_a = la.index_uncheck(&[i_n, i_k]) as usize;
-                    let idx_b = lb.index_uncheck(&[i_k]) as usize;
-                    c[idx_c] =
-                        alpha.clone() * (a[idx_a].clone() * b[idx_b].clone()) + c[idx_c].clone();
-                }
-            }
-        }
-        return Ok(());
+        let c_ref = rt::asarray((
+            vec![
+                167., 184., 201., 218., 235., 381., 422., 463., 504., 545., 595., 660., 725., 790.,
+                855., 809., 898., 987., 1076., 1165., 1023., 1136., 1249., 1362., 1475., 1237.,
+                1374., 1511., 1648., 1785.,
+            ],
+            &device,
+        ));
+        assert!((&c.reshape(-1) - c_ref).l2_norm() < 1e-10);
     }
 
-    fn gevm(
-        &self,
-        c: &mut Vec<TC>,
-        lc: &Layout<Ix1>,
-        a: &Vec<TA>,
-        la: &Layout<Ix1>,
-        b: &Vec<TB>,
-        lb: &Layout<Ix2>,
-        alpha: TC,
-        beta: TC,
-    ) -> Result<()> {
-        // shape check
-        let sc = lc.shape();
-        let sa = la.shape();
-        let sb = lb.shape();
-        rstsr_assert_eq!(sc[0], sb[1], InvalidLayout)?;
-        rstsr_assert_eq!(sa[0], sb[0], InvalidLayout)?;
-        let (n, k) = (sb[1], sb[0]);
+    #[test]
+    fn test_col_major() {
+        let mut device = DeviceCpuSerial::default();
+        device.set_default_order(ColMajor);
+        let a = rt::linspace((1.0, 20.0, 20, &device)).into_shape((5, 4));
+        let b = rt::linspace((1.0, 24.0, 24, &device)).into_shape((4, 3, 2));
+        let mut c = rt::linspace((1.0, 30.0, 30, &device)).into_shape((5, 3, 2));
+        let alpha = 1.5;
+        let beta = 2.0;
+        let la = a.layout();
+        let lb = b.layout();
+        let lc = c.layout().clone();
+        device.matmul(c.raw_mut(), &lc, a.raw(), la, b.raw(), lb, alpha, beta).unwrap();
+        println!("Result c: {:?}", c);
 
-        // naive iteration: assuming c-prefer
-        unsafe {
-            for i_n in 0..n {
-                let idx_c = lc.index_uncheck(&[i_n]) as usize;
-                c[idx_c] = beta.clone() * c[idx_c].clone();
-                for i_k in 0..k {
-                    let idx_a = la.index_uncheck(&[i_k]) as usize;
-                    let idx_b = lb.index_uncheck(&[i_k, i_n]) as usize;
-                    c[idx_c] =
-                        alpha.clone() * (a[idx_a].clone() * b[idx_b].clone()) + c[idx_c].clone();
-                }
-            }
-        }
-        return Ok(());
-    }
-}
-
-impl<TA, TB, TC> DeviceInnerDotAPI<TA, TB, TC> for DeviceCpuSerial
-where
-    TA: Clone,
-    TB: Clone,
-    TC: Clone,
-    TA: Mul<TB, Output = TC>,
-    TC: Mul<TC, Output = TC> + Add<TC, Output = TC>,
-{
-    fn inner_dot(
-        &self,
-        c: &mut Vec<TC>,
-        lc: &Layout<Ix0>,
-        a: &Vec<TA>,
-        la: &Layout<Ix1>,
-        b: &Vec<TB>,
-        lb: &Layout<Ix1>,
-        alpha: TC,
-        beta: TC,
-    ) -> Result<()> {
-        // shape check
-        let sa = la.shape();
-        let sb = lb.shape();
-        rstsr_assert_eq!(sa[0], sb[0], InvalidLayout)?;
-        let n = sa[0];
-
-        // naive iteration
-        unsafe {
-            let idx_c = lc.index_uncheck(&[]) as usize;
-            let mut sum = beta * c[idx_c].clone();
-            for i in 0..n {
-                let idx_a = la.index_uncheck(&[i]) as usize;
-                let idx_b = lb.index_uncheck(&[i]) as usize;
-                sum = sum + alpha.clone() * (a[idx_a].clone() * b[idx_b].clone());
-            }
-            c[0] = sum;
-        }
-        return Ok(());
+        let c_ref = rt::asarray((
+            vec![
+                167., 184., 201., 218., 235., 381., 422., 463., 504., 545., 595., 660., 725., 790.,
+                855., 809., 898., 987., 1076., 1165., 1023., 1136., 1249., 1362., 1475., 1237.,
+                1374., 1511., 1648., 1785.,
+            ],
+            &device,
+        ));
+        assert!((&c.reshape(-1) - c_ref).l2_norm() < 1e-10);
     }
 }

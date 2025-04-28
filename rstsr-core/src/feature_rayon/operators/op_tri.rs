@@ -1,4 +1,3 @@
-use crate::device_cpu_serial::operators::op_tri::*;
 use crate::prelude_dev::*;
 use core::slice::from_raw_parts_mut;
 use core::sync::atomic::{AtomicPtr, Ordering};

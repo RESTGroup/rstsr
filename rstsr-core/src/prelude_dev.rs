@@ -16,6 +16,8 @@ pub use rayon::ThreadPool;
 
 pub use rstsr_common::prelude_dev::*;
 
+pub use rstsr_native_impl::prelude_dev::*;
+
 pub use crate::storage::assignment::*;
 pub use crate::storage::combined_trait::*;
 pub use crate::storage::conversion::*;
@@ -26,9 +28,7 @@ pub use crate::storage::matmul::*;
 pub use crate::storage::operators::*;
 pub use crate::storage::reduction::*;
 
-pub use crate::device_cpu_serial::assignment::*;
 pub use crate::device_cpu_serial::device::*;
-pub use crate::device_cpu_serial::op_with_func::*;
 pub use crate::DeviceCpu;
 
 #[allow(unused_imports)]
