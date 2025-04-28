@@ -1,4 +1,3 @@
-use crate::feature_rayon::*;
 use crate::prelude_dev::*;
 use core::ops::{Add, Mul};
 use num::complex::ComplexFloat;

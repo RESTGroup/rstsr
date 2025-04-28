@@ -24,13 +24,11 @@ where
     DB: DimAPI,
     DC: DimAPI,
     TA: Mul<TB, Output = TC>,
-    TB: Mul<TA, Output = TC>,
     TC: Mul<TC, Output = TC> + Add<TC, Output = TC>,
 {
     // NOTE: this only works for row-major layout
     // for column-major layout, we need to transpose the input:
     // C = A * B  =>  C^T = B^T * A^T
-    // shape check
     match (la.ndim(), lb.ndim(), lc.ndim()) {
             (1, 1, 0) => {
                 // rule 1: vector inner dot

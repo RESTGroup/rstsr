@@ -45,7 +45,7 @@ where
             .iter_mut()
             .zip(a[offset_a..(offset_a + size)].iter())
             .for_each(|(ci, ai)| *ci = ai.clone());
-        return Ok(());
+        Ok(())
     } else {
         // determine order by layout preference
         let order = match default_order {

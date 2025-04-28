@@ -24,5 +24,3 @@ pub struct DeviceOpenBLAS {
 
 pub(crate) use DeviceOpenBLAS as DeviceBLAS;
 pub(crate) use DeviceOpenBLAS as DeviceRayonAutoImpl;
-
-pub(crate) use rstsr_core::feature_rayon;

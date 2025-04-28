@@ -46,13 +46,7 @@ pub use crate::tensor::ownership_conversion::*;
 pub use crate::tensor::tensor_mutable::*;
 
 #[cfg(feature = "rayon")]
-pub use crate::feature_rayon::assignment::*;
-#[cfg(feature = "rayon")]
 pub use crate::feature_rayon::device::*;
-#[cfg(feature = "rayon")]
-pub use crate::feature_rayon::op_with_func::*;
-#[cfg(feature = "rayon")]
-pub use crate::feature_rayon::par_iter::*;
 
 #[cfg(feature = "faer")]
 pub use crate::device_faer::device::*;

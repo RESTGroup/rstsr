@@ -10,7 +10,7 @@ use num::Zero;
 use rayon::prelude::*;
 
 #[allow(clippy::too_many_arguments)]
-pub fn gemm_naive_rayon<TA, TB, TC>(
+pub fn gemm_ix2_naive_cpu_rayon<TA, TB, TC>(
     c: &mut [TC],
     lc: &Layout<Ix2>,
     a: &[TA],
@@ -50,11 +50,11 @@ where
     };
 
     pool.map_or_else(task, |pool| pool.install(task));
-    return Ok(());
+    Ok(())
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn inner_dot_naive_rayon<TA, TB, TC>(
+pub fn inner_dot_naive_cpu_rayon<TA, TB, TC>(
     c: &mut TC,
     a: &[TA],
     la: &Layout<Ix1>,
@@ -90,5 +90,5 @@ where
     };
     let c_innerdot = pool.map_or_else(task, |pool| pool.install(task));
     *c = c_innerdot * alpha + c.clone() * beta;
-    return Ok(());
+    Ok(())
 }

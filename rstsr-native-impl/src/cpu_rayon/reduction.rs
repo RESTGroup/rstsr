@@ -1,4 +1,3 @@
-use crate::feature_rayon::*;
 use crate::prelude_dev::*;
 use core::sync::atomic::{AtomicPtr, Ordering};
 use rayon::prelude::*;
@@ -65,7 +64,7 @@ where
                 None => task(),
                 Some(pool) => pool.install(task),
             };
-            return Ok(f_out(acc));
+            Ok(f_out(acc))
         } else {
             // parallel inner iteration
             let chunk = PARALLEL_CHUNK_MAX;
@@ -91,7 +90,7 @@ where
                 None => task(),
                 Some(pool) => pool.install(task),
             };
-            return Ok(f_out(acc));
+            Ok(f_out(acc))
         }
     } else {
         // manual fold when not contiguous
@@ -106,7 +105,7 @@ where
             None => task(),
             Some(pool) => pool.install(task),
         };
-        return Ok(f_out(acc));
+        Ok(f_out(acc))
     }
 }
 
@@ -179,7 +178,7 @@ where
             None => task()?,
             Some(pool) => pool.install(task)?,
         };
-        return Ok((out, layout_out));
+        Ok((out, layout_out))
     } else {
         // iterate layout_axes
         let iter_layout_axes = IterLayoutRowMajor::new(&layout_axes)?;
@@ -201,7 +200,7 @@ where
         }
         let mut fin_inplace = |a: &mut TS| *a = f_out(a.clone());
         op_muta_func_cpu_rayon(&mut out, &layout_out, &mut fin_inplace, pool)?;
-        return Ok((out, layout_out));
+        Ok((out, layout_out))
     }
 }
 
@@ -275,7 +274,7 @@ where
             None => task()?,
             Some(pool) => pool.install(task)?,
         };
-        return Ok((out, layout_out));
+        Ok((out, layout_out))
     } else {
         // iterate layout_axes
         let iter_layout_axes = IterLayoutRowMajor::new(&layout_axes)?;
@@ -306,7 +305,7 @@ where
             &mut f_out,
             pool,
         )?;
-        return Ok((out_converted, layout_out));
+        Ok((out_converted, layout_out))
     }
 }
 
@@ -384,7 +383,7 @@ where
     if acc.is_none() {
         rstsr_raise!(InvalidValue, "reduce_arg seems not returning a valid value.")?;
     }
-    return Ok(acc.unwrap().0);
+    Ok(acc.unwrap().0)
 }
 
 pub fn reduce_axes_unraveled_arg_cpu_rayon<T, D, Fcomp, Feq>(
@@ -448,7 +447,7 @@ where
         None => task()?,
         Some(pool) => pool.install(task)?,
     };
-    return Ok((out, layout_out));
+    Ok((out, layout_out))
 }
 
 pub fn reduce_all_arg_cpu_rayon<T, D, Fcomp, Feq>(
@@ -504,7 +503,7 @@ where
         None => task(),
         Some(pool) => pool.install(task),
     };
-    return Ok((out, layout));
+    Ok((out, layout))
 }
 
 /* #endregion */
