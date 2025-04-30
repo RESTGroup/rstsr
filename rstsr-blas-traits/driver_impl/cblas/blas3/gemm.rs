@@ -1,9 +1,15 @@
 use crate::DeviceBLAS;
+use duplicate::duplicate_item;
 use num::Complex;
 use rstsr_blas_traits::blas3::gemm::*;
-use rstsr_core::prelude::*;
+use rstsr_common::prelude::*;
 
-impl GEMMDriverAPI<f32> for DeviceBLAS {
+#[duplicate_item(
+    T     cblas_func  ;
+   [f32] [cblas_sgemm];
+   [f64] [cblas_dgemm];
+)]
+impl GEMMDriverAPI<T> for DeviceBLAS {
     unsafe fn driver_gemm(
         order: FlagOrder,
         transa: FlagTrans,
@@ -11,16 +17,16 @@ impl GEMMDriverAPI<f32> for DeviceBLAS {
         m: usize,
         n: usize,
         k: usize,
-        alpha: f32,
-        a: *const f32,
+        alpha: T,
+        a: *const T,
         lda: usize,
-        b: *const f32,
+        b: *const T,
         ldb: usize,
-        beta: f32,
-        c: *mut f32,
+        beta: T,
+        c: *mut T,
         ldc: usize,
     ) {
-        rstsr_lapack_ffi::cblas::cblas_sgemm(
+        rstsr_lapack_ffi::cblas::cblas_func(
             order.into(),
             transa.into(),
             transb.into(),
@@ -39,7 +45,12 @@ impl GEMMDriverAPI<f32> for DeviceBLAS {
     }
 }
 
-impl GEMMDriverAPI<f64> for DeviceBLAS {
+#[duplicate_item(
+    T              cblas_func  ;
+   [Complex<f32>] [cblas_cgemm];
+   [Complex<f64>] [cblas_zgemm];
+)]
+impl GEMMDriverAPI<T> for DeviceBLAS {
     unsafe fn driver_gemm(
         order: FlagOrder,
         transa: FlagTrans,
@@ -47,88 +58,16 @@ impl GEMMDriverAPI<f64> for DeviceBLAS {
         m: usize,
         n: usize,
         k: usize,
-        alpha: f64,
-        a: *const f64,
+        alpha: T,
+        a: *const T,
         lda: usize,
-        b: *const f64,
+        b: *const T,
         ldb: usize,
-        beta: f64,
-        c: *mut f64,
+        beta: T,
+        c: *mut T,
         ldc: usize,
     ) {
-        rstsr_lapack_ffi::cblas::cblas_dgemm(
-            order.into(),
-            transa.into(),
-            transb.into(),
-            m as _,
-            n as _,
-            k as _,
-            alpha,
-            a,
-            lda as _,
-            b,
-            ldb as _,
-            beta,
-            c,
-            ldc as _,
-        );
-    }
-}
-
-impl GEMMDriverAPI<Complex<f32>> for DeviceBLAS {
-    unsafe fn driver_gemm(
-        order: FlagOrder,
-        transa: FlagTrans,
-        transb: FlagTrans,
-        m: usize,
-        n: usize,
-        k: usize,
-        alpha: Complex<f32>,
-        a: *const Complex<f32>,
-        lda: usize,
-        b: *const Complex<f32>,
-        ldb: usize,
-        beta: Complex<f32>,
-        c: *mut Complex<f32>,
-        ldc: usize,
-    ) {
-        rstsr_lapack_ffi::cblas::cblas_cgemm(
-            order.into(),
-            transa.into(),
-            transb.into(),
-            m as _,
-            n as _,
-            k as _,
-            &alpha as *const _ as *const _,
-            a as *const _,
-            lda as _,
-            b as *const _,
-            ldb as _,
-            &beta as *const _ as *const _,
-            c as *mut _,
-            ldc as _,
-        );
-    }
-}
-
-impl GEMMDriverAPI<Complex<f64>> for DeviceBLAS {
-    unsafe fn driver_gemm(
-        order: FlagOrder,
-        transa: FlagTrans,
-        transb: FlagTrans,
-        m: usize,
-        n: usize,
-        k: usize,
-        alpha: Complex<f64>,
-        a: *const Complex<f64>,
-        lda: usize,
-        b: *const Complex<f64>,
-        ldb: usize,
-        beta: Complex<f64>,
-        c: *mut Complex<f64>,
-        ldc: usize,
-    ) {
-        rstsr_lapack_ffi::cblas::cblas_zgemm(
+        rstsr_lapack_ffi::cblas::cblas_func(
             order.into(),
             transa.into(),
             transb.into(),

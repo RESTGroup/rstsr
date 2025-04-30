@@ -1,9 +1,15 @@
 use crate::DeviceBLAS;
+use duplicate::duplicate_item;
 use num::Complex;
 use rstsr_blas_traits::blas3::trsm::*;
-use rstsr_core::prelude::*;
+use rstsr_common::prelude::*;
 
-impl TRSMDriverAPI<f32> for DeviceBLAS {
+#[duplicate_item(
+    T     cblas_func  ;
+   [f32] [cblas_strsm];
+   [f64] [cblas_dtrsm];
+)]
+impl TRSMDriverAPI<T> for DeviceBLAS {
     unsafe fn driver_trsm(
         order: FlagOrder,
         side: FlagSide,
@@ -12,13 +18,13 @@ impl TRSMDriverAPI<f32> for DeviceBLAS {
         diag: FlagDiag,
         m: usize,
         n: usize,
-        alpha: f32,
-        a: *const f32,
+        alpha: T,
+        a: *const T,
         lda: usize,
-        b: *mut f32,
+        b: *mut T,
         ldb: usize,
     ) {
-        rstsr_lapack_ffi::cblas::cblas_strsm(
+        rstsr_lapack_ffi::cblas::cblas_func(
             order.into(),
             side.into(),
             uplo.into(),
@@ -35,7 +41,12 @@ impl TRSMDriverAPI<f32> for DeviceBLAS {
     }
 }
 
-impl TRSMDriverAPI<f64> for DeviceBLAS {
+#[duplicate_item(
+    T              cblas_func  ;
+   [Complex<f32>] [cblas_ctrsm];
+   [Complex<f64>] [cblas_ztrsm];
+)]
+impl TRSMDriverAPI<T> for DeviceBLAS {
     unsafe fn driver_trsm(
         order: FlagOrder,
         side: FlagSide,
@@ -44,77 +55,13 @@ impl TRSMDriverAPI<f64> for DeviceBLAS {
         diag: FlagDiag,
         m: usize,
         n: usize,
-        alpha: f64,
-        a: *const f64,
+        alpha: T,
+        a: *const T,
         lda: usize,
-        b: *mut f64,
+        b: *mut T,
         ldb: usize,
     ) {
-        rstsr_lapack_ffi::cblas::cblas_dtrsm(
-            order.into(),
-            side.into(),
-            uplo.into(),
-            transa.into(),
-            diag.into(),
-            m as _,
-            n as _,
-            alpha,
-            a,
-            lda as _,
-            b,
-            ldb as _,
-        );
-    }
-}
-
-impl TRSMDriverAPI<Complex<f32>> for DeviceBLAS {
-    unsafe fn driver_trsm(
-        order: FlagOrder,
-        side: FlagSide,
-        uplo: FlagUpLo,
-        transa: FlagTrans,
-        diag: FlagDiag,
-        m: usize,
-        n: usize,
-        alpha: Complex<f32>,
-        a: *const Complex<f32>,
-        lda: usize,
-        b: *mut Complex<f32>,
-        ldb: usize,
-    ) {
-        rstsr_lapack_ffi::cblas::cblas_ctrsm(
-            order.into(),
-            side.into(),
-            uplo.into(),
-            transa.into(),
-            diag.into(),
-            m as _,
-            n as _,
-            &alpha as *const _ as *const _,
-            a as *const _,
-            lda as _,
-            b as *mut _,
-            ldb as _,
-        );
-    }
-}
-
-impl TRSMDriverAPI<Complex<f64>> for DeviceBLAS {
-    unsafe fn driver_trsm(
-        order: FlagOrder,
-        side: FlagSide,
-        uplo: FlagUpLo,
-        transa: FlagTrans,
-        diag: FlagDiag,
-        m: usize,
-        n: usize,
-        alpha: Complex<f64>,
-        a: *const Complex<f64>,
-        lda: usize,
-        b: *mut Complex<f64>,
-        ldb: usize,
-    ) {
-        rstsr_lapack_ffi::cblas::cblas_ztrsm(
+        rstsr_lapack_ffi::cblas::cblas_func(
             order.into(),
             side.into(),
             uplo.into(),

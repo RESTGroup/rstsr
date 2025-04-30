@@ -16,6 +16,7 @@ duplicate = { workspace = true }
 rstsr-openblas-ffi = { workspace = true }
 rstsr-lapack-ffi = { workspace = true }
 rstsr-core = { workspace = true, features = ["rayon"] }
+rstsr-common = { workspace = true, features = ["rayon"] }
 rstsr-dtype-traits = { workspace = true, features = ["half"] }
 rstsr-blas-traits = { workspace = true }
 rstsr-linalg-traits = { workspace = true, optional = true }
