@@ -11,7 +11,7 @@ pub mod prelude_dev;
 pub mod rayon_auto_impl;
 pub mod threading;
 
-pub mod impl_blas_traits;
+pub mod driver_impl;
 #[cfg(feature = "linalg")]
 pub mod impl_linalg_traits;
 

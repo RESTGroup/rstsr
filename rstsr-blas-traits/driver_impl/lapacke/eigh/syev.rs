@@ -1,19 +1,26 @@
 use crate::DeviceBLAS;
+use duplicate::duplicate_item;
+use num::complex::ComplexFloat;
 use num::Complex;
 use rstsr_blas_traits::prelude::*;
-use rstsr_core::prelude::*;
+use rstsr_common::prelude::*;
 
-impl SYEVDriverAPI<f32> for DeviceBLAS {
+#[duplicate_item(
+    T     lapacke_func  ;
+   [f32] [LAPACKE_ssyev];
+   [f64] [LAPACKE_dsyev];
+)]
+impl SYEVDriverAPI<T> for DeviceBLAS {
     unsafe fn driver_syev(
         order: FlagOrder,
         jobz: char,
         uplo: FlagUpLo,
         n: usize,
-        a: *mut f32,
+        a: *mut T,
         lda: usize,
-        w: *mut f32,
+        w: *mut T,
     ) -> blas_int {
-        rstsr_lapack_ffi::lapacke::LAPACKE_ssyev(
+        rstsr_lapack_ffi::lapacke::lapacke_func(
             order as _,
             jobz as _,
             uplo.into(),
@@ -25,61 +32,22 @@ impl SYEVDriverAPI<f32> for DeviceBLAS {
     }
 }
 
-impl SYEVDriverAPI<f64> for DeviceBLAS {
+#[duplicate_item(
+    T              lapacke_func  ;
+   [Complex<f32>] [LAPACKE_cheev];
+   [Complex<f64>] [LAPACKE_zheev];
+)]
+impl SYEVDriverAPI<T> for DeviceBLAS {
     unsafe fn driver_syev(
         order: FlagOrder,
         jobz: char,
         uplo: FlagUpLo,
         n: usize,
-        a: *mut f64,
+        a: *mut T,
         lda: usize,
-        w: *mut f64,
+        w: *mut <T as ComplexFloat>::Real,
     ) -> blas_int {
-        rstsr_lapack_ffi::lapacke::LAPACKE_dsyev(
-            order as _,
-            jobz as _,
-            uplo.into(),
-            n as _,
-            a,
-            lda as _,
-            w,
-        )
-    }
-}
-
-impl SYEVDriverAPI<Complex<f32>> for DeviceBLAS {
-    unsafe fn driver_syev(
-        order: FlagOrder,
-        jobz: char,
-        uplo: FlagUpLo,
-        n: usize,
-        a: *mut Complex<f32>,
-        lda: usize,
-        w: *mut f32,
-    ) -> blas_int {
-        rstsr_lapack_ffi::lapacke::LAPACKE_cheev(
-            order as _,
-            jobz as _,
-            uplo.into(),
-            n as _,
-            a as *mut _,
-            lda as _,
-            w,
-        )
-    }
-}
-
-impl SYEVDriverAPI<Complex<f64>> for DeviceBLAS {
-    unsafe fn driver_syev(
-        order: FlagOrder,
-        jobz: char,
-        uplo: FlagUpLo,
-        n: usize,
-        a: *mut Complex<f64>,
-        lda: usize,
-        w: *mut f64,
-    ) -> blas_int {
-        rstsr_lapack_ffi::lapacke::LAPACKE_zheev(
+        rstsr_lapack_ffi::lapacke::lapacke_func(
             order as _,
             jobz as _,
             uplo.into(),

@@ -1,64 +1,42 @@
 use crate::DeviceBLAS;
+use duplicate::duplicate_item;
 use num::Complex;
 use rstsr_blas_traits::prelude::*;
-use rstsr_core::prelude::*;
+use rstsr_common::prelude::*;
 
-impl GETRFDriverAPI<f32> for DeviceBLAS {
+#[duplicate_item(
+    T     lapacke_func   ;
+   [f32] [LAPACKE_sgetrf];
+   [f64] [LAPACKE_dgetrf];
+)]
+impl GETRFDriverAPI<T> for DeviceBLAS {
     unsafe fn driver_getrf(
         order: FlagOrder,
         m: usize,
         n: usize,
-        a: *mut f32,
+        a: *mut T,
         lda: usize,
         ipiv: *mut blas_int,
     ) -> blas_int {
-        rstsr_lapack_ffi::lapacke::LAPACKE_sgetrf(order as _, m as _, n as _, a, lda as _, ipiv)
+        rstsr_lapack_ffi::lapacke::lapacke_func(order as _, m as _, n as _, a, lda as _, ipiv)
     }
 }
 
-impl GETRFDriverAPI<f64> for DeviceBLAS {
+#[duplicate_item(
+    T              lapacke_func   ;
+   [Complex<f32>] [LAPACKE_cgetrf];
+   [Complex<f64>] [LAPACKE_zgetrf];
+)]
+impl GETRFDriverAPI<T> for DeviceBLAS {
     unsafe fn driver_getrf(
         order: FlagOrder,
         m: usize,
         n: usize,
-        a: *mut f64,
+        a: *mut T,
         lda: usize,
         ipiv: *mut blas_int,
     ) -> blas_int {
-        rstsr_lapack_ffi::lapacke::LAPACKE_dgetrf(order as _, m as _, n as _, a, lda as _, ipiv)
-    }
-}
-
-impl GETRFDriverAPI<Complex<f32>> for DeviceBLAS {
-    unsafe fn driver_getrf(
-        order: FlagOrder,
-        m: usize,
-        n: usize,
-        a: *mut Complex<f32>,
-        lda: usize,
-        ipiv: *mut blas_int,
-    ) -> blas_int {
-        rstsr_lapack_ffi::lapacke::LAPACKE_cgetrf(
-            order as _,
-            m as _,
-            n as _,
-            a as *mut _,
-            lda as _,
-            ipiv,
-        )
-    }
-}
-
-impl GETRFDriverAPI<Complex<f64>> for DeviceBLAS {
-    unsafe fn driver_getrf(
-        order: FlagOrder,
-        m: usize,
-        n: usize,
-        a: *mut Complex<f64>,
-        lda: usize,
-        ipiv: *mut blas_int,
-    ) -> blas_int {
-        rstsr_lapack_ffi::lapacke::LAPACKE_zgetrf(
+        rstsr_lapack_ffi::lapacke::lapacke_func(
             order as _,
             m as _,
             n as _,
