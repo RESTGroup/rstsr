@@ -63,3 +63,22 @@ where
 
     Ok(())
 }
+
+/// Transpose a matrix out-place using a naive algorithm.
+///
+/// Transpose from `a` (col-major) to `c` (row-major).
+/// If shape or stride is not compatible, an error will be returned.
+pub fn transpose_out_c2r_ix2_cpu_rayon<T>(
+    c: &mut [T],
+    lc: &Layout<Ix2>,
+    a: &[T],
+    la: &Layout<Ix2>,
+    pool: Option<&ThreadPool>,
+) -> Result<()>
+where
+    T: Clone + Send + Sync,
+{
+    let lc = lc.reverse_axes();
+    let la = la.reverse_axes();
+    transpose_out_r2c_ix2_cpu_rayon(c, &lc, a, &la, pool)
+}

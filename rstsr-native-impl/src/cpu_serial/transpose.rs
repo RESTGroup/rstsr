@@ -65,7 +65,6 @@ pub fn transpose_out_c2r_ix2_cpu_serial<T>(
 where
     T: Clone,
 {
-    // shape check
     let lc = lc.reverse_axes();
     let la = la.reverse_axes();
     transpose_out_r2c_ix2_cpu_serial(c, &lc, a, &la)
