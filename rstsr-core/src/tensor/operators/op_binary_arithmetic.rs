@@ -112,7 +112,6 @@ macro_rules! impl_core_ops {
 #[rustfmt::skip]
 mod impl_core_ops {
     use super::*;
-    use core::ops::*;
     impl_core_ops!(add   , DeviceAddAPI   , TensorAddAPI   , Add   );
     impl_core_ops!(sub   , DeviceSubAPI   , TensorSubAPI   , Sub   );
     impl_core_ops!(mul   , DeviceMulAPI   , TensorMulAPI   , Mul   );
@@ -264,7 +263,6 @@ macro_rules! impl_binary_arithmetic_ref {
 #[rustfmt::skip]
 mod impl_binary_arithmetic_ref {
     use super::*;
-    use core::ops::*;
     impl_binary_arithmetic_ref!(add_f   , DeviceAddAPI   , TensorAddAPI   , Add   );
     impl_binary_arithmetic_ref!(sub_f   , DeviceSubAPI   , TensorSubAPI   , Sub   );
     impl_binary_arithmetic_ref!(mul_f   , DeviceMulAPI   , TensorMulAPI   , Mul   );
@@ -478,7 +476,6 @@ macro_rules! impl_binary_lr_consume {
 #[rustfmt::skip]
 mod impl_binary_lr_consume {
     use super::*;
-    use core::ops::*;
     impl_binary_lr_consume!(add_f   , DeviceAddAPI   , TensorAddAPI   , Add   , DeviceLConsumeAddAPI   , DeviceRConsumeAddAPI   );
     impl_binary_lr_consume!(sub_f   , DeviceSubAPI   , TensorSubAPI   , Sub   , DeviceLConsumeSubAPI   , DeviceRConsumeSubAPI   );
     impl_binary_lr_consume!(mul_f   , DeviceMulAPI   , TensorMulAPI   , Mul   , DeviceLConsumeMulAPI   , DeviceRConsumeMulAPI   );
@@ -565,7 +562,6 @@ macro_rules! impl_binary_with_output {
 #[rustfmt::skip]
 mod impl_binary_with_output{
     use super::*;
-    use core::ops::*;
     impl_binary_with_output!(   add_with_output,    add_with_output_f, DeviceAddAPI   , Add   );
     impl_binary_with_output!(   sub_with_output,    sub_with_output_f, DeviceSubAPI   , Sub   );
     impl_binary_with_output!(   mul_with_output,    mul_with_output_f, DeviceMulAPI   , Mul   );
@@ -726,7 +722,6 @@ macro_rules! impl_arithmetic_scalar_lhs_float {
 
 mod impl_arithmetic_scalar_lhs {
     use super::*;
-    use core::ops::*;
     use half::{bf16, f16};
     use num::complex::Complex;
     impl_arithmetic_scalar_lhs_all!(i8);
@@ -833,7 +828,6 @@ macro_rules! impl_arithmetic_scalar_rhs {
 #[rustfmt::skip]
 mod impl_arithmetic_scalar_rhs {
     use super::*;
-    use core::ops::*;
     impl_arithmetic_scalar_rhs!(add_f   , Add   , DeviceAddAPI   , TensorAddAPI   , DeviceLConsumeAddAPI   );
     impl_arithmetic_scalar_rhs!(sub_f   , Sub   , DeviceSubAPI   , TensorSubAPI   , DeviceLConsumeSubAPI   );
     impl_arithmetic_scalar_rhs!(mul_f   , Mul   , DeviceMulAPI   , TensorMulAPI   , DeviceLConsumeMulAPI   );

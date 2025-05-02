@@ -1,5 +1,4 @@
 use crate::prelude_dev::*;
-use core::ops::*;
 
 macro_rules! trait_unary {
     ($op: ident, $op_f: ident, $TensorOpAPI: ident) => {

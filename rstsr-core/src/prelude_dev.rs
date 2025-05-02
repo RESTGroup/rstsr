@@ -45,6 +45,8 @@ pub use crate::tensor::manuplication::*;
 pub use crate::tensor::ownership_conversion::*;
 pub use crate::tensor::tensor_mutable::*;
 
+pub use crate::prelude::rstsr_traits::*;
+
 #[cfg(feature = "rayon")]
 pub use crate::feature_rayon::device::*;
 
