@@ -33,7 +33,7 @@ rstsr-linalg-traits = { path = "./rstsr-linalg-traits", default-features = false
 # develop dependencies that should not publish
 rstsr-test-manifest = { path = "./rstsr-test-manifest", default-features = false }
 # ffi dependencies
-rstsr-lapack-ffi = { version = "0.1.1" }
+rstsr-lapack-ffi = { version = "0.2.0" }
 rstsr-openblas-ffi = { version = "0.3.1" }
 # basic dependencies
 num = { version = "0.4" }

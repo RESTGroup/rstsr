@@ -41,24 +41,26 @@ where
     let lda = la.stride()[0];
     let ldc = lc.stride()[1];
 
-    (0..ncol).into_par_iter().step_by(BLOCK_SIZE).for_each(|j_start| {
-        let j_end = (j_start + BLOCK_SIZE).min(ncol);
-        let (j_start, j_end) = (j_start as isize, j_end as isize);
-        (0..nrow).into_par_iter().step_by(BLOCK_SIZE).for_each(|i_start| {
-            let i_end = (i_start + BLOCK_SIZE).min(nrow);
-            let (i_start, i_end) = (i_start as isize, i_end as isize);
-            for j in j_start..j_end {
-                for i in i_start..i_end {
-                    let src_idx = (offset_a + i * lda + j) as usize;
-                    let dst_idx = (offset_c + j * ldc + i) as usize;
+    pool.unwrap().install(|| {
+        (0..ncol).into_par_iter().step_by(BLOCK_SIZE).for_each(|j_start| {
+            let j_end = (j_start + BLOCK_SIZE).min(ncol);
+            let (j_start, j_end) = (j_start as isize, j_end as isize);
+            (0..nrow).into_par_iter().step_by(BLOCK_SIZE).for_each(|i_start| {
+                let i_end = (i_start + BLOCK_SIZE).min(nrow);
+                let (i_start, i_end) = (i_start as isize, i_end as isize);
+                for j in j_start..j_end {
+                    for i in i_start..i_end {
+                        let src_idx = (offset_a + i * lda + j) as usize;
+                        let dst_idx = (offset_c + j * ldc + i) as usize;
 
-                    unsafe {
-                        let c_ptr = c.as_ptr().add(dst_idx) as *mut T;
-                        *c_ptr = a[src_idx].clone();
+                        unsafe {
+                            let c_ptr = c.as_ptr().add(dst_idx) as *mut T;
+                            *c_ptr = a[src_idx].clone();
+                        }
                     }
                 }
-            }
-        });
+            });
+        })
     });
 
     Ok(())
