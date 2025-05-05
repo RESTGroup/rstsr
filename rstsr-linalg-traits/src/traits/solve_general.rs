@@ -2,12 +2,12 @@ use rstsr_core::prelude::rt::Result;
 
 pub trait SolveGeneralAPI<Inp> {
     type Out;
-    fn solve_general_f(args: Self) -> Result<Self::Out>;
-    fn solve_general(args: Self) -> Self::Out
+    fn solve_general_f(self) -> Result<Self::Out>;
+    fn solve_general(self) -> Self::Out
     where
         Self: Sized,
     {
-        Self::solve_general_f(args).unwrap()
+        Self::solve_general_f(self).unwrap()
     }
 }
 

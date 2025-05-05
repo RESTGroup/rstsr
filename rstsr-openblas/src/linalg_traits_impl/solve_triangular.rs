@@ -18,8 +18,8 @@ where
         + TRSMDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
-    fn solve_triangular_f(args: Self) -> Result<Self::Out> {
-        let (a, b, uplo) = args;
+    fn solve_triangular_f(self) -> Result<Self::Out> {
+        let (a, b, uplo) = self;
         rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         rstsr_assert_eq!(b.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let a_view = a.view().into_dim::<Ix2>();
@@ -42,8 +42,8 @@ where
         + TRSMDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
-    fn solve_triangular_f(args: Self) -> Result<Self::Out> {
-        let (a, b, uplo) = args;
+    fn solve_triangular_f(self) -> Result<Self::Out> {
+        let (a, b, uplo) = self;
         SolveTriangularAPI::<DeviceBLAS>::solve_triangular_f((&a, &b, uplo))
     }
 }
@@ -62,8 +62,8 @@ where
         + TRSMDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
-    fn solve_triangular_f(args: Self) -> Result<Self::Out> {
-        let (a, mut b, uplo) = args;
+    fn solve_triangular_f(self) -> Result<Self::Out> {
+        let (a, mut b, uplo) = self;
         rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         rstsr_assert_eq!(b.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let a_view = a.view().into_dim::<Ix2>();
@@ -86,8 +86,8 @@ where
         + TRSMDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
-    fn solve_triangular_f(args: Self) -> Result<Self::Out> {
-        let (a, b, uplo) = args;
+    fn solve_triangular_f(self) -> Result<Self::Out> {
+        let (a, b, uplo) = self;
         SolveTriangularAPI::<DeviceBLAS>::solve_triangular_f((&a, b, uplo))
     }
 }
@@ -105,8 +105,8 @@ where
         + TRSMDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
-    fn solve_triangular_f(args: Self) -> Result<Self::Out> {
-        let (mut a, mut b, uplo) = args;
+    fn solve_triangular_f(self) -> Result<Self::Out> {
+        let (mut a, mut b, uplo) = self;
         rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         rstsr_assert_eq!(b.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let a_view = a.view_mut().into_dim::<Ix2>();

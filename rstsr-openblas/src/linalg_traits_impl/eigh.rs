@@ -20,8 +20,8 @@ where
         + SYEVDDriverAPI<T>,
 {
     type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
-    fn eigh_f(args: Self) -> Result<Self::Out> {
-        let a = args;
+    fn eigh_f(self) -> Result<Self::Out> {
+        let a = self;
         rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let a_view = a.view().into_dim::<Ix2>();
         let eigh_args = EighArgs::default().a(a_view).build()?;
@@ -48,8 +48,8 @@ where
         + SYEVDDriverAPI<T>,
 {
     type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
-    fn eigh_f(args: Self) -> Result<Self::Out> {
-        EighAPI::<DeviceBLAS>::eigh_f(&args)
+    fn eigh_f(self) -> Result<Self::Out> {
+        EighAPI::<DeviceBLAS>::eigh_f(&self)
     }
 }
 
@@ -72,8 +72,8 @@ where
         + SYEVDDriverAPI<T>,
 {
     type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
-    fn eigh_f(args: Self) -> Result<Self::Out> {
-        let (a, b) = args;
+    fn eigh_f(self) -> Result<Self::Out> {
+        let (a, b) = self;
         rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         rstsr_assert_eq!(b.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let a_view = a.view().into_dim::<Ix2>();
@@ -103,8 +103,8 @@ where
         + SYEVDDriverAPI<T>,
 {
     type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
-    fn eigh_f(args: Self) -> Result<Self::Out> {
-        let (a, b) = args;
+    fn eigh_f(self) -> Result<Self::Out> {
+        let (a, b) = self;
         EighAPI::<DeviceBLAS>::eigh_f((&a, &b))
     }
 }

@@ -14,14 +14,14 @@ where
         + DeviceComplexFloatAPI<T, Ix2>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
-    fn inv_f(args: Self) -> Result<Self::Out> {
+    fn inv_f(self) -> Result<Self::Out> {
         rstsr_assert_eq!(
-            args.ndim(),
+            self.ndim(),
             2,
             InvalidLayout,
             "Currently we can only handle 2-D matrix."
         )?;
-        let a = args.view().into_dim::<Ix2>();
+        let a = self.view().into_dim::<Ix2>();
         let result = blas_inv_f(a.into())?.into_owned();
         Ok(result.into_dim::<IxD>().into_dim::<D>())
     }
@@ -37,8 +37,8 @@ where
         + DeviceComplexFloatAPI<T, Ix2>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
-    fn inv_f(args: Self) -> Result<Self::Out> {
-        InvAPI::<DeviceBLAS>::inv_f(&args)
+    fn inv_f(self) -> Result<Self::Out> {
+        InvAPI::<DeviceBLAS>::inv_f(&self)
     }
 }
 
@@ -52,14 +52,14 @@ where
         + DeviceComplexFloatAPI<T, Ix2>,
 {
     type Out = TensorMutable<'a, T, DeviceBLAS, D>;
-    fn inv_f(args: Self) -> Result<Self::Out> {
+    fn inv_f(self) -> Result<Self::Out> {
         rstsr_assert_eq!(
-            args.ndim(),
+            self.ndim(),
             2,
             InvalidLayout,
             "Currently we can only handle 2-D matrix."
         )?;
-        let a = args.into_dim::<Ix2>();
+        let a = self.into_dim::<Ix2>();
         let result = blas_inv_f(a.into())?;
         Ok(result.into_dim::<IxD>().into_dim::<D>())
     }
@@ -75,9 +75,9 @@ where
         + DeviceComplexFloatAPI<T, Ix2>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
-    fn inv_f(mut args: Self) -> Result<Self::Out> {
-        InvAPI::<DeviceBLAS>::inv_f(args.view_mut())?;
-        Ok(args)
+    fn inv_f(mut self) -> Result<Self::Out> {
+        InvAPI::<DeviceBLAS>::inv_f(self.view_mut())?;
+        Ok(self)
     }
 }
 

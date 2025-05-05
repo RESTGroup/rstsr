@@ -2,12 +2,12 @@ use rstsr_core::prelude::rt::Result;
 
 pub trait SolveTriangularAPI<Inp> {
     type Out;
-    fn solve_triangular_f(args: Self) -> Result<Self::Out>;
-    fn solve_triangular(args: Self) -> Self::Out
+    fn solve_triangular_f(self) -> Result<Self::Out>;
+    fn solve_triangular(self) -> Self::Out
     where
         Self: Sized,
     {
-        Self::solve_triangular_f(args).unwrap()
+        Self::solve_triangular_f(self).unwrap()
     }
 }
 

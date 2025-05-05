@@ -11,8 +11,8 @@ where
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>> + DeviceComplexFloatAPI<T, Ix2> + POTRFDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
-    fn cholesky_f(args: Self) -> Result<Self::Out> {
-        let (a, uplo) = args;
+    fn cholesky_f(self) -> Result<Self::Out> {
+        let (a, uplo) = self;
         rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let a = a.view().into_dim::<Ix2>();
         let result = blas_cholesky_f(a.view().into(), uplo)?.into_owned();
@@ -27,8 +27,8 @@ where
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>> + DeviceComplexFloatAPI<T, Ix2> + POTRFDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
-    fn cholesky_f(args: Self) -> Result<Self::Out> {
-        let (a, uplo) = args;
+    fn cholesky_f(self) -> Result<Self::Out> {
+        let (a, uplo) = self;
         CholeskyAPI::<DeviceBLAS>::cholesky_f((&a, uplo))
     }
 }
@@ -40,8 +40,8 @@ where
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>> + DeviceComplexFloatAPI<T, Ix2> + POTRFDriverAPI<T>,
 {
     type Out = TensorMutable<'a, T, DeviceBLAS, D>;
-    fn cholesky_f(args: Self) -> Result<Self::Out> {
-        let (a, uplo) = args;
+    fn cholesky_f(self) -> Result<Self::Out> {
+        let (a, uplo) = self;
         rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let a = a.into_dim::<Ix2>();
         let result = blas_cholesky_f(a.into(), uplo)?;
@@ -56,8 +56,8 @@ where
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>> + DeviceComplexFloatAPI<T, Ix2> + POTRFDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
-    fn cholesky_f(args: Self) -> Result<Self::Out> {
-        let (mut a, uplo) = args;
+    fn cholesky_f(self) -> Result<Self::Out> {
+        let (mut a, uplo) = self;
         CholeskyAPI::<DeviceBLAS>::cholesky_f((a.view_mut(), uplo))?;
         Ok(a)
     }

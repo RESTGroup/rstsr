@@ -2,12 +2,12 @@ use rstsr_core::prelude::rt::Result;
 
 pub trait InvAPI<Inp> {
     type Out;
-    fn inv_f(args: Self) -> Result<Self::Out>;
-    fn inv(args: Self) -> Self::Out
+    fn inv_f(self) -> Result<Self::Out>;
+    fn inv(self) -> Self::Out
     where
         Self: Sized,
     {
-        Self::inv_f(args).unwrap()
+        Self::inv_f(self).unwrap()
     }
 }
 

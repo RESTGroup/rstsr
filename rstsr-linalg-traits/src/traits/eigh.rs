@@ -4,12 +4,12 @@ use rstsr_core::prelude_dev::*;
 
 pub trait EighAPI<Inp> {
     type Out;
-    fn eigh_f(args: Self) -> Result<Self::Out>;
-    fn eigh(args: Self) -> Self::Out
+    fn eigh_f(self) -> Result<Self::Out>;
+    fn eigh(self) -> Self::Out
     where
         Self: Sized,
     {
-        Self::eigh_f(args).unwrap()
+        Self::eigh_f(self).unwrap()
     }
 }
 

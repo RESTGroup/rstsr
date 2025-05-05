@@ -2,12 +2,12 @@ use rstsr_core::prelude::rt::Result;
 
 pub trait CholeskyAPI<Inp> {
     type Out;
-    fn cholesky_f(args: Self) -> Result<Self::Out>;
-    fn cholesky(args: Self) -> Self::Out
+    fn cholesky_f(self) -> Result<Self::Out>;
+    fn cholesky(self) -> Self::Out
     where
         Self: Sized,
     {
-        Self::cholesky_f(args).unwrap()
+        Self::cholesky_f(self).unwrap()
     }
 }
 

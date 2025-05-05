@@ -2,12 +2,12 @@ use rstsr_core::prelude::rt::Result;
 
 pub trait SolveSymmetricAPI<Inp> {
     type Out;
-    fn solve_symmetric_f(args: Self) -> Result<Self::Out>;
-    fn solve_symmetric(args: Self) -> Self::Out
+    fn solve_symmetric_f(self) -> Result<Self::Out>;
+    fn solve_symmetric(self) -> Self::Out
     where
         Self: Sized,
     {
-        Self::solve_symmetric_f(args).unwrap()
+        Self::solve_symmetric_f(self).unwrap()
     }
 }
 

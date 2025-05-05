@@ -18,8 +18,8 @@ where
         + GESVDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
-    fn solve_general_f(args: Self) -> Result<Self::Out> {
-        let (a, b) = args;
+    fn solve_general_f(self) -> Result<Self::Out> {
+        let (a, b) = self;
         rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         rstsr_assert_eq!(b.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let a_view = a.view().into_dim::<Ix2>();
@@ -42,8 +42,8 @@ where
         + GESVDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
-    fn solve_general_f(args: Self) -> Result<Self::Out> {
-        let (a, b) = args;
+    fn solve_general_f(self) -> Result<Self::Out> {
+        let (a, b) = self;
         SolveGeneralAPI::<DeviceBLAS>::solve_general_f((&a, &b))
     }
 }
@@ -62,8 +62,8 @@ where
         + GESVDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
-    fn solve_general_f(args: Self) -> Result<Self::Out> {
-        let (a, mut b) = args;
+    fn solve_general_f(self) -> Result<Self::Out> {
+        let (a, mut b) = self;
         rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         rstsr_assert_eq!(b.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let a_view = a.view().into_dim::<Ix2>();
@@ -86,8 +86,8 @@ where
         + GESVDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
-    fn solve_general_f(args: Self) -> Result<Self::Out> {
-        let (a, b) = args;
+    fn solve_general_f(self) -> Result<Self::Out> {
+        let (a, b) = self;
         SolveGeneralAPI::<DeviceBLAS>::solve_general_f((&a, b))
     }
 }
@@ -104,8 +104,8 @@ where
         + GESVDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
-    fn solve_general_f(args: Self) -> Result<Self::Out> {
-        let (mut a, mut b) = args;
+    fn solve_general_f(self) -> Result<Self::Out> {
+        let (mut a, mut b) = self;
         rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         rstsr_assert_eq!(b.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let a_view = a.view_mut().into_dim::<Ix2>();

@@ -19,8 +19,8 @@ where
         + SYSVDriverAPI<T, true>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
-    fn solve_symmetric_f(args: Self) -> Result<Self::Out> {
-        let (a, b, hermi, uplo) = args;
+    fn solve_symmetric_f(self) -> Result<Self::Out> {
+        let (a, b, hermi, uplo) = self;
         rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         rstsr_assert_eq!(b.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let a_view = a.view().into_dim::<Ix2>();
@@ -44,8 +44,8 @@ where
         + SYSVDriverAPI<T, true>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
-    fn solve_symmetric_f(args: Self) -> Result<Self::Out> {
-        let (a, b, hermi, uplo) = args;
+    fn solve_symmetric_f(self) -> Result<Self::Out> {
+        let (a, b, hermi, uplo) = self;
         SolveSymmetricAPI::<DeviceBLAS>::solve_symmetric_f((&a, &b, hermi, uplo))
     }
 }
@@ -65,8 +65,8 @@ where
         + SYSVDriverAPI<T, true>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
-    fn solve_symmetric_f(args: Self) -> Result<Self::Out> {
-        let (a, mut b, hermi, uplo) = args;
+    fn solve_symmetric_f(self) -> Result<Self::Out> {
+        let (a, mut b, hermi, uplo) = self;
         rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         rstsr_assert_eq!(b.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let a_view = a.view().into_dim::<Ix2>();
@@ -90,8 +90,8 @@ where
         + SYSVDriverAPI<T, true>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
-    fn solve_symmetric_f(args: Self) -> Result<Self::Out> {
-        let (a, b, hermi, uplo) = args;
+    fn solve_symmetric_f(self) -> Result<Self::Out> {
+        let (a, b, hermi, uplo) = self;
         SolveSymmetricAPI::<DeviceBLAS>::solve_symmetric_f((&a, b, hermi, uplo))
     }
 }
@@ -110,8 +110,8 @@ where
         + SYSVDriverAPI<T, true>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
-    fn solve_symmetric_f(args: Self) -> Result<Self::Out> {
-        let (mut a, mut b, hermi, uplo) = args;
+    fn solve_symmetric_f(self) -> Result<Self::Out> {
+        let (mut a, mut b, hermi, uplo) = self;
         rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         rstsr_assert_eq!(b.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let a_view = a.view_mut().into_dim::<Ix2>();
