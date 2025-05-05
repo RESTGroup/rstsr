@@ -149,7 +149,6 @@ where
                 }
             },
         },
-        _ => rstsr_invalid!(uplo)?,
     }
     Ok(())
 }
@@ -522,7 +521,6 @@ where
                 }
             },
         },
-        _ => rstsr_invalid!(uplo)?,
     }
     Ok(())
 }

@@ -157,10 +157,8 @@ pub mod TensorCopyPolicy {
 /* #region blas-flags */
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FlagTrans {
-    #[default]
-    Undefined,
     /// No transpose
     N = 111,
     /// Transpose
@@ -172,10 +170,8 @@ pub enum FlagTrans {
 }
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FlagSide {
-    #[default]
-    Undefined,
     /// Left side
     L = 141,
     /// Right side
@@ -183,10 +179,8 @@ pub enum FlagSide {
 }
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FlagUpLo {
-    #[default]
-    Undefined,
     /// Upper triangle
     U = 121,
     /// Lower triangle
@@ -194,10 +188,8 @@ pub enum FlagUpLo {
 }
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FlagDiag {
-    #[default]
-    Undefined,
     /// Non-unit diagonal
     N = 131,
     /// Unit diagonal
@@ -333,7 +325,6 @@ impl From<FlagDiag> for char {
         match val {
             FlagDiag::N => 'N',
             FlagDiag::U => 'U',
-            _ => rstsr_invalid!(val).unwrap(),
         }
     }
 }
@@ -343,7 +334,6 @@ impl From<FlagDiag> for c_char {
         match val {
             FlagDiag::N => b'N' as c_char,
             FlagDiag::U => b'U' as c_char,
-            _ => rstsr_invalid!(val).unwrap(),
         }
     }
 }
@@ -372,7 +362,6 @@ impl From<FlagDiag> for CBLAS_DIAG {
         match val {
             FlagDiag::N => CBLAS_DIAG::CblasNonUnit,
             FlagDiag::U => CBLAS_DIAG::CblasUnit,
-            _ => rstsr_invalid!(val).unwrap(),
         }
     }
 }
@@ -392,7 +381,6 @@ impl From<FlagSide> for char {
         match val {
             FlagSide::L => 'L',
             FlagSide::R => 'R',
-            _ => rstsr_invalid!(val).unwrap(),
         }
     }
 }
@@ -402,7 +390,6 @@ impl From<FlagSide> for c_char {
         match val {
             FlagSide::L => b'L' as c_char,
             FlagSide::R => b'R' as c_char,
-            _ => rstsr_invalid!(val).unwrap(),
         }
     }
 }
@@ -431,7 +418,6 @@ impl From<FlagSide> for CBLAS_SIDE {
         match val {
             FlagSide::L => CBLAS_SIDE::CblasLeft,
             FlagSide::R => CBLAS_SIDE::CblasRight,
-            _ => rstsr_invalid!(val).unwrap(),
         }
     }
 }
@@ -451,7 +437,6 @@ impl From<FlagUpLo> for char {
         match val {
             FlagUpLo::U => 'U',
             FlagUpLo::L => 'L',
-            _ => rstsr_invalid!(val).unwrap(),
         }
     }
 }
@@ -461,7 +446,6 @@ impl From<FlagUpLo> for c_char {
         match val {
             FlagUpLo::U => b'U' as c_char,
             FlagUpLo::L => b'L' as c_char,
-            _ => rstsr_invalid!(val).unwrap(),
         }
     }
 }
@@ -490,7 +474,6 @@ impl From<FlagUpLo> for CBLAS_UPLO {
         match val {
             FlagUpLo::U => CBLAS_UPLO::CblasUpper,
             FlagUpLo::L => CBLAS_UPLO::CblasLower,
-            _ => rstsr_invalid!(val).unwrap(),
         }
     }
 }
@@ -545,7 +528,6 @@ impl FlagSide {
         match self {
             FlagSide::L => Ok(FlagSide::R),
             FlagSide::R => Ok(FlagSide::L),
-            _ => rstsr_invalid!(self)?,
         }
     }
 }
@@ -555,7 +537,6 @@ impl FlagUpLo {
         match self {
             FlagUpLo::U => Ok(FlagUpLo::L),
             FlagUpLo::L => Ok(FlagUpLo::U),
-            _ => rstsr_invalid!(self)?,
         }
     }
 }

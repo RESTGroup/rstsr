@@ -21,7 +21,6 @@ where
     match uplo {
         Upper => triu(result.view_mut()),
         Lower => tril(result.view_mut()),
-        _ => rstsr_invalid!(uplo)?,
     };
     Ok(result)
 }

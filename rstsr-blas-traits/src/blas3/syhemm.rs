@@ -120,7 +120,6 @@ where
         match side {
             Left => rstsr_assert_eq!(a.shape(), &[m, m], InvalidLayout)?,
             Right => rstsr_assert_eq!(a.shape(), &[n, n], InvalidLayout)?,
-            _ => rstsr_invalid!(side)?,
         }
 
         // optional intent(out)

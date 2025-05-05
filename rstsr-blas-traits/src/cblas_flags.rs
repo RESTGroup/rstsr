@@ -67,7 +67,6 @@ impl From<FlagUpLo> for CblasUplo {
         match flag {
             FlagUpLo::U => CblasUplo::Upper,
             FlagUpLo::L => CblasUplo::Lower,
-            _ => panic!("Invalid flag for uplo"),
         }
     }
 }
@@ -77,7 +76,6 @@ impl From<FlagDiag> for CblasDiag {
         match flag {
             FlagDiag::U => CblasDiag::Unit,
             FlagDiag::N => CblasDiag::NonUnit,
-            _ => panic!("Invalid flag for diag"),
         }
     }
 }
@@ -87,7 +85,6 @@ impl From<FlagSide> for CblasSide {
         match flag {
             FlagSide::L => CblasSide::Left,
             FlagSide::R => CblasSide::Right,
-            _ => panic!("Invalid flag for side"),
         }
     }
 }
