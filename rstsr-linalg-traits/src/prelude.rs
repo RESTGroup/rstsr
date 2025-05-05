@@ -1,8 +1,7 @@
 pub mod rstsr_traits {
     pub use crate::traits::{
-        cholesky::LinalgCholeskyAPI, eigh::LinalgEighAPI, inv::LinalgInvAPI,
-        solve_general::LinalgSolveGeneralAPI, solve_symmetric::LinalgSolveSymmetricAPI,
-        solve_triangular::LinalgSolveTriangularAPI,
+        cholesky::CholeskyAPI, eigh::EighAPI, inv::InvAPI, solve_general::SolveGeneralAPI,
+        solve_symmetric::SolveSymmetricAPI, solve_triangular::SolveTriangularAPI,
     };
 }
 

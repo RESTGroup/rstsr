@@ -1,6 +1,6 @@
 use rstsr_core::prelude::rt::Result;
 
-pub trait LinalgCholeskyAPI<Inp> {
+pub trait CholeskyAPI<Inp> {
     type Out;
     fn cholesky_f(args: Self) -> Result<Self::Out>;
     fn cholesky(args: Self) -> Self::Out
@@ -11,16 +11,16 @@ pub trait LinalgCholeskyAPI<Inp> {
     }
 }
 
-pub fn cholesky_f<Args, Inp>(args: Args) -> Result<<Args as LinalgCholeskyAPI<Inp>>::Out>
+pub fn cholesky_f<Args, Inp>(args: Args) -> Result<<Args as CholeskyAPI<Inp>>::Out>
 where
-    Args: LinalgCholeskyAPI<Inp>,
+    Args: CholeskyAPI<Inp>,
 {
     Args::cholesky_f(args)
 }
 
-pub fn cholesky<Args, Inp>(args: Args) -> <Args as LinalgCholeskyAPI<Inp>>::Out
+pub fn cholesky<Args, Inp>(args: Args) -> <Args as CholeskyAPI<Inp>>::Out
 where
-    Args: LinalgCholeskyAPI<Inp>,
+    Args: CholeskyAPI<Inp>,
 {
     Args::cholesky(args)
 }

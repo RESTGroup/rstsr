@@ -3,7 +3,7 @@ use rstsr_blas_traits::prelude::*;
 use rstsr_core::prelude_dev::*;
 use rstsr_linalg_traits::prelude_dev::*;
 
-impl<R, T, D> LinalgCholeskyAPI<DeviceBLAS> for (&TensorAny<R, T, DeviceBLAS, D>, FlagUpLo)
+impl<R, T, D> CholeskyAPI<DeviceBLAS> for (&TensorAny<R, T, DeviceBLAS, D>, FlagUpLo)
 where
     T: BlasFloat + Send + Sync,
     R: DataCloneAPI<Data = Vec<T>>,
@@ -20,7 +20,7 @@ where
     }
 }
 
-impl<T, D> LinalgCholeskyAPI<DeviceBLAS> for (TensorView<'_, T, DeviceBLAS, D>, FlagUpLo)
+impl<T, D> CholeskyAPI<DeviceBLAS> for (TensorView<'_, T, DeviceBLAS, D>, FlagUpLo)
 where
     T: BlasFloat + Send + Sync,
     D: DimAPI,
@@ -29,11 +29,11 @@ where
     type Out = Tensor<T, DeviceBLAS, D>;
     fn cholesky_f(args: Self) -> Result<Self::Out> {
         let (a, uplo) = args;
-        LinalgCholeskyAPI::<DeviceBLAS>::cholesky_f((&a, uplo))
+        CholeskyAPI::<DeviceBLAS>::cholesky_f((&a, uplo))
     }
 }
 
-impl<'a, T, D> LinalgCholeskyAPI<DeviceBLAS> for (TensorMut<'a, T, DeviceBLAS, D>, FlagUpLo)
+impl<'a, T, D> CholeskyAPI<DeviceBLAS> for (TensorMut<'a, T, DeviceBLAS, D>, FlagUpLo)
 where
     T: BlasFloat + Send + Sync,
     D: DimAPI,
@@ -49,7 +49,7 @@ where
     }
 }
 
-impl<T, D> LinalgCholeskyAPI<DeviceBLAS> for (Tensor<T, DeviceBLAS, D>, FlagUpLo)
+impl<T, D> CholeskyAPI<DeviceBLAS> for (Tensor<T, DeviceBLAS, D>, FlagUpLo)
 where
     T: BlasFloat + Send + Sync,
     D: DimAPI,
@@ -58,7 +58,7 @@ where
     type Out = Tensor<T, DeviceBLAS, D>;
     fn cholesky_f(args: Self) -> Result<Self::Out> {
         let (mut a, uplo) = args;
-        LinalgCholeskyAPI::<DeviceBLAS>::cholesky_f((a.view_mut(), uplo))?;
+        CholeskyAPI::<DeviceBLAS>::cholesky_f((a.view_mut(), uplo))?;
         Ok(a)
     }
 }

@@ -2,7 +2,7 @@ use derive_builder::Builder;
 use rstsr_blas_traits::prelude::BlasFloat;
 use rstsr_core::prelude_dev::*;
 
-pub trait LinalgEighAPI<Inp> {
+pub trait EighAPI<Inp> {
     type Out;
     fn eigh_f(args: Self) -> Result<Self::Out>;
     fn eigh(args: Self) -> Self::Out
@@ -13,18 +13,35 @@ pub trait LinalgEighAPI<Inp> {
     }
 }
 
-pub fn eigh_f<Args, Inp>(args: Args) -> Result<<Args as LinalgEighAPI<Inp>>::Out>
+pub fn eigh_f<Args, Inp>(args: Args) -> Result<<Args as EighAPI<Inp>>::Out>
 where
-    Args: LinalgEighAPI<Inp>,
+    Args: EighAPI<Inp>,
 {
     Args::eigh_f(args)
 }
 
-pub fn eigh<Args, Inp>(args: Args) -> <Args as LinalgEighAPI<Inp>>::Out
+pub fn eigh<Args, Inp>(args: Args) -> <Args as EighAPI<Inp>>::Out
 where
-    Args: LinalgEighAPI<Inp>,
+    Args: EighAPI<Inp>,
 {
     Args::eigh(args)
+}
+
+pub struct EighResult<W, V> {
+    pub eigenvalues: W,
+    pub eigenvectors: V,
+}
+
+impl<W, V> From<(W, V)> for EighResult<W, V> {
+    fn from((vals, vecs): (W, V)) -> Self {
+        Self { eigenvalues: vals, eigenvectors: vecs }
+    }
+}
+
+impl<W, V> From<EighResult<W, V>> for (W, V) {
+    fn from(eigh_result: EighResult<W, V>) -> Self {
+        (eigh_result.eigenvalues, eigh_result.eigenvectors)
+    }
 }
 
 #[derive(Builder)]

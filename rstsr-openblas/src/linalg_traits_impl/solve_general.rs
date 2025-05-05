@@ -3,7 +3,7 @@ use rstsr_blas_traits::prelude::*;
 use rstsr_core::prelude_dev::*;
 use rstsr_linalg_traits::prelude_dev::*;
 
-impl<Ra, Rb, T, D> LinalgSolveGeneralAPI<DeviceBLAS>
+impl<Ra, Rb, T, D> SolveGeneralAPI<DeviceBLAS>
     for (&TensorAny<Ra, T, DeviceBLAS, D>, &TensorAny<Rb, T, DeviceBLAS, D>)
 where
     T: BlasFloat + Send + Sync,
@@ -29,7 +29,7 @@ where
     }
 }
 
-impl<T, D> LinalgSolveGeneralAPI<DeviceBLAS>
+impl<T, D> SolveGeneralAPI<DeviceBLAS>
     for (TensorView<'_, T, DeviceBLAS, D>, TensorView<'_, T, DeviceBLAS, D>)
 where
     T: BlasFloat + Send + Sync,
@@ -44,11 +44,11 @@ where
     type Out = Tensor<T, DeviceBLAS, D>;
     fn solve_general_f(args: Self) -> Result<Self::Out> {
         let (a, b) = args;
-        LinalgSolveGeneralAPI::<DeviceBLAS>::solve_general_f((&a, &b))
+        SolveGeneralAPI::<DeviceBLAS>::solve_general_f((&a, &b))
     }
 }
 
-impl<R, T, D> LinalgSolveGeneralAPI<DeviceBLAS>
+impl<R, T, D> SolveGeneralAPI<DeviceBLAS>
     for (&TensorAny<R, T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>)
 where
     T: BlasFloat + Send + Sync,
@@ -73,7 +73,7 @@ where
     }
 }
 
-impl<T, D> LinalgSolveGeneralAPI<DeviceBLAS>
+impl<T, D> SolveGeneralAPI<DeviceBLAS>
     for (TensorView<'_, T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>)
 where
     T: BlasFloat + Send + Sync,
@@ -88,12 +88,11 @@ where
     type Out = Tensor<T, DeviceBLAS, D>;
     fn solve_general_f(args: Self) -> Result<Self::Out> {
         let (a, b) = args;
-        LinalgSolveGeneralAPI::<DeviceBLAS>::solve_general_f((&a, b))
+        SolveGeneralAPI::<DeviceBLAS>::solve_general_f((&a, b))
     }
 }
 
-impl<T, D> LinalgSolveGeneralAPI<DeviceBLAS>
-    for (Tensor<T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>)
+impl<T, D> SolveGeneralAPI<DeviceBLAS> for (Tensor<T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>)
 where
     T: BlasFloat + Send + Sync,
     D: DimAPI,

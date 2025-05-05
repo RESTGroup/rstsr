@@ -3,7 +3,7 @@ use rstsr_blas_traits::prelude::*;
 use rstsr_core::prelude_dev::*;
 use rstsr_linalg_traits::prelude_dev::*;
 
-impl<R, T, D> LinalgEighAPI<DeviceBLAS> for &TensorAny<R, T, DeviceBLAS, D>
+impl<R, T, D> EighAPI<DeviceBLAS> for &TensorAny<R, T, DeviceBLAS, D>
 where
     T: BlasFloat + Send + Sync,
     R: DataCloneAPI<Data = Vec<T>>,
@@ -21,20 +21,20 @@ where
         + SYEVDriverAPI<T>
         + SYEVDDriverAPI<T>,
 {
-    type Out = (Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>);
+    type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
     fn eigh_f(args: Self) -> Result<Self::Out> {
         let a = args;
         rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let a_view = a.view().into_dim::<Ix2>();
         let eigh_args = EighArgs::default().a(a_view).build()?;
-        let (v, w) = blas_eigh_simple_f(eigh_args)?;
-        let v = v.into_dim::<IxD>().into_dim::<D::SmallerOne>();
-        let w = w.unwrap().into_owned().into_dim::<IxD>().into_dim::<D>();
-        return Ok((v, w));
+        let (vals, vecs) = blas_eigh_simple_f(eigh_args)?;
+        let vals = vals.into_dim::<IxD>().into_dim::<D::SmallerOne>();
+        let vecs = vecs.unwrap().into_owned().into_dim::<IxD>().into_dim::<D>();
+        return Ok(EighResult { eigenvalues: vals, eigenvectors: vecs });
     }
 }
 
-impl<T, D> LinalgEighAPI<DeviceBLAS> for TensorView<'_, T, DeviceBLAS, D>
+impl<T, D> EighAPI<DeviceBLAS> for TensorView<'_, T, DeviceBLAS, D>
 where
     T: BlasFloat + Send + Sync,
     D: DimAPI + DimSmallerOneAPI,
@@ -51,13 +51,13 @@ where
         + SYEVDriverAPI<T>
         + SYEVDDriverAPI<T>,
 {
-    type Out = (Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>);
+    type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
     fn eigh_f(args: Self) -> Result<Self::Out> {
-        LinalgEighAPI::<DeviceBLAS>::eigh_f(&args)
+        EighAPI::<DeviceBLAS>::eigh_f(&args)
     }
 }
 
-impl<Ra, Rb, T, D> LinalgEighAPI<DeviceBLAS>
+impl<Ra, Rb, T, D> EighAPI<DeviceBLAS>
     for (&TensorAny<Ra, T, DeviceBLAS, D>, &TensorAny<Rb, T, DeviceBLAS, D>)
 where
     T: BlasFloat + Send + Sync,
@@ -77,7 +77,7 @@ where
         + SYEVDriverAPI<T>
         + SYEVDDriverAPI<T>,
 {
-    type Out = (Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>);
+    type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
     fn eigh_f(args: Self) -> Result<Self::Out> {
         let (a, b) = args;
         rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
@@ -85,14 +85,14 @@ where
         let a_view = a.view().into_dim::<Ix2>();
         let b_view = b.view().into_dim::<Ix2>();
         let eigh_args = EighArgs::default().a(a_view).b(b_view).build()?;
-        let (v, w) = blas_eigh_simple_f(eigh_args)?;
-        let v = v.into_dim::<IxD>().into_dim::<D::SmallerOne>();
-        let w = w.unwrap().into_owned().into_dim::<IxD>().into_dim::<D>();
-        return Ok((v, w));
+        let (vals, vecs) = blas_eigh_simple_f(eigh_args)?;
+        let vals = vals.into_dim::<IxD>().into_dim::<D::SmallerOne>();
+        let vecs = vecs.unwrap().into_owned().into_dim::<IxD>().into_dim::<D>();
+        return Ok(EighResult { eigenvalues: vals, eigenvectors: vecs });
     }
 }
 
-impl<T, D> LinalgEighAPI<DeviceBLAS>
+impl<T, D> EighAPI<DeviceBLAS>
     for (TensorView<'_, T, DeviceBLAS, D>, TensorView<'_, T, DeviceBLAS, D>)
 where
     T: BlasFloat + Send + Sync,
@@ -110,10 +110,10 @@ where
         + SYEVDriverAPI<T>
         + SYEVDDriverAPI<T>,
 {
-    type Out = (Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>);
+    type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
     fn eigh_f(args: Self) -> Result<Self::Out> {
         let (a, b) = args;
-        LinalgEighAPI::<DeviceBLAS>::eigh_f((&a, &b))
+        EighAPI::<DeviceBLAS>::eigh_f((&a, &b))
     }
 }
 
@@ -128,7 +128,7 @@ mod test {
         let device = DeviceBLAS::default();
         let la = [2048, 2048].c();
         let a = Tensor::new(Storage::new(get_vec::<f64>('a').into(), device.clone()), la);
-        let (v, w) = eigh(&a);
+        let (w, v) = eigh(&a).into();
         println!("{:8.3?}", v);
         println!("{:8.3?}", w);
 
@@ -137,7 +137,7 @@ mod test {
         let a = asarray((vec_a, [3, 3].c(), &device)).into_dim::<Ix2>();
         let vec_b = [1, 1, 2, 1, 3, 1, 2, 1, 8].iter().map(|&x| x as f64).collect::<Vec<_>>();
         let b = asarray((vec_b, [3, 3].c(), &device)).into_dim::<Ix2>();
-        let (v, w) = eigh((&a, &b));
+        let (w, v) = eigh((&a, &b)).into();
         println!("{:?}", v);
         println!("{:?}", w);
     }

@@ -1,6 +1,6 @@
 use rstsr_core::prelude::rt::Result;
 
-pub trait LinalgInvAPI<Inp> {
+pub trait InvAPI<Inp> {
     type Out;
     fn inv_f(args: Self) -> Result<Self::Out>;
     fn inv(args: Self) -> Self::Out
@@ -11,16 +11,16 @@ pub trait LinalgInvAPI<Inp> {
     }
 }
 
-pub fn inv_f<Args, Inp>(args: Args) -> Result<<Args as LinalgInvAPI<Inp>>::Out>
+pub fn inv_f<Args, Inp>(args: Args) -> Result<<Args as InvAPI<Inp>>::Out>
 where
-    Args: LinalgInvAPI<Inp>,
+    Args: InvAPI<Inp>,
 {
     Args::inv_f(args)
 }
 
-pub fn inv<Args, Inp>(args: Args) -> <Args as LinalgInvAPI<Inp>>::Out
+pub fn inv<Args, Inp>(args: Args) -> <Args as InvAPI<Inp>>::Out
 where
-    Args: LinalgInvAPI<Inp>,
+    Args: InvAPI<Inp>,
 {
     Args::inv(args)
 }

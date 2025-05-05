@@ -1,6 +1,6 @@
 use rstsr_core::prelude::rt::Result;
 
-pub trait LinalgSolveSymmetricAPI<Inp> {
+pub trait SolveSymmetricAPI<Inp> {
     type Out;
     fn solve_symmetric_f(args: Self) -> Result<Self::Out>;
     fn solve_symmetric(args: Self) -> Self::Out
@@ -11,18 +11,16 @@ pub trait LinalgSolveSymmetricAPI<Inp> {
     }
 }
 
-pub fn solve_symmetric_f<Args, Inp>(
-    args: Args,
-) -> Result<<Args as LinalgSolveSymmetricAPI<Inp>>::Out>
+pub fn solve_symmetric_f<Args, Inp>(args: Args) -> Result<<Args as SolveSymmetricAPI<Inp>>::Out>
 where
-    Args: LinalgSolveSymmetricAPI<Inp>,
+    Args: SolveSymmetricAPI<Inp>,
 {
     Args::solve_symmetric_f(args)
 }
 
-pub fn solve_symmetric<Args, Inp>(args: Args) -> <Args as LinalgSolveSymmetricAPI<Inp>>::Out
+pub fn solve_symmetric<Args, Inp>(args: Args) -> <Args as SolveSymmetricAPI<Inp>>::Out
 where
-    Args: LinalgSolveSymmetricAPI<Inp>,
+    Args: SolveSymmetricAPI<Inp>,
 {
     Args::solve_symmetric(args)
 }

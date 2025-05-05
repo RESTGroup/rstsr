@@ -1,6 +1,6 @@
 use rstsr_core::prelude::rt::Result;
 
-pub trait LinalgSolveTriangularAPI<Inp> {
+pub trait SolveTriangularAPI<Inp> {
     type Out;
     fn solve_triangular_f(args: Self) -> Result<Self::Out>;
     fn solve_triangular(args: Self) -> Self::Out
@@ -11,18 +11,16 @@ pub trait LinalgSolveTriangularAPI<Inp> {
     }
 }
 
-pub fn solve_triangular_f<Args, Inp>(
-    args: Args,
-) -> Result<<Args as LinalgSolveTriangularAPI<Inp>>::Out>
+pub fn solve_triangular_f<Args, Inp>(args: Args) -> Result<<Args as SolveTriangularAPI<Inp>>::Out>
 where
-    Args: LinalgSolveTriangularAPI<Inp>,
+    Args: SolveTriangularAPI<Inp>,
 {
     Args::solve_triangular_f(args)
 }
 
-pub fn solve_triangular<Args, Inp>(args: Args) -> <Args as LinalgSolveTriangularAPI<Inp>>::Out
+pub fn solve_triangular<Args, Inp>(args: Args) -> <Args as SolveTriangularAPI<Inp>>::Out
 where
-    Args: LinalgSolveTriangularAPI<Inp>,
+    Args: SolveTriangularAPI<Inp>,
 {
     Args::solve_triangular(args)
 }

@@ -3,7 +3,7 @@ use rstsr_blas_traits::prelude::*;
 use rstsr_core::prelude_dev::*;
 use rstsr_linalg_traits::prelude_dev::*;
 
-impl<Ra, Rb, T, D> LinalgSolveSymmetricAPI<DeviceBLAS>
+impl<Ra, Rb, T, D> SolveSymmetricAPI<DeviceBLAS>
     for (&TensorAny<Ra, T, DeviceBLAS, D>, &TensorAny<Rb, T, DeviceBLAS, D>, bool, FlagUpLo)
 where
     T: BlasFloat + Send + Sync,
@@ -30,7 +30,7 @@ where
     }
 }
 
-impl<T, D> LinalgSolveSymmetricAPI<DeviceBLAS>
+impl<T, D> SolveSymmetricAPI<DeviceBLAS>
     for (TensorView<'_, T, DeviceBLAS, D>, TensorView<'_, T, DeviceBLAS, D>, bool, FlagUpLo)
 where
     T: BlasFloat + Send + Sync,
@@ -46,11 +46,11 @@ where
     type Out = Tensor<T, DeviceBLAS, D>;
     fn solve_symmetric_f(args: Self) -> Result<Self::Out> {
         let (a, b, hermi, uplo) = args;
-        LinalgSolveSymmetricAPI::<DeviceBLAS>::solve_symmetric_f((&a, &b, hermi, uplo))
+        SolveSymmetricAPI::<DeviceBLAS>::solve_symmetric_f((&a, &b, hermi, uplo))
     }
 }
 
-impl<R, T, D> LinalgSolveSymmetricAPI<DeviceBLAS>
+impl<R, T, D> SolveSymmetricAPI<DeviceBLAS>
     for (&TensorAny<R, T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>, bool, FlagUpLo)
 where
     T: BlasFloat + Send + Sync,
@@ -76,7 +76,7 @@ where
     }
 }
 
-impl<T, D> LinalgSolveSymmetricAPI<DeviceBLAS>
+impl<T, D> SolveSymmetricAPI<DeviceBLAS>
     for (TensorView<'_, T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>, bool, FlagUpLo)
 where
     T: BlasFloat + Send + Sync,
@@ -92,11 +92,11 @@ where
     type Out = Tensor<T, DeviceBLAS, D>;
     fn solve_symmetric_f(args: Self) -> Result<Self::Out> {
         let (a, b, hermi, uplo) = args;
-        LinalgSolveSymmetricAPI::<DeviceBLAS>::solve_symmetric_f((&a, b, hermi, uplo))
+        SolveSymmetricAPI::<DeviceBLAS>::solve_symmetric_f((&a, b, hermi, uplo))
     }
 }
 
-impl<T, D> LinalgSolveSymmetricAPI<DeviceBLAS>
+impl<T, D> SolveSymmetricAPI<DeviceBLAS>
     for (Tensor<T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>, bool, FlagUpLo)
 where
     T: BlasFloat + Send + Sync,

@@ -3,7 +3,7 @@ use rstsr_blas_traits::prelude::*;
 use rstsr_core::prelude_dev::*;
 use rstsr_linalg_traits::prelude_dev::*;
 
-impl<Ra, Rb, T, D> LinalgSolveTriangularAPI<DeviceBLAS>
+impl<Ra, Rb, T, D> SolveTriangularAPI<DeviceBLAS>
     for (&TensorAny<Ra, T, DeviceBLAS, D>, &TensorAny<Rb, T, DeviceBLAS, D>, FlagUpLo)
 where
     T: BlasFloat + Send + Sync,
@@ -29,7 +29,7 @@ where
     }
 }
 
-impl<T, D> LinalgSolveTriangularAPI<DeviceBLAS>
+impl<T, D> SolveTriangularAPI<DeviceBLAS>
     for (TensorView<'_, T, DeviceBLAS, D>, TensorView<'_, T, DeviceBLAS, D>, FlagUpLo)
 where
     T: BlasFloat + Send + Sync,
@@ -44,11 +44,11 @@ where
     type Out = Tensor<T, DeviceBLAS, D>;
     fn solve_triangular_f(args: Self) -> Result<Self::Out> {
         let (a, b, uplo) = args;
-        LinalgSolveTriangularAPI::<DeviceBLAS>::solve_triangular_f((&a, &b, uplo))
+        SolveTriangularAPI::<DeviceBLAS>::solve_triangular_f((&a, &b, uplo))
     }
 }
 
-impl<R, T, D> LinalgSolveTriangularAPI<DeviceBLAS>
+impl<R, T, D> SolveTriangularAPI<DeviceBLAS>
     for (&TensorAny<R, T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>, FlagUpLo)
 where
     T: BlasFloat + Send + Sync,
@@ -73,7 +73,7 @@ where
     }
 }
 
-impl<T, D> LinalgSolveTriangularAPI<DeviceBLAS>
+impl<T, D> SolveTriangularAPI<DeviceBLAS>
     for (TensorView<'_, T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>, FlagUpLo)
 where
     T: BlasFloat + Send + Sync,
@@ -88,11 +88,11 @@ where
     type Out = Tensor<T, DeviceBLAS, D>;
     fn solve_triangular_f(args: Self) -> Result<Self::Out> {
         let (a, b, uplo) = args;
-        LinalgSolveTriangularAPI::<DeviceBLAS>::solve_triangular_f((&a, b, uplo))
+        SolveTriangularAPI::<DeviceBLAS>::solve_triangular_f((&a, b, uplo))
     }
 }
 
-impl<T, D> LinalgSolveTriangularAPI<DeviceBLAS>
+impl<T, D> SolveTriangularAPI<DeviceBLAS>
     for (Tensor<T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>, FlagUpLo)
 where
     T: BlasFloat + Send + Sync,

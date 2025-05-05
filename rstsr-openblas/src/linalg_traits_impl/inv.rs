@@ -3,7 +3,7 @@ use rstsr_blas_traits::prelude::*;
 use rstsr_core::prelude_dev::*;
 use rstsr_linalg_traits::prelude_dev::*;
 
-impl<R, T, D> LinalgInvAPI<DeviceBLAS> for &TensorAny<R, T, DeviceBLAS, D>
+impl<R, T, D> InvAPI<DeviceBLAS> for &TensorAny<R, T, DeviceBLAS, D>
 where
     T: BlasFloat + Send + Sync,
     R: DataCloneAPI<Data = Vec<T>>,
@@ -27,7 +27,7 @@ where
     }
 }
 
-impl<T, D> LinalgInvAPI<DeviceBLAS> for TensorView<'_, T, DeviceBLAS, D>
+impl<T, D> InvAPI<DeviceBLAS> for TensorView<'_, T, DeviceBLAS, D>
 where
     T: BlasFloat + Send + Sync,
     D: DimAPI,
@@ -38,11 +38,11 @@ where
 {
     type Out = Tensor<T, DeviceBLAS, D>;
     fn inv_f(args: Self) -> Result<Self::Out> {
-        LinalgInvAPI::<DeviceBLAS>::inv_f(&args)
+        InvAPI::<DeviceBLAS>::inv_f(&args)
     }
 }
 
-impl<'a, T, D> LinalgInvAPI<DeviceBLAS> for TensorMut<'a, T, DeviceBLAS, D>
+impl<'a, T, D> InvAPI<DeviceBLAS> for TensorMut<'a, T, DeviceBLAS, D>
 where
     T: BlasFloat + Send + Sync,
     D: DimAPI,
@@ -65,7 +65,7 @@ where
     }
 }
 
-impl<T, D> LinalgInvAPI<DeviceBLAS> for Tensor<T, DeviceBLAS, D>
+impl<T, D> InvAPI<DeviceBLAS> for Tensor<T, DeviceBLAS, D>
 where
     T: BlasFloat + Send + Sync,
     D: DimAPI,
@@ -76,7 +76,7 @@ where
 {
     type Out = Tensor<T, DeviceBLAS, D>;
     fn inv_f(mut args: Self) -> Result<Self::Out> {
-        LinalgInvAPI::<DeviceBLAS>::inv_f(args.view_mut())?;
+        InvAPI::<DeviceBLAS>::inv_f(args.view_mut())?;
         Ok(args)
     }
 }
