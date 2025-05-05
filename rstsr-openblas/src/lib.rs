@@ -13,7 +13,7 @@ pub mod threading;
 
 pub mod driver_impl;
 #[cfg(feature = "linalg")]
-pub mod impl_linalg_traits;
+pub mod linalg_traits_impl;
 
 use rstsr_core::prelude_dev::DeviceCpuRayon;
 
