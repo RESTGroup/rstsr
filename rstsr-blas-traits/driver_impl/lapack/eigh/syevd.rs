@@ -240,26 +240,3 @@ impl SYEVDDriverAPI<T> for DeviceBLAS {
         return info;
     }
 }
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use crate::DeviceBLAS;
-    use rstsr_core::prelude_dev::*;
-    use rstsr_test_manifest::get_vec;
-
-    #[test]
-    fn playground() {
-        let device = DeviceBLAS::default();
-        let la = [2048, 2048].c();
-        let a = Tensor::new(Storage::new(get_vec::<f64>('a').into(), device.clone()), la);
-        let driver = DSYEVD::default().a(a.view()).build().unwrap();
-        let (c, w) = driver.run().unwrap();
-        let c = c.into_owned();
-        // println!("{:?}", c);
-        println!("{:?}", w);
-        assert!(c.c_contig());
-        println!("{:?}", fingerprint(&c.view().abs()));
-        assert!((fingerprint(&c.view().abs()) - -15.79761028918105).abs() < 1e-8);
-    }
-}

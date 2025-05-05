@@ -41,7 +41,7 @@ where
         + DeviceComplexFloatAPI<T, Ix2>
         + DeviceComplexFloatAPI<T::Real, Ix2>,
 {
-    pub fn internal_run(self) -> Result<(TensorMutable<'a, T, B, Ix2>, Tensor<T::Real, B, Ix1>)> {
+    pub fn internal_run(self) -> Result<(Tensor<T::Real, B, Ix1>, TensorMutable<'a, T, B, Ix2>)> {
         let Self { a, jobz, uplo } = self;
 
         let device = a.device().clone();
@@ -63,10 +63,10 @@ where
             rstsr_errcode!(info, "Lapack SYEV")?;
         }
 
-        Ok((a.clone_to_mut(), w))
+        Ok((w, a.clone_to_mut()))
     }
 
-    pub fn run(self) -> Result<(TensorMutable<'a, T, B, Ix2>, Tensor<T::Real, B, Ix1>)> {
+    pub fn run(self) -> Result<(Tensor<T::Real, B, Ix1>, TensorMutable<'a, T, B, Ix2>)> {
         self.internal_run()
     }
 }

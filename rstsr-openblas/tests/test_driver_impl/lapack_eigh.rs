@@ -15,9 +15,9 @@ mod test {
 
         // DSYEVD
         let driver = DSYEVD::default().a(a.view()).build().unwrap();
-        let (c, w) = driver.run().unwrap();
-        let c = c.into_owned();
-        assert!((fingerprint(&c.abs()) - -15.79761028918105).abs() < 1e-8);
+        let (w, v) = driver.run().unwrap();
+        let v = v.into_owned();
+        assert!((fingerprint(&v.abs()) - -15.79761028918105).abs() < 1e-8);
         assert!((fingerprint(&w) - -113.98166489712092).abs() < 1e-8);
     }
 }

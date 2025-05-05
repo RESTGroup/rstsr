@@ -66,8 +66,8 @@ where
             _ => rstsr_invalid!(driver)?,
         };
         match eigvals_only {
-            true => Ok((v, None)),
-            false => Ok((v, Some(w))),
+            true => Ok((w, None)),
+            false => Ok((w, Some(v))),
         }
     } else {
         let driver = driver.unwrap_or("evd");
@@ -83,8 +83,8 @@ where
             _ => rstsr_invalid!(driver)?,
         };
         match eigvals_only {
-            true => Ok((v, None)),
-            false => Ok((v, Some(w))),
+            true => Ok((w, None)),
+            false => Ok((w, Some(v))),
         }
     }
 }
