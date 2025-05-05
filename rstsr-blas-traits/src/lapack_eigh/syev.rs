@@ -28,8 +28,8 @@ where
 
     #[builder(setter(into), default = "'V'")]
     pub jobz: char,
-    #[builder(setter(into), default = "Lower")]
-    pub uplo: FlagUpLo,
+    #[builder(setter(into), default = "None")]
+    pub uplo: Option<FlagUpLo>,
 }
 
 impl<'a, B, T> SYEV_<'a, B, T>
@@ -45,6 +45,10 @@ where
         let Self { a, jobz, uplo } = self;
 
         let device = a.device().clone();
+        let uplo = uplo.unwrap_or_else(|| match device.default_order() {
+            RowMajor => Lower,
+            ColMajor => Upper,
+        });
         let mut a = overwritable_convert(a)?;
         let order = if a.f_prefer() && !a.c_prefer() { ColMajor } else { RowMajor };
 

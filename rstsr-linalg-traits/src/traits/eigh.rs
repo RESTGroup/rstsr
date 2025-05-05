@@ -56,8 +56,8 @@ where
     #[builder(setter(into, strip_option), default = "None")]
     pub b: Option<TensorReference<'b, T, B, Ix2>>,
 
-    #[builder(setter(into), default = "Lower")]
-    pub uplo: FlagUpLo,
+    #[builder(setter(into), default = "None")]
+    pub uplo: Option<FlagUpLo>,
     #[builder(setter(into), default = false)]
     pub eigvals_only: bool,
     #[builder(setter(into), default = 1)]

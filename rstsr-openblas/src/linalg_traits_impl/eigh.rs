@@ -12,10 +12,8 @@ where
     DeviceBLAS: BlasThreadAPI
         + DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<T::Real, Raw = Vec<T::Real>>
-        + DeviceAPI<blas_int, Raw = Vec<blas_int>>
         + DeviceComplexFloatAPI<T, Ix2>
         + DeviceComplexFloatAPI<T::Real, Ix2>
-        + DeviceNumAPI<blas_int, Ix1>
         + SYGVDriverAPI<T>
         + SYGVDDriverAPI<T>
         + SYEVDriverAPI<T>
@@ -42,10 +40,8 @@ where
     DeviceBLAS: BlasThreadAPI
         + DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<T::Real, Raw = Vec<T::Real>>
-        + DeviceAPI<blas_int, Raw = Vec<blas_int>>
         + DeviceComplexFloatAPI<T, Ix2>
         + DeviceComplexFloatAPI<T::Real, Ix2>
-        + DeviceNumAPI<blas_int, Ix1>
         + SYGVDriverAPI<T>
         + SYGVDDriverAPI<T>
         + SYEVDriverAPI<T>
@@ -68,10 +64,8 @@ where
     DeviceBLAS: BlasThreadAPI
         + DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<T::Real, Raw = Vec<T::Real>>
-        + DeviceAPI<blas_int, Raw = Vec<blas_int>>
         + DeviceComplexFloatAPI<T, Ix2>
         + DeviceComplexFloatAPI<T::Real, Ix2>
-        + DeviceNumAPI<blas_int, Ix1>
         + SYGVDriverAPI<T>
         + SYGVDDriverAPI<T>
         + SYEVDriverAPI<T>
@@ -101,10 +95,8 @@ where
     DeviceBLAS: BlasThreadAPI
         + DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<T::Real, Raw = Vec<T::Real>>
-        + DeviceAPI<blas_int, Raw = Vec<blas_int>>
         + DeviceComplexFloatAPI<T, Ix2>
         + DeviceComplexFloatAPI<T::Real, Ix2>
-        + DeviceNumAPI<blas_int, Ix1>
         + SYGVDriverAPI<T>
         + SYGVDDriverAPI<T>
         + SYEVDriverAPI<T>
