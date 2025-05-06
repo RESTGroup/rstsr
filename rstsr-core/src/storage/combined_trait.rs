@@ -18,6 +18,7 @@ pub trait DeviceComplexFloatAPI<T, D = IxD>:
     + OpAssignAPI<T, IxD>
     + DeviceConjAPI<T, D, TOut = T>
     + DeviceConjAPI<T, IxD, TOut = T>
+    + DeviceCreationTriAPI<T>
     // trait bound for real part
     + DeviceCreationNumAPI<T::Real>
     + DeviceCreationAnyAPI<T::Real>
@@ -30,6 +31,7 @@ pub trait DeviceComplexFloatAPI<T, D = IxD>:
     + OpAssignAPI<T::Real, IxD>
     + DeviceConjAPI<T::Real, D, TOut = T::Real>
     + DeviceConjAPI<T::Real, IxD, TOut = T::Real>
+    + DeviceCreationTriAPI<T::Real>
 where
     T: ComplexFloat,
     D: DimAPI,

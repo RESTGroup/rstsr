@@ -26,11 +26,7 @@ where
 impl<'a, B, T> GETRF_<'a, B, T>
 where
     T: BlasFloat,
-    B: GETRFDriverAPI<T>
-        + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<blas_int, Raw = Vec<blas_int>>
-        + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceNumAPI<blas_int, Ix1>,
+    B: BlasDriverBaseAPI<T> + GETRFDriverAPI<T>,
 {
     pub fn internal_run(self) -> Result<(TensorMutable2<'a, T, B>, Tensor<blas_int, B, Ix1>)> {
         let Self { a } = self;

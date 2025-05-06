@@ -28,7 +28,7 @@ where
 impl<'a, B, T> POTRF_<'a, B, T>
 where
     T: BlasFloat,
-    B: POTRFDriverAPI<T> + DeviceAPI<T, Raw = Vec<T>> + DeviceComplexFloatAPI<T, Ix2>,
+    B: BlasDriverBaseAPI<T> + POTRFDriverAPI<T>,
 {
     pub fn internal_run(self) -> Result<TensorMutable2<'a, T, B>> {
         let Self { a, uplo } = self;

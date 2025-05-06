@@ -7,15 +7,7 @@ pub fn blas_eigh_simple_f<'a, B, T>(
 ) -> Result<(Tensor<T::Real, B, Ix1>, Option<TensorMutable<'a, T, B, Ix2>>)>
 where
     T: BlasFloat,
-    B: BlasThreadAPI
-        + DeviceRayonAPI
-        + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<T::Real, Raw = Vec<T::Real>>
-        + DeviceComplexFloatAPI<T, Ix2>
-        + SYGVDriverAPI<T>
-        + SYGVDDriverAPI<T>
-        + SYEVDriverAPI<T>
-        + SYEVDDriverAPI<T>,
+    B: LapackDriverAPI<T>,
 {
     let EighArgs_ {
         a,

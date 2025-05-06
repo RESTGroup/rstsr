@@ -26,11 +26,7 @@ where
 impl<'a, B, T> GETRI_<'a, '_, B, T>
 where
     T: BlasFloat,
-    B: GETRIDriverAPI<T>
-        + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<blas_int, Raw = Vec<blas_int>>
-        + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceNumAPI<blas_int, Ix1>,
+    B: BlasDriverBaseAPI<T> + GETRIDriverAPI<T>,
 {
     pub fn internal_run(self) -> Result<TensorMutable2<'a, T, B>> {
         let Self { a, ipiv } = self;

@@ -30,11 +30,7 @@ where
 impl<'a, 'b, B, T> GESV_<'a, 'b, B, T>
 where
     T: BlasFloat,
-    B: GESVDriverAPI<T>
-        + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<blas_int, Raw = Vec<blas_int>>
-        + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceNumAPI<blas_int, Ix1>,
+    B: BlasDriverBaseAPI<T> + GESVDriverAPI<T>,
 {
     pub fn internal_run(
         self,

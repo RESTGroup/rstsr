@@ -10,12 +10,7 @@ where
     Ra: DataCloneAPI<Data = Vec<T>>,
     Rb: DataCloneAPI<Data = Vec<T>>,
     D: DimAPI,
-    DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
-        + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceNumAPI<blas_int, Ix1>
-        + BlasThreadAPI
-        + SYSVDriverAPI<T, false>
-        + SYSVDriverAPI<T, true>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
     fn solve_symmetric_f(self) -> Result<Self::Out> {
@@ -34,12 +29,7 @@ impl<T, D> SolveSymmetricAPI<DeviceBLAS>
 where
     T: BlasFloat,
     D: DimAPI,
-    DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
-        + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceNumAPI<blas_int, Ix1>
-        + BlasThreadAPI
-        + SYSVDriverAPI<T, false>
-        + SYSVDriverAPI<T, true>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
     fn solve_symmetric_f(self) -> Result<Self::Out> {
@@ -54,12 +44,7 @@ where
     T: BlasFloat,
     R: DataCloneAPI<Data = Vec<T>>,
     D: DimAPI,
-    DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
-        + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceNumAPI<blas_int, Ix1>
-        + BlasThreadAPI
-        + SYSVDriverAPI<T, false>
-        + SYSVDriverAPI<T, true>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
     fn solve_symmetric_f(self) -> Result<Self::Out> {
@@ -78,12 +63,7 @@ impl<T, D> SolveSymmetricAPI<DeviceBLAS>
 where
     T: BlasFloat,
     D: DimAPI,
-    DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
-        + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceNumAPI<blas_int, Ix1>
-        + BlasThreadAPI
-        + SYSVDriverAPI<T, false>
-        + SYSVDriverAPI<T, true>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
     fn solve_symmetric_f(self) -> Result<Self::Out> {
@@ -97,12 +77,7 @@ impl<T, D> SolveSymmetricAPI<DeviceBLAS>
 where
     T: BlasFloat,
     D: DimAPI,
-    DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
-        + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceNumAPI<blas_int, Ix1>
-        + BlasThreadAPI
-        + SYSVDriverAPI<T, false>
-        + SYSVDriverAPI<T, true>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
     fn solve_symmetric_f(self) -> Result<Self::Out> {

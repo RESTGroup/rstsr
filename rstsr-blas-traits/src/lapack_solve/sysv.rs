@@ -34,11 +34,7 @@ where
 impl<'a, 'b, B, T, const HERMI: bool> SYSV_<'a, 'b, B, T, HERMI>
 where
     T: BlasFloat,
-    B: SYSVDriverAPI<T, HERMI>
-        + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<blas_int, Raw = Vec<blas_int>>
-        + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceNumAPI<blas_int, Ix1>,
+    B: BlasDriverBaseAPI<T> + SYSVDriverAPI<T, HERMI>,
 {
     pub fn internal_run(
         self,

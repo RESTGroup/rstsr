@@ -9,14 +9,7 @@ where
     R: DataCloneAPI<Data = Vec<T>>,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    DeviceBLAS: BlasThreadAPI
-        + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<T::Real, Raw = Vec<T::Real>>
-        + DeviceComplexFloatAPI<T, Ix2>
-        + SYGVDriverAPI<T>
-        + SYGVDDriverAPI<T>
-        + SYEVDriverAPI<T>
-        + SYEVDDriverAPI<T>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
     fn eigh_f(self) -> Result<Self::Out> {
@@ -36,14 +29,7 @@ where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    DeviceBLAS: BlasThreadAPI
-        + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<T::Real, Raw = Vec<T::Real>>
-        + DeviceComplexFloatAPI<T, Ix2>
-        + SYGVDriverAPI<T>
-        + SYGVDDriverAPI<T>
-        + SYEVDriverAPI<T>
-        + SYEVDDriverAPI<T>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
     fn eigh_f(self) -> Result<Self::Out> {
@@ -59,14 +45,7 @@ where
     D::SmallerOne: DimAPI,
     Ra: DataCloneAPI<Data = Vec<T>>,
     Rb: DataCloneAPI<Data = Vec<T>>,
-    DeviceBLAS: BlasThreadAPI
-        + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<T::Real, Raw = Vec<T::Real>>
-        + DeviceComplexFloatAPI<T, Ix2>
-        + SYGVDriverAPI<T>
-        + SYGVDDriverAPI<T>
-        + SYEVDriverAPI<T>
-        + SYEVDDriverAPI<T>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
     fn eigh_f(self) -> Result<Self::Out> {
@@ -89,14 +68,7 @@ where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    DeviceBLAS: BlasThreadAPI
-        + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<T::Real, Raw = Vec<T::Real>>
-        + DeviceComplexFloatAPI<T, Ix2>
-        + SYGVDriverAPI<T>
-        + SYGVDDriverAPI<T>
-        + SYEVDriverAPI<T>
-        + SYEVDDriverAPI<T>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
     fn eigh_f(self) -> Result<Self::Out> {

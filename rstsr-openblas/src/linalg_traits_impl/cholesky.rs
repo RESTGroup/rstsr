@@ -8,7 +8,7 @@ where
     T: BlasFloat,
     R: DataCloneAPI<Data = Vec<T>>,
     D: DimAPI,
-    DeviceBLAS: DeviceAPI<T, Raw = Vec<T>> + DeviceComplexFloatAPI<T, Ix2> + POTRFDriverAPI<T>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
     fn cholesky_f(self) -> Result<Self::Out> {
@@ -24,7 +24,7 @@ impl<T, D> CholeskyAPI<DeviceBLAS> for (TensorView<'_, T, DeviceBLAS, D>, FlagUp
 where
     T: BlasFloat,
     D: DimAPI,
-    DeviceBLAS: DeviceAPI<T, Raw = Vec<T>> + DeviceComplexFloatAPI<T, Ix2> + POTRFDriverAPI<T>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
     fn cholesky_f(self) -> Result<Self::Out> {
@@ -37,7 +37,7 @@ impl<'a, T, D> CholeskyAPI<DeviceBLAS> for (TensorMut<'a, T, DeviceBLAS, D>, Fla
 where
     T: BlasFloat,
     D: DimAPI,
-    DeviceBLAS: DeviceAPI<T, Raw = Vec<T>> + DeviceComplexFloatAPI<T, Ix2> + POTRFDriverAPI<T>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = TensorMutable<'a, T, DeviceBLAS, D>;
     fn cholesky_f(self) -> Result<Self::Out> {
@@ -53,7 +53,7 @@ impl<T, D> CholeskyAPI<DeviceBLAS> for (Tensor<T, DeviceBLAS, D>, FlagUpLo)
 where
     T: BlasFloat,
     D: DimAPI,
-    DeviceBLAS: DeviceAPI<T, Raw = Vec<T>> + DeviceComplexFloatAPI<T, Ix2> + POTRFDriverAPI<T>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
     fn cholesky_f(self) -> Result<Self::Out> {

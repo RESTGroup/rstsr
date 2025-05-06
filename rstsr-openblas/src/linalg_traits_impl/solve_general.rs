@@ -10,11 +10,7 @@ where
     Ra: DataCloneAPI<Data = Vec<T>>,
     Rb: DataCloneAPI<Data = Vec<T>>,
     D: DimAPI,
-    DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
-        + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceNumAPI<blas_int, Ix1>
-        + BlasThreadAPI
-        + GESVDriverAPI<T>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
     fn solve_general_f(self) -> Result<Self::Out> {
@@ -33,11 +29,7 @@ impl<T, D> SolveGeneralAPI<DeviceBLAS>
 where
     T: BlasFloat,
     D: DimAPI,
-    DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
-        + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceNumAPI<blas_int, Ix1>
-        + BlasThreadAPI
-        + GESVDriverAPI<T>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
     fn solve_general_f(self) -> Result<Self::Out> {
@@ -52,11 +44,7 @@ where
     T: BlasFloat,
     R: DataCloneAPI<Data = Vec<T>>,
     D: DimAPI,
-    DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
-        + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceNumAPI<blas_int, Ix1>
-        + BlasThreadAPI
-        + GESVDriverAPI<T>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
     fn solve_general_f(self) -> Result<Self::Out> {
@@ -75,11 +63,7 @@ impl<T, D> SolveGeneralAPI<DeviceBLAS>
 where
     T: BlasFloat,
     D: DimAPI,
-    DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
-        + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceNumAPI<blas_int, Ix1>
-        + BlasThreadAPI
-        + GESVDriverAPI<T>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
     fn solve_general_f(self) -> Result<Self::Out> {
@@ -92,11 +76,7 @@ impl<T, D> SolveGeneralAPI<DeviceBLAS> for (Tensor<T, DeviceBLAS, D>, Tensor<T, 
 where
     T: BlasFloat,
     D: DimAPI,
-    DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
-        + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceNumAPI<blas_int, Ix1>
-        + BlasThreadAPI
-        + GESVDriverAPI<T>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
     fn solve_general_f(self) -> Result<Self::Out> {

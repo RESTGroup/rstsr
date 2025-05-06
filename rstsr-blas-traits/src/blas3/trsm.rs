@@ -46,7 +46,7 @@ where
 impl<'b, B, T> TRSM_<'_, 'b, B, T>
 where
     T: BlasFloat,
-    B: TRSMDriverAPI<T> + DeviceAPI<T, Raw = Vec<T>> + DeviceComplexFloatAPI<T, Ix2>,
+    B: BlasDriverBaseAPI<T> + TRSMDriverAPI<T>,
 {
     pub fn run(self) -> Result<TensorMutable2<'b, T, B>> {
         let Self { a, b, alpha, side, uplo, transa, diag, order } = self;

@@ -48,7 +48,7 @@ where
 impl<'c, B, T, const HERMI: bool> SYHEMM_<'_, '_, 'c, B, T, HERMI>
 where
     T: BlasFloat + Num,
-    B: SYHEMMDriverAPI<T, HERMI> + DeviceAPI<T, Raw = Vec<T>> + DeviceComplexFloatAPI<T, Ix2>,
+    B: BlasDriverBaseAPI<T> + SYHEMMDriverAPI<T, HERMI>,
 {
     pub fn run(self) -> Result<TensorMutable2<'c, T, B>> {
         let Self { a, b, c, alpha, beta, side, uplo, order } = self;

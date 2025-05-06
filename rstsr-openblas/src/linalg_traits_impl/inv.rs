@@ -8,10 +8,7 @@ where
     T: BlasFloat,
     R: DataCloneAPI<Data = Vec<T>>,
     D: DimAPI,
-    DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
-        + GETRIDriverAPI<T>
-        + GETRFDriverAPI<T>
-        + DeviceComplexFloatAPI<T, Ix2>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
     fn inv_f(self) -> Result<Self::Out> {
@@ -31,10 +28,7 @@ impl<T, D> InvAPI<DeviceBLAS> for TensorView<'_, T, DeviceBLAS, D>
 where
     T: BlasFloat,
     D: DimAPI,
-    DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
-        + GETRIDriverAPI<T>
-        + GETRFDriverAPI<T>
-        + DeviceComplexFloatAPI<T, Ix2>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
     fn inv_f(self) -> Result<Self::Out> {
@@ -46,10 +40,7 @@ impl<'a, T, D> InvAPI<DeviceBLAS> for TensorMut<'a, T, DeviceBLAS, D>
 where
     T: BlasFloat,
     D: DimAPI,
-    DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
-        + GETRIDriverAPI<T>
-        + GETRFDriverAPI<T>
-        + DeviceComplexFloatAPI<T, Ix2>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = TensorMutable<'a, T, DeviceBLAS, D>;
     fn inv_f(self) -> Result<Self::Out> {
@@ -69,10 +60,7 @@ impl<T, D> InvAPI<DeviceBLAS> for Tensor<T, DeviceBLAS, D>
 where
     T: BlasFloat,
     D: DimAPI,
-    DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
-        + GETRIDriverAPI<T>
-        + GETRFDriverAPI<T>
-        + DeviceComplexFloatAPI<T, Ix2>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
     fn inv_f(mut self) -> Result<Self::Out> {

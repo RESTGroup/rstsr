@@ -35,10 +35,7 @@ where
 impl<'a, B, T> SYEVD_<'a, B, T>
 where
     T: BlasFloat,
-    B: SYEVDDriverAPI<T>
-        + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<T::Real, Raw = Vec<T::Real>>
-        + DeviceComplexFloatAPI<T, Ix2>,
+    B: BlasDriverBaseAPI<T> + SYEVDDriverAPI<T>,
 {
     pub fn internal_run(self) -> Result<(Tensor<T::Real, B, Ix1>, TensorMutable<'a, T, B, Ix2>)> {
         let Self { a, jobz, uplo } = self;

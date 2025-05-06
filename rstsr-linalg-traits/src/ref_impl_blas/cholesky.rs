@@ -7,12 +7,7 @@ pub fn blas_cholesky_f<T, B>(
 ) -> Result<TensorMutable<T, B, Ix2>>
 where
     T: BlasFloat,
-    B: POTRFDriverAPI<T>
-        + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceCreationTriAPI<T>
-        + BlasThreadAPI
-        + DeviceRayonAPI,
+    B: LapackDriverAPI<T>,
 {
     let device = a.device().clone();
     let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());

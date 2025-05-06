@@ -7,13 +7,7 @@ pub fn blas_solve_general_f<'b, T, B>(
 ) -> Result<TensorMutable<'b, T, B, Ix2>>
 where
     T: BlasFloat,
-    B: GESVDriverAPI<T>
-        + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<blas_int, Raw = Vec<blas_int>>
-        + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceNumAPI<blas_int, Ix1>
-        + BlasThreadAPI
-        + DeviceRayonAPI,
+    B: LapackDriverAPI<T>,
 {
     let device = a.device().clone();
     let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());

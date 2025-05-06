@@ -13,6 +13,7 @@ pub mod cblas_flags;
 pub mod prelude;
 pub mod prelude_dev;
 pub mod threading;
+pub mod trait_def;
 pub mod util;
 
 pub mod blas3;
