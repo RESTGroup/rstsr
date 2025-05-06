@@ -7,10 +7,9 @@ pub fn blas_solve_triangular_f<'b, T, B>(
     uplo: FlagUpLo,
 ) -> Result<TensorMutable<'b, T, B, Ix2>>
 where
-    T: BlasFloat + Send + Sync,
+    T: BlasFloat,
     B: TRSMDriverAPI<T>
         + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<blas_int, Raw = Vec<blas_int>>
         + DeviceComplexFloatAPI<T, Ix2>
         + DeviceNumAPI<blas_int, Ix1>
         + BlasThreadAPI

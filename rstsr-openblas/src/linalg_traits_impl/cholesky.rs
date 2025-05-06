@@ -5,7 +5,7 @@ use rstsr_linalg_traits::prelude_dev::*;
 
 impl<R, T, D> CholeskyAPI<DeviceBLAS> for (&TensorAny<R, T, DeviceBLAS, D>, FlagUpLo)
 where
-    T: BlasFloat + Send + Sync,
+    T: BlasFloat,
     R: DataCloneAPI<Data = Vec<T>>,
     D: DimAPI,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>> + DeviceComplexFloatAPI<T, Ix2> + POTRFDriverAPI<T>,
@@ -22,7 +22,7 @@ where
 
 impl<T, D> CholeskyAPI<DeviceBLAS> for (TensorView<'_, T, DeviceBLAS, D>, FlagUpLo)
 where
-    T: BlasFloat + Send + Sync,
+    T: BlasFloat,
     D: DimAPI,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>> + DeviceComplexFloatAPI<T, Ix2> + POTRFDriverAPI<T>,
 {
@@ -35,7 +35,7 @@ where
 
 impl<'a, T, D> CholeskyAPI<DeviceBLAS> for (TensorMut<'a, T, DeviceBLAS, D>, FlagUpLo)
 where
-    T: BlasFloat + Send + Sync,
+    T: BlasFloat,
     D: DimAPI,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>> + DeviceComplexFloatAPI<T, Ix2> + POTRFDriverAPI<T>,
 {
@@ -51,7 +51,7 @@ where
 
 impl<T, D> CholeskyAPI<DeviceBLAS> for (Tensor<T, DeviceBLAS, D>, FlagUpLo)
 where
-    T: BlasFloat + Send + Sync,
+    T: BlasFloat,
     D: DimAPI,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>> + DeviceComplexFloatAPI<T, Ix2> + POTRFDriverAPI<T>,
 {

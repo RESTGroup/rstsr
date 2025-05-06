@@ -6,7 +6,7 @@ pub fn blas_solve_general_f<'b, T, B>(
     b: TensorReference<'b, T, B, Ix2>,
 ) -> Result<TensorMutable<'b, T, B, Ix2>>
 where
-    T: BlasFloat + Send + Sync,
+    T: BlasFloat,
     B: GESVDriverAPI<T>
         + DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<blas_int, Raw = Vec<blas_int>>

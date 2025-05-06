@@ -6,7 +6,7 @@ pub fn blas_cholesky_f<T, B>(
     uplo: FlagUpLo,
 ) -> Result<TensorMutable<T, B, Ix2>>
 where
-    T: BlasFloat + Send + Sync,
+    T: BlasFloat,
     B: POTRFDriverAPI<T>
         + DeviceAPI<T, Raw = Vec<T>>
         + DeviceComplexFloatAPI<T, Ix2>

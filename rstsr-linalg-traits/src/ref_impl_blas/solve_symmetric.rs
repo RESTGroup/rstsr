@@ -8,7 +8,7 @@ pub fn blas_solve_symmetric_f<'b, T, B>(
     uplo: FlagUpLo,
 ) -> Result<TensorMutable<'b, T, B, Ix2>>
 where
-    T: BlasFloat + Send + Sync,
+    T: BlasFloat,
     B: SYSVDriverAPI<T, false>
         + SYSVDriverAPI<T, true>
         + DeviceAPI<T, Raw = Vec<T>>

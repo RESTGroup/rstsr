@@ -3,7 +3,7 @@ use rstsr_core::prelude_dev::*;
 
 pub fn blas_inv_f<T, B>(a: TensorReference<T, B, Ix2>) -> Result<TensorMutable<T, B, Ix2>>
 where
-    T: BlasFloat + Send + Sync,
+    T: BlasFloat,
     B: GETRFDriverAPI<T>
         + GETRIDriverAPI<T>
         + DeviceAPI<T, Raw = Vec<T>>

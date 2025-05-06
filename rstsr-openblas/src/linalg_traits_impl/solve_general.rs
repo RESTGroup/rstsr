@@ -6,12 +6,11 @@ use rstsr_linalg_traits::prelude_dev::*;
 impl<Ra, Rb, T, D> SolveGeneralAPI<DeviceBLAS>
     for (&TensorAny<Ra, T, DeviceBLAS, D>, &TensorAny<Rb, T, DeviceBLAS, D>)
 where
-    T: BlasFloat + Send + Sync,
+    T: BlasFloat,
     Ra: DataCloneAPI<Data = Vec<T>>,
     Rb: DataCloneAPI<Data = Vec<T>>,
     D: DimAPI,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<blas_int, Raw = Vec<blas_int>>
         + DeviceComplexFloatAPI<T, Ix2>
         + DeviceNumAPI<blas_int, Ix1>
         + BlasThreadAPI
@@ -32,10 +31,9 @@ where
 impl<T, D> SolveGeneralAPI<DeviceBLAS>
     for (TensorView<'_, T, DeviceBLAS, D>, TensorView<'_, T, DeviceBLAS, D>)
 where
-    T: BlasFloat + Send + Sync,
+    T: BlasFloat,
     D: DimAPI,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<blas_int, Raw = Vec<blas_int>>
         + DeviceComplexFloatAPI<T, Ix2>
         + DeviceNumAPI<blas_int, Ix1>
         + BlasThreadAPI
@@ -51,11 +49,10 @@ where
 impl<R, T, D> SolveGeneralAPI<DeviceBLAS>
     for (&TensorAny<R, T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>)
 where
-    T: BlasFloat + Send + Sync,
+    T: BlasFloat,
     R: DataCloneAPI<Data = Vec<T>>,
     D: DimAPI,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<blas_int, Raw = Vec<blas_int>>
         + DeviceComplexFloatAPI<T, Ix2>
         + DeviceNumAPI<blas_int, Ix1>
         + BlasThreadAPI
@@ -76,10 +73,9 @@ where
 impl<T, D> SolveGeneralAPI<DeviceBLAS>
     for (TensorView<'_, T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>)
 where
-    T: BlasFloat + Send + Sync,
+    T: BlasFloat,
     D: DimAPI,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<blas_int, Raw = Vec<blas_int>>
         + DeviceComplexFloatAPI<T, Ix2>
         + DeviceNumAPI<blas_int, Ix1>
         + BlasThreadAPI
@@ -94,10 +90,9 @@ where
 
 impl<T, D> SolveGeneralAPI<DeviceBLAS> for (Tensor<T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>)
 where
-    T: BlasFloat + Send + Sync,
+    T: BlasFloat,
     D: DimAPI,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<blas_int, Raw = Vec<blas_int>>
         + DeviceComplexFloatAPI<T, Ix2>
         + DeviceNumAPI<blas_int, Ix1>
         + BlasThreadAPI

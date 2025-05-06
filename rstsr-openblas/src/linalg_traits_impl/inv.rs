@@ -5,7 +5,7 @@ use rstsr_linalg_traits::prelude_dev::*;
 
 impl<R, T, D> InvAPI<DeviceBLAS> for &TensorAny<R, T, DeviceBLAS, D>
 where
-    T: BlasFloat + Send + Sync,
+    T: BlasFloat,
     R: DataCloneAPI<Data = Vec<T>>,
     D: DimAPI,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
@@ -29,7 +29,7 @@ where
 
 impl<T, D> InvAPI<DeviceBLAS> for TensorView<'_, T, DeviceBLAS, D>
 where
-    T: BlasFloat + Send + Sync,
+    T: BlasFloat,
     D: DimAPI,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
         + GETRIDriverAPI<T>
@@ -44,7 +44,7 @@ where
 
 impl<'a, T, D> InvAPI<DeviceBLAS> for TensorMut<'a, T, DeviceBLAS, D>
 where
-    T: BlasFloat + Send + Sync,
+    T: BlasFloat,
     D: DimAPI,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
         + GETRIDriverAPI<T>
@@ -67,7 +67,7 @@ where
 
 impl<T, D> InvAPI<DeviceBLAS> for Tensor<T, DeviceBLAS, D>
 where
-    T: BlasFloat + Send + Sync,
+    T: BlasFloat,
     D: DimAPI,
     DeviceBLAS: DeviceAPI<T, Raw = Vec<T>>
         + GETRIDriverAPI<T>
