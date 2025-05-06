@@ -9,19 +9,21 @@ const BLOCK_SIZE: usize = 64;
 ///
 /// Transpose from `a` (row-major) to `c` (col-major).
 /// If shape or stride is not compatible, an error will be returned.
-pub fn orderchange_out_r2c_ix2_cpu_rayon<T>(
+///
+/// This function does not take thread-pool as argument, so the caller should
+/// take care of thread-pool management.
+pub fn orderchange_out_r2c_ix2_cpu_rayon_no_pool<T>(
     c: &mut [T],
     lc: &Layout<Ix2>,
     a: &[T],
     la: &Layout<Ix2>,
-    pool: Option<&ThreadPool>,
 ) -> Result<()>
 where
     T: Clone + Send + Sync,
 {
     // determine whether to use parallel iteration
     let size = lc.size();
-    if size < 16 * BLOCK_SIZE * BLOCK_SIZE || pool.is_none() {
+    if size < 16 * BLOCK_SIZE * BLOCK_SIZE {
         return orderchange_out_r2c_ix2_cpu_serial(c, lc, a, la);
     }
 
@@ -41,29 +43,50 @@ where
     let lda = la.stride()[0];
     let ldc = lc.stride()[1];
 
-    pool.unwrap().install(|| {
-        (0..ncol).into_par_iter().step_by(BLOCK_SIZE).for_each(|j_start| {
-            let j_end = (j_start + BLOCK_SIZE).min(ncol);
-            let (j_start, j_end) = (j_start as isize, j_end as isize);
-            (0..nrow).into_par_iter().step_by(BLOCK_SIZE).for_each(|i_start| {
-                let i_end = (i_start + BLOCK_SIZE).min(nrow);
-                let (i_start, i_end) = (i_start as isize, i_end as isize);
-                for j in j_start..j_end {
-                    for i in i_start..i_end {
-                        let src_idx = (offset_a + i * lda + j) as usize;
-                        let dst_idx = (offset_c + j * ldc + i) as usize;
+    (0..ncol).into_par_iter().step_by(BLOCK_SIZE).for_each(|j_start| {
+        let j_end = (j_start + BLOCK_SIZE).min(ncol);
+        let (j_start, j_end) = (j_start as isize, j_end as isize);
+        (0..nrow).into_par_iter().step_by(BLOCK_SIZE).for_each(|i_start| {
+            let i_end = (i_start + BLOCK_SIZE).min(nrow);
+            let (i_start, i_end) = (i_start as isize, i_end as isize);
+            for j in j_start..j_end {
+                for i in i_start..i_end {
+                    let src_idx = (offset_a + i * lda + j) as usize;
+                    let dst_idx = (offset_c + j * ldc + i) as usize;
 
-                        unsafe {
-                            let c_ptr = c.as_ptr().add(dst_idx) as *mut T;
-                            *c_ptr = a[src_idx].clone();
-                        }
+                    unsafe {
+                        let c_ptr = c.as_ptr().add(dst_idx) as *mut T;
+                        *c_ptr = a[src_idx].clone();
                     }
                 }
-            });
-        })
+            }
+        });
     });
 
     Ok(())
+}
+
+/// Change order (row/col-major) a matrix out-place using a naive algorithm.
+///
+/// Transpose from `a` (row-major) to `c` (col-major).
+/// If shape or stride is not compatible, an error will be returned.
+pub fn orderchange_out_r2c_ix2_cpu_rayon<T>(
+    c: &mut [T],
+    lc: &Layout<Ix2>,
+    a: &[T],
+    la: &Layout<Ix2>,
+    pool: Option<&ThreadPool>,
+) -> Result<()>
+where
+    T: Clone + Send + Sync,
+{
+    // determine whether to use parallel iteration
+    let size = lc.size();
+    if size < 16 * BLOCK_SIZE * BLOCK_SIZE || pool.is_none() {
+        return orderchange_out_r2c_ix2_cpu_serial(c, lc, a, la);
+    }
+
+    pool.unwrap().install(|| orderchange_out_r2c_ix2_cpu_rayon_no_pool(c, lc, a, la))
 }
 
 /// Change order (row/col-major) a matrix out-place using a naive algorithm.
