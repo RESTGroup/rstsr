@@ -6,15 +6,12 @@ pub fn blas_eigh_simple_f<'a, B, T>(
     eigh_args: EighArgs_<'a, '_, B, T>,
 ) -> Result<(Tensor<T::Real, B, Ix1>, Option<TensorMutable<'a, T, B, Ix2>>)>
 where
-    T: BlasFloat + Send + Sync,
+    T: BlasFloat,
     B: BlasThreadAPI
         + DeviceRayonAPI
         + DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<T::Real, Raw = Vec<T::Real>>
-        + DeviceAPI<blas_int, Raw = Vec<blas_int>>
         + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceComplexFloatAPI<T::Real, Ix2>
-        + DeviceNumAPI<blas_int, Ix1>
         + SYGVDriverAPI<T>
         + SYGVDDriverAPI<T>
         + SYEVDriverAPI<T>

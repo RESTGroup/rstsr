@@ -119,6 +119,7 @@ impl<T> DeviceAPI<T> for DeviceBLAS {}
 impl<T, D> DeviceComplexFloatAPI<T, D> for DeviceBLAS
 where
     T: ComplexFloat + Send + Sync,
+    T::Real: Send + Sync,
     D: DimAPI,
 {
 }

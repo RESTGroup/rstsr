@@ -5,7 +5,7 @@ use rstsr_linalg_traits::prelude_dev::*;
 
 impl<R, T, D> EighAPI<DeviceBLAS> for &TensorAny<R, T, DeviceBLAS, D>
 where
-    T: BlasFloat + Send + Sync,
+    T: BlasFloat,
     R: DataCloneAPI<Data = Vec<T>>,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
@@ -13,7 +13,6 @@ where
         + DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<T::Real, Raw = Vec<T::Real>>
         + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceComplexFloatAPI<T::Real, Ix2>
         + SYGVDriverAPI<T>
         + SYGVDDriverAPI<T>
         + SYEVDriverAPI<T>
@@ -34,14 +33,13 @@ where
 
 impl<T, D> EighAPI<DeviceBLAS> for TensorView<'_, T, DeviceBLAS, D>
 where
-    T: BlasFloat + Send + Sync,
+    T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
     DeviceBLAS: BlasThreadAPI
         + DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<T::Real, Raw = Vec<T::Real>>
         + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceComplexFloatAPI<T::Real, Ix2>
         + SYGVDriverAPI<T>
         + SYGVDDriverAPI<T>
         + SYEVDriverAPI<T>
@@ -56,7 +54,7 @@ where
 impl<Ra, Rb, T, D> EighAPI<DeviceBLAS>
     for (&TensorAny<Ra, T, DeviceBLAS, D>, &TensorAny<Rb, T, DeviceBLAS, D>)
 where
-    T: BlasFloat + Send + Sync,
+    T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
     Ra: DataCloneAPI<Data = Vec<T>>,
@@ -65,7 +63,6 @@ where
         + DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<T::Real, Raw = Vec<T::Real>>
         + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceComplexFloatAPI<T::Real, Ix2>
         + SYGVDriverAPI<T>
         + SYGVDDriverAPI<T>
         + SYEVDriverAPI<T>
@@ -89,14 +86,13 @@ where
 impl<T, D> EighAPI<DeviceBLAS>
     for (TensorView<'_, T, DeviceBLAS, D>, TensorView<'_, T, DeviceBLAS, D>)
 where
-    T: BlasFloat + Send + Sync,
+    T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
     DeviceBLAS: BlasThreadAPI
         + DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<T::Real, Raw = Vec<T::Real>>
         + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceComplexFloatAPI<T::Real, Ix2>
         + SYGVDriverAPI<T>
         + SYGVDDriverAPI<T>
         + SYEVDriverAPI<T>

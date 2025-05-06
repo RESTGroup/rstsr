@@ -126,6 +126,7 @@ impl<T> DeviceAPI<T> for DeviceFaer {}
 impl<T, D> DeviceComplexFloatAPI<T, D> for DeviceFaer
 where
     T: ComplexFloat + Send + Sync,
+    T::Real: Send + Sync,
     D: DimAPI,
 {
 }

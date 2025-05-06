@@ -45,8 +45,7 @@ where
     B: SYGVDriverAPI<T>
         + DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<T::Real, Raw = Vec<T::Real>>
-        + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceComplexFloatAPI<T::Real, Ix2>,
+        + DeviceComplexFloatAPI<T, Ix2>,
 {
     pub fn internal_run(self) -> Result<(Tensor<T::Real, B, Ix1>, TensorMutable<'a, T, B, Ix2>)> {
         let Self { a, b, itype, jobz, uplo } = self;
