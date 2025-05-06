@@ -95,8 +95,8 @@ impl<const HERMI: bool> SYSVDriverAPI<T, HERMI> for DeviceBLAS {
             let la_t = Layout::new_unchecked([n, n], [1, lda_t as isize], 0);
             let lb = Layout::new_unchecked([n, nrhs], [ldb as isize, 1], 0);
             let lb_t = Layout::new_unchecked([n, nrhs], [1, ldb_t as isize], 0);
-            transpose_out_r2c_ix2_cpu_serial(&mut a_t, &la_t, a_slice, &la).unwrap();
-            transpose_out_r2c_ix2_cpu_serial(&mut b_t, &lb_t, b_slice, &lb).unwrap();
+            orderchange_out_r2c_ix2_cpu_serial(&mut a_t, &la_t, a_slice, &la).unwrap();
+            orderchange_out_r2c_ix2_cpu_serial(&mut b_t, &lb_t, b_slice, &lb).unwrap();
             // Call LAPACK function and adjust info
             func_(
                 &uplo.into(),
@@ -115,8 +115,8 @@ impl<const HERMI: bool> SYSVDriverAPI<T, HERMI> for DeviceBLAS {
                 return raise_info(info);
             }
             // Transpose output matrices
-            transpose_out_c2r_ix2_cpu_serial(a_slice, &la, &a_t, &la_t).unwrap();
-            transpose_out_c2r_ix2_cpu_serial(b_slice, &lb, &b_t, &lb_t).unwrap();
+            orderchange_out_c2r_ix2_cpu_serial(a_slice, &la, &a_t, &la_t).unwrap();
+            orderchange_out_c2r_ix2_cpu_serial(b_slice, &lb, &b_t, &lb_t).unwrap();
         }
         return info;
     }
@@ -212,8 +212,8 @@ impl SYSVDriverAPI<T, HERMI> for DeviceBLAS {
             let la_t = Layout::new_unchecked([n, n], [1, lda_t as isize], 0);
             let lb = Layout::new_unchecked([n, nrhs], [ldb as isize, 1], 0);
             let lb_t = Layout::new_unchecked([n, nrhs], [1, ldb_t as isize], 0);
-            transpose_out_r2c_ix2_cpu_serial(&mut a_t, &la_t, a_slice, &la).unwrap();
-            transpose_out_r2c_ix2_cpu_serial(&mut b_t, &lb_t, b_slice, &lb).unwrap();
+            orderchange_out_r2c_ix2_cpu_serial(&mut a_t, &la_t, a_slice, &la).unwrap();
+            orderchange_out_r2c_ix2_cpu_serial(&mut b_t, &lb_t, b_slice, &lb).unwrap();
             // Call LAPACK function and adjust info
             func_(
                 &uplo.into(),
@@ -232,8 +232,8 @@ impl SYSVDriverAPI<T, HERMI> for DeviceBLAS {
                 return raise_info(info);
             }
             // Transpose output matrices
-            transpose_out_c2r_ix2_cpu_serial(a_slice, &la, &a_t, &la_t).unwrap();
-            transpose_out_c2r_ix2_cpu_serial(b_slice, &lb, &b_t, &lb_t).unwrap();
+            orderchange_out_c2r_ix2_cpu_serial(a_slice, &la, &a_t, &la_t).unwrap();
+            orderchange_out_c2r_ix2_cpu_serial(b_slice, &lb, &b_t, &lb_t).unwrap();
         }
         return info;
     }

@@ -13,5 +13,5 @@ where
     let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
     let task = || GESV::default().a(a).b(b).build()?.run();
     let result = device.with_blas_num_threads(nthreads, task)?;
-    Ok(result.1)
+    Ok(result.2)
 }

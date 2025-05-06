@@ -5,11 +5,11 @@ use rayon::prelude::*;
 
 const BLOCK_SIZE: usize = 64;
 
-/// Transpose a matrix out-place using a naive algorithm.
+/// Change order (row/col-major) a matrix out-place using a naive algorithm.
 ///
 /// Transpose from `a` (row-major) to `c` (col-major).
 /// If shape or stride is not compatible, an error will be returned.
-pub fn transpose_out_r2c_ix2_cpu_rayon<T>(
+pub fn orderchange_out_r2c_ix2_cpu_rayon<T>(
     c: &mut [T],
     lc: &Layout<Ix2>,
     a: &[T],
@@ -22,19 +22,19 @@ where
     // determine whether to use parallel iteration
     let size = lc.size();
     if size < 16 * BLOCK_SIZE * BLOCK_SIZE || pool.is_none() {
-        return transpose_out_r2c_ix2_cpu_serial(c, lc, a, la);
+        return orderchange_out_r2c_ix2_cpu_serial(c, lc, a, la);
     }
 
     // shape check
     let sc = lc.shape();
     let sa = la.shape();
-    rstsr_assert_eq!(sc[0], sa[1], InvalidLayout)?;
-    rstsr_assert_eq!(sc[1], sa[0], InvalidLayout)?;
+    rstsr_assert_eq!(sc[0], sa[0], InvalidLayout, "This function requires shape identity")?;
+    rstsr_assert_eq!(sc[1], sa[1], InvalidLayout, "This function requires shape identity")?;
     let [nrow, ncol] = *sa;
 
     // stride check
-    rstsr_assert_eq!(lc.stride()[0], 1, InvalidLayout)?;
-    rstsr_assert_eq!(la.stride()[1], 1, InvalidLayout)?;
+    rstsr_assert_eq!(lc.stride()[0], 1, InvalidLayout, "This function requires col-major output")?;
+    rstsr_assert_eq!(la.stride()[1], 1, InvalidLayout, "This function requires row-major input")?;
 
     let offset_a = la.offset() as isize;
     let offset_c = lc.offset() as isize;
@@ -66,11 +66,11 @@ where
     Ok(())
 }
 
-/// Transpose a matrix out-place using a naive algorithm.
+/// Change order (row/col-major) a matrix out-place using a naive algorithm.
 ///
 /// Transpose from `a` (col-major) to `c` (row-major).
 /// If shape or stride is not compatible, an error will be returned.
-pub fn transpose_out_c2r_ix2_cpu_rayon<T>(
+pub fn orderchange_out_c2r_ix2_cpu_rayon<T>(
     c: &mut [T],
     lc: &Layout<Ix2>,
     a: &[T],
@@ -82,5 +82,5 @@ where
 {
     let lc = lc.reverse_axes();
     let la = la.reverse_axes();
-    transpose_out_r2c_ix2_cpu_rayon(c, &lc, a, &la, pool)
+    orderchange_out_r2c_ix2_cpu_rayon(c, &lc, a, &la, pool)
 }

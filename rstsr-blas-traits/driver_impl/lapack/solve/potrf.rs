@@ -45,14 +45,14 @@ impl POTRFDriverAPI<T> for DeviceBLAS {
             let a_slice = from_raw_parts_mut(a, n * lda);
             let la = Layout::new_unchecked([n, n], [lda as isize, 1], 0);
             let la_t = Layout::new_unchecked([n, n], [1, lda_t as isize], 0);
-            transpose_out_r2c_ix2_cpu_serial(&mut a_t, &la_t, a_slice, &la).unwrap();
+            orderchange_out_r2c_ix2_cpu_serial(&mut a_t, &la_t, a_slice, &la).unwrap();
             // Call LAPACK function and adjust info
             func_(&uplo.into(), &(n as _), a_t.as_mut_ptr(), &(lda_t as _), &mut info);
             if info != 0 {
                 return raise_info(info);
             }
             // Transpose output matrices
-            transpose_out_c2r_ix2_cpu_serial(a_slice, &la, &a_t, &la_t).unwrap();
+            orderchange_out_c2r_ix2_cpu_serial(a_slice, &la, &a_t, &la_t).unwrap();
         }
         return info;
     }
@@ -96,14 +96,14 @@ impl POTRFDriverAPI<T> for DeviceBLAS {
             let a_slice = from_raw_parts_mut(a, n * lda);
             let la = Layout::new_unchecked([n, n], [lda as isize, 1], 0);
             let la_t = Layout::new_unchecked([n, n], [1, lda_t as isize], 0);
-            transpose_out_r2c_ix2_cpu_serial(&mut a_t, &la_t, a_slice, &la).unwrap();
+            orderchange_out_r2c_ix2_cpu_serial(&mut a_t, &la_t, a_slice, &la).unwrap();
             // Call LAPACK function and adjust info
             func_(&uplo.into(), &(n as _), a_t.as_mut_ptr() as *mut _, &(lda_t as _), &mut info);
             if info != 0 {
                 return raise_info(info);
             }
             // Transpose output matrices
-            transpose_out_c2r_ix2_cpu_serial(a_slice, &la, &a_t, &la_t).unwrap();
+            orderchange_out_c2r_ix2_cpu_serial(a_slice, &la, &a_t, &la_t).unwrap();
         }
         return info;
     }

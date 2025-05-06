@@ -66,4 +66,16 @@ assert np.isclose(fingerprint(w), -2437.094304861363)
 assert np.isclose(fingerprint(np.abs(v)), 30.756098926747757)
 fingerprint(w), fingerprint(np.abs(v))
 
+# ## solve driver tests
+
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw.copy()[:1024*512].reshape(1024, 512)
+lu, piv, x, _ = scipy.linalg.lapack.dgesv(a, b)
+assert np.isclose(fingerprint(lu), 5397.198541468395)
+assert np.isclose(fingerprint(piv), -14.694714160751573)
+assert np.isclose(fingerprint(x), -1951.253447757597)
+fingerprint(lu), fingerprint(piv), fingerprint(x)
+
+
+
 

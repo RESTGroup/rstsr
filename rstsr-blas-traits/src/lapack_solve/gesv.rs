@@ -34,7 +34,7 @@ where
 {
     pub fn internal_run(
         self,
-    ) -> Result<(TensorMutable2<'a, T, B>, TensorMutable2<'b, T, B>, Tensor<blas_int, B, Ix1>)>
+    ) -> Result<(TensorMutable2<'a, T, B>, Tensor<blas_int, B, Ix1>, TensorMutable2<'b, T, B>)>
     {
         let Self { a, b } = self;
 
@@ -59,12 +59,15 @@ where
             rstsr_errcode!(info, "Lapack GESV")?;
         }
 
-        Ok((a.clone_to_mut(), b.clone_to_mut(), ipiv))
+        // rust is 1-indexed
+        ipiv -= 1;
+
+        Ok((a.clone_to_mut(), ipiv, b.clone_to_mut()))
     }
 
     pub fn run(
         self,
-    ) -> Result<(TensorMutable2<'a, T, B>, TensorMutable2<'b, T, B>, Tensor<blas_int, B, Ix1>)>
+    ) -> Result<(TensorMutable2<'a, T, B>, Tensor<blas_int, B, Ix1>, TensorMutable2<'b, T, B>)>
     {
         self.internal_run()
     }

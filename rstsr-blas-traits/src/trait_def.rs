@@ -12,6 +12,8 @@ pub trait BlasDriverBaseAPI<T>:
     + DeviceAPI<blas_int, Raw = Vec<blas_int>>
     + DeviceComplexFloatAPI<T, Ix2>
     + DeviceNumAPI<blas_int, Ix1>
+    + DeviceAddAssignAPI<blas_int, blas_int, Ix1>
+    + DeviceSubAssignAPI<blas_int, blas_int, Ix1>
     + BlasThreadAPI
     + DeviceRayonAPI
 where
