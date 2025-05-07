@@ -17,7 +17,7 @@ where
         rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let a_view = a.view().into_dim::<Ix2>();
         let eigh_args = EighArgs::default().a(a_view).build()?;
-        let (vals, vecs) = blas_eigh_simple_f(eigh_args)?;
+        let (vals, vecs) = ref_impl_eigh_simple_f(eigh_args)?;
         let vals = vals.into_dim::<IxD>().into_dim::<D::SmallerOne>();
         let vecs = vecs.unwrap().into_owned().into_dim::<IxD>().into_dim::<D>();
         return Ok(EighResult { eigenvalues: vals, eigenvectors: vecs });
@@ -55,7 +55,7 @@ where
         let a_view = a.view().into_dim::<Ix2>();
         let b_view = b.view().into_dim::<Ix2>();
         let eigh_args = EighArgs::default().a(a_view).b(b_view).build()?;
-        let (vals, vecs) = blas_eigh_simple_f(eigh_args)?;
+        let (vals, vecs) = ref_impl_eigh_simple_f(eigh_args)?;
         let vals = vals.into_dim::<IxD>().into_dim::<D::SmallerOne>();
         let vecs = vecs.unwrap().into_owned().into_dim::<IxD>().into_dim::<D>();
         return Ok(EighResult { eigenvalues: vals, eigenvectors: vecs });

@@ -19,7 +19,7 @@ where
         rstsr_assert_eq!(b.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let a_view = a.view().into_dim::<Ix2>();
         let b_view = b.view().into_dim::<Ix2>();
-        let result = blas_solve_symmetric_f(a_view.into(), b_view.into(), hermi, uplo)?;
+        let result = ref_impl_solve_symmetric_f(a_view.into(), b_view.into(), hermi, uplo)?;
         return Ok(result.into_owned().into_dim::<IxD>().into_dim::<D>());
     }
 }
@@ -53,7 +53,7 @@ where
         rstsr_assert_eq!(b.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let a_view = a.view().into_dim::<Ix2>();
         let b_view = b.view_mut().into_dim::<Ix2>();
-        blas_solve_symmetric_f(a_view.into(), b_view.into(), hermi, uplo)?;
+        ref_impl_solve_symmetric_f(a_view.into(), b_view.into(), hermi, uplo)?;
         Ok(b)
     }
 }
@@ -86,7 +86,7 @@ where
         rstsr_assert_eq!(b.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let a_view = a.view_mut().into_dim::<Ix2>();
         let b_view = b.view_mut().into_dim::<Ix2>();
-        blas_solve_symmetric_f(a_view.into(), b_view.into(), hermi, uplo)?;
+        ref_impl_solve_symmetric_f(a_view.into(), b_view.into(), hermi, uplo)?;
         Ok(b)
     }
 }

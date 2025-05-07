@@ -15,7 +15,7 @@ where
         let (a, uplo) = self;
         rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let a = a.view().into_dim::<Ix2>();
-        let result = blas_cholesky_f(a.view().into(), uplo)?.into_owned();
+        let result = ref_impl_cholesky_f(a.view().into(), uplo)?.into_owned();
         Ok(result.into_dim::<IxD>().into_dim::<D>())
     }
 }
@@ -44,7 +44,7 @@ where
         let (a, uplo) = self;
         rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let a = a.into_dim::<Ix2>();
-        let result = blas_cholesky_f(a.into(), uplo)?;
+        let result = ref_impl_cholesky_f(a.into(), uplo)?;
         Ok(result.into_dim::<IxD>().into_dim::<D>())
     }
 }

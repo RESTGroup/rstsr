@@ -19,7 +19,7 @@ where
             "Currently we can only handle 2-D matrix."
         )?;
         let a = self.view().into_dim::<Ix2>();
-        let result = blas_inv_f(a.into())?.into_owned();
+        let result = ref_impl_inv_f(a.into())?.into_owned();
         Ok(result.into_dim::<IxD>().into_dim::<D>())
     }
 }
@@ -51,7 +51,7 @@ where
             "Currently we can only handle 2-D matrix."
         )?;
         let a = self.into_dim::<Ix2>();
-        let result = blas_inv_f(a.into())?;
+        let result = ref_impl_inv_f(a.into())?;
         Ok(result.into_dim::<IxD>().into_dim::<D>())
     }
 }
