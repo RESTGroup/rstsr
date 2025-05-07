@@ -70,22 +70,3 @@ impl SYGVDriverAPI<T> for DeviceBLAS {
         )
     }
 }
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use crate::DeviceBLAS;
-    use rstsr_core::prelude_dev::*;
-
-    #[test]
-    fn playground() {
-        let device = DeviceBLAS::default();
-        let vec_a = [0, 1, 9, 1, 5, 3, 9, 3, 6].iter().map(|&x| x as f64).collect::<Vec<_>>();
-        let a = asarray((vec_a, [3, 3].c(), &device)).into_dim::<Ix2>();
-        let vec_b = [1, 1, 2, 1, 3, 1, 2, 1, 8].iter().map(|&x| x as f64).collect::<Vec<_>>();
-        let b = asarray((vec_b, [3, 3].c(), &device)).into_dim::<Ix2>();
-        let result = DSYGV::default().a(a.view()).b(b.view()).build().unwrap().run().unwrap();
-        println!("{:?}", result.0.into_owned());
-        println!("{:?}", result.1);
-    }
-}

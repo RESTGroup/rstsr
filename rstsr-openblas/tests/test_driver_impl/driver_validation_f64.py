@@ -68,6 +68,8 @@ fingerprint(w), fingerprint(np.abs(v))
 
 # ## solve driver tests
 
+# ### gesv
+
 a = a_raw.copy().reshape(1024, 1024)
 b = b_raw.copy()[:1024*512].reshape(1024, 512)
 lu, piv, x, _ = scipy.linalg.lapack.dgesv(a, b)
@@ -75,6 +77,54 @@ assert np.isclose(fingerprint(lu), 5397.198541468395)
 assert np.isclose(fingerprint(piv), -14.694714160751573)
 assert np.isclose(fingerprint(x), -1951.253447757597)
 fingerprint(lu), fingerprint(piv), fingerprint(x)
+
+# ### getrf, getri
+
+a = a_raw.copy().reshape(1024, 1024)
+lu, piv, _ = scipy.linalg.lapack.dgetrf(a)
+assert np.isclose(fingerprint(lu), 5397.198541468395)
+assert np.isclose(fingerprint(piv), -14.694714160751573)
+fingerprint(lu), fingerprint(piv)
+
+inv_a, _ = scipy.linalg.lapack.dgetri(lu, piv)
+assert np.isclose(fingerprint(inv_a), 143.3900557703788)
+fingerprint(inv_a)
+
+# ### potrf
+
+# Please note that driver implementation in rust does not clean upper/lower triangular.
+
+b = b_raw.copy().reshape(1024, 1024)
+c, _ = scipy.linalg.lapack.dpotrf(b, lower=True, clean=0)
+assert np.isclose(fingerprint(c), 35.17266259472725)
+fingerprint(c)
+
+b = b_raw.copy().reshape(1024, 1024)
+c, _ = scipy.linalg.lapack.dpotrf(b, lower=False, clean=0)
+assert np.isclose(fingerprint(c), -53.53353704132017)
+fingerprint(c)
+
+# ### sysv
+
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw.copy()[:1024*512].reshape(1024, 512)
+udut, piv, x, _ = scipy.linalg.lapack.dsysv(a, b, lower=True)
+assert np.isclose(fingerprint(udut), -1201.6472395568974)
+assert np.isclose(fingerprint(piv), -16668.7094872639)
+assert np.isclose(fingerprint(x), -397.12032355166446)
+fingerprint(udut), fingerprint(piv), fingerprint(x)
+
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw.copy()[:1024*512].reshape(1024, 512)
+udut, piv, x, _ = scipy.linalg.lapack.dsysv(a, b, lower=False)
+assert np.isclose(fingerprint(udut), 1182.7836118324408)
+assert np.isclose(fingerprint(piv), 11905.503011559245)
+assert np.isclose(fingerprint(x), -314.4502289190444)
+fingerprint(udut), fingerprint(piv), fingerprint(x)
+
+
+
+
 
 
 

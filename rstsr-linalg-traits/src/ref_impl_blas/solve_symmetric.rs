@@ -18,5 +18,5 @@ where
         true => SYSV::<_, _, true>::default().a(a.view()).b(b).uplo(uplo).build()?.run(),
     };
     let result = device.with_blas_num_threads(nthreads, task)?;
-    Ok(result.1)
+    Ok(result.2)
 }
