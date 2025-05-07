@@ -60,6 +60,6 @@ mod test {
         let l = Layout::new([6, 1], [100, 10], 0).unwrap();
         println!("{:?}", l.f_prefer());
         println!("{:?}", l.c_prefer());
-        println!("{:?}", l);
+        println!("{l:?}");
     }
 }

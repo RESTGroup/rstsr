@@ -440,7 +440,7 @@ where
         Debug::fmt(&self.layout(), f)?;
         writeln!(f)?;
         let self_type = core::any::type_name::<Self>();
-        writeln!(f, "Type: {}", self_type)?;
+        writeln!(f, "Type: {self_type}")?;
         writeln!(f, "==========================")
     }
 }
@@ -489,7 +489,7 @@ mod playground {
         let vec = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
         let layout: Layout<_> = [2, 4, 0].into();
         println!("{:}", VL(vec, layout));
-        println!("{:}", s);
+        println!("{s:}");
 
         s.clear();
         let vec = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];

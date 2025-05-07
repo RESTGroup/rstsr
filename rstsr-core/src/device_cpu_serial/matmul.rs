@@ -68,7 +68,7 @@ mod test {
         let lb = b.layout();
         let lc = c.layout().clone();
         device.matmul(c.raw_mut(), &lc, a.raw(), la, b.raw(), lb, alpha, beta).unwrap();
-        println!("Result c: {:?}", c);
+        println!("Result c: {c:?}");
 
         let c_ref = rt::asarray((
             vec![
@@ -94,7 +94,7 @@ mod test {
         let lb = b.layout();
         let lc = c.layout().clone();
         device.matmul(c.raw_mut(), &lc, a.raw(), la, b.raw(), lb, alpha, beta).unwrap();
-        println!("Result c: {:?}", c);
+        println!("Result c: {c:?}");
 
         let c_ref = rt::asarray((
             vec![

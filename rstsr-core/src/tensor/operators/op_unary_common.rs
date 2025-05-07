@@ -199,9 +199,9 @@ mod test {
     fn test_same_type() {
         let a = arange(6.0).into_shape([2, 3]).into_owned();
         let b = sin(&a);
-        println!("{:}", b);
+        println!("{b:}");
         let b = a.view().sin();
-        println!("{:}", b);
+        println!("{b:}");
 
         let ptr_a = a.raw().as_ptr();
         let b = a.sin();
@@ -216,7 +216,7 @@ mod test {
         let b = (&a).sign();
         let vec_b = b.reshape([6]).to_vec();
         let b_abs_sum = vec_b.iter().map(|x| x.norm()).sum::<f64>();
-        println!("{:}", b);
+        println!("{b:}");
         assert!(b_abs_sum - 6.0 < 1e-6);
     }
 
@@ -227,17 +227,17 @@ mod test {
         let ptr_a = a.raw().as_ptr();
         let b = a.abs();
         let ptr_b = b.raw().as_ptr();
-        println!("{:}", b);
-        println!("{:?}", ptr_a);
-        println!("{:?}", ptr_b);
+        println!("{b:}");
+        println!("{ptr_a:?}");
+        println!("{ptr_b:?}");
         // for complex case, only abs(&a) is valid
-        println!("{:}", a);
+        println!("{a:}");
 
         let a = linspace((-3.0f64, 3.0f64, 6)).into_shape([2, 3]);
         let ptr_a = a.raw().as_ptr();
         let b = a.abs();
         let ptr_b = b.raw().as_ptr();
-        println!("{:}", b);
+        println!("{b:}");
         assert_eq!(ptr_a, ptr_b);
         // for f64 case, `a.abs()` will try to consume variable `a`
         // println!("{:?}", a);
@@ -248,13 +248,13 @@ mod test {
         use num::complex::c32;
         let a = linspace((c32(1.0, 2.0), c32(5.0, 6.0), 6)).into_shape([2, 3]);
         let b = (&a).imag();
-        println!("{:}", b);
+        println!("{b:}");
     }
 
     #[test]
     fn test_cpuserial() {
         let a = linspace((1.0, 5.0, 5, &DeviceCpuSerial::default()));
         let b = a.sin();
-        println!("{:}", b);
+        println!("{b:}");
     }
 }

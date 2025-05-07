@@ -525,7 +525,7 @@ mod test {
         let pool = Some(&pool);
         gemm_blas_no_conj_f32(&mut c, &lc, &a, &la, &b, &lb, 1.0, 0.0, pool).unwrap();
         let c_tsr = TensorView::new(asarray(&c).into_raw_parts().0, lc);
-        println!("{:}", c_tsr);
+        println!("{c_tsr:}");
         println!("{:}", c_tsr.reshape([8]));
         let c_ref = asarray(vec![38., 44., 50., 56., 83., 98., 113., 128.]);
         assert!(allclose_f64(&c_tsr.map(|v| *v as f64), &c_ref));
@@ -535,7 +535,7 @@ mod test {
         let lc = [2, 4].f();
         gemm_blas_no_conj_f32(&mut c, &lc, &a, &la, &b, &lb, 1.0, 0.0, pool).unwrap();
         let c_tsr = TensorView::new(asarray(&c).into_raw_parts().0, lc);
-        println!("{:}", c_tsr);
+        println!("{c_tsr:}");
         println!("{:}", c_tsr.reshape([8]));
         let c_ref = asarray(vec![38., 44., 50., 56., 83., 98., 113., 128.]);
         assert!(allclose_f64(&c_tsr.map(|v| *v as f64), &c_ref));
@@ -545,7 +545,7 @@ mod test {
         let lc = [2, 4].c();
         gemm_blas_no_conj_f32(&mut c, &lc, &a, &la, &b, &lb, 1.0, 0.0, pool).unwrap();
         let c_tsr = TensorView::new(asarray(&c).into_raw_parts().0, lc);
-        println!("{:}", c_tsr);
+        println!("{c_tsr:}");
         println!("{:}", c_tsr.reshape([8]));
         let c_ref = asarray(vec![61., 70., 79., 88., 76., 88., 100., 112.]);
         assert!(allclose_f64(&c_tsr.map(|v| *v as f64), &c_ref));
@@ -555,7 +555,7 @@ mod test {
         let lc = [2, 4].f();
         gemm_blas_no_conj_f32(&mut c, &lc, &a, &la, &b, &lb, 2.0, 0.0, pool).unwrap();
         let c_tsr = TensorView::new(asarray(&c).into_raw_parts().0, lc);
-        println!("{:}", c_tsr);
+        println!("{c_tsr:}");
         println!("{:}", c_tsr.reshape([8]));
         let c_ref = 2 * asarray(vec![61., 70., 79., 88., 76., 88., 100., 112.]);
         assert!(allclose_f64(&c_tsr.map(|v| *v as f64), &c_ref));
@@ -574,7 +574,7 @@ mod test {
         let pool = Some(&pool);
         gemm_blas_no_conj_c32(&mut c, &lc, &a, &la, &b, &lb, c32::ONE, c32::ZERO, pool).unwrap();
         let c_tsr = TensorView::new(asarray(&c).into_raw_parts().0, lc);
-        println!("{:}", c_tsr);
+        println!("{c_tsr:}");
         println!("{:}", c_tsr.reshape([8]));
     }
 }

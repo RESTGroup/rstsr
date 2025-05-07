@@ -11,7 +11,7 @@ fn main() {
             .filter(|path| !path.is_empty())
             .filter(|path| PathBuf::from(path).exists())
             .for_each(|path| {
-                println!("cargo:rustc-link-search=native={}", path);
+                println!("cargo:rustc-link-search=native={path}");
             });
         println!("cargo:rustc-link-lib=openblas");
         println!("cargo:rustc-link-lib=gomp");

@@ -396,7 +396,7 @@ mod test {
             println!("{:?}", c.layout());
             println!("time: {:?}", start.elapsed());
             if i == 0 {
-                println!("{:?}", c);
+                println!("{c:?}");
             }
         }
     }
@@ -413,7 +413,7 @@ mod test {
             println!("{:?}", c.layout());
             println!("time: {:?}", start.elapsed());
             if i == 0 {
-                println!("{:?}", c);
+                println!("{c:?}");
             }
         }
     }
@@ -432,7 +432,7 @@ mod test {
             println!("{:?}", c.layout());
             println!("time: {:?}", start.elapsed());
             if i == 0 {
-                println!("{:?}", c);
+                println!("{c:?}");
             }
         }
     }

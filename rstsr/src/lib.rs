@@ -25,7 +25,7 @@ fn test() {
     // shape: [2, 4, 2], stride: [8, 2, 1], offset: 0
 
     // print the result
-    println!("{:6.1}", c);
+    println!("{c:6.1}");
     // output:
     // [[[   23.0   14.0]
     //   [   86.0   47.0]

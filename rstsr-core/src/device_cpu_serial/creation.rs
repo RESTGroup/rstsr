@@ -150,34 +150,34 @@ mod test {
 
         let device = DeviceCpuSerial::default();
         let storage: Storage<_, f64, _> = device.zeros_impl(10).unwrap();
-        println!("{:?}", storage);
+        println!("{storage:?}");
         let storage: Storage<_, f64, _> = device.ones_impl(10).unwrap();
-        println!("{:?}", storage);
+        println!("{storage:?}");
         let storage: Storage<_, f64, _> = device.arange_int_impl(10).unwrap();
-        println!("{:?}", storage);
+        println!("{storage:?}");
         let storage: Storage<_, f64, _> = unsafe { device.empty_impl(10).unwrap() };
-        println!("{:?}", storage);
+        println!("{storage:?}");
         let storage = device.from_cpu_vec(&[1.0; 10]).unwrap();
-        println!("{:?}", storage);
+        println!("{storage:?}");
         let storage = device.outof_cpu_vec(vec![1.0; 10]).unwrap();
-        println!("{:?}", storage);
+        println!("{storage:?}");
         let storage = device.linspace_impl(0.0, 1.0, 10, true).unwrap();
-        println!("{:?}", storage);
+        println!("{storage:?}");
         let storage =
             device.linspace_impl(Complex::new(1.0, 2.0), Complex::new(3.5, 4.7), 10, true).unwrap();
-        println!("{:?}", storage);
+        println!("{storage:?}");
         let storage = device.arange_impl(0.0, 1.0, 0.1).unwrap();
-        println!("{:?}", storage);
+        println!("{storage:?}");
 
         // tril/triu
         let mut vec = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
         let layout = [3, 3].c();
         device.tril_impl(&mut vec, &layout, -1).unwrap();
-        println!("{:?}", vec);
+        println!("{vec:?}");
         assert_eq!(vec, vec![0, 0, 0, 4, 0, 0, 7, 8, 0]);
         let mut vec = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
         device.triu_impl(&mut vec, &layout, -1).unwrap();
-        println!("{:?}", vec);
+        println!("{vec:?}");
         assert_eq!(vec, vec![1, 2, 3, 4, 5, 6, 0, 8, 9]);
     }
 }

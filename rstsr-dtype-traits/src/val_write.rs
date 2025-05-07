@@ -37,9 +37,9 @@ fn playground() {
 
     let mut a = 0.0;
     inner(&mut a, 1.0);
-    println!("a {:?}", a);
+    println!("a {a:?}");
 
     let mut b = MaybeUninit::uninit();
     inner(&mut b, 1.0);
-    println!("b {:?}", b);
+    println!("b {b:?}");
 }

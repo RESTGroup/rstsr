@@ -724,7 +724,7 @@ mod tests_serial {
 
         let res = iter
             .map(|view| {
-                println!("{:3}", view);
+                println!("{view:3}");
                 view[[1, 2]]
             })
             .collect::<Vec<_>>();
@@ -752,11 +752,11 @@ mod tests_serial {
         let res = iter
             .map(|mut view| {
                 view += 1;
-                println!("{:3}", view);
+                println!("{view:3}");
                 view[[1, 2]]
             })
             .collect::<Vec<_>>();
-        println!("{:?}", res);
+        println!("{res:?}");
         #[cfg(not(feature = "col_major"))]
         {
             // import numpy as np
@@ -780,8 +780,8 @@ mod tests_serial {
 
         let res = iter
             .map(|(index, view)| {
-                println!("{:?}", index);
-                println!("{:3}", view);
+                println!("{index:?}");
+                println!("{view:3}");
                 (index, view[[1, 2]])
             })
             .collect::<Vec<_>>();
@@ -835,11 +835,11 @@ mod tests_parallel {
             .into_par_iter()
             .map(|mut view| {
                 view += 1;
-                println!("{:6}", view);
+                println!("{view:6}");
                 view[[1, 2]]
             })
             .collect::<Vec<_>>();
-        println!("{:?}", res);
+        println!("{res:?}");
         #[cfg(not(feature = "col_major"))]
         {
             // a = np.arange(65536).reshape(16, 16, 16, 16)

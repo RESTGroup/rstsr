@@ -293,7 +293,7 @@ mod test {
         assert_eq!(s, 446586);
 
         let s = a.sum_axes(());
-        println!("{:?}", s);
+        println!("{s:?}");
         assert_eq!(s.to_scalar(), 446586);
 
         // DeviceFaer
@@ -309,7 +309,7 @@ mod test {
         assert_eq!(s, 446586);
 
         let s = a.sum_axes(());
-        println!("{:?}", s);
+        println!("{s:?}");
         assert_eq!(s.to_scalar(), 446586);
     }
 
@@ -333,7 +333,7 @@ mod test {
         assert_eq!(s, 403662);
 
         let s = a.sum_axes(());
-        println!("{:?}", s);
+        println!("{s:?}");
         assert_eq!(s.to_scalar(), 403662);
 
         // DeviceFaer
@@ -347,7 +347,7 @@ mod test {
         assert_eq!(s, 403662);
 
         let s = a.sum_axes(());
-        println!("{:?}", s);
+        println!("{s:?}");
         assert_eq!(s.to_scalar(), 403662);
     }
 
@@ -362,7 +362,7 @@ mod test {
                 .into_shape([4, 6, 15, 9])
                 .into_transpose([2, 0, 3, 1]);
             let s = a.sum_axes([0, -2]);
-            println!("{:?}", s);
+            println!("{s:?}");
             assert_eq!(s[[0, 1]], 27270);
             assert_eq!(s[[1, 2]], 154845);
             assert_eq!(s[[3, 5]], 428220);
@@ -371,7 +371,7 @@ mod test {
             let a: Tensor<usize> =
                 arange(3240).into_shape([4, 6, 15, 9]).into_transpose([2, 0, 3, 1]);
             let s = a.sum_axes([0, -2]);
-            println!("{:?}", s);
+            println!("{s:?}");
             assert_eq!(s[[0, 1]], 27270);
             assert_eq!(s[[1, 2]], 154845);
             assert_eq!(s[[3, 5]], 428220);
@@ -386,7 +386,7 @@ mod test {
                 .into_shape([4, 6, 15, 9])
                 .into_transpose([2, 0, 3, 1]);
             let s = a.sum_axes([0, -2]);
-            println!("{:?}", s);
+            println!("{s:?}");
             assert_eq!(s[[0, 1]], 217620);
             assert_eq!(s[[1, 2]], 218295);
             assert_eq!(s[[3, 5]], 220185);
@@ -395,7 +395,7 @@ mod test {
             let a: Tensor<usize> =
                 arange(3240).into_shape([4, 6, 15, 9]).into_transpose([2, 0, 3, 1]);
             let s = a.sum_axes([0, -2]);
-            println!("{:?}", s);
+            println!("{s:?}");
             assert_eq!(s[[0, 1]], 217620);
             assert_eq!(s[[1, 2]], 218295);
             assert_eq!(s[[3, 5]], 220185);
@@ -407,7 +407,7 @@ mod test {
         // DeviceCpuSerial
         let v = vec![8, 4, 2, 9, 3, 7, 2, 8, 1, 6, 10, 5];
         let a = asarray((&v, [4, 3].c(), &DeviceCpuSerial::default()));
-        println!("{:}", a);
+        println!("{a:}");
         let m = a.min_axes(0);
         assert_eq!(m.to_vec(), vec![2, 3, 1]);
         let m = a.min_axes(1);
@@ -418,7 +418,7 @@ mod test {
         // DeviceFaer
         let v = vec![8, 4, 2, 9, 3, 7, 2, 8, 1, 6, 10, 5];
         let a = asarray((&v, [4, 3].c()));
-        println!("{:}", a);
+        println!("{a:}");
         let m = a.min_axes(0);
         assert_eq!(m.to_vec(), vec![2, 3, 1]);
         let m = a.min_axes(1);
@@ -437,11 +437,11 @@ mod test {
             assert_eq!(m, 11.5);
 
             let m = a.mean_axes((0, 2));
-            println!("{:}", m);
+            println!("{m:}");
             assert_eq!(m.to_vec(), vec![7.5, 11.5, 15.5]);
 
             let m = a.i((slice!(None, None, -1), .., slice!(None, None, -2))).mean_axes((-1, 1));
-            println!("{:}", m);
+            println!("{m:}");
             assert_eq!(m.to_vec(), vec![18.0, 6.0]);
 
             // DeviceFaer
@@ -450,11 +450,11 @@ mod test {
             assert_eq!(m, 11.5);
 
             let m = a.mean_axes((0, 2));
-            println!("{:}", m);
+            println!("{m:}");
             assert_eq!(m.to_vec(), vec![7.5, 11.5, 15.5]);
 
             let m = a.i((slice!(None, None, -1), .., slice!(None, None, -2))).mean_axes((-1, 1));
-            println!("{:}", m);
+            println!("{m:}");
             assert_eq!(m.to_vec(), vec![18.0, 6.0]);
         }
         #[cfg(feature = "col_major")]
@@ -465,11 +465,11 @@ mod test {
             assert_eq!(m, 11.5);
 
             let m = a.mean_axes((0, 2));
-            println!("{:}", m);
+            println!("{m:}");
             assert_eq!(m.to_vec(), vec![9.5, 11.5, 13.5]);
 
             let m = a.i((slice!(None, None, -1), .., slice!(None, None, -2))).mean_axes((-1, 1));
-            println!("{:}", m);
+            println!("{m:}");
             assert_eq!(m.to_vec(), vec![15.0, 14.0]);
 
             // // DeviceFaer
@@ -478,11 +478,11 @@ mod test {
             assert_eq!(m, 11.5);
 
             let m = a.mean_axes((0, 2));
-            println!("{:}", m);
+            println!("{m:}");
             assert_eq!(m.to_vec(), vec![9.5, 11.5, 13.5]);
 
             let m = a.i((slice!(None, None, -1), .., slice!(None, None, -2))).mean_axes((-1, 1));
-            println!("{:}", m);
+            println!("{m:}");
             assert_eq!(m.to_vec(), vec![15.0, 14.0]);
         }
     }
@@ -494,15 +494,15 @@ mod test {
         let a = asarray((&v, [4, 3].c(), &DeviceCpuSerial::default())).mapv(|x| x as f64);
 
         let m = a.var_all();
-        println!("{:}", m);
+        println!("{m:}");
         assert!((m - 8.409722222222221).abs() < 1e-10);
 
         let m = a.var_axes(0);
-        println!("{:}", m);
+        println!("{m:}");
         assert!(allclose_f64(&m, &asarray(vec![7.1875, 8.1875, 5.6875])));
 
         let m = a.var_axes(1);
-        println!("{:}", m);
+        println!("{m:}");
         assert!(allclose_f64(&m, &asarray(vec![6.22222222, 6.22222222, 9.55555556, 4.66666667])));
 
         // DeviceFaer
@@ -510,15 +510,15 @@ mod test {
         let a = asarray((&v, [4, 3].c())).mapv(|x| x as f64);
 
         let m = a.var_all();
-        println!("{:}", m);
+        println!("{m:}");
         assert!((m - 8.409722222222221).abs() < 1e-10);
 
         let m = a.var_axes(0);
-        println!("{:}", m);
+        println!("{m:}");
         assert!(allclose_f64(&m, &asarray(vec![7.1875, 8.1875, 5.6875])));
 
         let m = a.var_axes(1);
-        println!("{:}", m);
+        println!("{m:}");
         assert!(allclose_f64(&m, &asarray(vec![6.22222222, 6.22222222, 9.55555556, 4.66666667])));
     }
 
@@ -529,15 +529,15 @@ mod test {
         let a = asarray((&v, [4, 3].c(), &DeviceCpuSerial::default())).mapv(|x| x as f64);
 
         let m = a.std_all();
-        println!("{:}", m);
+        println!("{m:}");
         assert!((m - 2.899952106884219).abs() < 1e-10);
 
         let m = a.std_axes(0);
-        println!("{:}", m);
+        println!("{m:}");
         assert!(allclose_f64(&m, &asarray(vec![2.68095132, 2.86138079, 2.384848])));
 
         let m = a.std_axes(1);
-        println!("{:}", m);
+        println!("{m:}");
         assert!(allclose_f64(&m, &asarray(vec![2.49443826, 2.49443826, 3.09120617, 2.1602469])));
 
         let vr = [8, 4, 2, 9, 3, 7, 2, 8, 1, 6, 10, 5];
@@ -550,7 +550,7 @@ mod test {
         let a = asarray((&v, [4, 3].c(), &DeviceCpuSerial::default()));
 
         let m = a.std_all();
-        println!("{:}", m);
+        println!("{m:}");
         assert!((m - 4.508479664907993).abs() < 1e-10);
 
         // DeviceFaer
@@ -558,15 +558,15 @@ mod test {
         let a = asarray((&v, [4, 3].c())).mapv(|x| x as f64);
 
         let m = a.std_all();
-        println!("{:}", m);
+        println!("{m:}");
         assert!((m - 2.899952106884219).abs() < 1e-10);
 
         let m = a.std_axes(0);
-        println!("{:}", m);
+        println!("{m:}");
         assert!(allclose_f64(&m, &asarray(vec![2.68095132, 2.86138079, 2.384848])));
 
         let m = a.std_axes(1);
-        println!("{:}", m);
+        println!("{m:}");
         assert!(allclose_f64(&m, &asarray(vec![2.49443826, 2.49443826, 3.09120617, 2.1602469])));
 
         let vr = [8, 4, 2, 9, 3, 7, 2, 8, 1, 6, 10, 5];
@@ -579,7 +579,7 @@ mod test {
         let a = asarray((&v, [4, 3].c()));
 
         let m = a.std_all();
-        println!("{:}", m);
+        println!("{m:}");
         assert!((m - 4.508479664907993).abs() < 1e-10);
     }
 
@@ -596,7 +596,7 @@ mod test {
         let a = asarray((&v, [4, 3].c(), &DeviceCpuSerial::default()));
 
         let m = a.l2_norm_all();
-        println!("{:}", m);
+        println!("{m:}");
         assert!((m - 33.21144381083123).abs() < 1e-10);
 
         // DeviceFaer
@@ -610,7 +610,7 @@ mod test {
         let a = asarray((&v, [4, 3].c()));
 
         let m = a.l2_norm_all();
-        println!("{:}", m);
+        println!("{m:}");
         assert!((m - 33.21144381083123).abs() < 1e-10);
     }
 
@@ -630,20 +630,20 @@ mod test {
             let c: Tensor<f64> = &a % &b;
 
             let c_mean = c.mean_all();
-            println!("{:?}", c_mean);
+            println!("{c_mean:?}");
             assert!((c_mean - 213.2503660477036) < 1e-6);
 
             let c_std = c.std_all();
-            println!("{:?}", c_std);
+            println!("{c_std:?}");
             assert!((c_std - 148.88523481701804) < 1e-6);
 
             let c_std_1 = c.std_axes((0, 1));
-            println!("{}", c_std_1);
+            println!("{c_std_1}");
             assert!(c_std_1[[0]] - 148.8763226818815 < 1e-6);
             assert!(c_std_1[[255]] - 148.8941462322758 < 1e-6);
 
             let c_std_2 = c.std_axes((1, 2));
-            println!("{}", c_std_2);
+            println!("{c_std_2}");
             assert!(c_std_2[[0]] - 4.763105902995575 < 1e-6);
             assert!(c_std_2[[15]] - 9.093224903569157 < 1e-6);
         }
@@ -666,20 +666,20 @@ mod test {
             }
 
             let c_mean = c.mean_all();
-            println!("{:?}", c_mean);
+            println!("{c_mean:?}");
             assert!((c_mean - 213.25036604770355) < 1e-6);
 
             let c_std = c.std_all();
-            println!("{:?}", c_std);
+            println!("{c_std:?}");
             assert!((c_std - 148.7419537312827) < 1e-6);
 
             let c_std_1 = c.std_axes((1, 2));
-            println!("{}", c_std_1);
+            println!("{c_std_1}");
             assert!(c_std_1[[0]] - 148.75113653867191 < 1e-6);
             assert!(c_std_1[[255]] - 148.7689445622776 < 1e-6);
 
             let c_std_2 = c.std_axes((0, 1));
-            println!("{}", c_std_2);
+            println!("{c_std_2}");
             assert!(c_std_2[[0]] - 0.145530296246335 < 1e-6);
             assert!(c_std_2[[15]] - 4.474611918106057 < 1e-6);
         }
@@ -690,23 +690,23 @@ mod test {
         // DeviceCpuSerial
         let v = vec![8, 4, 2, 9, 7, 1, 2, 1, 8, 6, 10, 5];
         let a = asarray((&v, [4, 3].c(), &DeviceCpuSerial::default()));
-        println!("{:}", a);
+        println!("{a:}");
         // [[ 8 4 2]
         //  [ 9 7 1]
         //  [ 2 1 8]
         //  [ 6 10 5]]
 
         let m = a.unraveled_argmin_all();
-        println!("{:?}", m);
+        println!("{m:?}");
         assert_eq!(m, vec![1, 2]);
 
         let m = a.unraveled_argmin_axes(-1);
-        println!("{:?}", m);
+        println!("{m:?}");
         let m_vec = m.raw();
         assert_eq!(m_vec, &vec![vec![2], vec![2], vec![1], vec![2]]);
 
         let m = a.unraveled_argmin_axes(0);
-        println!("{:?}", m);
+        println!("{m:?}");
         let m_vec = m.raw();
         assert_eq!(m_vec, &vec![vec![2], vec![2], vec![1]]);
     }
@@ -716,23 +716,23 @@ mod test {
         // DeviceCpuSerial
         let v = vec![8, 4, 2, 9, 7, 1, 2, 1, 8, 6, 10, 5];
         let a = asarray((&v, [4, 3].c(), &DeviceCpuSerial::default()));
-        println!("{:}", a);
+        println!("{a:}");
         // [[ 8 4 2]
         //  [ 9 7 1]
         //  [ 2 1 8]
         //  [ 6 10 5]]
 
         let m = a.argmin_all();
-        println!("{:?}", m);
+        println!("{m:?}");
         assert_eq!(m, 5);
 
         let m = a.argmin_axes(-1);
-        println!("{:?}", m);
+        println!("{m:?}");
         let m_vec = m.raw();
         assert_eq!(m_vec, &vec![2, 2, 1, 2]);
 
         let m = a.argmin_axes(0);
-        println!("{:?}", m);
+        println!("{m:?}");
         let m_vec = m.raw();
         assert_eq!(m_vec, &vec![2, 2, 1]);
     }

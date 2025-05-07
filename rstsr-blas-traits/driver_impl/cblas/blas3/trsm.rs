@@ -94,7 +94,7 @@ mod test {
         let b = Tensor::new(Storage::new(get_vec::<f64>('b').into(), device.clone()), lb);
         let driver = DTRSM::default().a(a.view()).b(b.view()).build().unwrap();
         let c = driver.run().unwrap().into_owned();
-        println!("{:?}", c);
+        println!("{c:?}");
         assert!(c.c_contig());
         // current matrix is nan, where non-nan part is similar to the expected value
         println!("{:?}", fingerprint(&c));

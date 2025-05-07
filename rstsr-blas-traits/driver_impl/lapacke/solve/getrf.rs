@@ -63,7 +63,7 @@ mod test {
         let (c, ipiv) = driver.run().unwrap();
         let c = c.into_owned();
         // println!("{:?}", c);
-        println!("{:?}", ipiv);
+        println!("{ipiv:?}");
         assert!(c.c_contig());
         assert!((fingerprint(&c) - -8345.684144788995).abs() < 1e-8);
     }

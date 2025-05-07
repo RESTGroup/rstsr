@@ -507,25 +507,25 @@ mod tests {
         let l = Layout::new([2, 3, 4], [1, 10, 100], 0).unwrap();
         let s = slice!(10, 1, -1);
         let l1 = l.dim_narrow(1, s).unwrap();
-        println!("{:?}", l1);
+        println!("{l1:?}");
         let l2 = l.dim_select(1, -2).unwrap();
-        println!("{:?}", l2);
+        println!("{l2:?}");
         let l3 = l.dim_insert(1).unwrap();
-        println!("{:?}", l3);
+        println!("{l3:?}");
 
         let l = Layout::new([2, 3, 4], [100, 10, 1], 0).unwrap();
         let l3 = l.dim_insert(1).unwrap();
-        println!("{:?}", l3);
+        println!("{l3:?}");
 
         let l4 = l.dim_slice(s![Indexer::Ellipsis, 1..3, None, 2]).unwrap();
         let l4 = l4.into_dim::<Ix3>().unwrap();
-        println!("{:?}", l4);
+        println!("{l4:?}");
         assert_eq!(l4.shape(), &[2, 2, 1]);
         assert_eq!(l4.offset(), 12);
 
         let l5 = l.dim_slice(s![None, 1, None, 1..3]).unwrap();
         let l5 = l5.into_dim::<Ix4>().unwrap();
-        println!("{:?}", l5);
+        println!("{l5:?}");
         assert_eq!(l5.shape(), &[1, 1, 2, 4]);
         assert_eq!(l5.offset(), 110);
     }
@@ -547,14 +547,14 @@ mod tests {
     fn test_expand_dims() {
         let l = Layout::<Ix3>::new([2, 3, 4], [1, 10, 100], 0).unwrap();
         let l1 = l.dim_insert(0).unwrap();
-        println!("{:?}", l1);
+        println!("{l1:?}");
         let l2 = l.dim_insert(1).unwrap();
-        println!("{:?}", l2);
+        println!("{l2:?}");
         let l3 = l.dim_insert(3).unwrap();
-        println!("{:?}", l3);
+        println!("{l3:?}");
         let l4 = l.dim_insert(-1).unwrap();
-        println!("{:?}", l4);
+        println!("{l4:?}");
         let l5 = l.dim_insert(-4).unwrap();
-        println!("{:?}", l5);
+        println!("{l5:?}");
     }
 }

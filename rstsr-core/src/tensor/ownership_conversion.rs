@@ -396,14 +396,14 @@ mod test {
 
         let a_mut = a.view_mut();
         let a_cow = a_mut.into_cow();
-        println!("{:?}", a_cow);
+        println!("{a_cow:?}");
 
         let a_ref = a.view();
         let a_cow = a_ref.into_cow();
-        println!("{:?}", a_cow);
+        println!("{a_cow:?}");
 
         let a_cow = a.into_cow();
-        println!("{:?}", a_cow);
+        println!("{a_cow:?}");
         let ptr_a_cow = a_cow.raw().as_ptr();
         assert_eq!(ptr_a, ptr_a_cow);
     }
@@ -422,7 +422,7 @@ mod test {
             }
             println!("Elapsed time {:?}", time.elapsed());
         }
-        println!("{:16.10}", a);
+        println!("{a:16.10}");
     }
 
     #[test]
@@ -441,6 +441,6 @@ mod test {
             });
             println!("Elapsed time {:?}", time.elapsed());
         }
-        println!("{:16.10}", a);
+        println!("{a:16.10}");
     }
 }

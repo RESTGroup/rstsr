@@ -619,28 +619,28 @@ mod tests {
     fn test_asarray() {
         let input = vec![1, 2, 3];
         let tensor = asarray_f(input).unwrap();
-        println!("{:?}", tensor);
+        println!("{tensor:?}");
         let input = [1, 2, 3];
         let tensor = asarray_f(input.as_ref()).unwrap();
-        println!("{:?}", tensor);
+        println!("{tensor:?}");
 
         let input = vec![1, 2, 3];
         let tensor = asarray_f(&input).unwrap();
         println!("{:?}", tensor.raw().as_ptr());
-        println!("{:?}", tensor);
+        println!("{tensor:?}");
 
         let tensor = asarray_f((&tensor, TensorIterOrder::K)).unwrap();
-        println!("{:?}", tensor);
+        println!("{tensor:?}");
 
         let tensor = asarray_f((tensor, TensorIterOrder::K)).unwrap();
-        println!("{:?}", tensor);
+        println!("{tensor:?}");
     }
 
     #[test]
     fn test_asarray_scalar() {
         let tensor = asarray_f(1).unwrap();
-        println!("{:?}", tensor);
+        println!("{tensor:?}");
         let tensor = asarray_f((Complex64::new(0., 1.), &DeviceCpuSerial::default())).unwrap();
-        println!("{:?}", tensor);
+        println!("{tensor:?}");
     }
 }

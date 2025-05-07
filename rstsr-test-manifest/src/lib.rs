@@ -24,7 +24,7 @@ impl ResourceVecAPI<f32> for () {
         match c {
             'a' => npy_path.push("a-f32.npy"),
             'b' => npy_path.push("b-f32.npy"),
-            _ => panic!("Invalid character: {}", c),
+            _ => panic!("Invalid character: {c}"),
         };
 
         let bytes = std::fs::read(npy_path).unwrap();
@@ -40,7 +40,7 @@ impl ResourceVecAPI<f64> for () {
         match c {
             'a' => npy_path.push("a-f64.npy"),
             'b' => npy_path.push("b-f64.npy"),
-            _ => panic!("Invalid character: {}", c),
+            _ => panic!("Invalid character: {c}"),
         };
 
         let bytes = std::fs::read(npy_path).unwrap();
@@ -56,7 +56,7 @@ impl ResourceVecAPI<Complex<f32>> for () {
         match c {
             'a' => npy_path.push("a-c32.npy"),
             'b' => npy_path.push("b-c32.npy"),
-            _ => panic!("Invalid character: {}", c),
+            _ => panic!("Invalid character: {c}"),
         };
 
         let bytes = std::fs::read(npy_path).unwrap();
@@ -72,7 +72,7 @@ impl ResourceVecAPI<Complex<f64>> for () {
         match c {
             'a' => npy_path.push("a-c64.npy"),
             'b' => npy_path.push("b-c64.npy"),
-            _ => panic!("Invalid character: {}", c),
+            _ => panic!("Invalid character: {c}"),
         };
 
         let bytes = std::fs::read(npy_path).unwrap();

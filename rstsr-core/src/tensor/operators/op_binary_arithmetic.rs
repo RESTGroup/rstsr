@@ -1184,7 +1184,7 @@ mod test_with_output {
             let mut c = linspace((1.0, 10.0, 10)).into_shape_assume_contig([2, 5]);
             let c_view = c.view_mut();
             add_with_output(&a, b, c_view);
-            println!("{:?}", c);
+            println!("{c:?}");
         }
         #[cfg(feature = "col_major")]
         {
@@ -1193,7 +1193,7 @@ mod test_with_output {
             let mut c = linspace((1.0, 10.0, 10)).into_shape_assume_contig([5, 2]);
             let c_view = c.view_mut();
             add_with_output(&a, b, c_view);
-            println!("{:?}", c);
+            println!("{c:?}");
         }
     }
 }
@@ -1238,7 +1238,7 @@ mod tests_with_scalar {
         // I'm not sure why this happens, maybe rust's type inference problem?
         let b = a * 2;
         *&mut c.i_mut(1) += b.i(1);
-        println!("{:?}", c);
+        println!("{c:?}");
     }
 }
 
