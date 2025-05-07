@@ -4,10 +4,15 @@ use rstsr_blas_traits::prelude::*;
 use rstsr_core::prelude_dev::*;
 use rstsr_linalg_traits::prelude_dev::*;
 
-impl<R, T, D> InvAPI<DeviceBLAS> for &TensorAny<R, T, DeviceBLAS, D>
+#[duplicate_item(
+    ImplType                          Tr                               ;
+   [T, D, R: DataAPI<Data = Vec<T>>] [&TensorAny<R, T, DeviceBLAS, D> ];
+   [T, D                           ] [TensorView<'_, T, DeviceBLAS, D>];
+   [T, D                           ] [TensorCow<'_, T, DeviceBLAS, D> ];
+)]
+impl<ImplType> InvAPI<DeviceBLAS> for Tr
 where
     T: BlasFloat,
-    R: DataAPI<Data = Vec<T>>,
     D: DimAPI,
     DeviceBLAS: LapackDriverAPI<T>,
 {
@@ -26,29 +31,17 @@ where
 }
 
 #[duplicate_item(
-    TSR;
-    [TensorView<'_, T, DeviceBLAS, D>];
-    [TensorCow<'_, T, DeviceBLAS, D>]
+    ImplType   Tr                              ;
+   ['a, T, D] [TensorMut<'a, T, DeviceBLAS, D>];
+   [    T, D] [Tensor<T, DeviceBLAS, D>       ];
 )]
-impl<T, D> InvAPI<DeviceBLAS> for TSR
+impl<ImplType> InvAPI<DeviceBLAS> for Tr
 where
     T: BlasFloat,
     D: DimAPI,
     DeviceBLAS: LapackDriverAPI<T>,
 {
-    type Out = Tensor<T, DeviceBLAS, D>;
-    fn inv_f(self) -> Result<Self::Out> {
-        InvAPI::<DeviceBLAS>::inv_f(&self)
-    }
-}
-
-impl<'a, T, D> InvAPI<DeviceBLAS> for TensorMut<'a, T, DeviceBLAS, D>
-where
-    T: BlasFloat,
-    D: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>,
-{
-    type Out = TensorMutable<'a, T, DeviceBLAS, D>;
+    type Out = Tr;
     fn inv_f(self) -> Result<Self::Out> {
         rstsr_assert_eq!(
             self.ndim(),
@@ -56,37 +49,10 @@ where
             InvalidLayout,
             "Currently we can only handle 2-D matrix."
         )?;
-        let a = self.into_dim::<Ix2>();
-        let result = ref_impl_inv_f(a.into())?;
-        Ok(result.into_dim::<IxD>().into_dim::<D>())
-    }
-}
-
-impl<T, D> InvAPI<DeviceBLAS> for Tensor<T, DeviceBLAS, D>
-where
-    T: BlasFloat,
-    D: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>,
-{
-    type Out = Tensor<T, DeviceBLAS, D>;
-    fn inv_f(mut self) -> Result<Self::Out> {
-        InvAPI::<DeviceBLAS>::inv_f(self.view_mut())?;
-        Ok(self)
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use crate::DeviceBLAS;
-    use rstsr_test_manifest::get_vec;
-
-    #[test]
-    fn playground() {
-        let device = DeviceBLAS::default();
-        let la = [2048, 2048].c();
-        let a = Tensor::new(Storage::new(get_vec::<f64>('a').into(), device.clone()), la);
-        let a_inv = inv(&a);
-        println!("{:?}", a_inv.into_owned());
+        let mut a = self;
+        let a_view = a.view_mut().into_dim::<Ix2>();
+        let result = ref_impl_inv_f(a_view.into())?;
+        result.clone_to_mut();
+        Ok(a)
     }
 }

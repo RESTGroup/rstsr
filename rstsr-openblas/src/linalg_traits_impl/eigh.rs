@@ -4,10 +4,17 @@ use rstsr_blas_traits::prelude::*;
 use rstsr_core::prelude_dev::*;
 use rstsr_linalg_traits::prelude_dev::*;
 
-impl<R, T, D> EighAPI<DeviceBLAS> for (&TensorAny<R, T, DeviceBLAS, D>, FlagUpLo)
+/* #region simple eigh */
+
+#[duplicate_item(
+    ImplType                          Tr                               ;
+   [T, D, R: DataAPI<Data = Vec<T>>] [&TensorAny<R, T, DeviceBLAS, D> ];
+   [T, D                           ] [TensorView<'_, T, DeviceBLAS, D>];
+   [T, D                           ] [TensorCow<'_, T, DeviceBLAS, D> ];
+)]
+impl<ImplType> EighAPI<DeviceBLAS> for (Tr, FlagUpLo)
 where
     T: BlasFloat,
-    R: DataAPI<Data = Vec<T>>,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
     DeviceBLAS: LapackDriverAPI<T>,
@@ -25,10 +32,15 @@ where
     }
 }
 
-impl<R, T, D> EighAPI<DeviceBLAS> for &TensorAny<R, T, DeviceBLAS, D>
+#[duplicate_item(
+    ImplType                          Tr                               ;
+   [T, D, R: DataAPI<Data = Vec<T>>] [&TensorAny<R, T, DeviceBLAS, D> ];
+   [T, D                           ] [TensorView<'_, T, DeviceBLAS, D>];
+   [T, D                           ] [TensorCow<'_, T, DeviceBLAS, D> ];
+)]
+impl<ImplType> EighAPI<DeviceBLAS> for Tr
 where
     T: BlasFloat,
-    R: DataAPI<Data = Vec<T>>,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
     DeviceBLAS: LapackDriverAPI<T>,
@@ -45,50 +57,74 @@ where
 }
 
 #[duplicate_item(
-    TSR;
-    [TensorView<'_, T, DeviceBLAS, D>];
-    [TensorCow<'_, T, DeviceBLAS, D>]
+    ImplType   Tr                              ;
+   ['a, T, D] [TensorMut<'a, T, DeviceBLAS, D>];
+   [    T, D] [Tensor<T, DeviceBLAS, D>       ];
 )]
-impl<T, D> EighAPI<DeviceBLAS> for (TSR, FlagUpLo)
+impl<ImplType> EighAPI<DeviceBLAS> for (Tr, FlagUpLo)
 where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
     DeviceBLAS: LapackDriverAPI<T>,
 {
-    type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
+    type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tr>;
     fn eigh_f(self) -> Result<Self::Out> {
-        let (a, uplo) = self;
-        EighAPI::<DeviceBLAS>::eigh_f((&a, uplo))
+        let (mut a, uplo) = self;
+        rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
+        let a_view = a.view_mut().into_dim::<Ix2>();
+        let eigh_args = EighArgs::default().a(a_view).uplo(uplo).build()?;
+        let (vals, vecs) = ref_impl_eigh_simple_f(eigh_args)?;
+        let vals = vals.into_dim::<IxD>().into_dim::<D::SmallerOne>();
+        vecs.unwrap().clone_to_mut();
+        return Ok(EighResult { eigenvalues: vals, eigenvectors: a });
     }
 }
 
 #[duplicate_item(
-    TSR;
-    [TensorView<'_, T, DeviceBLAS, D>];
-    [TensorCow<'_, T, DeviceBLAS, D>]
+    ImplType   Tr                              ;
+   ['a, T, D] [TensorMut<'a, T, DeviceBLAS, D>];
+   [    T, D] [Tensor<T, DeviceBLAS, D>       ];
 )]
-impl<T, D> EighAPI<DeviceBLAS> for TSR
+impl<ImplType> EighAPI<DeviceBLAS> for Tr
 where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
     DeviceBLAS: LapackDriverAPI<T>,
 {
-    type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
+    type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tr>;
     fn eigh_f(self) -> Result<Self::Out> {
-        EighAPI::<DeviceBLAS>::eigh_f(&self)
+        let a = self;
+        let uplo = match a.device().default_order() {
+            RowMajor => Lower,
+            ColMajor => Upper,
+        };
+        EighAPI::<DeviceBLAS>::eigh_f((a, uplo))
     }
 }
 
-impl<Ra, Rb, T, D> EighAPI<DeviceBLAS>
-    for (&TensorAny<Ra, T, DeviceBLAS, D>, &TensorAny<Rb, T, DeviceBLAS, D>, FlagUpLo, i32)
+/* #endregion */
+
+/* #region general eigh */
+
+#[duplicate_item(
+    ImplType                                                       Tra                                Trb                              ;
+   [T, D, Ra: DataAPI<Data = Vec<T>>, Rb: DataAPI<Data = Vec<T>>] [&TensorAny<Ra, T, DeviceBLAS, D>] [&TensorAny<Rb, T, DeviceBLAS, D>];
+   [T, D, R: DataAPI<Data = Vec<T>>                             ] [&TensorAny<R, T, DeviceBLAS, D> ] [TensorView<'_, T, DeviceBLAS, D>];
+   [T, D, R: DataAPI<Data = Vec<T>>                             ] [&TensorAny<R, T, DeviceBLAS, D> ] [TensorCow<'_, T, DeviceBLAS, D> ];
+   [T, D, R: DataAPI<Data = Vec<T>>                             ] [TensorView<'_, T, DeviceBLAS, D>] [&TensorAny<R, T, DeviceBLAS, D> ];
+   [T, D, R: DataAPI<Data = Vec<T>>                             ] [TensorCow<'_, T, DeviceBLAS, D> ] [&TensorAny<R, T, DeviceBLAS, D> ];
+   [T, D,                                                       ] [TensorView<'_, T, DeviceBLAS, D>] [TensorView<'_, T, DeviceBLAS, D>];
+   [T, D,                                                       ] [TensorView<'_, T, DeviceBLAS, D>] [TensorCow<'_, T, DeviceBLAS, D> ];
+   [T, D,                                                       ] [TensorCow<'_, T, DeviceBLAS, D> ] [TensorView<'_, T, DeviceBLAS, D>];
+   [T, D,                                                       ] [TensorCow<'_, T, DeviceBLAS, D> ] [TensorCow<'_, T, DeviceBLAS, D> ];
+)]
+impl<ImplType> EighAPI<DeviceBLAS> for (Tra, Trb, FlagUpLo, i32)
 where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    Ra: DataAPI<Data = Vec<T>>,
-    Rb: DataAPI<Data = Vec<T>>,
     DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
@@ -108,14 +144,23 @@ where
     }
 }
 
-impl<Ra, Rb, T, D> EighAPI<DeviceBLAS>
-    for (&TensorAny<Ra, T, DeviceBLAS, D>, &TensorAny<Rb, T, DeviceBLAS, D>, FlagUpLo)
+#[duplicate_item(
+    ImplType                                                       Tra                                Trb                              ;
+   [T, D, Ra: DataAPI<Data = Vec<T>>, Rb: DataAPI<Data = Vec<T>>] [&TensorAny<Ra, T, DeviceBLAS, D>] [&TensorAny<Rb, T, DeviceBLAS, D>];
+   [T, D, R: DataAPI<Data = Vec<T>>                             ] [&TensorAny<R, T, DeviceBLAS, D> ] [TensorView<'_, T, DeviceBLAS, D>];
+   [T, D, R: DataAPI<Data = Vec<T>>                             ] [&TensorAny<R, T, DeviceBLAS, D> ] [TensorCow<'_, T, DeviceBLAS, D> ];
+   [T, D, R: DataAPI<Data = Vec<T>>                             ] [TensorView<'_, T, DeviceBLAS, D>] [&TensorAny<R, T, DeviceBLAS, D> ];
+   [T, D, R: DataAPI<Data = Vec<T>>                             ] [TensorCow<'_, T, DeviceBLAS, D> ] [&TensorAny<R, T, DeviceBLAS, D> ];
+   [T, D,                                                       ] [TensorView<'_, T, DeviceBLAS, D>] [TensorView<'_, T, DeviceBLAS, D>];
+   [T, D,                                                       ] [TensorView<'_, T, DeviceBLAS, D>] [TensorCow<'_, T, DeviceBLAS, D> ];
+   [T, D,                                                       ] [TensorCow<'_, T, DeviceBLAS, D> ] [TensorView<'_, T, DeviceBLAS, D>];
+   [T, D,                                                       ] [TensorCow<'_, T, DeviceBLAS, D> ] [TensorCow<'_, T, DeviceBLAS, D> ];
+)]
+impl<ImplType> EighAPI<DeviceBLAS> for (Tra, Trb, FlagUpLo)
 where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    Ra: DataAPI<Data = Vec<T>>,
-    Rb: DataAPI<Data = Vec<T>>,
     DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
@@ -125,14 +170,23 @@ where
     }
 }
 
-impl<Ra, Rb, T, D> EighAPI<DeviceBLAS>
-    for (&TensorAny<Ra, T, DeviceBLAS, D>, &TensorAny<Rb, T, DeviceBLAS, D>)
+#[duplicate_item(
+    ImplType                                                       Tra                                Trb                              ;
+   [T, D, Ra: DataAPI<Data = Vec<T>>, Rb: DataAPI<Data = Vec<T>>] [&TensorAny<Ra, T, DeviceBLAS, D>] [&TensorAny<Rb, T, DeviceBLAS, D>];
+   [T, D, R: DataAPI<Data = Vec<T>>                             ] [&TensorAny<R, T, DeviceBLAS, D> ] [TensorView<'_, T, DeviceBLAS, D>];
+   [T, D, R: DataAPI<Data = Vec<T>>                             ] [&TensorAny<R, T, DeviceBLAS, D> ] [TensorCow<'_, T, DeviceBLAS, D> ];
+   [T, D, R: DataAPI<Data = Vec<T>>                             ] [TensorView<'_, T, DeviceBLAS, D>] [&TensorAny<R, T, DeviceBLAS, D> ];
+   [T, D, R: DataAPI<Data = Vec<T>>                             ] [TensorCow<'_, T, DeviceBLAS, D> ] [&TensorAny<R, T, DeviceBLAS, D> ];
+   [T, D,                                                       ] [TensorView<'_, T, DeviceBLAS, D>] [TensorView<'_, T, DeviceBLAS, D>];
+   [T, D,                                                       ] [TensorView<'_, T, DeviceBLAS, D>] [TensorCow<'_, T, DeviceBLAS, D> ];
+   [T, D,                                                       ] [TensorCow<'_, T, DeviceBLAS, D> ] [TensorView<'_, T, DeviceBLAS, D>];
+   [T, D,                                                       ] [TensorCow<'_, T, DeviceBLAS, D> ] [TensorCow<'_, T, DeviceBLAS, D> ];
+)]
+impl<ImplType> EighAPI<DeviceBLAS> for (Tra, Trb)
 where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    Ra: DataAPI<Data = Vec<T>>,
-    Rb: DataAPI<Data = Vec<T>>,
     DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
@@ -146,143 +200,44 @@ where
     }
 }
 
-#[duplicate_item(
-    Inp;
-    [(TensorView<'_, T, DeviceBLAS, D>, &TensorAny<R, T, DeviceBLAS, D>, FlagUpLo, i32)];
-    [(TensorCow<'_, T, DeviceBLAS, D>, &TensorAny<R, T, DeviceBLAS, D>, FlagUpLo, i32)];
-    [(&TensorAny<R, T, DeviceBLAS, D>, TensorView<'_, T, DeviceBLAS, D>, FlagUpLo, i32)];
-    [(&TensorAny<R, T, DeviceBLAS, D>, TensorCow<'_, T, DeviceBLAS, D>, FlagUpLo, i32)];
-)]
-impl<R, T, D> EighAPI<DeviceBLAS> for Inp
+/* #endregion */
+
+/* #region EighArgs implementation */
+
+impl<'a, 'b, T> EighAPI<DeviceBLAS> for EighArgs<'a, 'b, DeviceBLAS, T>
 where
     T: BlasFloat,
-    D: DimAPI + DimSmallerOneAPI,
-    D::SmallerOne: DimAPI,
-    R: DataAPI<Data = Vec<T>>,
     DeviceBLAS: LapackDriverAPI<T>,
 {
-    type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
+    type Out = EighResult<Tensor<T::Real, DeviceBLAS, Ix1>, TensorMutable<'a, T, DeviceBLAS, Ix2>>;
     fn eigh_f(self) -> Result<Self::Out> {
-        let (a, b, uplo, eig_type) = self;
-        let a = a.view();
-        let b = b.view();
-        EighAPI::<DeviceBLAS>::eigh_f((&a, &b, uplo, eig_type))
+        let args = self.build()?;
+        rstsr_assert!(
+            !args.eigvals_only,
+            InvalidValue,
+            "Eigh only supports eigvals_only = false."
+        )?;
+        let (vals, vecs) = ref_impl_eigh_simple_f(args)?;
+        Ok(EighResult { eigenvalues: vals, eigenvectors: vecs.unwrap() })
     }
 }
 
-#[duplicate_item(
-    Inp;
-    [(TensorView<'_, T, DeviceBLAS, D>, &TensorAny<R, T, DeviceBLAS, D>, FlagUpLo)];
-    [(TensorCow<'_, T, DeviceBLAS, D>, &TensorAny<R, T, DeviceBLAS, D>, FlagUpLo)];
-    [(&TensorAny<R, T, DeviceBLAS, D>, TensorView<'_, T, DeviceBLAS, D>, FlagUpLo)];
-    [(&TensorAny<R, T, DeviceBLAS, D>, TensorCow<'_, T, DeviceBLAS, D>, FlagUpLo)];
-)]
-impl<R, T, D> EighAPI<DeviceBLAS> for Inp
+impl<'a, 'b, T> EighAPI<DeviceBLAS> for EighArgs_<'a, 'b, DeviceBLAS, T>
 where
     T: BlasFloat,
-    D: DimAPI + DimSmallerOneAPI,
-    D::SmallerOne: DimAPI,
-    R: DataAPI<Data = Vec<T>>,
     DeviceBLAS: LapackDriverAPI<T>,
 {
-    type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
+    type Out = EighResult<Tensor<T::Real, DeviceBLAS, Ix1>, TensorMutable<'a, T, DeviceBLAS, Ix2>>;
     fn eigh_f(self) -> Result<Self::Out> {
-        let (a, b, uplo) = self;
-        let a = a.view();
-        let b = b.view();
-        let eig_type = 1;
-        EighAPI::<DeviceBLAS>::eigh_f((&a, &b, uplo, eig_type))
+        let args = self;
+        rstsr_assert!(
+            !args.eigvals_only,
+            InvalidValue,
+            "Eigh only supports eigvals_only = false."
+        )?;
+        let (vals, vecs) = ref_impl_eigh_simple_f(args)?;
+        Ok(EighResult { eigenvalues: vals, eigenvectors: vecs.unwrap() })
     }
 }
 
-#[duplicate_item(
-    Inp;
-    [(TensorView<'_, T, DeviceBLAS, D>, &TensorAny<R, T, DeviceBLAS, D>)];
-    [(TensorCow<'_, T, DeviceBLAS, D>, &TensorAny<R, T, DeviceBLAS, D>)];
-    [(&TensorAny<R, T, DeviceBLAS, D>, TensorView<'_, T, DeviceBLAS, D>)];
-    [(&TensorAny<R, T, DeviceBLAS, D>, TensorCow<'_, T, DeviceBLAS, D>)];
-)]
-impl<R, T, D> EighAPI<DeviceBLAS> for Inp
-where
-    T: BlasFloat,
-    D: DimAPI + DimSmallerOneAPI,
-    D::SmallerOne: DimAPI,
-    R: DataAPI<Data = Vec<T>>,
-    DeviceBLAS: LapackDriverAPI<T>,
-{
-    type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
-    fn eigh_f(self) -> Result<Self::Out> {
-        let (a, b) = self;
-        let a = a.view();
-        let b = b.view();
-        let uplo = match a.device().default_order() {
-            RowMajor => Lower,
-            ColMajor => Upper,
-        };
-        let eig_type = 1;
-        EighAPI::<DeviceBLAS>::eigh_f((&a, &b, uplo, eig_type))
-    }
-}
-
-#[duplicate_item(
-    Inp;
-    [(TensorView<'_, T, DeviceBLAS, D>, TensorView<'_, T, DeviceBLAS, D>, FlagUpLo, i32)];
-    [(TensorView<'_, T, DeviceBLAS, D>, TensorCow<'_, T, DeviceBLAS, D>, FlagUpLo, i32)];
-    [(TensorCow<'_, T, DeviceBLAS, D>, TensorView<'_, T, DeviceBLAS, D>, FlagUpLo, i32)];
-    [(TensorCow<'_, T, DeviceBLAS, D>, TensorCow<'_, T, DeviceBLAS, D>, FlagUpLo, i32)];
-)]
-impl<T, D> EighAPI<DeviceBLAS> for Inp
-where
-    T: BlasFloat,
-    D: DimAPI + DimSmallerOneAPI,
-    D::SmallerOne: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>,
-{
-    type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
-    fn eigh_f(self) -> Result<Self::Out> {
-        let (a, b, uplo, eig_type) = self;
-        EighAPI::<DeviceBLAS>::eigh_f((&a, &b, uplo, eig_type))
-    }
-}
-
-#[duplicate_item(
-    Inp;
-    [(TensorView<'_, T, DeviceBLAS, D>, TensorView<'_, T, DeviceBLAS, D>, FlagUpLo)];
-    [(TensorView<'_, T, DeviceBLAS, D>, TensorCow<'_, T, DeviceBLAS, D>, FlagUpLo)];
-    [(TensorCow<'_, T, DeviceBLAS, D>, TensorView<'_, T, DeviceBLAS, D>, FlagUpLo)];
-    [(TensorCow<'_, T, DeviceBLAS, D>, TensorCow<'_, T, DeviceBLAS, D>, FlagUpLo)];
-)]
-impl<T, D> EighAPI<DeviceBLAS> for Inp
-where
-    T: BlasFloat,
-    D: DimAPI + DimSmallerOneAPI,
-    D::SmallerOne: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>,
-{
-    type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
-    fn eigh_f(self) -> Result<Self::Out> {
-        let (a, b, uplo) = self;
-        EighAPI::<DeviceBLAS>::eigh_f((&a, &b, uplo))
-    }
-}
-
-#[duplicate_item(
-    Inp;
-    [(TensorView<'_, T, DeviceBLAS, D>, TensorView<'_, T, DeviceBLAS, D>)];
-    [(TensorView<'_, T, DeviceBLAS, D>, TensorCow<'_, T, DeviceBLAS, D>)];
-    [(TensorCow<'_, T, DeviceBLAS, D>, TensorView<'_, T, DeviceBLAS, D>)];
-    [(TensorCow<'_, T, DeviceBLAS, D>, TensorCow<'_, T, DeviceBLAS, D>)];
-)]
-impl<T, D> EighAPI<DeviceBLAS> for Inp
-where
-    T: BlasFloat,
-    D: DimAPI + DimSmallerOneAPI,
-    D::SmallerOne: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>,
-{
-    type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
-    fn eigh_f(self) -> Result<Self::Out> {
-        let (a, b) = self;
-        EighAPI::<DeviceBLAS>::eigh_f((&a, &b))
-    }
-}
+/* #endregion */
