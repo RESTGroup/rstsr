@@ -47,4 +47,12 @@ mod test {
         assert!((fingerprint(&w) - -2503.84161931662).abs() < 1e-8);
         assert!((fingerprint(&v.abs()) - 152.17700520642055).abs() < 1e-8);
     }
+
+    #[test]
+    fn test_inv() {
+        let device = DeviceBLAS::default();
+        let a = rt::asarray((get_vec::<f64>('a'), [1024, 1024].c(), &device));
+        let a_inv = inv(a.view());
+        assert!((fingerprint(&a_inv) - 143.39005577037764).abs() < 1e-8);
+    }
 }

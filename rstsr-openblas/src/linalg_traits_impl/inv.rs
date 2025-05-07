@@ -1,4 +1,5 @@
 use crate::DeviceBLAS;
+use duplicate::duplicate_item;
 use rstsr_blas_traits::prelude::*;
 use rstsr_core::prelude_dev::*;
 use rstsr_linalg_traits::prelude_dev::*;
@@ -24,7 +25,12 @@ where
     }
 }
 
-impl<T, D> InvAPI<DeviceBLAS> for TensorView<'_, T, DeviceBLAS, D>
+#[duplicate_item(
+    TSR;
+    [TensorView<'_, T, DeviceBLAS, D>];
+    [TensorCow<'_, T, DeviceBLAS, D>]
+)]
+impl<T, D> InvAPI<DeviceBLAS> for TSR
 where
     T: BlasFloat,
     D: DimAPI,

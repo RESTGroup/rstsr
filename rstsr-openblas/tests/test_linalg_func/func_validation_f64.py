@@ -64,4 +64,11 @@ assert np.isclose(fingerprint(w), -2503.84161931662)
 assert np.isclose(fingerprint(np.abs(v)), 152.17700520642055)
 fingerprint(w), fingerprint(np.abs(v))
 
+# ### inv
+
+a = a_raw.copy().reshape(1024, 1024)
+a_inv = np.linalg.inv(a)
+assert np.isclose(fingerprint(a_inv), 143.39005577037764)
+fingerprint(a_inv)
+
 
