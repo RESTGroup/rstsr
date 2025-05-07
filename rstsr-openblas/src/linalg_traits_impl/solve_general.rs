@@ -7,8 +7,8 @@ impl<Ra, Rb, T, D> SolveGeneralAPI<DeviceBLAS>
     for (&TensorAny<Ra, T, DeviceBLAS, D>, &TensorAny<Rb, T, DeviceBLAS, D>)
 where
     T: BlasFloat,
-    Ra: DataCloneAPI<Data = Vec<T>>,
-    Rb: DataCloneAPI<Data = Vec<T>>,
+    Ra: DataAPI<Data = Vec<T>>,
+    Rb: DataAPI<Data = Vec<T>>,
     D: DimAPI,
     DeviceBLAS: LapackDriverAPI<T>,
 {
@@ -42,7 +42,7 @@ impl<R, T, D> SolveGeneralAPI<DeviceBLAS>
     for (&TensorAny<R, T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>)
 where
     T: BlasFloat,
-    R: DataCloneAPI<Data = Vec<T>>,
+    R: DataAPI<Data = Vec<T>>,
     D: DimAPI,
     DeviceBLAS: LapackDriverAPI<T>,
 {

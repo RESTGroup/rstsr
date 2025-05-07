@@ -6,7 +6,7 @@ use rstsr_linalg_traits::prelude_dev::*;
 impl<R, T, D> CholeskyAPI<DeviceBLAS> for (&TensorAny<R, T, DeviceBLAS, D>, FlagUpLo)
 where
     T: BlasFloat,
-    R: DataCloneAPI<Data = Vec<T>>,
+    R: DataAPI<Data = Vec<T>>,
     D: DimAPI,
     DeviceBLAS: LapackDriverAPI<T>,
 {

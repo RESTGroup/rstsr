@@ -6,7 +6,7 @@ use rstsr_linalg_traits::prelude_dev::*;
 impl<R, T, D> EighAPI<DeviceBLAS> for &TensorAny<R, T, DeviceBLAS, D>
 where
     T: BlasFloat,
-    R: DataCloneAPI<Data = Vec<T>>,
+    R: DataAPI<Data = Vec<T>>,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
     DeviceBLAS: LapackDriverAPI<T>,
@@ -43,8 +43,8 @@ where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    Ra: DataCloneAPI<Data = Vec<T>>,
-    Rb: DataCloneAPI<Data = Vec<T>>,
+    Ra: DataAPI<Data = Vec<T>>,
+    Rb: DataAPI<Data = Vec<T>>,
     DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;

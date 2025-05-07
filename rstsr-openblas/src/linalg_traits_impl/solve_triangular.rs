@@ -8,8 +8,8 @@ impl<Ra, Rb, T, D> SolveTriangularAPI<DeviceBLAS>
 where
     T: BlasFloat,
     D: DimAPI,
-    Ra: DataCloneAPI<Data = Vec<T>>,
-    Rb: DataCloneAPI<Data = Vec<T>>,
+    Ra: DataAPI<Data = Vec<T>>,
+    Rb: DataAPI<Data = Vec<T>>,
     DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
@@ -42,7 +42,7 @@ impl<R, T, D> SolveTriangularAPI<DeviceBLAS>
     for (&TensorAny<R, T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>, FlagUpLo)
 where
     T: BlasFloat,
-    R: DataCloneAPI<Data = Vec<T>>,
+    R: DataAPI<Data = Vec<T>>,
     D: DimAPI,
     DeviceBLAS: LapackDriverAPI<T>,
 {
