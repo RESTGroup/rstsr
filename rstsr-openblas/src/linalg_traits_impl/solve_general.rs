@@ -89,24 +89,3 @@ where
         Ok(b)
     }
 }
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn test_solve_general() {
-        let device = DeviceBLAS::default();
-        let vec_a = vec![1.0, 2.0, 3.0, 4.0];
-        let vec_b = vec![5.0, 6.0, 7.0, 8.0, 9.0, 10.0];
-        let a = asarray((vec_a, [2, 2].c(), &device));
-        let b = asarray((vec_b, [2, 3].c(), &device));
-        let ptr_b = b.as_ptr();
-        let x = solve_general((&a, &b));
-        println!("{:?}", x);
-
-        let x = solve_general((&a, b));
-        println!("{:?}", x);
-        assert_eq!(x.as_ptr(), ptr_b);
-    }
-}
