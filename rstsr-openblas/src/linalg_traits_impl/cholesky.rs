@@ -1,24 +1,8 @@
 use crate::DeviceBLAS;
+use duplicate::duplicate_item;
 use rstsr_blas_traits::prelude::*;
 use rstsr_core::prelude_dev::*;
 use rstsr_linalg_traits::prelude_dev::*;
-
-impl<R, T, D> CholeskyAPI<DeviceBLAS> for &TensorAny<R, T, DeviceBLAS, D>
-where
-    T: BlasFloat,
-    R: DataAPI<Data = Vec<T>>,
-    D: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>,
-{
-    type Out = Tensor<T, DeviceBLAS, D>;
-    fn cholesky_f(self) -> Result<Self::Out> {
-        let a = self;
-        rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
-        let a = a.view().into_dim::<Ix2>();
-        let result = ref_impl_cholesky_f(a.view().into(), None)?.into_owned();
-        Ok(result.into_dim::<IxD>().into_dim::<D>())
-    }
-}
 
 impl<R, T, D> CholeskyAPI<DeviceBLAS> for (&TensorAny<R, T, DeviceBLAS, D>, FlagUpLo)
 where
@@ -37,20 +21,30 @@ where
     }
 }
 
-impl<T, D> CholeskyAPI<DeviceBLAS> for TensorView<'_, T, DeviceBLAS, D>
+impl<R, T, D> CholeskyAPI<DeviceBLAS> for &TensorAny<R, T, DeviceBLAS, D>
 where
     T: BlasFloat,
+    R: DataAPI<Data = Vec<T>>,
     D: DimAPI,
     DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
     fn cholesky_f(self) -> Result<Self::Out> {
         let a = self;
-        CholeskyAPI::<DeviceBLAS>::cholesky_f(&a)
+        let uplo = match a.device().default_order() {
+            RowMajor => Lower,
+            ColMajor => Upper,
+        };
+        CholeskyAPI::<DeviceBLAS>::cholesky_f((a, uplo))
     }
 }
 
-impl<T, D> CholeskyAPI<DeviceBLAS> for (TensorView<'_, T, DeviceBLAS, D>, FlagUpLo)
+#[duplicate_item(
+    TSR;
+    [TensorView<'_, T, DeviceBLAS, D>];
+    [TensorCow<'_, T, DeviceBLAS, D>]
+)]
+impl<T, D> CholeskyAPI<DeviceBLAS> for (TSR, FlagUpLo)
 where
     T: BlasFloat,
     D: DimAPI,
@@ -63,19 +57,21 @@ where
     }
 }
 
-impl<'a, T, D> CholeskyAPI<DeviceBLAS> for TensorMut<'a, T, DeviceBLAS, D>
+#[duplicate_item(
+    TSR;
+    [TensorView<'_, T, DeviceBLAS, D>];
+    [TensorCow<'_, T, DeviceBLAS, D>]
+)]
+impl<T, D> CholeskyAPI<DeviceBLAS> for TSR
 where
     T: BlasFloat,
     D: DimAPI,
     DeviceBLAS: LapackDriverAPI<T>,
 {
-    type Out = TensorMutable<'a, T, DeviceBLAS, D>;
+    type Out = Tensor<T, DeviceBLAS, D>;
     fn cholesky_f(self) -> Result<Self::Out> {
         let a = self;
-        rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
-        let a = a.into_dim::<Ix2>();
-        let result = ref_impl_cholesky_f(a.into(), None)?;
-        Ok(result.into_dim::<IxD>().into_dim::<D>())
+        CholeskyAPI::<DeviceBLAS>::cholesky_f(&a)
     }
 }
 
@@ -95,17 +91,20 @@ where
     }
 }
 
-impl<T, D> CholeskyAPI<DeviceBLAS> for Tensor<T, DeviceBLAS, D>
+impl<'a, T, D> CholeskyAPI<DeviceBLAS> for TensorMut<'a, T, DeviceBLAS, D>
 where
     T: BlasFloat,
     D: DimAPI,
     DeviceBLAS: LapackDriverAPI<T>,
 {
-    type Out = Tensor<T, DeviceBLAS, D>;
+    type Out = TensorMutable<'a, T, DeviceBLAS, D>;
     fn cholesky_f(self) -> Result<Self::Out> {
-        let mut a = self;
-        CholeskyAPI::<DeviceBLAS>::cholesky_f(a.view_mut())?;
-        Ok(a)
+        let a = self;
+        let uplo = match a.device().default_order() {
+            RowMajor => Lower,
+            ColMajor => Upper,
+        };
+        CholeskyAPI::<DeviceBLAS>::cholesky_f((a, uplo))
     }
 }
 
@@ -123,21 +122,16 @@ where
     }
 }
 
-#[cfg(test)]
-mod test {
-    use super::*;
-    use crate::DeviceBLAS;
-
-    #[test]
-    fn playground() {
-        let device = DeviceBLAS::default();
-        let vec_a = [1, 1, 2, 1, 3, 1, 2, 1, 8].iter().map(|&x| x as f64).collect::<Vec<_>>();
-        let a = asarray((vec_a, [3, 3].c(), &device)).into_dim::<Ix2>();
-        let a_cholesky = cholesky((a, Lower));
-        println!("{:?}", a_cholesky);
-        let vec_a = [1, 1, 2, 1, 3, 1, 2, 1, 8].iter().map(|&x| x as f64).collect::<Vec<_>>();
-        let a = asarray((vec_a, vec![3, 3].c(), &device));
-        let a_cholesky = cholesky((a, Upper));
-        println!("{:?}", a_cholesky);
+impl<T, D> CholeskyAPI<DeviceBLAS> for Tensor<T, DeviceBLAS, D>
+where
+    T: BlasFloat,
+    D: DimAPI,
+    DeviceBLAS: LapackDriverAPI<T>,
+{
+    type Out = Tensor<T, DeviceBLAS, D>;
+    fn cholesky_f(self) -> Result<Self::Out> {
+        let mut a = self;
+        CholeskyAPI::<DeviceBLAS>::cholesky_f(a.view_mut())?;
+        Ok(a)
     }
 }

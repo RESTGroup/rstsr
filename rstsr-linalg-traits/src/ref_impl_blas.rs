@@ -24,7 +24,7 @@ where
         Upper => triu(result.view_mut()),
         Lower => tril(result.view_mut()),
     };
-    Ok(result)
+    Ok(result.clone_to_mut())
 }
 
 /* #endregion */
@@ -102,7 +102,7 @@ where
         };
         match eigvals_only {
             true => Ok((w, None)),
-            false => Ok((w, Some(v))),
+            false => Ok((w, Some(v.clone_to_mut()))),
         }
     }
 }
@@ -121,7 +121,7 @@ where
     let task = || {
         let (mut a, ipiv) = GETRF::default().a(a).build()?.run()?;
         GETRI::default().a(a.view_mut()).ipiv(ipiv.view()).build()?.run()?;
-        Ok(a)
+        Ok(a.clone_to_mut())
     };
     device.with_blas_num_threads(nthreads, task)
 }
@@ -143,7 +143,7 @@ where
     let task = || GESV::default().a(a).b(b).build()?.run();
     let result = device.with_blas_num_threads(nthreads, task)?;
     let (_lu, _piv, x) = result;
-    Ok(x)
+    Ok(x.clone_to_mut())
 }
 
 /* #endregion */
@@ -168,7 +168,7 @@ where
     };
     let result = device.with_blas_num_threads(nthreads, task)?;
     let (_udut, _piv, x) = result;
-    Ok(x)
+    Ok(x.clone_to_mut())
 }
 
 /* #endregion */
@@ -188,7 +188,7 @@ where
     let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
     let task = || TRSM::default().a(a.view()).b(b).uplo(uplo).build()?.run();
     let result = device.with_blas_num_threads(nthreads, task)?;
-    Ok(result)
+    Ok(result.clone_to_mut())
 }
 
 /* #endregion */

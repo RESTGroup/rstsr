@@ -36,4 +36,32 @@ fingerprint(c)
 
 # ### eigh
 
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw.copy().reshape(1024, 1024)
+w, v = np.linalg.eigh(a)
+assert np.isclose(fingerprint(w), -71.4747209499407)
+assert np.isclose(fingerprint(np.abs(v)), -9.903934930318247)
+fingerprint(w), fingerprint(np.abs(v))
+
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw.copy().reshape(1024, 1024)
+w, v = np.linalg.eigh(a, UPLO="U")
+assert np.isclose(fingerprint(w), -71.4902453763506)
+assert np.isclose(fingerprint(np.abs(v)), 6.973792268793419)
+fingerprint(w), fingerprint(np.abs(v))
+
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw.copy().reshape(1024, 1024)
+w, v = scipy.linalg.eigh(a, b, lower=True)
+assert np.isclose(fingerprint(w), -89.60433120129908)
+assert np.isclose(fingerprint(np.abs(v)), -5.243112559130817)
+fingerprint(w), fingerprint(np.abs(v))
+
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw.copy().reshape(1024, 1024)
+w, v = scipy.linalg.eigh(a, b, lower=False, type=3)
+assert np.isclose(fingerprint(w), -2503.84161931662)
+assert np.isclose(fingerprint(np.abs(v)), 152.17700520642055)
+fingerprint(w), fingerprint(np.abs(v))
+
 
