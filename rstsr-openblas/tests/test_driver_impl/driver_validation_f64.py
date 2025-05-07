@@ -121,11 +121,3 @@ assert np.isclose(fingerprint(udut), 1182.7836118324408)
 assert np.isclose(fingerprint(piv), 11905.503011559245)
 assert np.isclose(fingerprint(x), -314.4502289190444)
 fingerprint(udut), fingerprint(piv), fingerprint(x)
-
-
-
-
-
-
-
-

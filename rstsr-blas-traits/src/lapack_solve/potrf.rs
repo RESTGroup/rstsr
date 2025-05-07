@@ -21,8 +21,8 @@ where
     #[builder(setter(into))]
     pub a: TensorReference<'a, T, B, Ix2>,
 
-    #[builder(setter(into), default = "Lower")]
-    pub uplo: FlagUpLo,
+    #[builder(setter(into), default = "None")]
+    pub uplo: Option<FlagUpLo>,
 }
 
 impl<'a, B, T> POTRF_<'a, B, T>
@@ -33,6 +33,11 @@ where
     pub fn internal_run(self) -> Result<TensorMutable2<'a, T, B>> {
         let Self { a, uplo } = self;
 
+        let device = a.device().clone();
+        let uplo = uplo.unwrap_or_else(|| match device.default_order() {
+            RowMajor => Lower,
+            ColMajor => Upper,
+        });
         let mut a = overwritable_convert(a)?;
         let order = if a.f_prefer() && !a.c_prefer() { ColMajor } else { RowMajor };
 
