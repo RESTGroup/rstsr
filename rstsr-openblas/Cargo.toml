@@ -23,6 +23,7 @@ rstsr-linalg-traits = { workspace = true, optional = true }
 rstsr-native-impl = { workspace = true, features = ["rayon"] }
 
 [dev-dependencies]
+rstsr = { path = "../rstsr", default-features = false, features = ["openblas", "linalg"] }
 rstsr-test-manifest = { workspace = true }
 
 [features]
