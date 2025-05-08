@@ -4,7 +4,7 @@ use rstsr_core::prelude_dev::*;
 use rstsr_linalg_traits::prelude_dev::*;
 
 impl<Ra, Rb, T, D> SolveTriangularAPI<DeviceBLAS>
-    for (&TensorAny<Ra, T, DeviceBLAS, D>, &TensorAny<Rb, T, DeviceBLAS, D>, FlagUpLo)
+    for (&TensorAny<Ra, T, DeviceBLAS, D>, &TensorAny<Rb, T, DeviceBLAS, D>, Option<FlagUpLo>)
 where
     T: BlasFloat,
     D: DimAPI,
@@ -25,7 +25,7 @@ where
 }
 
 impl<T, D> SolveTriangularAPI<DeviceBLAS>
-    for (TensorView<'_, T, DeviceBLAS, D>, TensorView<'_, T, DeviceBLAS, D>, FlagUpLo)
+    for (TensorView<'_, T, DeviceBLAS, D>, TensorView<'_, T, DeviceBLAS, D>, Option<FlagUpLo>)
 where
     T: BlasFloat,
     D: DimAPI,
@@ -39,7 +39,7 @@ where
 }
 
 impl<R, T, D> SolveTriangularAPI<DeviceBLAS>
-    for (&TensorAny<R, T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>, FlagUpLo)
+    for (&TensorAny<R, T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>, Option<FlagUpLo>)
 where
     T: BlasFloat,
     R: DataAPI<Data = Vec<T>>,
@@ -59,7 +59,7 @@ where
 }
 
 impl<T, D> SolveTriangularAPI<DeviceBLAS>
-    for (TensorView<'_, T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>, FlagUpLo)
+    for (TensorView<'_, T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>, Option<FlagUpLo>)
 where
     T: BlasFloat,
     D: DimAPI,
@@ -73,7 +73,7 @@ where
 }
 
 impl<T, D> SolveTriangularAPI<DeviceBLAS>
-    for (Tensor<T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>, FlagUpLo)
+    for (Tensor<T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>, Option<FlagUpLo>)
 where
     T: BlasFloat,
     D: DimAPI,

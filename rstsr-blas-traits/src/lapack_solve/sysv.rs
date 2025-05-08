@@ -27,8 +27,8 @@ where
     #[builder(setter(into))]
     pub b: TensorReference<'b, T, B, Ix2>,
 
-    #[builder(setter(into), default = "Lower")]
-    pub uplo: FlagUpLo,
+    #[builder(setter(into), default = "None")]
+    pub uplo: Option<FlagUpLo>,
 }
 
 impl<'a, 'b, B, T, const HERMI: bool> SYSV_<'a, 'b, B, T, HERMI>
@@ -43,9 +43,14 @@ where
         let Self { a, b, uplo } = self;
 
         let device = a.device().clone();
+        rstsr_assert!(device.same_device(b.device()), DeviceMismatch)?;
         let mut b = overwritable_convert(b)?;
         let order = if b.f_prefer() && !b.c_prefer() { ColMajor } else { RowMajor };
         let mut a = overwritable_convert_with_order(a, order)?;
+        let uplo = uplo.unwrap_or_else(|| match device.default_order() {
+            RowMajor => Lower,
+            ColMajor => Upper,
+        });
 
         let [n, nrhs] = *b.view().shape();
         rstsr_assert_eq!(a.view().shape(), &[n, n], InvalidLayout, "SYSV: A shape")?;

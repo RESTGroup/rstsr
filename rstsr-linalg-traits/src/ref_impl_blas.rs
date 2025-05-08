@@ -139,6 +139,7 @@ where
     B: LapackDriverAPI<T>,
 {
     let device = a.device().clone();
+    rstsr_assert!(device.same_device(b.device()), DeviceMismatch)?;
     let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
     let task = || GESV::default().a(a).b(b).build()?.run();
     let result = device.with_blas_num_threads(nthreads, task)?;
@@ -154,14 +155,19 @@ pub fn ref_impl_solve_symmetric_f<'b, T, B>(
     a: TensorReference<'_, T, B, Ix2>,
     b: TensorReference<'b, T, B, Ix2>,
     hermi: bool,
-    uplo: FlagUpLo,
+    uplo: Option<FlagUpLo>,
 ) -> Result<TensorMutable<'b, T, B, Ix2>>
 where
     T: BlasFloat,
     B: LapackDriverAPI<T>,
 {
     let device = a.device().clone();
+    rstsr_assert!(device.same_device(b.device()), DeviceMismatch)?;
     let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
+    let uplo = uplo.unwrap_or_else(|| match device.default_order() {
+        RowMajor => Lower,
+        ColMajor => Upper,
+    });
     let task = || match hermi {
         false => SYSV::<_, _, false>::default().a(a.view()).b(b).uplo(uplo).build()?.run(),
         true => SYSV::<_, _, true>::default().a(a.view()).b(b).uplo(uplo).build()?.run(),
@@ -178,13 +184,14 @@ where
 pub fn ref_impl_solve_triangular_f<'b, T, B>(
     a: TensorReference<'_, T, B, Ix2>,
     b: TensorReference<'b, T, B, Ix2>,
-    uplo: FlagUpLo,
+    uplo: Option<FlagUpLo>,
 ) -> Result<TensorMutable<'b, T, B, Ix2>>
 where
     T: BlasFloat,
     B: LapackDriverAPI<T>,
 {
     let device = a.device().clone();
+    rstsr_assert!(device.same_device(b.device()), DeviceMismatch)?;
     let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
     let task = || TRSM::default().a(a.view()).b(b).uplo(uplo).build()?.run();
     let result = device.with_blas_num_threads(nthreads, task)?;

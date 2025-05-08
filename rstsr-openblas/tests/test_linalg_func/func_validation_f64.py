@@ -78,9 +78,19 @@ b = b_raw[:1024*512].copy().reshape(1024, 512)
 x = np.linalg.solve(a, b)
 fingerprint(x)
 
+# ### sovle_symmetric
 
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw[:1024*512].copy().reshape(1024, 512)
+x = scipy.linalg.solve(a, b, assume_a="sym", lower=True)
+assert np.isclose(fingerprint(x), -397.1203235513806)
+fingerprint(x)
 
-
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw[:1024*512].copy().reshape(1024, 512)
+x = scipy.linalg.solve(a, b, assume_a="sym", lower=False)
+assert np.isclose(fingerprint(x), -314.45022891879034)
+fingerprint(x)
 
 
 
