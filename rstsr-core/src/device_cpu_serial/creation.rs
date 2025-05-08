@@ -9,7 +9,7 @@ where
         &self,
         len: usize,
     ) -> Result<Storage<DataOwned<Vec<T>>, T, DeviceCpuSerial>> {
-        let raw = uninitialized_vec(len);
+        let raw = uninitialized_vec(len)?;
         Ok(Storage::new(raw.into(), self.clone()))
     }
 
@@ -121,66 +121,6 @@ where
     }
 }
 
-pub fn tril_cpu_serial<T, D>(raw: &mut [T], layout: &Layout<D>, k: isize) -> Result<()>
-where
-    T: Num + Clone,
-    D: DimAPI,
-{
-    let (la_rest, la_ix2) = layout.dim_split_at(-2)?;
-    let mut la_ix2 = la_ix2.into_dim::<Ix2>()?;
-    for offset in IterLayoutColMajor::new(&la_rest)? {
-        unsafe { la_ix2.set_offset(offset) };
-        tril_ix2_cpu_serial(raw, &la_ix2, k)?;
-    }
-    Ok(())
-}
-
-pub fn tril_ix2_cpu_serial<T>(raw: &mut [T], layout: &Layout<Ix2>, k: isize) -> Result<()>
-where
-    T: Num + Clone,
-{
-    let [nrow, ncol] = *layout.shape();
-    for i in 0..nrow {
-        let j_start = (i as isize + k + 1).max(0) as usize;
-        for j in j_start..ncol {
-            unsafe {
-                raw[layout.index_uncheck(&[i, j]) as usize] = T::zero();
-            }
-        }
-    }
-    Ok(())
-}
-
-pub fn triu_cpu_serial<T, D>(raw: &mut [T], layout: &Layout<D>, k: isize) -> Result<()>
-where
-    T: Num + Clone,
-    D: DimAPI,
-{
-    let (la_rest, la_ix2) = layout.dim_split_at(-2)?;
-    let mut la_ix2 = la_ix2.into_dim::<Ix2>()?;
-    for offset in IterLayoutColMajor::new(&la_rest)? {
-        unsafe { la_ix2.set_offset(offset) };
-        triu_ix2_cpu_serial(raw, &la_ix2, k)?;
-    }
-    Ok(())
-}
-
-pub fn triu_ix2_cpu_serial<T>(raw: &mut [T], layout: &Layout<Ix2>, k: isize) -> Result<()>
-where
-    T: Num + Clone,
-{
-    let [nrow, _] = *layout.shape();
-    for i in 0..nrow {
-        let j_end = (i as isize + k).max(0) as usize;
-        for j in 0..j_end {
-            unsafe {
-                raw[layout.index_uncheck(&[i, j]) as usize] = T::zero();
-            }
-        }
-    }
-    Ok(())
-}
-
 impl<T> DeviceCreationTriAPI<T> for DeviceCpuSerial
 where
     T: Num + Clone,
@@ -210,34 +150,34 @@ mod test {
 
         let device = DeviceCpuSerial::default();
         let storage: Storage<_, f64, _> = device.zeros_impl(10).unwrap();
-        println!("{:?}", storage);
+        println!("{storage:?}");
         let storage: Storage<_, f64, _> = device.ones_impl(10).unwrap();
-        println!("{:?}", storage);
+        println!("{storage:?}");
         let storage: Storage<_, f64, _> = device.arange_int_impl(10).unwrap();
-        println!("{:?}", storage);
+        println!("{storage:?}");
         let storage: Storage<_, f64, _> = unsafe { device.empty_impl(10).unwrap() };
-        println!("{:?}", storage);
+        println!("{storage:?}");
         let storage = device.from_cpu_vec(&[1.0; 10]).unwrap();
-        println!("{:?}", storage);
+        println!("{storage:?}");
         let storage = device.outof_cpu_vec(vec![1.0; 10]).unwrap();
-        println!("{:?}", storage);
+        println!("{storage:?}");
         let storage = device.linspace_impl(0.0, 1.0, 10, true).unwrap();
-        println!("{:?}", storage);
+        println!("{storage:?}");
         let storage =
             device.linspace_impl(Complex::new(1.0, 2.0), Complex::new(3.5, 4.7), 10, true).unwrap();
-        println!("{:?}", storage);
+        println!("{storage:?}");
         let storage = device.arange_impl(0.0, 1.0, 0.1).unwrap();
-        println!("{:?}", storage);
+        println!("{storage:?}");
 
         // tril/triu
         let mut vec = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
         let layout = [3, 3].c();
         device.tril_impl(&mut vec, &layout, -1).unwrap();
-        println!("{:?}", vec);
+        println!("{vec:?}");
         assert_eq!(vec, vec![0, 0, 0, 4, 0, 0, 7, 8, 0]);
         let mut vec = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
         device.triu_impl(&mut vec, &layout, -1).unwrap();
-        println!("{:?}", vec);
+        println!("{vec:?}");
         assert_eq!(vec, vec![1, 2, 3, 4, 5, 6, 0, 8, 9]);
     }
 }

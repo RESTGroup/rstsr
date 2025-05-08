@@ -66,7 +66,7 @@ impl<T> DeviceStorageAPI<T> for DeviceBLAS {
     fn to_cpu_vec<R>(storage: &Storage<R, T, Self>) -> Result<Vec<T>>
     where
         Self::Raw: Clone,
-        R: DataCloneAPI<Data = Self::Raw>,
+        R: DataAPI<Data = Self::Raw>,
     {
         Ok(storage.raw().clone())
     }
@@ -119,6 +119,7 @@ impl<T> DeviceAPI<T> for DeviceBLAS {}
 impl<T, D> DeviceComplexFloatAPI<T, D> for DeviceBLAS
 where
     T: ComplexFloat + Send + Sync,
+    T::Real: Send + Sync,
     D: DimAPI,
 {
 }

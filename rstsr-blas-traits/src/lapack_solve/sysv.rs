@@ -27,29 +27,30 @@ where
     #[builder(setter(into))]
     pub b: TensorReference<'b, T, B, Ix2>,
 
-    #[builder(setter(into), default = "Lower")]
-    pub uplo: FlagUpLo,
+    #[builder(setter(into), default = "None")]
+    pub uplo: Option<FlagUpLo>,
 }
 
 impl<'a, 'b, B, T, const HERMI: bool> SYSV_<'a, 'b, B, T, HERMI>
 where
     T: BlasFloat,
-    B: SYSVDriverAPI<T, HERMI>
-        + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<blas_int, Raw = Vec<blas_int>>
-        + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceNumAPI<blas_int, Ix1>,
+    B: BlasDriverBaseAPI<T> + SYSVDriverAPI<T, HERMI>,
 {
     pub fn internal_run(
         self,
-    ) -> Result<(TensorMutable2<'a, T, B>, TensorMutable2<'b, T, B>, Tensor<blas_int, B, Ix1>)>
+    ) -> Result<(TensorMutable2<'a, T, B>, Tensor<blas_int, B, Ix1>, TensorMutable2<'b, T, B>)>
     {
         let Self { a, b, uplo } = self;
 
         let device = a.device().clone();
+        rstsr_assert!(device.same_device(b.device()), DeviceMismatch)?;
         let mut b = overwritable_convert(b)?;
         let order = if b.f_prefer() && !b.c_prefer() { ColMajor } else { RowMajor };
         let mut a = overwritable_convert_with_order(a, order)?;
+        let uplo = uplo.unwrap_or_else(|| match device.default_order() {
+            RowMajor => Lower,
+            ColMajor => Upper,
+        });
 
         let [n, nrhs] = *b.view().shape();
         rstsr_assert_eq!(a.view().shape(), &[n, n], InvalidLayout, "SYSV: A shape")?;
@@ -68,12 +69,12 @@ where
             rstsr_errcode!(info, "Lapack SYSV")?;
         }
 
-        Ok((a.clone_to_mut(), b.clone_to_mut(), ipiv))
+        Ok((a.clone_to_mut(), ipiv, b.clone_to_mut()))
     }
 
     pub fn run(
         self,
-    ) -> Result<(TensorMutable2<'a, T, B>, TensorMutable2<'b, T, B>, Tensor<blas_int, B, Ix1>)>
+    ) -> Result<(TensorMutable2<'a, T, B>, Tensor<blas_int, B, Ix1>, TensorMutable2<'b, T, B>)>
     {
         self.internal_run()
     }

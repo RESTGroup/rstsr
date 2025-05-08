@@ -5,6 +5,8 @@ use num::{complex::ComplexFloat, Num};
 // Complex<f64> types operations.
 pub trait DeviceComplexFloatAPI<T, D = IxD>:
     DeviceAPI<T>
+    // trait bound for complex part
+    + DeviceAPI<T::Real>
     + DeviceCreationNumAPI<T>
     + DeviceCreationAnyAPI<T>
     + DeviceCreationComplexFloatAPI<T>
@@ -16,6 +18,20 @@ pub trait DeviceComplexFloatAPI<T, D = IxD>:
     + OpAssignAPI<T, IxD>
     + DeviceConjAPI<T, D, TOut = T>
     + DeviceConjAPI<T, IxD, TOut = T>
+    + DeviceCreationTriAPI<T>
+    // trait bound for real part
+    + DeviceCreationNumAPI<T::Real>
+    + DeviceCreationAnyAPI<T::Real>
+    + DeviceCreationComplexFloatAPI<T::Real>
+    + OpAssignArbitaryAPI<T::Real, D, D>
+    + OpAssignArbitaryAPI<T::Real, D, IxD>
+    + OpAssignArbitaryAPI<T::Real, IxD, D>
+    + OpAssignArbitaryAPI<T::Real, IxD, IxD>
+    + OpAssignAPI<T::Real, D>
+    + OpAssignAPI<T::Real, IxD>
+    + DeviceConjAPI<T::Real, D, TOut = T::Real>
+    + DeviceConjAPI<T::Real, IxD, TOut = T::Real>
+    + DeviceCreationTriAPI<T::Real>
 where
     T: ComplexFloat,
     D: DimAPI,

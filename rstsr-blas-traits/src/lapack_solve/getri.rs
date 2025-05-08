@@ -26,11 +26,7 @@ where
 impl<'a, B, T> GETRI_<'a, '_, B, T>
 where
     T: BlasFloat,
-    B: GETRIDriverAPI<T>
-        + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<blas_int, Raw = Vec<blas_int>>
-        + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceNumAPI<blas_int, Ix1>,
+    B: BlasDriverBaseAPI<T> + GETRIDriverAPI<T>,
 {
     pub fn internal_run(self) -> Result<TensorMutable2<'a, T, B>> {
         let Self { a, ipiv } = self;
@@ -38,6 +34,9 @@ where
         let mut a = overwritable_convert(a)?;
         let order = if a.f_prefer() && !a.c_prefer() { ColMajor } else { RowMajor };
         let mut ipiv = ipiv.into_contig_f(ColMajor)?;
+
+        // rust is 1-indexed
+        ipiv += 1;
 
         // perform check
         rstsr_assert_eq!(

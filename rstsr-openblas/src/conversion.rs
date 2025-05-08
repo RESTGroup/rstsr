@@ -92,11 +92,11 @@ mod test {
         let device_openblas = DeviceBLAS::new(0);
         let a = linspace((1.0, 5.0, 5, &device_openblas));
         let b = a.to_device(&device_serial);
-        println!("{:?}", b);
+        println!("{b:?}");
         let a = linspace((1.0, 5.0, 5, &device_serial));
         let a_view = a.view();
         let b = a_view.to_device(&device_openblas);
-        println!("{:?}", b);
+        println!("{b:?}");
     }
 
     #[test]
@@ -106,10 +106,10 @@ mod test {
         let device_openblas = DeviceBLAS::new(0);
         let a = linspace((1.0, 5.0, 5, &device_openblas));
         let b = a.to_device(&device_faer);
-        println!("{:?}", b);
+        println!("{b:?}");
         let a = linspace((1.0, 5.0, 5, &device_faer));
         let a_view = a.view();
         let b = a_view.to_device(&device_openblas);
-        println!("{:?}", b);
+        println!("{b:?}");
     }
 }

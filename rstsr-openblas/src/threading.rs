@@ -1,7 +1,9 @@
 //! openblas threading
 
+use crate::prelude_dev::*;
 #[cfg(feature = "openmp")]
 use core::ffi::c_int;
+use rstsr_blas_traits::prelude_dev::*;
 use std::sync::Mutex;
 
 use rstsr_openblas_ffi::cblas::{OPENBLAS_OPENMP, OPENBLAS_SEQUENTIAL, OPENBLAS_THREAD};
@@ -120,6 +122,24 @@ where
     let r = f();
     set_num_threads(n);
     return r;
+}
+
+/* #endregion */
+
+/* #region trait impl */
+
+impl BlasThreadAPI for DeviceBLAS {
+    fn get_blas_num_threads(&self) -> usize {
+        crate::threading::get_num_threads()
+    }
+
+    fn set_blas_num_threads(&self, nthreads: usize) {
+        crate::threading::set_num_threads(nthreads);
+    }
+
+    fn with_blas_num_threads<T>(&self, nthreads: usize, f: impl FnOnce() -> T) -> T {
+        crate::threading::with_num_threads(nthreads, f)
+    }
 }
 
 /* #endregion */

@@ -108,11 +108,11 @@ mod test {
     fn test_diag() {
         let a = arange(9).into_shape([3, 3]);
         let b = diag((&a, 1));
-        println!("{:}", b);
+        println!("{b:}");
         let c = a.diag();
-        println!("{:}", c);
+        println!("{c:}");
         let c = arange(3) + 1;
         let d = diag((&c, -1));
-        println!("{:}", d);
+        println!("{d:}");
     }
 }

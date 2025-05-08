@@ -35,23 +35,24 @@ where
     pub itype: i32,
     #[builder(setter(into), default = "'V'")]
     pub jobz: char,
-    #[builder(setter(into), default = "Lower")]
-    pub uplo: FlagUpLo,
+    #[builder(setter(into), default = "None")]
+    pub uplo: Option<FlagUpLo>,
 }
 
 impl<'a, B, T> SYGVD_<'a, '_, B, T>
 where
     T: BlasFloat,
-    B: SYGVDDriverAPI<T>
-        + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<T::Real, Raw = Vec<T::Real>>
-        + DeviceComplexFloatAPI<T, Ix2>
-        + DeviceComplexFloatAPI<T::Real, Ix2>,
+    B: BlasDriverBaseAPI<T> + SYGVDDriverAPI<T>,
 {
-    pub fn internal_run(self) -> Result<(TensorMutable<'a, T, B, Ix2>, Tensor<T::Real, B, Ix1>)> {
+    pub fn internal_run(self) -> Result<(Tensor<T::Real, B, Ix1>, TensorMutable<'a, T, B, Ix2>)> {
         let Self { a, b, itype, jobz, uplo } = self;
 
+        rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch)?;
         let device = a.device().clone();
+        let uplo = uplo.unwrap_or_else(|| match device.default_order() {
+            RowMajor => Lower,
+            ColMajor => Upper,
+        });
         let order = if a.f_prefer() && !a.c_prefer() { ColMajor } else { RowMajor };
         let mut a = overwritable_convert_with_order(a, order)?;
         let mut b = overwritable_convert_with_order(b, order)?;
@@ -72,10 +73,10 @@ where
             unsafe { B::driver_sygvd(order, itype, jobz, uplo, n, ptr_a, lda, ptr_b, ldb, ptr_w) };
         rstsr_assert_eq!(info, 0, InvalidLayout)?;
 
-        Ok((a, w))
+        Ok((w, a.clone_to_mut()))
     }
 
-    pub fn run(self) -> Result<(TensorMutable<'a, T, B, Ix2>, Tensor<T::Real, B, Ix1>)> {
+    pub fn run(self) -> Result<(Tensor<T::Real, B, Ix1>, TensorMutable<'a, T, B, Ix2>)> {
         self.internal_run()
     }
 }

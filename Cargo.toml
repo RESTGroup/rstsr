@@ -8,6 +8,7 @@ members = [
     "rstsr-dtype-traits",
     "rstsr-blas-traits",
     "rstsr-linalg-traits",
+    "rstsr-native-impl",
 ]
 
 [workspace.package]
@@ -24,6 +25,7 @@ rstsr-core = { path = "./rstsr-core", default-features = false, version = "0.2.7
 # members without core
 rstsr-common = { path = "./rstsr-common", default-features = false, version = "0.2.7" }
 rstsr-dtype-traits = { path = "./rstsr-dtype-traits", default-features = false, version = "0.2.7" }
+rstsr-native-impl = { path = "./rstsr-native-impl", default-features = false, version = "0.2.7" }
 # members
 rstsr-openblas = { path = "./rstsr-openblas", default-features = false, version = "0.2.7" }
 rstsr-blas-traits = { path = "./rstsr-blas-traits", default-features = false, version = "0.2.7" }
@@ -31,7 +33,7 @@ rstsr-linalg-traits = { path = "./rstsr-linalg-traits", default-features = false
 # develop dependencies that should not publish
 rstsr-test-manifest = { path = "./rstsr-test-manifest", default-features = false }
 # ffi dependencies
-rstsr-lapack-ffi = { version = "0.1.1" }
+rstsr-lapack-ffi = { version = "0.2.0" }
 rstsr-openblas-ffi = { version = "0.3.1" }
 # basic dependencies
 num = { version = "0.4" }

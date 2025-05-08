@@ -38,7 +38,7 @@ impl BlasScalar for bf16 {
     type Scalar = bf16;
 }
 
-pub trait BlasFloat: BlasScalar + ComplexFloat {}
+pub trait BlasFloat: BlasScalar + ComplexFloat + Send + Sync {}
 impl BlasFloat for f32 {}
 impl BlasFloat for f64 {}
 impl BlasFloat for Complex<f32> {}

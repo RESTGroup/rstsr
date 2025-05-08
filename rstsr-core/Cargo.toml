@@ -12,6 +12,7 @@ readme = "readme.md"
 [dependencies]
 rstsr-common = { workspace = true }
 rstsr-dtype-traits = { workspace = true, features = ["half"] }
+rstsr-native-impl = { workspace = true }
 num = { workspace = true }
 itertools = { workspace = true }
 half = { workspace = true }
@@ -31,9 +32,9 @@ criterion = { workspace = true }
 cpu-time = { workspace = true }
 
 [features]
-default = ["row_major", "faer", "faer_as_default"]
+default = ["row_major", "aligned_alloc", "faer", "faer_as_default"]
 std = ["rstsr-common/std"]
-rayon = ["dep:rayon", "rstsr-common/rayon"]
+rayon = ["dep:rayon", "rstsr-common/rayon", "rstsr-native-impl/rayon"]
 faer = ["rayon", "dep:faer", "dep:faer-ext", "dep:faer-entity"]
 faer_as_default = []
 
@@ -43,6 +44,11 @@ faer_as_default = []
 # - Col-major convention: similar to Julia (limited broadcasting)
 row_major = ["rstsr-common/row_major"]
 col_major = ["rstsr-common/col_major"]
+
+# Use aligned allocation in some cases (64-byte alignment for vector larger than 128 elements).
+# If this feature not specified, for CPU it will use default allocator of `Vec<T>`.
+# This feature is not intended for pinned-memory allocation (to memory pages), only for (possible) SIMD and cache line.
+aligned_alloc = ["rstsr-common/aligned_alloc"]
 
 # Dispatch dimensinoality in layout iterators
 # This option is recommended for efficiency for large tensor, especially with non-contiguous strides.

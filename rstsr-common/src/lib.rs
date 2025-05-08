@@ -6,6 +6,8 @@
 pub mod prelude;
 pub mod prelude_dev;
 
+pub mod alloc_vec;
+pub mod axis_index;
 pub mod error;
 pub mod flags;
 pub mod format_layout;

@@ -1796,26 +1796,26 @@ mod test_reshape {
             let a1 = linspace((1.0, 24.0, 24));
             let a2 = a1.to_shape([2, 3, 4]);
             let default_order = a1.device().default_order();
-            println!("{:?}", a2);
+            println!("{a2:?}");
             println!("{:?}", core::ptr::eq(a1.as_ptr(), a2.as_ptr()));
 
             let v = layout_reshapeable(a1.layout(), &vec![2, 3, 4], default_order).unwrap();
-            println!("{:?}", v);
+            println!("{v:?}");
 
             let b1 = linspace((1.0, 24.0, 24)).into_layout(vec![2, 3, 4].f());
             let b2 = b1.to_shape([24]);
-            println!("{:?}", b2);
+            println!("{b2:?}");
             println!("{:?}", core::ptr::eq(b1.as_ptr(), b2.as_ptr()));
 
             let v = layout_reshapeable(b1.layout(), &vec![24], default_order).unwrap();
-            println!("{:?}", v);
+            println!("{v:?}");
         }
         #[cfg(feature = "col_major")]
         {
             let a1 = linspace((1.0, 24.0, 24));
             let a2 = a1.to_shape([2, 3, 4]);
             let default_order = a1.device().default_order();
-            println!("{:?}", a2);
+            println!("{a2:?}");
             println!("{:?}", core::ptr::eq(a1.as_ptr(), a2.as_ptr()));
             println!("a2[:, :, 0] =\n{:}", a2.i((.., .., 0)));
             println!("a2[:, :, 1] =\n{:}", a2.i((.., .., 1)));
@@ -1823,15 +1823,15 @@ mod test_reshape {
             println!("a2[:, :, 3] =\n{:}", a2.i((.., .., 3)));
 
             let v = layout_reshapeable(a1.layout(), &vec![2, 3, 4], default_order).unwrap();
-            println!("{:?}", v);
+            println!("{v:?}");
 
             let b1 = linspace((1.0, 24.0, 24)).into_layout(vec![2, 3, 4].f());
             let b2 = b1.to_shape([24]);
-            println!("{:?}", b2);
+            println!("{b2:?}");
             println!("{:?}", core::ptr::eq(b1.as_ptr(), b2.as_ptr()));
 
             let v = layout_reshapeable(b1.layout(), &vec![24], default_order).unwrap();
-            println!("{:?}", v);
+            println!("{v:?}");
         }
     }
 
@@ -2000,7 +2000,7 @@ mod tests {
     fn test_to_shape_assume_contig() {
         let a = linspace((2.5, 3.2, 16));
         let b = a.to_shape_assume_contig_f([4, 4]).unwrap();
-        println!("{:.3?}", b);
+        println!("{b:.3?}");
     }
 
     #[test]
@@ -2032,23 +2032,23 @@ mod tests {
     #[test]
     fn test_flip() {
         let a = arange(24.0).into_shape([2, 3, 4]).into_owned();
-        println!("{:?}", a);
+        println!("{a:?}");
 
         let b = a.flip(1);
-        println!("{:?}", b);
+        println!("{b:?}");
         assert_eq!(b.shape(), &[2, 3, 4]);
         let c = a.flip([0, -1]);
-        println!("{:?}", c);
+        println!("{c:?}");
         assert_eq!(c.shape(), &[2, 3, 4]);
     }
 
     #[test]
     fn test_swapaxes() {
         let a = arange(24.0).into_shape([2, 3, 4]).into_owned();
-        println!("{:?}", a);
+        println!("{a:?}");
 
         let b = a.swapaxes(0, 1);
-        println!("{:?}", b);
+        println!("{b:?}");
         assert_eq!(b.shape(), &[3, 2, 4]);
     }
 
@@ -2057,12 +2057,12 @@ mod tests {
         let a = linspace((0.0, 15.0, 16));
         let mut a = a.to_shape([4, 4]);
         a.layout = Layout::new(vec![2, 2], vec![2, 4], 0).unwrap();
-        println!("{:?}", a);
+        println!("{a:?}");
         let b = a.to_shape([2, 2]);
-        println!("{:?}", b);
+        println!("{b:?}");
 
         let c = a.to_shape([2, -1]);
-        println!("{:?}", c);
+        println!("{c:?}");
         assert_eq!(c.shape(), &[2, 2]);
 
         let d = a.to_shape_f([3, -1]);
@@ -2076,7 +2076,7 @@ mod tests {
             let a = linspace((0.0, 15.0, 16));
             let a = a.into_shape_assume_contig_f([4, 1, 4]).unwrap();
             let a = a.to_broadcast_f([6, 4, 3, 4]).unwrap();
-            println!("{:?}", a);
+            println!("{a:?}");
             assert_eq!(a.layout(), unsafe {
                 &Layout::new_unchecked([6, 4, 3, 4], [0, 4, 0, 1], 0)
             });
@@ -2086,7 +2086,7 @@ mod tests {
             let a = linspace((0.0, 15.0, 16));
             let a = a.into_shape_assume_contig_f([4, 1, 4]).unwrap();
             let a = a.to_broadcast_f([4, 3, 4, 6]).unwrap();
-            println!("{:?}", a);
+            println!("{a:?}");
             assert_eq!(a.layout(), unsafe {
                 &Layout::new_unchecked([4, 3, 4, 6], [1, 0, 4, 0], 0)
             });
@@ -2098,6 +2098,6 @@ mod tests {
         let a = linspace((0.0, 15.0, 16));
         let a = a.change_shape([4, 4]);
         let a = a.into_layout(Layout::new([2, 8], [12, 120], 8).unwrap());
-        println!("{:?}", a);
+        println!("{a:?}");
     }
 }

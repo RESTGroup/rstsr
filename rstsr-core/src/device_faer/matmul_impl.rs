@@ -140,7 +140,6 @@ pub fn fn_name(
     let block_structure = match uplo {
         FlagUpLo::U => BlockStructure::TriangularUpper,
         FlagUpLo::L => BlockStructure::TriangularLower,
-        _ => rstsr_invalid!(uplo)?,
     };
     faer::linalg::matmul::triangular::matmul(
         faer_c,
@@ -253,6 +252,6 @@ mod test {
         let pool = rayon::ThreadPoolBuilder::new().num_threads(16).build().unwrap();
         let pool = Some(&pool);
         syrk_faer_f64(&mut c, &lc, &a, &la, FlagUpLo::L, 2.0, 1.0, pool).unwrap();
-        println!("{:?}", c);
+        println!("{c:?}");
     }
 }

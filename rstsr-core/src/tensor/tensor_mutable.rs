@@ -109,6 +109,22 @@ where
     }
 }
 
+impl<T, B, D> TensorMutable<'_, T, B, D>
+where
+    T: Clone,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
+    B::Raw: Clone,
+{
+    pub fn to_owned(&self) -> Tensor<T, B, D> {
+        match self {
+            TensorMutable::Owned(t) => t.to_owned(),
+            TensorMutable::Mut(t) => t.to_owned(),
+            TensorMutable::ToBeCloned(_, t) => t.to_owned(),
+        }
+    }
+}
+
 impl<'a, T, B, D> TensorMutable<'a, T, B, D>
 where
     T: Clone,

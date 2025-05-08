@@ -576,47 +576,47 @@ mod test {
     fn test_tensor_slice_1d() {
         let tensor = asarray(vec![1, 2, 3, 4, 5]);
         let tensor_slice = tensor.slice(s![1..4]);
-        println!("{:?}", tensor_slice);
+        println!("{tensor_slice:?}");
         let tensor_slice = tensor.slice(s![1..4, None]);
-        println!("{:?}", tensor_slice);
+        println!("{tensor_slice:?}");
         let tensor_slice = tensor.slice(1);
-        println!("{:?}", tensor_slice);
+        println!("{tensor_slice:?}");
         let tensor_slice = tensor.slice(slice!(2, 7, 2));
-        println!("{:?}", tensor_slice);
+        println!("{tensor_slice:?}");
 
         let mut tensor = asarray(vec![1, 2, 3, 4, 5]);
         let mut tensor_slice = tensor.slice_mut(s![1..4]);
         tensor_slice += 10;
-        println!("{:?}", tensor);
+        println!("{tensor:?}");
         *&mut tensor.slice_mut(s![1..4]) += 10;
-        println!("{:?}", tensor);
+        println!("{tensor:?}");
     }
 
     #[test]
     fn test_tensor_nd() {
         let tensor = arange(24.0).into_shape([2, 3, 4]);
         let tensor_slice = tensor.slice(s![1..2, 1..3, 1..4]);
-        println!("{:?}", tensor_slice);
+        println!("{tensor_slice:?}");
         let tensor_slice = tensor.slice(s![1]);
-        println!("{:?}", tensor_slice);
+        println!("{tensor_slice:?}");
     }
 
     #[test]
     fn test_tensor_index() {
         let mut tensor = asarray(vec![1, 2, 3, 4, 5]);
         let value = tensor[[1]];
-        println!("{:?}", value);
+        println!("{value:?}");
         let tensor_view = tensor.view();
         let value = tensor_view[[2]];
         {
             let tensor_view = tensor.view();
             let value = tensor_view[[3]];
-            println!("{:?}", value);
+            println!("{value:?}");
             let mut tensor_view_mut = tensor.view_mut();
             tensor_view_mut[[4]] += 1;
             *&mut tensor_view_mut.slice_mut(4) += 1;
         }
-        println!("{:?}", value);
-        println!("{:?}", tensor);
+        println!("{value:?}");
+        println!("{tensor:?}");
     }
 }

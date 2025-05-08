@@ -33,8 +33,8 @@ where
     pub alpha: T,
     #[builder(setter(into), default = "Left")]
     pub side: FlagSide,
-    #[builder(setter(into), default = "Lower")]
-    pub uplo: FlagUpLo,
+    #[builder(setter(into), default = "None")]
+    pub uplo: Option<FlagUpLo>,
     #[builder(setter(into), default = "NoTrans")]
     pub transa: FlagTrans,
     #[builder(setter(into), default = "NonUnit")]
@@ -46,10 +46,16 @@ where
 impl<'b, B, T> TRSM_<'_, 'b, B, T>
 where
     T: BlasFloat,
-    B: TRSMDriverAPI<T> + DeviceAPI<T, Raw = Vec<T>> + DeviceComplexFloatAPI<T, Ix2>,
+    B: BlasDriverBaseAPI<T> + TRSMDriverAPI<T>,
 {
     pub fn run(self) -> Result<TensorMutable2<'b, T, B>> {
         let Self { a, b, alpha, side, uplo, transa, diag, order } = self;
+
+        rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch)?;
+        let uplo = uplo.unwrap_or_else(|| match a.device().default_order() {
+            RowMajor => Lower,
+            ColMajor => Upper,
+        });
 
         // determine preferred layout
         let order_b = (b.c_prefer(), b.f_prefer());
@@ -68,7 +74,7 @@ where
                 b,
                 alpha,
                 side,
-                uplo,
+                uplo: Some(uplo),
                 transa: transa_new,
                 diag,
                 order: Some(ColMajor),
@@ -82,7 +88,7 @@ where
                 b: b.into_reverse_axes(),
                 alpha,
                 side: side.flip()?,
-                uplo: uplo.flip()?,
+                uplo: Some(uplo.flip()?),
                 transa: transa_new,
                 diag,
                 order: Some(ColMajor),
@@ -100,6 +106,8 @@ where
 
         // device check
         rstsr_assert!(a.device().same_device(b.device()), DeviceError)?;
+        rstsr_assert!(uplo.is_some(), InvalidValue, "uplo in internal_run should not be None")?;
+        let uplo = uplo.unwrap();
 
         // initialize intent(hide)
         let [m, n] = *b.shape();
@@ -109,7 +117,6 @@ where
         match side {
             Left => rstsr_assert_eq!(a.shape(), &[m, m], InvalidLayout)?,
             Right => rstsr_assert_eq!(a.shape(), &[n, n], InvalidLayout)?,
-            _ => rstsr_invalid!(side)?,
         };
 
         // prepare output

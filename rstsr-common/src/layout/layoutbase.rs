@@ -979,7 +979,7 @@ mod test {
         // following code generates contiguous layout
         // c/f-contig depends on cargo feature
         let layout: Layout<_> = [3, 2, 6].into();
-        println!("{:?}", layout);
+        println!("{layout:?}");
     }
 
     #[test]

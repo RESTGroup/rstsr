@@ -16,6 +16,8 @@ pub use rayon::ThreadPool;
 
 pub use rstsr_common::prelude_dev::*;
 
+pub use rstsr_native_impl::prelude_dev::*;
+
 pub use crate::storage::assignment::*;
 pub use crate::storage::combined_trait::*;
 pub use crate::storage::conversion::*;
@@ -26,9 +28,7 @@ pub use crate::storage::matmul::*;
 pub use crate::storage::operators::*;
 pub use crate::storage::reduction::*;
 
-pub use crate::device_cpu_serial::assignment::*;
 pub use crate::device_cpu_serial::device::*;
-pub use crate::device_cpu_serial::op_with_func::*;
 pub use crate::DeviceCpu;
 
 #[allow(unused_imports)]
@@ -45,14 +45,10 @@ pub use crate::tensor::manuplication::*;
 pub use crate::tensor::ownership_conversion::*;
 pub use crate::tensor::tensor_mutable::*;
 
-#[cfg(feature = "rayon")]
-pub use crate::feature_rayon::assignment::*;
+pub use crate::prelude::rstsr_traits::*;
+
 #[cfg(feature = "rayon")]
 pub use crate::feature_rayon::device::*;
-#[cfg(feature = "rayon")]
-pub use crate::feature_rayon::op_with_func::*;
-#[cfg(feature = "rayon")]
-pub use crate::feature_rayon::par_iter::*;
 
 #[cfg(feature = "faer")]
 pub use crate::device_faer::device::*;

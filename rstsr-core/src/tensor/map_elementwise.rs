@@ -482,7 +482,7 @@ mod tests_fnmut {
         let b = a.mapv_fnmut(f);
         assert!(allclose_f64(&b, &vec![2., 4., 6., 8.].into()));
         assert_eq!(i, 4);
-        println!("{:?}", b);
+        println!("{b:?}");
     }
 
     #[test]
@@ -502,7 +502,7 @@ mod tests_fnmut {
             let b = linspace((1., 3., 3, &device));
             let c = a.mapvb_fnmut(&b, f);
             assert_eq!(i, 6);
-            println!("{:?}", c);
+            println!("{c:?}");
             assert!(allclose_f64(&c.raw().into(), &vec![5., 10., 15., 11., 16., 21.].into()));
         }
         #[cfg(feature = "col_major")]
@@ -514,7 +514,7 @@ mod tests_fnmut {
             let b = linspace((1., 3., 3, &device));
             let c = a.mapvb_fnmut(&b, f);
             assert_eq!(i, 6);
-            println!("{:?}", c);
+            println!("{c:?}");
             assert!(allclose_f64(&c.raw().into(), &vec![5., 10., 15., 11., 16., 21.].into()));
         }
     }
@@ -530,7 +530,7 @@ mod tests_sync {
         let a = asarray(vec![1., 2., 3., 4.]);
         let b = a.mapv(f);
         assert!(allclose_f64(&b, &vec![2., 4., 6., 8.].into()));
-        println!("{:?}", b);
+        println!("{b:?}");
     }
 
     #[test]

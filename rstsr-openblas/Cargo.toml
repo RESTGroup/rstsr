@@ -16,15 +16,23 @@ duplicate = { workspace = true }
 rstsr-openblas-ffi = { workspace = true }
 rstsr-lapack-ffi = { workspace = true }
 rstsr-core = { workspace = true, features = ["rayon"] }
+rstsr-common = { workspace = true, features = ["rayon"] }
 rstsr-dtype-traits = { workspace = true, features = ["half"] }
 rstsr-blas-traits = { workspace = true }
 rstsr-linalg-traits = { workspace = true, optional = true }
+rstsr-native-impl = { workspace = true, features = ["rayon"] }
 
 [dev-dependencies]
+rstsr = { path = "../rstsr", default-features = false, features = ["openblas", "linalg"] }
 rstsr-test-manifest = { workspace = true }
 
 [features]
-openmp = []
+default = ["linalg"]
 faer = ["rstsr-core/faer"]
 ilp64 = ["rstsr-openblas-ffi/ilp64", "rstsr-lapack-ffi/ilp64", "rstsr-blas-traits/ilp64"]
 linalg = ["dep:rstsr-linalg-traits"]
+
+# use openmp for linking
+openmp = []
+# use lapacke instead of lapack for linalg functions
+lapacke = []

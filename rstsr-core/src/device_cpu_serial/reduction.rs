@@ -1,407 +1,537 @@
 use crate::prelude_dev::*;
+use core::ops::{Add, Mul};
+use num::complex::ComplexFloat;
+use num::{Bounded, FromPrimitive, One, Zero};
+use rstsr_dtype_traits::MinMaxAPI;
 
-// this value is used to determine whether to use contiguous inner iteration
-const CONTIG_SWITCH: usize = 32;
-
-/// Fold over the manually unrolled `xs` with `f`
-///
-/// # See also
-///
-/// This code is from <https://github.com/rust-ndarray/ndarray/blob/master/src/numeric_util.rs>
-pub fn unrolled_reduce<TI, TS, I, F, FSum>(mut xs: &[TI], init: I, f: F, f_sum: FSum) -> TS
+impl<T, D> OpSumAPI<T, D> for DeviceCpuSerial
 where
-    TI: Clone,
-    TS: Clone,
-    I: Fn() -> TS,
-    F: Fn(TS, TI) -> TS,
-    FSum: Fn(TS, TS) -> TS,
-{
-    // eightfold unrolled so that floating point can be vectorized
-    // (even with strict floating point accuracy semantics)
-    let mut acc = init();
-    let (mut p0, mut p1, mut p2, mut p3, mut p4, mut p5, mut p6, mut p7) =
-        (init(), init(), init(), init(), init(), init(), init(), init());
-    while xs.len() >= 8 {
-        p0 = f(p0, xs[0].clone());
-        p1 = f(p1, xs[1].clone());
-        p2 = f(p2, xs[2].clone());
-        p3 = f(p3, xs[3].clone());
-        p4 = f(p4, xs[4].clone());
-        p5 = f(p5, xs[5].clone());
-        p6 = f(p6, xs[6].clone());
-        p7 = f(p7, xs[7].clone());
-
-        xs = &xs[8..];
-    }
-    acc = f_sum(acc.clone(), f_sum(p0, p4));
-    acc = f_sum(acc.clone(), f_sum(p1, p5));
-    acc = f_sum(acc.clone(), f_sum(p2, p6));
-    acc = f_sum(acc.clone(), f_sum(p3, p7));
-
-    // make it clear to the optimizer that this loop is short
-    // and can not be autovectorized.
-    for (i, x) in xs.iter().enumerate() {
-        if i >= 7 {
-            break;
-        }
-        acc = f(acc.clone(), x.clone())
-    }
-    acc
-}
-
-/* #region reduce */
-
-pub fn reduce_all_cpu_serial<TI, TS, TO, D, I, F, FSum, FOut>(
-    a: &[TI],
-    la: &Layout<D>,
-    init: I,
-    f: F,
-    f_sum: FSum,
-    f_out: FOut,
-) -> Result<TO>
-where
-    TI: Clone,
-    TS: Clone,
+    T: Zero + Add<Output = T> + Clone,
     D: DimAPI,
-    I: Fn() -> TS,
-    F: Fn(TS, TI) -> TS,
-    FSum: Fn(TS, TS) -> TS,
-    FOut: Fn(TS) -> TO,
 {
-    // re-align layout
-    let layout = translate_to_col_major_unary(la, TensorIterOrder::K)?;
-    let (layout_contig, size_contig) = translate_to_col_major_with_contig(&[&layout]);
+    type TOut = T;
 
-    if size_contig >= CONTIG_SWITCH {
-        let mut acc = init();
-        layout_col_major_dim_dispatch_1(&layout_contig[0], |idx_a| {
-            let slc = &a[idx_a..idx_a + size_contig];
-            let acc_inner = unrolled_reduce(slc, &init, &f, &f_sum);
-            acc = f_sum(acc.clone(), acc_inner);
-        })?;
-        return Ok(f_out(acc));
-    } else {
-        let iter_a = IterLayoutColMajor::new(&layout)?;
-        let acc = iter_a.fold(init(), |acc, idx| f(acc, a[idx].clone()));
-        return Ok(f_out(acc));
+    fn sum_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T> {
+        let f_init = T::zero;
+        let f = |acc, x| acc + x;
+        let f_sum = |acc1, acc2| acc1 + acc2;
+        let f_out = |acc| acc;
+
+        reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)
+    }
+
+    fn sum_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<T>>, T, Self>, Layout<IxD>)> {
+        let f_init = T::zero;
+        let f = |acc, x| acc + x;
+        let f_sum = |acc1, acc2| acc1 + acc2;
+        let f_out = |acc| acc;
+
+        let (out, layout_out) =
+            reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 }
 
-pub fn reduce_axes_cpu_serial<TI, TS, I, F, FSum, FOut>(
-    a: &[TI],
-    la: &Layout<IxD>,
-    axes: &[isize],
-    init: I,
-    f: F,
-    f_sum: FSum,
-    f_out: FOut,
-) -> Result<(Vec<TS>, Layout<IxD>)>
+impl<T, D> OpMinAPI<T, D> for DeviceCpuSerial
 where
-    TI: Clone,
-    TS: Clone,
-    I: Fn() -> TS,
-    F: Fn(TS, TI) -> TS,
-    FSum: Fn(TS, TS) -> TS,
-    FOut: Fn(TS) -> TS,
-{
-    // split the layout into axes (to be summed) and the rest
-    let (layout_axes, layout_rest) = la.dim_split_axes(axes)?;
-    let layout_axes = translate_to_col_major_unary(&layout_axes, TensorIterOrder::default())?;
-
-    // generate layout for result (from layout_rest)
-    let layout_out = layout_for_array_copy(&layout_rest, TensorIterOrder::default())?;
-
-    // use contiguous reduce_all only when size of contiguous part is large enough
-    let (_, size_contig) = translate_to_col_major_with_contig(&[&layout_axes]);
-    if size_contig >= CONTIG_SWITCH {
-        // generate layouts for actual evaluation
-        let layouts_swapped =
-            translate_to_col_major(&[&layout_out, &layout_rest], TensorIterOrder::default())?;
-        let layout_out_swapped = &layouts_swapped[0];
-        let layout_rest_swapped = &layouts_swapped[1];
-
-        // iterate both layout_rest and layout_out
-        let iter_out_swapped = IterLayoutRowMajor::new(layout_out_swapped)?;
-        let iter_rest_swapped = IterLayoutRowMajor::new(layout_rest_swapped)?;
-
-        // inner layout is axes to be summed
-        let mut layout_inner = layout_axes.clone();
-
-        // prepare output
-        let len_out = layout_out.size();
-        let mut out = unsafe { uninitialized_vec(len_out) };
-
-        // actual evaluation
-        izip!(iter_out_swapped, iter_rest_swapped).try_for_each(
-            |(idx_out, idx_rest)| -> Result<()> {
-                unsafe { layout_inner.set_offset(idx_rest) };
-                let acc = reduce_all_cpu_serial(a, &layout_inner, &init, &f, &f_sum, &f_out)?;
-                out[idx_out] = acc;
-                Ok(())
-            },
-        )?;
-        return Ok((out, layout_out));
-    } else {
-        // iterate layout_axes
-        let iter_layout_axes = IterLayoutRowMajor::new(&layout_axes)?;
-
-        // inner layout is axes not to be summed
-        let mut layout_inner = layout_rest.clone();
-
-        // prepare output
-        let len_out = layout_out.size();
-        let init_val = init();
-        let mut out = vec![init_val; len_out];
-
-        // closure for adding to mutable reference
-        let f_add = |a: &mut TS, b: &TI| *a = f(a.clone(), b.clone());
-
-        for idx_axes in iter_layout_axes {
-            unsafe { layout_inner.set_offset(idx_axes) };
-            op_muta_refb_func_cpu_serial(&mut out, &layout_out, a, &layout_inner, f_add)?;
-        }
-        let fin_inplace = |a: &mut TS| *a = f_out(a.clone());
-        op_muta_func_cpu_serial(&mut out, &layout_out, fin_inplace)?;
-        return Ok((out, layout_out));
-    }
-}
-
-pub fn reduce_axes_difftype_cpu_serial<TI, TS, TO, I, F, FSum, FOut>(
-    a: &[TI],
-    la: &Layout<IxD>,
-    axes: &[isize],
-    init: I,
-    f: F,
-    f_sum: FSum,
-    f_out: FOut,
-) -> Result<(Vec<TO>, Layout<IxD>)>
-where
-    TI: Clone,
-    TS: Clone,
-    I: Fn() -> TS,
-    F: Fn(TS, TI) -> TS,
-    FSum: Fn(TS, TS) -> TS,
-    FOut: Fn(TS) -> TO,
-{
-    // split the layout into axes (to be summed) and the rest
-    let (layout_axes, layout_rest) = la.dim_split_axes(axes)?;
-    let layout_axes = translate_to_col_major_unary(&layout_axes, TensorIterOrder::default())?;
-
-    // generate layout for result (from layout_rest)
-    let layout_out = layout_for_array_copy(&layout_rest, TensorIterOrder::default())?;
-
-    // use contiguous reduce_all only when size of contiguous part is large enough
-    let (_, size_contig) = translate_to_col_major_with_contig(&[&layout_axes]);
-    if size_contig >= CONTIG_SWITCH {
-        // generate layouts for actual evaluation
-        let layouts_swapped =
-            translate_to_col_major(&[&layout_out, &layout_rest], TensorIterOrder::default())?;
-        let layout_out_swapped = &layouts_swapped[0];
-        let layout_rest_swapped = &layouts_swapped[1];
-
-        // iterate both layout_rest and layout_out
-        let iter_out_swapped = IterLayoutRowMajor::new(layout_out_swapped)?;
-        let iter_rest_swapped = IterLayoutRowMajor::new(layout_rest_swapped)?;
-
-        // inner layout is axes to be summed
-        let mut layout_inner = layout_axes.clone();
-
-        // prepare output
-        let len_out = layout_out.size();
-        let mut out = unsafe { uninitialized_vec(len_out) };
-
-        // actual evaluation
-        izip!(iter_out_swapped, iter_rest_swapped).try_for_each(
-            |(idx_out, idx_rest)| -> Result<()> {
-                unsafe { layout_inner.set_offset(idx_rest) };
-                let acc = reduce_all_cpu_serial(a, &layout_inner, &init, &f, &f_sum, &f_out)?;
-                out[idx_out] = acc;
-                Ok(())
-            },
-        )?;
-        return Ok((out, layout_out));
-    } else {
-        // iterate layout_axes
-        let iter_layout_axes = IterLayoutRowMajor::new(&layout_axes)?;
-
-        // inner layout is axes not to be summed
-        let mut layout_inner = layout_rest.clone();
-
-        // prepare output
-        let len_out = layout_out.size();
-        let init_val = init();
-        let mut out = vec![init_val; len_out];
-
-        // closure for adding to mutable reference
-        let f_add = |a: &mut TS, b: &TI| *a = f(a.clone(), b.clone());
-
-        for idx_axes in iter_layout_axes {
-            unsafe { layout_inner.set_offset(idx_axes) };
-            op_muta_refb_func_cpu_serial(&mut out, &layout_out, a, &layout_inner, f_add)?;
-        }
-
-        let mut out_converted = unsafe { uninitialized_vec(len_out) };
-        let f_out = |a: &mut TO, b: &TS| *a = f_out(b.clone());
-        op_muta_refb_func_cpu_serial(&mut out_converted, &layout_out, &out, &layout_out, f_out)?;
-        return Ok((out_converted, layout_out));
-    }
-}
-
-/* #endregion */
-
-/* #region reduce unraveled axes */
-
-pub fn reduce_all_unraveled_arg_cpu_serial<T, D, Fcomp, Feq>(
-    a: &[T],
-    la: &Layout<D>,
-    f_comp: Fcomp,
-    f_eq: Feq,
-) -> Result<D>
-where
-    T: Clone,
+    T: Clone + MinMaxAPI + Bounded,
     D: DimAPI,
-    Fcomp: Fn(Option<T>, T) -> Option<bool>,
-    Feq: Fn(Option<T>, T) -> Option<bool>,
 {
-    rstsr_assert!(la.size() > 0, InvalidLayout, "empty sequence is not allowed for reduce_arg.")?;
+    type TOut = T;
 
-    let fold_func = |acc: Option<(D, T)>, (cur_idx, cur_offset): (D, usize)| {
-        let cur_val = a[cur_offset].clone();
+    fn min_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T> {
+        if la.size() == 0 {
+            rstsr_raise!(InvalidValue, "zero-size array is not supported for min")?;
+        }
 
-        let comp = f_comp(acc.as_ref().map(|(_, val)| val.clone()), cur_val.clone());
-        if let Some(comp) = comp {
-            if comp {
-                // cond 1: current value is accepted
-                Some((cur_idx, cur_val))
+        let f_init = T::max_value;
+        let f = |acc: T, x: T| acc.min(x);
+        let f_sum = |acc1: T, acc2: T| acc1.min(acc2);
+        let f_out = |acc| acc;
+        reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)
+    }
+
+    fn min_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<T>>, T, Self>, Layout<IxD>)> {
+        if la.size() == 0 {
+            rstsr_raise!(InvalidValue, "zero-size array is not supported for min")?;
+        }
+
+        let f_init = T::max_value;
+        let f = |acc: T, x: T| acc.min(x);
+        let f_sum = |acc1: T, acc2: T| acc1.min(acc2);
+        let f_out = |acc| acc;
+
+        let (out, layout_out) =
+            reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, D> OpMaxAPI<T, D> for DeviceCpuSerial
+where
+    T: Clone + MinMaxAPI + Bounded,
+    D: DimAPI,
+{
+    type TOut = T;
+
+    fn max_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T> {
+        if la.size() == 0 {
+            rstsr_raise!(InvalidValue, "zero-size array is not supported for max")?;
+        }
+
+        let f_init = T::min_value;
+        let f = |acc: T, x: T| acc.max(x);
+        let f_sum = |acc1: T, acc2: T| acc1.max(acc2);
+        let f_out = |acc| acc;
+
+        reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)
+    }
+
+    fn max_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<T>>, T, Self>, Layout<IxD>)> {
+        if la.size() == 0 {
+            rstsr_raise!(InvalidValue, "zero-size array is not supported for max")?;
+        }
+
+        let f_init = T::min_value;
+        let f = |acc: T, x: T| acc.max(x);
+        let f_sum = |acc1: T, acc2: T| acc1.max(acc2);
+        let f_out = |acc| acc;
+
+        let (out, layout_out) =
+            reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, D> OpProdAPI<T, D> for DeviceCpuSerial
+where
+    T: Clone + One + Mul<Output = T>,
+    D: DimAPI,
+{
+    type TOut = T;
+
+    fn prod_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T> {
+        let f_init = T::one;
+        let f = |acc, x| acc * x;
+        let f_sum = |acc1, acc2| acc1 * acc2;
+        let f_out = |acc| acc;
+
+        reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)
+    }
+
+    fn prod_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<T>>, T, Self>, Layout<IxD>)> {
+        let f_init = T::one;
+        let f = |acc, x| acc * x;
+        let f_sum = |acc1, acc2| acc1 * acc2;
+        let f_out = |acc| acc;
+
+        let (out, layout_out) =
+            reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, D> OpMeanAPI<T, D> for DeviceCpuSerial
+where
+    T: Clone + ComplexFloat + FromPrimitive,
+    D: DimAPI,
+{
+    type TOut = T;
+
+    fn mean_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T> {
+        let size = la.size();
+        let f_init = T::zero;
+        let f = |acc, x| acc + x;
+        let f_sum = |acc, x| acc + x;
+        let f_out = |acc| acc / T::from_usize(size).unwrap();
+
+        let sum = reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)?;
+        Ok(sum)
+    }
+
+    fn mean_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<T>>, T, Self>, Layout<IxD>)> {
+        let (layout_axes, _) = la.dim_split_axes(axes)?;
+        let size = layout_axes.size();
+        let f_init = T::zero;
+        let f = |acc, x| acc + x;
+        let f_sum = |acc, x| acc + x;
+        let f_out = |acc| acc / T::from_usize(size).unwrap();
+
+        let (out, layout_out) =
+            reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, D> OpVarAPI<T, D> for DeviceCpuSerial
+where
+    T: Clone + ComplexFloat + FromPrimitive,
+    T::Real: Clone + ComplexFloat + FromPrimitive,
+    D: DimAPI,
+{
+    type TOut = T::Real;
+
+    fn var_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T::Real> {
+        let size = la.size();
+
+        let f_init = || (T::zero(), T::Real::zero());
+        let f = |(acc_1, acc_2): (T, T::Real), x: T| (acc_1 + x, acc_2 + (x * x.conj()).re());
+        let f_sum = |(acc_1, acc_2): (T, T::Real), (x_1, x_2)| (acc_1 + x_1, acc_2 + x_2);
+        let f_out = |(acc_1, acc_2): (T, T::Real)| {
+            let size_1 = T::from_usize(size).unwrap();
+            let size_2 = T::Real::from_usize(size).unwrap();
+            let mean = acc_1 / size_1;
+            acc_2 / size_2 - (mean * mean.conj()).re()
+        };
+
+        let result = reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)?;
+        Ok(result)
+    }
+
+    fn var_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<T::Real>>, T::Real, Self>, Layout<IxD>)> {
+        let (layout_axes, _) = la.dim_split_axes(axes)?;
+        let size = layout_axes.size();
+
+        let f_init = || (T::zero(), T::Real::zero());
+        let f = |(acc_1, acc_2): (T, T::Real), x: T| (acc_1 + x, acc_2 + (x * x.conj()).re());
+        let f_sum = |(acc_1, acc_2): (T, T::Real), (x_1, x_2)| (acc_1 + x_1, acc_2 + x_2);
+        let f_out = |(acc_1, acc_2): (T, T::Real)| {
+            let size_1 = T::from_usize(size).unwrap();
+            let size_2 = T::Real::from_usize(size).unwrap();
+            let mean = acc_1 / size_1;
+            acc_2 / size_2 - (mean * mean.conj()).re()
+        };
+
+        let (out, layout_out) =
+            reduce_axes_difftype_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, D> OpStdAPI<T, D> for DeviceCpuSerial
+where
+    T: Clone + ComplexFloat + FromPrimitive,
+    T::Real: Clone + ComplexFloat + FromPrimitive,
+    D: DimAPI,
+{
+    type TOut = T::Real;
+
+    fn std_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T::Real> {
+        let size = la.size();
+
+        let f_init = || (T::zero(), T::Real::zero());
+        let f = |(acc_1, acc_2): (T, T::Real), x: T| (acc_1 + x, acc_2 + (x * x.conj()).re());
+        let f_sum = |(acc_1, acc_2): (T, T::Real), (x_1, x_2)| (acc_1 + x_1, acc_2 + x_2);
+        let f_out = |(acc_1, acc_2): (T, T::Real)| {
+            let size_1 = T::from_usize(size).unwrap();
+            let size_2 = T::Real::from_usize(size).unwrap();
+            let mean = acc_1 / size_1;
+            let var = acc_2 / size_2 - (mean * mean.conj()).re();
+            var.sqrt()
+        };
+
+        let result = reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)?;
+        Ok(result)
+    }
+
+    fn std_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<T::Real>>, T::Real, Self>, Layout<IxD>)> {
+        let (layout_axes, _) = la.dim_split_axes(axes)?;
+        let size = layout_axes.size();
+
+        let f_init = || (T::zero(), T::Real::zero());
+        let f = |(acc_1, acc_2): (T, T::Real), x: T| (acc_1 + x, acc_2 + (x * x.conj()).re());
+        let f_sum = |(acc_1, acc_2): (T, T::Real), (x_1, x_2)| (acc_1 + x_1, acc_2 + x_2);
+        let f_out = |(acc_1, acc_2): (T, T::Real)| {
+            let size_1 = T::from_usize(size).unwrap();
+            let size_2 = T::Real::from_usize(size).unwrap();
+            let mean = acc_1 / size_1;
+            let var = acc_2 / size_2 - (mean * mean.conj()).re();
+            var.sqrt()
+        };
+
+        let (out, layout_out) =
+            reduce_axes_difftype_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, D> OpL2NormAPI<T, D> for DeviceCpuSerial
+where
+    T: Clone + ComplexFloat + FromPrimitive,
+    T::Real: Clone + ComplexFloat + FromPrimitive,
+    D: DimAPI,
+{
+    type TOut = T::Real;
+
+    fn l2_norm_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T::Real> {
+        let f_init = || T::Real::zero();
+        let f = |acc: T::Real, x: T| acc + (x * x.conj()).re();
+        let f_sum = |acc: T::Real, x: T::Real| acc + x;
+        let f_out = |acc: T::Real| acc.sqrt();
+
+        let result = reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)?;
+        Ok(result)
+    }
+
+    fn l2_norm_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<T::Real>>, T::Real, Self>, Layout<IxD>)> {
+        let f_init = || T::Real::zero();
+        let f = |acc: T::Real, x: T| acc + (x * x.conj()).re();
+        let f_sum = |acc: T::Real, x: T::Real| acc + x;
+        let f_out = |acc: T::Real| acc.sqrt();
+
+        let (out, layout_out) =
+            reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, D> OpArgMinAPI<T, D> for DeviceCpuSerial
+where
+    T: Clone + PartialOrd,
+    D: DimAPI,
+{
+    type TOut = usize;
+
+    fn argmin_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<usize>>, Self::TOut, Self>, Layout<IxD>)> {
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y < x)
             } else {
-                let comp_eq = f_eq(acc.as_ref().map(|(_, val)| val.clone()), cur_val.clone());
-                if comp_eq.is_some_and(|x| x) {
-                    // cond 2: current value is same with previous value, return smaller index
-                    if let Some(acc_idx) = acc.as_ref().map(|(idx, _)| idx.clone()) {
-                        if cur_idx < acc_idx {
-                            Some((cur_idx, cur_val))
-                        } else {
-                            acc
-                        }
-                    } else {
-                        Some((cur_idx, cur_val))
-                    }
-                } else {
-                    // cond 3: current value is not accepted
-                    acc
-                }
+                Some(true)
             }
-        } else {
-            // cond 4: current comparasion is not valid
-            acc
-        }
-    };
-
-    let iter_a = IndexedIterLayout::new(la, RowMajor)?;
-    let acc = iter_a.into_iter().fold(None, fold_func);
-    if acc.is_none() {
-        rstsr_raise!(InvalidValue, "reduce_arg seems not returning a valid value.")?;
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let (out, layout_out) = reduce_axes_arg_cpu_serial(a, la, axes, f_comp, f_eq, RowMajor)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
-    return Ok(acc.unwrap().0);
+
+    fn argmin_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<Self::TOut> {
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y < x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let result = reduce_all_arg_cpu_serial(a, la, f_comp, f_eq, RowMajor)?;
+        Ok(result)
+    }
 }
 
-pub fn reduce_axes_unraveled_arg_cpu_serial<T, D, Fcomp, Feq>(
-    a: &[T],
-    la: &Layout<D>,
-    axes: &[isize],
-    f_comp: Fcomp,
-    f_eq: Feq,
-) -> Result<(Vec<IxD>, Layout<IxD>)>
+impl<T, D> OpArgMaxAPI<T, D> for DeviceCpuSerial
 where
-    T: Clone,
+    T: Clone + PartialOrd,
     D: DimAPI,
-    Fcomp: Fn(Option<T>, T) -> Option<bool>,
-    Feq: Fn(Option<T>, T) -> Option<bool>,
 {
-    rstsr_assert!(la.size() > 0, InvalidLayout, "empty sequence is not allowed for reduce_arg.")?;
+    type TOut = usize;
 
-    // split the layout into axes (to be summed) and the rest
-    let (layout_axes, layout_rest) = la.dim_split_axes(axes)?;
+    fn argmax_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<usize>>, Self::TOut, Self>, Layout<IxD>)> {
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y > x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let (out, layout_out) = reduce_axes_arg_cpu_serial(a, la, axes, f_comp, f_eq, RowMajor)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
 
-    // generate layout for result (from layout_rest)
-    let layout_out = layout_for_array_copy(&layout_rest, TensorIterOrder::default())?;
-
-    // generate layouts for actual evaluation
-    let layouts_swapped =
-        translate_to_col_major(&[&layout_out, &layout_rest], TensorIterOrder::default())?;
-    let layout_out_swapped = &layouts_swapped[0];
-    let layout_rest_swapped = &layouts_swapped[1];
-
-    // iterate both layout_rest and layout_out
-    let iter_out_swapped = IterLayoutRowMajor::new(layout_out_swapped)?;
-    let iter_rest_swapped = IterLayoutRowMajor::new(layout_rest_swapped)?;
-
-    // inner layout is axes to be summed
-    let mut layout_inner = layout_axes.clone();
-
-    // prepare output
-    let len_out = layout_out.size();
-    let mut out = vec![IxD::default(); len_out];
-
-    // actual evaluation
-    izip!(iter_out_swapped, iter_rest_swapped).try_for_each(
-        |(idx_out, idx_rest)| -> Result<()> {
-            unsafe { layout_inner.set_offset(idx_rest) };
-            let acc = reduce_all_unraveled_arg_cpu_serial(a, &layout_inner, &f_comp, &f_eq)?;
-            out[idx_out] = acc;
-            Ok(())
-        },
-    )?;
-    return Ok((out, layout_out));
+    fn argmax_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<Self::TOut> {
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y > x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let result = reduce_all_arg_cpu_serial(a, la, f_comp, f_eq, RowMajor)?;
+        Ok(result)
+    }
 }
 
-pub fn reduce_all_arg_cpu_serial<T, D, Fcomp, Feq>(
-    a: &[T],
-    la: &Layout<D>,
-    f_comp: Fcomp,
-    f_eq: Feq,
-    order: FlagOrder,
-) -> Result<usize>
+impl<T, D> OpUnraveledArgMinAPI<T, D> for DeviceCpuSerial
 where
-    T: Clone,
+    T: Clone + PartialOrd,
     D: DimAPI,
-    Fcomp: Fn(Option<T>, T) -> Option<bool>,
-    Feq: Fn(Option<T>, T) -> Option<bool>,
 {
-    let idx = reduce_all_unraveled_arg_cpu_serial(a, la, f_comp, f_eq)?;
-    let pseudo_shape = la.shape();
-    let pseudo_layout = match order {
-        RowMajor => pseudo_shape.c(),
-        ColMajor => pseudo_shape.f(),
-    };
-    unsafe { Ok(pseudo_layout.index_uncheck(idx.as_ref()) as usize) }
+    fn unraveled_argmin_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<IxD>>, IxD, Self>, Layout<IxD>)> {
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y < x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let (out, layout_out) = reduce_axes_unraveled_arg_cpu_serial(a, la, axes, f_comp, f_eq)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+
+    fn unraveled_argmin_all(
+        &self,
+        a: &<Self as DeviceRawAPI<T>>::Raw,
+        la: &Layout<D>,
+    ) -> Result<D> {
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y < x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let result = reduce_all_unraveled_arg_cpu_serial(a, la, f_comp, f_eq)?;
+        Ok(result)
+    }
 }
 
-pub fn reduce_axes_arg_cpu_serial<T, D, Fcomp, Feq>(
-    a: &[T],
-    la: &Layout<D>,
-    axes: &[isize],
-    f_comp: Fcomp,
-    f_eq: Feq,
-    order: FlagOrder,
-) -> Result<(Vec<usize>, Layout<IxD>)>
+impl<T, D> OpUnraveledArgMaxAPI<T, D> for DeviceCpuSerial
 where
-    T: Clone,
+    T: Clone + PartialOrd,
     D: DimAPI,
-    Fcomp: Fn(Option<T>, T) -> Option<bool>,
-    Feq: Fn(Option<T>, T) -> Option<bool>,
 {
-    let (idx, layout) = reduce_axes_unraveled_arg_cpu_serial(a, la, axes, f_comp, f_eq)?;
-    let pseudo_shape = layout.shape();
-    let pseudo_layout = match order {
-        RowMajor => pseudo_shape.c(),
-        ColMajor => pseudo_shape.f(),
-    };
-    let out = idx
-        .into_iter()
-        .map(|x| unsafe { pseudo_layout.index_uncheck(x.as_ref()) as usize })
-        .collect();
-    return Ok((out, layout));
-}
+    fn unraveled_argmax_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<IxD>>, IxD, Self>, Layout<IxD>)> {
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y > x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let (out, layout_out) = reduce_axes_unraveled_arg_cpu_serial(a, la, axes, f_comp, f_eq)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
 
-/* #endregion */
+    fn unraveled_argmax_all(
+        &self,
+        a: &<Self as DeviceRawAPI<T>>::Raw,
+        la: &Layout<D>,
+    ) -> Result<D> {
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y > x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let result = reduce_all_unraveled_arg_cpu_serial(a, la, f_comp, f_eq)?;
+        Ok(result)
+    }
+}

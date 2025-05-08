@@ -11,9 +11,9 @@ pub mod prelude_dev;
 pub mod rayon_auto_impl;
 pub mod threading;
 
-pub mod impl_blas_traits;
+pub mod driver_impl;
 #[cfg(feature = "linalg")]
-pub mod impl_linalg_traits;
+pub mod linalg_traits_impl;
 
 use rstsr_core::prelude_dev::DeviceCpuRayon;
 
@@ -24,5 +24,3 @@ pub struct DeviceOpenBLAS {
 
 pub(crate) use DeviceOpenBLAS as DeviceBLAS;
 pub(crate) use DeviceOpenBLAS as DeviceRayonAutoImpl;
-
-pub(crate) use rstsr_core::feature_rayon;

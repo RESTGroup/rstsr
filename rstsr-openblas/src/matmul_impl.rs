@@ -60,7 +60,7 @@ pub fn fn_name(
         } else {
             // not c-prefer, allocate new buffer and copy back
             let lc_new = lc.shape().new_f_contig(None);
-            let mut c_new = unsafe { uninitialized_vec(lc_new.size()) };
+            let mut c_new = unsafe { uninitialized_vec(lc_new.size())? };
             if beta == <ty>::ZERO {
                 fill_cpu_rayon(&mut c_new, &lc_new, <ty>::ZERO, pool)?;
             } else {
@@ -93,7 +93,7 @@ pub fn fn_name(
         (Trans, la.reverse_axes())
     } else {
         let len = la.size();
-        a_data = unsafe { Some(uninitialized_vec(len)) };
+        a_data = unsafe { Some(uninitialized_vec(len)?) };
         let la_data = la.shape().new_f_contig(None);
         assign_cpu_rayon(a_data.as_mut().unwrap(), &la_data, a, la, pool)?;
         (NoTrans, la_data)
@@ -104,7 +104,7 @@ pub fn fn_name(
         (Trans, lb.reverse_axes())
     } else {
         let len = lb.size();
-        b_data = unsafe { Some(uninitialized_vec(len)) };
+        b_data = unsafe { Some(uninitialized_vec(len)?) };
         let lb_data = lb.shape().new_f_contig(None);
         assign_cpu_rayon(b_data.as_mut().unwrap(), &lb_data, b, lb, pool)?;
         (NoTrans, lb_data)
@@ -316,7 +316,7 @@ pub fn fn_name(
         } else {
             // not c-prefer, allocate new buffer and copy back
             let lc_new = lc.shape().new_f_contig(None);
-            let mut c_new = unsafe { uninitialized_vec(lc_new.size()) };
+            let mut c_new = unsafe { uninitialized_vec(lc_new.size())? };
             fill_cpu_rayon(&mut c_new, &lc_new, <ty>::ZERO, pool)?;
             fn_name(&mut c_new, &lc_new, a, la, alpha, pool)?;
             assign_cpu_rayon(c, lc, &c_new, &lc_new, pool)?;
@@ -341,7 +341,7 @@ pub fn fn_name(
         (Trans, la.reverse_axes())
     } else {
         let len = la.size();
-        a_data = unsafe { Some(uninitialized_vec(len)) };
+        a_data = unsafe { Some(uninitialized_vec(len)?) };
         let la_data = la.shape().new_f_contig(None);
         assign_cpu_rayon(a_data.as_mut().unwrap(), &la_data, a, la, pool)?;
         (NoTrans, la_data)
@@ -525,7 +525,7 @@ mod test {
         let pool = Some(&pool);
         gemm_blas_no_conj_f32(&mut c, &lc, &a, &la, &b, &lb, 1.0, 0.0, pool).unwrap();
         let c_tsr = TensorView::new(asarray(&c).into_raw_parts().0, lc);
-        println!("{:}", c_tsr);
+        println!("{c_tsr:}");
         println!("{:}", c_tsr.reshape([8]));
         let c_ref = asarray(vec![38., 44., 50., 56., 83., 98., 113., 128.]);
         assert!(allclose_f64(&c_tsr.map(|v| *v as f64), &c_ref));
@@ -535,7 +535,7 @@ mod test {
         let lc = [2, 4].f();
         gemm_blas_no_conj_f32(&mut c, &lc, &a, &la, &b, &lb, 1.0, 0.0, pool).unwrap();
         let c_tsr = TensorView::new(asarray(&c).into_raw_parts().0, lc);
-        println!("{:}", c_tsr);
+        println!("{c_tsr:}");
         println!("{:}", c_tsr.reshape([8]));
         let c_ref = asarray(vec![38., 44., 50., 56., 83., 98., 113., 128.]);
         assert!(allclose_f64(&c_tsr.map(|v| *v as f64), &c_ref));
@@ -545,7 +545,7 @@ mod test {
         let lc = [2, 4].c();
         gemm_blas_no_conj_f32(&mut c, &lc, &a, &la, &b, &lb, 1.0, 0.0, pool).unwrap();
         let c_tsr = TensorView::new(asarray(&c).into_raw_parts().0, lc);
-        println!("{:}", c_tsr);
+        println!("{c_tsr:}");
         println!("{:}", c_tsr.reshape([8]));
         let c_ref = asarray(vec![61., 70., 79., 88., 76., 88., 100., 112.]);
         assert!(allclose_f64(&c_tsr.map(|v| *v as f64), &c_ref));
@@ -555,7 +555,7 @@ mod test {
         let lc = [2, 4].f();
         gemm_blas_no_conj_f32(&mut c, &lc, &a, &la, &b, &lb, 2.0, 0.0, pool).unwrap();
         let c_tsr = TensorView::new(asarray(&c).into_raw_parts().0, lc);
-        println!("{:}", c_tsr);
+        println!("{c_tsr:}");
         println!("{:}", c_tsr.reshape([8]));
         let c_ref = 2 * asarray(vec![61., 70., 79., 88., 76., 88., 100., 112.]);
         assert!(allclose_f64(&c_tsr.map(|v| *v as f64), &c_ref));
@@ -574,7 +574,7 @@ mod test {
         let pool = Some(&pool);
         gemm_blas_no_conj_c32(&mut c, &lc, &a, &la, &b, &lb, c32::ONE, c32::ZERO, pool).unwrap();
         let c_tsr = TensorView::new(asarray(&c).into_raw_parts().0, lc);
-        println!("{:}", c_tsr);
+        println!("{c_tsr:}");
         println!("{:}", c_tsr.reshape([8]));
     }
 }

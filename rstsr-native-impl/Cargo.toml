@@ -1,0 +1,17 @@
+[package]
+name = "rstsr-native-impl"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+license.workspace = true
+
+[dependencies]
+rstsr-common = { workspace = true }
+num = { workspace = true }
+rayon = { workspace = true, optional = true }
+
+[features]
+rayon = ["dep:rayon"]

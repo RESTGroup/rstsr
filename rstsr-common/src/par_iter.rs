@@ -83,3 +83,208 @@ where
 }
 
 /* #endregion */
+
+/* #region col-major layout dim dispatch */
+
+pub fn layout_col_major_dim_dispatch_par_1<D, F>(la: &Layout<D>, f: F) -> Result<()>
+where
+    D: DimAPI,
+    F: Fn(usize) + Send + Sync,
+{
+    #[cfg(feature = "dispatch_dim_layout_iter")]
+    {
+        macro_rules! dispatch {
+            ($dim: ident) => {{
+                let iter_a = IterLayoutColMajor::new(&la.to_dim::<$dim>()?)?;
+                iter_a.into_par_iter().for_each(f);
+            }};
+        }
+        match la.ndim() {
+            0 => f(la.offset()),
+            1 => dispatch!(Ix1),
+            2 => dispatch!(Ix2),
+            3 => dispatch!(Ix3),
+            4 => dispatch!(Ix4),
+            5 => dispatch!(Ix5),
+            6 => dispatch!(Ix6),
+            _ => {
+                let iter_a = IterLayoutColMajor::new(la)?;
+                iter_a.into_par_iter().for_each(f);
+            },
+        }
+    }
+
+    #[cfg(not(feature = "dispatch_dim_layout_iter"))]
+    {
+        let iter_a = IterLayoutColMajor::new(la)?;
+        iter_a.into_par_iter().for_each(f);
+    }
+    Ok(())
+}
+
+pub fn layout_col_major_dim_dispatch_par_2<D, F>(la: &Layout<D>, lb: &Layout<D>, f: F) -> Result<()>
+where
+    D: DimAPI,
+    F: Fn((usize, usize)) + Send + Sync,
+{
+    rstsr_assert_eq!(la.ndim(), lb.ndim(), RuntimeError)?;
+
+    #[cfg(feature = "dispatch_dim_layout_iter")]
+    {
+        macro_rules! dispatch {
+            ($dim: ident) => {{
+                let iter_a = IterLayoutColMajor::new(&la.to_dim::<$dim>()?)?;
+                let iter_b = IterLayoutColMajor::new(&lb.to_dim::<$dim>()?)?;
+                (iter_a, iter_b).into_par_iter().for_each(f);
+            }};
+        }
+        match la.ndim() {
+            0 => f((la.offset(), lb.offset())),
+            1 => dispatch!(Ix1),
+            2 => dispatch!(Ix2),
+            3 => dispatch!(Ix3),
+            4 => dispatch!(Ix4),
+            5 => dispatch!(Ix5),
+            6 => dispatch!(Ix6),
+            _ => {
+                let iter_a = IterLayoutColMajor::new(la)?;
+                let iter_b = IterLayoutColMajor::new(lb)?;
+                (iter_a, iter_b).into_par_iter().for_each(f);
+            },
+        }
+    }
+
+    #[cfg(not(feature = "dispatch_dim_layout_iter"))]
+    {
+        let iter_a = IterLayoutColMajor::new(la)?;
+        let iter_b = IterLayoutColMajor::new(lb)?;
+        (iter_a, iter_b).into_par_iter().for_each(f);
+    }
+    Ok(())
+}
+
+pub fn layout_col_major_dim_dispatch_par_3<D, F>(
+    la: &Layout<D>,
+    lb: &Layout<D>,
+    lc: &Layout<D>,
+    f: F,
+) -> Result<()>
+where
+    D: DimAPI,
+    F: Fn((usize, usize, usize)) + Send + Sync,
+{
+    rstsr_assert_eq!(la.ndim(), lb.ndim(), RuntimeError)?;
+    rstsr_assert_eq!(la.ndim(), lc.ndim(), RuntimeError)?;
+
+    #[cfg(feature = "dispatch_dim_layout_iter")]
+    {
+        macro_rules! dispatch {
+            ($dim: ident) => {{
+                let iter_a = IterLayoutColMajor::new(&la.to_dim::<$dim>()?)?;
+                let iter_b = IterLayoutColMajor::new(&lb.to_dim::<$dim>()?)?;
+                let iter_c = IterLayoutColMajor::new(&lc.to_dim::<$dim>()?)?;
+                (iter_a, iter_b, iter_c).into_par_iter().for_each(f);
+            }};
+        }
+        match la.ndim() {
+            0 => f((la.offset(), lb.offset(), lc.offset())),
+            1 => dispatch!(Ix1),
+            2 => dispatch!(Ix2),
+            3 => dispatch!(Ix3),
+            4 => dispatch!(Ix4),
+            5 => dispatch!(Ix5),
+            6 => dispatch!(Ix6),
+            _ => {
+                let iter_a = IterLayoutColMajor::new(la)?;
+                let iter_b = IterLayoutColMajor::new(lb)?;
+                let iter_c = IterLayoutColMajor::new(lc)?;
+                (iter_a, iter_b, iter_c).into_par_iter().for_each(f);
+            },
+        }
+    }
+
+    #[cfg(not(feature = "dispatch_dim_layout_iter"))]
+    {
+        let iter_a = IterLayoutColMajor::new(la)?;
+        let iter_b = IterLayoutColMajor::new(lb)?;
+        let iter_c = IterLayoutColMajor::new(lc)?;
+        (iter_a, iter_b, iter_c).into_par_iter().for_each(f);
+    }
+    Ok(())
+}
+
+pub fn layout_col_major_dim_dispatch_par_2diff<DA, DB, F>(
+    la: &Layout<DA>,
+    lb: &Layout<DB>,
+    f: F,
+) -> Result<()>
+where
+    DA: DimAPI,
+    DB: DimAPI,
+    F: Fn((usize, usize)) + Send + Sync,
+{
+    #[cfg(feature = "dispatch_dim_layout_iter")]
+    {
+        macro_rules! dispatch {
+            ($dima: ident, $dimb: ident) => {{
+                let iter_a = IterLayoutColMajor::new(&la.to_dim::<$dima>()?)?;
+                let iter_b = IterLayoutColMajor::new(&lb.to_dim::<$dimb>()?)?;
+                (iter_a, iter_b).into_par_iter().for_each(f);
+            }};
+        }
+        match (la.ndim(), lb.ndim()) {
+            (0, 0) => f((la.offset(), lb.offset())),
+            (1, 1) => dispatch!(Ix1, Ix1),
+            (1, 2) => dispatch!(Ix1, Ix2),
+            (1, 3) => dispatch!(Ix1, Ix3),
+            (1, 4) => dispatch!(Ix1, Ix4),
+            (1, 5) => dispatch!(Ix1, Ix5),
+            (1, 6) => dispatch!(Ix1, Ix6),
+            (2, 1) => dispatch!(Ix2, Ix1),
+            (2, 2) => dispatch!(Ix2, Ix2),
+            (2, 3) => dispatch!(Ix2, Ix3),
+            (2, 4) => dispatch!(Ix2, Ix4),
+            (2, 5) => dispatch!(Ix2, Ix5),
+            (2, 6) => dispatch!(Ix2, Ix6),
+            (3, 1) => dispatch!(Ix3, Ix1),
+            (3, 2) => dispatch!(Ix3, Ix2),
+            (3, 3) => dispatch!(Ix3, Ix3),
+            (3, 4) => dispatch!(Ix3, Ix4),
+            (3, 5) => dispatch!(Ix3, Ix5),
+            (3, 6) => dispatch!(Ix3, Ix6),
+            (4, 1) => dispatch!(Ix4, Ix1),
+            (4, 2) => dispatch!(Ix4, Ix2),
+            (4, 3) => dispatch!(Ix4, Ix3),
+            (4, 4) => dispatch!(Ix4, Ix4),
+            (4, 5) => dispatch!(Ix4, Ix5),
+            (4, 6) => dispatch!(Ix4, Ix6),
+            (5, 1) => dispatch!(Ix5, Ix1),
+            (5, 2) => dispatch!(Ix5, Ix2),
+            (5, 3) => dispatch!(Ix5, Ix3),
+            (5, 4) => dispatch!(Ix5, Ix4),
+            (5, 5) => dispatch!(Ix5, Ix5),
+            (5, 6) => dispatch!(Ix5, Ix6),
+            (6, 1) => dispatch!(Ix6, Ix1),
+            (6, 2) => dispatch!(Ix6, Ix2),
+            (6, 3) => dispatch!(Ix6, Ix3),
+            (6, 4) => dispatch!(Ix6, Ix4),
+            (6, 5) => dispatch!(Ix6, Ix5),
+            (6, 6) => dispatch!(Ix6, Ix6),
+            _ => {
+                let iter_a = IterLayoutColMajor::new(la)?;
+                let iter_b = IterLayoutColMajor::new(lb)?;
+                (iter_a, iter_b).into_par_iter().for_each(f);
+            },
+        }
+    }
+
+    #[cfg(not(feature = "dispatch_dim_layout_iter"))]
+    {
+        let iter_a = IterLayoutColMajor::new(la)?;
+        let iter_b = IterLayoutColMajor::new(lb)?;
+        (iter_a, iter_b).into_par_iter().for_each(f);
+    }
+    Ok(())
+}
+
+/* #endregion */
