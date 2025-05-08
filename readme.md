@@ -20,6 +20,8 @@ Welcome to RSTSR, a n-dimensional tensor toolkit library, in native rust.
 
 This crate will be a building block for scientific computation in native Rust, similar to NumPy of Python.
 
+**This project is still in early stage, and radical code factorization could occur; dev-documentation can still be greatly improved.**
+
 ## Features
 
 - Simple syntex (looks like NumPy, and some core concepts from rust crate [ndarray](https://github.com/rust-ndarray/ndarray/)).
@@ -117,5 +119,3 @@ We do not support autodiff and lazy-evaluation in far future. In this mean time,
 ## Miscellaneous
 
 You are welcomed to raise problems or suggestions in github repo issues or discussions.
-
-This project is still in early stage, and radical code factorization could occur; dev-documentation can still be greatly improved.
