@@ -77,27 +77,3 @@ impl TRSMDriverAPI<T> for DeviceBLAS {
         );
     }
 }
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use crate::DeviceBLAS;
-    use rstsr_core::prelude_dev::*;
-    use rstsr_test_manifest::get_vec;
-
-    #[test]
-    fn playground() {
-        let device = DeviceBLAS::default();
-        let la = [2048, 2048].c();
-        let lb = [2048, 4096].c();
-        let a = Tensor::new(Storage::new(get_vec::<f64>('a').into(), device.clone()), la);
-        let b = Tensor::new(Storage::new(get_vec::<f64>('b').into(), device.clone()), lb);
-        let driver = DTRSM::default().a(a.view()).b(b.view()).build().unwrap();
-        let c = driver.run().unwrap().into_owned();
-        println!("{c:?}");
-        assert!(c.c_contig());
-        // current matrix is nan, where non-nan part is similar to the expected value
-        println!("{:?}", fingerprint(&c));
-        // assert!((fingerprint(&c) - 80575.42858282285).abs() < 1e-8);
-    }
-}

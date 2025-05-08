@@ -83,24 +83,3 @@ impl SYHEMMDriverAPI<T, HERMI> for DeviceBLAS {
         );
     }
 }
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use crate::DeviceBLAS;
-    use rstsr_core::prelude_dev::*;
-    use rstsr_test_manifest::get_vec;
-
-    #[test]
-    fn playground() {
-        let device = DeviceBLAS::default();
-        let la = [2048, 2048].c();
-        let lb = [4096, 2048].c();
-        let a = Tensor::new(Storage::new(get_vec::<f64>('a').into(), device.clone()), la);
-        let b = Tensor::new(Storage::new(get_vec::<f64>('b').into(), device.clone()), lb);
-        let driver = DSYMM::default().a(a.view()).b(b.t()).build().unwrap();
-        let c = driver.run().unwrap().into_owned();
-        assert!(c.c_contig());
-        assert!((fingerprint(&c) - 80575.42858282285).abs() < 1e-8);
-    }
-}

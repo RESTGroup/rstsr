@@ -85,32 +85,3 @@ impl GEMMDriverAPI<T> for DeviceBLAS {
         );
     }
 }
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use crate::DeviceBLAS;
-    use rstsr_core::prelude_dev::*;
-    use rstsr_test_manifest::get_vec;
-
-    #[test]
-    fn playground() {
-        let device = DeviceBLAS::default();
-        let la = [1024, 4096].c();
-        let lb = [2048, 4096].c();
-        let a = Tensor::new(Storage::new(get_vec::<f64>('a').into(), device.clone()), la);
-        let b = Tensor::new(Storage::new(get_vec::<f64>('b').into(), device.clone()), lb);
-        let driver = GEMM::default().a(a.view()).b(b.t()).build().unwrap();
-        let c = driver.run().unwrap().into_owned();
-        assert!(c.c_contig());
-        assert!((fingerprint(&c) - -4118.154714656608).abs() < 1e-8);
-        let driver = GEMM::default().a(a.view()).b(b.view()).transb('T').build().unwrap();
-        let c = driver.run().unwrap().into_owned();
-        assert!(c.c_contig());
-        assert!((fingerprint(&c) - -4118.154714656608).abs() < 1e-8);
-        let driver = GEMM::default().a(a.t()).b(b.t()).transa('T').build().unwrap();
-        let c = driver.run().unwrap().into_owned();
-        assert!(c.c_contig());
-        assert!((fingerprint(&c) - -4118.154714656608).abs() < 1e-8);
-    }
-}

@@ -27,6 +27,7 @@ rstsr = { path = "../rstsr", default-features = false, features = ["openblas", "
 rstsr-test-manifest = { workspace = true }
 
 [features]
+default = ["linalg"]
 faer = ["rstsr-core/faer"]
 ilp64 = ["rstsr-openblas-ffi/ilp64", "rstsr-lapack-ffi/ilp64", "rstsr-blas-traits/ilp64"]
 linalg = ["dep:rstsr-linalg-traits"]
