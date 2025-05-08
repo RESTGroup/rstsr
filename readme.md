@@ -1,4 +1,10 @@
-# RSTSR: An n-Dimension Rust Tensor Toolkit
+<center>
+
+![Logo of RSTSR](assets/logo-3-white.png)
+
+</center>
+
+# RSTSR: An n-Dimensional Rust Tensor Toolkit
 
 <center>
 
@@ -13,6 +19,8 @@
 Welcome to RSTSR, a n-dimensional tensor toolkit library, in native rust.
 
 This crate will be a building block for scientific computation in native Rust, similar to NumPy of Python.
+
+**This project is still in early stage, and radical code factorization could occur; dev-documentation can still be greatly improved.**
 
 ## Features
 
@@ -111,5 +119,3 @@ We do not support autodiff and lazy-evaluation in far future. In this mean time,
 ## Miscellaneous
 
 You are welcomed to raise problems or suggestions in github repo issues or discussions.
-
-This project is still in early stage, and radical code factorization could occur; dev-documentation can still be greatly improved.
