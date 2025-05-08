@@ -9,7 +9,6 @@ use rstsr_linalg_traits::prelude_dev::*;
     ImplType                          Tr                               ;
    [T, D, R: DataAPI<Data = Vec<T>>] [&TensorAny<R, T, DeviceBLAS, D> ];
    [T, D                           ] [TensorView<'_, T, DeviceBLAS, D>];
-   [T, D                           ] [TensorCow<'_, T, DeviceBLAS, D> ];
 )]
 impl<ImplType> EighAPI<DeviceBLAS> for (Tr, FlagUpLo)
 where
@@ -35,7 +34,6 @@ where
     ImplType                          Tr                               ;
    [T, D, R: DataAPI<Data = Vec<T>>] [&TensorAny<R, T, DeviceBLAS, D> ];
    [T, D                           ] [TensorView<'_, T, DeviceBLAS, D>];
-   [T, D                           ] [TensorCow<'_, T, DeviceBLAS, D> ];
 )]
 impl<ImplType> EighAPI<DeviceBLAS> for Tr
 where
@@ -111,13 +109,8 @@ where
     ImplType                                                       TrA                                TrB                              ;
    [T, D, Ra: DataAPI<Data = Vec<T>>, Rb: DataAPI<Data = Vec<T>>] [&TensorAny<Ra, T, DeviceBLAS, D>] [&TensorAny<Rb, T, DeviceBLAS, D>];
    [T, D, R: DataAPI<Data = Vec<T>>                             ] [&TensorAny<R, T, DeviceBLAS, D> ] [TensorView<'_, T, DeviceBLAS, D>];
-   [T, D, R: DataAPI<Data = Vec<T>>                             ] [&TensorAny<R, T, DeviceBLAS, D> ] [TensorCow<'_, T, DeviceBLAS, D> ];
    [T, D, R: DataAPI<Data = Vec<T>>                             ] [TensorView<'_, T, DeviceBLAS, D>] [&TensorAny<R, T, DeviceBLAS, D> ];
-   [T, D, R: DataAPI<Data = Vec<T>>                             ] [TensorCow<'_, T, DeviceBLAS, D> ] [&TensorAny<R, T, DeviceBLAS, D> ];
    [T, D,                                                       ] [TensorView<'_, T, DeviceBLAS, D>] [TensorView<'_, T, DeviceBLAS, D>];
-   [T, D,                                                       ] [TensorView<'_, T, DeviceBLAS, D>] [TensorCow<'_, T, DeviceBLAS, D> ];
-   [T, D,                                                       ] [TensorCow<'_, T, DeviceBLAS, D> ] [TensorView<'_, T, DeviceBLAS, D>];
-   [T, D,                                                       ] [TensorCow<'_, T, DeviceBLAS, D> ] [TensorCow<'_, T, DeviceBLAS, D> ];
 )]
 impl<ImplType> EighAPI<DeviceBLAS> for (TrA, TrB, FlagUpLo, i32)
 where
@@ -147,13 +140,8 @@ where
     ImplType                                                       TrA                                TrB                              ;
    [T, D, Ra: DataAPI<Data = Vec<T>>, Rb: DataAPI<Data = Vec<T>>] [&TensorAny<Ra, T, DeviceBLAS, D>] [&TensorAny<Rb, T, DeviceBLAS, D>];
    [T, D, R: DataAPI<Data = Vec<T>>                             ] [&TensorAny<R, T, DeviceBLAS, D> ] [TensorView<'_, T, DeviceBLAS, D>];
-   [T, D, R: DataAPI<Data = Vec<T>>                             ] [&TensorAny<R, T, DeviceBLAS, D> ] [TensorCow<'_, T, DeviceBLAS, D> ];
    [T, D, R: DataAPI<Data = Vec<T>>                             ] [TensorView<'_, T, DeviceBLAS, D>] [&TensorAny<R, T, DeviceBLAS, D> ];
-   [T, D, R: DataAPI<Data = Vec<T>>                             ] [TensorCow<'_, T, DeviceBLAS, D> ] [&TensorAny<R, T, DeviceBLAS, D> ];
    [T, D,                                                       ] [TensorView<'_, T, DeviceBLAS, D>] [TensorView<'_, T, DeviceBLAS, D>];
-   [T, D,                                                       ] [TensorView<'_, T, DeviceBLAS, D>] [TensorCow<'_, T, DeviceBLAS, D> ];
-   [T, D,                                                       ] [TensorCow<'_, T, DeviceBLAS, D> ] [TensorView<'_, T, DeviceBLAS, D>];
-   [T, D,                                                       ] [TensorCow<'_, T, DeviceBLAS, D> ] [TensorCow<'_, T, DeviceBLAS, D> ];
 )]
 impl<ImplType> EighAPI<DeviceBLAS> for (TrA, TrB, FlagUpLo)
 where
@@ -173,13 +161,8 @@ where
     ImplType                                                       TrA                                TrB                              ;
    [T, D, Ra: DataAPI<Data = Vec<T>>, Rb: DataAPI<Data = Vec<T>>] [&TensorAny<Ra, T, DeviceBLAS, D>] [&TensorAny<Rb, T, DeviceBLAS, D>];
    [T, D, R: DataAPI<Data = Vec<T>>                             ] [&TensorAny<R, T, DeviceBLAS, D> ] [TensorView<'_, T, DeviceBLAS, D>];
-   [T, D, R: DataAPI<Data = Vec<T>>                             ] [&TensorAny<R, T, DeviceBLAS, D> ] [TensorCow<'_, T, DeviceBLAS, D> ];
    [T, D, R: DataAPI<Data = Vec<T>>                             ] [TensorView<'_, T, DeviceBLAS, D>] [&TensorAny<R, T, DeviceBLAS, D> ];
-   [T, D, R: DataAPI<Data = Vec<T>>                             ] [TensorCow<'_, T, DeviceBLAS, D> ] [&TensorAny<R, T, DeviceBLAS, D> ];
    [T, D,                                                       ] [TensorView<'_, T, DeviceBLAS, D>] [TensorView<'_, T, DeviceBLAS, D>];
-   [T, D,                                                       ] [TensorView<'_, T, DeviceBLAS, D>] [TensorCow<'_, T, DeviceBLAS, D> ];
-   [T, D,                                                       ] [TensorCow<'_, T, DeviceBLAS, D> ] [TensorView<'_, T, DeviceBLAS, D>];
-   [T, D,                                                       ] [TensorCow<'_, T, DeviceBLAS, D> ] [TensorCow<'_, T, DeviceBLAS, D> ];
 )]
 impl<ImplType> EighAPI<DeviceBLAS> for (TrA, TrB)
 where

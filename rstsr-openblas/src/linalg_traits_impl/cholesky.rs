@@ -9,7 +9,6 @@ use rstsr_linalg_traits::prelude_dev::*;
     ImplType                          Tr                               ;
    [T, D, R: DataAPI<Data = Vec<T>>] [&TensorAny<R, T, DeviceBLAS, D> ];
    [T, D                           ] [TensorView<'_, T, DeviceBLAS, D>];
-   [T, D                           ] [TensorCow<'_, T, DeviceBLAS, D> ];
 )]
 impl<ImplType> CholeskyAPI<DeviceBLAS> for (Tr, Option<FlagUpLo>)
 where
@@ -72,7 +71,6 @@ where
     ImplType                              Tr;
    ['a, T, D, R: DataAPI<Data = Vec<T>>] [&'a TensorAny<R, T, DeviceBLAS, D>];
    ['a, T, D,                          ] [TensorView<'a, T, DeviceBLAS, D>  ];
-   ['a, T, D,                          ] [TensorCow<'a, T, DeviceBLAS, D>   ];
    [    T, D                           ] [Tensor<T, DeviceBLAS, D>          ];
    ['a, T, D                           ] [TensorMut<'a, T, DeviceBLAS, D>   ];
 )]
