@@ -11,7 +11,28 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+    - uses: conda-incubator/setup-miniconda@v2
     - name: install dependencies
       run: sudo apt-get install -y libopenblas-openmp-dev
+    - name: conda environment setup
+      run: |
+        conda create -n test python=3.10 -y
+        conda activate test
+        conda install -y numpy scipy
+    - name: manifest initialization
+      run: |
+        conda activate test
+        cd rstsr-test-manifest/resources
+        python gen_rand_vec.py
+    - name: validate manifest (driver_validation_f64)
+      run: |
+        conda activate test
+        cd rstsr-openblas/tests/test_driver_impl
+        python driver_validation_f64.py
+    - name: validate manifest (func_validation_f64)
+      run: |
+        conda activate test
+        cd rstsr-openblas/tests/test_linalg_func
+        python func_validation_f64.py
     - name: test
       run: RSTSR_DEV=1 cargo test -p rstsr-openblas --features="openmp linalg"
