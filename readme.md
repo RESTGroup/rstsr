@@ -1,4 +1,10 @@
-# RSTSR: An n-Dimension Rust Tensor Toolkit
+<center>
+
+![Logo of RSTSR](assets/logo-3-white.png)
+
+</center>
+
+# RSTSR: An n-Dimensional Rust Tensor Toolkit
 
 <center>
 
