@@ -121,11 +121,11 @@ where
 /* #region sub-args */
 
 #[duplicate_item(
-     ImplStruct                   args_tuple            internal_tuple            ;
-    [(TrA, TrB, bool, FlagUpLo)] [(a, b, hermi, uplo)] [(a, b, hermi, Some(uplo))];
-    [(TrA, TrB, bool,         )] [(a, b, hermi,     )] [(a, b, hermi, None      )];
-    [(TrA, TrB,       FlagUpLo)] [(a, b,        uplo)] [(a, b, true , Some(uplo))];
-    [(TrA, TrB                )] [(a, b,            )] [(a, b, true , None      )];
+    ImplStruct                   args_tuple            internal_tuple            ;
+   [(TrA, TrB, bool, FlagUpLo)] [(a, b, hermi, uplo)] [(a, b, hermi, Some(uplo))];
+   [(TrA, TrB, bool,         )] [(a, b, hermi,     )] [(a, b, hermi, None      )];
+   [(TrA, TrB,       FlagUpLo)] [(a, b,        uplo)] [(a, b, true , Some(uplo))];
+   [(TrA, TrB,               )] [(a, b,            )] [(a, b, true , None      )];
 )]
 impl<TrA, TrB> SolveSymmetricAPI<DeviceBLAS> for ImplStruct
 where

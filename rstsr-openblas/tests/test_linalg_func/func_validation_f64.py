@@ -92,6 +92,16 @@ x = scipy.linalg.solve(a, b, assume_a="sym", lower=False)
 assert np.isclose(fingerprint(x), -314.45022891879034)
 fingerprint(x)
 
+# ### sovle_triangular
 
+a = a_raw[:1024*512].copy().reshape(1024, 512)
+b = b_raw.copy().reshape(1024, 1024)
+x = scipy.linalg.solve(b, a, assume_a="lower triangular")
+assert np.isclose(fingerprint(x), -2.6133848012216587)
+fingerprint(x)
 
-
+a = a_raw[:1024*512].copy().reshape(1024, 512)
+b = b_raw.copy().reshape(1024, 1024)
+x = scipy.linalg.solve(b, a, assume_a="upper triangular")
+assert np.isclose(fingerprint(x), 5.112256818100785)
+fingerprint(x)
