@@ -109,7 +109,7 @@ where
 /* #region general eigh */
 
 #[duplicate_item(
-    ImplType                                                       Tra                                Trb                              ;
+    ImplType                                                       TrA                                TrB                              ;
    [T, D, Ra: DataAPI<Data = Vec<T>>, Rb: DataAPI<Data = Vec<T>>] [&TensorAny<Ra, T, DeviceBLAS, D>] [&TensorAny<Rb, T, DeviceBLAS, D>];
    [T, D, R: DataAPI<Data = Vec<T>>                             ] [&TensorAny<R, T, DeviceBLAS, D> ] [TensorView<'_, T, DeviceBLAS, D>];
    [T, D, R: DataAPI<Data = Vec<T>>                             ] [&TensorAny<R, T, DeviceBLAS, D> ] [TensorCow<'_, T, DeviceBLAS, D> ];
@@ -120,7 +120,7 @@ where
    [T, D,                                                       ] [TensorCow<'_, T, DeviceBLAS, D> ] [TensorView<'_, T, DeviceBLAS, D>];
    [T, D,                                                       ] [TensorCow<'_, T, DeviceBLAS, D> ] [TensorCow<'_, T, DeviceBLAS, D> ];
 )]
-impl<ImplType> EighAPI<DeviceBLAS> for (Tra, Trb, FlagUpLo, i32)
+impl<ImplType> EighAPI<DeviceBLAS> for (TrA, TrB, FlagUpLo, i32)
 where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
@@ -145,7 +145,7 @@ where
 }
 
 #[duplicate_item(
-    ImplType                                                       Tra                                Trb                              ;
+    ImplType                                                       TrA                                TrB                              ;
    [T, D, Ra: DataAPI<Data = Vec<T>>, Rb: DataAPI<Data = Vec<T>>] [&TensorAny<Ra, T, DeviceBLAS, D>] [&TensorAny<Rb, T, DeviceBLAS, D>];
    [T, D, R: DataAPI<Data = Vec<T>>                             ] [&TensorAny<R, T, DeviceBLAS, D> ] [TensorView<'_, T, DeviceBLAS, D>];
    [T, D, R: DataAPI<Data = Vec<T>>                             ] [&TensorAny<R, T, DeviceBLAS, D> ] [TensorCow<'_, T, DeviceBLAS, D> ];
@@ -156,7 +156,7 @@ where
    [T, D,                                                       ] [TensorCow<'_, T, DeviceBLAS, D> ] [TensorView<'_, T, DeviceBLAS, D>];
    [T, D,                                                       ] [TensorCow<'_, T, DeviceBLAS, D> ] [TensorCow<'_, T, DeviceBLAS, D> ];
 )]
-impl<ImplType> EighAPI<DeviceBLAS> for (Tra, Trb, FlagUpLo)
+impl<ImplType> EighAPI<DeviceBLAS> for (TrA, TrB, FlagUpLo)
 where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
@@ -171,7 +171,7 @@ where
 }
 
 #[duplicate_item(
-    ImplType                                                       Tra                                Trb                              ;
+    ImplType                                                       TrA                                TrB                              ;
    [T, D, Ra: DataAPI<Data = Vec<T>>, Rb: DataAPI<Data = Vec<T>>] [&TensorAny<Ra, T, DeviceBLAS, D>] [&TensorAny<Rb, T, DeviceBLAS, D>];
    [T, D, R: DataAPI<Data = Vec<T>>                             ] [&TensorAny<R, T, DeviceBLAS, D> ] [TensorView<'_, T, DeviceBLAS, D>];
    [T, D, R: DataAPI<Data = Vec<T>>                             ] [&TensorAny<R, T, DeviceBLAS, D> ] [TensorCow<'_, T, DeviceBLAS, D> ];
@@ -182,7 +182,7 @@ where
    [T, D,                                                       ] [TensorCow<'_, T, DeviceBLAS, D> ] [TensorView<'_, T, DeviceBLAS, D>];
    [T, D,                                                       ] [TensorCow<'_, T, DeviceBLAS, D> ] [TensorCow<'_, T, DeviceBLAS, D> ];
 )]
-impl<ImplType> EighAPI<DeviceBLAS> for (Tra, Trb)
+impl<ImplType> EighAPI<DeviceBLAS> for (TrA, TrB)
 where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,

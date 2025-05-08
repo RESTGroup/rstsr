@@ -71,4 +71,17 @@ a_inv = np.linalg.inv(a)
 assert np.isclose(fingerprint(a_inv), 143.39005577037764)
 fingerprint(a_inv)
 
+# ### solve_general
+
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw[:1024*512].copy().reshape(1024, 512)
+x = np.linalg.solve(a, b)
+fingerprint(x)
+
+
+
+
+
+
+
 
