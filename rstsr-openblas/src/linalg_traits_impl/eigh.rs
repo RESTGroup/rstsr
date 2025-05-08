@@ -1,5 +1,4 @@
 use crate::DeviceBLAS;
-use duplicate::duplicate_item;
 use rstsr_blas_traits::prelude::*;
 use rstsr_core::prelude_dev::*;
 use rstsr_linalg_traits::prelude_dev::*;
