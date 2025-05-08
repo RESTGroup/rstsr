@@ -1,0 +1,17 @@
+name: rstsr-openblas tests
+
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+
+jobs:
+  unittests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: install dependencies
+      run: sudo apt-get install -y libopenblas-openmp-dev
+    - name: test
+      run: RSTSR_DEV=1 cargo test -p rstsr-openblas --features="openmp linalg"
