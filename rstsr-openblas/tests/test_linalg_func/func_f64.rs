@@ -25,6 +25,16 @@ mod test {
     }
 
     #[test]
+    fn test_det() {
+        let device = DeviceBLAS::default();
+        let a_vec = get_vec::<f64>('a')[..5 * 5].to_vec();
+        let mut a = rt::asarray((a_vec, [5, 5].c(), &device));
+
+        let det = rt::linalg::det(a.view_mut());
+        assert!((det - 3.9699917597338046).abs() < 1e-8);
+    }
+
+    #[test]
     fn test_eigh() {
         let device = DeviceBLAS::default();
         let mut a = rt::asarray((get_vec::<f64>('a'), [1024, 1024].c(), &device));
@@ -68,6 +78,16 @@ mod test {
         // mutable
         rt::linalg::inv(a.view_mut());
         assert!((fingerprint(&a) - 143.39005577037764).abs() < 1e-8);
+    }
+
+    #[test]
+    fn test_slogdet() {
+        let device = DeviceBLAS::default();
+        let mut a = rt::asarray((get_vec::<f64>('a'), [1024, 1024].c(), &device));
+
+        let (sign, logabsdet) = rt::linalg::slogdet(a.view_mut()).into();
+        assert!(sign - -1.0 < 1e-8);
+        assert!(logabsdet - 3031.1259211802403 < 1e-8);
     }
 
     #[test]

@@ -199,3 +199,36 @@ where
 }
 
 /* #endregion */
+
+/* #region slogdet */
+
+pub fn ref_impl_slogdet_f<T, B>(a: TensorReference<T, B, Ix2>) -> Result<(T, T::Real)>
+where
+    T: BlasFloat,
+    B: LapackDriverAPI<T>,
+{
+    let device = a.device().clone();
+    let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
+    let task = || {
+        let (a, piv) = GETRF::default().a(a).build()?.run()?;
+        // pivot indices that may cause sign change
+        let mut change_sign = 0;
+        let m = piv.shape()[0];
+        for i in 0..m {
+            if piv[[i]] != i as i32 {
+                change_sign += 1;
+            }
+        }
+        // accumulate diagonal values
+        let diag_vals = a.view().into_diagonal(());
+        let diag_abs = (&diag_vals).abs();
+        let diag_sgn = diag_vals.sign();
+        let acc_sgn = diag_sgn.prod();
+        let acc_sgn = if change_sign % 2 == 0 { acc_sgn } else { -acc_sgn };
+        let acc_abs = diag_abs.log().sum();
+        Ok((acc_sgn, acc_abs))
+    };
+    device.with_blas_num_threads(nthreads, task)
+}
+
+/* #endregion */

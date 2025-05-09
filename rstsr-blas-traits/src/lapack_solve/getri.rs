@@ -35,7 +35,7 @@ where
         let order = if a.f_prefer() && !a.c_prefer() { ColMajor } else { RowMajor };
         let mut ipiv = ipiv.into_contig_f(ColMajor)?;
 
-        // rust is 1-indexed
+        // rust is 0-indexed
         ipiv += 1;
 
         // perform check

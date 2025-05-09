@@ -10,12 +10,19 @@ pub trait BlasDriverBaseAPI<T>:
     DeviceAPI<T, Raw = Vec<T>>
     + DeviceAPI<T::Real, Raw = Vec<T::Real>>
     + DeviceAPI<blas_int, Raw = Vec<blas_int>>
+    + BlasThreadAPI
+    + DeviceRayonAPI
+    // lapacke functionality requirements
     + DeviceComplexFloatAPI<T, Ix2>
     + DeviceNumAPI<blas_int, Ix1>
     + DeviceAddAssignAPI<blas_int, blas_int, Ix1>
     + DeviceSubAssignAPI<blas_int, blas_int, Ix1>
-    + BlasThreadAPI
-    + DeviceRayonAPI
+    // linalg functionality requirements
+    + DeviceAbsAPI<T, Ix1, TOut = T::Real>
+    + DeviceSignAPI<T, Ix1, TOut = T>
+    + OpProdAPI<T, Ix1, TOut = T>
+    + OpSumAPI<T::Real, Ix1, TOut = T::Real>
+    + DeviceLogAPI<T::Real, Ix1, TOut = T::Real>
 where
     T: BlasFloat,
 {

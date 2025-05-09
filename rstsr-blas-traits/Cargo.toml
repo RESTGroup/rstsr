@@ -12,6 +12,7 @@ license.workspace = true
 num = { workspace = true }
 half = { workspace = true }
 derive_builder = { workspace = true }
+rstsr-dtype-traits = { workspace = true }
 rstsr-core = { workspace = true, default-features = false, features = ["rayon"] }
 
 [features]

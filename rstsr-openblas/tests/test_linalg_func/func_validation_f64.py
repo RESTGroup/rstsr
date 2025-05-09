@@ -105,3 +105,26 @@ b = b_raw.copy().reshape(1024, 1024)
 x = scipy.linalg.solve(b, a, assume_a="upper triangular")
 assert np.isclose(fingerprint(x), 5.112256818100785)
 fingerprint(x)
+
+# ### slogdot
+
+a = a_raw.copy().reshape(1024, 1024)
+sgn, logabsdet = np.linalg.slogdet(a)
+assert np.isclose(sgn, -1)
+assert np.isclose(logabsdet, 3031.1259211802403)
+sgn, logabsdet
+
+# ### det
+
+a = a_raw[:25].copy().reshape(5, 5)
+det = np.linalg.det(a)
+assert np.isclose(det, 3.9699917597338046)
+det
+
+np.linalg.slogdet(a)
+
+scipy.linalg.lapack.dgetrf(a)
+
+
+
+
