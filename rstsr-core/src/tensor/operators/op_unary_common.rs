@@ -93,100 +93,96 @@ pub use trait_unary::*;
 
 /* #region impl tensor unary common */
 
-macro_rules! impl_tensor_unary_common {
-    ($op_f: ident, $TensorOpAPI: ident, $DeviceOpAPI: ident) => {
-        // any types allowed
-        impl<R, T, B, D> $TensorOpAPI for &TensorAny<R, T, B, D>
-        where
-            D: DimAPI,
-            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
-            B: DeviceAPI<T>,
-            B: $DeviceOpAPI<T, D> + DeviceCreationAnyAPI<B::TOut>,
-        {
-            type Output = Tensor<B::TOut, B, D>;
-            fn $op_f(self) -> Result<Self::Output> {
-                let lb = self.layout();
-                // generate empty output tensor
-                let device = self.device();
-                let la = layout_for_array_copy(lb, TensorIterOrder::K)?;
-                let mut storage_a = unsafe { device.empty_impl(la.bounds_index()?.1)? };
-                // compute and return
-                device.op_muta_refb(storage_a.raw_mut(), &la, self.raw(), lb)?;
-                return Tensor::new_f(storage_a, la);
-            }
-        }
-
-        // any types allowed
-        impl<'l, T, B, D> $TensorOpAPI for TensorView<'l, T, B, D>
-        where
-            D: DimAPI,
-            B: DeviceAPI<T>,
-            B: $DeviceOpAPI<T, D> + DeviceCreationAnyAPI<B::TOut>,
-        {
-            type Output = Tensor<B::TOut, B, D>;
-            fn $op_f(self) -> Result<Self::Output> {
-                $TensorOpAPI::$op_f(&self)
-            }
-        }
-
-        // same types allowed
-        impl<T, B, D> $TensorOpAPI for Tensor<T, B, D>
-        where
-            D: DimAPI,
-            B: DeviceAPI<T>,
-            B: $DeviceOpAPI<T, D, TOut = T> + DeviceCreationAnyAPI<T>,
-        {
-            type Output = Tensor<T, B, D>;
-            fn $op_f(mut self) -> Result<Self::Output> {
-                let layout = self.layout().clone();
-                let device = self.device().clone();
-                // generate empty output tensor
-                device.op_muta(self.raw_mut(), &layout)?;
-                return Ok(self);
-            }
-        }
-    };
-}
-
-#[rustfmt::skip]
-#[allow(clippy::wrong_self_convention)]
+#[duplicate_item(
+    op_f          TensorOpAPI         DeviceOpAPI       ;
+   [acos_f     ] [TensorAcosAPI    ] [DeviceAcosAPI    ];
+   [acosh_f    ] [TensorAcoshAPI   ] [DeviceAcoshAPI   ];
+   [asin_f     ] [TensorAsinAPI    ] [DeviceAsinAPI    ];
+   [asinh_f    ] [TensorAsinhAPI   ] [DeviceAsinhAPI   ];
+   [atan_f     ] [TensorAtanAPI    ] [DeviceAtanAPI    ];
+   [atanh_f    ] [TensorAtanhAPI   ] [DeviceAtanhAPI   ];
+   [ceil_f     ] [TensorCeilAPI    ] [DeviceCeilAPI    ];
+   [conj_f     ] [TensorConjAPI    ] [DeviceConjAPI    ];
+   [cos_f      ] [TensorCosAPI     ] [DeviceCosAPI     ];
+   [cosh_f     ] [TensorCoshAPI    ] [DeviceCoshAPI    ];
+   [exp_f      ] [TensorExpAPI     ] [DeviceExpAPI     ];
+   [expm1_f    ] [TensorExpm1API   ] [DeviceExpm1API   ];
+   [floor_f    ] [TensorFloorAPI   ] [DeviceFloorAPI   ];
+   [inv_f      ] [TensorInvAPI     ] [DeviceInvAPI     ];
+   [is_finite_f] [TensorIsFiniteAPI] [DeviceIsFiniteAPI];
+   [is_inf_f   ] [TensorIsInfAPI   ] [DeviceIsInfAPI   ];
+   [is_nan_f   ] [TensorIsNanAPI   ] [DeviceIsNanAPI   ];
+   [log_f      ] [TensorLogAPI     ] [DeviceLogAPI     ];
+   [log1p_f    ] [TensorLog1pAPI   ] [DeviceLog1pAPI   ];
+   [log2_f     ] [TensorLog2API    ] [DeviceLog2API    ];
+   [log10_f    ] [TensorLog10API   ] [DeviceLog10API   ];
+   [round_f    ] [TensorRoundAPI   ] [DeviceRoundAPI   ];
+   [signbit_f  ] [TensorSignBitAPI ] [DeviceSignBitAPI ];
+   [sin_f      ] [TensorSinAPI     ] [DeviceSinAPI     ];
+   [sinh_f     ] [TensorSinhAPI    ] [DeviceSinhAPI    ];
+   [square_f   ] [TensorSquareAPI  ] [DeviceSquareAPI  ];
+   [sqrt_f     ] [TensorSqrtAPI    ] [DeviceSqrtAPI    ];
+   [tan_f      ] [TensorTanAPI     ] [DeviceTanAPI     ];
+   [tanh_f     ] [TensorTanhAPI    ] [DeviceTanhAPI    ];
+   [trunc_f    ] [TensorTruncAPI   ] [DeviceTruncAPI   ];
+   [abs_f      ] [TensorAbsAPI     ] [DeviceAbsAPI     ];
+   [imag_f     ] [TensorImagAPI    ] [DeviceImagAPI    ];
+   [real_f     ] [TensorRealAPI    ] [DeviceRealAPI    ];
+   [sign_f     ] [TensorSignAPI    ] [DeviceSignAPI    ];
+)]
 mod impl_tensor_unary_common {
     use super::*;
-    impl_tensor_unary_common!(acos_f      , TensorAcosAPI     , DeviceAcosAPI     );
-    impl_tensor_unary_common!(acosh_f     , TensorAcoshAPI    , DeviceAcoshAPI    );
-    impl_tensor_unary_common!(asin_f      , TensorAsinAPI     , DeviceAsinAPI     );
-    impl_tensor_unary_common!(asinh_f     , TensorAsinhAPI    , DeviceAsinhAPI    );
-    impl_tensor_unary_common!(atan_f      , TensorAtanAPI     , DeviceAtanAPI     );
-    impl_tensor_unary_common!(atanh_f     , TensorAtanhAPI    , DeviceAtanhAPI    );
-    impl_tensor_unary_common!(ceil_f      , TensorCeilAPI     , DeviceCeilAPI     );
-    impl_tensor_unary_common!(conj_f      , TensorConjAPI     , DeviceConjAPI     );
-    impl_tensor_unary_common!(cos_f       , TensorCosAPI      , DeviceCosAPI      );
-    impl_tensor_unary_common!(cosh_f      , TensorCoshAPI     , DeviceCoshAPI     );
-    impl_tensor_unary_common!(exp_f       , TensorExpAPI      , DeviceExpAPI      );
-    impl_tensor_unary_common!(expm1_f     , TensorExpm1API    , DeviceExpm1API    );
-    impl_tensor_unary_common!(floor_f     , TensorFloorAPI    , DeviceFloorAPI    );
-    impl_tensor_unary_common!(inv_f       , TensorInvAPI      , DeviceInvAPI      );
-    impl_tensor_unary_common!(is_finite_f , TensorIsFiniteAPI , DeviceIsFiniteAPI );
-    impl_tensor_unary_common!(is_inf_f    , TensorIsInfAPI    , DeviceIsInfAPI    );
-    impl_tensor_unary_common!(is_nan_f    , TensorIsNanAPI    , DeviceIsNanAPI    );
-    impl_tensor_unary_common!(log_f       , TensorLogAPI      , DeviceLogAPI      );
-    impl_tensor_unary_common!(log1p_f     , TensorLog1pAPI    , DeviceLog1pAPI    );
-    impl_tensor_unary_common!(log2_f      , TensorLog2API     , DeviceLog2API     );
-    impl_tensor_unary_common!(log10_f     , TensorLog10API    , DeviceLog10API    );
-    impl_tensor_unary_common!(round_f     , TensorRoundAPI    , DeviceRoundAPI    );
-    impl_tensor_unary_common!(signbit_f   , TensorSignBitAPI  , DeviceSignBitAPI  );
-    impl_tensor_unary_common!(sin_f       , TensorSinAPI      , DeviceSinAPI      );
-    impl_tensor_unary_common!(sinh_f      , TensorSinhAPI     , DeviceSinhAPI     );
-    impl_tensor_unary_common!(square_f    , TensorSquareAPI   , DeviceSquareAPI   );
-    impl_tensor_unary_common!(sqrt_f      , TensorSqrtAPI     , DeviceSqrtAPI     );
-    impl_tensor_unary_common!(tan_f       , TensorTanAPI      , DeviceTanAPI      );
-    impl_tensor_unary_common!(tanh_f      , TensorTanhAPI     , DeviceTanhAPI     );
-    impl_tensor_unary_common!(trunc_f     , TensorTruncAPI    , DeviceTruncAPI    );
 
-    impl_tensor_unary_common!(abs_f       , TensorAbsAPI         , DeviceAbsAPI  );
-    impl_tensor_unary_common!(imag_f      , TensorImagAPI        , DeviceImagAPI );
-    impl_tensor_unary_common!(real_f      , TensorRealAPI        , DeviceRealAPI );
-    impl_tensor_unary_common!(sign_f      , TensorSignAPI        , DeviceSignAPI );
+    // any types allowed
+    impl<R, T, B, D> TensorOpAPI for &TensorAny<R, T, B, D>
+    where
+        D: DimAPI,
+        R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+        B: DeviceAPI<T>,
+        B: DeviceOpAPI<T, D> + DeviceCreationAnyAPI<B::TOut>,
+    {
+        type Output = Tensor<B::TOut, B, D>;
+        fn op_f(self) -> Result<Self::Output> {
+            let lb = self.layout();
+            // generate empty output tensor
+            let device = self.device();
+            let la = layout_for_array_copy(lb, TensorIterOrder::K)?;
+            let mut storage_a = unsafe { device.empty_impl(la.bounds_index()?.1)? };
+            // compute and return
+            device.op_muta_refb(storage_a.raw_mut(), &la, self.raw(), lb)?;
+            return Tensor::new_f(storage_a, la);
+        }
+    }
+
+    // any types allowed
+    impl<T, B, D> TensorOpAPI for TensorView<'_, T, B, D>
+    where
+        D: DimAPI,
+        B: DeviceAPI<T>,
+        B: DeviceOpAPI<T, D> + DeviceCreationAnyAPI<B::TOut>,
+    {
+        type Output = Tensor<B::TOut, B, D>;
+        fn op_f(self) -> Result<Self::Output> {
+            TensorOpAPI::op_f(&self)
+        }
+    }
+
+    // same types allowed
+    impl<T, B, D> TensorOpAPI for Tensor<T, B, D>
+    where
+        D: DimAPI,
+        B: DeviceAPI<T>,
+        B: DeviceOpAPI<T, D, TOut = T> + DeviceCreationAnyAPI<T>,
+    {
+        type Output = Tensor<T, B, D>;
+        fn op_f(mut self) -> Result<Self::Output> {
+            let layout = self.layout().clone();
+            let device = self.device().clone();
+            // generate empty output tensor
+            device.op_muta(self.raw_mut(), &layout)?;
+            return Ok(self);
+        }
+    }
 }
 
 /* #endregion */

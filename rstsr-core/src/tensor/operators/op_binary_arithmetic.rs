@@ -383,7 +383,7 @@ mod impl_binary_lr_consume {
     }
 
     #[doc(hidden)]
-    impl<'a, TA, TB, DA, DB, DC, B> TensorOpAPI<Tensor<TB, B, DB>> for TensorView<'a, TA, B, DA>
+    impl<TA, TB, DA, DB, DC, B> TensorOpAPI<Tensor<TB, B, DB>> for TensorView<'_, TA, B, DA>
     where
         // data constraints
         DA: DimAPI,
@@ -695,7 +695,7 @@ macro_rules! impl_arithmetic_scalar_lhs {
         }
 
         #[doc(hidden)]
-        impl<'l, T, B, D> $TensorOpAPI<TensorView<'l, T, B, D>> for $ty
+        impl<T, B, D> $TensorOpAPI<TensorView<'_, T, B, D>> for $ty
         where
             T: From<$ty> + $Op<T, Output = T>,
             D: DimAPI,
@@ -703,7 +703,7 @@ macro_rules! impl_arithmetic_scalar_lhs {
             B: $DeviceOpAPI<T, T, T, D>,
         {
             type Output = Tensor<T, B, D>;
-            fn $op_f(a: Self, b: TensorView<'l, T, B, D>) -> Result<Self::Output> {
+            fn $op_f(a: Self, b: TensorView<'_, T, B, D>) -> Result<Self::Output> {
                 let a = T::from(a);
                 let device = b.device();
                 let lb = b.layout();
@@ -715,7 +715,7 @@ macro_rules! impl_arithmetic_scalar_lhs {
         }
 
         #[doc(hidden)]
-        impl<'l, T, B, D> $Op<TensorView<'l, T, B, D>> for $ty
+        impl<T, B, D> $Op<TensorView<'_, T, B, D>> for $ty
         where
             T: From<$ty> + $Op<T, Output = T>,
             D: DimAPI,
@@ -723,7 +723,7 @@ macro_rules! impl_arithmetic_scalar_lhs {
             B: $DeviceOpAPI<T, T, T, D>,
         {
             type Output = Tensor<T, B, D>;
-            fn $op(self, rhs: TensorView<'l, T, B, D>) -> Self::Output {
+            fn $op(self, rhs: TensorView<'_, T, B, D>) -> Self::Output {
                 $TensorOpAPI::$op_f(self, rhs).unwrap()
             }
         }
@@ -912,7 +912,7 @@ mod impl_arithmetic_scalar_rhs {
     }
 
     #[doc(hidden)]
-    impl<'l, T, TB, D, B> TensorOpAPI<TB> for TensorView<'l, T, B, D>
+    impl<T, TB, D, B> TensorOpAPI<TB> for TensorView<'_, T, B, D>
     where
         T: From<TB> + Op<T, Output = T>,
         D: DimAPI,
