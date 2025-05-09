@@ -7,7 +7,6 @@ use rstsr_linalg_traits::prelude_dev::*;
     ImplType                          Tr                               ;
    [T, D, R: DataAPI<Data = Vec<T>>] [&TensorAny<R, T, DeviceBLAS, D> ];
    [T, D                           ] [TensorView<'_, T, DeviceBLAS, D>];
-   [T, D                           ] [TensorCow<'_, T, DeviceBLAS, D> ];
 )]
 impl<ImplType> InvAPI<DeviceBLAS> for Tr
 where

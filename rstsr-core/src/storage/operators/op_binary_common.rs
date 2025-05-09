@@ -1,27 +1,62 @@
 use crate::prelude_dev::*;
 
-macro_rules! trait_definition {
-    ($($DeviceOpAPI:ident),*) => {
-        $(
-            pub trait $DeviceOpAPI<T, D>
-            where
-                D: DimAPI,
-                Self: DeviceAPI<T> + DeviceAPI<Self::TOut>,
-            {
-                type TOut;
+#[duplicate_item(
+    DeviceOpAPI       ;
+   [DeviceAcosAPI    ];
+   [DeviceAcoshAPI   ];
+   [DeviceAsinAPI    ];
+   [DeviceAsinhAPI   ];
+   [DeviceAtanAPI    ];
+   [DeviceAtanhAPI   ];
+   [DeviceCeilAPI    ];
+   [DeviceConjAPI    ];
+   [DeviceCosAPI     ];
+   [DeviceCoshAPI    ];
+   [DeviceExpAPI     ];
+   [DeviceExpm1API   ];
+   [DeviceFloorAPI   ];
+   [DeviceInvAPI     ];
+   [DeviceIsFiniteAPI];
+   [DeviceIsInfAPI   ];
+   [DeviceIsNanAPI   ];
+   [DeviceLogAPI     ];
+   [DeviceLog1pAPI   ];
+   [DeviceLog2API    ];
+   [DeviceLog10API   ];
+   [DeviceRoundAPI   ];
+   [DeviceSignBitAPI ];
+   [DeviceSinAPI     ];
+   [DeviceSinhAPI    ];
+   [DeviceSquareAPI  ];
+   [DeviceSqrtAPI    ];
+   [DeviceTanAPI     ];
+   [DeviceTanhAPI    ];
+   [DeviceTruncAPI   ];
+   [DeviceAbsAPI     ];
+   [DeviceImagAPI    ];
+   [DeviceRealAPI    ];
+   [DeviceSignAPI    ];
+)]
+pub trait DeviceOpAPI<T, D>
+where
+    D: DimAPI,
+    Self: DeviceAPI<T> + DeviceAPI<Self::TOut>,
+{
+    type TOut;
 
-                fn op_muta_refb(
-                    &self,
-                    a: &mut <Self as DeviceRawAPI<Self::TOut>>::Raw,
-                    la: &Layout<D>,
-                    b: &<Self as DeviceRawAPI<T>>::Raw,
-                    lb: &Layout<D>,
-                ) -> Result<()>;
+    fn op_muta_refb(
+        &self,
+        a: &mut <Self as DeviceRawAPI<Self::TOut>>::Raw,
+        la: &Layout<D>,
+        b: &<Self as DeviceRawAPI<T>>::Raw,
+        lb: &Layout<D>,
+    ) -> Result<()>;
 
-                fn op_muta(&self, a: &mut <Self as DeviceRawAPI<Self::TOut>>::Raw, la: &Layout<D>) -> Result<()>;
-            }
-        )*
-    };
+    fn op_muta(
+        &self,
+        a: &mut <Self as DeviceRawAPI<Self::TOut>>::Raw,
+        la: &Layout<D>,
+    ) -> Result<()>;
 }
 
 // Python Array API specifications (2023.1)
@@ -31,38 +66,3 @@ macro_rules! trait_definition {
 // DeviceLogicalNotAPI, (implemented in Not)
 // DeviceNegativeAPI, (implemented in Neg)
 // DevicePositiveAPI, (not implemented)
-
-trait_definition!(
-    DeviceAcosAPI,
-    DeviceAcoshAPI,
-    DeviceAsinAPI,
-    DeviceAsinhAPI,
-    DeviceAtanAPI,
-    DeviceAtanhAPI,
-    DeviceCeilAPI,
-    DeviceConjAPI,
-    DeviceCosAPI,
-    DeviceCoshAPI,
-    DeviceExpAPI,
-    DeviceExpm1API,
-    DeviceFloorAPI,
-    DeviceInvAPI,
-    DeviceIsFiniteAPI,
-    DeviceIsInfAPI,
-    DeviceIsNanAPI,
-    DeviceLogAPI,
-    DeviceLog1pAPI,
-    DeviceLog2API,
-    DeviceLog10API,
-    DeviceRoundAPI,
-    DeviceSignBitAPI,
-    DeviceSinAPI,
-    DeviceSinhAPI,
-    DeviceSquareAPI,
-    DeviceSqrtAPI,
-    DeviceTanAPI,
-    DeviceTanhAPI,
-    DeviceTruncAPI
-);
-
-trait_definition!(DeviceAbsAPI, DeviceImagAPI, DeviceRealAPI, DeviceSignAPI);

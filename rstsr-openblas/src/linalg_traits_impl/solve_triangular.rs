@@ -9,13 +9,8 @@ use rstsr_linalg_traits::prelude_dev::*;
     ImplType                                                       TrA                                TrB                              ;
    [T, D, Ra: DataAPI<Data = Vec<T>>, Rb: DataAPI<Data = Vec<T>>] [&TensorAny<Ra, T, DeviceBLAS, D>] [&TensorAny<Rb, T, DeviceBLAS, D>];
    [T, D, R: DataAPI<Data = Vec<T>>                             ] [&TensorAny<R, T, DeviceBLAS, D> ] [TensorView<'_, T, DeviceBLAS, D>];
-   [T, D, R: DataAPI<Data = Vec<T>>                             ] [&TensorAny<R, T, DeviceBLAS, D> ] [TensorCow<'_, T, DeviceBLAS, D> ];
    [T, D, R: DataAPI<Data = Vec<T>>                             ] [TensorView<'_, T, DeviceBLAS, D>] [&TensorAny<R, T, DeviceBLAS, D> ];
-   [T, D, R: DataAPI<Data = Vec<T>>                             ] [TensorCow<'_, T, DeviceBLAS, D> ] [&TensorAny<R, T, DeviceBLAS, D> ];
    [T, D,                                                       ] [TensorView<'_, T, DeviceBLAS, D>] [TensorView<'_, T, DeviceBLAS, D>];
-   [T, D,                                                       ] [TensorView<'_, T, DeviceBLAS, D>] [TensorCow<'_, T, DeviceBLAS, D> ];
-   [T, D,                                                       ] [TensorCow<'_, T, DeviceBLAS, D> ] [TensorView<'_, T, DeviceBLAS, D>];
-   [T, D,                                                       ] [TensorCow<'_, T, DeviceBLAS, D> ] [TensorCow<'_, T, DeviceBLAS, D> ];
 )]
 impl<ImplType> SolveTriangularAPI<DeviceBLAS> for (TrA, TrB, Option<FlagUpLo>)
 where
@@ -39,10 +34,8 @@ where
     ImplType                              TrA                                TrB                             ;
    ['b, T, D, R: DataAPI<Data = Vec<T>>] [&TensorAny<R, T, DeviceBLAS, D> ] [TensorMut<'b, T, DeviceBLAS, D>];
    ['b, T, D,                          ] [TensorView<'_, T, DeviceBLAS, D>] [TensorMut<'b, T, DeviceBLAS, D>];
-   ['b, T, D,                          ] [TensorCow<'_, T, DeviceBLAS, D> ] [TensorMut<'b, T, DeviceBLAS, D>];
    [    T, D, R: DataAPI<Data = Vec<T>>] [&TensorAny<R, T, DeviceBLAS, D> ] [Tensor<T, DeviceBLAS, D>       ];
    [    T, D,                          ] [TensorView<'_, T, DeviceBLAS, D>] [Tensor<T, DeviceBLAS, D>       ];
-   [    T, D,                          ] [TensorCow<'_, T, DeviceBLAS, D> ] [Tensor<T, DeviceBLAS, D>       ];
 )]
 impl<ImplType> SolveTriangularAPI<DeviceBLAS> for (TrA, TrB, Option<FlagUpLo>)
 where
@@ -67,10 +60,8 @@ where
     ImplType                          TrA                               TrB                              ;
    [T, D, R: DataAPI<Data = Vec<T>>] [TensorMut<'_, T, DeviceBLAS, D>] [&TensorAny<R, T, DeviceBLAS, D> ];
    [T, D,                          ] [TensorMut<'_, T, DeviceBLAS, D>] [TensorView<'_, T, DeviceBLAS, D>];
-   [T, D,                          ] [TensorMut<'_, T, DeviceBLAS, D>] [TensorCow<'_, T, DeviceBLAS, D> ];
    [T, D, R: DataAPI<Data = Vec<T>>] [Tensor<T, DeviceBLAS, D>       ] [&TensorAny<R, T, DeviceBLAS, D> ];
    [T, D,                          ] [Tensor<T, DeviceBLAS, D>       ] [TensorView<'_, T, DeviceBLAS, D>];
-   [T, D,                          ] [Tensor<T, DeviceBLAS, D>       ] [TensorCow<'_, T, DeviceBLAS, D> ];
 )]
 impl<ImplType> SolveTriangularAPI<DeviceBLAS> for (TrA, TrB, Option<FlagUpLo>)
 where
