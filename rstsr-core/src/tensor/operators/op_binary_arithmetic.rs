@@ -15,10 +15,10 @@ use crate::prelude_dev::*;
    [shl   ] [shl_f   ] [TensorShlAPI   ];
    [shr   ] [shr_f   ] [TensorShrAPI   ];
 )]
-pub trait TensorOpAPI<TRB> {
+pub trait TensorOpAPI<TrB> {
     type Output;
-    fn op_f(a: Self, b: TRB) -> Result<Self::Output>;
-    fn op(a: Self, b: TRB) -> Self::Output
+    fn op_f(a: Self, b: TrB) -> Result<Self::Output>;
+    fn op(a: Self, b: TrB) -> Self::Output
     where
         Self: Sized,
     {
@@ -39,11 +39,11 @@ pub trait TensorOpAPI<TRB> {
    [shl   ] [shl_f   ] [TensorShlAPI   ];
    [shr   ] [shr_f   ] [TensorShrAPI   ];
 )]
-pub fn op_f<TRA, TRB>(a: TRA, b: TRB) -> Result<TRA::Output>
+pub fn op_f<TrA, TrB>(a: TrA, b: TrB) -> Result<TrA::Output>
 where
-    TRA: TensorOpAPI<TRB>,
+    TrA: TensorOpAPI<TrB>,
 {
-    TRA::op_f(a, b)
+    TrA::op_f(a, b)
 }
 
 #[duplicate_item(
@@ -59,11 +59,11 @@ where
    [shl   ] [shl_f   ] [TensorShlAPI   ];
    [shr   ] [shr_f   ] [TensorShrAPI   ];
 )]
-pub fn op<TRA, TRB>(a: TRA, b: TRB) -> TRA::Output
+pub fn op<TrA, TrB>(a: TrA, b: TrB) -> TrA::Output
 where
-    TRA: TensorOpAPI<TRB>,
+    TrA: TensorOpAPI<TrB>,
 {
-    TRA::op(a, b)
+    TrA::op(a, b)
 }
 
 #[duplicate_item(
@@ -83,18 +83,18 @@ impl<S, D> TensorBase<S, D>
 where
     D: DimAPI,
 {
-    pub fn op_f<TRB>(&self, b: TRB) -> Result<<&Self as TensorOpAPI<TRB>>::Output>
+    pub fn op_f<TrB>(&self, b: TrB) -> Result<<&Self as TensorOpAPI<TrB>>::Output>
     where
-        for<'a> &'a Self: TensorOpAPI<TRB>,
+        for<'a> &'a Self: TensorOpAPI<TrB>,
     {
-        <&Self as TensorOpAPI<TRB>>::op_f(self, b)
+        <&Self as TensorOpAPI<TrB>>::op_f(self, b)
     }
 
-    pub fn op<TRB>(&self, b: TRB) -> <&Self as TensorOpAPI<TRB>>::Output
+    pub fn op<TrB>(&self, b: TrB) -> <&Self as TensorOpAPI<TrB>>::Output
     where
-        for<'a> &'a Self: TensorOpAPI<TRB>,
+        for<'a> &'a Self: TensorOpAPI<TrB>,
     {
-        <&Self as TensorOpAPI<TRB>>::op(self, b)
+        <&Self as TensorOpAPI<TrB>>::op(self, b)
     }
 }
 
@@ -118,37 +118,28 @@ where
 mod impl_core_ops {
     use super::*;
 
-    impl<SA, DA, TRB> Op<TRB> for &TensorBase<SA, DA>
+    impl<SA, DA, TrB> Op<TrB> for &TensorBase<SA, DA>
     where
         DA: DimAPI,
-        Self: TensorOpAPI<TRB>,
+        Self: TensorOpAPI<TrB>,
     {
-        type Output = <Self as TensorOpAPI<TRB>>::Output;
-        fn op(self, b: TRB) -> Self::Output {
+        type Output = <Self as TensorOpAPI<TrB>>::Output;
+        fn op(self, b: TrB) -> Self::Output {
             TensorOpAPI::op(self, b)
         }
     }
 
-    impl<'a, TA, DA, B, TRB> Op<TRB> for TensorView<'a, TA, B, DA>
+    #[duplicate_item(
+        TrA; [TensorView<'_, TA, B, DA>]; [Tensor<TA, B, DA>]; [TensorCow<'_, TA, B, DA>];
+    )]
+    impl<TA, DA, B, TrB> Op<TrB> for TrA
     where
         DA: DimAPI,
         B: DeviceAPI<TA>,
-        Self: TensorOpAPI<TRB>,
+        Self: TensorOpAPI<TrB>,
     {
-        type Output = <Self as TensorOpAPI<TRB>>::Output;
-        fn op(self, b: TRB) -> Self::Output {
-            TensorOpAPI::op(self, b)
-        }
-    }
-
-    impl<TA, DA, B, TRB> Op<TRB> for Tensor<TA, B, DA>
-    where
-        DA: DimAPI,
-        B: DeviceAPI<TA>,
-        Self: TensorOpAPI<TRB>,
-    {
-        type Output = <Self as TensorOpAPI<TRB>>::Output;
-        fn op(self, b: TRB) -> Self::Output {
+        type Output = <Self as TensorOpAPI<TrB>>::Output;
+        fn op(self, b: TrB) -> Self::Output {
             TensorOpAPI::op(self, b)
         }
     }
@@ -226,11 +217,14 @@ mod impl_binary_arithmetic_ref {
     }
 
     #[doc(hidden)]
-    impl<'a, RB, TA, TB, TC, DA, DB, DC, B> TensorOpAPI<&TensorAny<RB, TB, B, DB>>
-        for TensorView<'a, TA, B, DA>
+    #[duplicate_item(
+        RType                                             TrA                         TrB                         a_inner   b_inner ;
+       [R: DataAPI<Data = <B as DeviceRawAPI<TA>>::Raw>] [&TensorAny<R, TA, B, DA> ] [TensorView<'_, TB, B, DB>] [ a     ] [&b     ];
+       [R: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>] [TensorView<'_, TA, B, DA>] [&TensorAny<R, TB, B, DB> ] [&a     ] [ b     ];
+       [                                               ] [TensorView<'_, TA, B, DA>] [TensorView<'_, TB, B, DB>] [&a     ] [&b     ];
+    )]
+    impl<TA, TB, TC, DA, DB, DC, B, RType> TensorOpAPI<TrB> for TrA
     where
-        // tensor types
-        RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
         // data constraints
         DA: DimAPI,
         DB: DimAPI,
@@ -244,54 +238,8 @@ mod impl_binary_arithmetic_ref {
         B: DeviceOpAPI<TA, TB, TC, DC>,
     {
         type Output = Tensor<TC, B, DC>;
-        fn op_f(a: Self, b: &TensorAny<RB, TB, B, DB>) -> Result<Self::Output> {
-            TensorOpAPI::op_f(&a, b)
-        }
-    }
-
-    #[doc(hidden)]
-    impl<'b, RA, TA, TB, TC, DA, DB, DC, B> TensorOpAPI<TensorView<'b, TB, B, DB>>
-        for &TensorAny<RA, TA, B, DA>
-    where
-        // tensor types
-        RA: DataAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
-        // data constraints
-        DA: DimAPI,
-        DB: DimAPI,
-        DC: DimAPI,
-        B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<TC>,
-        B: DeviceCreationAnyAPI<TC>,
-        // broadcast constraints
-        DA: DimMaxAPI<DB, Max = DC>,
-        // operation constraints
-        TA: Op<TB, Output = TC>,
-        B: DeviceOpAPI<TA, TB, TC, DC>,
-    {
-        type Output = Tensor<TC, B, DC>;
-        fn op_f(a: Self, b: TensorView<'b, TB, B, DB>) -> Result<Self::Output> {
-            TensorOpAPI::op_f(a, &b)
-        }
-    }
-
-    #[doc(hidden)]
-    impl<'a, 'b, TA, TB, TC, DA, DB, DC, B> TensorOpAPI<TensorView<'b, TB, B, DB>>
-        for TensorView<'a, TA, B, DA>
-    where
-        // data constraints
-        DA: DimAPI,
-        DB: DimAPI,
-        DC: DimAPI,
-        B: DeviceCreationAnyAPI<TC>,
-        B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<TC>,
-        // broadcast constraints
-        DA: DimMaxAPI<DB, Max = DC>,
-        // operation constraints
-        TA: Op<TB, Output = TC>,
-        B: DeviceOpAPI<TA, TB, TC, DC>,
-    {
-        type Output = Tensor<TC, B, DC>;
-        fn op_f(a: Self, b: TensorView<'b, TB, B, DB>) -> Result<Self::Output> {
-            TensorOpAPI::op_f(&a, &b)
+        fn op_f(a: Self, b: TrB) -> Result<Self::Output> {
+            TensorOpAPI::op_f(a_inner, b_inner)
         }
     }
 }
@@ -501,6 +449,118 @@ mod impl_binary_lr_consume {
             return TensorOpAPI::op_f(&a, &b);
         }
     }
+
+    // For TensorCow, currently use the most strict implementation, that requires
+    // all types involved to be the same.
+
+    #[doc(hidden)]
+    #[duplicate_item(
+        RType                                            TrB                      ;
+       [R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>] [&TensorAny<R, T, B, DB> ];
+       [                                              ] [TensorView<'_, T, B, DB>];
+       [                                              ] [Tensor<T, B, DB>        ];
+    )]
+    impl<T, DA, DB, DC, B, RType> TensorOpAPI<TrB> for TensorCow<'_, T, B, DA>
+    where
+        // data constraints
+        DA: DimAPI,
+        DB: DimAPI,
+        DC: DimAPI,
+        B: DeviceAPI<T>,
+        B: DeviceCreationAnyAPI<T>,
+        // broadcast constraints
+        DA: DimMaxAPI<DB, Max = DC> + DimIntoAPI<DC>,
+        DB: DimMaxAPI<DA, Max = DC> + DimIntoAPI<DC>,
+        DC: DimIntoAPI<DA> + DimIntoAPI<DB>,
+        // operation constraints
+        T: Op<T, Output = T>,
+        B: DeviceOpAPI<T, T, T, DC>,
+        B: DeviceLConsumeAPI<T, T, DA>,
+        B: DeviceRConsumeAPI<T, T, DB>,
+        // cow constraints
+        T: Clone,
+        B::Raw: Clone,
+        B: OpAssignAPI<T, DA>,
+    {
+        type Output = Tensor<T, B, DC>;
+        fn op_f(a: Self, b: TrB) -> Result<Self::Output> {
+            match a.is_owned() {
+                true => TensorOpAPI::op_f(a.into_owned(), b),
+                false => TensorOpAPI::op_f(a.view(), b),
+            }
+        }
+    }
+
+    #[doc(hidden)]
+    #[duplicate_item(
+        RType                                            TrA                      ;
+       [R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>] [&TensorAny<R, T, B, DA> ];
+       [                                              ] [TensorView<'_, T, B, DA>];
+       [                                              ] [Tensor<T, B, DA>        ];
+    )]
+    impl<T, DA, DB, DC, B, RType> TensorOpAPI<TensorCow<'_, T, B, DB>> for TrA
+    where
+        // data constraints
+        DA: DimAPI,
+        DB: DimAPI,
+        DC: DimAPI,
+        B: DeviceAPI<T>,
+        B: DeviceCreationAnyAPI<T>,
+        // broadcast constraints
+        DA: DimMaxAPI<DB, Max = DC> + DimIntoAPI<DC>,
+        DB: DimMaxAPI<DA, Max = DC> + DimIntoAPI<DC>,
+        DC: DimIntoAPI<DA> + DimIntoAPI<DB>,
+        // operation constraints
+        T: Op<T, Output = T>,
+        B: DeviceOpAPI<T, T, T, DC>,
+        B: DeviceLConsumeAPI<T, T, DA>,
+        B: DeviceRConsumeAPI<T, T, DB>,
+        // cow constraints
+        T: Clone,
+        B::Raw: Clone,
+        B: OpAssignAPI<T, DB>,
+    {
+        type Output = Tensor<T, B, DC>;
+        fn op_f(a: Self, b: TensorCow<'_, T, B, DB>) -> Result<Self::Output> {
+            match b.is_owned() {
+                true => TensorOpAPI::op_f(a, b.into_owned()),
+                false => TensorOpAPI::op_f(a, b.view()),
+            }
+        }
+    }
+
+    impl<T, DA, DB, DC, B> TensorOpAPI<TensorCow<'_, T, B, DB>> for TensorCow<'_, T, B, DA>
+    where
+        // data constraints
+        DA: DimAPI,
+        DB: DimAPI,
+        DC: DimAPI,
+        B: DeviceAPI<T>,
+        B: DeviceCreationAnyAPI<T>,
+        // broadcast constraints
+        DA: DimMaxAPI<DB, Max = DC> + DimIntoAPI<DC>,
+        DB: DimMaxAPI<DA, Max = DC> + DimIntoAPI<DC>,
+        DC: DimIntoAPI<DA> + DimIntoAPI<DB>,
+        // operation constraints
+        T: Op<T, Output = T>,
+        B: DeviceOpAPI<T, T, T, DC>,
+        B: DeviceLConsumeAPI<T, T, DA>,
+        B: DeviceRConsumeAPI<T, T, DB>,
+        // cow constraints
+        T: Clone,
+        B::Raw: Clone,
+        B: OpAssignAPI<T, DA> + OpAssignAPI<T, DB>,
+    {
+        type Output = Tensor<T, B, DC>;
+        fn op_f(a: Self, b: TensorCow<'_, T, B, DB>) -> Result<Self::Output> {
+            match (a.is_owned(), b.is_owned()) {
+                (true, true) => TensorOpAPI::op_f(a.into_owned(), b.into_owned()),
+                (true, false) => TensorOpAPI::op_f(a.into_owned(), b.view()),
+                (false, true) => TensorOpAPI::op_f(a.view(), b.into_owned()),
+                (false, false) => TensorOpAPI::op_f(a.view(), b.view()),
+            }
+        }
+    }
 }
 
 /* #endregion */
@@ -520,12 +580,12 @@ mod impl_binary_lr_consume {
    [shl_with_output   ] [shl_with_output_f   ] [DeviceShlAPI   ] [Shl   ];
    [shr_with_output   ] [shr_with_output_f   ] [DeviceShrAPI   ] [Shr   ];
 )]
-pub fn op_f<TRA, TRB, TRC, TA, TB, TC, DA, DB, DC, B>(a: TRA, b: TRB, mut c: TRC) -> Result<()>
+pub fn op_f<TrA, TrB, TrC, TA, TB, TC, DA, DB, DC, B>(a: TrA, b: TrB, mut c: TrC) -> Result<()>
 where
     // tensor types
-    TRA: TensorViewAPI<TA, B, DA>,
-    TRB: TensorViewAPI<TB, B, DB>,
-    TRC: TensorViewMutAPI<TC, B, DC>,
+    TrA: TensorViewAPI<TA, B, DA>,
+    TrB: TensorViewAPI<TB, B, DB>,
+    TrC: TensorViewMutAPI<TC, B, DC>,
     // data constraints
     DA: DimAPI,
     DB: DimAPI,
@@ -572,12 +632,12 @@ where
        [shl_with_output   ] [shl_with_output_f   ] [DeviceShlAPI   ] [Shl   ];
        [shr_with_output   ] [shr_with_output_f   ] [DeviceShrAPI   ] [Shr   ];
     )]
-pub fn op<TRA, TRB, TRC, TA, TB, TC, DA, DB, DC, B>(a: TRA, b: TRB, c: TRC)
+pub fn op<TrA, TrB, TrC, TA, TB, TC, DA, DB, DC, B>(a: TrA, b: TrB, c: TrC)
 where
     // tensor types
-    TRA: TensorViewAPI<TA, B, DA>,
-    TRB: TensorViewAPI<TB, B, DB>,
-    TRC: TensorViewMutAPI<TC, B, DC>,
+    TrA: TensorViewAPI<TA, B, DA>,
+    TrB: TensorViewAPI<TB, B, DB>,
+    TrC: TensorViewMutAPI<TC, B, DC>,
     // data constraints
     DA: DimAPI,
     DB: DimAPI,
@@ -696,6 +756,45 @@ macro_rules! impl_arithmetic_scalar_lhs {
         {
             type Output = Tensor<T, B, D>;
             fn $op(self, rhs: Tensor<T, B, D>) -> Self::Output {
+                $TensorOpAPI::$op_f(self, rhs).unwrap()
+            }
+        }
+
+        #[doc(hidden)]
+        impl<T, B, D> $TensorOpAPI<TensorCow<'_, T, B, D>> for $ty
+        where
+            T: From<$ty> + $Op<T, Output = T>,
+            D: DimAPI,
+            B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+            B: $DeviceRConsumeOpAPI<T, T, D> + $DeviceOpAPI<T, T, T, D>,
+            // cow constraints
+            T: Clone,
+            B::Raw: Clone,
+            B: OpAssignAPI<T, D>,
+        {
+            type Output = Tensor<T, B, D>;
+            fn $op_f(a: Self, b: TensorCow<'_, T, B, D>) -> Result<Self::Output> {
+                match b.is_owned() {
+                    true => $TensorOpAPI::$op_f(a, b.into_owned()),
+                    false => $TensorOpAPI::$op_f(a, b.view()),
+                }
+            }
+        }
+
+        #[doc(hidden)]
+        impl<T, B, D> $Op<TensorCow<'_, T, B, D>> for $ty
+        where
+            T: From<$ty> + $Op<T, Output = T>,
+            D: DimAPI,
+            B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+            B: $DeviceRConsumeOpAPI<T, T, D> + $DeviceOpAPI<T, T, T, D>,
+            // cow constraints
+            T: Clone,
+            B::Raw: Clone,
+            B: OpAssignAPI<T, D>,
+        {
+            type Output = Tensor<T, B, D>;
+            fn $op(self, rhs: TensorCow<'_, T, B, D>) -> Self::Output {
                 $TensorOpAPI::$op_f(self, rhs).unwrap()
             }
         }
@@ -851,6 +950,29 @@ mod impl_arithmetic_scalar_rhs {
             let la = a.layout().clone();
             device.op_muta_numb(a.raw_mut(), &la, b)?;
             return Ok(a);
+        }
+    }
+
+    #[doc(hidden)]
+    impl<T, TB, D, B> TensorOpAPI<TB> for TensorCow<'_, T, B, D>
+    where
+        T: From<TB> + Op<T, Output = T>,
+        D: DimAPI,
+        B: DeviceAPI<T>,
+        B: DeviceLConsumeOpAPI<T, T, D> + DeviceOpAPI<T, T, T, D>,
+        // this constraint prohibits confliting impl to TensorBase<RB, D>
+        TB: num::Num,
+        // cow constraints
+        T: Clone,
+        B::Raw: Clone,
+        B: DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
+    {
+        type Output = Tensor<T, B, D>;
+        fn op_f(a: Self, b: TB) -> Result<Self::Output> {
+            match a.is_owned() {
+                true => TensorOpAPI::op_f(a.into_owned(), b),
+                false => TensorOpAPI::op_f(a.view(), b),
+            }
         }
     }
 }
@@ -1254,6 +1376,29 @@ mod tests_with_scalar {
         let b = a * 2;
         *&mut c.i_mut(1) += b.i(1);
         println!("{c:?}");
+    }
+
+    #[test]
+    fn test_cow() {
+        let a = linspace((1.0, 24.0, 24)).into_shape((2, 3, 4));
+        let a_cow_view = a.reshape((2, 3, 4));
+        let a_cow_owned = a.view().into_swapaxes(-1, -2).change_shape((2, 3, 4));
+        let ptr_a_cow_owned = a_cow_owned.raw().as_ptr();
+        assert!(!a_cow_view.is_owned());
+        assert!(a_cow_owned.is_owned());
+
+        let b = a.reshape((2, 3, 4)) + a_cow_view;
+        let ptr_b = b.raw().as_ptr();
+        println!("{b:?}");
+        assert_ne!(ptr_a_cow_owned, ptr_b);
+
+        let b = a.reshape((2, 3, 4)) + a_cow_owned;
+        let ptr_b = b.raw().as_ptr();
+        println!("{b:?}");
+        assert_eq!(ptr_a_cow_owned, ptr_b);
+
+        let b = a.reshape((2, 3, 4)) * 2.0;
+        println!("{b:?}");
     }
 }
 
