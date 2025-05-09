@@ -32,6 +32,35 @@ where
 
 /* #endregion */
 
+/* #region det */
+
+pub trait DetAPI<Inp> {
+    type Out;
+    fn det_f(self) -> Result<Self::Out>;
+    fn det(self) -> Self::Out
+    where
+        Self: Sized,
+    {
+        Self::det_f(self).unwrap()
+    }
+}
+
+pub fn det_f<Args, Inp>(args: Args) -> Result<<Args as DetAPI<Inp>>::Out>
+where
+    Args: DetAPI<Inp>,
+{
+    Args::det_f(args)
+}
+
+pub fn det<Args, Inp>(args: Args) -> <Args as DetAPI<Inp>>::Out
+where
+    Args: DetAPI<Inp>,
+{
+    Args::det(args)
+}
+
+/* #endregion */
+
 /* #region eigh */
 
 pub trait EighAPI<Inp> {
@@ -131,6 +160,61 @@ where
     Args: InvAPI<Inp>,
 {
     Args::inv(args)
+}
+
+/* #endregion */
+
+/* #region slogdet */
+
+pub trait SLogDetAPI<Inp> {
+    type Out;
+    fn slogdet_f(self) -> Result<Self::Out>;
+    fn slogdet(self) -> Self::Out
+    where
+        Self: Sized,
+    {
+        Self::slogdet_f(self).unwrap()
+    }
+}
+
+pub fn slogdet_f<Args, Inp>(args: Args) -> Result<<Args as SLogDetAPI<Inp>>::Out>
+where
+    Args: SLogDetAPI<Inp>,
+{
+    Args::slogdet_f(args)
+}
+
+pub fn slogdet<Args, Inp>(args: Args) -> <Args as SLogDetAPI<Inp>>::Out
+where
+    Args: SLogDetAPI<Inp>,
+{
+    Args::slogdet(args)
+}
+
+pub struct SLogDetResult<T>
+where
+    T: BlasFloat,
+{
+    pub sign: T,
+    pub logabsdet: T::Real,
+}
+
+impl<T> From<(T, T::Real)> for SLogDetResult<T>
+where
+    T: BlasFloat,
+{
+    fn from((sign, logabsdet): (T, T::Real)) -> Self {
+        Self { sign, logabsdet }
+    }
+}
+
+impl<T> From<SLogDetResult<T>> for (T, T::Real)
+where
+    T: BlasFloat,
+{
+    fn from(slogdet_result: SLogDetResult<T>) -> Self {
+        (slogdet_result.sign, slogdet_result.logabsdet)
+    }
 }
 
 /* #endregion */

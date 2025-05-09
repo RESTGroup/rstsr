@@ -59,7 +59,7 @@ where
             rstsr_errcode!(info, "Lapack GESV")?;
         }
 
-        // rust is 1-indexed
+        // rust is 0-indexed
         ipiv -= 1;
 
         Ok((a.clone_to_mut(), ipiv, b.clone_to_mut()))
