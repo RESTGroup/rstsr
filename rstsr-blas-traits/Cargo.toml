@@ -12,7 +12,7 @@ license.workspace = true
 num = { workspace = true }
 half = { workspace = true }
 derive_builder = { workspace = true }
-rstsr-core = { workspace = true, default-features = false }
+rstsr-core = { workspace = true, default-features = false, features = ["rayon"] }
 
 [features]
 ilp64 = []
