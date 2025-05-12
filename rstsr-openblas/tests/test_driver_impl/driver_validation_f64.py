@@ -139,5 +139,3 @@ assert np.isclose(fingerprint(np.abs(vt)), 13.465522484136157)
 fingerprint(np.abs(u)), fingerprint(s), fingerprint(np.abs(vt))
 
 
-
-

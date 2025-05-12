@@ -1,14 +1,13 @@
 use crate::prelude_dev::*;
 use rstsr_core::prelude_dev::*;
 
-pub trait GESVDDriverAPI<T>
+pub trait GESDDDriverAPI<T>
 where
     T: BlasFloat,
 {
-    unsafe fn driver_gesvd(
+    unsafe fn driver_gesdd(
         order: FlagOrder,
-        jobu: char,
-        jobvt: char,
+        jobz: char,
         m: usize,
         n: usize,
         a: *mut T,
@@ -18,13 +17,12 @@ where
         ldu: usize,
         vt: *mut T,
         ldvt: usize,
-        superb: *mut T::Real,
     ) -> blas_int;
 }
 
 #[derive(Builder)]
 #[builder(pattern = "owned", no_std, build_fn(error = "Error"))]
-pub struct GESVD_<'a, B, T>
+pub struct GESDD_<'a, B, T>
 where
     T: BlasFloat,
     B: DeviceAPI<T>,
@@ -37,19 +35,14 @@ where
     pub compute_uv: bool,
 }
 
-impl<'a, B, T> GESVD_<'a, B, T>
+impl<'a, B, T> GESDD_<'a, B, T>
 where
     T: BlasFloat,
-    B: BlasDriverBaseAPI<T> + GESVDDriverAPI<T>,
+    B: BlasDriverBaseAPI<T> + GESDDDriverAPI<T>,
 {
     pub fn internal_run(
         self,
-    ) -> Result<(
-        Tensor<T::Real, B, Ix1>,
-        Tensor<T, B, Ix2>,
-        Tensor<T, B, Ix2>,
-        Tensor<T::Real, B, Ix1>,
-    )> {
+    ) -> Result<(Tensor<T::Real, B, Ix1>, Tensor<T, B, Ix2>, Tensor<T, B, Ix2>)> {
         let Self { a, full_matrices, compute_uv } = self;
 
         let device = a.device().clone();
@@ -60,7 +53,7 @@ where
         };
         let mut a = overwritable_convert_with_order(a, order)?;
         let [m, n] = *a.view().shape();
-        rstsr_assert_eq!(a.view().shape(), &[m, n], InvalidLayout, "GESVD: A shape")?;
+        rstsr_assert_eq!(a.view().shape(), &[m, n], InvalidLayout, "GESDD: A shape")?;
         let lda = a.view().ld(order).unwrap();
 
         // determine job type and matrix sizes
@@ -81,16 +74,14 @@ where
         let mut u = unsafe { empty_f(([u0, u1], order, &device))?.into_dim::<Ix2>() };
         let mut vt = unsafe { empty_f(([vt0, vt1], order, &device))?.into_dim::<Ix2>() };
         let mut s = unsafe { empty_f(([minmn], &device))?.into_dim::<Ix1>() };
-        let mut superb = unsafe { empty_f(([minmn - 1], &device))?.into_dim::<Ix1>() };
 
         let ldu = u.view().ld(order).unwrap();
         let ldvt = vt.view().ld(order).unwrap();
 
         // run driver
         let info = unsafe {
-            B::driver_gesvd(
+            B::driver_gesdd(
                 order,
-                jobz,
                 jobz,
                 m,
                 n,
@@ -101,31 +92,23 @@ where
                 ldu,
                 vt.as_mut_ptr(),
                 ldvt,
-                superb.as_mut_ptr(),
             )
         };
         let info = info as i32;
         if info != 0 {
-            rstsr_errcode!(info, "Lapack GESVD")?;
+            rstsr_errcode!(info, "Lapack GESDD")?;
         }
 
-        Ok((s, u, vt, superb))
+        Ok((s, u, vt))
     }
 
-    pub fn run(
-        self,
-    ) -> Result<(
-        Tensor<T::Real, B, Ix1>,
-        Tensor<T, B, Ix2>,
-        Tensor<T, B, Ix2>,
-        Tensor<T::Real, B, Ix1>,
-    )> {
+    pub fn run(self) -> Result<(Tensor<T::Real, B, Ix1>, Tensor<T, B, Ix2>, Tensor<T, B, Ix2>)> {
         self.internal_run()
     }
 }
 
-pub type GESVD<'a, B, T> = GESVD_Builder<'a, B, T>;
-pub type SGESVD<'a, B> = GESVD<'a, B, f32>;
-pub type DGESVD<'a, B> = GESVD<'a, B, f64>;
-pub type CGESVD<'a, B> = GESVD<'a, B, Complex<f32>>;
-pub type ZGESVD<'a, B> = GESVD<'a, B, Complex<f64>>;
+pub type GESDD<'a, B, T> = GESDD_Builder<'a, B, T>;
+pub type SGESDD<'a, B> = GESDD<'a, B, f32>;
+pub type DGESDD<'a, B> = GESDD<'a, B, f64>;
+pub type CGESDD<'a, B> = GESDD<'a, B, Complex<f32>>;
+pub type ZGESDD<'a, B> = GESDD<'a, B, Complex<f64>>;
