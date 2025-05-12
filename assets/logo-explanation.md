@@ -6,6 +6,8 @@ Designer of this logo comes from chemistry community. Some inspirations of organ
 - The letter `T` is denoted as a stick capped by a ellipse. This looks like C<sub>2</sub> rotation (180 degree 2-fold rotation) axis of [space group diagram symbols](http://img.chem.ucl.ac.uk/sgp/misc/symbols.htm).
 - Clockwise (R) and counter-clockwise (S) refers to [chirality in organic chemistry](https://en.wikipedia.org/wiki/Chirality_(chemistry)) (see also [absolute configuration](https://en.wikipedia.org/wiki/Absolute_configuration)). R and S refer to rectus and sinister, Latin for right and left, respectively.
 
+The characters design (mirror-like ambigram) is somehow inspired by logo of ABBA.
+
 ## Color choice for RSTSR Logo
 
 You may see red/blue/green colors in this logo. This may be too fancy. Even bad in the prespective of aesthetic.
