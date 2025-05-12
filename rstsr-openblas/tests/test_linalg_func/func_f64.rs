@@ -4,8 +4,6 @@ use rstsr_test_manifest::get_vec;
 
 #[cfg(test)]
 mod test {
-    use rstsr_linalg_traits::traits_def::SVDResult;
-
     use super::*;
 
     #[test]
@@ -157,13 +155,6 @@ mod test {
         assert!((fingerprint(&s) - 33.969339071043095).abs() < 1e-8);
         assert!((fingerprint(&u.abs()) - -9.144981428076894).abs() < 1e-8);
         assert!((fingerprint(&vt.abs()) - 13.465522484136157).abs() < 1e-8);
-
-        // compute_uv = false
-        let svd_result = rt::linalg::svd((a.view(), None));
-        let SVDResult { u, s, vt } = svd_result;
-        assert!(u.is_none());
-        assert!(vt.is_none());
-        assert!((fingerprint(&s) - 33.969339071043095).abs() < 1e-8);
 
         // m < n, full_matrices = false
         let a_vec = get_vec::<f64>('a')[..1024 * 512].to_vec();

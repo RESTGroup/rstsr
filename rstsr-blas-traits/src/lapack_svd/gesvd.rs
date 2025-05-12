@@ -46,8 +46,8 @@ where
         self,
     ) -> Result<(
         Tensor<T::Real, B, Ix1>,
-        Tensor<T, B, Ix2>,
-        Tensor<T, B, Ix2>,
+        Option<Tensor<T, B, Ix2>>,
+        Option<Tensor<T, B, Ix2>>,
         Tensor<T::Real, B, Ix1>,
     )> {
         let Self { a, full_matrices, compute_uv } = self;
@@ -109,15 +109,18 @@ where
             rstsr_errcode!(info, "Lapack GESVD")?;
         }
 
-        Ok((s, u, vt, superb))
+        match compute_uv {
+            false => Ok((s, None, None, superb)),
+            true => Ok((s, Some(u), Some(vt), superb)),
+        }
     }
 
     pub fn run(
         self,
     ) -> Result<(
         Tensor<T::Real, B, Ix1>,
-        Tensor<T, B, Ix2>,
-        Tensor<T, B, Ix2>,
+        Option<Tensor<T, B, Ix2>>,
+        Option<Tensor<T, B, Ix2>>,
         Tensor<T::Real, B, Ix1>,
     )> {
         self.internal_run()

@@ -334,20 +334,20 @@ where
 }
 
 pub struct SVDResult<U, S, Vt> {
-    pub u: Option<U>,
+    pub u: U,
     pub s: S,
-    pub vt: Option<Vt>,
+    pub vt: Vt,
 }
 
 impl<U, S, Vt> From<(U, S, Vt)> for SVDResult<U, S, Vt> {
     fn from((u, s, vt): (U, S, Vt)) -> Self {
-        Self { u: Some(u), s, vt: Some(vt) }
+        Self { u, s, vt }
     }
 }
 
 impl<U, S, Vt> From<SVDResult<U, S, Vt>> for (U, S, Vt) {
     fn from(svd_result: SVDResult<U, S, Vt>) -> Self {
-        (svd_result.u.unwrap(), svd_result.s, svd_result.vt.unwrap())
+        (svd_result.u, svd_result.s, svd_result.vt)
     }
 }
 

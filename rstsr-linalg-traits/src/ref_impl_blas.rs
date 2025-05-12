@@ -1,4 +1,4 @@
-use crate::traits_def::{EighArgs_, SVDArgs_, SVDResult};
+use crate::traits_def::{EighArgs_, SVDArgs_};
 use rstsr_blas_traits::prelude::*;
 use rstsr_core::prelude_dev::*;
 
@@ -237,7 +237,7 @@ where
 
 pub fn ref_impl_svd_simple_f<'a, T, B>(
     svd_args: SVDArgs_<'a, B, T>,
-) -> Result<SVDResult<Tensor<T, B, Ix2>, Tensor<T::Real, B, Ix1>, Tensor<T, B, Ix2>>>
+) -> Result<(Option<Tensor<T, B, Ix2>>, Tensor<T::Real, B, Ix1>, Option<Tensor<T, B, Ix2>>)>
 where
     T: BlasFloat,
     B: LapackDriverAPI<T>,
@@ -263,10 +263,7 @@ where
                     .run()
             };
             let (s, u, vt, _) = device.with_blas_num_threads(nthreads, task)?;
-            match compute_uv {
-                true => Ok(SVDResult { u: Some(u), s, vt: Some(vt) }),
-                false => Ok(SVDResult { u: None, s, vt: None }),
-            }
+            Ok((u, s, vt))
         },
         "gesdd" => {
             let task = || {
@@ -278,10 +275,7 @@ where
                     .run()
             };
             let (s, u, vt) = device.with_blas_num_threads(nthreads, task)?;
-            match compute_uv {
-                true => Ok(SVDResult { u: Some(u), s, vt: Some(vt) }),
-                false => Ok(SVDResult { u: None, s, vt: None }),
-            }
+            Ok((u, s, vt))
         },
         _ => rstsr_invalid!(driver)?,
     }

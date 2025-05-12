@@ -42,7 +42,8 @@ where
 {
     pub fn internal_run(
         self,
-    ) -> Result<(Tensor<T::Real, B, Ix1>, Tensor<T, B, Ix2>, Tensor<T, B, Ix2>)> {
+    ) -> Result<(Tensor<T::Real, B, Ix1>, Option<Tensor<T, B, Ix2>>, Option<Tensor<T, B, Ix2>>)>
+    {
         let Self { a, full_matrices, compute_uv } = self;
 
         let device = a.device().clone();
@@ -99,10 +100,16 @@ where
             rstsr_errcode!(info, "Lapack GESDD")?;
         }
 
-        Ok((s, u, vt))
+        match compute_uv {
+            false => Ok((s, None, None)),
+            true => Ok((s, Some(u), Some(vt))),
+        }
     }
 
-    pub fn run(self) -> Result<(Tensor<T::Real, B, Ix1>, Tensor<T, B, Ix2>, Tensor<T, B, Ix2>)> {
+    pub fn run(
+        self,
+    ) -> Result<(Tensor<T::Real, B, Ix1>, Option<Tensor<T, B, Ix2>>, Option<Tensor<T, B, Ix2>>)>
+    {
         self.internal_run()
     }
 }

@@ -5,7 +5,7 @@ use rstsr_linalg_traits::prelude_dev::*;
 
 /* #region full-args */
 
-impl<T, D, R> SVDAPI<DeviceBLAS> for (&TensorAny<R, T, DeviceBLAS, D>, Option<bool>)
+impl<T, D, R> SVDAPI<DeviceBLAS> for (&TensorAny<R, T, DeviceBLAS, D>, bool)
 where
     R: DataAPI<Data = Vec<T>>,
     T: BlasFloat,
@@ -23,11 +23,11 @@ where
         rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let a = a.view().into_dim::<Ix2>();
         let svd_args = SVDArgs::default().a(a).full_matrices(full_matrices).build()?;
-        let result = ref_impl_svd_simple_f(svd_args)?;
+        let (u, s, vt) = ref_impl_svd_simple_f(svd_args)?;
         // convert dimensions
-        let u = result.u.map(|u| u.into_dim::<IxD>().into_dim::<D>());
-        let vt = result.vt.map(|vt| vt.into_dim::<IxD>().into_dim::<D>());
-        let s = result.s.into_dim::<IxD>().into_dim::<D::SmallerOne>();
+        let u = u.unwrap().into_dim::<IxD>().into_dim::<D>();
+        let vt = vt.unwrap().into_dim::<IxD>().into_dim::<D>();
+        let s = s.into_dim::<IxD>().into_dim::<D::SmallerOne>();
         Ok(SVDResult { u, s, vt })
     }
 }
@@ -35,7 +35,7 @@ where
 #[duplicate_item(
     Tr; [Tensor<T, DeviceBLAS, D>]; [TensorView<'_, T, DeviceBLAS, D>];
 )]
-impl<T, D> SVDAPI<DeviceBLAS> for (Tr, Option<bool>)
+impl<T, D> SVDAPI<DeviceBLAS> for (Tr, bool)
 where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
@@ -63,35 +63,16 @@ where
    ['a, T, D,                          ] [TensorView<'a, T, DeviceBLAS, D>  ];
    [    T, D                           ] [Tensor<T, DeviceBLAS, D>          ];
 )]
-impl<ImplType> SVDAPI<DeviceBLAS> for (Tr, bool)
-where
-    T: BlasFloat,
-    D: DimAPI,
-    (Tr, Option<bool>): SVDAPI<DeviceBLAS>,
-{
-    type Out = <(Tr, Option<bool>) as SVDAPI<DeviceBLAS>>::Out;
-    fn svd_f(self) -> Result<Self::Out> {
-        let (a, full_matrices) = self;
-        SVDAPI::<DeviceBLAS>::svd_f((a, Some(full_matrices)))
-    }
-}
-
-#[duplicate_item(
-    ImplType                              Tr;
-   ['a, T, D, R: DataAPI<Data = Vec<T>>] [&'a TensorAny<R, T, DeviceBLAS, D>];
-   ['a, T, D,                          ] [TensorView<'a, T, DeviceBLAS, D>  ];
-   [    T, D                           ] [Tensor<T, DeviceBLAS, D>          ];
-)]
 impl<ImplType> SVDAPI<DeviceBLAS> for Tr
 where
     T: BlasFloat,
     D: DimAPI,
-    (Tr, Option<bool>): SVDAPI<DeviceBLAS>,
+    (Tr, bool): SVDAPI<DeviceBLAS>,
 {
-    type Out = <(Tr, Option<bool>) as SVDAPI<DeviceBLAS>>::Out;
+    type Out = <(Tr, bool) as SVDAPI<DeviceBLAS>>::Out;
     fn svd_f(self) -> Result<Self::Out> {
         let a = self;
-        SVDAPI::<DeviceBLAS>::svd_f((a, Some(true)))
+        SVDAPI::<DeviceBLAS>::svd_f((a, true))
     }
 }
 
@@ -110,7 +91,7 @@ where
         Tensor<T, DeviceBLAS, Ix2>,
     >;
     fn svd_f(self) -> Result<Self::Out> {
-        ref_impl_svd_simple_f(self.build()?)
+        SVDAPI::<DeviceBLAS>::svd_f(self.build()?)
     }
 }
 
@@ -125,7 +106,17 @@ where
         Tensor<T, DeviceBLAS, Ix2>,
     >;
     fn svd_f(self) -> Result<Self::Out> {
-        ref_impl_svd_simple_f(self)
+        let args = self;
+        rstsr_assert!(
+            args.full_matrices.is_some(),
+            InvalidValue,
+            "`svd` must compute UV. Refer to `svdvals` if UV is not required."
+        )?;
+        let (u, s, vt) = ref_impl_svd_simple_f(args)?;
+        let u = u.unwrap().into_dim::<IxD>().into_dim::<Ix2>();
+        let vt = vt.unwrap().into_dim::<IxD>().into_dim::<Ix2>();
+        let s = s.into_dim::<IxD>().into_dim::<Ix1>();
+        Ok(SVDResult { u, s, vt })
     }
 }
 
