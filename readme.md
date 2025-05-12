@@ -1,6 +1,6 @@
 <center>
 
-![Logo of RSTSR](assets/logo-3-white.png)
+![Logo of RSTSR](assets/logo-3.png)
 
 </center>
 
