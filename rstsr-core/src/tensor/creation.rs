@@ -208,6 +208,20 @@ where
     }
 }
 
+impl<T, D, B> EmptyAPI<(T, D)> for (D, FlagOrder, &B)
+where
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+{
+    type Out = Tensor<T, B, IxD>;
+
+    unsafe fn empty_f(self) -> Result<Self::Out> {
+        let (shape, order, device) = self;
+        let layout = shape.new_contig(None, order);
+        empty_f((layout, device))
+    }
+}
+
 impl<T, D, B> EmptyAPI<(T, D)> for (D, &B)
 where
     D: DimAPI,
@@ -218,11 +232,20 @@ where
     unsafe fn empty_f(self) -> Result<Self::Out> {
         let (shape, device) = self;
         let default_order = device.default_order();
-        let layout = match default_order {
-            RowMajor => shape.c(),
-            ColMajor => shape.f(),
-        };
+        let layout = shape.new_contig(None, default_order);
         empty_f((layout, device))
+    }
+}
+
+impl<T, D> EmptyAPI<(T, D)> for (D, FlagOrder)
+where
+    D: DimAPI,
+{
+    type Out = Tensor<T, DeviceCpu, IxD>;
+
+    unsafe fn empty_f(self) -> Result<Self::Out> {
+        let (shape, order) = self;
+        empty_f((shape, order, &DeviceCpu::default()))
     }
 }
 
@@ -527,6 +550,21 @@ where
     }
 }
 
+impl<T, D, B> FullAPI<(T, D)> for (D, T, FlagOrder, &B)
+where
+    T: Clone,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+{
+    type Out = Tensor<T, B, IxD>;
+
+    fn full_f(self) -> Result<Self::Out> {
+        let (shape, fill, order, device) = self;
+        let layout = shape.new_contig(None, order);
+        full_f((layout, fill, device))
+    }
+}
+
 impl<T, D, B> FullAPI<(T, D)> for (D, T, &B)
 where
     T: Clone,
@@ -538,19 +576,29 @@ where
     fn full_f(self) -> Result<Self::Out> {
         let (shape, fill, device) = self;
         let default_order = device.default_order();
-        let layout = match default_order {
-            RowMajor => shape.c(),
-            ColMajor => shape.f(),
-        };
+        let layout = shape.new_contig(None, default_order);
         full_f((layout, fill, device))
+    }
+}
+
+impl<T, D> FullAPI<(T, D)> for (D, T, FlagOrder)
+where
+    T: Clone,
+    D: DimAPI,
+{
+    type Out = Tensor<T, DeviceCpu, IxD>;
+
+    fn full_f(self) -> Result<Self::Out> {
+        let (shape, fill, order) = self;
+        full_f((shape, fill, order, &DeviceCpu::default()))
     }
 }
 
 #[duplicate_item(L; [D]; [Layout<D>])]
 impl<T, D> FullAPI<(T, D)> for (L, T)
 where
-    D: DimAPI,
     T: Clone,
+    D: DimAPI,
 {
     type Out = Tensor<T, DeviceCpu, IxD>;
 
@@ -825,6 +873,21 @@ where
     }
 }
 
+impl<T, D, B> OnesAPI<(T, D)> for (D, FlagOrder, &B)
+where
+    T: Num,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
+{
+    type Out = Tensor<T, B, IxD>;
+
+    fn ones_f(self) -> Result<Self::Out> {
+        let (shape, order, device) = self;
+        let layout = shape.new_contig(None, order);
+        ones_f((layout, device))
+    }
+}
+
 impl<T, D, B> OnesAPI<(T, D)> for (D, &B)
 where
     T: Num,
@@ -836,11 +899,21 @@ where
     fn ones_f(self) -> Result<Self::Out> {
         let (shape, device) = self;
         let default_order = device.default_order();
-        let layout = match default_order {
-            RowMajor => shape.c(),
-            ColMajor => shape.f(),
-        };
+        let layout = shape.new_contig(None, default_order);
         ones_f((layout, device))
+    }
+}
+
+impl<T, D> OnesAPI<(T, D)> for (D, FlagOrder)
+where
+    T: Num + Clone,
+    D: DimAPI,
+{
+    type Out = Tensor<T, DeviceCpu, IxD>;
+
+    fn ones_f(self) -> Result<Self::Out> {
+        let (shape, order) = self;
+        ones_f((shape, order, &DeviceCpu::default()))
     }
 }
 
@@ -1032,6 +1105,21 @@ where
     }
 }
 
+impl<T, D, B> ZerosAPI<(T, D)> for (D, FlagOrder, &B)
+where
+    T: Num,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationNumAPI<T>,
+{
+    type Out = Tensor<T, B, IxD>;
+
+    fn zeros_f(self) -> Result<Self::Out> {
+        let (shape, order, device) = self;
+        let layout = shape.new_contig(None, order);
+        zeros_f((layout, device))
+    }
+}
+
 impl<T, D, B> ZerosAPI<(T, D)> for (D, &B)
 where
     T: Num,
@@ -1043,11 +1131,21 @@ where
     fn zeros_f(self) -> Result<Self::Out> {
         let (shape, device) = self;
         let default_order = device.default_order();
-        let layout = match default_order {
-            RowMajor => shape.c(),
-            ColMajor => shape.f(),
-        };
+        let layout = shape.new_contig(None, default_order);
         zeros_f((layout, device))
+    }
+}
+
+impl<T, D> ZerosAPI<(T, D)> for (D, FlagOrder)
+where
+    T: Num + Clone,
+    D: DimAPI,
+{
+    type Out = Tensor<T, DeviceCpu, IxD>;
+
+    fn zeros_f(self) -> Result<Self::Out> {
+        let (shape, order) = self;
+        zeros_f((shape, order, &DeviceCpu::default()))
     }
 }
 
