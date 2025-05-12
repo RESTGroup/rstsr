@@ -78,10 +78,8 @@ where
             _ => unreachable!(),
         };
 
-        let mut u =
-            unsafe { empty_f(([u0, u1].new_contig(None, order), &device))?.into_dim::<Ix2>() };
-        let mut vt =
-            unsafe { empty_f(([vt0, vt1].new_contig(None, order), &device))?.into_dim::<Ix2>() };
+        let mut u = unsafe { empty_f(([u0, u1], order, &device))?.into_dim::<Ix2>() };
+        let mut vt = unsafe { empty_f(([vt0, vt1], order, &device))?.into_dim::<Ix2>() };
         let mut s = unsafe { empty_f(([minmn], &device))?.into_dim::<Ix1>() };
         let mut superb = unsafe { empty_f(([minmn - 1], &device))?.into_dim::<Ix1>() };
 
