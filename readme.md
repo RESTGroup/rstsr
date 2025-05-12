@@ -16,7 +16,7 @@
 
 </center>
 
-Welcome to RSTSR, a n-dimensional tensor toolkit library, in native rust.
+Welcome to RSTSR, an n-dimensional tensor toolkit library, in native rust.
 
 This crate will be a building block for scientific computation in native Rust, similar to NumPy of Python.
 
