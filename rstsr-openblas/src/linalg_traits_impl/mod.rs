@@ -6,3 +6,4 @@ pub mod slogdet;
 pub mod solve_general;
 pub mod solve_symmetric;
 pub mod solve_triangular;
+pub mod svd;

@@ -47,8 +47,8 @@ where
 
         let device = a.device().clone();
         let order = match (a.c_prefer(), a.f_prefer()) {
-            (true, false) => ColMajor,
-            (false, true) => RowMajor,
+            (true, false) => RowMajor,
+            (false, true) => ColMajor,
             (false, false) | (true, true) => a.device().default_order(),
         };
         let mut a = overwritable_convert_with_order(a, order)?;

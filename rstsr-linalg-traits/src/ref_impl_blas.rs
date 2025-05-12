@@ -1,4 +1,4 @@
-use crate::traits_def::EighArgs_;
+use crate::traits_def::{EighArgs_, SVDArgs_, SVDResult};
 use rstsr_blas_traits::prelude::*;
 use rstsr_core::prelude_dev::*;
 
@@ -229,6 +229,62 @@ where
         Ok((acc_sgn, acc_abs))
     };
     device.with_blas_num_threads(nthreads, task)
+}
+
+/* #endregion */
+
+/* #region svd */
+
+pub fn ref_impl_svd_simple_f<'a, T, B>(
+    svd_args: SVDArgs_<'a, B, T>,
+) -> Result<SVDResult<Tensor<T, B, Ix2>, Tensor<T::Real, B, Ix1>, Tensor<T, B, Ix2>>>
+where
+    T: BlasFloat,
+    B: LapackDriverAPI<T>,
+{
+    let SVDArgs_ { a, full_matrices, driver } = svd_args;
+    let device = a.device().clone();
+    let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
+    let (full_matrices, compute_uv) = match full_matrices {
+        Some(true) => (true, true),
+        Some(false) => (false, true),
+        None => (false, false),
+    };
+
+    let driver = driver.unwrap_or("gesdd");
+    match driver {
+        "gesvd" => {
+            let task = || {
+                GESVD::default()
+                    .a(a.view())
+                    .full_matrices(full_matrices)
+                    .compute_uv(compute_uv)
+                    .build()?
+                    .run()
+            };
+            let (s, u, vt, _) = device.with_blas_num_threads(nthreads, task)?;
+            match compute_uv {
+                true => Ok(SVDResult { u: Some(u), s, vt: Some(vt) }),
+                false => Ok(SVDResult { u: None, s, vt: None }),
+            }
+        },
+        "gesdd" => {
+            let task = || {
+                GESDD::default()
+                    .a(a.view())
+                    .full_matrices(full_matrices)
+                    .compute_uv(compute_uv)
+                    .build()?
+                    .run()
+            };
+            let (s, u, vt) = device.with_blas_num_threads(nthreads, task)?;
+            match compute_uv {
+                true => Ok(SVDResult { u: Some(u), s, vt: Some(vt) }),
+                false => Ok(SVDResult { u: None, s, vt: None }),
+            }
+        },
+        _ => rstsr_invalid!(driver)?,
+    }
 }
 
 /* #endregion */

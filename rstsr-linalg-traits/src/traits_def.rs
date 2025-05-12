@@ -305,3 +305,67 @@ where
 }
 
 /* #endregion */
+
+/* #region svd */
+
+pub trait SVDAPI<Inp> {
+    type Out;
+    fn svd_f(self) -> Result<Self::Out>;
+    fn svd(self) -> Self::Out
+    where
+        Self: Sized,
+    {
+        Self::svd_f(self).unwrap()
+    }
+}
+
+pub fn svd_f<Args, Inp>(args: Args) -> Result<<Args as SVDAPI<Inp>>::Out>
+where
+    Args: SVDAPI<Inp>,
+{
+    Args::svd_f(args)
+}
+
+pub fn svd<Args, Inp>(args: Args) -> <Args as SVDAPI<Inp>>::Out
+where
+    Args: SVDAPI<Inp>,
+{
+    Args::svd(args)
+}
+
+pub struct SVDResult<U, S, Vt> {
+    pub u: Option<U>,
+    pub s: S,
+    pub vt: Option<Vt>,
+}
+
+impl<U, S, Vt> From<(U, S, Vt)> for SVDResult<U, S, Vt> {
+    fn from((u, s, vt): (U, S, Vt)) -> Self {
+        Self { u: Some(u), s, vt: Some(vt) }
+    }
+}
+
+impl<U, S, Vt> From<SVDResult<U, S, Vt>> for (U, S, Vt) {
+    fn from(svd_result: SVDResult<U, S, Vt>) -> Self {
+        (svd_result.u.unwrap(), svd_result.s, svd_result.vt.unwrap())
+    }
+}
+
+#[derive(Builder)]
+#[builder(pattern = "owned", no_std, build_fn(error = "Error"))]
+pub struct SVDArgs_<'a, B, T>
+where
+    T: BlasFloat,
+    B: DeviceAPI<T>,
+{
+    #[builder(setter(into))]
+    pub a: TensorReference<'a, T, B, Ix2>,
+    #[builder(setter(into), default = "Some(true)")]
+    pub full_matrices: Option<bool>,
+    #[builder(setter(into), default = "None")]
+    pub driver: Option<&'static str>,
+}
+
+pub type SVDArgs<'a, B, T> = SVDArgs_Builder<'a, B, T>;
+
+/* #endregion */

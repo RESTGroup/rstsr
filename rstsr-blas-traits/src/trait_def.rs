@@ -3,6 +3,7 @@
 use crate::blas3::*;
 use crate::lapack_eigh::*;
 use crate::lapack_solve::*;
+use crate::lapack_svd::*;
 use crate::prelude_dev::*;
 use rstsr_core::prelude_dev::*;
 
@@ -54,6 +55,9 @@ pub trait LapackDriverAPI<T>:
     + GETRIDriverAPI<T>
     + SYSVDriverAPI<T, false>
     + SYSVDriverAPI<T, true>
+    // lapack_svd
+    + GESVDDriverAPI<T>
+    + GESDDDriverAPI<T>
 where
     T: BlasFloat,
 {

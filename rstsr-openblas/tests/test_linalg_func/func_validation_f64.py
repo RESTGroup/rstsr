@@ -125,6 +125,30 @@ np.linalg.slogdet(a)
 
 scipy.linalg.lapack.dgetrf(a)
 
+# ### svd
+
+a = a_raw[:1024*512].copy().reshape(1024, 512)
+b = b_raw.copy().reshape(1024, 1024)
+(u, s, vt) = scipy.linalg.svd(a)
+assert np.isclose(fingerprint(np.abs(u)), -1.9368850983570982)
+assert np.isclose(fingerprint(s), 33.969339071043095)
+assert np.isclose(fingerprint(np.abs(vt)), 13.465522484136157)
+fingerprint(np.abs(u)), fingerprint(s), fingerprint(np.abs(vt))
+
+a = a_raw[:1024*512].copy().reshape(1024, 512)
+b = b_raw.copy().reshape(1024, 1024)
+(u, s, vt) = scipy.linalg.svd(a, full_matrices=False)
+assert np.isclose(fingerprint(np.abs(u)), -9.144981428076894)
+assert np.isclose(fingerprint(s), 33.969339071043095)
+assert np.isclose(fingerprint(np.abs(vt)), 13.465522484136157)
+fingerprint(np.abs(u)), fingerprint(s), fingerprint(np.abs(vt))
+
+a = a_raw[:1024*512].copy().reshape(1024, 512)
+b = b_raw.copy().reshape(1024, 1024)
+assert np.isclose(fingerprint(s), 33.969339071043095)
+s = scipy.linalg.svd(a, compute_uv=False)
+fingerprint(s)
+
 
 
 
