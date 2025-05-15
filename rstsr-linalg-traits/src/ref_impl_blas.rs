@@ -262,7 +262,7 @@ where
         let mut change_sign = 0;
         let m = piv.shape()[0];
         for i in 0..m {
-            if piv[[i]] != i as i32 {
+            if piv[[i]] != i as blas_int {
                 change_sign += 1;
             }
         }
