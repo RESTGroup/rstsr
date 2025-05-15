@@ -12,4 +12,5 @@ license.workspace = true
 rstsr-core = { workspace = true, default-features = false, features = ["rayon"] }
 rstsr-common = { workspace = true, default-features = false, features = ["rayon"] }
 rstsr-blas-traits = { workspace = true, default-features = false }
+duplicate = { workspace = true }
 derive_builder = { workspace = true }

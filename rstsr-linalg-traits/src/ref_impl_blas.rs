@@ -85,7 +85,7 @@ where
         };
         match eigvals_only {
             true => Ok((w, None)),
-            false => Ok((w, Some(v))),
+            false => Ok((w, Some(v.clone_to_mut()))),
         }
     } else {
         let driver = driver.unwrap_or("evd");

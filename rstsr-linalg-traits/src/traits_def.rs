@@ -1,92 +1,75 @@
 use derive_builder::Builder;
+use duplicate::duplicate_item;
 use rstsr_blas_traits::prelude::BlasFloat;
 use rstsr_common::error::{Error, Result};
 use rstsr_core::prelude::*;
 
-/* #region cholesky */
+/* #region trait and fn definitions */
 
-pub trait CholeskyAPI<Inp> {
+#[duplicate_item(
+    LinalgAPI            func               func_f             ;
+   [CholeskyAPI       ] [cholesky        ] [cholesky_f        ];
+   [DetAPI            ] [det             ] [det_f             ];
+   [EighAPI           ] [eigh            ] [eigh_f            ];
+   [InvAPI            ] [inv             ] [inv_f             ];
+   [SLogDetAPI        ] [slogdet         ] [slogdet_f         ];
+   [SolveGeneralAPI   ] [solve_general   ] [solve_general_f   ];
+   [SolveSymmetricAPI ] [solve_symmetric ] [solve_symmetric_f ];
+   [SolveTriangularAPI] [solve_triangular] [solve_triangular_f];
+   [SVDAPI            ] [svd             ] [svd_f             ];
+)]
+pub trait LinalgAPI<Inp> {
     type Out;
-    fn cholesky_f(self) -> Result<Self::Out>;
-    fn cholesky(self) -> Self::Out
+    fn func_f(self) -> Result<Self::Out>;
+    fn func(self) -> Self::Out
     where
         Self: Sized,
     {
-        Self::cholesky_f(self).unwrap()
+        Self::func_f(self).unwrap()
     }
 }
 
-pub fn cholesky_f<Args, Inp>(args: Args) -> Result<<Args as CholeskyAPI<Inp>>::Out>
+#[duplicate_item(
+    LinalgAPI            func               func_f             ;
+   [CholeskyAPI       ] [cholesky        ] [cholesky_f        ];
+   [DetAPI            ] [det             ] [det_f             ];
+   [EighAPI           ] [eigh            ] [eigh_f            ];
+   [InvAPI            ] [inv             ] [inv_f             ];
+   [SLogDetAPI        ] [slogdet         ] [slogdet_f         ];
+   [SolveGeneralAPI   ] [solve_general   ] [solve_general_f   ];
+   [SolveSymmetricAPI ] [solve_symmetric ] [solve_symmetric_f ];
+   [SolveTriangularAPI] [solve_triangular] [solve_triangular_f];
+   [SVDAPI            ] [svd             ] [svd_f             ];
+)]
+pub fn func_f<Args, Inp>(args: Args) -> Result<<Args as LinalgAPI<Inp>>::Out>
 where
-    Args: CholeskyAPI<Inp>,
+    Args: LinalgAPI<Inp>,
 {
-    Args::cholesky_f(args)
+    Args::func_f(args)
 }
 
-pub fn cholesky<Args, Inp>(args: Args) -> <Args as CholeskyAPI<Inp>>::Out
+#[duplicate_item(
+    LinalgAPI            func               func_f             ;
+   [CholeskyAPI       ] [cholesky        ] [cholesky_f        ];
+   [DetAPI            ] [det             ] [det_f             ];
+   [EighAPI           ] [eigh            ] [eigh_f            ];
+   [InvAPI            ] [inv             ] [inv_f             ];
+   [SLogDetAPI        ] [slogdet         ] [slogdet_f         ];
+   [SolveGeneralAPI   ] [solve_general   ] [solve_general_f   ];
+   [SolveSymmetricAPI ] [solve_symmetric ] [solve_symmetric_f ];
+   [SolveTriangularAPI] [solve_triangular] [solve_triangular_f];
+   [SVDAPI            ] [svd             ] [svd_f             ];
+)]
+pub fn func<Args, Inp>(args: Args) -> <Args as LinalgAPI<Inp>>::Out
 where
-    Args: CholeskyAPI<Inp>,
+    Args: LinalgAPI<Inp>,
 {
-    Args::cholesky(args)
-}
-
-/* #endregion */
-
-/* #region det */
-
-pub trait DetAPI<Inp> {
-    type Out;
-    fn det_f(self) -> Result<Self::Out>;
-    fn det(self) -> Self::Out
-    where
-        Self: Sized,
-    {
-        Self::det_f(self).unwrap()
-    }
-}
-
-pub fn det_f<Args, Inp>(args: Args) -> Result<<Args as DetAPI<Inp>>::Out>
-where
-    Args: DetAPI<Inp>,
-{
-    Args::det_f(args)
-}
-
-pub fn det<Args, Inp>(args: Args) -> <Args as DetAPI<Inp>>::Out
-where
-    Args: DetAPI<Inp>,
-{
-    Args::det(args)
+    Args::func(args)
 }
 
 /* #endregion */
 
 /* #region eigh */
-
-pub trait EighAPI<Inp> {
-    type Out;
-    fn eigh_f(self) -> Result<Self::Out>;
-    fn eigh(self) -> Self::Out
-    where
-        Self: Sized,
-    {
-        Self::eigh_f(self).unwrap()
-    }
-}
-
-pub fn eigh_f<Args, Inp>(args: Args) -> Result<<Args as EighAPI<Inp>>::Out>
-where
-    Args: EighAPI<Inp>,
-{
-    Args::eigh_f(args)
-}
-
-pub fn eigh<Args, Inp>(args: Args) -> <Args as EighAPI<Inp>>::Out
-where
-    Args: EighAPI<Inp>,
-{
-    Args::eigh(args)
-}
 
 pub struct EighResult<W, V> {
     pub eigenvalues: W,
@@ -135,61 +118,7 @@ pub type EighArgs<'a, 'b, B, T> = EighArgs_Builder<'a, 'b, B, T>;
 
 /* #endregion */
 
-/* #region inv */
-
-pub trait InvAPI<Inp> {
-    type Out;
-    fn inv_f(self) -> Result<Self::Out>;
-    fn inv(self) -> Self::Out
-    where
-        Self: Sized,
-    {
-        Self::inv_f(self).unwrap()
-    }
-}
-
-pub fn inv_f<Args, Inp>(args: Args) -> Result<<Args as InvAPI<Inp>>::Out>
-where
-    Args: InvAPI<Inp>,
-{
-    Args::inv_f(args)
-}
-
-pub fn inv<Args, Inp>(args: Args) -> <Args as InvAPI<Inp>>::Out
-where
-    Args: InvAPI<Inp>,
-{
-    Args::inv(args)
-}
-
-/* #endregion */
-
 /* #region slogdet */
-
-pub trait SLogDetAPI<Inp> {
-    type Out;
-    fn slogdet_f(self) -> Result<Self::Out>;
-    fn slogdet(self) -> Self::Out
-    where
-        Self: Sized,
-    {
-        Self::slogdet_f(self).unwrap()
-    }
-}
-
-pub fn slogdet_f<Args, Inp>(args: Args) -> Result<<Args as SLogDetAPI<Inp>>::Out>
-where
-    Args: SLogDetAPI<Inp>,
-{
-    Args::slogdet_f(args)
-}
-
-pub fn slogdet<Args, Inp>(args: Args) -> <Args as SLogDetAPI<Inp>>::Out
-where
-    Args: SLogDetAPI<Inp>,
-{
-    Args::slogdet(args)
-}
 
 pub struct SLogDetResult<T>
 where
@@ -219,119 +148,7 @@ where
 
 /* #endregion */
 
-/* #region solve_general */
-
-pub trait SolveGeneralAPI<Inp> {
-    type Out;
-    fn solve_general_f(self) -> Result<Self::Out>;
-    fn solve_general(self) -> Self::Out
-    where
-        Self: Sized,
-    {
-        Self::solve_general_f(self).unwrap()
-    }
-}
-
-pub fn solve_general_f<Args, Inp>(args: Args) -> Result<<Args as SolveGeneralAPI<Inp>>::Out>
-where
-    Args: SolveGeneralAPI<Inp>,
-{
-    Args::solve_general_f(args)
-}
-
-pub fn solve_general<Args, Inp>(args: Args) -> <Args as SolveGeneralAPI<Inp>>::Out
-where
-    Args: SolveGeneralAPI<Inp>,
-{
-    Args::solve_general(args)
-}
-
-/* #endregion */
-
-/* #region solve_symmetric */
-
-pub trait SolveSymmetricAPI<Inp> {
-    type Out;
-    fn solve_symmetric_f(self) -> Result<Self::Out>;
-    fn solve_symmetric(self) -> Self::Out
-    where
-        Self: Sized,
-    {
-        Self::solve_symmetric_f(self).unwrap()
-    }
-}
-
-pub fn solve_symmetric_f<Args, Inp>(args: Args) -> Result<<Args as SolveSymmetricAPI<Inp>>::Out>
-where
-    Args: SolveSymmetricAPI<Inp>,
-{
-    Args::solve_symmetric_f(args)
-}
-
-pub fn solve_symmetric<Args, Inp>(args: Args) -> <Args as SolveSymmetricAPI<Inp>>::Out
-where
-    Args: SolveSymmetricAPI<Inp>,
-{
-    Args::solve_symmetric(args)
-}
-
-/* #endregion */
-
-/* #region solve_triangular */
-
-pub trait SolveTriangularAPI<Inp> {
-    type Out;
-    fn solve_triangular_f(self) -> Result<Self::Out>;
-    fn solve_triangular(self) -> Self::Out
-    where
-        Self: Sized,
-    {
-        Self::solve_triangular_f(self).unwrap()
-    }
-}
-
-pub fn solve_triangular_f<Args, Inp>(args: Args) -> Result<<Args as SolveTriangularAPI<Inp>>::Out>
-where
-    Args: SolveTriangularAPI<Inp>,
-{
-    Args::solve_triangular_f(args)
-}
-
-pub fn solve_triangular<Args, Inp>(args: Args) -> <Args as SolveTriangularAPI<Inp>>::Out
-where
-    Args: SolveTriangularAPI<Inp>,
-{
-    Args::solve_triangular(args)
-}
-
-/* #endregion */
-
 /* #region svd */
-
-pub trait SVDAPI<Inp> {
-    type Out;
-    fn svd_f(self) -> Result<Self::Out>;
-    fn svd(self) -> Self::Out
-    where
-        Self: Sized,
-    {
-        Self::svd_f(self).unwrap()
-    }
-}
-
-pub fn svd_f<Args, Inp>(args: Args) -> Result<<Args as SVDAPI<Inp>>::Out>
-where
-    Args: SVDAPI<Inp>,
-{
-    Args::svd_f(args)
-}
-
-pub fn svd<Args, Inp>(args: Args) -> <Args as SVDAPI<Inp>>::Out
-where
-    Args: SVDAPI<Inp>,
-{
-    Args::svd(args)
-}
 
 pub struct SVDResult<U, S, Vt> {
     pub u: U,
