@@ -18,6 +18,7 @@ use rstsr_core::prelude::*;
    [SolveSymmetricAPI ] [solve_symmetric ] [solve_symmetric_f ];
    [SolveTriangularAPI] [solve_triangular] [solve_triangular_f];
    [SVDAPI            ] [svd             ] [svd_f             ];
+   [SVDvalsAPI        ] [svdvals         ] [svdvals_f         ];
 )]
 pub trait LinalgAPI<Inp> {
     type Out;
@@ -42,6 +43,7 @@ pub trait LinalgAPI<Inp> {
    [SolveSymmetricAPI ] [solve_symmetric ] [solve_symmetric_f ];
    [SolveTriangularAPI] [solve_triangular] [solve_triangular_f];
    [SVDAPI            ] [svd             ] [svd_f             ];
+   [SVDvalsAPI        ] [svdvals         ] [svdvals_f         ];
 )]
 pub fn func_f<Args, Inp>(args: Args) -> Result<<Args as LinalgAPI<Inp>>::Out>
 where
@@ -62,6 +64,7 @@ where
    [SolveSymmetricAPI ] [solve_symmetric ] [solve_symmetric_f ];
    [SolveTriangularAPI] [solve_triangular] [solve_triangular_f];
    [SVDAPI            ] [svd             ] [svd_f             ];
+   [SVDvalsAPI        ] [svdvals         ] [svdvals_f         ];
 )]
 pub fn func<Args, Inp>(args: Args) -> <Args as LinalgAPI<Inp>>::Out
 where
