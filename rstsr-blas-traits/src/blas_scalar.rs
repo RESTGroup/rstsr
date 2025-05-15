@@ -46,6 +46,7 @@ pub trait BlasFloat:
     + Send
     + Sync
     + Div<Self::Real, Output = Self>
+    + DivAssign<Self::Real>
     + AbsAPI<Out = Self::Real>
     + Mul<Self::Real, Output = Self>
 {

@@ -19,10 +19,12 @@ pub trait BlasDriverBaseAPI<T>:
     + DeviceAddAssignAPI<blas_int, blas_int, Ix1>
     + DeviceSubAssignAPI<blas_int, blas_int, Ix1>
     // linalg functionality requirements
+    + DeviceDivAssignAPI<T, T::Real, IxD>
     + DeviceAbsAPI<T, Ix1, TOut = T::Real>
     + DeviceSignAPI<T, Ix1, TOut = T>
     + OpProdAPI<T, Ix1, TOut = T>
     + OpSumAPI<T::Real, Ix1, TOut = T::Real>
+    + OpMaxAPI<T::Real, Ix1, TOut = T::Real>
     + DeviceLogAPI<T::Real, Ix1, TOut = T::Real>
 where
     T: BlasFloat,

@@ -13,6 +13,7 @@ use rstsr_core::prelude::*;
    [EighAPI           ] [eigh            ] [eigh_f            ];
    [EigvalshAPI       ] [eigvalsh        ] [eigvalsh_f        ];
    [InvAPI            ] [inv             ] [inv_f             ];
+   [PinvAPI           ] [pinv            ] [pinv_f            ];
    [SLogDetAPI        ] [slogdet         ] [slogdet_f         ];
    [SolveGeneralAPI   ] [solve_general   ] [solve_general_f   ];
    [SolveSymmetricAPI ] [solve_symmetric ] [solve_symmetric_f ];
@@ -38,6 +39,7 @@ pub trait LinalgAPI<Inp> {
    [EighAPI           ] [eigh            ] [eigh_f            ];
    [EigvalshAPI       ] [eigvalsh        ] [eigvalsh_f        ];
    [InvAPI            ] [inv             ] [inv_f             ];
+   [PinvAPI           ] [pinv            ] [pinv_f            ];
    [SLogDetAPI        ] [slogdet         ] [slogdet_f         ];
    [SolveGeneralAPI   ] [solve_general   ] [solve_general_f   ];
    [SolveSymmetricAPI ] [solve_symmetric ] [solve_symmetric_f ];
@@ -59,6 +61,7 @@ where
    [EighAPI           ] [eigh            ] [eigh_f            ];
    [EigvalshAPI       ] [eigvalsh        ] [eigvalsh_f        ];
    [InvAPI            ] [inv             ] [inv_f             ];
+   [PinvAPI           ] [pinv            ] [pinv_f            ];
    [SLogDetAPI        ] [slogdet         ] [slogdet_f         ];
    [SolveGeneralAPI   ] [solve_general   ] [solve_general_f   ];
    [SolveSymmetricAPI ] [solve_symmetric ] [solve_symmetric_f ];
@@ -121,6 +124,27 @@ where
 }
 
 pub type EighArgs<'a, 'b, B, T> = EighArgs_Builder<'a, 'b, B, T>;
+
+/* #endregion */
+
+/* #region pinv */
+
+pub struct PinvResult<T> {
+    pub pinv: T,
+    pub rank: usize,
+}
+
+impl<T> From<(T, usize)> for PinvResult<T> {
+    fn from((pinv, rank): (T, usize)) -> Self {
+        Self { pinv, rank }
+    }
+}
+
+impl<T> From<PinvResult<T>> for (T, usize) {
+    fn from(pinv_result: PinvResult<T>) -> Self {
+        (pinv_result.pinv, pinv_result.rank)
+    }
+}
 
 /* #endregion */
 

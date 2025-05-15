@@ -153,6 +153,18 @@ assert np.isclose(fingerprint(s), 32.27742168207757)
 assert np.isclose(fingerprint(np.abs(vt)), -0.32301437281530243)
 fingerprint(np.abs(u)), fingerprint(s), fingerprint(np.abs(vt))
 
+# ### pinv
 
+a = a_raw[:1024*512].copy().reshape(1024, 512)
+a_pinv, rank = scipy.linalg.pinv(a, return_rank=True, atol=20, rtol=0.3)
+assert np.isclose(fingerprint(a_pinv), 0.0878262837784408)
+assert rank == 163
+fingerprint(a_pinv), rank
+
+a = a_raw[:1024*512].copy().reshape(512, 1024)
+a_pinv, rank = scipy.linalg.pinv(a, return_rank=True, atol=20, rtol=0.3)
+assert np.isclose(fingerprint(a_pinv), -0.3244041253699862)
+assert rank == 161
+fingerprint(a_pinv), rank
 
 

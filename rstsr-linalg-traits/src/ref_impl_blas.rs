@@ -1,4 +1,5 @@
-use crate::traits_def::{EighArgs_, SVDArgs_};
+use crate::traits_def::{EighArgs_, PinvResult, SVDArgs_};
+use num::{Float, FromPrimitive, Zero};
 use rstsr_blas_traits::prelude::*;
 use rstsr_core::prelude_dev::*;
 
@@ -122,6 +123,52 @@ where
         let (mut a, ipiv) = GETRF::default().a(a).build()?.run()?;
         GETRI::default().a(a.view_mut()).ipiv(ipiv.view()).build()?.run()?;
         Ok(a.clone_to_mut())
+    };
+    device.with_blas_num_threads(nthreads, task)
+}
+
+/* #endregion */
+
+/* #region pinv */
+
+pub fn ref_impl_pinv_f<T, B>(
+    a: TensorView<T, B, Ix2>,
+    atol: Option<T::Real>,
+    rtol: Option<T::Real>,
+) -> Result<PinvResult<Tensor<T, B, Ix2>>>
+where
+    T: BlasFloat,
+    T::Real: FromPrimitive,
+    B: LapackDriverAPI<T>,
+{
+    let device = a.device().clone();
+    let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
+    let task = || {
+        // compute rcond value
+        let atol = atol.unwrap_or(T::Real::zero());
+        let rtol = rtol.unwrap_or({
+            let [m, n] = *a.shape();
+            let mnmax = T::Real::from_usize(m.max(n)).unwrap();
+            mnmax * T::Real::epsilon()
+        });
+        if let (s, Some(u), Some(vt)) = GESDD::default().a(a).full_matrices(false).build()?.run()? {
+            let maxs = s.max_all();
+            let val = atol + rtol * maxs;
+            let rank = s.raw().iter().take_while(|&&x| x > val).count();
+            let mut u = u.into_slice((.., ..rank));
+            u /= s.i((None, ..rank));
+            let a_pinv = GEMM::default()
+                .a(vt.i((..rank, ..)).into_reverse_axes().into_dim())
+                .b(u.t().into_dim())
+                .order(device.default_order())
+                .build()?
+                .run()?
+                .into_owned();
+            let pinv = a_pinv.conj();
+            Ok(PinvResult { pinv, rank })
+        } else {
+            unreachable!()
+        }
     };
     device.with_blas_num_threads(nthreads, task)
 }

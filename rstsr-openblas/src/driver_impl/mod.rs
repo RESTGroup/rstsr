@@ -13,7 +13,7 @@ use rstsr_blas_traits::prelude::*;
 impl<T> BlasDriverBaseAPI<T> for DeviceBLAS
 where
     T: BlasFloat,
-    T::Real: BlasFloat,
+    T::Real: BlasFloat + rstsr_dtype_traits::MinMaxAPI + num::Bounded,
 {
 }
 
