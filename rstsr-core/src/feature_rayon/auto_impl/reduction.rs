@@ -588,3 +588,43 @@ where
         Ok(result)
     }
 }
+
+impl<D> OpSumBoolAPI<D> for DeviceRayonAutoImpl
+where
+    D: DimAPI,
+{
+    fn sum_all(&self, a: &Vec<bool>, la: &Layout<D>) -> Result<usize> {
+        let pool = self.get_current_pool();
+
+        let f_init = || 0;
+        let f = |acc, x| match x {
+            true => acc + 1,
+            false => acc,
+        };
+        let f_sum = |acc1, acc2| acc1 + acc2;
+        let f_out = |acc| acc;
+
+        reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
+    }
+
+    fn sum_axes(
+        &self,
+        a: &Vec<bool>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<usize>>, usize, Self>, Layout<IxD>)> {
+        let pool = self.get_current_pool();
+
+        let f_init = || 0;
+        let f = |acc, x| match x {
+            true => acc + 1,
+            false => acc,
+        };
+        let f_sum = |acc1, acc2| acc1 + acc2;
+        let f_out = |acc| acc;
+
+        let (out, layout_out) =
+            reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}

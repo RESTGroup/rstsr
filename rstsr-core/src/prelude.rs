@@ -28,6 +28,7 @@ pub mod rstsr_traits {
     pub use crate::tensor::ownership_conversion::{
         TensorIntoOwnedAPI, TensorViewAPI, TensorViewMutAPI,
     };
+    pub use crate::tensor::reduction::TensorSumBoolAPI;
 
     #[cfg(feature = "rayon")]
     pub use crate::feature_rayon::DeviceRayonAPI;
