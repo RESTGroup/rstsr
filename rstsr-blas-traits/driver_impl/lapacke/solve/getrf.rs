@@ -46,25 +46,3 @@ impl GETRFDriverAPI<T> for DeviceBLAS {
         )
     }
 }
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use crate::DeviceBLAS;
-    use rstsr_core::prelude_dev::*;
-    use rstsr_test_manifest::get_vec;
-
-    #[test]
-    fn playground() {
-        let device = DeviceBLAS::default();
-        let la = [2048, 2048].c();
-        let a = Tensor::new(Storage::new(get_vec::<f64>('a').into(), device.clone()), la);
-        let driver = DGETRF::default().a(a.view()).build().unwrap();
-        let (c, ipiv) = driver.run().unwrap();
-        let c = c.into_owned();
-        // println!("{:?}", c);
-        println!("{ipiv:?}");
-        assert!(c.c_contig());
-        assert!((fingerprint(&c) - -8345.684144788995).abs() < 1e-8);
-    }
-}

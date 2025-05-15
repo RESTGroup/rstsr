@@ -30,7 +30,7 @@ impl<S> TensorBase<S, Ix2> {
     /// This function will not return any value if the layout is not
     /// column-major.
     pub fn ld_col(&self) -> Option<usize> {
-        if self.c_prefer() {
+        if !self.f_prefer() {
             // leading dimension is only defined if not f-prefer
             return None;
         } else if self.shape()[1] == 1 {

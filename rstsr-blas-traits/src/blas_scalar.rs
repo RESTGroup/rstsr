@@ -1,7 +1,9 @@
 use half::{bf16, f16};
 use num::complex::ComplexFloat;
 use num::{Complex, Num};
+use rstsr_dtype_traits::*;
 use std::ffi::c_void;
+use std::ops::*;
 
 pub trait BlasScalar: Num + Clone {
     type FFI;
@@ -38,7 +40,17 @@ impl BlasScalar for bf16 {
     type Scalar = bf16;
 }
 
-pub trait BlasFloat: BlasScalar + ComplexFloat + Send + Sync {}
+pub trait BlasFloat:
+    BlasScalar
+    + ComplexFloat
+    + Send
+    + Sync
+    + Div<Self::Real, Output = Self>
+    + DivAssign<Self::Real>
+    + AbsAPI<Out = Self::Real>
+    + Mul<Self::Real, Output = Self>
+{
+}
 impl BlasFloat for f32 {}
 impl BlasFloat for f64 {}
 impl BlasFloat for Complex<f32> {}

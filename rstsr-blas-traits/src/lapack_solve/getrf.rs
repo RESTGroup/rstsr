@@ -48,7 +48,7 @@ where
             rstsr_errcode!(info, "Lapack GETRF")?;
         }
 
-        // rust is 1-indexed
+        // rust is 0-indexed
         ipiv -= 1;
 
         Ok((a.clone_to_mut(), ipiv))

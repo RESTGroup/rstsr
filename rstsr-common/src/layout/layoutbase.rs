@@ -616,6 +616,14 @@ pub trait DimLayoutContigAPI: DimBaseAPI + DimShapeAPI + DimStrideAPI {
     fn f(&self) -> Layout<Self> {
         self.new_f_contig(None)
     }
+
+    /// Generate new layout by providing shape, offset and order.
+    fn new_contig(&self, offset: Option<usize>, order: FlagOrder) -> Layout<Self> {
+        match order {
+            FlagOrder::C => self.new_c_contig(offset),
+            FlagOrder::F => self.new_f_contig(offset),
+        }
+    }
 }
 
 impl<const N: usize> DimLayoutContigAPI for Ix<N> {}

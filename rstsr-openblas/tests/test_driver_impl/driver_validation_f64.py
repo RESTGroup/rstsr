@@ -121,3 +121,21 @@ assert np.isclose(fingerprint(udut), 1182.7836118324408)
 assert np.isclose(fingerprint(piv), 11905.503011559245)
 assert np.isclose(fingerprint(x), -314.4502289190444)
 fingerprint(udut), fingerprint(piv), fingerprint(x)
+
+# ## svd driver tests
+
+a = a_raw.copy()[:1024*512].reshape(1024, 512)
+u, s, vt, _ = scipy.linalg.lapack.dgesvd(a)
+assert np.isclose(fingerprint(np.abs(u)), -1.9368850983570982)
+assert np.isclose(fingerprint(s), 33.969339071043095)
+assert np.isclose(fingerprint(np.abs(vt)), 13.465522484136157)
+fingerprint(np.abs(u)), fingerprint(s), fingerprint(np.abs(vt))
+
+a = a_raw.copy()[:1024*512].reshape(1024, 512)
+u, s, vt, _ = scipy.linalg.lapack.dgesvd(a, full_matrices=False)
+assert np.isclose(fingerprint(np.abs(u)), -9.144981428076894)
+assert np.isclose(fingerprint(s), 33.969339071043095)
+assert np.isclose(fingerprint(np.abs(vt)), 13.465522484136157)
+fingerprint(np.abs(u)), fingerprint(s), fingerprint(np.abs(vt))
+
+

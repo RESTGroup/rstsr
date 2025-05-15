@@ -1,63 +1,84 @@
 use derive_builder::Builder;
+use duplicate::duplicate_item;
 use rstsr_blas_traits::prelude::BlasFloat;
 use rstsr_common::error::{Error, Result};
 use rstsr_core::prelude::*;
 
-/* #region cholesky */
+/* #region trait and fn definitions */
 
-pub trait CholeskyAPI<Inp> {
+#[duplicate_item(
+    LinalgAPI            func               func_f             ;
+   [CholeskyAPI       ] [cholesky        ] [cholesky_f        ];
+   [DetAPI            ] [det             ] [det_f             ];
+   [EighAPI           ] [eigh            ] [eigh_f            ];
+   [EigvalshAPI       ] [eigvalsh        ] [eigvalsh_f        ];
+   [InvAPI            ] [inv             ] [inv_f             ];
+   [PinvAPI           ] [pinv            ] [pinv_f            ];
+   [SLogDetAPI        ] [slogdet         ] [slogdet_f         ];
+   [SolveGeneralAPI   ] [solve_general   ] [solve_general_f   ];
+   [SolveSymmetricAPI ] [solve_symmetric ] [solve_symmetric_f ];
+   [SolveTriangularAPI] [solve_triangular] [solve_triangular_f];
+   [SVDAPI            ] [svd             ] [svd_f             ];
+   [SVDvalsAPI        ] [svdvals         ] [svdvals_f         ];
+)]
+pub trait LinalgAPI<Inp> {
     type Out;
-    fn cholesky_f(self) -> Result<Self::Out>;
-    fn cholesky(self) -> Self::Out
+    fn func_f(self) -> Result<Self::Out>;
+    fn func(self) -> Self::Out
     where
         Self: Sized,
     {
-        Self::cholesky_f(self).unwrap()
+        Self::func_f(self).unwrap()
     }
 }
 
-pub fn cholesky_f<Args, Inp>(args: Args) -> Result<<Args as CholeskyAPI<Inp>>::Out>
+#[duplicate_item(
+    LinalgAPI            func               func_f             ;
+   [CholeskyAPI       ] [cholesky        ] [cholesky_f        ];
+   [DetAPI            ] [det             ] [det_f             ];
+   [EighAPI           ] [eigh            ] [eigh_f            ];
+   [EigvalshAPI       ] [eigvalsh        ] [eigvalsh_f        ];
+   [InvAPI            ] [inv             ] [inv_f             ];
+   [PinvAPI           ] [pinv            ] [pinv_f            ];
+   [SLogDetAPI        ] [slogdet         ] [slogdet_f         ];
+   [SolveGeneralAPI   ] [solve_general   ] [solve_general_f   ];
+   [SolveSymmetricAPI ] [solve_symmetric ] [solve_symmetric_f ];
+   [SolveTriangularAPI] [solve_triangular] [solve_triangular_f];
+   [SVDAPI            ] [svd             ] [svd_f             ];
+   [SVDvalsAPI        ] [svdvals         ] [svdvals_f         ];
+)]
+pub fn func_f<Args, Inp>(args: Args) -> Result<<Args as LinalgAPI<Inp>>::Out>
 where
-    Args: CholeskyAPI<Inp>,
+    Args: LinalgAPI<Inp>,
 {
-    Args::cholesky_f(args)
+    Args::func_f(args)
 }
 
-pub fn cholesky<Args, Inp>(args: Args) -> <Args as CholeskyAPI<Inp>>::Out
+#[duplicate_item(
+    LinalgAPI            func               func_f             ;
+   [CholeskyAPI       ] [cholesky        ] [cholesky_f        ];
+   [DetAPI            ] [det             ] [det_f             ];
+   [EighAPI           ] [eigh            ] [eigh_f            ];
+   [EigvalshAPI       ] [eigvalsh        ] [eigvalsh_f        ];
+   [InvAPI            ] [inv             ] [inv_f             ];
+   [PinvAPI           ] [pinv            ] [pinv_f            ];
+   [SLogDetAPI        ] [slogdet         ] [slogdet_f         ];
+   [SolveGeneralAPI   ] [solve_general   ] [solve_general_f   ];
+   [SolveSymmetricAPI ] [solve_symmetric ] [solve_symmetric_f ];
+   [SolveTriangularAPI] [solve_triangular] [solve_triangular_f];
+   [SVDAPI            ] [svd             ] [svd_f             ];
+   [SVDvalsAPI        ] [svdvals         ] [svdvals_f         ];
+)]
+pub fn func<Args, Inp>(args: Args) -> <Args as LinalgAPI<Inp>>::Out
 where
-    Args: CholeskyAPI<Inp>,
+    Args: LinalgAPI<Inp>,
 {
-    Args::cholesky(args)
+    Args::func(args)
 }
 
 /* #endregion */
 
 /* #region eigh */
-
-pub trait EighAPI<Inp> {
-    type Out;
-    fn eigh_f(self) -> Result<Self::Out>;
-    fn eigh(self) -> Self::Out
-    where
-        Self: Sized,
-    {
-        Self::eigh_f(self).unwrap()
-    }
-}
-
-pub fn eigh_f<Args, Inp>(args: Args) -> Result<<Args as EighAPI<Inp>>::Out>
-where
-    Args: EighAPI<Inp>,
-{
-    Args::eigh_f(args)
-}
-
-pub fn eigh<Args, Inp>(args: Args) -> <Args as EighAPI<Inp>>::Out
-where
-    Args: EighAPI<Inp>,
-{
-    Args::eigh(args)
-}
 
 pub struct EighResult<W, V> {
     pub eigenvalues: W,
@@ -106,118 +127,92 @@ pub type EighArgs<'a, 'b, B, T> = EighArgs_Builder<'a, 'b, B, T>;
 
 /* #endregion */
 
-/* #region inv */
+/* #region pinv */
 
-pub trait InvAPI<Inp> {
-    type Out;
-    fn inv_f(self) -> Result<Self::Out>;
-    fn inv(self) -> Self::Out
-    where
-        Self: Sized,
-    {
-        Self::inv_f(self).unwrap()
+pub struct PinvResult<T> {
+    pub pinv: T,
+    pub rank: usize,
+}
+
+impl<T> From<(T, usize)> for PinvResult<T> {
+    fn from((pinv, rank): (T, usize)) -> Self {
+        Self { pinv, rank }
     }
 }
 
-pub fn inv_f<Args, Inp>(args: Args) -> Result<<Args as InvAPI<Inp>>::Out>
-where
-    Args: InvAPI<Inp>,
-{
-    Args::inv_f(args)
-}
-
-pub fn inv<Args, Inp>(args: Args) -> <Args as InvAPI<Inp>>::Out
-where
-    Args: InvAPI<Inp>,
-{
-    Args::inv(args)
+impl<T> From<PinvResult<T>> for (T, usize) {
+    fn from(pinv_result: PinvResult<T>) -> Self {
+        (pinv_result.pinv, pinv_result.rank)
+    }
 }
 
 /* #endregion */
 
-/* #region solve_general */
+/* #region slogdet */
 
-pub trait SolveGeneralAPI<Inp> {
-    type Out;
-    fn solve_general_f(self) -> Result<Self::Out>;
-    fn solve_general(self) -> Self::Out
-    where
-        Self: Sized,
-    {
-        Self::solve_general_f(self).unwrap()
+pub struct SLogDetResult<T>
+where
+    T: BlasFloat,
+{
+    pub sign: T,
+    pub logabsdet: T::Real,
+}
+
+impl<T> From<(T, T::Real)> for SLogDetResult<T>
+where
+    T: BlasFloat,
+{
+    fn from((sign, logabsdet): (T, T::Real)) -> Self {
+        Self { sign, logabsdet }
     }
 }
 
-pub fn solve_general_f<Args, Inp>(args: Args) -> Result<<Args as SolveGeneralAPI<Inp>>::Out>
+impl<T> From<SLogDetResult<T>> for (T, T::Real)
 where
-    Args: SolveGeneralAPI<Inp>,
+    T: BlasFloat,
 {
-    Args::solve_general_f(args)
-}
-
-pub fn solve_general<Args, Inp>(args: Args) -> <Args as SolveGeneralAPI<Inp>>::Out
-where
-    Args: SolveGeneralAPI<Inp>,
-{
-    Args::solve_general(args)
+    fn from(slogdet_result: SLogDetResult<T>) -> Self {
+        (slogdet_result.sign, slogdet_result.logabsdet)
+    }
 }
 
 /* #endregion */
 
-/* #region solve_symmetric */
+/* #region svd */
 
-pub trait SolveSymmetricAPI<Inp> {
-    type Out;
-    fn solve_symmetric_f(self) -> Result<Self::Out>;
-    fn solve_symmetric(self) -> Self::Out
-    where
-        Self: Sized,
-    {
-        Self::solve_symmetric_f(self).unwrap()
+pub struct SVDResult<U, S, Vt> {
+    pub u: U,
+    pub s: S,
+    pub vt: Vt,
+}
+
+impl<U, S, Vt> From<(U, S, Vt)> for SVDResult<U, S, Vt> {
+    fn from((u, s, vt): (U, S, Vt)) -> Self {
+        Self { u, s, vt }
     }
 }
 
-pub fn solve_symmetric_f<Args, Inp>(args: Args) -> Result<<Args as SolveSymmetricAPI<Inp>>::Out>
-where
-    Args: SolveSymmetricAPI<Inp>,
-{
-    Args::solve_symmetric_f(args)
-}
-
-pub fn solve_symmetric<Args, Inp>(args: Args) -> <Args as SolveSymmetricAPI<Inp>>::Out
-where
-    Args: SolveSymmetricAPI<Inp>,
-{
-    Args::solve_symmetric(args)
-}
-
-/* #endregion */
-
-/* #region solve_triangular */
-
-pub trait SolveTriangularAPI<Inp> {
-    type Out;
-    fn solve_triangular_f(self) -> Result<Self::Out>;
-    fn solve_triangular(self) -> Self::Out
-    where
-        Self: Sized,
-    {
-        Self::solve_triangular_f(self).unwrap()
+impl<U, S, Vt> From<SVDResult<U, S, Vt>> for (U, S, Vt) {
+    fn from(svd_result: SVDResult<U, S, Vt>) -> Self {
+        (svd_result.u, svd_result.s, svd_result.vt)
     }
 }
 
-pub fn solve_triangular_f<Args, Inp>(args: Args) -> Result<<Args as SolveTriangularAPI<Inp>>::Out>
+#[derive(Builder)]
+#[builder(pattern = "owned", no_std, build_fn(error = "Error"))]
+pub struct SVDArgs_<'a, B, T>
 where
-    Args: SolveTriangularAPI<Inp>,
+    T: BlasFloat,
+    B: DeviceAPI<T>,
 {
-    Args::solve_triangular_f(args)
+    #[builder(setter(into))]
+    pub a: TensorReference<'a, T, B, Ix2>,
+    #[builder(setter(into), default = "Some(true)")]
+    pub full_matrices: Option<bool>,
+    #[builder(setter(into), default = "None")]
+    pub driver: Option<&'static str>,
 }
 
-pub fn solve_triangular<Args, Inp>(args: Args) -> <Args as SolveTriangularAPI<Inp>>::Out
-where
-    Args: SolveTriangularAPI<Inp>,
-{
-    Args::solve_triangular(args)
-}
+pub type SVDArgs<'a, B, T> = SVDArgs_Builder<'a, B, T>;
 
 /* #endregion */
