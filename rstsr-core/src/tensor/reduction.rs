@@ -269,6 +269,64 @@ trait_reduction_arg!(
     unraveled_argmax_all_f
 );
 
+pub trait TensorSumBoolAPI<B, D>
+where
+    D: DimAPI,
+    B: DeviceAPI<bool> + DeviceAPI<usize> + OpSumBoolAPI<D>,
+{
+    fn sum_all_f(&self) -> Result<usize>;
+    fn sum_all(&self) -> usize {
+        self.sum_all_f().unwrap()
+    }
+    fn sum_f(&self) -> Result<usize> {
+        self.sum_all_f()
+    }
+    fn sum(&self) -> usize {
+        self.sum_f().unwrap()
+    }
+    fn sum_axes_f<I>(&self, axes: I) -> Result<Tensor<usize, B, IxD>>
+    where
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>;
+    fn sum_axes<I>(&self, axes: I) -> Tensor<usize, B, IxD>
+    where
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
+    {
+        self.sum_axes_f(axes).unwrap()
+    }
+}
+
+impl<R, B, D> TensorSumBoolAPI<B, D> for TensorAny<R, bool, B, D>
+where
+    R: DataAPI<Data = <B as DeviceRawAPI<bool>>::Raw>,
+    D: DimAPI,
+    B: DeviceAPI<bool> + DeviceAPI<usize> + OpSumBoolAPI<D> + DeviceCreationAnyAPI<usize>,
+{
+    fn sum_all_f(&self) -> Result<usize> {
+        self.device().sum_all(self.raw(), self.layout())
+    }
+
+    fn sum_axes_f<I>(&self, axes: I) -> Result<Tensor<usize, B, IxD>>
+    where
+        I: TryInto<AxesIndex<isize>>,
+        Error: From<I::Error>,
+    {
+        let axes = axes.try_into()?;
+
+        // special case for summing all axes
+        if axes.as_ref().is_empty() {
+            let sum = self.device().sum_all(self.raw(), self.layout())?;
+            let storage = self.device().outof_cpu_vec(vec![sum])?;
+            let layout = Layout::new(vec![], vec![], 0)?;
+            return Tensor::new_f(storage, layout);
+        }
+
+        let (storage, layout) = self.device().sum_axes(self.raw(), self.layout(), axes.as_ref())?;
+        Tensor::new_f(storage, layout)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use num::ToPrimitive;

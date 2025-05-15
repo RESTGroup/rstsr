@@ -288,5 +288,8 @@ mod test {
         assert_eq!(c.raw(), &[false, false, true, false, false, true]);
         let c = ge(a.view(), &b);
         assert_eq!(c.raw(), &[true, false, true, false, true, true]);
+
+        let c_sum = c.sum();
+        assert_eq!(c_sum, 4);
     }
 }
