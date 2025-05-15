@@ -11,6 +11,7 @@ use rstsr_core::prelude::*;
    [CholeskyAPI       ] [cholesky        ] [cholesky_f        ];
    [DetAPI            ] [det             ] [det_f             ];
    [EighAPI           ] [eigh            ] [eigh_f            ];
+   [EigvalshAPI       ] [eigvalsh        ] [eigvalsh_f        ];
    [InvAPI            ] [inv             ] [inv_f             ];
    [SLogDetAPI        ] [slogdet         ] [slogdet_f         ];
    [SolveGeneralAPI   ] [solve_general   ] [solve_general_f   ];
@@ -34,6 +35,7 @@ pub trait LinalgAPI<Inp> {
    [CholeskyAPI       ] [cholesky        ] [cholesky_f        ];
    [DetAPI            ] [det             ] [det_f             ];
    [EighAPI           ] [eigh            ] [eigh_f            ];
+   [EigvalshAPI       ] [eigvalsh        ] [eigvalsh_f        ];
    [InvAPI            ] [inv             ] [inv_f             ];
    [SLogDetAPI        ] [slogdet         ] [slogdet_f         ];
    [SolveGeneralAPI   ] [solve_general   ] [solve_general_f   ];
@@ -53,6 +55,7 @@ where
    [CholeskyAPI       ] [cholesky        ] [cholesky_f        ];
    [DetAPI            ] [det             ] [det_f             ];
    [EighAPI           ] [eigh            ] [eigh_f            ];
+   [EigvalshAPI       ] [eigvalsh        ] [eigvalsh_f        ];
    [InvAPI            ] [inv             ] [inv_f             ];
    [SLogDetAPI        ] [slogdet         ] [slogdet_f         ];
    [SolveGeneralAPI   ] [solve_general   ] [solve_general_f   ];

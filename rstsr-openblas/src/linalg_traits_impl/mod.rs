@@ -1,6 +1,7 @@
 pub mod cholesky;
 pub mod det;
 pub mod eigh;
+pub mod eigvalsh;
 pub mod inv;
 pub mod slogdet;
 pub mod solve_general;
