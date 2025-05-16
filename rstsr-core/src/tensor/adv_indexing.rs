@@ -125,4 +125,17 @@ mod test {
         let b = a.index_select(2, [0, 0, 1, -1]);
         assert!(fingerprint(&b) - -25.648600916145096 < 1e-8);
     }
+
+    #[test]
+    fn test_index_select_default_device() {
+        let device = DeviceCpu::default();
+        let a = linspace((1.0, 2.0, 256 * 256 * 256, &device)).into_shape((256, 256, 256));
+        let sel = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144, 233];
+        let b = a.index_select(0, &sel);
+        assert!(fingerprint(&b) - 0.9357016252766746 < 1e-10);
+        let b = a.index_select(1, &sel);
+        assert!(fingerprint(&b) - 1.012193909979973 < 1e-10);
+        let b = a.index_select(2, &sel);
+        assert!(fingerprint(&b) - 1.010735112247236 < 1e-10);
+    }
 }

@@ -10,6 +10,7 @@ pub use crate::cpu_serial::transpose::*;
 
 #[cfg(feature = "rayon")]
 mod cpu_rayon {
+    pub use crate::cpu_rayon::adv_indexing::*;
     pub use crate::cpu_rayon::assignment::*;
     pub use crate::cpu_rayon::matmul_naive::*;
     pub use crate::cpu_rayon::op_tri::*;
