@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.3.1 -- 2025-05-16
+
+API Breaking Change:
+- Remove `ge`, `gt`, `ne`, ... in traits `TensorGreaterAPI`, `TensorNotEqualAPI`, ... ([#25](https://github.com/RESTGroup/rstsr/pull/25))
+
+Enhancements:
+- linalg: functions added: slogdet, det, svd, eigvalsh, svdvals, pinv ([#23](https://github.com/RESTGroup/rstsr/pull/23))
+- Summation to boolean tensor ([#25](https://github.com/RESTGroup/rstsr/pull/25))
+- Basic advanced indexing function `index_select` ([#26](https://github.com/RESTGroup/rstsr/pull/26))
+- Added TensorCow support for binary arithmetic operations ([#22](https://github.com/RESTGroup/rstsr/pull/22))
+
+Something for fun:
+- Changed logo to be ABBA-like style ([#24](https://github.com/RESTGroup/rstsr/pull/24))
+
 ## v0.3.0 -- 2025-05-09
 
 API Breaking Change:
