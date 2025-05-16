@@ -18,6 +18,7 @@ pub use rstsr_common::prelude_dev::*;
 
 pub use rstsr_native_impl::prelude_dev::*;
 
+pub use crate::storage::adv_indexing::*;
 pub use crate::storage::assignment::*;
 pub use crate::storage::combined_trait::*;
 pub use crate::storage::conversion::*;
