@@ -1,3 +1,4 @@
+pub mod adv_indexing;
 pub mod assignment;
 pub mod op_binary_arithmetic;
 pub mod op_binary_common;

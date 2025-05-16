@@ -1,3 +1,4 @@
+pub mod adv_indexing;
 pub mod assignment;
 pub mod matmul_naive;
 pub mod op_tri;

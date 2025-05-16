@@ -1,3 +1,4 @@
+pub mod adv_indexing;
 pub mod assignment;
 pub mod combined_trait;
 pub mod conversion;
@@ -8,6 +9,7 @@ pub mod matmul;
 pub mod operators;
 pub mod reduction;
 
+pub use adv_indexing::*;
 pub use assignment::*;
 pub use combined_trait::*;
 pub use conversion::*;
