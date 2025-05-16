@@ -1,17 +1,11 @@
-//! Advanced indexing related device traits.
-//!
-//! Currently, full support of advanced indexing is not available. However, it
-//! is still possible to index one axis by list.
-
 use crate::prelude_dev::*;
 
-pub trait DeviceIndexSelectAPI<T, D>
+impl<T, D> DeviceIndexSelectAPI<T, D> for DeviceCpuSerial
 where
+    T: Clone,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    Self: DeviceAPI<T>,
 {
-    /// Index select on one axis.
     fn index_select(
         &self,
         c: &mut <Self as DeviceRawAPI<T>>::Raw,
@@ -20,5 +14,7 @@ where
         la: &Layout<D>,
         axis: usize,
         indices: &[usize],
-    ) -> Result<()>;
+    ) -> Result<()> {
+        index_select_cpu_serial(c, lc, a, la, axis, indices)
+    }
 }

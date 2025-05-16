@@ -12,7 +12,8 @@ pub fn index_select_f<R, T, B, D, I>(
 ) -> Result<Tensor<T, B, D>>
 where
     R: DataAPI<Data = B::Raw>,
-    D: DimAPI,
+    D: DimAPI + DimSmallerOneAPI,
+    D::SmallerOne: DimAPI,
     B: DeviceAPI<T> + DeviceIndexSelectAPI<T, D> + DeviceCreationAnyAPI<T>,
     I: TryInto<AxesIndex<isize>>,
     Error: From<I::Error>,
@@ -70,7 +71,8 @@ pub fn index_select<R, T, B, D, I>(
 ) -> Tensor<T, B, D>
 where
     R: DataAPI<Data = B::Raw>,
-    D: DimAPI,
+    D: DimAPI + DimSmallerOneAPI,
+    D::SmallerOne: DimAPI,
     B: DeviceAPI<T> + DeviceIndexSelectAPI<T, D> + DeviceCreationAnyAPI<T>,
     I: TryInto<AxesIndex<isize>>,
     Error: From<I::Error>,
@@ -81,7 +83,8 @@ where
 impl<R, T, B, D> TensorAny<R, T, B, D>
 where
     R: DataAPI<Data = B::Raw>,
-    D: DimAPI,
+    D: DimAPI + DimSmallerOneAPI,
+    D::SmallerOne: DimAPI,
     B: DeviceAPI<T> + DeviceIndexSelectAPI<T, D> + DeviceCreationAnyAPI<T>,
 {
     pub fn index_select_f<I>(&self, axis: isize, indices: I) -> Result<Tensor<T, B, D>>
@@ -104,5 +107,22 @@ where
         Error: From<I::Error>,
     {
         index_select(self, axis, indices)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_index_select() {
+        let device = DeviceCpuSerial::default();
+        let a = linspace((1.0, 24.0, 24, &device)).into_shape((2, 3, 4));
+        let b = a.index_select(0, [0, 0, 1, -1]);
+        assert!(fingerprint(&b) - -31.94175930917264 < 1e-8);
+        let b = a.index_select(1, [0, 0, 1, -1]);
+        assert!(fingerprint(&b) - 3.5719025258942088 < 1e-8);
+        let b = a.index_select(2, [0, 0, 1, -1]);
+        assert!(fingerprint(&b) - -25.648600916145096 < 1e-8);
     }
 }

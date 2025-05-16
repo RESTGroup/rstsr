@@ -1,5 +1,6 @@
 pub(crate) use rstsr_common::prelude_dev::*;
 
+pub use crate::cpu_serial::adv_indexing::*;
 pub use crate::cpu_serial::assignment::*;
 pub use crate::cpu_serial::matmul_naive::*;
 pub use crate::cpu_serial::op_tri::*;
