@@ -2,16 +2,13 @@
 
 use crate::prelude_dev::*;
 use core::mem::ManuallyDrop;
-use faer::complex_native::{c32, c64};
-use faer::{MatMut, MatRef, SimpleEntity};
-use faer_ext::{IntoFaer, IntoFaerComplex};
-use num::Complex;
+use faer::{MatMut, MatRef};
+use faer_ext::IntoFaer;
 
 /* #region conversion to Faer objects */
 
 impl<'a, T, B> IntoFaer for TensorView<'a, T, B, Ix2>
 where
-    T: SimpleEntity,
     B: DeviceAPI<T, Raw = Vec<T>>,
 {
     type Faer = MatRef<'a, T>;
@@ -20,13 +17,12 @@ where
         let [nrows, ncols] = *self.shape();
         let [row_stride, col_stride] = *self.stride();
         let ptr = self.raw().as_ptr();
-        unsafe { faer::mat::from_raw_parts(ptr, nrows, ncols, row_stride, col_stride) }
+        unsafe { MatRef::from_raw_parts(ptr, nrows, ncols, row_stride, col_stride) }
     }
 }
 
 impl<'a, T, B> IntoFaer for TensorViewMut<'a, T, B, Ix2>
 where
-    T: SimpleEntity,
     B: DeviceAPI<T, Raw = Vec<T>>,
 {
     type Faer = MatMut<'a, T>;
@@ -35,47 +31,12 @@ where
         let [nrows, ncols] = *self.shape();
         let [row_stride, col_stride] = *self.stride();
         let ptr = self.raw_mut().as_mut_ptr();
-        unsafe { faer::mat::from_raw_parts_mut(ptr, nrows, ncols, row_stride, col_stride) }
+        unsafe { MatMut::from_raw_parts_mut(ptr, nrows, ncols, row_stride, col_stride) }
     }
 }
 
-impl<'a, B> IntoFaerComplex for TensorView<'a, Complex<f64>, B, Ix2>
-where
-    B: DeviceAPI<Complex<f64>, Raw = Vec<Complex<f64>>>,
-{
-    type Faer = MatRef<'a, c64>;
-
-    fn into_faer_complex(self) -> Self::Faer {
-        let [nrows, ncols] = *self.shape();
-        let [row_stride, col_stride] = *self.stride();
-        let ptr = self.raw().as_ptr() as *const c64;
-        unsafe { faer::mat::from_raw_parts(ptr, nrows, ncols, row_stride, col_stride) }
-    }
-}
-
-impl<'a, B> IntoFaerComplex for TensorView<'a, Complex<f32>, B, Ix2>
-where
-    B: DeviceAPI<Complex<f32>, Raw = Vec<Complex<f32>>>,
-{
-    type Faer = MatRef<'a, c32>;
-
-    fn into_faer_complex(self) -> Self::Faer {
-        let [nrows, ncols] = *self.shape();
-        let [row_stride, col_stride] = *self.stride();
-        let ptr = self.raw().as_ptr() as *const c32;
-        unsafe { faer::mat::from_raw_parts(ptr, nrows, ncols, row_stride, col_stride) }
-    }
-}
-
-#[duplicate_item(
-     ty             ty_faer;
-    [f32]          [f32];
-    [f64]          [f64];
-    [Complex<f32>] [c32];
-    [Complex<f64>] [c64];
-)]
-impl<'a> IntoRSTSR for MatRef<'a, ty_faer> {
-    type RSTSR = TensorView<'a, ty, DeviceFaer, Ix2>;
+impl<'a, T> IntoRSTSR for MatRef<'a, T> {
+    type RSTSR = TensorView<'a, T, DeviceFaer, Ix2>;
 
     fn into_rstsr(self) -> Self::RSTSR {
         let nrows = self.nrows();
@@ -86,7 +47,7 @@ impl<'a> IntoRSTSR for MatRef<'a, ty_faer> {
 
         let layout = Layout::new([nrows, ncols], [row_stride, col_stride], 0).unwrap();
         let (_, upper_bound) = layout.bounds_index().unwrap();
-        let raw = unsafe { Vec::from_raw_parts(ptr as *mut ty, upper_bound, upper_bound) };
+        let raw = unsafe { Vec::from_raw_parts(ptr as *mut T, upper_bound, upper_bound) };
         let data = DataRef::from_manually_drop(ManuallyDrop::new(raw));
         let storage = Storage::new(data, DeviceFaer::default());
         let tensor = unsafe { TensorView::new_unchecked(storage, layout) };
@@ -94,15 +55,8 @@ impl<'a> IntoRSTSR for MatRef<'a, ty_faer> {
     }
 }
 
-#[duplicate_item(
-    ty             ty_faer;
-   [f32]          [f32];
-   [f64]          [f64];
-   [Complex<f32>] [c32];
-   [Complex<f64>] [c64];
-)]
-impl<'a> IntoRSTSR for MatMut<'a, ty_faer> {
-    type RSTSR = TensorViewMut<'a, ty, DeviceFaer, Ix2>;
+impl<'a, T> IntoRSTSR for MatMut<'a, T> {
+    type RSTSR = TensorViewMut<'a, T, DeviceFaer, Ix2>;
 
     fn into_rstsr(self) -> Self::RSTSR {
         let nrows = self.nrows();
@@ -113,7 +67,7 @@ impl<'a> IntoRSTSR for MatMut<'a, ty_faer> {
 
         let layout = Layout::new([nrows, ncols], [row_stride, col_stride], 0).unwrap();
         let (_, upper_bound) = layout.bounds_index().unwrap();
-        let raw = unsafe { Vec::from_raw_parts(ptr as *mut ty, upper_bound, upper_bound) };
+        let raw = unsafe { Vec::from_raw_parts(ptr as *mut T, upper_bound, upper_bound) };
         let data = DataMut::from_manually_drop(ManuallyDrop::new(raw));
         let storage = Storage::new(data, DeviceFaer::default());
         let tensor = unsafe { TensorMut::new_unchecked(storage, layout) };

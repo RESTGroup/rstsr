@@ -27,6 +27,7 @@ pub enum Error {
     RayonError(String),
 
     ErrorCode(i32, String),
+    FaerError(String),
 
     Miscellaneous(String),
 }

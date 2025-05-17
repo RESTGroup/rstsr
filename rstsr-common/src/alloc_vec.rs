@@ -81,15 +81,12 @@ pub unsafe fn aligned_uninitialized_vec<T, const N: usize>(
     } else {
         let sizeof = core::mem::size_of::<T>();
         let pointer = aligned_alloc(size * sizeof, alignment)?;
-        if pointer.is_none() {
-            // 0-sized case has been handled above, so if pointer is none, it is mostly
-            // out-of-memory error
-            rstsr_raise!(RuntimeError, "Allocation failed (probably due to out-of-memory)")?
-        } else {
-            let pointer = pointer.unwrap();
+        if let Some(pointer) = pointer {
             let mut v = Vec::from_raw_parts(pointer.as_ptr() as *mut T, size, size);
             unsafe { v.set_len(size) };
             return Ok(v);
+        } else {
+            rstsr_raise!(RuntimeError, "Allocation failed (probably due to out-of-memory)")?
         }
     }
 }

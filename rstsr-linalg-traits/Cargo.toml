@@ -16,3 +16,11 @@ rstsr-dtype-traits = { workspace = true }
 num = { workspace = true }
 duplicate = { workspace = true }
 derive_builder = { workspace = true }
+faer = { workspace = true, optional = true }
+
+[dev-dependencies]
+rstsr = { path = "../rstsr", default-features = false, features = ["linalg"] }
+rstsr-test-manifest = { workspace = true }
+
+[features]
+faer = ["rstsr-core/faer", "dep:faer"]

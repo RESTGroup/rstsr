@@ -19,7 +19,6 @@ half = { workspace = true }
 rayon = { workspace = true, optional = true }
 faer = { workspace = true, optional = true }
 faer-ext = { workspace = true, optional = true }
-faer-entity = { workspace = true, optional = true }
 derive_builder = { workspace = true }
 duplicate = { workspace = true }
 
@@ -35,7 +34,7 @@ cpu-time = { workspace = true }
 default = ["row_major", "aligned_alloc", "faer", "faer_as_default"]
 std = ["rstsr-common/std"]
 rayon = ["dep:rayon", "rstsr-common/rayon", "rstsr-native-impl/rayon"]
-faer = ["rayon", "dep:faer", "dep:faer-ext", "dep:faer-entity"]
+faer = ["rayon", "dep:faer", "dep:faer-ext"]
 faer_as_default = []
 
 # Row-major or Col-major will be contractidary features.
