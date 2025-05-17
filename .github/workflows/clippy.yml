@@ -11,8 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@nightly
+      - name: Install rustfmt
+        run: rustup component add rustfmt
       - name: rustfmt
         run: cargo fmt --all -- --check
   
@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@nightly
+      - name: Install rustfmt
+        run: rustup component add clippy
       - name: clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
