@@ -213,6 +213,8 @@ pub fn fn_name(
 
 #[cfg(test)]
 mod test {
+    use num::complex::ComplexFloat;
+
     use super::*;
     use std::time::Instant;
 
@@ -253,5 +255,30 @@ mod test {
         let pool = Some(&pool);
         syrk_faer_f64(&mut c, &lc, &a, &la, FlagUpLo::L, 2.0, 1.0, pool).unwrap();
         println!("{c:?}");
+    }
+
+    #[test]
+    #[cfg(not(feature = "col_major"))]
+    fn test_minimal_correctness() {
+        #[allow(non_camel_case_types)]
+        type c32 = num::Complex<f32>;
+        let vec_a = vec![
+            c32::new(0., 1.),
+            c32::new(1., 2.),
+            c32::new(2., 3.),
+            c32::new(3., 4.),
+            c32::new(4., 5.),
+            c32::new(5., 6.),
+        ];
+        let vec_b = vec![c32::new(0., 1.), c32::new(2., 3.), c32::new(4., 5.), c32::new(6., 7.)];
+        let device = DeviceFaer::default();
+
+        let a = asarray((vec_a, &device)).into_shape([3, 2]);
+        let b = asarray((vec_b, &device)).into_shape([2, 2]);
+        let c = a % b;
+        let sum_c = c.raw().iter().sum::<c32>();
+
+        assert!(sum_c.re() - -78.0 < 1e-5);
+        assert!(sum_c.im() - 270.0 < 1e-5);
     }
 }
