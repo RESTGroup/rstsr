@@ -45,7 +45,6 @@ duplicate = { version = "2.0" }
 rayon = { version = "1.10" }
 faer = { version = "0.22" }
 faer-ext = { version = "0.6" }
-faer-entity = { version = "0.20" }
 # dev dependencies
 npyz = { version = "0.8", features = ["complex"] }
 anyhow = { version = "1.0" }
