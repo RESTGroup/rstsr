@@ -37,16 +37,15 @@ rstsr-lapack-ffi = { version = "0.2.0" }
 rstsr-openblas-ffi = { version = "0.3.1" }
 # basic dependencies
 num = { version = "0.4" }
-thiserror = { version = "1.0" }
 itertools = { version = "0.13" }
 half = { version = "2.4", features = ["num-traits"] }
 derive_builder = { version = "0.20" }
 duplicate = { version = "2.0" }
 # optional dependencies
 rayon = { version = "1.10" }
-faer = { version = "0.19" }
-faer-ext = { version = "0.3" }
-faer-entity = { version = "0.19" }
+faer = { version = "0.22" }
+faer-ext = { version = "0.6" }
+faer-entity = { version = "0.20" }
 # dev dependencies
 npyz = { version = "0.8", features = ["complex"] }
 anyhow = { version = "1.0" }
