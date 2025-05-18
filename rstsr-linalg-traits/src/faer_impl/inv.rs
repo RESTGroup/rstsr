@@ -1,9 +1,8 @@
+use crate::traits_def::InvAPI;
 use faer::linalg::solvers::{DenseSolveCore, Svd};
 use faer::prelude::*;
 use faer::traits::ComplexField;
 use rstsr_core::prelude_dev::*;
-
-use crate::traits_def::InvAPI;
 
 pub fn faer_impl_inv_f<T>(
     a: TensorView<'_, T, DeviceFaer, Ix2>,

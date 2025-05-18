@@ -1,4 +1,4 @@
-use crate::prelude_dev::*;
+use crate::traits_def::CholeskyAPI;
 use faer::prelude::*;
 use faer::traits::ComplexField;
 use rstsr_core::prelude_dev::*;
@@ -108,12 +108,4 @@ where
         let a = self;
         CholeskyAPI::<DeviceFaer>::cholesky_f((a, None))
     }
-}
-
-#[test]
-fn playground() {
-    let a = vec![1.0, 0.0, 1.0, 0.0, 4.0, 2.0, 1.0, 2.0, 9.0];
-    let a = asarray((a, &DeviceFaer::default())).into_shape([3, 3]);
-    let l = cholesky_f((&a, Some(Lower))).unwrap();
-    println!("{l:?}");
 }

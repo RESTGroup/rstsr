@@ -1,8 +1,7 @@
+use crate::traits_def::EigvalshAPI;
 use faer::prelude::*;
 use faer::traits::ComplexField;
 use rstsr_core::prelude_dev::*;
-
-use crate::traits_def::EigvalshAPI;
 
 pub fn faer_impl_eigvalsh_f<T>(
     a: TensorView<'_, T, DeviceFaer, Ix2>,
