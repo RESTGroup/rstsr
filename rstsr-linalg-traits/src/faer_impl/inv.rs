@@ -50,7 +50,7 @@ where
     T: ComplexField,
     D: DimAPI,
 {
-    type Out = Tensor<T, DeviceFaer, Ix2>;
+    type Out = Tensor<T, DeviceFaer, D>;
     fn inv_f(self) -> Result<Self::Out> {
         rstsr_assert_eq!(
             self.ndim(),
@@ -60,7 +60,7 @@ where
         )?;
         let a = self;
         let a_view = a.view().into_dim::<Ix2>();
-        let result = faer_impl_inv_f(a_view.into())?;
-        Ok(result)
+        let result = faer_impl_inv_f(a_view)?;
+        Ok(result.into_dim::<IxD>().into_dim::<D>())
     }
 }

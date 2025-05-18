@@ -11,7 +11,7 @@ pub fn faer_impl_pinv_f<T>(
 ) -> Result<PinvResult<Tensor<T, DeviceFaer, Ix2>>>
 where
     T: ComplexField + DivAssign<T::Real> + Num + Send + Sync + 'static,
-    T::Real: Float + FromPrimitive + Zero + Send + Sync,
+    T::Real: Float + FromPrimitive + Send + Sync,
 {
     // set parallel mode
     let pool = a.device().get_current_pool();
@@ -76,13 +76,14 @@ where
     T::Real: Float + FromPrimitive + Zero + Send + Sync,
     D: DimAPI,
 {
-    type Out = PinvResult<Tensor<T, DeviceFaer, Ix2>>;
+    type Out = PinvResult<Tensor<T, DeviceFaer, D>>;
     fn pinv_f(self) -> Result<Self::Out> {
         let (a, atol, rtol) = self;
         rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let a_view = a.view().into_dim::<Ix2>();
         let result = faer_impl_pinv_f(a_view, Some(atol), Some(rtol))?;
-        Ok(result)
+        // convert dimensions
+        Ok(PinvResult { pinv: result.pinv.into_dim::<IxD>().into_dim::<D>(), rank: result.rank })
     }
 }
 
@@ -98,12 +99,13 @@ where
     T::Real: Float + FromPrimitive + Zero + Send + Sync,
     D: DimAPI,
 {
-    type Out = PinvResult<Tensor<T, DeviceFaer, Ix2>>;
+    type Out = PinvResult<Tensor<T, DeviceFaer, D>>;
     fn pinv_f(self) -> Result<Self::Out> {
         let a = self;
         rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let a_view = a.view().into_dim::<Ix2>();
         let result = faer_impl_pinv_f(a_view, None, None)?;
-        Ok(result)
+        // convert dimensions
+        Ok(PinvResult { pinv: result.pinv.into_dim::<IxD>().into_dim::<D>(), rank: result.rank })
     }
 }

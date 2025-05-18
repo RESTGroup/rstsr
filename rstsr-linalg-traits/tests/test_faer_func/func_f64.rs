@@ -117,4 +117,21 @@ mod test {
         assert!((fingerprint(&u.abs()) - -3.716931052161584).abs() < 1e-8);
         assert!((fingerprint(&vt.abs()) - -0.32301437281530243).abs() < 1e-8);
     }
+
+    #[test]
+    fn test_svdvals() {
+        let device = DeviceFaer::default();
+        let a_vec = get_vec::<f64>('a')[..1024 * 512].to_vec();
+        let a = rt::asarray((a_vec, [1024, 512].c(), &device)).into_dim::<Ix2>();
+
+        // default
+        let s = rt::linalg::svdvals(a.view());
+        assert!((fingerprint(&s) - 33.969339071043095).abs() < 1e-8);
+
+        // m < n
+        let a_vec = get_vec::<f64>('a')[..1024 * 512].to_vec();
+        let a = rt::asarray((a_vec, [512, 1024].c(), &device)).into_dim::<Ix2>();
+        let s = rt::linalg::svdvals(a.view());
+        assert!((fingerprint(&s) - 32.27742168207757).abs() < 1e-8);
+    }
 }
