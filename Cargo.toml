@@ -43,7 +43,7 @@ derive_builder = { version = "0.20" }
 duplicate = { version = "2.0" }
 # optional dependencies
 rayon = { version = "1.10" }
-faer = { version = "0.22" }
+faer = { version = "0.22", default-features = false, features = ["rayon", "linalg"] }
 faer-ext = { version = "0.6" }
 # dev dependencies
 npyz = { version = "0.8", features = ["complex"] }
