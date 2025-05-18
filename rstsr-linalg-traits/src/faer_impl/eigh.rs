@@ -9,7 +9,7 @@ pub fn faer_impl_eigh_f<T>(
     uplo: Option<FlagUpLo>,
 ) -> Result<(Tensor<T::Real, DeviceFaer, Ix1>, Tensor<T, DeviceFaer, Ix2>)>
 where
-    T: ComplexField + ReImAPI<Out = T::Real>,
+    T: ComplexField,
 {
     // TODO: It seems faer is suspeciously slow on eigh function?
     // However, tests shows that results are correct.
@@ -45,7 +45,7 @@ where
 
     // convert eigenvalues to real
     let eigenvalues: TensorView<T, DeviceFaer, _> = result.S().column_vector().into_rstsr();
-    let eigenvalues = eigenvalues.real();
+    let eigenvalues = eigenvalues.mapv(|v| T::real_part_impl(&v));
     let eigenvectors = result.U().into_rstsr().into_contig(a.device().default_order());
 
     // restore parallel mode
@@ -62,7 +62,7 @@ where
 )]
 impl<ImplType> EighAPI<DeviceFaer> for (Tr, Option<FlagUpLo>)
 where
-    T: ComplexField + ReImAPI<Out = T::Real>,
+    T: ComplexField,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
 {

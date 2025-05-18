@@ -1,5 +1,5 @@
 use crate::traits_def::InvAPI;
-use faer::linalg::solvers::{DenseSolveCore, Svd};
+use faer::linalg::solvers::DenseSolveCore;
 use faer::prelude::*;
 use faer::traits::ComplexField;
 use rstsr_core::prelude_dev::*;
@@ -27,8 +27,7 @@ where
     };
 
     // det computation
-    let svd_result =
-        Svd::new(faer_a).map_err(|e| rstsr_error!(FaerError, "Faer SvD error: {e:?}"))?;
+    let svd_result = faer_a.svd().map_err(|e| rstsr_error!(FaerError, "Faer SvD error: {e:?}"))?;
     let result = svd_result.inverse();
 
     // convert to rstsr tensor with certain layout

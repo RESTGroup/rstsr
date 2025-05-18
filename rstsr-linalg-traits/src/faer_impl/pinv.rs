@@ -1,5 +1,4 @@
 use crate::traits_def::{PinvAPI, PinvResult};
-use faer::linalg::solvers::Svd;
 use faer::prelude::*;
 use faer::traits::ComplexField;
 use num::{complex::ComplexFloat, Bounded, Float, FromPrimitive, Zero};
@@ -47,7 +46,7 @@ where
 
     // svd computation
     let svd_result =
-        Svd::new_thin(faer_a).map_err(|e| rstsr_error!(FaerError, "Faer SvD error: {e:?}"))?;
+        faer_a.thin_svd().map_err(|e| rstsr_error!(FaerError, "Faer SvD error: {e:?}"))?;
     let (u, s, v) = (svd_result.U(), svd_result.S(), svd_result.V());
 
     // return to rstsr tensors

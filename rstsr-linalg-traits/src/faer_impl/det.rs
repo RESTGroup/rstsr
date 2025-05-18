@@ -2,11 +2,10 @@ use crate::traits_def::DetAPI;
 use faer::prelude::*;
 use faer::traits::ComplexField;
 use rstsr_core::prelude_dev::*;
-use rstsr_dtype_traits::ReImAPI;
 
 pub fn faer_impl_det_f<T>(a: TensorView<'_, T, DeviceFaer, Ix2>) -> Result<T::Real>
 where
-    T: ComplexField + ReImAPI<Out = T::Real>,
+    T: ComplexField,
 {
     // set parallel mode
     let pool = a.device().get_current_pool();
@@ -26,7 +25,7 @@ where
 
     // det computation
     let result = faer_a.determinant();
-    let result = result.real();
+    let result = T::real_part_impl(&result);
 
     // restore parallel mode
     faer::set_global_parallelism(faer_par_orig);
@@ -42,7 +41,7 @@ where
 )]
 impl<ImplType> DetAPI<DeviceFaer> for Tr
 where
-    T: ComplexField + ReImAPI<Out = T::Real>,
+    T: ComplexField,
     D: DimAPI,
 {
     type Out = T::Real;

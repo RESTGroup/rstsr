@@ -4,3 +4,4 @@ pub mod eigh;
 pub mod eigvalsh;
 pub mod inv;
 pub mod pinv;
+pub mod svd;
