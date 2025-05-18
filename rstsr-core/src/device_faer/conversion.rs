@@ -2,7 +2,7 @@
 
 use crate::prelude_dev::*;
 use core::mem::ManuallyDrop;
-use faer::{MatMut, MatRef};
+use faer::prelude::*;
 use faer_ext::IntoFaer;
 
 /* #region conversion to Faer objects */
@@ -46,6 +46,24 @@ impl<'a, T> IntoRSTSR for MatRef<'a, T> {
         let ptr = self.as_ptr();
 
         let layout = Layout::new([nrows, ncols], [row_stride, col_stride], 0).unwrap();
+        let (_, upper_bound) = layout.bounds_index().unwrap();
+        let raw = unsafe { Vec::from_raw_parts(ptr as *mut T, upper_bound, upper_bound) };
+        let data = DataRef::from_manually_drop(ManuallyDrop::new(raw));
+        let storage = Storage::new(data, DeviceFaer::default());
+        let tensor = unsafe { TensorView::new_unchecked(storage, layout) };
+        return tensor;
+    }
+}
+
+impl<'a, T> IntoRSTSR for ColRef<'a, T> {
+    type RSTSR = TensorView<'a, T, DeviceFaer, Ix1>;
+
+    fn into_rstsr(self) -> Self::RSTSR {
+        let nrows = self.nrows();
+        let stride = self.row_stride();
+        let ptr = self.as_ptr();
+
+        let layout = Layout::new([nrows], [stride], 0).unwrap();
         let (_, upper_bound) = layout.bounds_index().unwrap();
         let raw = unsafe { Vec::from_raw_parts(ptr as *mut T, upper_bound, upper_bound) };
         let data = DataRef::from_manually_drop(ManuallyDrop::new(raw));

@@ -19,4 +19,20 @@ mod test {
         let c = rt::linalg::cholesky((b.view(), Upper));
         assert!((fingerprint(&c) - -25.925655124816647).abs() < 1e-8);
     }
+
+    #[test]
+    fn test_eigh() {
+        let device = DeviceFaer::default();
+        let a = rt::asarray((get_vec::<f64>('a'), [1024, 1024].c(), &device));
+
+        // default, a
+        let (w, v) = rt::linalg::eigh(a.view()).into();
+        assert!((fingerprint(&w) - -71.4747209499407).abs() < 1e-8);
+        assert!((fingerprint(&v.abs()) - -9.903934930318247).abs() < 1e-8);
+
+        // upper, a
+        let (w, v) = rt::linalg::eigh((a.view(), Upper)).into();
+        assert!((fingerprint(&w) - -71.4902453763506).abs() < 1e-8);
+        assert!((fingerprint(&v.abs()) - 6.973792268793419).abs() < 1e-8);
+    }
 }

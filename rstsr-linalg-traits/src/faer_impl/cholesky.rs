@@ -10,6 +10,12 @@ pub fn faer_impl_cholesky_f<T>(
 where
     T: ComplexField,
 {
+    // set parallel mode
+    let pool = a.device().get_current_pool();
+    let faer_par_orig = faer::get_global_parallelism();
+    let faer_par = pool.map_or(Par::Seq, |pool| Par::rayon(pool.current_num_threads()));
+    faer::set_global_parallelism(faer_par);
+
     let uplo = uplo.unwrap_or(match a.device().default_order() {
         RowMajor => Lower,
         ColMajor => Upper,
@@ -39,6 +45,10 @@ where
     };
     // convert to rstsr tensor with certain layout
     let result = result.into_rstsr().into_contig(a.device().default_order());
+
+    // restore parallel mode
+    faer::set_global_parallelism(faer_par_orig);
+
     Ok(result)
 }
 
