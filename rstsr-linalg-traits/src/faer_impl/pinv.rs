@@ -1,23 +1,17 @@
 use crate::traits_def::{PinvAPI, PinvResult};
 use faer::prelude::*;
 use faer::traits::ComplexField;
-use num::{complex::ComplexFloat, Bounded, Float, FromPrimitive, Zero};
+use num::{Float, FromPrimitive, Num, Zero};
 use rstsr_core::prelude_dev::*;
-use rstsr_dtype_traits::MinMaxAPI;
 
 pub fn faer_impl_pinv_f<T>(
     a: TensorView<'_, T, DeviceFaer, Ix2>,
-    atol: Option<<T as ComplexField>::Real>,
-    rtol: Option<<T as ComplexField>::Real>,
+    atol: Option<T::Real>,
+    rtol: Option<T::Real>,
 ) -> Result<PinvResult<Tensor<T, DeviceFaer, Ix2>>>
 where
-    T: ComplexField
-        + ComplexFloat<Real = <T as ComplexField>::Real>
-        + DivAssign<<T as ComplexField>::Real>
-        + Send
-        + Sync
-        + 'static,
-    <T as ComplexField>::Real: Float + FromPrimitive + Zero + Send + Sync + MinMaxAPI + Bounded,
+    T: ComplexField + DivAssign<T::Real> + Num + Send + Sync + 'static,
+    T::Real: Float + FromPrimitive + Zero + Send + Sync,
 {
     // set parallel mode
     let pool = a.device().get_current_pool();
@@ -26,11 +20,11 @@ where
     faer::set_global_parallelism(faer_par);
 
     // compute rcond value
-    let atol = atol.unwrap_or(<T as ComplexField>::Real::zero());
+    let atol = atol.unwrap_or(T::Real::zero());
     let rtol = rtol.unwrap_or({
         let [m, n]: [usize; 2] = *a.shape();
-        let mnmax = <T as ComplexField>::Real::from_usize(Ord::max(m, n)).unwrap();
-        mnmax * <T as ComplexField>::Real::epsilon()
+        let mnmax = T::Real::from_usize(Ord::max(m, n)).unwrap();
+        mnmax * T::Real::epsilon()
     });
 
     // transform to faer matrix
@@ -55,14 +49,14 @@ where
     let v = v.into_rstsr();
 
     // compute pinv
-    let s = s.mapv(|x| x.re());
-    let maxs = s.max_all();
+    let s = s.mapv(|x| T::real_part_impl(&x));
+    let maxs = s.raw().iter().max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap().clone();
     let val = atol + rtol * maxs;
     let rank = s.raw().iter().take_while(|&&x| x > val).count();
     let mut u = u.into_slice((.., ..rank));
     u /= s.i((None, ..rank));
     let a_pinv = v.i((.., ..rank)) % u.t();
-    let pinv = a_pinv.conj().into_dim::<Ix2>();
+    let pinv = a_pinv.mapv(|x| T::conj_impl(&x)).into_dim::<Ix2>();
 
     // restore parallel mode
     faer::set_global_parallelism(faer_par_orig);
@@ -76,15 +70,10 @@ where
    [T, D                           ] [TensorView<'_, T, DeviceFaer, D>];
    [T, D                           ] [Tensor<T, DeviceFaer, D>        ];
 )]
-impl<ImplType> PinvAPI<DeviceFaer> for (Tr, <T as ComplexField>::Real, <T as ComplexField>::Real)
+impl<ImplType> PinvAPI<DeviceFaer> for (Tr, T::Real, T::Real)
 where
-    T: ComplexField
-        + ComplexFloat<Real = <T as ComplexField>::Real>
-        + DivAssign<<T as ComplexField>::Real>
-        + Send
-        + Sync
-        + 'static,
-    <T as ComplexField>::Real: Float + FromPrimitive + Zero + Send + Sync + MinMaxAPI + Bounded,
+    T: ComplexField + DivAssign<T::Real> + Num + Send + Sync + 'static,
+    T::Real: Float + FromPrimitive + Zero + Send + Sync,
     D: DimAPI,
 {
     type Out = PinvResult<Tensor<T, DeviceFaer, Ix2>>;
@@ -105,13 +94,8 @@ where
 )]
 impl<ImplType> PinvAPI<DeviceFaer> for Tr
 where
-    T: ComplexField
-        + ComplexFloat<Real = <T as ComplexField>::Real>
-        + DivAssign<<T as ComplexField>::Real>
-        + Send
-        + Sync
-        + 'static,
-    <T as ComplexField>::Real: Float + FromPrimitive + Zero + Send + Sync + MinMaxAPI + Bounded,
+    T: ComplexField + DivAssign<T::Real> + Num + Send + Sync + 'static,
+    T::Real: Float + FromPrimitive + Zero + Send + Sync,
     D: DimAPI,
 {
     type Out = PinvResult<Tensor<T, DeviceFaer, Ix2>>;
