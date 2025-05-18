@@ -1,6 +1,7 @@
 use crate::traits_def::{EighArgs_, PinvResult, SVDArgs_};
 use num::{Float, FromPrimitive, Zero};
 use rstsr_blas_traits::prelude::*;
+use rstsr_core::prelude::rt;
 use rstsr_core::prelude_dev::*;
 
 /* #region cholesky */
@@ -272,7 +273,7 @@ where
         let diag_sgn = diag_vals.sign();
         let acc_sgn = diag_sgn.prod();
         let acc_sgn = if change_sign % 2 == 0 { acc_sgn } else { -acc_sgn };
-        let acc_abs = diag_abs.log().sum();
+        let acc_abs = rt::log(diag_abs).sum();
         Ok((acc_sgn, acc_abs))
     };
     device.with_blas_num_threads(nthreads, task)
