@@ -59,4 +59,14 @@ mod test {
         let w = rt::linalg::eigvalsh((a.view(), Upper)).into();
         assert!((fingerprint(&w) - -71.4902453763506).abs() < 1e-8);
     }
+
+    #[test]
+    fn test_inv() {
+        let device = DeviceFaer::default();
+        let a = rt::asarray((get_vec::<f64>('a'), [1024, 1024].c(), &device));
+
+        // immutable
+        let a_inv = rt::linalg::inv(a.view());
+        assert!((fingerprint(&a_inv) - 143.39005577037764).abs() < 1e-8);
+    }
 }
