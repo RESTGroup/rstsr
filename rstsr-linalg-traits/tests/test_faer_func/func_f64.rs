@@ -21,6 +21,16 @@ mod test {
     }
 
     #[test]
+    fn test_det() {
+        let device = DeviceFaer::default();
+        let a_vec = get_vec::<f64>('a')[..5 * 5].to_vec();
+        let a = rt::asarray((a_vec, [5, 5].c(), &device));
+
+        let det = rt::linalg::det(a.view());
+        assert!((det - 3.9699917597338046).abs() < 1e-8);
+    }
+
+    #[test]
     fn test_eigh() {
         let device = DeviceFaer::default();
         let a = rt::asarray((get_vec::<f64>('a'), [1024, 1024].c(), &device));
