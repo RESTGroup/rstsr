@@ -45,4 +45,18 @@ mod test {
         assert!((fingerprint(&w) - -71.4902453763506).abs() < 1e-8);
         assert!((fingerprint(&v.abs()) - 6.973792268793419).abs() < 1e-8);
     }
+
+    #[test]
+    fn test_eigvalsh() {
+        let device = DeviceFaer::default();
+        let a = rt::asarray((get_vec::<f64>('a'), [1024, 1024].c(), &device));
+
+        // default, a
+        let w = rt::linalg::eigvalsh(a.view()).into();
+        assert!((fingerprint(&w) - -71.4747209499407).abs() < 1e-8);
+
+        // upper, a
+        let w = rt::linalg::eigvalsh((a.view(), Upper)).into();
+        assert!((fingerprint(&w) - -71.4902453763506).abs() < 1e-8);
+    }
 }
