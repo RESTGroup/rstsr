@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.3.3 -- 2025-05-19
+
+Bug Fix:
+- Fix Faer linalg functions when tensor offset != 0 ([#30](https://github.com/RESTGroup/rstsr/pull/30)).
+
 ## v0.3.2 -- 2025-05-19
 
 Summary
