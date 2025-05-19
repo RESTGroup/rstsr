@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.3.2 -- 2025-05-19
+
+Summary
+- Added linalg functions for `DeviceFaer` ([#28](https://github.com/RESTGroup/rstsr/pull/28)).
+
+API Breaking Change (user should not feel that):
+- updates Faer version to v0.22, seems that v0.20/v0.21 changes handling logic for complex values
+- Conversion from/to Faer made simple (but API breaking)
+- Matmul made simple (but API breaking), now requires `faer::traits::ComplexField` type (trait impl based), instead of manually dispatch types (macro_rules based)
+
+Enhancements:
+- Functions added: cholesky, det, eigh (does not include generalized eigh), eigvalsh (same to eigh), inv, pinv, solve_general, svdvals
+
 ## v0.3.1 -- 2025-05-16
 
 API Breaking Change:
