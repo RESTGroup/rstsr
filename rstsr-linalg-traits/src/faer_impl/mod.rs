@@ -1,0 +1,9 @@
+pub mod cholesky;
+pub mod det;
+pub mod eigh;
+pub mod eigvalsh;
+pub mod inv;
+pub mod pinv;
+pub mod solve_general;
+pub mod svd;
+pub mod svdvals;

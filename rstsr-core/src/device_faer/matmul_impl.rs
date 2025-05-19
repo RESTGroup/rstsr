@@ -5,32 +5,30 @@
 #![allow(clippy::too_many_arguments)]
 
 use crate::prelude_dev::*;
-use num::complex::Complex;
+use core::num::NonZeroUsize;
+use faer::prelude::*;
+use faer::traits::ComplexField;
+use num::Num;
 use rayon::prelude::*;
 
 const PARALLEL_SWITCH: usize = 64;
 
 /* #region gemm */
 
-#[duplicate_item(
-     ty             ty_faer                     fn_name       ;
-    [f32]          [f32]                       [gemm_faer_f32];
-    [f64]          [f64]                       [gemm_faer_f64];
-    [Complex<f32>] [faer::complex_native::c32] [gemm_faer_c32];
-    [Complex<f64>] [faer::complex_native::c64] [gemm_faer_c64];
-)]
-pub fn fn_name(
-    c: &mut [ty],
+pub fn gemm_faer<T>(
+    c: &mut [T],
     lc: &Layout<Ix2>,
-    a: &[ty],
+    a: &[T],
     la: &Layout<Ix2>,
-    b: &[ty],
+    b: &[T],
     lb: &Layout<Ix2>,
-    alpha: ty,
-    beta: ty,
+    alpha: T,
+    beta: T,
     pool: Option<&ThreadPool>,
 ) -> Result<()>
-where {
+where
+    T: ComplexField + Num + MulAssign<T>,
+{
     let nthreads = pool.map_or_else(|| 1, |pool| pool.current_num_threads());
 
     // shape check
@@ -42,8 +40,8 @@ where {
     rstsr_assert_eq!(sc[1], sb[1], InvalidLayout)?;
 
     let faer_a = unsafe {
-        faer::mat::from_raw_parts::<ty_faer>(
-            a.as_ptr().add(la.offset()) as *const ty_faer,
+        MatRef::from_raw_parts(
+            a.as_ptr().add(la.offset()) as *const T,
             la.shape()[0],
             la.shape()[1],
             la.stride()[0],
@@ -51,8 +49,8 @@ where {
         )
     };
     let faer_b = unsafe {
-        faer::mat::from_raw_parts::<ty_faer>(
-            b.as_ptr().add(lb.offset()) as *const ty_faer,
+        MatRef::from_raw_parts(
+            b.as_ptr().add(lb.offset()) as *const T,
             lb.shape()[0],
             lb.shape()[1],
             lb.stride()[0],
@@ -60,22 +58,38 @@ where {
         )
     };
     let faer_c = unsafe {
-        faer::mat::from_raw_parts_mut::<ty_faer>(
-            c.as_mut_ptr().add(lc.offset()) as *mut ty_faer,
+        MatMut::from_raw_parts_mut(
+            c.as_mut_ptr().add(lc.offset()) as *mut T,
             lc.shape()[0],
             lc.shape()[1],
             lc.stride()[0],
             lc.stride()[1],
         )
     };
-    faer::linalg::matmul::matmul(
-        faer_c,
-        faer_a,
-        faer_b,
-        Some(beta.into()),
-        alpha.into(),
-        faer::Parallelism::Rayon(nthreads),
-    );
+
+    if beta == T::zero() {
+        faer::linalg::matmul::matmul(
+            faer_c,
+            faer::Accum::Replace,
+            faer_a,
+            faer_b,
+            alpha,
+            faer::Par::Rayon(NonZeroUsize::new(nthreads).unwrap()),
+        );
+    } else {
+        if beta != T::one() {
+            // perform inplace multiplication
+            op_muta_numb_func_cpu_rayon(c, lc, beta, &mut |vc, vb| *vc *= vb.clone(), pool)?;
+        }
+        faer::linalg::matmul::matmul(
+            faer_c,
+            faer::Accum::Add,
+            faer_a,
+            faer_b,
+            alpha,
+            faer::Par::Rayon(NonZeroUsize::new(nthreads).unwrap()),
+        );
+    }
     return Ok(());
 }
 
@@ -83,23 +97,19 @@ where {
 
 /* #region syrk */
 
-#[duplicate_item(
-     ty             ty_faer                     fn_name       ;
-    [f32]          [f32]                       [syrk_faer_f32];
-    [f64]          [f64]                       [syrk_faer_f64];
-    [Complex<f32>] [faer::complex_native::c32] [syrk_faer_c32];
-    [Complex<f64>] [faer::complex_native::c64] [syrk_faer_c64];
-)]
-pub fn fn_name(
-    c: &mut [ty],
+pub fn syrk_faer<T>(
+    c: &mut [T],
     lc: &Layout<Ix2>,
-    a: &[ty],
+    a: &[T],
     la: &Layout<Ix2>,
     uplo: FlagUpLo,
-    alpha: ty,
-    beta: ty,
+    alpha: T,
+    beta: T,
     pool: Option<&ThreadPool>,
-) -> Result<()> {
+) -> Result<()>
+where
+    T: ComplexField + Num + MulAssign<T>,
+{
     let nthreads = pool.map_or_else(|| 1, |pool| pool.current_num_threads());
 
     // shape check
@@ -109,8 +119,8 @@ pub fn fn_name(
     rstsr_assert_eq!(sc[0], sa[0], InvalidLayout)?;
 
     let faer_a = unsafe {
-        faer::mat::from_raw_parts::<ty_faer>(
-            a.as_ptr().add(la.offset()) as *const ty_faer,
+        MatRef::from_raw_parts(
+            a.as_ptr().add(la.offset()) as *const T,
             la.shape()[0],
             la.shape()[1],
             la.stride()[0],
@@ -118,8 +128,8 @@ pub fn fn_name(
         )
     };
     let faer_at = unsafe {
-        faer::mat::from_raw_parts::<ty_faer>(
-            a.as_ptr().add(la.offset()) as *const ty_faer,
+        MatRef::from_raw_parts(
+            a.as_ptr().add(la.offset()) as *const T,
             la.shape()[1],
             la.shape()[0],
             la.stride()[1],
@@ -127,8 +137,8 @@ pub fn fn_name(
         )
     };
     let faer_c = unsafe {
-        faer::mat::from_raw_parts_mut::<ty_faer>(
-            c.as_mut_ptr().add(lc.offset()) as *mut ty_faer,
+        MatMut::from_raw_parts_mut(
+            c.as_mut_ptr().add(lc.offset()) as *mut T,
             lc.shape()[0],
             lc.shape()[1],
             lc.stride()[0],
@@ -141,36 +151,51 @@ pub fn fn_name(
         FlagUpLo::U => BlockStructure::TriangularUpper,
         FlagUpLo::L => BlockStructure::TriangularLower,
     };
-    faer::linalg::matmul::triangular::matmul(
-        faer_c,
-        block_structure,
-        faer_a,
-        BlockStructure::Rectangular,
-        faer_at,
-        BlockStructure::Rectangular,
-        Some(beta.into()),
-        alpha.into(),
-        faer::Parallelism::Rayon(nthreads),
-    );
+    if beta == T::zero() {
+        faer::linalg::matmul::triangular::matmul(
+            faer_c,
+            block_structure,
+            faer::Accum::Replace,
+            faer_a,
+            BlockStructure::Rectangular,
+            faer_at,
+            BlockStructure::Rectangular,
+            alpha,
+            faer::Par::Rayon(NonZeroUsize::new(nthreads).unwrap()),
+        );
+    } else {
+        if beta != T::one() {
+            // perform inplace multiplication
+            op_muta_numb_func_cpu_rayon(c, lc, beta, &mut |vc, vb| *vc *= vb.clone(), pool)?;
+        }
+        faer::linalg::matmul::triangular::matmul(
+            faer_c,
+            block_structure,
+            faer::Accum::Add,
+            faer_a,
+            BlockStructure::Rectangular,
+            faer_at,
+            BlockStructure::Rectangular,
+            alpha,
+            faer::Par::Rayon(NonZeroUsize::new(nthreads).unwrap()),
+        );
+    }
+
     return Ok(());
 }
 
-#[duplicate_item(
-     ty             fn_name                   gemm_name       syrk_name     ;
-    [f32]          [gemm_with_syrk_faer_f32] [gemm_faer_f32] [syrk_faer_f32];
-    [f64]          [gemm_with_syrk_faer_f64] [gemm_faer_f64] [syrk_faer_f64];
-    [Complex<f32>] [gemm_with_syrk_faer_c32] [gemm_faer_c32] [syrk_faer_c32];
-    [Complex<f64>] [gemm_with_syrk_faer_c64] [gemm_faer_c64] [syrk_faer_c64];
-)]
-pub fn fn_name(
-    c: &mut [ty],
+pub fn gemm_with_syrk_faer<T>(
+    c: &mut [T],
     lc: &Layout<Ix2>,
-    a: &[ty],
+    a: &[T],
     la: &Layout<Ix2>,
-    alpha: ty,
-    beta: ty,
+    alpha: T,
+    beta: T,
     pool: Option<&ThreadPool>,
-) -> Result<()> {
+) -> Result<()>
+where
+    T: ComplexField + Num + MulAssign<T>,
+{
     let nthreads = pool.map_or_else(|| 1, |pool| pool.current_num_threads());
 
     // This function performs c = beta * c + alpha * a * a^T
@@ -178,10 +203,10 @@ pub fn fn_name(
     // full gemm (in order not to allocate a temporary buffer)
     // beta is usually zero, in that normal use case of tensor multiplication
     // usually do not involve output matrix c
-    if beta != <ty>::from(0.0) {
-        gemm_name(c, lc, a, la, a, &la.reverse_axes(), alpha, beta, pool)?;
+    if beta != T::zero() {
+        gemm_faer(c, lc, a, la, a, &la.reverse_axes(), alpha, beta, pool)?;
     } else {
-        syrk_name(c, lc, a, la, FlagUpLo::L, alpha, beta, pool)?;
+        syrk_faer(c, lc, a, la, FlagUpLo::L, alpha, beta, pool)?;
         // symmetrize
         let n = lc.shape()[0];
         if n < PARALLEL_SWITCH || nthreads == 1 {
@@ -189,7 +214,7 @@ pub fn fn_name(
                 for j in 0..i {
                     let idx_ij = unsafe { lc.index_uncheck(&[i, j]) as usize };
                     let idx_ji = unsafe { lc.index_uncheck(&[j, i]) as usize };
-                    c[idx_ji] = c[idx_ij];
+                    c[idx_ji] = c[idx_ij].clone();
                 }
             }
         } else {
@@ -199,8 +224,8 @@ pub fn fn_name(
                     (0..i).for_each(|j| unsafe {
                         let idx_ij = lc.index_uncheck(&[i, j]) as usize;
                         let idx_ji = lc.index_uncheck(&[j, i]) as usize;
-                        let c_ptr_ji = c.as_ptr().add(idx_ji) as *mut ty;
-                        *c_ptr_ji = c[idx_ij];
+                        let c_ptr_ji = c.as_ptr().add(idx_ji) as *mut T;
+                        *c_ptr_ji = c[idx_ij].clone();
                     });
                 });
             });
@@ -233,13 +258,13 @@ mod test {
         let pool = Some(&pool);
 
         let start = Instant::now();
-        gemm_faer_f64(&mut c, &lc, &a, &la, &b, &lb, 1.0, 0.0, pool).unwrap();
+        gemm_faer(&mut c, &lc, &a, &la, &b, &lb, 1.0, 0.0, pool).unwrap();
         println!("time: {:?}", start.elapsed());
         let start = Instant::now();
-        gemm_faer_f64(&mut c, &lc, &a, &la, &b, &lb, 1.0, 0.0, pool).unwrap();
+        gemm_faer(&mut c, &lc, &a, &la, &b, &lb, 1.0, 0.0, pool).unwrap();
         println!("time: {:?}", start.elapsed());
         let start = Instant::now();
-        gemm_faer_f64(&mut c, &lc, &a, &la, &b, &lb, 1.0, 0.0, pool).unwrap();
+        gemm_faer(&mut c, &lc, &a, &la, &b, &lb, 1.0, 0.0, pool).unwrap();
         println!("time: {:?}", start.elapsed());
     }
 
@@ -251,7 +276,32 @@ mod test {
         let lc = [2, 2].c();
         let pool = rayon::ThreadPoolBuilder::new().num_threads(16).build().unwrap();
         let pool = Some(&pool);
-        syrk_faer_f64(&mut c, &lc, &a, &la, FlagUpLo::L, 2.0, 1.0, pool).unwrap();
+        syrk_faer(&mut c, &lc, &a, &la, FlagUpLo::L, 2.0, 1.0, pool).unwrap();
         println!("{c:?}");
+    }
+
+    #[test]
+    #[cfg(not(feature = "col_major"))]
+    fn test_minimal_correctness() {
+        #[allow(non_camel_case_types)]
+        type c32 = num::Complex<f32>;
+        let vec_a = vec![
+            c32::new(0., 1.),
+            c32::new(1., 2.),
+            c32::new(2., 3.),
+            c32::new(3., 4.),
+            c32::new(4., 5.),
+            c32::new(5., 6.),
+        ];
+        let vec_b = vec![c32::new(0., 1.), c32::new(2., 3.), c32::new(4., 5.), c32::new(6., 7.)];
+        let device = DeviceFaer::default();
+
+        let a = asarray((vec_a, &device)).into_shape([3, 2]);
+        let b = asarray((vec_b, &device)).into_shape([2, 2]);
+        let c = a % b;
+        let sum_c = c.raw().iter().sum::<c32>();
+
+        assert!(sum_c.re - -78.0 < 1e-5);
+        assert!(sum_c.im - 270.0 < 1e-5);
     }
 }

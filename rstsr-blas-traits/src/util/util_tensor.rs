@@ -1,4 +1,3 @@
-use num::complex::ComplexFloat;
 use rstsr_core::prelude::*;
 use rstsr_core::prelude_dev::*;
 
@@ -11,8 +10,11 @@ pub fn overwritable_convert<T, B, D>(
     a: TensorReference<'_, T, B, D>,
 ) -> Result<TensorMutable<'_, T, B, D>>
 where
-    T: ComplexFloat,
-    B: DeviceAPI<T, Raw = Vec<T>> + DeviceComplexFloatAPI<T, D>,
+    T: Clone,
+    B: DeviceAPI<T, Raw = Vec<T>>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignArbitaryAPI<T, D, D>
+        + OpAssignAPI<T, D>,
     D: DimAPI,
 {
     let order = match (a.f_prefer(), a.c_prefer()) {
@@ -39,8 +41,11 @@ pub fn overwritable_convert_with_order<T, B, D>(
     order: FlagOrder,
 ) -> Result<TensorMutable<'_, T, B, D>>
 where
-    T: ComplexFloat,
-    B: DeviceAPI<T, Raw = Vec<T>> + DeviceComplexFloatAPI<T, D>,
+    T: Clone,
+    B: DeviceAPI<T, Raw = Vec<T>>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignArbitaryAPI<T, D, D>
+        + OpAssignAPI<T, D>,
     D: DimAPI,
 {
     let a = if a.is_ref() {

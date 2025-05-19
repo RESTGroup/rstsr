@@ -1,0 +1,30 @@
+name: rstsr-lianlg-traits tests
+
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+
+jobs:
+  unittests-faer-lianlg:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: conda-incubator/setup-miniconda@v2
+    - name: conda environment setup
+      run: |
+        conda init; source $HOME/.bashrc; conda activate
+        conda install -y numpy scipy
+    - name: manifest initialization
+      run: |
+        conda init; source $HOME/.bashrc; conda activate
+        cd rstsr-test-manifest/resources
+        python gen_rand_vec.py
+    - name: validate manifest (func_validation_f64)
+      run: |
+        conda init; source $HOME/.bashrc; conda activate
+        cd rstsr-openblas/tests/test_linalg_func
+        python func_validation_f64.py
+    - name: test faer implementation
+      run: cargo test -p rstsr-linalg-traits --test "*" --features="faer"

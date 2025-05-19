@@ -49,7 +49,7 @@ where
 
     // type check and dispatch
     macro_rules! impl_gemm_dispatch {
-        ($ty: ty, $fn_gemm_name: ident, $fn_syrk_name: ident) => {
+        ($ty: ty) => {
             if (same_type::<TA, $ty>() && same_type::<TB, $ty>() && same_type::<TC, $ty>()) {
                 let a_slice = unsafe { from_raw_parts(a.as_ptr() as *const $ty, a.len()) };
                 let b_slice = unsafe { from_raw_parts(b.as_ptr() as *const $ty, b.len()) };
@@ -57,19 +57,19 @@ where
                 let alpha = unsafe { *(&alpha as *const TC as *const $ty) };
                 let beta = unsafe { *(&beta as *const TC as *const $ty) };
                 if able_syrk {
-                    $fn_syrk_name(c_slice, lc, a_slice, la, alpha, beta, pool)?;
+                    gemm_with_syrk_faer(c_slice, lc, a_slice, la, alpha, beta, pool)?;
                 } else {
-                    $fn_gemm_name(c_slice, lc, a_slice, la, b_slice, lb, alpha, beta, pool)?;
+                    gemm_faer(c_slice, lc, a_slice, la, b_slice, lb, alpha, beta, pool)?;
                 }
                 return Ok(());
             }
         };
     }
 
-    impl_gemm_dispatch!(f32, gemm_faer_f32, gemm_with_syrk_faer_f32);
-    impl_gemm_dispatch!(f64, gemm_faer_f64, gemm_with_syrk_faer_f64);
-    impl_gemm_dispatch!(Complex<f32>, gemm_faer_c32, gemm_with_syrk_faer_c32);
-    impl_gemm_dispatch!(Complex<f64>, gemm_faer_c64, gemm_with_syrk_faer_c64);
+    impl_gemm_dispatch!(f32);
+    impl_gemm_dispatch!(f64);
+    impl_gemm_dispatch!(Complex<f32>);
+    impl_gemm_dispatch!(Complex<f64>);
 
     // not able to be accelarated by faer
     // fallback to naive implementation
