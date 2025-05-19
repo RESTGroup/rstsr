@@ -57,3 +57,6 @@ cpu-time = { version = "1.0" }
 [profile.coverage]
 inherits = "dev"
 opt-level = 0
+
+[profile.dev]
+opt-level = 2
