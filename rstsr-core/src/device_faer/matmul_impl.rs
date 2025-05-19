@@ -238,8 +238,6 @@ where
 
 #[cfg(test)]
 mod test {
-    use num::complex::ComplexFloat;
-
     use super::*;
     use std::time::Instant;
 
@@ -303,7 +301,7 @@ mod test {
         let c = a % b;
         let sum_c = c.raw().iter().sum::<c32>();
 
-        assert!(sum_c.re() - -78.0 < 1e-5);
-        assert!(sum_c.im() - 270.0 < 1e-5);
+        assert!(sum_c.re - -78.0 < 1e-5);
+        assert!(sum_c.im - 270.0 < 1e-5);
     }
 }
