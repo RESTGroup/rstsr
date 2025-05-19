@@ -1,6 +1,7 @@
 use crate::traits_def::SolveGeneralAPI;
 use faer::prelude::*;
 use faer::traits::ComplexField;
+use faer_ext::IntoFaer;
 use rstsr_blas_traits::prelude_dev::*;
 use rstsr_core::prelude_dev::*;
 
@@ -12,36 +13,21 @@ where
     T: ComplexField,
 {
     // set parallel mode
-    let pool = a.device().get_current_pool();
+    let device = a.device().clone();
+    let pool = device.get_current_pool();
     let faer_par_orig = faer::get_global_parallelism();
     let faer_par = pool.map_or(Par::Seq, |pool| Par::rayon(pool.current_num_threads()));
     faer::set_global_parallelism(faer_par);
 
-    let faer_a = unsafe {
-        MatRef::from_raw_parts(
-            a.as_ptr().add(a.offset()),
-            a.shape()[0],
-            a.shape()[1],
-            a.stride()[0],
-            a.stride()[1],
-        )
-    };
+    let faer_a = a.view().into_faer();
 
     // solve linear system
     let svd_result = faer_a.svd().map_err(|e| rstsr_error!(FaerError, "Faer SVD error: {e:?}"))?;
 
     // handle b for mutable
     let mut b = overwritable_convert(b)?;
-    let mut b_view = b.view_mut().into_dim::<Ix2>();
-    let faer_b = unsafe {
-        MatMut::from_raw_parts_mut(
-            b_view.as_mut_ptr().add(b_view.offset()),
-            b_view.shape()[0],
-            b_view.shape()[1],
-            b_view.stride()[0],
-            b_view.stride()[1],
-        )
-    };
+    let b_view = b.view_mut().into_dim::<Ix2>();
+    let faer_b = b_view.into_faer();
 
     svd_result.solve_in_place(faer_b);
 
