@@ -16,7 +16,8 @@ where
     fn into_faer(self) -> Self::Faer {
         let [nrows, ncols] = *self.shape();
         let [row_stride, col_stride] = *self.stride();
-        let ptr = self.raw().as_ptr();
+        let offset = self.offset();
+        let ptr = unsafe { self.raw().as_ptr().add(offset) };
         unsafe { MatRef::from_raw_parts(ptr, nrows, ncols, row_stride, col_stride) }
     }
 }
@@ -30,7 +31,8 @@ where
     fn into_faer(mut self) -> Self::Faer {
         let [nrows, ncols] = *self.shape();
         let [row_stride, col_stride] = *self.stride();
-        let ptr = self.raw_mut().as_mut_ptr();
+        let offset = self.offset();
+        let ptr = unsafe { self.raw_mut().as_mut_ptr().add(offset) };
         unsafe { MatMut::from_raw_parts_mut(ptr, nrows, ncols, row_stride, col_stride) }
     }
 }

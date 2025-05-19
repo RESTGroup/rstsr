@@ -1,6 +1,7 @@
 use crate::traits_def::DetAPI;
 use faer::prelude::*;
 use faer::traits::ComplexField;
+use faer_ext::IntoFaer;
 use rstsr_core::prelude_dev::*;
 
 pub fn faer_impl_det_f<T>(a: TensorView<'_, T, DeviceFaer, Ix2>) -> Result<T::Real>
@@ -13,15 +14,7 @@ where
     let faer_par = pool.map_or(Par::Seq, |pool| Par::rayon(pool.current_num_threads()));
     faer::set_global_parallelism(faer_par);
 
-    let faer_a = unsafe {
-        MatRef::from_raw_parts(
-            a.as_ptr().add(a.offset()),
-            a.shape()[0],
-            a.shape()[1],
-            a.stride()[0],
-            a.stride()[1],
-        )
-    };
+    let faer_a = a.into_faer();
 
     // det computation
     let result = faer_a.determinant();

@@ -1,6 +1,7 @@
 use crate::traits_def::{EighAPI, EighResult};
 use faer::prelude::*;
 use faer::traits::ComplexField;
+use faer_ext::IntoFaer;
 use rstsr_core::prelude_dev::*;
 use rstsr_dtype_traits::ReImAPI;
 
@@ -15,7 +16,8 @@ where
     // However, tests shows that results are correct.
 
     // set parallel mode
-    let pool = a.device().get_current_pool();
+    let device = a.device().clone();
+    let pool = device.get_current_pool();
     let faer_par_orig = faer::get_global_parallelism();
     let faer_par = pool.map_or(Par::Seq, |pool| Par::rayon(pool.current_num_threads()));
     faer::set_global_parallelism(faer_par);
@@ -24,15 +26,7 @@ where
         RowMajor => Lower,
         ColMajor => Upper,
     });
-    let faer_a = unsafe {
-        MatRef::from_raw_parts(
-            a.as_ptr().add(a.offset()),
-            a.shape()[0],
-            a.shape()[1],
-            a.stride()[0],
-            a.stride()[1],
-        )
-    };
+    let faer_a = a.into_faer();
     let faer_uplo = match uplo {
         Lower => faer::Side::Lower,
         Upper => faer::Side::Upper,
@@ -46,7 +40,7 @@ where
     // convert eigenvalues to real
     let eigenvalues: TensorView<T, DeviceFaer, _> = result.S().column_vector().into_rstsr();
     let eigenvalues = eigenvalues.mapv(|v| T::real_part_impl(&v));
-    let eigenvectors = result.U().into_rstsr().into_contig(a.device().default_order());
+    let eigenvectors = result.U().into_rstsr().into_contig(device.default_order());
 
     // restore parallel mode
     faer::set_global_parallelism(faer_par_orig);
