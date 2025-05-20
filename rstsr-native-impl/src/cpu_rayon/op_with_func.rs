@@ -5,10 +5,7 @@ use rayon::prelude::*;
 const CONTIG_SWITCH: usize = 16;
 // This value is used to determine when to use parallel iteration.
 // Since current task is not intensive to each element, this value is large.
-// 64 kB for f64
-const PARALLEL_SWITCH: usize = 16384;
-// Currently, we do not make contiguous parts to be parallel. Only outer
-// iteration is parallelized.
+const PARALLEL_SWITCH: usize = 4096;
 
 /* #region op_func definition */
 
@@ -257,7 +254,7 @@ where
         } else {
             // parallel inner iteration
             let func = |(idx_a, idx_b)| unsafe {
-                (0..size_contig).for_each(|idx| {
+                (0..size_contig).into_par_iter().for_each(|idx| {
                     let a_ptr = a.as_ptr().add(idx_a + idx) as *mut TA;
                     f(&mut *a_ptr, &b[idx_b + idx]);
                 });
