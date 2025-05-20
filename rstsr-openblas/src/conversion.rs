@@ -1,8 +1,8 @@
 use crate::prelude_dev::*;
 
 macro_rules! impl_change_device {
-    ($Device: ty) => {
-        impl<'a, R, T, D> DeviceChangeAPI<'a, $Device, R, T, D> for DeviceBLAS
+    ($DevA: ty, $DevB: ty) => {
+        impl<'a, R, T, D> DeviceChangeAPI<'a, $DevB, R, T, D> for $DevA
         where
             T: Clone + Send + Sync + 'a,
             D: DimAPI,
@@ -12,9 +12,9 @@ macro_rules! impl_change_device {
             type ReprTo = DataRef<'a, Vec<T>>;
 
             fn change_device(
-                tensor: TensorAny<R, T, DeviceBLAS, D>,
-                device: &$Device,
-            ) -> Result<TensorAny<Self::Repr, T, $Device, D>> {
+                tensor: TensorAny<R, T, $DevA, D>,
+                device: &$DevB,
+            ) -> Result<TensorAny<Self::Repr, T, $DevB, D>> {
                 let (storage, layout) = tensor.into_raw_parts();
                 let (data, _) = storage.into_raw_parts();
                 let storage = Storage::new(data, device.clone());
@@ -23,54 +23,17 @@ macro_rules! impl_change_device {
             }
 
             fn into_device(
-                tensor: TensorAny<R, T, DeviceBLAS, D>,
-                device: &$Device,
-            ) -> Result<TensorAny<DataOwned<Vec<T>>, T, $Device, D>> {
+                tensor: TensorAny<R, T, $DevA, D>,
+                device: &$DevB,
+            ) -> Result<TensorAny<DataOwned<Vec<T>>, T, $DevB, D>> {
                 let tensor = tensor.into_owned();
                 DeviceChangeAPI::change_device(tensor, device)
             }
 
             fn to_device(
-                tensor: &'a TensorAny<R, T, DeviceBLAS, D>,
-                device: &$Device,
-            ) -> Result<TensorView<'a, T, $Device, D>> {
-                let view = tensor.view();
-                DeviceChangeAPI::change_device(view, device)
-            }
-        }
-
-        impl<'a, R, T, D> DeviceChangeAPI<'a, DeviceBLAS, R, T, D> for $Device
-        where
-            T: Clone + Send + Sync + 'a,
-            D: DimAPI,
-            R: DataCloneAPI<Data = Vec<T>>,
-        {
-            type Repr = R;
-            type ReprTo = DataRef<'a, Vec<T>>;
-
-            fn change_device(
-                tensor: TensorAny<R, T, $Device, D>,
-                device: &DeviceBLAS,
-            ) -> Result<TensorAny<Self::Repr, T, DeviceBLAS, D>> {
-                let (storage, layout) = tensor.into_raw_parts();
-                let (data, _) = storage.into_raw_parts();
-                let storage = Storage::new(data, device.clone());
-                let tensor = TensorAny::new(storage, layout);
-                Ok(tensor)
-            }
-
-            fn into_device(
-                tensor: TensorAny<R, T, $Device, D>,
-                device: &DeviceBLAS,
-            ) -> Result<TensorAny<DataOwned<Vec<T>>, T, DeviceBLAS, D>> {
-                let tensor = tensor.into_owned();
-                DeviceChangeAPI::change_device(tensor, device)
-            }
-
-            fn to_device(
-                tensor: &'a TensorAny<R, T, $Device, D>,
-                device: &DeviceBLAS,
-            ) -> Result<TensorView<'a, T, DeviceBLAS, D>> {
+                tensor: &'a TensorAny<R, T, $DevA, D>,
+                device: &$DevB,
+            ) -> Result<TensorView<'a, T, $DevB, D>> {
                 let view = tensor.view();
                 DeviceChangeAPI::change_device(view, device)
             }
@@ -78,9 +41,13 @@ macro_rules! impl_change_device {
     };
 }
 
-impl_change_device!(DeviceCpuSerial);
+impl_change_device!(DeviceCpuSerial, DeviceBLAS);
+impl_change_device!(DeviceBLAS, DeviceCpuSerial);
+impl_change_device!(DeviceBLAS, DeviceBLAS);
 #[cfg(feature = "faer")]
-impl_change_device!(DeviceFaer);
+impl_change_device!(DeviceFaer, DeviceBLAS);
+#[cfg(feature = "faer")]
+impl_change_device!(DeviceBLAS, DeviceFaer);
 
 #[cfg(test)]
 mod test {

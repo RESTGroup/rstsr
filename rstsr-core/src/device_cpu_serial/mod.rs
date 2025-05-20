@@ -2,6 +2,7 @@
 
 pub mod adv_indexing;
 pub mod assignment;
+pub mod conversion;
 pub mod creation;
 pub mod device;
 pub mod matmul;
