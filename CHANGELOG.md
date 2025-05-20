@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.4 -- 2025-05-20
+
+Bug Fix:
+- Fix rayon parallel in `op_muta_refb_func_cpu_rayon` ([#32](https://github.com/RESTGroup/rstsr/pull/32))
+- Fix for conversion to self-device ([#33](https://github.com/RESTGroup/rstsr/pull/33))
+
 ## v0.3.3 -- 2025-05-19
 
 Bug Fix:
