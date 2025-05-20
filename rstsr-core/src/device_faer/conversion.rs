@@ -99,7 +99,13 @@ impl<'a, T> IntoRSTSR for MatMut<'a, T> {
 
 /* #region device conversion */
 
-impl<'a, R, T, D> DeviceChangeAPI<'a, DeviceCpuSerial, R, T, D> for DeviceFaer
+#[duplicate_item(
+    DevA DevB;
+   [DeviceFaer     ] [DeviceCpuSerial];
+   [DeviceCpuSerial] [DeviceFaer     ];
+   [DeviceFaer     ] [DeviceFaer     ];
+)]
+impl<'a, R, T, D> DeviceChangeAPI<'a, DevB, R, T, D> for DevA
 where
     T: Clone + Send + Sync + 'a,
     D: DimAPI,
@@ -109,9 +115,9 @@ where
     type ReprTo = DataRef<'a, Vec<T>>;
 
     fn change_device(
-        tensor: TensorAny<R, T, DeviceFaer, D>,
-        device: &DeviceCpuSerial,
-    ) -> Result<TensorAny<Self::Repr, T, DeviceCpuSerial, D>> {
+        tensor: TensorAny<R, T, DevA, D>,
+        device: &DevB,
+    ) -> Result<TensorAny<Self::Repr, T, DevB, D>> {
         let (storage, layout) = tensor.into_raw_parts();
         let (data, _) = storage.into_raw_parts();
         let storage = Storage::new(data, device.clone());
@@ -120,54 +126,17 @@ where
     }
 
     fn into_device(
-        tensor: TensorAny<R, T, DeviceFaer, D>,
-        device: &DeviceCpuSerial,
-    ) -> Result<TensorAny<DataOwned<Vec<T>>, T, DeviceCpuSerial, D>> {
+        tensor: TensorAny<R, T, DevA, D>,
+        device: &DevB,
+    ) -> Result<TensorAny<DataOwned<Vec<T>>, T, DevB, D>> {
         let tensor = tensor.into_owned();
         DeviceChangeAPI::change_device(tensor, device)
     }
 
     fn to_device(
-        tensor: &'a TensorAny<R, T, DeviceFaer, D>,
-        device: &DeviceCpuSerial,
-    ) -> Result<TensorView<'a, T, DeviceCpuSerial, D>> {
-        let view = tensor.view();
-        DeviceChangeAPI::change_device(view, device)
-    }
-}
-
-impl<'a, R, T, D> DeviceChangeAPI<'a, DeviceFaer, R, T, D> for DeviceCpuSerial
-where
-    T: Clone + Send + Sync + 'a,
-    D: DimAPI,
-    R: DataCloneAPI<Data = Vec<T>>,
-{
-    type Repr = R;
-    type ReprTo = DataRef<'a, Vec<T>>;
-
-    fn change_device(
-        tensor: TensorAny<R, T, DeviceCpuSerial, D>,
-        device: &DeviceFaer,
-    ) -> Result<TensorAny<Self::Repr, T, DeviceFaer, D>> {
-        let (storage, layout) = tensor.into_raw_parts();
-        let (data, _) = storage.into_raw_parts();
-        let storage = Storage::new(data, device.clone());
-        let tensor = TensorAny::new(storage, layout);
-        Ok(tensor)
-    }
-
-    fn into_device(
-        tensor: TensorAny<R, T, DeviceCpuSerial, D>,
-        device: &DeviceFaer,
-    ) -> Result<TensorAny<DataOwned<Vec<T>>, T, DeviceFaer, D>> {
-        let tensor = tensor.into_owned();
-        DeviceChangeAPI::change_device(tensor, device)
-    }
-
-    fn to_device(
-        tensor: &'a TensorAny<R, T, DeviceCpuSerial, D>,
-        device: &DeviceFaer,
-    ) -> Result<TensorView<'a, T, DeviceFaer, D>> {
+        tensor: &'a TensorAny<R, T, DevA, D>,
+        device: &DevB,
+    ) -> Result<TensorView<'a, T, DevB, D>> {
         let view = tensor.view();
         DeviceChangeAPI::change_device(view, device)
     }
@@ -189,6 +158,19 @@ mod test {
         let a = linspace((1.0, 5.0, 5, &device_serial));
         let a_view = a.view();
         let b = a_view.to_device(&device_faer);
+        println!("{b:?}");
+    }
+
+    #[test]
+    fn test_self_conversion() {
+        let device_a = DeviceFaer::new(1);
+        let device_b = DeviceFaer::new(0);
+        let a = linspace((1.0, 5.0, 5, &device_b));
+        let b = a.to_device(&device_a);
+        println!("{b:?}");
+        let a = linspace((1.0, 5.0, 5, &device_a));
+        let a_view = a.view();
+        let b = a_view.to_device(&device_b);
         println!("{b:?}");
     }
 }
