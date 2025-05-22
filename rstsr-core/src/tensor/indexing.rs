@@ -111,27 +111,6 @@ where
 
 /* #region slice mut */
 
-pub fn into_slice_mut_f<S, D, I>(tensor: TensorBase<S, D>, index: I) -> Result<TensorBase<S, IxD>>
-where
-    D: DimAPI,
-    I: TryInto<AxesIndex<Indexer>>,
-    Error: From<I::Error>,
-{
-    let (data, layout) = tensor.into_raw_parts();
-    let index = index.try_into()?;
-    let layout = layout.dim_slice(index.as_ref())?;
-    return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
-}
-
-pub fn into_slice_mut<S, D, I>(tensor: TensorBase<S, D>, index: I) -> TensorBase<S, IxD>
-where
-    D: DimAPI,
-    I: TryInto<AxesIndex<Indexer>>,
-    Error: From<I::Error>,
-{
-    into_slice_mut_f(tensor, index).unwrap()
-}
-
 pub fn slice_mut_f<R, T, B, D, I>(
     tensor: &mut TensorAny<R, T, B, D>,
     index: I,
@@ -143,7 +122,7 @@ where
     R: DataMutAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
-    into_slice_mut_f(tensor.view_mut(), index)
+    into_slice_f(tensor.view_mut(), index)
 }
 
 pub fn slice_mut<R, T, B, D, I>(
@@ -166,22 +145,6 @@ where
     B: DeviceAPI<T>,
     D: DimAPI,
 {
-    pub fn into_slice_mut_f<I>(self, index: I) -> Result<TensorAny<R, T, B, IxD>>
-    where
-        I: TryInto<AxesIndex<Indexer>>,
-        Error: From<I::Error>,
-    {
-        into_slice_mut_f(self, index)
-    }
-
-    pub fn into_slice_mut<I>(self, index: I) -> TensorAny<R, T, B, IxD>
-    where
-        I: TryInto<AxesIndex<Indexer>>,
-        Error: From<I::Error>,
-    {
-        into_slice_mut(self, index)
-    }
-
     pub fn slice_mut_f<I>(&mut self, index: I) -> Result<TensorMut<'_, T, B, IxD>>
     where
         I: TryInto<AxesIndex<Indexer>>,
