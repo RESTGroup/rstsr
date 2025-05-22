@@ -188,22 +188,17 @@ pub struct DiagonalArgs {
     pub axis2: Option<isize>,
 }
 
-impl From<(isize, isize, isize)> for DiagonalArgs {
-    fn from(args: (isize, isize, isize)) -> Self {
-        let (offset, axis1, axis2) = args;
-        Self { offset: Some(offset), axis1: Some(axis1), axis2: Some(axis2) }
-    }
-}
-
-impl From<(usize, isize, isize)> for DiagonalArgs {
-    fn from(args: (usize, isize, isize)) -> Self {
-        let (offset, axis1, axis2) = args;
-        Self { offset: Some(offset as isize), axis1: Some(axis1), axis2: Some(axis2) }
-    }
-}
-
-impl From<(usize, usize, usize)> for DiagonalArgs {
-    fn from(args: (usize, usize, usize)) -> Self {
+#[duplicate_item(
+    S0      S1      S2;
+   [isize] [isize] [isize];
+   [usize] [isize] [isize];
+   [usize] [usize] [usize];
+   [i32  ] [i32  ] [i32  ];
+   [i64  ] [i64  ] [i64  ];
+)]
+#[allow(clippy::unnecessary_cast)]
+impl From<(S0, S1, S2)> for DiagonalArgs {
+    fn from(args: (S0, S1, S2)) -> Self {
         let (offset, axis1, axis2) = args;
         Self {
             offset: Some(offset as isize),
@@ -213,14 +208,10 @@ impl From<(usize, usize, usize)> for DiagonalArgs {
     }
 }
 
-impl From<isize> for DiagonalArgs {
-    fn from(offset: isize) -> Self {
-        Self { offset: Some(offset), axis1: None, axis2: None }
-    }
-}
-
-impl From<usize> for DiagonalArgs {
-    fn from(offset: usize) -> Self {
+#[duplicate_item(S; [isize]; [usize]; [i32]; [i64];)]
+#[allow(clippy::unnecessary_cast)]
+impl From<S> for DiagonalArgs {
+    fn from(offset: S) -> Self {
         Self { offset: Some(offset as isize), axis1: None, axis2: None }
     }
 }
@@ -581,5 +572,13 @@ mod test {
         }
         println!("{value:?}");
         println!("{tensor:?}");
+    }
+
+    #[test]
+    fn test_diagonal_compiles() {
+        let a = arange(24.0).into_shape([2, 3, 4]);
+        // this should reads input as i32
+        let b = a.diagonal(1);
+        println!("{b:?}");
     }
 }
