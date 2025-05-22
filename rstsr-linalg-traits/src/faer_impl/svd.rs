@@ -47,7 +47,7 @@ where
     // restore parallel mode
     faer::set_global_parallelism(faer_par_orig);
 
-    return Ok(result);
+    Ok(result)
 }
 
 #[duplicate_item(

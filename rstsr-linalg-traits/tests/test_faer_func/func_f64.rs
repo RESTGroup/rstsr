@@ -63,11 +63,11 @@ mod test {
         let a = rt::asarray((get_vec::<f64>('a'), [1024, 1024].c(), &device));
 
         // default, a
-        let w = rt::linalg::eigvalsh(a.view()).into();
+        let w = rt::linalg::eigvalsh(a.view());
         assert!((fingerprint(&w) - -71.4747209499407).abs() < 1e-8);
 
         // upper, a
-        let w = rt::linalg::eigvalsh((a.view(), Upper)).into();
+        let w = rt::linalg::eigvalsh((a.view(), Upper));
         assert!((fingerprint(&w) - -71.4902453763506).abs() < 1e-8);
     }
 

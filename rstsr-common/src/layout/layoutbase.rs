@@ -307,15 +307,17 @@ where
         let shape_sorted = indices.iter().map(|&k| shape[k]).collect::<Vec<_>>();
         let stride_sorted = indices.iter().map(|&k| stride[k].unsigned_abs()).collect::<Vec<_>>();
 
-        // note: `indices.len() - 1` can be smaller than 0, so `.max(1)` is used
-        for i in 0..indices.len().max(1) - 1 {
+        // elem_cum: cumulative number count of elements in tensor for small strides
+        let mut elem_cum = 0;
+        for i in 0..indices.len() {
             // following function also checks that stride could not be zero
             rstsr_pattern!(
-                shape_sorted[i] * stride_sorted[i],
-                1..stride_sorted[i + 1] + 1,
+                elem_cum,
+                0..stride_sorted[i],
                 InvalidLayout,
                 "Either stride be zero, or stride too small that elements in tensor can be overlapped."
             )?;
+            elem_cum += (shape_sorted[i] - 1) * stride_sorted[i];
         }
         return Ok(());
     }
@@ -1010,5 +1012,15 @@ mod test {
             assert_eq!(shape.unravel_index_c(0), [0, 0, 0]);
             assert_eq!(shape.unravel_index_c(16), [1, 0, 4]);
         }
+    }
+
+    #[test]
+    fn fix_too_strict_stride_check() {
+        let layout = [10, 11, 12].c();
+        let slc = (.., slice!(-1, 0, -4));
+        let slc: AxesIndex<Indexer> = slc.try_into().unwrap();
+        let indexed = layout.dim_slice(slc.as_ref()).unwrap();
+        assert_eq!(indexed.shape(), &[10, 3, 12]);
+        assert_eq!(indexed.stride(), &[132, -48, 1]);
     }
 }
