@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.3.5 -- 2025-05-22
+
+Bug Fix:
+- Fix too strict stride check ([#36](https://github.com/RESTGroup/rstsr/pull/36))
+
+API Breaking Change:
+- Remove `into_slice_mut` ([#35](https://github.com/RESTGroup/rstsr/pull/35))
+
+Enhancements:
+- Diagonal arguments now allows i32 as input
+
 ## v0.3.4 -- 2025-05-20
 
 Bug Fix:
