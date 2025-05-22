@@ -45,7 +45,7 @@ where
     // restore parallel mode
     faer::set_global_parallelism(faer_par_orig);
 
-    return Ok((eigenvalues, eigenvectors));
+    Ok((eigenvalues, eigenvectors))
 }
 
 #[duplicate_item(

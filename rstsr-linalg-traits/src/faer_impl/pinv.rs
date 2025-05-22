@@ -44,7 +44,7 @@ where
 
     // compute pinv
     let s = s.mapv(|x| T::real_part_impl(&x));
-    let maxs = s.raw().iter().max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap().clone();
+    let maxs = *s.raw().iter().max_by(|a, b| a.partial_cmp(b).unwrap()).unwrap();
     let val = atol + rtol * maxs;
     let rank = s.raw().iter().take_while(|&&x| x > val).count();
     let mut u = u.into_slice((.., ..rank));
