@@ -1,3 +1,5 @@
+#![cfg(feature = "faer")]
+
 use rstsr::prelude::*;
 use rstsr_core::prelude_dev::fingerprint;
 use rstsr_test_manifest::get_vec;
