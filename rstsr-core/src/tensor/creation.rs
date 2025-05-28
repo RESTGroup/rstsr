@@ -12,11 +12,11 @@
 //! - [x] `full`: [`full`]
 //! - [x] `full_like`: [`full_like`]
 //! - [x] `linspace`: [`linspace`]
-//! - [ ] `meshgrid`
+//! - [x] `meshgrid`
 //! - [x] `ones`: [`ones`]
 //! - [x] `ones_like`: [`ones_like`]
-//! - [ ] `tril`
-//! - [ ] `triu`
+//! - [x] `tril`
+//! - [x] `triu`
 //! - [x] `zeros`: [`zeros`]
 //! - [x] `zeros_like`: [`zeros_like`]
 
