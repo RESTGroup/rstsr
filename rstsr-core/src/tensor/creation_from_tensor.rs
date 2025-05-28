@@ -211,6 +211,7 @@ where
     }
 }
 
+// implementation for reference tensors
 #[duplicate_item(
     ImplType         ImplStruct                                           tuple_args                  tuple_internal                             ;
    [              ] [(&Vec<&TensorAny<R, T, B, D>>, &str, bool)] [(tensors, indexing, copy)] [(tensors.to_vec(), indexing, copy)];
@@ -245,6 +246,43 @@ where
     }
 }
 
+// implementation for non-reference tensors
+#[duplicate_item(
+    ImplType         ImplStruct                                           tuple_args           tuple_internal  ;              
+   [              ] [(Vec<TensorAny<R, T, B, D>> , &str, bool)] [(tensors, indexing, copy)] [(indexing, copy)];
+   [              ] [(&Vec<TensorAny<R, T, B, D>>, &str, bool)] [(tensors, indexing, copy)] [(indexing, copy)];
+   [const N: usize] [([TensorAny<R, T, B, D>; N] , &str, bool)] [(tensors, indexing, copy)] [(indexing, copy)];
+   [              ] [(Vec<TensorAny<R, T, B, D>> , &str,     )] [(tensors, indexing,     )] [(indexing, true)];
+   [              ] [(&Vec<TensorAny<R, T, B, D>>, &str,     )] [(tensors, indexing,     )] [(indexing, true)];
+   [const N: usize] [([TensorAny<R, T, B, D>; N] , &str,     )] [(tensors, indexing,     )] [(indexing, true)];
+   [              ] [(Vec<TensorAny<R, T, B, D>> ,       bool)] [(tensors,           copy)] [("xy"    , copy)];
+   [              ] [(&Vec<TensorAny<R, T, B, D>>,       bool)] [(tensors,           copy)] [("xy"    , copy)];
+   [const N: usize] [([TensorAny<R, T, B, D>; N] ,       bool)] [(tensors,           copy)] [("xy"    , copy)];
+   [              ] [ Vec<TensorAny<R, T, B, D>>              ] [ tensors                 ] [("xy"    , true)];
+   [              ] [ &Vec<TensorAny<R, T, B, D>>             ] [ tensors                 ] [("xy"    , true)];
+   [const N: usize] [ [TensorAny<R, T, B, D>; N]              ] [ tensors                 ] [("xy"    , true)];
+)]
+impl<R, T, B, D, ImplType> MeshgridAPI<()> for ImplStruct
+where
+    R: DataAPI<Data = B::Raw> + DataCloneAPI,
+    T: Clone,
+    D: DimAPI,
+    B: DeviceAPI<T>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignAPI<T, IxD>
+        + OpAssignArbitaryAPI<T, IxD, IxD>,
+    B::Raw: Clone,
+{
+    type Out = Vec<Tensor<T, B, IxD>>;
+
+    fn meshgrid_f(self) -> Result<Self::Out> {
+        let tuple_args = self;
+        let (indexing, copy) = tuple_internal;
+        let tensors = tensors.iter().collect::<Vec<_>>();
+        MeshgridAPI::meshgrid_f((tensors, indexing, copy))
+    }
+}
+
 /* #endregion */
 
 #[cfg(test)]
@@ -265,8 +303,8 @@ mod test {
 
     #[test]
     fn test_meshgrid() {
-        let a = arange((3i32, &DeviceFaer::default()));
-        let b = arange((4i32, &DeviceFaer::default()));
+        let a = arange(3);
+        let b = arange(4);
         let c = meshgrid((&vec![&a, &b], "ij", true));
         println!("{c:?}");
         let d = meshgrid((&vec![&a, &b], "xy", true));
