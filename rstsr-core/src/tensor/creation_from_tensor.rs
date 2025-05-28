@@ -285,6 +285,167 @@ where
 
 /* #endregion */
 
+/* #region concat */
+
+pub trait ConcatAPI<Inp> {
+    type Out;
+
+    fn concat_f(self) -> Result<Self::Out>;
+
+    fn concat(self) -> Self::Out
+    where
+        Self: Sized,
+    {
+        Self::concat_f(self).unwrap()
+    }
+}
+
+/// Join a sequence of arrays along an existing axis.
+/// 
+/// # See also
+/// 
+/// - [Python Array Standard `concatnate`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.concat.html)
+pub fn concat<Args, Inp>(args: Args) -> Args::Out
+where
+    Args: ConcatAPI<Inp>,
+{
+    Args::concat(args)
+}
+
+pub fn concat_f<Args, Inp>(args: Args) -> Result<Args::Out>
+where
+    Args: ConcatAPI<Inp>,
+{
+    Args::concat_f(args)
+}
+
+pub use concat_f as concatenate_f;
+pub use concat as concatenate;
+
+impl<R, T, B, D> ConcatAPI<()> for (Vec<TensorAny<R, T, B, D>>, isize)
+where
+    R: DataAPI<Data = B::Raw>,
+    T: Clone + Default,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD>,
+{
+    type Out = Tensor<T, B, IxD>;
+
+    fn concat_f(self) -> Result<Self::Out> {
+        let (tensors, axis) = self;
+
+        // quick error for empty tensors
+        rstsr_assert!(
+            !tensors.is_empty(),
+            InvalidValue,
+            "concat requires at least one tensor."
+        )?;
+
+        // check same device and same ndim
+        let device = tensors[0].device().clone();
+        let ndim = tensors[0].ndim();
+
+        rstsr_assert!(ndim > 0, InvalidLayout, "All tensors must have ndim > 0 in concat.")?;
+        tensors.iter().try_for_each(|tensor| -> Result<()> {
+            rstsr_assert_eq!(tensor.ndim(), ndim, InvalidLayout, "All tensors must have the same ndim.")?;
+            rstsr_assert!(
+                tensor.device().same_device(&device),
+                DeviceMismatch,
+                "All tensors must be on the same device."
+            )?;
+            Ok(())
+        })?;
+
+        // check and make axis positive
+        let axis = if axis < 0 {
+            ndim as isize + axis
+        } else {
+            axis
+        };
+        rstsr_pattern!(axis, 0..ndim as isize, InvalidLayout, "axis out of bounds")?;
+        let axis = axis as usize;
+
+        // - check shape compatibility (dimension other than axis must match)
+        // - calculate the new shape
+        let mut new_axis_size = 0;
+        let mut shape_other = tensors[0].shape().as_ref().to_vec();
+        shape_other.remove(axis);
+        for tensor in &tensors {
+            let mut shape_other_i = tensor.shape().as_ref().to_vec();
+            new_axis_size += shape_other_i.remove(axis);
+            rstsr_assert_eq!(
+                shape_other_i,
+                shape_other,
+                InvalidLayout,
+                "All tensors must have the same shape except for the concatenation axis."
+            )?;
+        }
+        shape_other.insert(axis, new_axis_size);
+        let new_shape = shape_other;
+
+        // create the result tensor
+        let mut result = unsafe { empty_f((new_shape, &device))? };
+
+        // assign each tensor to the result tensor
+        let mut offset = 0;
+        for tensor in tensors {
+            let layout = tensor.layout().to_dim::<IxD>()?;
+            let axis_size = tensor.shape()[axis];
+            let layout_result = result.layout().dim_narrow(axis as isize, slice!(offset, offset + axis_size))?;
+            device.assign(
+                result.raw_mut(),
+                &layout_result,
+                tensor.raw(),
+                &layout,
+            )?;
+            offset += axis_size;
+        }
+        
+        Ok(result)
+    }
+}
+
+#[duplicate_item(
+    ImplType         ImplStruct                            ;
+    [              ] [(&Vec<TensorAny<R, T, B, D>> , isize)];
+    [const N: usize] [([TensorAny<R, T, B, D>; N]  , isize)];
+    [              ] [(Vec<TensorAny<R, T, B, D>>  , usize)];
+    [              ] [(&Vec<TensorAny<R, T, B, D>> , usize)];
+    [const N: usize] [([TensorAny<R, T, B, D>; N]  , usize)];
+    [              ] [(Vec<TensorAny<R, T, B, D>>  , i32  )];
+    [              ] [(&Vec<TensorAny<R, T, B, D>> , i32  )];
+    [const N: usize] [([TensorAny<R, T, B, D>; N]  , i32  )];
+    
+    [              ] [(Vec<&TensorAny<R, T, B, D>> , isize)];
+    [              ] [(&Vec<&TensorAny<R, T, B, D>>, isize)];
+    [const N: usize] [([&TensorAny<R, T, B, D>; N] , isize)];
+    [              ] [(Vec<&TensorAny<R, T, B, D>> , usize)];
+    [              ] [(&Vec<&TensorAny<R, T, B, D>>, usize)];
+    [const N: usize] [([&TensorAny<R, T, B, D>; N] , usize)];
+    [              ] [(Vec<&TensorAny<R, T, B, D>> , i32  )];
+    [              ] [(&Vec<&TensorAny<R, T, B, D>>, i32  )];
+    [const N: usize] [([&TensorAny<R, T, B, D>; N] , i32  )];
+)]
+impl<R, T, B, D, ImplType> ConcatAPI<()> for ImplStruct
+where
+    R: DataAPI<Data = B::Raw>,
+    T: Clone + Default,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD>,
+{
+    type Out = Tensor<T, B, IxD>;
+
+    fn concat_f(self) -> Result<Self::Out> {
+        let (tensors, axis) = self;
+        #[allow(clippy::unnecessary_cast)]
+        let axis = axis as isize;
+        let tensors = tensors.iter().map(|t| t.view()).collect::<Vec<_>>();
+        ConcatAPI::concat_f((tensors, axis))
+    }
+}
+
+/* #endregion */
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -308,6 +469,15 @@ mod test {
         let c = meshgrid((&vec![&a, &b], "ij", true));
         println!("{c:?}");
         let d = meshgrid((&vec![&a, &b], "xy", true));
+        println!("{d:?}");
+    }
+
+    #[test]
+    fn test_concat() {
+        let a = arange(18).into_shape([2, 3, 3]);
+        let b = arange(24).into_shape([2, 4, 3]);
+        let c = arange(30).into_shape([2, 5, 3]);
+        let d = concat(([a, b, c], -2));
         println!("{d:?}");
     }
 }
