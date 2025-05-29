@@ -52,7 +52,9 @@ pub mod rstsr_structs {
 }
 
 pub mod rstsr_funcs {
-    pub use crate::tensor::adv_indexing::{index_select, index_select_f};
+    pub use crate::tensor::adv_indexing::{
+        bool_select, bool_select_f, index_select, index_select_f,
+    };
     pub use crate::tensor::asarray::{asarray, asarray_f};
     pub use crate::tensor::creation::{
         arange, arange_f, empty, empty_f, empty_like, empty_like_f, eye, eye_f, full, full_f,

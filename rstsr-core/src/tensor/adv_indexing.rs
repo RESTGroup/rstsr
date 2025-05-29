@@ -5,6 +5,8 @@
 
 use crate::prelude_dev::*;
 
+/* #region index_select */
+
 pub fn index_select_f<R, T, B, D, I>(
     tensor: &TensorAny<R, T, B, D>,
     axis: isize,
@@ -15,8 +17,7 @@ where
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
     B: DeviceAPI<T> + DeviceIndexSelectAPI<T, D> + DeviceCreationAnyAPI<T>,
-    I: TryInto<AxesIndex<isize>>,
-    Error: From<I::Error>,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
 {
     // TODO: output layout control (TensorIterOrder::K or default layout)
     let device = tensor.device().clone();
@@ -74,8 +75,7 @@ where
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
     B: DeviceAPI<T> + DeviceIndexSelectAPI<T, D> + DeviceCreationAnyAPI<T>,
-    I: TryInto<AxesIndex<isize>>,
-    Error: From<I::Error>,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
 {
     index_select_f(tensor, axis, indices).unwrap()
 }
@@ -89,8 +89,7 @@ where
 {
     pub fn index_select_f<I>(&self, axis: isize, indices: I) -> Result<Tensor<T, B, D>>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         index_select_f(self, axis, indices)
     }
@@ -103,12 +102,81 @@ where
     /// This function should be similar to PyTorch's [`torch.index_select`](https://docs.pytorch.org/docs/stable/generated/torch.index_select.html).
     pub fn index_select<I>(&self, axis: isize, indices: I) -> Tensor<T, B, D>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         index_select(self, axis, indices)
     }
 }
+
+/* #endregion */
+
+/* #region bool_select */
+
+pub fn bool_select_f<R, T, B, D, I>(
+    tensor: &TensorAny<R, T, B, D>,
+    axis: isize,
+    mask: I,
+) -> Result<Tensor<T, B, D>>
+where
+    R: DataAPI<Data = B::Raw>,
+    D: DimAPI + DimSmallerOneAPI,
+    D::SmallerOne: DimAPI,
+    B: DeviceAPI<T> + DeviceIndexSelectAPI<T, D> + DeviceCreationAnyAPI<T>,
+    I: TryInto<AxesIndex<bool>, Error = Error>,
+{
+    // transform bool to index
+    let indices = mask
+        .try_into()?
+        .as_ref()
+        .iter()
+        .enumerate()
+        .filter_map(|(i, &m)| m.then_some(i))
+        .collect::<Vec<usize>>();
+    index_select_f(tensor, axis, indices)
+}
+
+/// Returns a new tensor, which indexes the input tensor along dimension `axis`
+/// using the boolean entries in `mask`.
+pub fn bool_select<R, T, B, D, I>(
+    tensor: &TensorAny<R, T, B, D>,
+    axis: isize,
+    mask: I,
+) -> Tensor<T, B, D>
+where
+    R: DataAPI<Data = B::Raw>,
+    D: DimAPI + DimSmallerOneAPI,
+    D::SmallerOne: DimAPI,
+    B: DeviceAPI<T> + DeviceIndexSelectAPI<T, D> + DeviceCreationAnyAPI<T>,
+    I: TryInto<AxesIndex<bool>, Error = Error>,
+{
+    bool_select_f(tensor, axis, mask).unwrap()
+}
+
+impl<R, T, B, D> TensorAny<R, T, B, D>
+where
+    R: DataAPI<Data = B::Raw>,
+    D: DimAPI + DimSmallerOneAPI,
+    D::SmallerOne: DimAPI,
+    B: DeviceAPI<T> + DeviceIndexSelectAPI<T, D> + DeviceCreationAnyAPI<T>,
+{
+    pub fn bool_select_f<I>(&self, axis: isize, indices: I) -> Result<Tensor<T, B, D>>
+    where
+        I: TryInto<AxesIndex<bool>, Error = Error>,
+    {
+        bool_select_f(self, axis, indices)
+    }
+
+    /// Returns a new tensor, which indexes the input tensor along dimension
+    /// `axis` using the boolean entries in `mask`.
+    pub fn bool_select<I>(&self, axis: isize, indices: I) -> Tensor<T, B, D>
+    where
+        I: TryInto<AxesIndex<bool>, Error = Error>,
+    {
+        bool_select(self, axis, indices)
+    }
+}
+
+/* #endregion */
 
 #[cfg(test)]
 mod test {
@@ -166,5 +234,12 @@ mod test {
             let b = a.index_select(0, &sel);
             assert!(fingerprint(&b) - 1.010735112247236 < 1e-10);
         }
+    }
+
+    #[test]
+    fn test_bool_select_workable() {
+        let a = arange(24).into_shape((2, 3, 4));
+        let b = a.bool_select(-2, [true, false, true]);
+        println!("{b:?}");
     }
 }
