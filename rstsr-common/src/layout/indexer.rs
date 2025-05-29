@@ -59,23 +59,29 @@ impl_from_int_into_indexer!(usize, isize, u32, i32, u64, i64);
 macro_rules! impl_into_axes_index {
     ($($t:ty),*) => {
         $(
-            impl From<$t> for AxesIndex<Indexer> {
-                fn from(index: $t) -> Self {
-                    AxesIndex::Val(index.into())
+            impl TryFrom<$t> for AxesIndex<Indexer> {
+                type Error = Error;
+
+                fn try_from(index: $t) -> Result<Self> {
+                    Ok(AxesIndex::Val(index.try_into()?))
                 }
             }
 
-            impl<const N: usize> From<[$t; N]> for AxesIndex<Indexer> {
-                fn from(index: [$t; N]) -> Self {
+            impl<const N: usize> TryFrom<[$t; N]> for AxesIndex<Indexer> {
+                type Error = Error;
+
+                fn try_from(index: [$t; N]) -> Result<Self> {
                     let index = index.iter().map(|v| v.clone().into()).collect::<Vec<_>>();
-                    AxesIndex::Vec(index)
+                    Ok(AxesIndex::Vec(index))
                 }
             }
 
-            impl From<Vec<$t>> for AxesIndex<Indexer> {
-                fn from(index: Vec<$t>) -> Self {
+            impl TryFrom<Vec<$t>> for AxesIndex<Indexer> {
+                type Error = Error;
+
+                fn try_from(index: Vec<$t>) -> Result<Self> {
                     let index = index.iter().map(|v| v.clone().into()).collect::<Vec<_>>();
-                    AxesIndex::Vec(index)
+                    Ok(AxesIndex::Vec(index))
                 }
             }
         )*

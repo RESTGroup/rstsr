@@ -170,8 +170,7 @@ where
 pub fn into_expand_dims_f<I, S, D>(tensor: TensorBase<S, D>, axes: I) -> Result<TensorBase<S, IxD>>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>>,
-    Error: From<I::Error>,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
 {
     // convert axis to negative indexes and sort
     let ndim: isize = TryInto::<isize>::try_into(tensor.ndim())?;
@@ -206,8 +205,7 @@ pub fn expand_dims<I, R, T, B, D>(
 ) -> TensorView<'_, T, B, IxD>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>>,
-    Error: From<I::Error>,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
@@ -220,8 +218,7 @@ pub fn expand_dims_f<I, R, T, B, D>(
 ) -> Result<TensorView<'_, T, B, IxD>>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>>,
-    Error: From<I::Error>,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
@@ -231,8 +228,7 @@ where
 pub fn into_expand_dims<I, S, D>(tensor: TensorBase<S, D>, axes: I) -> TensorBase<S, IxD>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>>,
-    Error: From<I::Error>,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
 {
     into_expand_dims_f(tensor, axes).unwrap()
 }
@@ -251,16 +247,14 @@ where
     /// [`expand_dims`]
     pub fn expand_dims<I>(&self, axes: I) -> TensorView<'_, T, B, IxD>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         into_expand_dims(self.view(), axes)
     }
 
     pub fn expand_dims_f<I>(&self, axes: I) -> Result<TensorView<'_, T, B, IxD>>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         into_expand_dims_f(self.view(), axes)
     }
@@ -273,16 +267,14 @@ where
     /// [`expand_dims`]
     pub fn into_expand_dims<I>(self, axes: I) -> TensorAny<R, T, B, IxD>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         into_expand_dims(self, axes)
     }
 
     pub fn into_expand_dims_f<I>(self, axes: I) -> Result<TensorAny<R, T, B, IxD>>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         into_expand_dims_f(self, axes)
     }
@@ -295,8 +287,7 @@ where
 pub fn into_flip_f<I, S, D>(tensor: TensorBase<S, D>, axes: I) -> Result<TensorBase<S, D>>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>>,
-    Error: From<I::Error>,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
 {
     let (storage, mut layout) = tensor.into_raw_parts();
     let axes = axes.try_into()?;
@@ -326,8 +317,7 @@ where
 pub fn flip<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axes: I) -> TensorView<'_, T, B, D>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>>,
-    Error: From<I::Error>,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
@@ -340,8 +330,7 @@ pub fn flip_f<I, R, T, B, D>(
 ) -> Result<TensorView<'_, T, B, D>>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>>,
-    Error: From<I::Error>,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
@@ -351,8 +340,7 @@ where
 pub fn into_flip<I, S, D>(tensor: TensorBase<S, D>, axes: I) -> TensorBase<S, D>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>>,
-    Error: From<I::Error>,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
 {
     into_flip_f(tensor, axes).unwrap()
 }
@@ -370,16 +358,14 @@ where
     /// [`flip`]
     pub fn flip<I>(&self, axis: I) -> TensorView<'_, T, B, D>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         flip(self, axis)
     }
 
     pub fn flip_f<I>(&self, axis: I) -> Result<TensorView<'_, T, B, D>>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         flip_f(self, axis)
     }
@@ -391,16 +377,14 @@ where
     /// [`flip`]
     pub fn into_flip<I>(self, axis: I) -> TensorAny<R, T, B, D>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         into_flip(self, axis)
     }
 
     pub fn into_flip_f<I>(self, axis: I) -> Result<TensorAny<R, T, B, D>>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         into_flip_f(self, axis)
     }
@@ -413,8 +397,7 @@ where
 pub fn into_transpose_f<I, S, D>(tensor: TensorBase<S, D>, axes: I) -> Result<TensorBase<S, D>>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>>,
-    Error: From<I::Error>,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
 {
     let axes = axes.try_into()?;
     if axes.as_ref().is_empty() {
@@ -433,8 +416,7 @@ where
 pub fn transpose<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axes: I) -> TensorView<'_, T, B, D>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>>,
-    Error: From<I::Error>,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
@@ -447,8 +429,7 @@ pub fn transpose_f<I, R, T, B, D>(
 ) -> Result<TensorView<'_, T, B, D>>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>>,
-    Error: From<I::Error>,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
@@ -458,8 +439,7 @@ where
 pub fn into_transpose<I, S, D>(tensor: TensorBase<S, D>, axes: I) -> TensorBase<S, D>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>>,
-    Error: From<I::Error>,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
 {
     into_transpose_f(tensor, axes).unwrap()
 }
@@ -482,16 +462,14 @@ where
     /// [`transpose`]
     pub fn transpose<I>(&self, axes: I) -> TensorView<'_, T, B, D>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         transpose(self, axes)
     }
 
     pub fn transpose_f<I>(&self, axes: I) -> Result<TensorView<'_, T, B, D>>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         transpose_f(self, axes)
     }
@@ -503,16 +481,14 @@ where
     /// [`transpose`]
     pub fn into_transpose<I>(self, axes: I) -> TensorAny<R, T, B, D>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         into_transpose(self, axes)
     }
 
     pub fn into_transpose_f<I>(self, axes: I) -> Result<TensorAny<R, T, B, D>>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         into_transpose_f(self, axes)
     }
@@ -524,16 +500,14 @@ where
     /// [`transpose`]
     pub fn permute_dims<I>(&self, axes: I) -> TensorView<'_, T, B, D>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         transpose(self, axes)
     }
 
     pub fn permute_dims_f<I>(&self, axes: I) -> Result<TensorView<'_, T, B, D>>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         transpose_f(self, axes)
     }
@@ -545,16 +519,14 @@ where
     /// [`transpose`]
     pub fn into_permute_dims<I>(self, axes: I) -> TensorAny<R, T, B, D>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         into_transpose(self, axes)
     }
 
     pub fn into_permute_dims_f<I>(self, axes: I) -> Result<TensorAny<R, T, B, D>>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         into_transpose_f(self, axes)
     }
@@ -730,8 +702,7 @@ where
 pub fn into_squeeze_f<I, S, D>(tensor: TensorBase<S, D>, axes: I) -> Result<TensorBase<S, IxD>>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>>,
-    Error: From<I::Error>,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
 {
     // convert axis to positive indexes and (reversed) sort
     let ndim: isize = TryInto::<isize>::try_into(tensor.ndim())?;
@@ -762,8 +733,7 @@ where
 pub fn squeeze<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axes: I) -> TensorView<'_, T, B, IxD>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>>,
-    Error: From<I::Error>,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
@@ -776,8 +746,7 @@ pub fn squeeze_f<I, R, T, B, D>(
 ) -> Result<TensorView<'_, T, B, IxD>>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>>,
-    Error: From<I::Error>,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
@@ -787,8 +756,7 @@ where
 pub fn into_squeeze<I, S, D>(tensor: TensorBase<S, D>, axes: I) -> TensorBase<S, IxD>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>>,
-    Error: From<I::Error>,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
 {
     into_squeeze_f(tensor, axes).unwrap()
 }
@@ -806,16 +774,14 @@ where
     /// [`squeeze`]
     pub fn squeeze<I>(&self, axis: I) -> TensorView<'_, T, B, IxD>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         squeeze(self, axis)
     }
 
     pub fn squeeze_f<I>(&self, axis: I) -> Result<TensorView<'_, T, B, IxD>>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         squeeze_f(self, axis)
     }
@@ -827,16 +793,14 @@ where
     /// [`squeeze`]
     pub fn into_squeeze<I>(self, axis: I) -> TensorAny<R, T, B, IxD>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         into_squeeze(self, axis)
     }
 
     pub fn into_squeeze_f<I>(self, axis: I) -> Result<TensorAny<R, T, B, IxD>>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         into_squeeze_f(self, axis)
     }
@@ -1118,8 +1082,7 @@ pub fn change_shape_f<'a, I, R, T, B, D>(
     shape: I,
 ) -> Result<TensorCow<'a, T, B, IxD>>
 where
-    I: TryInto<AxesIndex<isize>>,
-    Error: From<I::Error>,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
@@ -1153,8 +1116,7 @@ pub fn change_shape<'a, I, R, T, B, D>(
     shape: I,
 ) -> TensorCow<'a, T, B, IxD>
 where
-    I: TryInto<AxesIndex<isize>>,
-    Error: From<I::Error>,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
@@ -1167,8 +1129,7 @@ pub fn into_shape_f<'a, I, R, T, B, D>(
     shape: I,
 ) -> Result<Tensor<T, B, IxD>>
 where
-    I: TryInto<AxesIndex<isize>>,
-    Error: From<I::Error>,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
     T: Clone,
@@ -1183,8 +1144,7 @@ where
 
 pub fn into_shape<'a, I, R, T, B, D>(tensor: TensorAny<R, T, B, D>, shape: I) -> Tensor<T, B, IxD>
 where
-    I: TryInto<AxesIndex<isize>>,
-    Error: From<I::Error>,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
     T: Clone,
@@ -1202,8 +1162,7 @@ pub fn to_shape_f<'a, I, R, T, B, D>(
     shape: I,
 ) -> Result<TensorCow<'a, T, B, IxD>>
 where
-    I: TryInto<AxesIndex<isize>>,
-    Error: From<I::Error>,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
@@ -1216,8 +1175,7 @@ pub fn to_shape<'a, I, R, T, B, D>(
     shape: I,
 ) -> TensorCow<'a, T, B, IxD>
 where
-    I: TryInto<AxesIndex<isize>>,
-    Error: From<I::Error>,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
@@ -1230,8 +1188,7 @@ pub fn reshape_f<'a, I, R, T, B, D>(
     shape: I,
 ) -> Result<TensorCow<'a, T, B, IxD>>
 where
-    I: TryInto<AxesIndex<isize>>,
-    Error: From<I::Error>,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
@@ -1244,8 +1201,7 @@ pub fn reshape<'a, I, R, T, B, D>(
     shape: I,
 ) -> TensorCow<'a, T, B, IxD>
 where
-    I: TryInto<AxesIndex<isize>>,
-    Error: From<I::Error>,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
@@ -1265,24 +1221,21 @@ where
 {
     pub fn change_shape_f<I>(self, shape: I) -> Result<TensorCow<'a, T, B, IxD>>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         change_shape_f(self, shape)
     }
 
     pub fn change_shape<I>(self, shape: I) -> TensorCow<'a, T, B, IxD>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         change_shape(self, shape)
     }
 
     pub fn into_shape_f<I>(self, shape: I) -> Result<Tensor<T, B, IxD>>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
         B::Raw: Clone + 'a,
     {
         into_shape_f(self, shape)
@@ -1290,8 +1243,7 @@ where
 
     pub fn into_shape<I>(self, shape: I) -> Tensor<T, B, IxD>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
         B::Raw: Clone + 'a,
     {
         into_shape(self, shape)
@@ -1299,32 +1251,28 @@ where
 
     pub fn to_shape_f<I>(&'a self, shape: I) -> Result<TensorCow<'a, T, B, IxD>>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         self.view().change_shape_f(shape)
     }
 
     pub fn to_shape<I>(&'a self, shape: I) -> TensorCow<'a, T, B, IxD>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         self.view().change_shape(shape)
     }
 
     pub fn reshape_f<I>(&'a self, shape: I) -> Result<TensorCow<'a, T, B, IxD>>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         self.view().change_shape_f(shape)
     }
 
     pub fn reshape<I>(&'a self, shape: I) -> TensorCow<'a, T, B, IxD>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         self.view().change_shape(shape)
     }
