@@ -605,6 +605,160 @@ where
 
 /* #endregion */
 
+/* #region stack */
+
+pub trait StackAPI<Inp> {
+    type Out;
+
+    fn stack_f(self) -> Result<Self::Out>;
+    fn stack(self) -> Self::Out
+    where
+        Self: Sized,
+    {
+        Self::stack_f(self).unwrap()
+    }
+}
+
+/// Joins a sequence of arrays along a new axis.
+/// 
+/// # See also
+/// 
+/// [Python Array Standard `stack`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.stack.html)
+pub fn stack<Args, Inp>(args: Args) -> Args::Out
+where
+    Args: StackAPI<Inp>,
+{
+    Args::stack(args)
+}
+
+pub fn stack_f<Args, Inp>(args: Args) -> Result<Args::Out>
+where
+    Args: StackAPI<Inp>,
+{
+    Args::stack_f(args)
+}
+
+impl<R, T, B, D> StackAPI<()> for (Vec<TensorAny<R, T, B, D>>, isize)
+where
+    R: DataAPI<Data = B::Raw>,
+    T: Clone + Default,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD>,
+{
+    type Out = Tensor<T, B, IxD>;
+
+    fn stack_f(self) -> Result<Self::Out> {
+        let (tensors, axis) = self;
+
+        // quick error for empty tensors
+        rstsr_assert!(
+            !tensors.is_empty(),
+            InvalidValue,
+            "stack requires at least one tensor."
+        )?;
+
+        // check same device and same ndim
+        let device = tensors[0].device().clone();
+        let ndim = tensors[0].ndim();
+        let shape_orig = tensors[0].shape();
+
+        rstsr_assert!(ndim > 0, InvalidLayout, "All tensors must have ndim > 0 in stack.")?;
+        tensors.iter().try_for_each(|tensor| -> Result<()> {
+            rstsr_assert_eq!(tensor.shape(), shape_orig, InvalidLayout, "All tensors must have the same shape.")?;
+            rstsr_assert!(
+                tensor.device().same_device(&device),
+                DeviceMismatch,
+                "All tensors must be on the same device."
+            )?;
+            Ok(())
+        })?;
+        
+        // check and make axis positive
+        let axis = if axis < 0 {
+            ndim as isize + axis + 1
+        } else {
+            axis
+        };
+        rstsr_pattern!(axis, 0..=ndim as isize, InvalidLayout, "axis out of bounds")?;
+        let axis = axis as usize;
+
+        // expand the shape of each tensor
+        let tensors = tensors.into_iter().map(|tensor| tensor.into_expand_dims_f(axis)).collect::<Result<Vec<_>>>()?;
+
+        // use concat function to perform the stacking
+        ConcatAPI::concat_f((tensors, axis as isize))
+    }
+}
+
+#[duplicate_item(
+    ImplType         ImplStruct                            ;
+   [              ] [(&Vec<TensorAny<R, T, B, D>> , isize)];
+   [const N: usize] [([TensorAny<R, T, B, D>; N]  , isize)];
+   [              ] [(Vec<TensorAny<R, T, B, D>>  , usize)];
+   [              ] [(&Vec<TensorAny<R, T, B, D>> , usize)];
+   [const N: usize] [([TensorAny<R, T, B, D>; N]  , usize)];
+   [              ] [(Vec<TensorAny<R, T, B, D>>  , i32  )];
+   [              ] [(&Vec<TensorAny<R, T, B, D>> , i32  )];
+   [const N: usize] [([TensorAny<R, T, B, D>; N]  , i32  )];
+   
+   [              ] [(Vec<&TensorAny<R, T, B, D>> , isize)];
+   [              ] [(&Vec<&TensorAny<R, T, B, D>>, isize)];
+   [const N: usize] [([&TensorAny<R, T, B, D>; N] , isize)];
+   [              ] [(Vec<&TensorAny<R, T, B, D>> , usize)];
+   [              ] [(&Vec<&TensorAny<R, T, B, D>>, usize)];
+   [const N: usize] [([&TensorAny<R, T, B, D>; N] , usize)];
+   [              ] [(Vec<&TensorAny<R, T, B, D>> , i32  )];
+   [              ] [(&Vec<&TensorAny<R, T, B, D>>, i32  )];
+   [const N: usize] [([&TensorAny<R, T, B, D>; N] , i32  )];
+)]
+impl<R, T, B, D, ImplType> StackAPI<()> for ImplStruct
+where
+    R: DataAPI<Data = B::Raw>,
+    T: Clone + Default,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD>,
+{
+    type Out = Tensor<T, B, IxD>;
+
+    fn stack_f(self) -> Result<Self::Out> {
+        let (tensors, axis) = self;
+        #[allow(clippy::unnecessary_cast)]
+        let axis = axis as isize;
+        let tensors = tensors.iter().map(|t| t.view()).collect::<Vec<_>>();
+        StackAPI::stack_f((tensors, axis))
+    }
+}
+
+#[duplicate_item(
+    ImplType         ImplStruct                   ;
+   [              ] [Vec<TensorAny<R, T, B, D>>  ];
+   [              ] [&Vec<TensorAny<R, T, B, D>> ];
+   [const N: usize] [[TensorAny<R, T, B, D>; N]  ];
+   
+   [              ] [Vec<&TensorAny<R, T, B, D>> ];
+   [              ] [&Vec<&TensorAny<R, T, B, D>>];
+   [const N: usize] [[&TensorAny<R, T, B, D>; N] ];
+)]
+impl<R, T, B, D, ImplType> StackAPI<()> for ImplStruct
+where
+    R: DataAPI<Data = B::Raw>,
+    T: Clone + Default,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD>,
+{
+    type Out = Tensor<T, B, IxD>;
+
+    fn stack_f(self) -> Result<Self::Out> {
+        let tensors = self;
+        #[allow(clippy::unnecessary_cast)]
+        let axis = 0;
+        let tensors = tensors.iter().map(|t| t.view()).collect::<Vec<_>>();
+        StackAPI::stack_f((tensors, axis))
+    }
+}
+
+/* #endregion */
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -646,6 +800,17 @@ mod test {
         let b = arange(24).into_shape([2, 4, 3]);
         let c = arange(30).into_shape([2, 5, 3]);
         let d = hstack([a, b, c]);
+        println!("{d:?}");
+    }
+
+    #[test]
+    fn test_stack() {
+        let a = arange(8).into_shape([2, 4]);
+        let b = arange(8).into_shape([2, 4]);
+        let c = arange(8).into_shape([2, 4]);
+        let d = stack([&a, &b, &c]);
+        println!("{d:?}");
+        let d = stack(([&a, &b, &c], -1));
         println!("{d:?}");
     }
 }
