@@ -300,9 +300,9 @@ pub trait ConcatAPI<Inp> {
 }
 
 /// Join a sequence of arrays along an existing axis.
-/// 
+///
 /// # See also
-/// 
+///
 /// - [Python Array Standard `concatnate`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.concat.html)
 pub fn concat<Args, Inp>(args: Args) -> Args::Out
 where
@@ -318,8 +318,8 @@ where
     Args::concat_f(args)
 }
 
-pub use concat_f as concatenate_f;
 pub use concat as concatenate;
+pub use concat_f as concatenate_f;
 
 impl<R, T, B, D> ConcatAPI<()> for (Vec<TensorAny<R, T, B, D>>, isize)
 where
@@ -334,11 +334,7 @@ where
         let (tensors, axis) = self;
 
         // quick error for empty tensors
-        rstsr_assert!(
-            !tensors.is_empty(),
-            InvalidValue,
-            "concat requires at least one tensor."
-        )?;
+        rstsr_assert!(!tensors.is_empty(), InvalidValue, "concat requires at least one tensor.")?;
 
         // check same device and same ndim
         let device = tensors[0].device().clone();
@@ -346,7 +342,12 @@ where
 
         rstsr_assert!(ndim > 0, InvalidLayout, "All tensors must have ndim > 0 in concat.")?;
         tensors.iter().try_for_each(|tensor| -> Result<()> {
-            rstsr_assert_eq!(tensor.ndim(), ndim, InvalidLayout, "All tensors must have the same ndim.")?;
+            rstsr_assert_eq!(
+                tensor.ndim(),
+                ndim,
+                InvalidLayout,
+                "All tensors must have the same ndim."
+            )?;
             rstsr_assert!(
                 tensor.device().same_device(&device),
                 DeviceMismatch,
@@ -356,11 +357,7 @@ where
         })?;
 
         // check and make axis positive
-        let axis = if axis < 0 {
-            ndim as isize + axis
-        } else {
-            axis
-        };
+        let axis = if axis < 0 { ndim as isize + axis } else { axis };
         rstsr_pattern!(axis, 0..ndim as isize, InvalidLayout, "axis out of bounds")?;
         let axis = axis as usize;
 
@@ -390,16 +387,12 @@ where
         for tensor in tensors {
             let layout = tensor.layout().to_dim::<IxD>()?;
             let axis_size = tensor.shape()[axis];
-            let layout_result = result.layout().dim_narrow(axis as isize, slice!(offset, offset + axis_size))?;
-            device.assign(
-                result.raw_mut(),
-                &layout_result,
-                tensor.raw(),
-                &layout,
-            )?;
+            let layout_result =
+                result.layout().dim_narrow(axis as isize, slice!(offset, offset + axis_size))?;
+            device.assign(result.raw_mut(), &layout_result, tensor.raw(), &layout)?;
             offset += axis_size;
         }
-        
+
         Ok(result)
     }
 }
@@ -414,7 +407,6 @@ where
    [              ] [(Vec<TensorAny<R, T, B, D>>  , i32  )];
    [              ] [(&Vec<TensorAny<R, T, B, D>> , i32  )];
    [const N: usize] [([TensorAny<R, T, B, D>; N]  , i32  )];
-   
    [              ] [(Vec<&TensorAny<R, T, B, D>> , isize)];
    [              ] [(&Vec<&TensorAny<R, T, B, D>>, isize)];
    [const N: usize] [([&TensorAny<R, T, B, D>; N] , isize)];
@@ -448,7 +440,6 @@ where
    [              ] [Vec<TensorAny<R, T, B, D>>  ];
    [              ] [&Vec<TensorAny<R, T, B, D>> ];
    [const N: usize] [[TensorAny<R, T, B, D>; N]  ];
-   
    [              ] [Vec<&TensorAny<R, T, B, D>> ];
    [              ] [&Vec<&TensorAny<R, T, B, D>>];
    [const N: usize] [[&TensorAny<R, T, B, D>; N] ];
@@ -488,9 +479,9 @@ pub trait HStackAPI<Inp> {
 }
 
 /// Stack tensors in sequence horizontally (column-wise).
-/// 
+///
 /// # See also
-/// 
+///
 /// [NumPy `hstack`](https://numpy.org/doc/stable/reference/generated/numpy.hstack.html)
 pub fn hstack<Args, Inp>(args: Args) -> Args::Out
 where
@@ -511,7 +502,6 @@ where
    [              ] [Vec<TensorAny<R, T, B, D>>  ];
    [              ] [&Vec<TensorAny<R, T, B, D>> ];
    [const N: usize] [[TensorAny<R, T, B, D>; N]  ];
-   
    [              ] [Vec<&TensorAny<R, T, B, D>> ];
    [              ] [&Vec<&TensorAny<R, T, B, D>>];
    [const N: usize] [[&TensorAny<R, T, B, D>; N] ];
@@ -527,7 +517,7 @@ where
 
     fn hstack_f(self) -> Result<Self::Out> {
         let tensors = self;
-        
+
         if tensors.is_empty() {
             return rstsr_raise!(InvalidValue, "hstack requires at least one tensor.");
         }
@@ -557,9 +547,9 @@ pub trait VStackAPI<Inp> {
 }
 
 /// Stack tensors in sequence horizontally (row-wise).
-/// 
+///
 /// # See also
-/// 
+///
 /// [NumPy `vstack`](https://numpy.org/doc/stable/reference/generated/numpy.vstack.html)
 pub fn vstack<Args, Inp>(args: Args) -> Args::Out
 where
@@ -580,7 +570,6 @@ where
    [              ] [Vec<TensorAny<R, T, B, D>>  ];
    [              ] [&Vec<TensorAny<R, T, B, D>> ];
    [const N: usize] [[TensorAny<R, T, B, D>; N]  ];
-   
    [              ] [Vec<&TensorAny<R, T, B, D>> ];
    [              ] [&Vec<&TensorAny<R, T, B, D>>];
    [const N: usize] [[&TensorAny<R, T, B, D>; N] ];
@@ -596,7 +585,7 @@ where
 
     fn vstack_f(self) -> Result<Self::Out> {
         let tensors = self;
-        
+
         if tensors.is_empty() {
             return rstsr_raise!(InvalidValue, "vstack requires at least one tensor.");
         }
@@ -622,9 +611,9 @@ pub trait StackAPI<Inp> {
 }
 
 /// Joins a sequence of arrays along a new axis.
-/// 
+///
 /// # See also
-/// 
+///
 /// [Python Array Standard `stack`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.stack.html)
 pub fn stack<Args, Inp>(args: Args) -> Args::Out
 where
@@ -653,11 +642,7 @@ where
         let (tensors, axis) = self;
 
         // quick error for empty tensors
-        rstsr_assert!(
-            !tensors.is_empty(),
-            InvalidValue,
-            "stack requires at least one tensor."
-        )?;
+        rstsr_assert!(!tensors.is_empty(), InvalidValue, "stack requires at least one tensor.")?;
 
         // check same device and same ndim
         let device = tensors[0].device().clone();
@@ -666,7 +651,12 @@ where
 
         rstsr_assert!(ndim > 0, InvalidLayout, "All tensors must have ndim > 0 in stack.")?;
         tensors.iter().try_for_each(|tensor| -> Result<()> {
-            rstsr_assert_eq!(tensor.shape(), shape_orig, InvalidLayout, "All tensors must have the same shape.")?;
+            rstsr_assert_eq!(
+                tensor.shape(),
+                shape_orig,
+                InvalidLayout,
+                "All tensors must have the same shape."
+            )?;
             rstsr_assert!(
                 tensor.device().same_device(&device),
                 DeviceMismatch,
@@ -674,18 +664,17 @@ where
             )?;
             Ok(())
         })?;
-        
+
         // check and make axis positive
-        let axis = if axis < 0 {
-            ndim as isize + axis + 1
-        } else {
-            axis
-        };
+        let axis = if axis < 0 { ndim as isize + axis + 1 } else { axis };
         rstsr_pattern!(axis, 0..=ndim as isize, InvalidLayout, "axis out of bounds")?;
         let axis = axis as usize;
 
         // expand the shape of each tensor
-        let tensors = tensors.into_iter().map(|tensor| tensor.into_expand_dims_f(axis)).collect::<Result<Vec<_>>>()?;
+        let tensors = tensors
+            .into_iter()
+            .map(|tensor| tensor.into_expand_dims_f(axis))
+            .collect::<Result<Vec<_>>>()?;
 
         // use concat function to perform the stacking
         ConcatAPI::concat_f((tensors, axis as isize))
@@ -702,7 +691,6 @@ where
    [              ] [(Vec<TensorAny<R, T, B, D>>  , i32  )];
    [              ] [(&Vec<TensorAny<R, T, B, D>> , i32  )];
    [const N: usize] [([TensorAny<R, T, B, D>; N]  , i32  )];
-   
    [              ] [(Vec<&TensorAny<R, T, B, D>> , isize)];
    [              ] [(&Vec<&TensorAny<R, T, B, D>>, isize)];
    [const N: usize] [([&TensorAny<R, T, B, D>; N] , isize)];
@@ -736,7 +724,6 @@ where
    [              ] [Vec<TensorAny<R, T, B, D>>  ];
    [              ] [&Vec<TensorAny<R, T, B, D>> ];
    [const N: usize] [[TensorAny<R, T, B, D>; N]  ];
-   
    [              ] [Vec<&TensorAny<R, T, B, D>> ];
    [              ] [&Vec<&TensorAny<R, T, B, D>>];
    [const N: usize] [[&TensorAny<R, T, B, D>; N] ];
@@ -776,9 +763,9 @@ pub trait UnstackAPI<Inp> {
 }
 
 /// Splits an array into a sequence of arrays along the given axis.
-/// 
+///
 /// # See also
-/// 
+///
 /// [Python Array Standard `unstack`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.unstack.html)
 pub fn unstack<Args, Inp>(args: Args) -> Args::Out
 where
@@ -807,26 +794,28 @@ where
         let (tensor, axis) = self;
 
         // check tensor ndim
-        rstsr_assert!(tensor.ndim() > 0, InvalidLayout, "unstack requires a tensor with ndim > 0.")?;
+        rstsr_assert!(
+            tensor.ndim() > 0,
+            InvalidLayout,
+            "unstack requires a tensor with ndim > 0."
+        )?;
 
         // check axis
         let ndim = tensor.ndim();
-        let axis = if axis < 0 {
-            ndim as isize + axis
-        } else {
-            axis
-        };
+        let axis = if axis < 0 { ndim as isize + axis } else { axis };
         rstsr_pattern!(axis, 0..ndim as isize, InvalidLayout, "axis out of bounds")?;
         let axis = axis as usize;
-        
-        (0..tensor.layout().shape()[axis]).map(|i| {
-            let view = tensor.view();
-            let (storage, layout) = view.into_raw_parts();
-            let layout = layout.dim_select(axis as isize, i as isize)?;
-            // safety: transmute for lifetime annotation
-            let storage = unsafe { transmute::<Storage<_, T, B>, Storage<_, T, B>>(storage) };
-            unsafe { Ok(TensorBase::new_unchecked(storage, layout)) }
-        }).collect()
+
+        (0..tensor.layout().shape()[axis])
+            .map(|i| {
+                let view = tensor.view();
+                let (storage, layout) = view.into_raw_parts();
+                let layout = layout.dim_select(axis as isize, i as isize)?;
+                // safety: transmute for lifetime annotation
+                let storage = unsafe { transmute::<Storage<_, T, B>, Storage<_, T, B>>(storage) };
+                unsafe { Ok(TensorBase::new_unchecked(storage, layout)) }
+            })
+            .collect()
     }
 }
 
