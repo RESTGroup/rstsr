@@ -407,24 +407,24 @@ where
 
 #[duplicate_item(
     ImplType         ImplStruct                            ;
-    [              ] [(&Vec<TensorAny<R, T, B, D>> , isize)];
-    [const N: usize] [([TensorAny<R, T, B, D>; N]  , isize)];
-    [              ] [(Vec<TensorAny<R, T, B, D>>  , usize)];
-    [              ] [(&Vec<TensorAny<R, T, B, D>> , usize)];
-    [const N: usize] [([TensorAny<R, T, B, D>; N]  , usize)];
-    [              ] [(Vec<TensorAny<R, T, B, D>>  , i32  )];
-    [              ] [(&Vec<TensorAny<R, T, B, D>> , i32  )];
-    [const N: usize] [([TensorAny<R, T, B, D>; N]  , i32  )];
-    
-    [              ] [(Vec<&TensorAny<R, T, B, D>> , isize)];
-    [              ] [(&Vec<&TensorAny<R, T, B, D>>, isize)];
-    [const N: usize] [([&TensorAny<R, T, B, D>; N] , isize)];
-    [              ] [(Vec<&TensorAny<R, T, B, D>> , usize)];
-    [              ] [(&Vec<&TensorAny<R, T, B, D>>, usize)];
-    [const N: usize] [([&TensorAny<R, T, B, D>; N] , usize)];
-    [              ] [(Vec<&TensorAny<R, T, B, D>> , i32  )];
-    [              ] [(&Vec<&TensorAny<R, T, B, D>>, i32  )];
-    [const N: usize] [([&TensorAny<R, T, B, D>; N] , i32  )];
+   [              ] [(&Vec<TensorAny<R, T, B, D>> , isize)];
+   [const N: usize] [([TensorAny<R, T, B, D>; N]  , isize)];
+   [              ] [(Vec<TensorAny<R, T, B, D>>  , usize)];
+   [              ] [(&Vec<TensorAny<R, T, B, D>> , usize)];
+   [const N: usize] [([TensorAny<R, T, B, D>; N]  , usize)];
+   [              ] [(Vec<TensorAny<R, T, B, D>>  , i32  )];
+   [              ] [(&Vec<TensorAny<R, T, B, D>> , i32  )];
+   [const N: usize] [([TensorAny<R, T, B, D>; N]  , i32  )];
+   
+   [              ] [(Vec<&TensorAny<R, T, B, D>> , isize)];
+   [              ] [(&Vec<&TensorAny<R, T, B, D>>, isize)];
+   [const N: usize] [([&TensorAny<R, T, B, D>; N] , isize)];
+   [              ] [(Vec<&TensorAny<R, T, B, D>> , usize)];
+   [              ] [(&Vec<&TensorAny<R, T, B, D>>, usize)];
+   [const N: usize] [([&TensorAny<R, T, B, D>; N] , usize)];
+   [              ] [(Vec<&TensorAny<R, T, B, D>> , i32  )];
+   [              ] [(&Vec<&TensorAny<R, T, B, D>>, i32  )];
+   [const N: usize] [([&TensorAny<R, T, B, D>; N] , i32  )];
 )]
 impl<R, T, B, D, ImplType> ConcatAPI<()> for ImplStruct
 where
@@ -439,6 +439,34 @@ where
         let (tensors, axis) = self;
         #[allow(clippy::unnecessary_cast)]
         let axis = axis as isize;
+        let tensors = tensors.iter().map(|t| t.view()).collect::<Vec<_>>();
+        ConcatAPI::concat_f((tensors, axis))
+    }
+}
+
+#[duplicate_item(
+    ImplType         ImplStruct                   ;
+   [              ] [Vec<TensorAny<R, T, B, D>>  ];
+   [              ] [&Vec<TensorAny<R, T, B, D>> ];
+   [const N: usize] [[TensorAny<R, T, B, D>; N]  ];
+   
+   [              ] [Vec<&TensorAny<R, T, B, D>> ];
+   [              ] [&Vec<&TensorAny<R, T, B, D>>];
+   [const N: usize] [[&TensorAny<R, T, B, D>; N] ];
+)]
+impl<R, T, B, D, ImplType> ConcatAPI<()> for ImplStruct
+where
+    R: DataAPI<Data = B::Raw>,
+    T: Clone + Default,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD>,
+{
+    type Out = Tensor<T, B, IxD>;
+
+    fn concat_f(self) -> Result<Self::Out> {
+        let tensors = self;
+        #[allow(clippy::unnecessary_cast)]
+        let axis = 0;
         let tensors = tensors.iter().map(|t| t.view()).collect::<Vec<_>>();
         ConcatAPI::concat_f((tensors, axis))
     }
