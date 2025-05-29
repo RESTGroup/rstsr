@@ -246,7 +246,7 @@ where
 
 // implementation for non-reference tensors
 #[duplicate_item(
-    ImplType         ImplStruct                                           tuple_args           tuple_internal  ;              
+    ImplType         ImplStruct                                           tuple_args           tuple_internal ;
    [              ] [(Vec<TensorAny<R, T, B, D>> , &str, bool)] [(tensors, indexing, copy)] [(indexing, copy)];
    [              ] [(&Vec<TensorAny<R, T, B, D>>, &str, bool)] [(tensors, indexing, copy)] [(indexing, copy)];
    [const N: usize] [([TensorAny<R, T, B, D>; N] , &str, bool)] [(tensors, indexing, copy)] [(indexing, copy)];
