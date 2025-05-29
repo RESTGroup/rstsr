@@ -11,7 +11,9 @@ pub mod rstsr_traits {
         ArangeAPI, EmptyAPI, EmptyLikeAPI, EyeAPI, FullAPI, FullLikeAPI, LinspaceAPI, OnesAPI,
         OnesLikeAPI, TrilAPI, TriuAPI, ZerosAPI, ZerosLikeAPI,
     };
-    pub use crate::tensor::creation_from_tensor::{ConcatAPI, DiagAPI, MeshgridAPI};
+    pub use crate::tensor::creation_from_tensor::{
+        ConcatAPI, DiagAPI, HStackAPI, MeshgridAPI, VStackAPI,
+    };
     pub use crate::tensor::operators::op_binary_common::{
         TensorATan2API, TensorCopySignAPI, TensorEqualAPI, TensorFloorDivideAPI, TensorGreaterAPI,
         TensorGreaterEqualAPI, TensorHypotAPI, TensorLessAPI, TensorLessEqualAPI,
@@ -58,7 +60,8 @@ pub mod rstsr_funcs {
         tril_f, triu, triu_f, zeros, zeros_f, zeros_like, zeros_like_f,
     };
     pub use crate::tensor::creation_from_tensor::{
-        concat, concat_f, concatenate, concatenate_f, diag, diag_f, meshgrid, meshgrid_f,
+        concat, concat_f, concatenate, concatenate_f, diag, diag_f, hstack, hstack_f, meshgrid,
+        meshgrid_f, vstack, vstack_f,
     };
     pub use crate::tensor::indexing::{
         diagonal, diagonal_f, diagonal_mut, diagonal_mut_f, into_diagonal, into_diagonal_f,

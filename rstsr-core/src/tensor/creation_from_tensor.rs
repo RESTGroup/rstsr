@@ -13,7 +13,6 @@ pub trait DiagAPI<Inp> {
     type Out;
 
     fn diag_f(self) -> Result<Self::Out>;
-
     fn diag(self) -> Self::Out
     where
         Self: Sized,
@@ -106,7 +105,6 @@ pub trait MeshgridAPI<Inp> {
     type Out;
 
     fn meshgrid_f(self) -> Result<Self::Out>;
-
     fn meshgrid(self) -> Self::Out
     where
         Self: Sized,
@@ -291,7 +289,6 @@ pub trait ConcatAPI<Inp> {
     type Out;
 
     fn concat_f(self) -> Result<Self::Out>;
-
     fn concat(self) -> Self::Out
     where
         Self: Sized,
@@ -474,6 +471,140 @@ where
 
 /* #endregion */
 
+/* #region hstack */
+
+pub trait HStackAPI<Inp> {
+    type Out;
+
+    fn hstack_f(self) -> Result<Self::Out>;
+    fn hstack(self) -> Self::Out
+    where
+        Self: Sized,
+    {
+        Self::hstack_f(self).unwrap()
+    }
+}
+
+/// Stack tensors in sequence horizontally (column-wise).
+/// 
+/// # See also
+/// 
+/// [NumPy `hstack`](https://numpy.org/doc/stable/reference/generated/numpy.hstack.html)
+pub fn hstack<Args, Inp>(args: Args) -> Args::Out
+where
+    Args: HStackAPI<Inp>,
+{
+    Args::hstack(args)
+}
+
+pub fn hstack_f<Args, Inp>(args: Args) -> Result<Args::Out>
+where
+    Args: HStackAPI<Inp>,
+{
+    Args::hstack_f(args)
+}
+
+#[duplicate_item(
+    ImplType         ImplStruct                   ;
+   [              ] [Vec<TensorAny<R, T, B, D>>  ];
+   [              ] [&Vec<TensorAny<R, T, B, D>> ];
+   [const N: usize] [[TensorAny<R, T, B, D>; N]  ];
+   
+   [              ] [Vec<&TensorAny<R, T, B, D>> ];
+   [              ] [&Vec<&TensorAny<R, T, B, D>>];
+   [const N: usize] [[&TensorAny<R, T, B, D>; N] ];
+)]
+impl<R, T, B, D, ImplType> HStackAPI<()> for ImplStruct
+where
+    R: DataAPI<Data = B::Raw>,
+    T: Clone + Default,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD>,
+{
+    type Out = Tensor<T, B, IxD>;
+
+    fn hstack_f(self) -> Result<Self::Out> {
+        let tensors = self;
+        
+        if tensors.is_empty() {
+            return rstsr_raise!(InvalidValue, "hstack requires at least one tensor.");
+        }
+
+        if tensors[0].ndim() == 1 {
+            ConcatAPI::concat_f((tensors, 0))
+        } else {
+            ConcatAPI::concat_f((tensors, 1))
+        }
+    }
+}
+
+/* #endregion */
+
+/* #region vstack */
+
+pub trait VStackAPI<Inp> {
+    type Out;
+
+    fn vstack_f(self) -> Result<Self::Out>;
+    fn vstack(self) -> Self::Out
+    where
+        Self: Sized,
+    {
+        Self::vstack_f(self).unwrap()
+    }
+}
+
+/// Stack tensors in sequence horizontally (row-wise).
+/// 
+/// # See also
+/// 
+/// [NumPy `vstack`](https://numpy.org/doc/stable/reference/generated/numpy.vstack.html)
+pub fn vstack<Args, Inp>(args: Args) -> Args::Out
+where
+    Args: VStackAPI<Inp>,
+{
+    Args::vstack(args)
+}
+
+pub fn vstack_f<Args, Inp>(args: Args) -> Result<Args::Out>
+where
+    Args: VStackAPI<Inp>,
+{
+    Args::vstack_f(args)
+}
+
+#[duplicate_item(
+    ImplType         ImplStruct                   ;
+   [              ] [Vec<TensorAny<R, T, B, D>>  ];
+   [              ] [&Vec<TensorAny<R, T, B, D>> ];
+   [const N: usize] [[TensorAny<R, T, B, D>; N]  ];
+   
+   [              ] [Vec<&TensorAny<R, T, B, D>> ];
+   [              ] [&Vec<&TensorAny<R, T, B, D>>];
+   [const N: usize] [[&TensorAny<R, T, B, D>; N] ];
+)]
+impl<R, T, B, D, ImplType> VStackAPI<()> for ImplStruct
+where
+    R: DataAPI<Data = B::Raw>,
+    T: Clone + Default,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD>,
+{
+    type Out = Tensor<T, B, IxD>;
+
+    fn vstack_f(self) -> Result<Self::Out> {
+        let tensors = self;
+        
+        if tensors.is_empty() {
+            return rstsr_raise!(InvalidValue, "vstack requires at least one tensor.");
+        }
+
+        ConcatAPI::concat_f((tensors, 0))
+    }
+}
+
+/* #endregion */
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -506,6 +637,15 @@ mod test {
         let b = arange(24).into_shape([2, 4, 3]);
         let c = arange(30).into_shape([2, 5, 3]);
         let d = concat(([a, b, c], -2));
+        println!("{d:?}");
+    }
+
+    #[test]
+    fn test_hstack() {
+        let a = arange(18).into_shape([2, 3, 3]);
+        let b = arange(24).into_shape([2, 4, 3]);
+        let c = arange(30).into_shape([2, 5, 3]);
+        let d = hstack([a, b, c]);
         println!("{d:?}");
     }
 }
