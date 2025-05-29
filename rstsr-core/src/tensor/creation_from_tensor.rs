@@ -5,6 +5,8 @@
 //! - [ ] `tril`
 //! - [ ] `triu`
 
+use core::mem::transmute;
+
 use crate::prelude_dev::*;
 
 /* #region diag */
@@ -759,6 +761,122 @@ where
 
 /* #endregion */
 
+/* #region unstack */
+
+pub trait UnstackAPI<Inp> {
+    type Out;
+
+    fn unstack_f(self) -> Result<Self::Out>;
+    fn unstack(self) -> Self::Out
+    where
+        Self: Sized,
+    {
+        Self::unstack_f(self).unwrap()
+    }
+}
+
+/// Splits an array into a sequence of arrays along the given axis.
+/// 
+/// # See also
+/// 
+/// [Python Array Standard `unstack`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.unstack.html)
+pub fn unstack<Args, Inp>(args: Args) -> Args::Out
+where
+    Args: UnstackAPI<Inp>,
+{
+    Args::unstack(args)
+}
+
+pub fn unstack_f<Args, Inp>(args: Args) -> Result<Args::Out>
+where
+    Args: UnstackAPI<Inp>,
+{
+    Args::unstack_f(args)
+}
+
+impl<'a, T, B, D> UnstackAPI<()> for (TensorView<'a, T, B, D>, isize)
+where
+    T: Clone + Default,
+    D: DimAPI + DimSmallerOneAPI,
+    D::SmallerOne: DimAPI,
+    B: DeviceAPI<T>,
+{
+    type Out = Vec<TensorView<'a, T, B, D::SmallerOne>>;
+
+    fn unstack_f(self) -> Result<Self::Out> {
+        let (tensor, axis) = self;
+
+        // check tensor ndim
+        rstsr_assert!(tensor.ndim() > 0, InvalidLayout, "unstack requires a tensor with ndim > 0.")?;
+
+        // check axis
+        let ndim = tensor.ndim();
+        let axis = if axis < 0 {
+            ndim as isize + axis
+        } else {
+            axis
+        };
+        rstsr_pattern!(axis, 0..ndim as isize, InvalidLayout, "axis out of bounds")?;
+        let axis = axis as usize;
+        
+        (0..tensor.layout().shape()[axis]).map(|i| {
+            let view = tensor.view();
+            let (storage, layout) = view.into_raw_parts();
+            let layout = layout.dim_select(axis as isize, i as isize)?;
+            // safety: transmute for lifetime annotation
+            let storage = unsafe { transmute::<Storage<_, T, B>, Storage<_, T, B>>(storage) };
+            unsafe { Ok(TensorBase::new_unchecked(storage, layout)) }
+        }).collect()
+    }
+}
+
+impl<'a, R, T, B, D> UnstackAPI<()> for (&'a TensorAny<R, T, B, D>, isize)
+where
+    T: Clone + Default,
+    R: DataAPI<Data = B::Raw>,
+    D: DimAPI + DimSmallerOneAPI,
+    D::SmallerOne: DimAPI,
+    B: DeviceAPI<T>,
+{
+    type Out = Vec<TensorView<'a, T, B, D::SmallerOne>>;
+
+    fn unstack_f(self) -> Result<Self::Out> {
+        let (tensor, axis) = self;
+        UnstackAPI::unstack_f((tensor.view(), axis))
+    }
+}
+
+impl<'a, T, B, D> UnstackAPI<()> for TensorView<'a, T, B, D>
+where
+    T: Clone + Default,
+    D: DimAPI + DimSmallerOneAPI,
+    D::SmallerOne: DimAPI,
+    B: DeviceAPI<T>,
+{
+    type Out = Vec<TensorView<'a, T, B, D::SmallerOne>>;
+
+    fn unstack_f(self) -> Result<Self::Out> {
+        UnstackAPI::unstack_f((self, 0))
+    }
+}
+
+impl<'a, R, T, B, D> UnstackAPI<()> for &'a TensorAny<R, T, B, D>
+where
+    T: Clone + Default,
+    R: DataAPI<Data = B::Raw>,
+    D: DimAPI + DimSmallerOneAPI,
+    D::SmallerOne: DimAPI,
+    B: DeviceAPI<T>,
+{
+    type Out = Vec<TensorView<'a, T, B, D::SmallerOne>>;
+
+    fn unstack_f(self) -> Result<Self::Out> {
+        UnstackAPI::unstack_f((self, 0))
+    }
+}
+
+/* #endregion */
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -812,5 +930,14 @@ mod test {
         println!("{d:?}");
         let d = stack(([&a, &b, &c], -1));
         println!("{d:?}");
+    }
+
+    #[test]
+    fn test_unstack() {
+        let a = arange(24).into_shape([2, 3, 4]);
+        let v = unstack((&a, 2));
+        println!("{v:?}");
+        let v = unstack(a.view());
+        println!("{v:?}");
     }
 }
