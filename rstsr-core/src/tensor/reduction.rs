@@ -19,8 +19,7 @@ macro_rules! trait_reduction {
             R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
             B: $OpReduceAPI<T, D> + DeviceCreationAnyAPI<B::TOut>,
-            I: TryInto<AxesIndex<isize>>,
-            Error: From<I::Error>,
+            I: TryInto<AxesIndex<isize>, Error = Error>,
         {
             let axes = axes.try_into()?;
 
@@ -54,8 +53,7 @@ macro_rules! trait_reduction {
             R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
             B: $OpReduceAPI<T, D> + DeviceCreationAnyAPI<B::TOut>,
-            I: TryInto<AxesIndex<isize>>,
-            Error: From<I::Error>,
+            I: TryInto<AxesIndex<isize>, Error = Error>,
         {
             $fn_axes_f(tensor, axes).unwrap()
         }
@@ -95,8 +93,7 @@ macro_rules! trait_reduction {
             pub fn $fn_axes_f<I>(&self, axes: I) -> Result<Tensor<B::TOut, B, IxD>>
             where
                 B: DeviceCreationAnyAPI<B::TOut>,
-                I: TryInto<AxesIndex<isize>>,
-                Error: From<I::Error>,
+                I: TryInto<AxesIndex<isize>, Error = Error>,
             {
                 $fn_axes_f(self, axes)
             }
@@ -104,8 +101,7 @@ macro_rules! trait_reduction {
             pub fn $fn_axes<I>(&self, axes: I) -> Tensor<B::TOut, B, IxD>
             where
                 B: DeviceCreationAnyAPI<B::TOut>,
-                I: TryInto<AxesIndex<isize>>,
-                Error: From<I::Error>,
+                I: TryInto<AxesIndex<isize>, Error = Error>,
             {
                 $fn_axes(self, axes)
             }
@@ -156,8 +152,7 @@ macro_rules! trait_reduction_arg {
             R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
             B: $OpReduceAPI<T, D> + DeviceAPI<IxD>,
-            I: TryInto<AxesIndex<isize>>,
-            Error: From<I::Error>,
+            I: TryInto<AxesIndex<isize>, Error = Error>,
         {
             let axes = axes.try_into()?;
 
@@ -183,8 +178,7 @@ macro_rules! trait_reduction_arg {
             R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
             B: $OpReduceAPI<T, D> + DeviceAPI<IxD>,
-            I: TryInto<AxesIndex<isize>>,
-            Error: From<I::Error>,
+            I: TryInto<AxesIndex<isize>, Error = Error>,
         {
             $fn_axes_f(tensor, axes).unwrap()
         }
@@ -224,8 +218,7 @@ macro_rules! trait_reduction_arg {
             pub fn $fn_axes_f<I>(&self, axes: I) -> Result<Tensor<IxD, B, IxD>>
             where
                 B: DeviceAPI<IxD>,
-                I: TryInto<AxesIndex<isize>>,
-                Error: From<I::Error>,
+                I: TryInto<AxesIndex<isize>, Error = Error>,
             {
                 $fn_axes_f(self, axes)
             }
@@ -233,8 +226,7 @@ macro_rules! trait_reduction_arg {
             pub fn $fn_axes<I>(&self, axes: I) -> Tensor<IxD, B, IxD>
             where
                 B: DeviceAPI<IxD>,
-                I: TryInto<AxesIndex<isize>>,
-                Error: From<I::Error>,
+                I: TryInto<AxesIndex<isize>, Error = Error>,
             {
                 $fn_axes(self, axes)
             }
@@ -286,12 +278,10 @@ where
     }
     fn sum_axes_f<I>(&self, axes: I) -> Result<Tensor<usize, B, IxD>>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>;
+        I: TryInto<AxesIndex<isize>, Error = Error>;
     fn sum_axes<I>(&self, axes: I) -> Tensor<usize, B, IxD>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         self.sum_axes_f(axes).unwrap()
     }
@@ -309,8 +299,7 @@ where
 
     fn sum_axes_f<I>(&self, axes: I) -> Result<Tensor<usize, B, IxD>>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         let axes = axes.try_into()?;
 

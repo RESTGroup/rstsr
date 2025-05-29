@@ -83,8 +83,7 @@ where
         order: TensorIterOrder,
     ) -> Result<IterAxesView<'a, T, B>>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         // convert axis to negative indexes and sort
         let ndim: isize = TryInto::<isize>::try_into(self.ndim())?;
@@ -144,24 +143,21 @@ where
 
     pub fn axes_iter_f<I>(&self, axes: I) -> Result<IterAxesView<'a, T, B>>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         self.axes_iter_with_order_f(axes, TensorIterOrder::default())
     }
 
     pub fn axes_iter_with_order<I>(&self, axes: I, order: TensorIterOrder) -> IterAxesView<'a, T, B>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         self.axes_iter_with_order_f(axes, order).unwrap()
     }
 
     pub fn axes_iter<I>(&self, axes: I) -> IterAxesView<'a, T, B>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         self.axes_iter_f(axes).unwrap()
     }
@@ -249,8 +245,7 @@ where
         order: TensorIterOrder,
     ) -> Result<IterAxesMut<'a, T, B>>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         // convert axis to negative indexes and sort
         let ndim: isize = TryInto::<isize>::try_into(self.ndim())?;
@@ -310,8 +305,7 @@ where
 
     pub fn axes_iter_mut_f<I>(&'a mut self, axes: I) -> Result<IterAxesMut<'a, T, B>>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         self.axes_iter_mut_with_order_f(axes, TensorIterOrder::default())
     }
@@ -322,16 +316,14 @@ where
         order: TensorIterOrder,
     ) -> IterAxesMut<'a, T, B>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         self.axes_iter_mut_with_order_f(axes, order).unwrap()
     }
 
     pub fn axes_iter_mut<I>(&'a mut self, axes: I) -> IterAxesMut<'a, T, B>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         self.axes_iter_mut_f(axes).unwrap()
     }
@@ -427,8 +419,7 @@ where
         order: TensorIterOrder,
     ) -> Result<IndexedIterAxesView<'a, T, B>>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         use TensorIterOrder::*;
         // this function only accepts c/f iter order currently
@@ -496,8 +487,7 @@ where
 
     pub fn indexed_axes_iter_f<I>(&self, axes: I) -> Result<IndexedIterAxesView<'a, T, B>>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         let default_order = self.device().default_order();
         let order = match default_order {
@@ -513,16 +503,14 @@ where
         order: TensorIterOrder,
     ) -> IndexedIterAxesView<'a, T, B>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         self.indexed_axes_iter_with_order_f(axes, order).unwrap()
     }
 
     pub fn indexed_axes_iter<I>(&self, axes: I) -> IndexedIterAxesView<'a, T, B>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         self.indexed_axes_iter_f(axes).unwrap()
     }
@@ -618,8 +606,7 @@ where
         order: TensorIterOrder,
     ) -> Result<IndexedIterAxesMut<'a, T, B>>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         // convert axis to negative indexes and sort
         let ndim: isize = TryInto::<isize>::try_into(self.ndim())?;
@@ -679,8 +666,7 @@ where
 
     pub fn indexed_axes_iter_mut_f<I>(&'a mut self, axes: I) -> Result<IndexedIterAxesMut<'a, T, B>>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         let default_order = self.device().default_order();
         let order = match default_order {
@@ -696,16 +682,14 @@ where
         order: TensorIterOrder,
     ) -> IndexedIterAxesMut<'a, T, B>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         self.indexed_axes_iter_mut_with_order_f(axes, order).unwrap()
     }
 
     pub fn indexed_axes_iter_mut<I>(&'a mut self, axes: I) -> IndexedIterAxesMut<'a, T, B>
     where
-        I: TryInto<AxesIndex<isize>>,
-        Error: From<I::Error>,
+        I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         self.indexed_axes_iter_mut_f(axes).unwrap()
     }
