@@ -40,8 +40,7 @@ pub trait MetricDistAPI<V> {
 /// * `T` - The type of the distance metric result (e.g., f32, f64).
 /// * `V` - The type of the vectors (`Vec<T>` in general, but can be other)
 pub trait MetricDistWeightedAPI<V> {
-    // The type of the weights, generally same to `V`, but may be `Vec<f64>`
-    // sometimes.
+    // The type of the weights, should be vector type of `Self::Out`.
     type Weight;
 
     /// The output type of the distance metric.
@@ -66,11 +65,12 @@ pub trait MetricDistWeightedAPI<V> {
     fn weighted_distance<const STRIDED: bool>(
         &self,
         uv: (&V, &V),
-        weights: &Self::Weight,
         offsets: (usize, usize),
         indices: (usize, usize),
         strides: (isize, isize),
         size: usize,
+        weights: &Self::Weight,
+        weights_sum: Self::Out,
     ) -> Self::Out;
 }
 
@@ -164,13 +164,14 @@ impl<ImplType> MetricDistAPI<Vec<T>> for StructType {
 }
 
 #[allow(redundant_semicolons)]
+#[allow(unused_variables)]
 #[duplicate_item(
     ImplType                       StructType           TOut      dup_reduce_with_weight                                     dup_initialize                        dup_finalize                      ;
    [T: Float                    ] [MetricEuclidean   ] [T      ] [dist = dist + w * (u_i - v_i).powi(2)                   ] [                                    ] [dist = dist.sqrt();             ];
    [T: ComplexFloat<Real: Float>] [MetricMinkowski<T>] [T::Real] [dist = dist + w * Float::powf((u_i - v_i).abs(), self.p)] [let p_inv = T::Real::one() / self.p;] [dist = Float::powf(dist, p_inv);];
    [T: ComplexFloat<Real: Float>] [MetricCityBlock   ] [T::Real] [dist = dist + w * (u_i - v_i).abs()                     ] [                                    ] [                                ];
    [T: Float                    ] [MetricSqEuclidean ] [T      ] [dist = dist + w * (u_i - v_i).powi(2)                   ] [                                    ] [                                ];
-   [T: PartialEq + Copy         ] [MetricHamming     ] [f64    ] [if (u_i != v_i) { dist += w }; w_sum += w;              ] [let mut w_sum = 0.0;                ] [dist /= w_sum;                  ];
+   [T: PartialEq + Copy         ] [MetricHamming     ] [f64    ] [if (u_i != v_i) { dist += w }                           ] [                                    ] [dist /= weights_sum;            ];
 )]
 impl<ImplType> MetricDistWeightedAPI<Vec<T>> for StructType {
     type Weight = Vec<TOut>;
@@ -180,11 +181,12 @@ impl<ImplType> MetricDistWeightedAPI<Vec<T>> for StructType {
     fn weighted_distance<const STRIDED: bool>(
         &self,
         uv: (&Vec<T>, &Vec<T>),
-        weights: &Vec<TOut>,
         offsets: (usize, usize),
         _indices: (usize, usize),
         strides: (isize, isize),
         size: usize,
+        weights: &Vec<TOut>,
+        weights_sum: TOut,
     ) -> TOut {
         let (u, v) = uv;
         let (u_offset, v_offset) = offsets;

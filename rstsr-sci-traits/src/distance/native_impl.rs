@@ -1,4 +1,5 @@
 use super::metric::{MetricDistAPI, MetricDistWeightedAPI};
+use num::{Float, Zero};
 use rayon::prelude::*;
 use rstsr_core::prelude_dev::*;
 
@@ -88,7 +89,7 @@ pub fn cdist_weighted_serial<T, M>(
     order: FlagOrder,
 ) -> Result<Vec<M::Out>>
 where
-    M: MetricDistWeightedAPI<Vec<T>>,
+    M: MetricDistWeightedAPI<Vec<T>, Weight: AsRef<[M::Out]>, Out: Float>,
 {
     let shape_a = la.shape();
     let shape_b = lb.shape();
@@ -114,6 +115,7 @@ where
     let batch_size = (CACHE_SIZE / (size_t * k) / 2).clamp(8, 64);
 
     let strided = stride_a[1] != 1 || stride_b[1] != 1;
+    let weights_sum = weights.as_ref().iter().fold(M::Out::zero(), |acc, w| acc + *w);
 
     macro_rules! perform_batch_calc {
         ($STRIDED: ident, $ORDER: ident) => {
@@ -132,7 +134,13 @@ where
                             let strides = (stride_a[1], stride_b[1]);
                             let size = k;
                             let dist = kernel.weighted_distance::<{ $STRIDED }>(
-                                uv, weights, offsets, indices, strides, size,
+                                uv,
+                                offsets,
+                                indices,
+                                strides,
+                                size,
+                                weights,
+                                weights_sum,
                             );
                             match $ORDER {
                                 RowMajor => dists[i * n + j] = dist,
@@ -253,8 +261,8 @@ pub fn cdist_weighted_rayon<T, M>(
 where
     T: Send + Sync,
     M: MetricDistWeightedAPI<Vec<T>> + Send + Sync,
-    M::Weight: Send + Sync,
-    M::Out: Send + Sync,
+    M::Weight: AsRef<[M::Out]> + Send + Sync,
+    M::Out: Float + Send + Sync,
 {
     if pool.is_none() {
         return cdist_weighted_serial(xa, xb, la, lb, weights, kernel, order);
@@ -285,6 +293,7 @@ where
     let batch_size = (CACHE_SIZE / (size_t * k) / 2).clamp(8, 64);
 
     let strided = stride_a[1] != 1 || stride_b[1] != 1;
+    let weights_sum = weights.as_ref().iter().fold(M::Out::zero(), |acc, w| acc + *w);
 
     macro_rules! perform_batch_calc {
         ($STRIDED: ident, $ORDER: ident) => {
@@ -303,7 +312,13 @@ where
                             let strides = (stride_a[1], stride_b[1]);
                             let size = k;
                             let dist = kernel.weighted_distance::<{ $STRIDED }>(
-                                uv, weights, offsets, indices, strides, size,
+                                uv,
+                                offsets,
+                                indices,
+                                strides,
+                                size,
+                                weights,
+                                weights_sum,
                             );
                             unsafe {
                                 let dist_ij = match $ORDER {

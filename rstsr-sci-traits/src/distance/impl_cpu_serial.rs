@@ -12,9 +12,8 @@ impl<T, D, M, TW, DW> CDistAPI<DeviceCpuSerial>
         TensorView<'_, TW, DeviceCpuSerial, DW>,
     )
 where
-    M: MetricDistWeightedAPI<Vec<T>>,
-    TW: Clone,
-    M::Weight: Clone,
+    M: MetricDistWeightedAPI<Vec<T>, Weight = Vec<TW>, Out = TW>,
+    TW: Float + Clone,
     DeviceCpuSerial: DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<TW, Raw = M::Weight>
         + DeviceAPI<M::Out, Raw = Vec<M::Out>>
@@ -125,6 +124,9 @@ mod test {
         let a = linspace((0., 1., 64, &device)).into_shape((16, 4));
         let b = linspace((0., 1., 80, &device)).into_shape((20, 4));
         let d = cdist((a.view(), b.view(), MetricHamming));
+        println!("{d:16.8?}");
+
+        let d = cdist((a.view(), b.view(), MetricHamming, w.view()));
         println!("{d:16.8?}");
 
         println!("{:?}", a[[15, 3]]);

@@ -13,10 +13,9 @@ impl<T, D, M, TW, DW> CDistAPI<DeviceRayonAutoImpl>
         TensorView<'_, TW, DeviceRayonAutoImpl, DW>,
     )
 where
-    M: MetricDistWeightedAPI<Vec<T>> + Send + Sync,
+    M: MetricDistWeightedAPI<Vec<T>, Weight = Vec<TW>, Out = TW> + Send + Sync,
     T: Send + Sync,
-    TW: Clone + Send + Sync,
-    M::Weight: Clone + Send + Sync,
+    TW: Float + Send + Sync,
     M::Out: Send + Sync,
     DeviceRayonAutoImpl: DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<TW, Raw = M::Weight>
