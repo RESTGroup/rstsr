@@ -1,31 +1,34 @@
-use crate::distance::metric::{MetricDistAPI, MetricEuclidean};
-use crate::distance::native_impl::cdist_serial;
-use crate::distance::traits::CDistAPI;
-use num::Float;
-use rstsr_core::prelude_dev::*;
+use crate::prelude_dev::*;
 
-impl<T, D, M, TW, DW> CDistAPI<DeviceCpuSerial>
+use num::Float;
+use rstsr_sci_traits::distance::metric::{MetricDistAPI, MetricEuclidean};
+use rstsr_sci_traits::distance::native_impl::cdist_rayon;
+use rstsr_sci_traits::distance::traits::CDistAPI;
+
+impl<T, D, M, TW, DW> CDistAPI<DeviceRayonAutoImpl>
     for (
-        TensorView<'_, T, DeviceCpuSerial, D>,
-        TensorView<'_, T, DeviceCpuSerial, D>,
+        TensorView<'_, T, DeviceRayonAutoImpl, D>,
+        TensorView<'_, T, DeviceRayonAutoImpl, D>,
         M,
-        TensorView<'_, TW, DeviceCpuSerial, DW>,
+        TensorView<'_, TW, DeviceRayonAutoImpl, DW>,
     )
 where
-    TW: Clone,
-    M::Weight: Clone,
-    DeviceCpuSerial: DeviceAPI<T, Raw = Vec<T>>
+    M: MetricDistAPI<T, Vec<T>> + Send + Sync,
+    T: Send + Sync,
+    TW: Clone + Send + Sync,
+    M::Weight: Clone + Send + Sync,
+    M::Out: Send + Sync,
+    DeviceRayonAutoImpl: DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<TW, Raw = M::Weight>
         + DeviceAPI<M::Out, Raw = Vec<M::Out>>
         + DeviceCreationAnyAPI<M::Out>
         + DeviceCreationAnyAPI<TW>
         + OpAssignArbitaryAPI<TW, DW, DW>
         + OpAssignAPI<TW, DW>,
-    M: MetricDistAPI<T, Vec<T>>,
     D: DimAPI + DimIntoAPI<Ix2>,
     DW: DimAPI + DimIntoAPI<Ix1>,
 {
-    type Out = Tensor<M::Out, DeviceCpuSerial, D>;
+    type Out = Tensor<M::Out, DeviceRayonAutoImpl, D>;
 
     fn cdist_f(self) -> Result<Self::Out> {
         let (xa, xb, kernel, weight) = self;
@@ -39,7 +42,9 @@ where
         let device = xa.device().clone();
         let order = device.default_order();
         let weight = weight.into_contig_f(RowMajor)?;
-        let dist = cdist_serial(xa.raw(), xb.raw(), &la, &lb, Some(weight.raw()), kernel, order)?;
+        let pool = device.get_current_pool();
+        let dist =
+            cdist_rayon(xa.raw(), xb.raw(), &la, &lb, Some(weight.raw()), kernel, order, pool)?;
 
         let m = la.shape()[0];
         let n = lb.shape()[0];
@@ -47,16 +52,19 @@ where
     }
 }
 
-impl<T, D, M> CDistAPI<DeviceCpuSerial>
-    for (TensorView<'_, T, DeviceCpuSerial, D>, TensorView<'_, T, DeviceCpuSerial, D>, M)
+impl<T, D, M> CDistAPI<DeviceRayonAutoImpl>
+    for (TensorView<'_, T, DeviceRayonAutoImpl, D>, TensorView<'_, T, DeviceRayonAutoImpl, D>, M)
 where
-    DeviceCpuSerial: DeviceAPI<T, Raw = Vec<T>>
+    M: MetricDistAPI<T, Vec<T>> + Send + Sync,
+    T: Send + Sync,
+    M::Weight: Clone + Send + Sync,
+    M::Out: Send + Sync,
+    DeviceRayonAutoImpl: DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<M::Out, Raw = Vec<M::Out>>
         + DeviceCreationAnyAPI<M::Out>,
-    M: MetricDistAPI<T, Vec<T>>,
     D: DimAPI + DimIntoAPI<Ix2>,
 {
-    type Out = Tensor<M::Out, DeviceCpuSerial, D>;
+    type Out = Tensor<M::Out, DeviceRayonAutoImpl, D>;
 
     fn cdist_f(self) -> Result<Self::Out> {
         let (xa, xb, kernel) = self;
@@ -67,7 +75,8 @@ where
         let lb = xb.layout().to_dim::<Ix2>()?;
         let device = xa.device().clone();
         let order = device.default_order();
-        let dist = cdist_serial(xa.raw(), xb.raw(), &la, &lb, None, kernel, order)?;
+        let pool = device.get_current_pool();
+        let dist = cdist_rayon(xa.raw(), xb.raw(), &la, &lb, None, kernel, order, pool)?;
 
         let m = la.shape()[0];
         let n = lb.shape()[0];
@@ -75,18 +84,18 @@ where
     }
 }
 
-impl<T, D> CDistAPI<DeviceCpuSerial>
-    for (TensorView<'_, T, DeviceCpuSerial, D>, TensorView<'_, T, DeviceCpuSerial, D>)
+impl<T, D> CDistAPI<DeviceRayonAutoImpl>
+    for (TensorView<'_, T, DeviceRayonAutoImpl, D>, TensorView<'_, T, DeviceRayonAutoImpl, D>)
 where
-    T: Float,
-    DeviceCpuSerial: DeviceAPI<T, Raw = Vec<T>> + DeviceCreationAnyAPI<T>,
+    T: Float + Send + Sync,
+    DeviceRayonAutoImpl: DeviceAPI<T, Raw = Vec<T>> + DeviceCreationAnyAPI<T>,
     D: DimAPI + DimIntoAPI<Ix2>,
 {
-    type Out = Tensor<T, DeviceCpuSerial, D>;
+    type Out = Tensor<T, DeviceRayonAutoImpl, D>;
 
     fn cdist_f(self) -> Result<Self::Out> {
         let (xa, xb) = self;
-        CDistAPI::<DeviceCpuSerial>::cdist_f((xa, xb, MetricEuclidean))
+        CDistAPI::<DeviceRayonAutoImpl>::cdist_f((xa, xb, MetricEuclidean))
     }
 }
 
@@ -98,9 +107,9 @@ mod test {
 
     #[test]
     fn playground() {
-        let device = DeviceCpuSerial::default();
-        let a = linspace((0., 1., 64, &device)).into_shape((16, 4));
-        let b = linspace((0., 1., 80, &device)).into_shape((20, 4)).into_flip(-1);
+        let device = DeviceFaer::default();
+        let a = linspace((0., 1., 6400, &device)).into_shape((1600, 4));
+        let b = linspace((0., 1., 8000, &device)).into_shape((2000, 4)).into_flip(-1);
 
         let d = cdist((a.view(), b.view(), MetricEuclidean));
         println!("{d:16.8?}");

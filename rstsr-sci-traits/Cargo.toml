@@ -9,6 +9,9 @@ categories.workspace = true
 license.workspace = true
 
 [dependencies]
-rstsr-core = { workspace = true }
+rstsr-core = { workspace = true, features = ["rayon"] }
 num = { workspace = true }
 rayon = { workspace = true }
+
+[features]
+faer = ["rstsr-core/faer"]
