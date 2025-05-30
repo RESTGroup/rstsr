@@ -21,7 +21,7 @@ where
         + DeviceCreationAnyAPI<TW>
         + OpAssignArbitaryAPI<TW, DW, DW>
         + OpAssignAPI<TW, DW>,
-    M: MetricDistAPI<T, Vec<T>>,
+    M: MetricDistAPI<Vec<T>>,
     D: DimAPI + DimIntoAPI<Ix2>,
     DW: DimAPI + DimIntoAPI<Ix1>,
 {
@@ -53,7 +53,7 @@ where
     DeviceCpuSerial: DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<M::Out, Raw = Vec<M::Out>>
         + DeviceCreationAnyAPI<M::Out>,
-    M: MetricDistAPI<T, Vec<T>>,
+    M: MetricDistAPI<Vec<T>>,
     D: DimAPI + DimIntoAPI<Ix2>,
 {
     type Out = Tensor<M::Out, DeviceCpuSerial, D>;

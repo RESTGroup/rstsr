@@ -13,7 +13,7 @@ impl<T, D, M, TW, DW> CDistAPI<DeviceRayonAutoImpl>
         TensorView<'_, TW, DeviceRayonAutoImpl, DW>,
     )
 where
-    M: MetricDistAPI<T, Vec<T>> + Send + Sync,
+    M: MetricDistAPI<Vec<T>> + Send + Sync,
     T: Send + Sync,
     TW: Clone + Send + Sync,
     M::Weight: Clone + Send + Sync,
@@ -55,7 +55,7 @@ where
 impl<T, D, M> CDistAPI<DeviceRayonAutoImpl>
     for (TensorView<'_, T, DeviceRayonAutoImpl, D>, TensorView<'_, T, DeviceRayonAutoImpl, D>, M)
 where
-    M: MetricDistAPI<T, Vec<T>> + Send + Sync,
+    M: MetricDistAPI<Vec<T>> + Send + Sync,
     T: Send + Sync,
     M::Weight: Clone + Send + Sync,
     M::Out: Send + Sync,

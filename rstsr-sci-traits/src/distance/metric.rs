@@ -6,7 +6,7 @@ use rstsr_core::prelude_dev::*;
 /// # Generic Arguments
 /// * `T` - The type of the distance metric result (e.g., f32, f64).
 /// * `V` - The type of the vectors (`Vec<T>` in general, but can be other)
-pub trait MetricDistAPI<T, V> {
+pub trait MetricDistAPI<V> {
     // The type of the weights, generally same to `V`, but may be `Vec<f64>`
     // sometimes.
     type Weight;
@@ -45,7 +45,7 @@ pub trait MetricDistAPI<T, V> {
 
 pub struct MetricEuclidean;
 
-impl<T> MetricDistAPI<T, Vec<T>> for MetricEuclidean
+impl<T> MetricDistAPI<Vec<T>> for MetricEuclidean
 where
     T: Float,
 {
@@ -108,3 +108,5 @@ where
         dist
     }
 }
+
+/* #endregion */

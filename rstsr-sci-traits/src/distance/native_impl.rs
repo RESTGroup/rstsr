@@ -14,7 +14,7 @@ pub fn cdist_serial<T, M>(
     order: FlagOrder,
 ) -> Result<Vec<M::Out>>
 where
-    M: MetricDistAPI<T, Vec<T>>,
+    M: MetricDistAPI<Vec<T>>,
 {
     let shape_a = la.shape();
     let shape_b = lb.shape();
@@ -97,7 +97,7 @@ pub fn cdist_rayon<T, M>(
 ) -> Result<Vec<M::Out>>
 where
     T: Send + Sync,
-    M: MetricDistAPI<T, Vec<T>> + Send + Sync,
+    M: MetricDistAPI<Vec<T>> + Send + Sync,
     M::Weight: Send + Sync,
     M::Out: Send + Sync,
 {
