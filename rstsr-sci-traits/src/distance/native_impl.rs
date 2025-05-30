@@ -127,7 +127,7 @@ where
 
     // calculate batch size based on cache size
     let size_t = std::mem::size_of::<T>();
-    let batch_size = (CACHE_SIZE / (size_t * k) / 3).clamp(8, 64);
+    let batch_size = (CACHE_SIZE / (size_t * k) / 2).clamp(8, 64);
 
     let strided = stride_a[1] != 1 || stride_b[1] != 1;
     let weighted = weights.is_some();

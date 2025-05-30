@@ -102,12 +102,12 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::distance::metric::MetricEuclidean;
-    use crate::distance::traits::cdist;
+    use rstsr_sci_traits::distance::metric::MetricEuclidean;
+    use rstsr_sci_traits::distance::traits::cdist;
 
     #[test]
     fn playground() {
-        let device = DeviceFaer::default();
+        let device = DeviceRayonAutoImpl::default();
         let a = linspace((0., 1., 6400, &device)).into_shape((1600, 4));
         let b = linspace((0., 1., 8000, &device)).into_shape((2000, 4)).into_flip(-1);
 
