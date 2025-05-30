@@ -93,7 +93,7 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::distance::metric::MetricEuclidean;
+    use crate::distance::metric::*;
     use crate::distance::traits::cdist;
 
     #[test]
@@ -111,5 +111,22 @@ mod test {
         let w = asarray((vec![1.5, 1.2, 0.7, 1.3], &device));
         let d_w = cdist((a.view(), b.view(), MetricEuclidean, w.view()));
         println!("{d_w:16.8?}");
+
+        let d = cdist((a.view(), b.view(), MetricMinkowski::new(3.0)));
+        println!("{d:16.8?}");
+
+        let d = cdist((a.view(), b.view(), MetricCityBlock));
+        println!("{d:16.8?}");
+
+        let d = cdist((a.view(), b.view(), MetricSqEuclidean));
+        println!("{d:16.8?}");
+
+        let a = linspace((0., 1., 64, &device)).into_shape((16, 4));
+        let b = linspace((0., 1., 80, &device)).into_shape((20, 4));
+        let d = cdist((a.view(), b.view(), MetricHamming));
+        println!("{d:16.8?}");
+
+        println!("{:?}", a[[15, 3]]);
+        println!("{:?}", b[[19, 3]]);
     }
 }

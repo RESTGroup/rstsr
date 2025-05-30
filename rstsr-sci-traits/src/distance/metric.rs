@@ -1,4 +1,4 @@
-use num::Float;
+use num::{complex::ComplexFloat, Float, One, Zero};
 use rstsr_core::prelude_dev::*;
 
 /// Distance metric API trait.
@@ -41,38 +41,80 @@ pub trait MetricDistAPI<V> {
     ) -> Self::Out;
 }
 
-/* #region Euclidean */
+/* #region zero-size distance types */
 
 pub struct MetricEuclidean;
+pub struct MetricCityBlock;
+pub struct MetricSqEuclidean;
+pub struct MetricHamming;
 
-impl<T> MetricDistAPI<Vec<T>> for MetricEuclidean
+/* #endregion */
+
+/* #region Minkowski */
+
+pub struct MetricMinkowski<T>
 where
-    T: Float,
+    T: ComplexFloat,
 {
-    type Weight = Vec<T>;
-    type Out = T;
+    pub p: T::Real,
+}
+
+impl<T> MetricMinkowski<T>
+where
+    T: ComplexFloat,
+{
+    pub fn new(p: T::Real) -> Self {
+        Self { p }
+    }
+}
+
+impl<T> Default for MetricMinkowski<T>
+where
+    T: ComplexFloat,
+{
+    fn default() -> Self {
+        let p = T::Real::one() + T::Real::one(); // Default to p = 2.0
+        Self { p }
+    }
+}
+
+/* #endregion */
+
+/* #region simple-implelentations with weight */
+
+#[allow(clippy::clone_on_copy)]
+#[allow(redundant_semicolons)]
+#[duplicate_item(
+    ImplType                       StructType           TOut      dup_reduce_op                                          dup_reduce_with_weight                                     dup_initialize                        dup_finalize                     ;
+   [T: Float                    ] [MetricEuclidean   ] [T      ] [dist = dist + (u_i - v_i).powi(2)                   ] [dist = dist + w * (u_i - v_i).powi(2)                   ] [                                    ] [dist = dist.sqrt()             ];
+   [T: ComplexFloat<Real: Float>] [MetricMinkowski<T>] [T::Real] [dist = dist + Float::powf((u_i - v_i).abs(), self.p)] [dist = dist + w * Float::powf((u_i - v_i).abs(), self.p)] [let p_inv = T::Real::one() / self.p;] [dist = Float::powf(dist, p_inv)];
+   [T: ComplexFloat<Real: Float>] [MetricCityBlock   ] [T::Real] [dist = dist + (u_i - v_i).abs()                     ] [dist = dist + w * (u_i - v_i).abs()                     ] [                                    ] [                               ];
+   [T: Float                    ] [MetricSqEuclidean ] [T      ] [dist = dist + (u_i - v_i).powi(2)                   ] [dist = dist + w * (u_i - v_i).powi(2)                   ] [                                    ] [                               ];
+   [T: PartialEq + Copy         ] [MetricHamming     ] [f64    ] [{ if (u_i != v_i) { dist += 1.0 }; w_sum += 1.0; }  ] [{ if (u_i != v_i) { dist += w }; w_sum += w; }          ] [let mut w_sum = 0.0;                ] [dist /= w_sum                  ];
+)]
+impl<ImplType> MetricDistAPI<Vec<T>> for StructType {
+    type Weight = Vec<TOut>;
+    type Out = TOut;
 
     #[inline]
     fn distance<const WEIGHTED: bool, const STRIDED: bool>(
         &self,
         uv: (&Vec<T>, &Vec<T>),
-        weights: Option<&Vec<T>>,
+        weights: Option<&Vec<TOut>>,
         offsets: (usize, usize),
         _indices: (usize, usize),
         strides: (isize, isize),
         size: usize,
-    ) -> T {
+    ) -> TOut {
         let (u, v) = uv;
         let (u_offset, v_offset) = offsets;
-        let mut dist = T::zero();
+        let mut dist = TOut::zero();
+        dup_initialize;
         match (WEIGHTED, STRIDED) {
             (false, false) => {
-                izip!(&u[u_offset..u_offset + size], &v[v_offset..v_offset + size]).for_each(
-                    |(&u_i, &v_i)| {
-                        dist = dist + (u_i - v_i).powi(2);
-                    },
-                );
-                dist = dist.sqrt();
+                izip!(&u[u_offset..u_offset + size], &v[v_offset..v_offset + size])
+                    .for_each(|(&u_i, &v_i)| dup_reduce_op);
+                dup_finalize;
             },
             (true, false) => {
                 izip!(
@@ -80,19 +122,17 @@ where
                     &v[v_offset..v_offset + size],
                     weights.unwrap()
                 )
-                .for_each(|(&u_i, &v_i, &w)| {
-                    dist = dist + w * (u_i - v_i).powi(2);
-                });
-                dist = dist.sqrt();
+                .for_each(|(&u_i, &v_i, &w)| dup_reduce_with_weight);
+                dup_finalize;
             },
             (false, true) => {
                 let (u_stride, v_stride) = strides;
                 for i in 0..size {
                     let u_i = u[(u_offset as isize + i as isize * u_stride) as usize];
                     let v_i = v[(v_offset as isize + i as isize * v_stride) as usize];
-                    dist = dist + (u_i - v_i).powi(2);
+                    dup_reduce_op;
                 }
-                dist = dist.sqrt();
+                dup_finalize;
             },
             (true, true) => {
                 let (u_stride, v_stride) = strides;
@@ -100,9 +140,9 @@ where
                     let u_i = u[(u_offset as isize + i as isize * u_stride) as usize];
                     let v_i = v[(v_offset as isize + i as isize * v_stride) as usize];
                     let w = weights.unwrap()[i];
-                    dist = dist + w * (u_i - v_i).powi(2);
+                    dup_reduce_with_weight;
                 }
-                dist = dist.sqrt();
+                dup_finalize;
             },
         }
         dist
