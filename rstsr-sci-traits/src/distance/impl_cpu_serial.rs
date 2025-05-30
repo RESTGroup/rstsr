@@ -1,5 +1,5 @@
-use crate::distance::metric::{MetricDistAPI, MetricEuclidean};
-use crate::distance::native_impl::cdist_serial;
+use crate::distance::metric::{MetricDistAPI, MetricDistWeightedAPI, MetricEuclidean};
+use crate::distance::native_impl::{cdist_serial, cdist_weighted_serial};
 use crate::distance::traits::CDistAPI;
 use num::Float;
 use rstsr_core::prelude_dev::*;
@@ -12,6 +12,7 @@ impl<T, D, M, TW, DW> CDistAPI<DeviceCpuSerial>
         TensorView<'_, TW, DeviceCpuSerial, DW>,
     )
 where
+    M: MetricDistWeightedAPI<Vec<T>>,
     TW: Clone,
     M::Weight: Clone,
     DeviceCpuSerial: DeviceAPI<T, Raw = Vec<T>>
@@ -21,7 +22,6 @@ where
         + DeviceCreationAnyAPI<TW>
         + OpAssignArbitaryAPI<TW, DW, DW>
         + OpAssignAPI<TW, DW>,
-    M: MetricDistAPI<Vec<T>>,
     D: DimAPI + DimIntoAPI<Ix2>,
     DW: DimAPI + DimIntoAPI<Ix1>,
 {
@@ -39,7 +39,8 @@ where
         let device = xa.device().clone();
         let order = device.default_order();
         let weight = weight.into_contig_f(RowMajor)?;
-        let dist = cdist_serial(xa.raw(), xb.raw(), &la, &lb, Some(weight.raw()), kernel, order)?;
+        let dist =
+            cdist_weighted_serial(xa.raw(), xb.raw(), &la, &lb, weight.raw(), kernel, order)?;
 
         let m = la.shape()[0];
         let n = lb.shape()[0];
@@ -67,7 +68,7 @@ where
         let lb = xb.layout().to_dim::<Ix2>()?;
         let device = xa.device().clone();
         let order = device.default_order();
-        let dist = cdist_serial(xa.raw(), xb.raw(), &la, &lb, None, kernel, order)?;
+        let dist = cdist_serial(xa.raw(), xb.raw(), &la, &lb, kernel, order)?;
 
         let m = la.shape()[0];
         let n = lb.shape()[0];

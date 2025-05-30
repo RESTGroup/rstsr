@@ -1,8 +1,8 @@
 use crate::prelude_dev::*;
 
 use num::Float;
-use rstsr_sci_traits::distance::metric::{MetricDistAPI, MetricEuclidean};
-use rstsr_sci_traits::distance::native_impl::cdist_rayon;
+use rstsr_sci_traits::distance::metric::{MetricDistAPI, MetricDistWeightedAPI, MetricEuclidean};
+use rstsr_sci_traits::distance::native_impl::{cdist_rayon, cdist_weighted_rayon};
 use rstsr_sci_traits::distance::traits::CDistAPI;
 
 impl<T, D, M, TW, DW> CDistAPI<DeviceRayonAutoImpl>
@@ -13,7 +13,7 @@ impl<T, D, M, TW, DW> CDistAPI<DeviceRayonAutoImpl>
         TensorView<'_, TW, DeviceRayonAutoImpl, DW>,
     )
 where
-    M: MetricDistAPI<Vec<T>> + Send + Sync,
+    M: MetricDistWeightedAPI<Vec<T>> + Send + Sync,
     T: Send + Sync,
     TW: Clone + Send + Sync,
     M::Weight: Clone + Send + Sync,
@@ -44,7 +44,7 @@ where
         let weight = weight.into_contig_f(RowMajor)?;
         let pool = device.get_current_pool();
         let dist =
-            cdist_rayon(xa.raw(), xb.raw(), &la, &lb, Some(weight.raw()), kernel, order, pool)?;
+            cdist_weighted_rayon(xa.raw(), xb.raw(), &la, &lb, weight.raw(), kernel, order, pool)?;
 
         let m = la.shape()[0];
         let n = lb.shape()[0];
@@ -57,7 +57,6 @@ impl<T, D, M> CDistAPI<DeviceRayonAutoImpl>
 where
     M: MetricDistAPI<Vec<T>> + Send + Sync,
     T: Send + Sync,
-    M::Weight: Clone + Send + Sync,
     M::Out: Send + Sync,
     DeviceRayonAutoImpl: DeviceAPI<T, Raw = Vec<T>>
         + DeviceAPI<M::Out, Raw = Vec<M::Out>>
@@ -76,7 +75,7 @@ where
         let device = xa.device().clone();
         let order = device.default_order();
         let pool = device.get_current_pool();
-        let dist = cdist_rayon(xa.raw(), xb.raw(), &la, &lb, None, kernel, order, pool)?;
+        let dist = cdist_rayon(xa.raw(), xb.raw(), &la, &lb, kernel, order, pool)?;
 
         let m = la.shape()[0];
         let n = lb.shape()[0];
