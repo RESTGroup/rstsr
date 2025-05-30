@@ -10,3 +10,5 @@ license.workspace = true
 
 [dependencies]
 rstsr-core = { workspace = true }
+num = { workspace = true }
+rayon = { workspace = true }
