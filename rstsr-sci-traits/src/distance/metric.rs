@@ -1,4 +1,4 @@
-use num::{complex::ComplexFloat, Float, One, ToPrimitive, Zero};
+use num::{complex::ComplexFloat, Float, FromPrimitive, One, ToPrimitive, Zero};
 use rstsr_core::prelude_dev::*;
 
 /// Distance metric API trait.
@@ -38,7 +38,9 @@ pub trait MetricDistAPI<V> {
     /// In most cases, this is a no-op, but some metrics may require (cosine,
     /// for example).
     #[inline]
-    fn initialize(&mut self, _xa: &V, _la: &Layout<Ix2>, _xb: &V, _lb: &Layout<Ix2>) {}
+    fn initialize(&mut self, _xa: &V, _la: &Layout<Ix2>, _xb: &V, _lb: &Layout<Ix2>) -> Result<()> {
+        Ok(())
+    }
 }
 
 /// Distance metric API trait.
@@ -76,6 +78,22 @@ pub trait MetricDistWeightedAPI<V>: MetricDistAPI<V> {
         weights: &Self::Weight,
         weights_sum: Self::Out,
     ) -> Self::Out;
+
+    /// Initializes the distance metric.
+    ///
+    /// In most cases, this is a no-op, but some metrics may require (cosine,
+    /// for example).
+    #[inline]
+    fn weighted_initialize(
+        &mut self,
+        _xa: &V,
+        _la: &Layout<Ix2>,
+        _xb: &V,
+        _lb: &Layout<Ix2>,
+        _weights: &Self::Weight,
+    ) -> Result<()> {
+        Ok(())
+    }
 }
 
 /* #region zero-size distance types */
@@ -99,9 +117,7 @@ pub struct MetricRogersTanimoto;
 pub struct MetricRussellRao;
 pub struct MetricSokalSneath;
 
-/* #endregion */
-
-/* #region Minkowski */
+// Minkowski distance metric
 
 pub struct MetricMinkowski<T>
 where
@@ -357,6 +373,565 @@ impl<ImplType> MetricDistWeightedAPI<Vec<T>> for StructType {
             },
         }
         dist
+    }
+}
+
+/* #endregion */
+
+/* #region Cosine */
+
+pub struct MetricCosine<V> {
+    norms_u: Option<V>,
+    norms_v: Option<V>,
+}
+
+impl<V> Default for MetricCosine<V> {
+    fn default() -> Self {
+        Self { norms_u: None, norms_v: None }
+    }
+}
+
+impl<V> MetricCosine<V> {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl<T> MetricDistAPI<Vec<T>> for MetricCosine<Vec<T>>
+where
+    T: Float,
+{
+    type Out = T;
+
+    #[inline]
+    fn distance<const STRIDED: bool>(
+        &self,
+        uv: (&Vec<T>, &Vec<T>),
+        offsets: (usize, usize),
+        indices: (usize, usize),
+        strides: (isize, isize),
+        size: usize,
+    ) -> T {
+        let (u, v) = uv;
+        let (u_offset, v_offset) = offsets;
+        let (u_index, v_index) = indices;
+        let mut dist = T::zero();
+        let norm_u = self.norms_u.as_ref().unwrap()[u_index];
+        let norm_v = self.norms_v.as_ref().unwrap()[v_index];
+
+        match STRIDED {
+            false => {
+                izip!(&u[u_offset..u_offset + size], &v[v_offset..v_offset + size]).for_each(
+                    |(&u_i, &v_i)| {
+                        dist = dist + u_i * v_i;
+                    },
+                );
+            },
+            true => {
+                let (u_stride, v_stride) = strides;
+                for i in 0..size {
+                    let u_i = u[(u_offset as isize + i as isize * u_stride) as usize];
+                    let v_i = v[(v_offset as isize + i as isize * v_stride) as usize];
+                    dist = dist + u_i * v_i;
+                }
+            },
+        }
+
+        T::one() - dist / (norm_u * norm_v)
+    }
+
+    fn initialize(
+        &mut self,
+        xa: &Vec<T>,
+        la: &Layout<Ix2>,
+        xb: &Vec<T>,
+        lb: &Layout<Ix2>,
+    ) -> Result<()> {
+        let m = la.shape()[0];
+        let n = lb.shape()[0];
+        let k = la.shape()[1];
+        rstsr_assert_eq!(
+            la.shape()[1],
+            lb.shape()[1],
+            InvalidLayout,
+            "xa and xb must have the same number of columns"
+        )?;
+
+        let mut norms_u = vec![T::zero(); m];
+        let mut norms_v = vec![T::zero(); n];
+
+        norms_u.iter_mut().enumerate().for_each(|(i, norm_u)| {
+            *norm_u = (0..k).fold(T::zero(), |acc, j| unsafe {
+                let val = xa[la.index_uncheck(&[i, j]) as usize];
+                acc + val * val
+            });
+            *norm_u = norm_u.sqrt();
+        });
+
+        norms_v.iter_mut().enumerate().for_each(|(i, norm_v)| {
+            *norm_v = (0..k).fold(T::zero(), |acc, j| unsafe {
+                let val = xb[lb.index_uncheck(&[i, j]) as usize];
+                acc + val * val
+            });
+            *norm_v = norm_v.sqrt();
+        });
+
+        self.norms_u = Some(norms_u);
+        self.norms_v = Some(norms_v);
+
+        Ok(())
+    }
+}
+
+impl<T> MetricDistWeightedAPI<Vec<T>> for MetricCosine<Vec<T>>
+where
+    T: Float,
+{
+    type Weight = Vec<T>;
+
+    #[inline]
+    fn weighted_distance<const STRIDED: bool>(
+        &self,
+        uv: (&Vec<T>, &Vec<T>),
+        offsets: (usize, usize),
+        indices: (usize, usize),
+        strides: (isize, isize),
+        size: usize,
+        weights: &Self::Weight,
+        _weights_sum: Self::Out,
+    ) -> T {
+        let (u, v) = uv;
+        let (u_offset, v_offset) = offsets;
+        let (u_index, v_index) = indices;
+        let mut dist = T::zero();
+        let norm_u = self.norms_u.as_ref().unwrap()[u_index];
+        let norm_v = self.norms_v.as_ref().unwrap()[v_index];
+
+        match STRIDED {
+            false => {
+                izip!(&u[u_offset..u_offset + size], &v[v_offset..v_offset + size], weights)
+                    .for_each(|(&u_i, &v_i, &w)| {
+                        dist = dist + w * u_i * v_i;
+                    });
+            },
+            true => {
+                let (u_stride, v_stride) = strides;
+                for i in 0..size {
+                    let u_i = u[(u_offset as isize + i as isize * u_stride) as usize];
+                    let v_i = v[(v_offset as isize + i as isize * v_stride) as usize];
+                    let w = weights[i];
+                    dist = dist + w * u_i * v_i;
+                }
+            },
+        }
+
+        T::one() - dist / (norm_u * norm_v)
+    }
+
+    fn weighted_initialize(
+        &mut self,
+        xa: &Vec<T>,
+        la: &Layout<Ix2>,
+        xb: &Vec<T>,
+        lb: &Layout<Ix2>,
+        weights: &Vec<T>,
+    ) -> Result<()> {
+        let m = la.shape()[0];
+        let n = lb.shape()[0];
+        let k = la.shape()[1];
+        rstsr_assert_eq!(
+            la.shape()[1],
+            lb.shape()[1],
+            InvalidLayout,
+            "xa and xb must have the same number of columns"
+        )?;
+        rstsr_assert_eq!(
+            la.shape()[1],
+            weights.len(),
+            InvalidLayout,
+            "xa and weights must have the same number of columns"
+        )?;
+
+        let mut norms_u = vec![T::zero(); m];
+        let mut norms_v = vec![T::zero(); n];
+
+        norms_u.iter_mut().enumerate().for_each(|(i, norm_u)| {
+            *norm_u = (0..k).fold(T::zero(), |acc, j| unsafe {
+                let val = xa[la.index_uncheck(&[i, j]) as usize];
+                acc + weights[j] * val * val
+            });
+            *norm_u = norm_u.sqrt();
+        });
+
+        norms_v.iter_mut().enumerate().for_each(|(i, norm_v)| {
+            *norm_v = (0..k).fold(T::zero(), |acc, j| unsafe {
+                let val = xb[lb.index_uncheck(&[i, j]) as usize];
+                acc + weights[j] * val * val
+            });
+            *norm_v = norm_v.sqrt();
+        });
+
+        self.norms_u = Some(norms_u);
+        self.norms_v = Some(norms_v);
+
+        Ok(())
+    }
+}
+
+/* #endregion */
+
+/* #region Correlation */
+
+pub struct MetricCorrelation<V> {
+    norms_u: Option<V>,
+    norms_v: Option<V>,
+    means_u: Option<V>,
+    means_v: Option<V>,
+}
+
+impl<V> Default for MetricCorrelation<V> {
+    fn default() -> Self {
+        Self { norms_u: None, norms_v: None, means_u: None, means_v: None }
+    }
+}
+
+impl<V> MetricCorrelation<V> {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl<T> MetricDistAPI<Vec<T>> for MetricCorrelation<Vec<T>>
+where
+    T: Float + FromPrimitive,
+{
+    type Out = T;
+
+    #[inline]
+    fn distance<const STRIDED: bool>(
+        &self,
+        uv: (&Vec<T>, &Vec<T>),
+        offsets: (usize, usize),
+        indices: (usize, usize),
+        strides: (isize, isize),
+        size: usize,
+    ) -> T {
+        let (u, v) = uv;
+        let (u_offset, v_offset) = offsets;
+        let (u_index, v_index) = indices;
+        let mut dist = T::zero();
+        let norm_u = self.norms_u.as_ref().unwrap()[u_index];
+        let norm_v = self.norms_v.as_ref().unwrap()[v_index];
+        let mean_u = self.means_u.as_ref().unwrap()[u_index];
+        let mean_v = self.means_v.as_ref().unwrap()[v_index];
+
+        match STRIDED {
+            false => {
+                izip!(&u[u_offset..u_offset + size], &v[v_offset..v_offset + size]).for_each(
+                    |(&u_i, &v_i)| {
+                        dist = dist + (u_i - mean_u) * (v_i - mean_v);
+                    },
+                );
+            },
+            true => {
+                let (u_stride, v_stride) = strides;
+                for i in 0..size {
+                    let u_i = u[(u_offset as isize + i as isize * u_stride) as usize];
+                    let v_i = v[(v_offset as isize + i as isize * v_stride) as usize];
+                    dist = dist + (u_i - mean_u) * (v_i - mean_v);
+                }
+            },
+        }
+
+        T::one() - dist / (norm_u * norm_v)
+    }
+
+    fn initialize(
+        &mut self,
+        xa: &Vec<T>,
+        la: &Layout<Ix2>,
+        xb: &Vec<T>,
+        lb: &Layout<Ix2>,
+    ) -> Result<()> {
+        let m = la.shape()[0];
+        let n = lb.shape()[0];
+        let k = la.shape()[1];
+        rstsr_assert_eq!(
+            la.shape()[1],
+            lb.shape()[1],
+            InvalidLayout,
+            "xa and xb must have the same number of columns"
+        )?;
+
+        let mut norms_u = vec![T::zero(); m];
+        let mut norms_v = vec![T::zero(); n];
+        let mut means_u = vec![T::zero(); m];
+        let mut means_v = vec![T::zero(); n];
+
+        means_u.iter_mut().zip(norms_u.iter_mut()).enumerate().for_each(|(i, (mean_u, norm_u))| {
+            *mean_u = (0..k).fold(T::zero(), |acc, j| unsafe {
+                let val = xa[la.index_uncheck(&[i, j]) as usize];
+                acc + val
+            }) / T::from_usize(k).unwrap();
+            *norm_u = (0..k).fold(T::zero(), |acc, j| unsafe {
+                let val = xa[la.index_uncheck(&[i, j]) as usize];
+                acc + (val - *mean_u) * (val - *mean_u)
+            });
+            *norm_u = norm_u.sqrt();
+        });
+
+        means_v.iter_mut().zip(norms_v.iter_mut()).enumerate().for_each(|(i, (mean_v, norm_v))| {
+            *mean_v = (0..k).fold(T::zero(), |acc, j| unsafe {
+                let val = xb[lb.index_uncheck(&[i, j]) as usize];
+                acc + val
+            }) / T::from_usize(k).unwrap();
+            *norm_v = (0..k).fold(T::zero(), |acc, j| unsafe {
+                let val = xb[lb.index_uncheck(&[i, j]) as usize];
+                acc + (val - *mean_v) * (val - *mean_v)
+            });
+            *norm_v = norm_v.sqrt();
+        });
+
+        self.norms_u = Some(norms_u);
+        self.norms_v = Some(norms_v);
+        self.means_u = Some(means_u);
+        self.means_v = Some(means_v);
+
+        Ok(())
+    }
+}
+
+impl<T> MetricDistWeightedAPI<Vec<T>> for MetricCorrelation<Vec<T>>
+where
+    T: Float + FromPrimitive,
+{
+    type Weight = Vec<T>;
+
+    #[inline]
+    fn weighted_distance<const STRIDED: bool>(
+        &self,
+        uv: (&Vec<T>, &Vec<T>),
+        offsets: (usize, usize),
+        indices: (usize, usize),
+        strides: (isize, isize),
+        size: usize,
+        weights: &Self::Weight,
+        _weights_sum: Self::Out,
+    ) -> T {
+        let (u, v) = uv;
+        let (u_offset, v_offset) = offsets;
+        let (u_index, v_index) = indices;
+        let mut dist = T::zero();
+        let norm_u = self.norms_u.as_ref().unwrap()[u_index];
+        let norm_v = self.norms_v.as_ref().unwrap()[v_index];
+        let mean_u = self.means_u.as_ref().unwrap()[u_index];
+        let mean_v = self.means_v.as_ref().unwrap()[v_index];
+
+        match STRIDED {
+            false => {
+                izip!(&u[u_offset..u_offset + size], &v[v_offset..v_offset + size], weights)
+                    .for_each(|(&u_i, &v_i, &w)| {
+                        dist = dist + w * (u_i - mean_u) * (v_i - mean_v);
+                    });
+            },
+            true => {
+                let (u_stride, v_stride) = strides;
+                for i in 0..size {
+                    let u_i = u[(u_offset as isize + i as isize * u_stride) as usize];
+                    let v_i = v[(v_offset as isize + i as isize * v_stride) as usize];
+                    let w = weights[i];
+                    dist = dist + w * (u_i - mean_u) * (v_i - mean_v);
+                }
+            },
+        }
+
+        T::one() - dist / (norm_u * norm_v)
+    }
+
+    fn weighted_initialize(
+        &mut self,
+        xa: &Vec<T>,
+        la: &Layout<Ix2>,
+        xb: &Vec<T>,
+        lb: &Layout<Ix2>,
+        weights: &Vec<T>,
+    ) -> Result<()> {
+        let m = la.shape()[0];
+        let n = lb.shape()[0];
+        let k = la.shape()[1];
+        rstsr_assert_eq!(
+            la.shape()[1],
+            lb.shape()[1],
+            InvalidLayout,
+            "xa and xb must have the same number of columns"
+        )?;
+        rstsr_assert_eq!(
+            la.shape()[1],
+            weights.len(),
+            InvalidLayout,
+            "xa and weights must have the same number of columns"
+        )?;
+
+        let mut norms_u = vec![T::zero(); m];
+        let mut norms_v = vec![T::zero(); n];
+        let mut means_u = vec![T::zero(); m];
+        let mut means_v = vec![T::zero(); n];
+
+        means_u.iter_mut().zip(norms_u.iter_mut()).enumerate().for_each(|(i, (mean_u, norm_u))| {
+            *mean_u = (0..k).fold(T::zero(), |acc, j| unsafe {
+                let val = xa[la.index_uncheck(&[i, j]) as usize];
+                acc + val
+            }) / T::from_usize(k).unwrap();
+            *norm_u = (0..k).fold(T::zero(), |acc, j| unsafe {
+                let val = xa[la.index_uncheck(&[i, j]) as usize];
+                acc + weights[j] * (val - *mean_u) * (val - *mean_u)
+            });
+            *norm_u = norm_u.sqrt();
+        });
+
+        means_v.iter_mut().zip(norms_v.iter_mut()).enumerate().for_each(|(i, (mean_v, norm_v))| {
+            *mean_v = (0..k).fold(T::zero(), |acc, j| unsafe {
+                let val = xb[lb.index_uncheck(&[i, j]) as usize];
+                acc + val
+            }) / T::from_usize(k).unwrap();
+            *norm_v = (0..k).fold(T::zero(), |acc, j| unsafe {
+                let val = xb[lb.index_uncheck(&[i, j]) as usize];
+                acc + weights[j] * (val - *mean_v) * (val - *mean_v)
+            });
+            *norm_v = norm_v.sqrt();
+        });
+
+        self.norms_u = Some(norms_u);
+        self.norms_v = Some(norms_v);
+        self.means_u = Some(means_u);
+        self.means_v = Some(means_v);
+
+        Ok(())
+    }
+}
+
+/* #endregion */
+
+/* #region Cosine */
+
+pub struct MetricJensenShannon<V> {
+    sums_u: Option<V>,
+    sums_v: Option<V>,
+}
+
+impl<V> Default for MetricJensenShannon<V> {
+    fn default() -> Self {
+        Self { sums_u: None, sums_v: None }
+    }
+}
+
+impl<V> MetricJensenShannon<V> {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl<T> MetricDistAPI<Vec<T>> for MetricJensenShannon<Vec<T>>
+where
+    T: Float,
+{
+    type Out = T;
+
+    #[inline]
+    fn distance<const STRIDED: bool>(
+        &self,
+        uv: (&Vec<T>, &Vec<T>),
+        offsets: (usize, usize),
+        indices: (usize, usize),
+        strides: (isize, isize),
+        size: usize,
+    ) -> T {
+        let (u, v) = uv;
+        let (u_offset, v_offset) = offsets;
+        let (u_index, v_index) = indices;
+        let mut dist = T::zero();
+        let sum_u = self.sums_u.as_ref().unwrap()[u_index];
+        let sum_v = self.sums_v.as_ref().unwrap()[v_index];
+
+        // quick return if both sums are zero
+        if sum_u <= T::zero() && sum_v <= T::zero() {
+            return T::infinity();
+        }
+
+        let two = T::one() + T::one();
+
+        let mut inner = |u_i: T, v_i: T, sum_u: T, sum_v: T| {
+            if u_i < T::zero() || v_i < T::zero() {
+                dist = T::infinity();
+                return;
+            }
+            let p_i = u_i / sum_u;
+            let q_i = v_i / sum_v;
+            let m_i = (p_i + q_i) / two;
+            if p_i > T::zero() {
+                dist = dist + p_i * (p_i / m_i).ln();
+            }
+            if q_i > T::zero() {
+                dist = dist + q_i * (q_i / m_i).ln();
+            }
+        };
+
+        match STRIDED {
+            false => {
+                izip!(&u[u_offset..u_offset + size], &v[v_offset..v_offset + size])
+                    .for_each(|(&u_i, &v_i)| inner(u_i, v_i, sum_u, sum_v));
+            },
+            true => {
+                let (u_stride, v_stride) = strides;
+                for i in 0..size {
+                    let u_i = u[(u_offset as isize + i as isize * u_stride) as usize];
+                    let v_i = v[(v_offset as isize + i as isize * v_stride) as usize];
+                    inner(u_i, v_i, sum_u, sum_v);
+                }
+            },
+        }
+
+        (dist / two).sqrt()
+    }
+
+    fn initialize(
+        &mut self,
+        xa: &Vec<T>,
+        la: &Layout<Ix2>,
+        xb: &Vec<T>,
+        lb: &Layout<Ix2>,
+    ) -> Result<()> {
+        let m = la.shape()[0];
+        let n = lb.shape()[0];
+        let k = la.shape()[1];
+        rstsr_assert_eq!(
+            la.shape()[1],
+            lb.shape()[1],
+            InvalidLayout,
+            "xa and xb must have the same number of columns"
+        )?;
+
+        let mut sums_u = vec![T::zero(); m];
+        let mut sums_v = vec![T::zero(); n];
+
+        sums_u.iter_mut().enumerate().for_each(|(i, sum_u)| {
+            *sum_u = (0..k).fold(T::zero(), |acc, j| unsafe {
+                let val = xa[la.index_uncheck(&[i, j]) as usize];
+                acc + val
+            });
+        });
+
+        sums_v.iter_mut().enumerate().for_each(|(i, sum_v)| {
+            *sum_v = (0..k).fold(T::zero(), |acc, j| unsafe {
+                let val = xb[lb.index_uncheck(&[i, j]) as usize];
+                acc + val
+            });
+        });
+
+        self.sums_u = Some(sums_u);
+        self.sums_v = Some(sums_v);
+
+        Ok(())
     }
 }
 

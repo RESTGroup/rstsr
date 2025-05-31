@@ -9,8 +9,9 @@ pub mod rstsr_funcs {
 
 pub mod rstsr_structs {
     pub use crate::distance::metric::{
-        MetricBrayCurtis, MetricCanberra, MetricChebyshev, MetricCityBlock, MetricDice,
-        MetricEuclidean, MetricHamming, MetricJaccard, MetricMinkowski, MetricRogersTanimoto,
-        MetricRussellRao, MetricSokalSneath, MetricSqEuclidean, MetricYule,
+        MetricBrayCurtis, MetricCanberra, MetricChebyshev, MetricCityBlock, MetricCorrelation,
+        MetricCosine, MetricDice, MetricEuclidean, MetricHamming, MetricJaccard,
+        MetricJensenShannon, MetricMinkowski, MetricRogersTanimoto, MetricRussellRao,
+        MetricSokalSneath, MetricSqEuclidean, MetricYule,
     };
 }

@@ -10,7 +10,7 @@ pub fn cdist_serial<T, M>(
     xb: &Vec<T>,
     la: &Layout<Ix2>,
     lb: &Layout<Ix2>,
-    kernel: M,
+    mut kernel: M,
     order: FlagOrder,
 ) -> Result<Vec<M::Out>>
 where
@@ -34,6 +34,8 @@ where
     let m = shape_a[0];
     let n = shape_b[0];
     let mut dists = unsafe { uninitialized_vec::<M::Out>(m * n)? };
+
+    kernel.initialize(xa, la, xb, lb)?;
 
     // calculate batch size based on cache size
     let size_t = std::mem::size_of::<T>();
@@ -85,7 +87,7 @@ pub fn cdist_weighted_serial<T, M>(
     la: &Layout<Ix2>,
     lb: &Layout<Ix2>,
     weights: &M::Weight,
-    kernel: M,
+    mut kernel: M,
     order: FlagOrder,
 ) -> Result<Vec<M::Out>>
 where
@@ -109,6 +111,8 @@ where
     let m = shape_a[0];
     let n = shape_b[0];
     let mut dists = unsafe { uninitialized_vec::<M::Out>(m * n)? };
+
+    kernel.weighted_initialize(xa, la, xb, lb, weights)?;
 
     // calculate batch size based on cache size
     let size_t = std::mem::size_of::<T>();
@@ -167,7 +171,7 @@ pub fn cdist_rayon<T, M>(
     xb: &Vec<T>,
     la: &Layout<Ix2>,
     lb: &Layout<Ix2>,
-    kernel: M,
+    mut kernel: M,
     order: FlagOrder,
     pool: Option<&rayon::ThreadPool>,
 ) -> Result<Vec<M::Out>>
@@ -199,6 +203,8 @@ where
     let m = shape_a[0];
     let n = shape_b[0];
     let dists = unsafe { uninitialized_vec::<M::Out>(m * n)? };
+
+    kernel.initialize(xa, la, xb, lb)?;
 
     // calculate batch size based on cache size
     let size_t = std::mem::size_of::<T>();
@@ -254,7 +260,7 @@ pub fn cdist_weighted_rayon<T, M>(
     la: &Layout<Ix2>,
     lb: &Layout<Ix2>,
     weights: &M::Weight,
-    kernel: M,
+    mut kernel: M,
     order: FlagOrder,
     pool: Option<&rayon::ThreadPool>,
 ) -> Result<Vec<M::Out>>
@@ -287,6 +293,8 @@ where
     let m = shape_a[0];
     let n = shape_b[0];
     let dists = unsafe { uninitialized_vec::<M::Out>(m * n)? };
+
+    kernel.weighted_initialize(xa, la, xb, lb, weights)?;
 
     // calculate batch size based on cache size
     let size_t = std::mem::size_of::<T>();

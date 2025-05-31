@@ -122,7 +122,7 @@ mod test {
         println!("{d:16.8?}");
 
         let a = linspace((0., 1., 64, &device)).into_shape((16, 4));
-        let b = linspace((0., 1., 80, &device)).into_shape((20, 4));
+        let b = linspace((0., 1., 80, &device)).into_shape((20, 4)).into_flip(-1);
         let d = cdist((a.view(), b.view(), MetricHamming));
         println!("{d:16.8?}");
 
@@ -130,6 +130,12 @@ mod test {
         println!("{d:16.8?}");
 
         let d = cdist((a.view(), b.view(), MetricBrayCurtis, w.view()));
+        println!("{d:16.8?}");
+
+        let d = cdist((a.view(), b.view(), MetricCosine::new(), w.view()));
+        println!("{d:16.8?}");
+
+        let d = cdist((a.view(), b.view(), MetricJensenShannon::new()));
         println!("{d:16.8?}");
 
         let vec_a =
@@ -140,6 +146,17 @@ mod test {
         let b = asarray((vec_b, &device)).into_shape((3, 4));
 
         let d = cdist((a.view(), b.view(), MetricSokalSneath, w.view()));
+        println!("{d:16.8?}");
+
+        let a = asarray((vec![-3., 6., 3., 6., -3., 3., 6., 1., 0., -8., 1., -2.], &device))
+            .into_shape((3, 4));
+        let b = asarray((vec![3., 1., -1., 1., -6., 0., 3., -1., -5., -4., 4., -2.], &device))
+            .into_shape((3, 4));
+
+        let d = cdist((a.view(), b.view(), MetricCorrelation::default(), w.view()));
+        println!("{d:16.8?}");
+
+        let d = cdist((a.view(), b.view(), MetricJensenShannon::default()));
         println!("{d:16.8?}");
     }
 }
