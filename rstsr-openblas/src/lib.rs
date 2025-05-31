@@ -15,6 +15,9 @@ pub mod driver_impl;
 #[cfg(feature = "linalg")]
 pub mod linalg_traits_impl;
 
+#[cfg(feature = "sci")]
+pub mod sci_auto_impl;
+
 use rstsr_core::prelude_dev::DeviceCpuRayon;
 
 #[derive(Clone, Debug)]

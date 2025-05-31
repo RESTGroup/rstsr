@@ -15,12 +15,13 @@ num = { workspace = true }
 duplicate = { workspace = true }
 rstsr-openblas-ffi = { workspace = true }
 rstsr-lapack-ffi = { workspace = true }
+rstsr-native-impl = { workspace = true, features = ["rayon"] }
 rstsr-core = { workspace = true, features = ["rayon"] }
 rstsr-common = { workspace = true, features = ["rayon"] }
 rstsr-dtype-traits = { workspace = true, features = ["half"] }
 rstsr-blas-traits = { workspace = true }
 rstsr-linalg-traits = { workspace = true, optional = true }
-rstsr-native-impl = { workspace = true, features = ["rayon"] }
+rstsr-sci-traits = { workspace = true, optional = true }
 
 [dev-dependencies]
 rstsr = { path = "../rstsr", default-features = false, features = ["openblas", "linalg"] }
@@ -31,6 +32,7 @@ default = ["linalg"]
 faer = ["rstsr-core/faer"]
 ilp64 = ["rstsr-openblas-ffi/ilp64", "rstsr-lapack-ffi/ilp64", "rstsr-blas-traits/ilp64"]
 linalg = ["dep:rstsr-linalg-traits"]
+sci = ["dep:rstsr-sci-traits"]
 
 # use openmp for linking
 openmp = []

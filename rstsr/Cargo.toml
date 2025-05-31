@@ -12,6 +12,7 @@ readme = "readme.md"
 [dependencies]
 rstsr-core = { workspace = true }
 rstsr-linalg-traits = { workspace = true, optional = true }
+rstsr-sci-traits = { workspace = true, optional = true }
 rstsr-openblas = { workspace = true, optional = true }
 
 [features]
@@ -31,4 +32,5 @@ dispatch_dim_layout_iter = ["rstsr-core/dispatch_dim_layout_iter"]
 openblas = ["dep:rstsr-openblas"]
 
 # dependencies specification
+sci = ["dep:rstsr-sci-traits"]
 linalg = ["dep:rstsr-linalg-traits"]
