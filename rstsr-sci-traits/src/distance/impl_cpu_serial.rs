@@ -129,7 +129,17 @@ mod test {
         let d = cdist((a.view(), b.view(), MetricHamming, w.view()));
         println!("{d:16.8?}");
 
-        println!("{:?}", a[[15, 3]]);
-        println!("{:?}", b[[19, 3]]);
+        let d = cdist((a.view(), b.view(), MetricBrayCurtis, w.view()));
+        println!("{d:16.8?}");
+
+        let vec_a =
+            vec![true, false, false, false, false, false, true, true, true, true, true, false];
+        let vec_b =
+            vec![false, false, true, false, false, true, true, false, false, true, true, false];
+        let a = asarray((vec_a, &device)).into_shape((3, 4));
+        let b = asarray((vec_b, &device)).into_shape((3, 4));
+
+        let d = cdist((a.view(), b.view(), MetricSokalSneath, w.view()));
+        println!("{d:16.8?}");
     }
 }
