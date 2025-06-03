@@ -1,0 +1,1 @@
+../../../rstsr-sci-traits/src/distance/auto_impl_rayon.rs
