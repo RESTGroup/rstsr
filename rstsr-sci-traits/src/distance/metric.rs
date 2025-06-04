@@ -236,6 +236,16 @@ fn inner_yule_w(u: bool, v: bool, w: f64, n: &mut [f64; 4]) {
 }
 
 #[inline]
+fn inner_yule_finalize(n: &[f64; 4]) -> f64 {
+    let [ntt, nff, nft, ntf] = n;
+    let half_r = ntf * nft;
+    if half_r == 0.0 {
+        return 0.0; // Avoid division by zero
+    }
+    (2. * half_r) / (ntt * nff + half_r)
+}
+
+#[inline]
 fn inner_dice(u: bool, v: bool, n: &mut [f64; 2]) {
     let [ntt, ndiff] = n;
     match (u, v) {
@@ -258,23 +268,24 @@ fn inner_dice_w(u: bool, v: bool, w: f64, n: &mut [f64; 2]) {
 }
 
 #[allow(redundant_semicolons)]
+#[allow(unused_variables)]
 #[allow(unused_assignments)]
 #[duplicate_item(
-    T      ImplType                       StructType             TOut      dup_reduce_op                                          dup_initialize                        dup_finalize                                                   ;
-   [T   ] [T: Float                    ] [MetricEuclidean     ] [T      ] [dist = dist + (u_i - v_i).powi(2)                   ] [                                   ] [dist = dist.sqrt()                                            ];
-   [T   ] [T: ComplexFloat<Real: Float>] [MetricMinkowski<T>  ] [T::Real] [dist = dist + Float::powf((u_i - v_i).abs(), self.p)] [let p_inv = T::Real::one() / self.p] [dist = Float::powf(dist, p_inv)                               ];
-   [T   ] [T: ComplexFloat<Real: Float>] [MetricCityBlock     ] [T::Real] [dist = dist + (u_i - v_i).abs()                     ] [                                   ] [                                                              ];
-   [T   ] [T: Float                    ] [MetricSqEuclidean   ] [T      ] [dist = dist + (u_i - v_i).powi(2)                   ] [                                   ] [                                                              ];
-   [T   ] [T: ComplexFloat<Real: Float>] [MetricCanberra      ] [T::Real] [inner_canberra(u_i, v_i, &mut dist)                 ] [                                   ] [                                                              ];
-   [T   ] [T: ComplexFloat<Real: Float>] [MetricChebyshev     ] [T::Real] [inner_chebyshev(u_i, v_i, &mut dist)                ] [                                   ] [                                                              ];
-   [T   ] [T: ComplexFloat<Real: Float>] [MetricBrayCurtis    ] [T::Real] [inner_bray_curtis(u_i, v_i, &mut s)                 ] [let mut s = [T::Real::zero(); 2]   ] [dist = s[0] / s[1]                                            ];
-   [T   ] [T: PartialEq + Copy         ] [MetricHamming       ] [f64    ] [if (u_i != v_i) { dist += 1.0 }                     ] [                                   ] [dist /= size.to_f64().unwrap()                                ];
-   [bool] [                            ] [MetricJaccard       ] [f64    ] [inner_jaccard(u_i, v_i, &mut dist, &mut denom)      ] [let mut denom = 0.0                ] [dist /= denom                                                 ];
-   [bool] [                            ] [MetricYule          ] [f64    ] [inner_yule(u_i, v_i, &mut n)                        ] [let mut n = [0.0; 4]               ] [dist = (2. * n[2] * n[3]) / (n[0] * n[1] + n[2] * n[3])       ];
-   [bool] [                            ] [MetricDice          ] [f64    ] [inner_dice(u_i, v_i, &mut n)                        ] [let mut n = [0.0; 2]               ] [dist = n[1] / (2. * n[0] + n[1])                              ];
-   [bool] [                            ] [MetricRogersTanimoto] [f64    ] [inner_dice(u_i, v_i, &mut n)                        ] [let mut n = [0.0; 2]               ] [dist = (2. * n[1]) / (size.to_f64().unwrap() + n[1])          ];
-   [bool] [                            ] [MetricRussellRao    ] [f64    ] [if (u_i && v_i) { ntt += 1.; }                      ] [let mut ntt = 0.0                  ] [dist = (size.to_f64().unwrap() - ntt) / size.to_f64().unwrap()];
-   [bool] [                            ] [MetricSokalSneath   ] [f64    ] [inner_dice(u_i, v_i, &mut n)                        ] [let mut n = [0.0; 2]               ] [dist = (2. * n[1]) / (2. * n[1] + n[0])                       ];
+    T      ImplType                       StructType             TOut      dup_reduce_op                                          dup_initialize                        dup_finalize                            ;
+   [T   ] [T: Float                    ] [MetricEuclidean     ] [T      ] [dist = dist + (u_i - v_i).powi(2)                   ] [                                   ] [dist = dist.sqrt()                     ];
+   [T   ] [T: ComplexFloat<Real: Float>] [MetricMinkowski<T>  ] [T::Real] [dist = dist + Float::powf((u_i - v_i).abs(), self.p)] [let p_inv = T::Real::one() / self.p] [dist = Float::powf(dist, p_inv)        ];
+   [T   ] [T: ComplexFloat<Real: Float>] [MetricCityBlock     ] [T::Real] [dist = dist + (u_i - v_i).abs()                     ] [                                   ] [                                       ];
+   [T   ] [T: Float                    ] [MetricSqEuclidean   ] [T      ] [dist = dist + (u_i - v_i).powi(2)                   ] [                                   ] [                                       ];
+   [T   ] [T: ComplexFloat<Real: Float>] [MetricCanberra      ] [T::Real] [inner_canberra(u_i, v_i, &mut dist)                 ] [                                   ] [                                       ];
+   [T   ] [T: ComplexFloat<Real: Float>] [MetricChebyshev     ] [T::Real] [inner_chebyshev(u_i, v_i, &mut dist)                ] [                                   ] [                                       ];
+   [T   ] [T: ComplexFloat<Real: Float>] [MetricBrayCurtis    ] [T::Real] [inner_bray_curtis(u_i, v_i, &mut s)                 ] [let mut s = [T::Real::zero(); 2]   ] [dist = s[0] / s[1]                     ];
+   [T   ] [T: PartialEq + Copy         ] [MetricHamming       ] [f64    ] [if (u_i != v_i) { dist += 1.0 }                     ] [                                   ] [dist /= size_f64                       ];
+   [bool] [                            ] [MetricJaccard       ] [f64    ] [inner_jaccard(u_i, v_i, &mut dist, &mut denom)      ] [let mut denom = 0.0                ] [dist /= denom                          ];
+   [bool] [                            ] [MetricYule          ] [f64    ] [inner_yule(u_i, v_i, &mut n)                        ] [let mut n = [0.0; 4]               ] [dist = inner_yule_finalize(&n)         ];
+   [bool] [                            ] [MetricDice          ] [f64    ] [inner_dice(u_i, v_i, &mut n)                        ] [let mut n = [0.0; 2]               ] [dist = n[1] / (2. * n[0] + n[1])       ];
+   [bool] [                            ] [MetricRogersTanimoto] [f64    ] [inner_dice(u_i, v_i, &mut n)                        ] [let mut n = [0.0; 2]               ] [dist = (2. * n[1]) / (size_f64 + n[1]) ];
+   [bool] [                            ] [MetricRussellRao    ] [f64    ] [if (u_i && v_i) { ntt += 1.; }                      ] [let mut ntt = 0.0                  ] [dist = (size_f64 - ntt) / size_f64     ];
+   [bool] [                            ] [MetricSokalSneath   ] [f64    ] [inner_dice(u_i, v_i, &mut n)                        ] [let mut n = [0.0; 2]               ] [dist = (2. * n[1]) / (2. * n[1] + n[0])];
 )]
 impl<ImplType> MetricDistAPI<Vec<T>> for StructType {
     type Out = TOut;
@@ -291,6 +302,7 @@ impl<ImplType> MetricDistAPI<Vec<T>> for StructType {
         let (u, v) = uv;
         let (u_offset, v_offset) = offsets;
         let mut dist = TOut::zero();
+        let size_f64 = size.to_f64().unwrap();
         dup_initialize;
         match STRIDED {
             false => {
@@ -319,21 +331,21 @@ impl<ImplType> MetricDistAPI<Vec<T>> for StructType {
 #[allow(unused_variables)]
 #[allow(unused_assignments)]
 #[duplicate_item(
-    T      ImplType                       StructType             TOut      dup_reduce_with_weight                                     dup_initialize                        dup_finalize                                            ;
-   [T   ] [T: Float                    ] [MetricEuclidean     ] [T      ] [dist = dist + w * (u_i - v_i).powi(2)                   ] [                                   ] [dist = dist.sqrt()                                     ];
-   [T   ] [T: ComplexFloat<Real: Float>] [MetricMinkowski<T>  ] [T::Real] [dist = dist + w * Float::powf((u_i - v_i).abs(), self.p)] [let p_inv = T::Real::one() / self.p] [dist = Float::powf(dist, p_inv)                        ];
-   [T   ] [T: ComplexFloat<Real: Float>] [MetricCityBlock     ] [T::Real] [dist = dist + w * (u_i - v_i).abs()                     ] [                                   ] [                                                       ];
-   [T   ] [T: Float                    ] [MetricSqEuclidean   ] [T      ] [dist = dist + w * (u_i - v_i).powi(2)                   ] [                                   ] [                                                       ];
-   [T   ] [T: ComplexFloat<Real: Float>] [MetricCanberra      ] [T::Real] [inner_canberra_w(u_i, v_i, w, &mut dist)                ] [                                   ] [                                                       ];
-   [T   ] [T: ComplexFloat<Real: Float>] [MetricChebyshev     ] [T::Real] [inner_chebyshev_w(u_i, v_i, w, &mut dist)               ] [                                   ] [                                                       ];
-   [T   ] [T: ComplexFloat<Real: Float>] [MetricBrayCurtis    ] [T::Real] [inner_bray_curtis_w(u_i, v_i, w, &mut s)                ] [let mut s = [T::Real::zero(); 2]   ] [dist = s[0] / s[1]                                     ];
-   [T   ] [T: PartialEq + Copy         ] [MetricHamming       ] [f64    ] [if (u_i != v_i) { dist += w }                           ] [                                   ] [dist /= weights_sum                                    ];
-   [bool] [                            ] [MetricJaccard       ] [f64    ] [inner_jaccard_w(u_i, v_i, w, &mut dist, &mut denom)     ] [let mut denom = 0.0                ] [dist /= denom                                          ];
-   [bool] [                            ] [MetricYule          ] [f64    ] [inner_yule_w(u_i, v_i, w, &mut n)                       ] [let mut n = [0.0; 4]               ] [dist = (2. * n[2] * n[3]) / (n[0] * n[1] + n[2] * n[3])];
-   [bool] [                            ] [MetricDice          ] [f64    ] [inner_dice_w(u_i, v_i, w, &mut n)                       ] [let mut n = [0.0; 2]               ] [dist = n[1] / (2. * n[0] + n[1])                       ];
-   [bool] [                            ] [MetricRogersTanimoto] [f64    ] [inner_dice_w(u_i, v_i, w, &mut n)                       ] [let mut n = [0.0; 2]               ] [dist = (2. * n[1]) / (weights_sum + n[1])              ];
-   [bool] [                            ] [MetricRussellRao    ] [f64    ] [if (u_i && v_i) { ntt += w; }                           ] [let mut ntt = 0.0                  ] [dist = (weights_sum - ntt) / weights_sum               ];
-   [bool] [                            ] [MetricSokalSneath   ] [f64    ] [inner_dice_w(u_i, v_i, w, &mut n)                       ] [let mut n = [0.0; 2]               ] [dist = (2. * n[1]) / (2. * n[1] + n[0])                ];
+    T      ImplType                       StructType             TOut      dup_reduce_with_weight                                     dup_initialize                        dup_finalize                              ;
+   [T   ] [T: Float                    ] [MetricEuclidean     ] [T      ] [dist = dist + w * (u_i - v_i).powi(2)                   ] [                                   ] [dist = dist.sqrt()                       ];
+   [T   ] [T: ComplexFloat<Real: Float>] [MetricMinkowski<T>  ] [T::Real] [dist = dist + w * Float::powf((u_i - v_i).abs(), self.p)] [let p_inv = T::Real::one() / self.p] [dist = Float::powf(dist, p_inv)          ];
+   [T   ] [T: ComplexFloat<Real: Float>] [MetricCityBlock     ] [T::Real] [dist = dist + w * (u_i - v_i).abs()                     ] [                                   ] [                                         ];
+   [T   ] [T: Float                    ] [MetricSqEuclidean   ] [T      ] [dist = dist + w * (u_i - v_i).powi(2)                   ] [                                   ] [                                         ];
+   [T   ] [T: ComplexFloat<Real: Float>] [MetricCanberra      ] [T::Real] [inner_canberra_w(u_i, v_i, w, &mut dist)                ] [                                   ] [                                         ];
+   [T   ] [T: ComplexFloat<Real: Float>] [MetricChebyshev     ] [T::Real] [inner_chebyshev_w(u_i, v_i, w, &mut dist)               ] [                                   ] [                                         ];
+   [T   ] [T: ComplexFloat<Real: Float>] [MetricBrayCurtis    ] [T::Real] [inner_bray_curtis_w(u_i, v_i, w, &mut s)                ] [let mut s = [T::Real::zero(); 2]   ] [dist = s[0] / s[1]                       ];
+   [T   ] [T: PartialEq + Copy         ] [MetricHamming       ] [f64    ] [if (u_i != v_i) { dist += w }                           ] [                                   ] [dist /= weights_sum                      ];
+   [bool] [                            ] [MetricJaccard       ] [f64    ] [inner_jaccard_w(u_i, v_i, w, &mut dist, &mut denom)     ] [let mut denom = 0.0                ] [dist /= denom                            ];
+   [bool] [                            ] [MetricYule          ] [f64    ] [inner_yule_w(u_i, v_i, w, &mut n)                       ] [let mut n = [0.0; 4]               ] [dist = inner_yule_finalize(&n)           ];
+   [bool] [                            ] [MetricDice          ] [f64    ] [inner_dice_w(u_i, v_i, w, &mut n)                       ] [let mut n = [0.0; 2]               ] [dist = n[1] / (2. * n[0] + n[1])         ];
+   [bool] [                            ] [MetricRogersTanimoto] [f64    ] [inner_dice_w(u_i, v_i, w, &mut n)                       ] [let mut n = [0.0; 2]               ] [dist = (2. * n[1]) / (weights_sum + n[1])];
+   [bool] [                            ] [MetricRussellRao    ] [f64    ] [if (u_i && v_i) { ntt += w; }                           ] [let mut ntt = 0.0                  ] [dist = (weights_sum - ntt) / weights_sum ];
+   [bool] [                            ] [MetricSokalSneath   ] [f64    ] [inner_dice_w(u_i, v_i, w, &mut n)                       ] [let mut n = [0.0; 2]               ] [dist = (2. * n[1]) / (2. * n[1] + n[0])  ];
 )]
 impl<ImplType> MetricDistWeightedAPI<Vec<T>> for StructType {
     type Weight = Vec<TOut>;

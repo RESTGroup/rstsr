@@ -138,14 +138,21 @@ mod test {
         let d = cdist((a.view(), b.view(), MetricJensenShannon::new()));
         println!("{d:16.8?}");
 
-        let vec_a =
-            vec![true, false, false, false, false, false, true, true, true, true, true, false];
-        let vec_b =
-            vec![false, false, true, false, false, true, true, false, false, true, true, false];
-        let a = asarray((vec_a, &device)).into_shape((3, 4));
-        let b = asarray((vec_b, &device)).into_shape((3, 4));
+        let vec_a = vec![
+            true, false, false, false, false, false, true, true, true, true, true, false, true,
+            true, true, true,
+        ];
+        let vec_b = vec![
+            false, false, true, false, false, true, true, false, false, true, true, false, false,
+            false, false, false,
+        ];
+        let a = asarray((vec_a, &device)).into_shape((4, 4));
+        let b = asarray((vec_b, &device)).into_shape((4, 4));
 
         let d = cdist((a.view(), b.view(), MetricSokalSneath, w.view()));
+        println!("{d:16.8?}");
+
+        let d = cdist((a.view(), b.view(), MetricYule, w.view()));
         println!("{d:16.8?}");
 
         let a = asarray((vec![-3., 6., 3., 6., -3., 3., 6., 1., 0., -8., 1., -2.], &device))
@@ -156,7 +163,7 @@ mod test {
         let d = cdist((a.view(), b.view(), MetricCorrelation::default(), w.view()));
         println!("{d:16.8?}");
 
-        let d = cdist((a.view(), b.view(), MetricJensenShannon::default()));
+        let d = cdist((a.abs().view(), b.abs().view(), MetricJensenShannon::default()));
         println!("{d:16.8?}");
     }
 }
