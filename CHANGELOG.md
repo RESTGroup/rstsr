@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.3.6 -- 2025-06-05
+
+Bug Fix:
+- OpenBLAS device OpenMP `get_num_thread` function ([#40](https://github.com/RESTGroup/rstsr/pull/40))
+    - Note that threading control is not stablized. There may be an incoming API breaking change on this feature for v0.4+.
+
+Enhancements:
+- Feature addition (meshgrid, concat, stack, bool_select) ([#38](https://github.com/RESTGroup/rstsr/pull/38))
+- Feature addition (cdist, lebedev_rule) ([#39](https://github.com/RESTGroup/rstsr/pull/39))
+
+Refactor:
+- Eliminate `Error: From<I::Error>` trait bound ([#38](https://github.com/RESTGroup/rstsr/pull/38))
+
 ## v0.3.5 -- 2025-05-22
 
 Bug Fix:
