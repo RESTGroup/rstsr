@@ -1,16 +1,30 @@
 pub mod rstsr_traits {
-    pub use super::distance::rstsr_traits::*;
-    pub use super::integrate::rstsr_traits::*;
+    pub use crate::distance::prelude::rstsr_traits::*;
+    pub use crate::integrate::prelude::rstsr_traits::*;
 }
 
 pub mod rstsr_funcs {
-    pub use super::distance::rstsr_funcs::*;
-    pub use super::integrate::rstsr_funcs::*;
+    pub use crate::distance::prelude::rstsr_funcs::*;
+    pub use crate::integrate::prelude::rstsr_funcs::*;
 }
 
 pub mod rstsr_structs {
-    pub use super::distance::rstsr_structs::*;
-    pub use super::integrate::rstsr_structs::*;
+    pub use crate::distance::prelude::rstsr_structs::*;
+    pub use crate::integrate::prelude::rstsr_structs::*;
+}
+
+pub mod rstsr_mods {
+    pub mod distance {
+        pub use crate::distance::prelude::rstsr_funcs::*;
+        pub use crate::distance::prelude::rstsr_structs::*;
+        pub use crate::distance::prelude::rstsr_traits::*;
+    }
+
+    pub mod integrate {
+        pub use crate::integrate::prelude::rstsr_funcs::*;
+        pub use crate::integrate::prelude::rstsr_structs::*;
+        pub use crate::integrate::prelude::rstsr_traits::*;
+    }
 }
 
 pub mod distance {

@@ -61,6 +61,7 @@ pub mod linalg {
 #[cfg(feature = "sci")]
 pub mod sci {
     pub use rstsr_sci_traits::prelude::rstsr_funcs::*;
+    pub use rstsr_sci_traits::prelude::rstsr_mods::*;
     pub use rstsr_sci_traits::prelude::rstsr_structs::*;
     pub use rstsr_sci_traits::prelude::rstsr_traits::*;
 }
