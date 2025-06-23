@@ -175,7 +175,7 @@ impl<C> DataReference<'_, C> {
 pub trait DataAPI {
     type Data;
     fn raw(&self) -> &Self::Data;
-    fn as_ref(&self) -> DataRef<Self::Data> {
+    fn as_ref(&'_ self) -> DataRef<'_, Self::Data> {
         DataRef::from(self.raw())
     }
 }
@@ -191,7 +191,7 @@ where
 
 pub trait DataMutAPI: DataAPI {
     fn raw_mut(&mut self) -> &mut Self::Data;
-    fn as_mut(&mut self) -> DataMut<Self::Data> {
+    fn as_mut(&'_ mut self) -> DataMut<'_, Self::Data> {
         DataMut::TrueRef(self.raw_mut())
     }
 }
