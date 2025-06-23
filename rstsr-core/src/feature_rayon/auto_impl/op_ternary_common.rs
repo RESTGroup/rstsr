@@ -37,6 +37,28 @@ where
     ) -> Result<()> {
         self.op_mutc_refa_refb_func(c, lc, a, la, b, lb, &mut func)
     }
+
+    fn op_mutc_refa_numb(
+        &self,
+        c: &mut Vec<TO>,
+        lc: &Layout<D>,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        b: T,
+    ) -> Result<()> {
+        self.op_mutc_refa_numb_func(c, lc, a, la, b, &mut func)
+    }
+
+    fn op_mutc_numa_refb(
+        &self,
+        c: &mut <Self as DeviceRawAPI<Self::TOut>>::Raw,
+        lc: &Layout<D>,
+        a: T,
+        b: &<Self as DeviceRawAPI<T>>::Raw,
+        lb: &Layout<D>,
+    ) -> Result<()> {
+        self.op_mutc_numa_refb_func(c, lc, a, b, lb, &mut func)
+    }
 }
 
 impl<TA, TB, D> DevicePowAPI<TA, TB, D> for DeviceRayonAutoImpl
@@ -61,5 +83,27 @@ where
         self.op_mutc_refa_refb_func(c, lc, a, la, b, lb, &mut |c, a, b| {
             *c = a.clone().pow(b.clone())
         })
+    }
+
+    fn op_mutc_refa_numb(
+        &self,
+        c: &mut Vec<Self::TOut>,
+        lc: &Layout<D>,
+        a: &Vec<TA>,
+        la: &Layout<D>,
+        b: TB,
+    ) -> Result<()> {
+        self.op_mutc_refa_numb_func(c, lc, a, la, b, &mut |c, a, b| *c = a.clone().pow(b.clone()))
+    }
+
+    fn op_mutc_numa_refb(
+        &self,
+        c: &mut <Self as DeviceRawAPI<Self::TOut>>::Raw,
+        lc: &Layout<D>,
+        a: TA,
+        b: &<Self as DeviceRawAPI<TB>>::Raw,
+        lb: &Layout<D>,
+    ) -> Result<()> {
+        self.op_mutc_numa_refb_func(c, lc, a, b, lb, &mut |c, a, b| *c = a.clone().pow(b.clone()))
     }
 }

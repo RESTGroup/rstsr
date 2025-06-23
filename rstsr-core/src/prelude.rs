@@ -122,11 +122,13 @@ pub mod rstsr_funcs {
     };
     // binary common functions
     pub use crate::tensor::operators::{
-        atan2, atan2_f, copysign, copysign_f, eq, eq_f, equal, equal_f, floor_divide,
-        floor_divide_f, ge, ge_f, greater, greater_equal, greater_equal_f, greater_f, gt, gt_f,
-        hypot, hypot_f, le, le_f, less, less_equal, less_equal_f, less_f, log_add_exp,
-        log_add_exp_f, lt, lt_f, maximum, maximum_f, minimum, minimum_f, ne, ne_f, not_equal,
-        not_equal_f, pow, pow_f,
+        atan2, atan2_f, copysign, copysign_f, eq, eq_f, equal, equal_f, equal_than, equal_than_f,
+        floor_divide, floor_divide_f, ge, ge_f, greater, greater_equal, greater_equal_f,
+        greater_equal_to, greater_equal_to_f, greater_f, greater_than, greater_than_f, gt, gt_f,
+        hypot, hypot_f, le, le_f, less, less_equal, less_equal_f, less_equal_to, less_equal_to_f,
+        less_f, less_than, less_than_f, log_add_exp, log_add_exp_f, lt, lt_f, maximum, maximum_f,
+        minimum, minimum_f, ne, ne_f, not_equal, not_equal_f, not_equal_to, not_equal_to_f, pow,
+        pow_f,
     };
     // reduction
     pub use crate::tensor::reduction::{
