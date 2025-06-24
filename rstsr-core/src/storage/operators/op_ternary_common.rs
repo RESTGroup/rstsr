@@ -33,6 +33,24 @@ where
         b: &<Self as DeviceRawAPI<TB>>::Raw,
         lb: &Layout<D>,
     ) -> Result<()>;
+
+    fn op_mutc_refa_numb(
+        &self,
+        c: &mut <Self as DeviceRawAPI<Self::TOut>>::Raw,
+        lc: &Layout<D>,
+        a: &<Self as DeviceRawAPI<TA>>::Raw,
+        la: &Layout<D>,
+        b: TB,
+    ) -> Result<()>;
+
+    fn op_mutc_numa_refb(
+        &self,
+        c: &mut <Self as DeviceRawAPI<Self::TOut>>::Raw,
+        lc: &Layout<D>,
+        a: TA,
+        b: &<Self as DeviceRawAPI<TB>>::Raw,
+        lb: &Layout<D>,
+    ) -> Result<()>;
 }
 
 // Python Array API specifications (2023.1)

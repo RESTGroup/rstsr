@@ -76,7 +76,10 @@ where
         let iter_start = 0;
         let iter_end = layout.size();
         let index_start = layout.new_shape();
-        let index_end = unsafe { shape.unravel_index_f(iter_end) };
+        let index_end = match iter_end {
+            0 => index_start.clone(),
+            _ => unsafe { shape.unravel_index_f(iter_end) },
+        };
         let offset_start = layout.offset() as isize;
         let offset_end = unsafe { layout.index_uncheck(index_end.as_ref()) };
 
@@ -405,7 +408,10 @@ where
         let iter_start = 0;
         let iter_end = layout.size();
         let index_start = layout.new_shape();
-        let index_end = unsafe { shape.unravel_index_c(iter_end) };
+        let index_end = match iter_end {
+            0 => index_start.clone(),
+            _ => unsafe { shape.unravel_index_c(iter_end) },
+        };
         let offset_start = layout.offset() as isize;
         let offset_end = unsafe { layout.index_uncheck(index_end.as_ref()) };
 
@@ -1138,6 +1144,14 @@ mod test_col_major {
         let vec_next = iter.clone().collect::<Vec<_>>();
         let vec_back = iter.clone().rev().collect::<Vec<_>>();
         assert_eq!(vec_next, vec_back.iter().rev().copied().collect::<Vec<_>>());
+    }
+
+    #[test]
+    fn test_zero_size_iterator() {
+        let layout = [3, 0, 5].f();
+        let iter = IterLayoutColMajor::new(&layout).unwrap();
+        let vec = iter.collect_vec();
+        assert_eq!(vec, vec![]);
     }
 }
 

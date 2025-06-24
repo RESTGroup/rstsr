@@ -12,6 +12,7 @@ pub mod error;
 pub mod flags;
 pub mod format_layout;
 pub mod layout;
+pub mod pack_array;
 pub mod util;
 
 #[cfg(feature = "rayon")]

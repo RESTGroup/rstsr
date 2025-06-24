@@ -116,6 +116,35 @@ where
     }
 }
 
+impl<T, B, D> Clone for Tensor<T, B, D>
+where
+    T: Clone,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
+    B::Raw: Clone,
+{
+    fn clone(&self) -> Self {
+        self.to_owned()
+    }
+}
+
+impl<T, B, D> Clone for TensorCow<'_, T, B, D>
+where
+    T: Clone,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
+    B::Raw: Clone,
+{
+    fn clone(&self) -> Self {
+        let tsr_owned = self.to_owned();
+        let (storage, layout) = tsr_owned.into_raw_parts();
+        let (data, device) = storage.into_raw_parts();
+        let data = data.into_cow();
+        let storage = Storage::new(data, device);
+        unsafe { TensorBase::new_unchecked(storage, layout) }
+    }
+}
+
 impl<R, T, B, D> TensorAny<R, T, B, D>
 where
     R: DataAPI<Data = B::Raw> + DataForceMutAPI<B::Raw>,
