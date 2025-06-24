@@ -3,13 +3,18 @@
 use crate::prelude_dev::*;
 use std::mem::ManuallyDrop;
 
-pub trait PackArrayAPI<const N: usize> {
-    type Output;
+pub trait PackableArrayAPI<T, const N: usize> {
+    type Array;
+    type ArrayVec;
+}
 
-    fn pack_array_f(self) -> Result<Self::Output>;
-    fn pack_array(self) -> Self::Output
+pub trait PackArrayAPI<T> {
+    fn pack_array_f<const N: usize>(self) -> Result<Self::ArrayVec>
     where
-        Self: Sized,
+        Self: PackableArrayAPI<T, N>;
+    fn pack_array<const N: usize>(self) -> Self::ArrayVec
+    where
+        Self: PackableArrayAPI<T, N> + Sized,
     {
         self.pack_array_f().unwrap()
     }
@@ -20,26 +25,15 @@ pub trait UnpackArrayAPI {
     fn unpack_array(self) -> Self::Output;
 }
 
-pub fn pack_array<const N: usize, V>(v: V) -> V::Output
-where
-    V: PackArrayAPI<N>,
-{
-    v.pack_array()
-}
-
-pub fn unpack_array<V>(v: V) -> V::Output
-where
-    V: UnpackArrayAPI,
-{
-    v.unpack_array()
-}
-
 /* #region impl of Vec<T> */
 
-impl<T, const N: usize> PackArrayAPI<N> for Vec<T> {
-    type Output = Vec<[T; N]>;
+impl<T, const N: usize> PackableArrayAPI<T, N> for Vec<T> {
+    type Array = [T; N];
+    type ArrayVec = Vec<[T; N]>;
+}
 
-    fn pack_array_f(self) -> Result<Self::Output> {
+impl<T> PackArrayAPI<T> for Vec<T> {
+    fn pack_array_f<const N: usize>(self) -> Result<<Self as PackableArrayAPI<T, N>>::ArrayVec> {
         let len = self.len();
         rstsr_assert!(
             len % N == 0,
@@ -66,17 +60,20 @@ impl<T, const N: usize> UnpackArrayAPI for Vec<[T; N]> {
 
 /* #region impl of &[T] */
 
-impl<'l, T, const N: usize> PackArrayAPI<N> for &'l [T] {
-    type Output = &'l [[T; N]];
+impl<'l, T, const N: usize> PackableArrayAPI<T, N> for &'l [T] {
+    type Array = [T; N];
+    type ArrayVec = &'l [[T; N]];
+}
 
-    fn pack_array_f(self) -> Result<Self::Output> {
+impl<T> PackArrayAPI<T> for &[T] {
+    fn pack_array_f<const N: usize>(self) -> Result<<Self as PackableArrayAPI<T, N>>::ArrayVec> {
         let len = self.len();
         rstsr_assert!(
             len % N == 0,
             InvalidValue,
             "Length of &[T] {len} must be a multiple to cast into Vec<[T; {N}]>"
         )?;
-        let arr = unsafe { core::slice::from_raw_parts(self.as_ptr() as *mut [T; N], len / N) };
+        let arr = unsafe { core::slice::from_raw_parts(self.as_ptr() as *const [T; N], len / N) };
         Ok(arr)
     }
 }
@@ -86,7 +83,39 @@ impl<'l, T, const N: usize> UnpackArrayAPI for &'l [[T; N]] {
 
     fn unpack_array(self) -> Self::Output {
         let len = self.len();
-        unsafe { core::slice::from_raw_parts(self.as_ptr() as *mut T, len * N) }
+        unsafe { core::slice::from_raw_parts(self.as_ptr() as *const T, len * N) }
+    }
+}
+
+/* #endregion */
+
+/* #region impl of &mut [T] */
+
+impl<'l, T, const N: usize> PackableArrayAPI<T, N> for &'l mut [T] {
+    type Array = [T; N];
+    type ArrayVec = &'l mut [[T; N]];
+}
+
+impl<T> PackArrayAPI<T> for &mut [T] {
+    fn pack_array_f<const N: usize>(self) -> Result<<Self as PackableArrayAPI<T, N>>::ArrayVec> {
+        let len = self.len();
+        rstsr_assert!(
+            len % N == 0,
+            InvalidValue,
+            "Length of &[T] {len} must be a multiple to cast into Vec<[T; {N}]>"
+        )?;
+        let arr =
+            unsafe { core::slice::from_raw_parts_mut(self.as_mut_ptr() as *mut [T; N], len / N) };
+        Ok(arr)
+    }
+}
+
+impl<'l, T, const N: usize> UnpackArrayAPI for &'l mut [[T; N]] {
+    type Output = &'l mut [T];
+
+    fn unpack_array(self) -> Self::Output {
+        let len = self.len();
+        unsafe { core::slice::from_raw_parts_mut(self.as_ptr() as *mut T, len * N) }
     }
 }
 
