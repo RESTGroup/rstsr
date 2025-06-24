@@ -57,20 +57,18 @@ where
                     });
                 },
                 false => {
-                    la_rest_iter.zip(lb_rest_iter).try_for_each(
-                        |(offset_a, offset_b)| -> Result<()> {
-                            let mut la_inner = la_inner.to_dim::<Ix1>()?;
-                            let mut lb_inner = lb_inner.to_dim::<Ix2>()?;
-                            unsafe {
-                                la_inner.set_offset(offset_a);
-                                lb_inner.set_offset(offset_b);
-                            }
-                            let ptr_a = thr_a.load(Ordering::Relaxed);
-                            let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
-                            inner_pack_triu_general(slice_a, &la_inner, b, &lb_inner, n);
-                            Ok(())
-                        },
-                    )?;
+                    la_rest_iter.zip(lb_rest_iter).try_for_each(|(offset_a, offset_b)| -> Result<()> {
+                        let mut la_inner = la_inner.to_dim::<Ix1>()?;
+                        let mut lb_inner = lb_inner.to_dim::<Ix2>()?;
+                        unsafe {
+                            la_inner.set_offset(offset_a);
+                            lb_inner.set_offset(offset_b);
+                        }
+                        let ptr_a = thr_a.load(Ordering::Relaxed);
+                        let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
+                        inner_pack_triu_general(slice_a, &la_inner, b, &lb_inner, n);
+                        Ok(())
+                    })?;
                 },
             },
             FlagUpLo::L => match c_contig {
@@ -82,20 +80,18 @@ where
                     });
                 },
                 false => {
-                    la_rest_iter.zip(lb_rest_iter).try_for_each(
-                        |(offset_a, offset_b)| -> Result<()> {
-                            let mut la_inner = la_inner.to_dim::<Ix1>()?;
-                            let mut lb_inner = lb_inner.to_dim::<Ix2>()?;
-                            unsafe {
-                                la_inner.set_offset(offset_a);
-                                lb_inner.set_offset(offset_b);
-                            }
-                            let ptr_a = thr_a.load(Ordering::Relaxed);
-                            let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
-                            inner_pack_tril_general(slice_a, &la_inner, b, &lb_inner, n);
-                            Ok(())
-                        },
-                    )?;
+                    la_rest_iter.zip(lb_rest_iter).try_for_each(|(offset_a, offset_b)| -> Result<()> {
+                        let mut la_inner = la_inner.to_dim::<Ix1>()?;
+                        let mut lb_inner = lb_inner.to_dim::<Ix2>()?;
+                        unsafe {
+                            la_inner.set_offset(offset_a);
+                            lb_inner.set_offset(offset_b);
+                        }
+                        let ptr_a = thr_a.load(Ordering::Relaxed);
+                        let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
+                        inner_pack_tril_general(slice_a, &la_inner, b, &lb_inner, n);
+                        Ok(())
+                    })?;
                 },
             },
         }
@@ -162,20 +158,18 @@ where
                     });
                 },
                 false => {
-                    la_rest_iter.zip(lb_rest_iter).try_for_each(
-                        |(offset_a, offset_b)| -> Result<()> {
-                            let mut la_inner = la_inner.to_dim::<Ix2>()?;
-                            let mut lb_inner = lb_inner.to_dim::<Ix1>()?;
-                            unsafe {
-                                la_inner.set_offset(offset_a);
-                                lb_inner.set_offset(offset_b);
-                            }
-                            let ptr_a = thr_a.load(Ordering::Relaxed);
-                            let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
-                            inner_unpack_triu_general(slice_a, &la_inner, b, &lb_inner, n, symm);
-                            Ok(())
-                        },
-                    )?;
+                    la_rest_iter.zip(lb_rest_iter).try_for_each(|(offset_a, offset_b)| -> Result<()> {
+                        let mut la_inner = la_inner.to_dim::<Ix2>()?;
+                        let mut lb_inner = lb_inner.to_dim::<Ix1>()?;
+                        unsafe {
+                            la_inner.set_offset(offset_a);
+                            lb_inner.set_offset(offset_b);
+                        }
+                        let ptr_a = thr_a.load(Ordering::Relaxed);
+                        let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
+                        inner_unpack_triu_general(slice_a, &la_inner, b, &lb_inner, n, symm);
+                        Ok(())
+                    })?;
                 },
             },
             FlagUpLo::L => match c_contig {
@@ -187,20 +181,18 @@ where
                     });
                 },
                 false => {
-                    la_rest_iter.zip(lb_rest_iter).try_for_each(
-                        |(offset_a, offset_b)| -> Result<()> {
-                            let mut la_inner = la_inner.to_dim::<Ix2>()?;
-                            let mut lb_inner = lb_inner.to_dim::<Ix1>()?;
-                            unsafe {
-                                la_inner.set_offset(offset_a);
-                                lb_inner.set_offset(offset_b);
-                            }
-                            let ptr_a = thr_a.load(Ordering::Relaxed);
-                            let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
-                            inner_unpack_tril_general(slice_a, &la_inner, b, &lb_inner, n, symm);
-                            Ok(())
-                        },
-                    )?;
+                    la_rest_iter.zip(lb_rest_iter).try_for_each(|(offset_a, offset_b)| -> Result<()> {
+                        let mut la_inner = la_inner.to_dim::<Ix2>()?;
+                        let mut lb_inner = lb_inner.to_dim::<Ix1>()?;
+                        unsafe {
+                            la_inner.set_offset(offset_a);
+                            lb_inner.set_offset(offset_b);
+                        }
+                        let ptr_a = thr_a.load(Ordering::Relaxed);
+                        let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
+                        inner_unpack_tril_general(slice_a, &la_inner, b, &lb_inner, n, symm);
+                        Ok(())
+                    })?;
                 },
             },
         }

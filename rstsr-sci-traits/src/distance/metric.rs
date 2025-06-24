@@ -18,12 +18,10 @@ pub trait MetricDistAPI<V> {
     ///
     /// * `uv` - The vectors to compare.
     /// * `offsets` - The offsets in the vectors (starting point).
-    /// * `indices` - The indices of the vectors to compare (generally not used,
-    ///   but will be applied in cosine metric).
-    /// * `strides` - The strides of the vectors (will not be applied if
-    ///   `STRIDED` is false).
-    /// * `size` - The number of elements to consider in the distance
-    ///   calculation.
+    /// * `indices` - The indices of the vectors to compare (generally not used, but will be applied
+    ///   in cosine metric).
+    /// * `strides` - The strides of the vectors (will not be applied if `STRIDED` is false).
+    /// * `size` - The number of elements to consider in the distance calculation.
     fn distance<const STRIDED: bool>(
         &self,
         uv: (&V, &V),
@@ -59,15 +57,13 @@ pub trait MetricDistWeightedAPI<V>: MetricDistAPI<V> {
     /// # Arguments
     ///
     /// * `uv` - The vectors to compare.
-    /// * `weights` - The weights to apply to the vectors (will not be applied
-    ///   if `WEIGHTED` is false).
+    /// * `weights` - The weights to apply to the vectors (will not be applied if `WEIGHTED` is
+    ///   false).
     /// * `offsets` - The offsets in the vectors (starting point).
-    /// * `indices` - The indices of the vectors to compare (generally not used,
-    ///   but will be applied in cosine metric).
-    /// * `strides` - The strides of the vectors (will not be applied if
-    ///   `STRIDED` is false).
-    /// * `size` - The number of elements to consider in the distance
-    ///   calculation.
+    /// * `indices` - The indices of the vectors to compare (generally not used, but will be applied
+    ///   in cosine metric).
+    /// * `strides` - The strides of the vectors (will not be applied if `STRIDED` is false).
+    /// * `size` - The number of elements to consider in the distance calculation.
     fn weighted_distance<const STRIDED: bool>(
         &self,
         uv: (&V, &V),
@@ -306,11 +302,9 @@ impl<ImplType> MetricDistAPI<Vec<T>> for StructType {
         dup_initialize;
         match STRIDED {
             false => {
-                izip!(&u[u_offset..u_offset + size], &v[v_offset..v_offset + size]).for_each(
-                    |(&u_i, &v_i)| {
-                        dup_reduce_op;
-                    },
-                );
+                izip!(&u[u_offset..u_offset + size], &v[v_offset..v_offset + size]).for_each(|(&u_i, &v_i)| {
+                    dup_reduce_op;
+                });
                 dup_finalize;
             },
             true => {
@@ -367,10 +361,11 @@ impl<ImplType> MetricDistWeightedAPI<Vec<T>> for StructType {
         dup_initialize;
         match STRIDED {
             false => {
-                izip!(&u[u_offset..u_offset + size], &v[v_offset..v_offset + size], weights)
-                    .for_each(|(&u_i, &v_i, &w)| {
+                izip!(&u[u_offset..u_offset + size], &v[v_offset..v_offset + size], weights).for_each(
+                    |(&u_i, &v_i, &w)| {
                         dup_reduce_with_weight;
-                    });
+                    },
+                );
                 dup_finalize;
             },
             true => {
@@ -433,11 +428,9 @@ where
 
         match STRIDED {
             false => {
-                izip!(&u[u_offset..u_offset + size], &v[v_offset..v_offset + size]).for_each(
-                    |(&u_i, &v_i)| {
-                        dist = dist + u_i * v_i;
-                    },
-                );
+                izip!(&u[u_offset..u_offset + size], &v[v_offset..v_offset + size]).for_each(|(&u_i, &v_i)| {
+                    dist = dist + u_i * v_i;
+                });
             },
             true => {
                 let (u_stride, v_stride) = strides;
@@ -452,13 +445,7 @@ where
         T::one() - dist / (norm_u * norm_v)
     }
 
-    fn initialize(
-        &mut self,
-        xa: &Vec<T>,
-        la: &Layout<Ix2>,
-        xb: &Vec<T>,
-        lb: &Layout<Ix2>,
-    ) -> Result<()> {
+    fn initialize(&mut self, xa: &Vec<T>, la: &Layout<Ix2>, xb: &Vec<T>, lb: &Layout<Ix2>) -> Result<()> {
         let m = la.shape()[0];
         let n = lb.shape()[0];
         let k = la.shape()[1];
@@ -521,10 +508,11 @@ where
 
         match STRIDED {
             false => {
-                izip!(&u[u_offset..u_offset + size], &v[v_offset..v_offset + size], weights)
-                    .for_each(|(&u_i, &v_i, &w)| {
+                izip!(&u[u_offset..u_offset + size], &v[v_offset..v_offset + size], weights).for_each(
+                    |(&u_i, &v_i, &w)| {
                         dist = dist + w * u_i * v_i;
-                    });
+                    },
+                );
             },
             true => {
                 let (u_stride, v_stride) = strides;
@@ -639,11 +627,9 @@ where
 
         match STRIDED {
             false => {
-                izip!(&u[u_offset..u_offset + size], &v[v_offset..v_offset + size]).for_each(
-                    |(&u_i, &v_i)| {
-                        dist = dist + (u_i - mean_u) * (v_i - mean_v);
-                    },
-                );
+                izip!(&u[u_offset..u_offset + size], &v[v_offset..v_offset + size]).for_each(|(&u_i, &v_i)| {
+                    dist = dist + (u_i - mean_u) * (v_i - mean_v);
+                });
             },
             true => {
                 let (u_stride, v_stride) = strides;
@@ -658,13 +644,7 @@ where
         T::one() - dist / (norm_u * norm_v)
     }
 
-    fn initialize(
-        &mut self,
-        xa: &Vec<T>,
-        la: &Layout<Ix2>,
-        xb: &Vec<T>,
-        lb: &Layout<Ix2>,
-    ) -> Result<()> {
+    fn initialize(&mut self, xa: &Vec<T>, la: &Layout<Ix2>, xb: &Vec<T>, lb: &Layout<Ix2>) -> Result<()> {
         let m = la.shape()[0];
         let n = lb.shape()[0];
         let k = la.shape()[1];
@@ -741,10 +721,11 @@ where
 
         match STRIDED {
             false => {
-                izip!(&u[u_offset..u_offset + size], &v[v_offset..v_offset + size], weights)
-                    .for_each(|(&u_i, &v_i, &w)| {
+                izip!(&u[u_offset..u_offset + size], &v[v_offset..v_offset + size], weights).for_each(
+                    |(&u_i, &v_i, &w)| {
                         dist = dist + w * (u_i - mean_u) * (v_i - mean_v);
-                    });
+                    },
+                );
             },
             true => {
                 let (u_stride, v_stride) = strides;
@@ -906,13 +887,7 @@ where
         (dist / two).sqrt()
     }
 
-    fn initialize(
-        &mut self,
-        xa: &Vec<T>,
-        la: &Layout<Ix2>,
-        xb: &Vec<T>,
-        lb: &Layout<Ix2>,
-    ) -> Result<()> {
+    fn initialize(&mut self, xa: &Vec<T>, la: &Layout<Ix2>, xb: &Vec<T>, lb: &Layout<Ix2>) -> Result<()> {
         let m = la.shape()[0];
         let n = lb.shape()[0];
         let k = la.shape()[1];

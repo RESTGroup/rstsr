@@ -172,11 +172,7 @@ where
     }
 }
 
-pub fn op_muta_func_cpu_serial<T, D>(
-    a: &mut [T],
-    la: &Layout<D>,
-    mut f: impl FnMut(&mut T),
-) -> Result<()>
+pub fn op_muta_func_cpu_serial<T, D>(a: &mut [T], la: &Layout<D>, mut f: impl FnMut(&mut T)) -> Result<()>
 where
     D: DimAPI,
 {

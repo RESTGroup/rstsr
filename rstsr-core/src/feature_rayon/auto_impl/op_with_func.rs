@@ -76,14 +76,7 @@ where
     D: DimAPI,
     F: Fn(&mut TA, &TB) + ?Sized + Send + Sync,
 {
-    fn op_muta_refb_func(
-        &self,
-        a: &mut Vec<TA>,
-        la: &Layout<D>,
-        b: &Vec<TB>,
-        lb: &Layout<D>,
-        f: &mut F,
-    ) -> Result<()> {
+    fn op_muta_refb_func(&self, a: &mut Vec<TA>, la: &Layout<D>, b: &Vec<TB>, lb: &Layout<D>, f: &mut F) -> Result<()> {
         let pool = self.get_current_pool();
         op_muta_refb_func_cpu_rayon(a, la, b, lb, f, pool)
     }

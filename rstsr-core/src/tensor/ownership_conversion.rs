@@ -175,12 +175,7 @@ where
     B: DeviceAPI<T, Raw = Vec<T>> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, Ix1>,
 {
     pub fn to_raw_f(&self) -> Result<Vec<T>> {
-        rstsr_assert_eq!(
-            self.ndim(),
-            1,
-            InvalidLayout,
-            "to_vec currently only support 1-D tensor"
-        )?;
+        rstsr_assert_eq!(self.ndim(), 1, InvalidLayout, "to_vec currently only support 1-D tensor")?;
         let device = self.device();
         let layout = self.layout().to_dim::<Ix1>()?;
         let size = layout.size();
@@ -202,19 +197,10 @@ where
     B: DeviceAPI<T, Raw = Vec<T>> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, Ix1>,
 {
     pub fn into_vec_f(self) -> Result<Vec<T>> {
-        rstsr_assert_eq!(
-            self.ndim(),
-            1,
-            InvalidLayout,
-            "to_vec currently only support 1-D tensor"
-        )?;
+        rstsr_assert_eq!(self.ndim(), 1, InvalidLayout, "to_vec currently only support 1-D tensor")?;
         let layout = self.layout();
         let (idx_min, idx_max) = layout.bounds_index()?;
-        if idx_min == 0
-            && idx_max == self.storage().len()
-            && idx_max == layout.size()
-            && layout.stride()[0] > 0
-        {
+        if idx_min == 0 && idx_max == self.storage().len() && idx_max == layout.size() && layout.stride()[0] > 0 {
             let (storage, _) = self.into_raw_parts();
             let (data, _) = storage.into_raw_parts();
             return Ok(data.into_raw());

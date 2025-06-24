@@ -2,13 +2,7 @@ use crate::prelude_dev::*;
 use rstsr_core::prelude_dev::*;
 
 pub trait GETRIDriverAPI<T> {
-    unsafe fn driver_getri(
-        order: FlagOrder,
-        n: usize,
-        a: *mut T,
-        lda: usize,
-        ipiv: *mut blas_int,
-    ) -> blas_int;
+    unsafe fn driver_getri(order: FlagOrder, n: usize, a: *mut T, lda: usize, ipiv: *mut blas_int) -> blas_int;
 }
 
 #[derive(Builder)]
@@ -39,12 +33,7 @@ where
         ipiv += 1;
 
         // perform check
-        rstsr_assert_eq!(
-            a.view().nrow(),
-            a.view().ncol(),
-            InvalidLayout,
-            "Lapack GETRI: A must be square"
-        )?;
+        rstsr_assert_eq!(a.view().nrow(), a.view().ncol(), InvalidLayout, "Lapack GETRI: A must be square")?;
 
         let n = a.view().nrow();
         let lda = a.view().ld(order).unwrap();

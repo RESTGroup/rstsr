@@ -152,7 +152,4 @@ where
     }
 }
 
-pub trait DeviceAPI<T>:
-    DeviceBaseAPI + DeviceRawAPI<T> + DeviceStorageAPI<T> + Clone + Default
-{
-}
+pub trait DeviceAPI<T>: DeviceBaseAPI + DeviceRawAPI<T> + DeviceStorageAPI<T> + Clone + Default {}

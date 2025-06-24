@@ -34,17 +34,7 @@ impl SYEVDriverAPI<T> for DeviceBLAS {
         let mut info = 0;
         let lwork = -1;
         let mut work_query = 0.0;
-        func_(
-            &(jobz as _),
-            &uplo.into(),
-            &(n as _),
-            a,
-            &(lda as _),
-            w,
-            &mut work_query,
-            &lwork,
-            &mut info,
-        );
+        func_(&(jobz as _), &uplo.into(), &(n as _), a, &(lda as _), w, &mut work_query, &lwork, &mut info);
         if info != 0 {
             return raise_info(info);
         }

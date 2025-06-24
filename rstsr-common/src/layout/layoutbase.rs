@@ -8,8 +8,7 @@ use itertools::izip;
 ///
 /// Layout is a struct that contains shape, stride, and offset of tensor.
 /// - Shape is the size of each dimension of tensor.
-/// - Stride is the number of elements to skip to get to the next element in
-///   each dimension.
+/// - Stride is the number of elements to skip to get to the next element in each dimension.
 /// - Offset is the starting position of tensor.
 #[doc = include_str!("readme.md")]
 #[derive(Clone)]
@@ -189,10 +188,8 @@ where
     /// Whether this tensor is f-contiguous.
     ///
     /// Special cases
-    /// - When length of a dimension is one, then stride to that dimension is
-    ///   not important.
-    /// - When length of a dimension is zero, then tensor contains no elements,
-    ///   thus f-contiguous.
+    /// - When length of a dimension is one, then stride to that dimension is not important.
+    /// - When length of a dimension is zero, then tensor contains no elements, thus f-contiguous.
     pub fn f_contig(&self) -> bool {
         self.ndim() == self.ndim_of_f_contig()
     }
@@ -200,10 +197,8 @@ where
     /// Whether this tensor is c-contiguous.
     ///
     /// Special cases
-    /// - When length of a dimension is one, then stride to that dimension is
-    ///   not important.
-    /// - When length of a dimension is zero, then tensor contains no elements,
-    ///   thus c-contiguous.
+    /// - When length of a dimension is one, then stride to that dimension is not important.
+    /// - When length of a dimension is zero, then tensor contains no elements, thus c-contiguous.
     pub fn c_contig(&self) -> bool {
         self.ndim() == self.ndim_of_c_contig()
     }
@@ -284,8 +279,7 @@ where
     ///
     /// Special cases
     /// - if length of tensor is zero, then strides will always be correct.
-    /// - if certain dimension is one, then check for this stride will be
-    ///   ignored.
+    /// - if certain dimension is one, then check for this stride will be ignored.
     ///
     /// # TODO
     ///
@@ -464,10 +458,7 @@ where
             InvalidLayout,
             "axes should contain all elements from 0 to n-1."
         )?;
-        let axes = axes
-            .iter()
-            .map(|&p| if p < 0 { p + n as isize } else { p } as usize)
-            .collect::<Vec<_>>();
+        let axes = axes.iter().map(|&p| if p < 0 { p + n as isize } else { p } as usize).collect::<Vec<_>>();
 
         let shape_old = self.shape();
         let stride_old = self.stride();
@@ -541,9 +532,7 @@ where
         match self.ndim() {
             0 => self.offset as isize,
             1 => self.offset as isize + stride[0] * index[0] as isize,
-            2 => {
-                self.offset as isize + stride[0] * index[0] as isize + stride[1] * index[1] as isize
-            },
+            2 => self.offset as isize + stride[0] * index[0] as isize + stride[1] * index[1] as isize,
             3 => {
                 self.offset as isize
                     + stride[0] * index[0] as isize

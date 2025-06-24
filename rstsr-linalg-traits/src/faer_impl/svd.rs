@@ -7,13 +7,7 @@ use rstsr_core::prelude_dev::*;
 pub fn faer_impl_svd_f<T>(
     a: TensorView<'_, T, DeviceFaer, Ix2>,
     full_matrices: bool,
-) -> Result<
-    SVDResult<
-        Tensor<T, DeviceFaer, Ix2>,
-        Tensor<T::Real, DeviceFaer, Ix1>,
-        Tensor<T, DeviceFaer, Ix2>,
-    >,
->
+) -> Result<SVDResult<Tensor<T, DeviceFaer, Ix2>, Tensor<T::Real, DeviceFaer, Ix1>, Tensor<T, DeviceFaer, Ix2>>>
 where
     T: ComplexField,
 {
@@ -62,11 +56,8 @@ where
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
 {
-    type Out = SVDResult<
-        Tensor<T, DeviceFaer, D>,
-        Tensor<T::Real, DeviceFaer, D::SmallerOne>,
-        Tensor<T, DeviceFaer, D>,
-    >;
+    type Out =
+        SVDResult<Tensor<T, DeviceFaer, D>, Tensor<T::Real, DeviceFaer, D::SmallerOne>, Tensor<T, DeviceFaer, D>>;
     fn svd_f(self) -> Result<Self::Out> {
         let (a, full_matrices) = self;
         rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
@@ -93,11 +84,8 @@ where
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
 {
-    type Out = SVDResult<
-        Tensor<T, DeviceFaer, D>,
-        Tensor<T::Real, DeviceFaer, D::SmallerOne>,
-        Tensor<T, DeviceFaer, D>,
-    >;
+    type Out =
+        SVDResult<Tensor<T, DeviceFaer, D>, Tensor<T::Real, DeviceFaer, D::SmallerOne>, Tensor<T, DeviceFaer, D>>;
     fn svd_f(self) -> Result<Self::Out> {
         SVDAPI::<DeviceFaer>::svd_f((self, true))
     }

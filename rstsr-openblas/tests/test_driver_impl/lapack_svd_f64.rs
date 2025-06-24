@@ -35,8 +35,7 @@ mod test {
         }
 
         // full_matrices = false, compute_uv = false
-        let driver =
-            DGESVD::default().a(a.view()).full_matrices(false).compute_uv(false).build().unwrap();
+        let driver = DGESVD::default().a(a.view()).full_matrices(false).compute_uv(false).build().unwrap();
         if let (s, None, None, _) = driver.run().unwrap() {
             assert!((fingerprint(&s) - 33.969339071043095).abs() < 1e-8);
         } else {
@@ -71,8 +70,7 @@ mod test {
         }
 
         // full_matrices = false, compute_uv = false
-        let driver =
-            DGESDD::default().a(a.view()).full_matrices(false).compute_uv(false).build().unwrap();
+        let driver = DGESDD::default().a(a.view()).full_matrices(false).compute_uv(false).build().unwrap();
         if let (s, None, None) = driver.run().unwrap() {
             assert!((fingerprint(&s) - 33.969339071043095).abs() < 1e-8);
         } else {

@@ -218,8 +218,7 @@ where
                 for i_n in 0..n {
                     let idx_c = lc.index_uncheck(&[i_m, i_n]) as usize;
                     let idx_b = lb.index_uncheck(&[i_k, i_n]) as usize;
-                    c[idx_c] =
-                        alpha.clone() * (a[idx_a].clone() * b[idx_b].clone()) + c[idx_c].clone();
+                    c[idx_c] = alpha.clone() * (a[idx_a].clone() * b[idx_b].clone()) + c[idx_c].clone();
                 }
             }
         }

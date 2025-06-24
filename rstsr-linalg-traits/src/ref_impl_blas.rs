@@ -40,16 +40,7 @@ where
     T: BlasFloat,
     B: LapackDriverAPI<T>,
 {
-    let EighArgs_ {
-        a,
-        b,
-        uplo,
-        eigvals_only,
-        eig_type,
-        subset_by_index: _,
-        subset_by_value: _,
-        driver,
-    } = eigh_args;
+    let EighArgs_ { a, b, uplo, eigvals_only, eig_type, subset_by_index: _, subset_by_value: _, driver } = eigh_args;
     let device = a.device().clone();
     let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
 
@@ -58,29 +49,11 @@ where
         let driver = driver.unwrap_or("gvd");
         let (w, v) = match driver {
             "gv" => {
-                let task = || {
-                    SYGV::default()
-                        .a(a)
-                        .b(b.unwrap())
-                        .jobz(jobz)
-                        .itype(eig_type)
-                        .uplo(uplo)
-                        .build()?
-                        .run()
-                };
+                let task = || SYGV::default().a(a).b(b.unwrap()).jobz(jobz).itype(eig_type).uplo(uplo).build()?.run();
                 device.with_blas_num_threads(nthreads, task)?
             },
             "gvd" => {
-                let task = || {
-                    SYGVD::default()
-                        .a(a)
-                        .b(b.unwrap())
-                        .jobz(jobz)
-                        .itype(eig_type)
-                        .uplo(uplo)
-                        .build()?
-                        .run()
-                };
+                let task = || SYGVD::default().a(a).b(b.unwrap()).jobz(jobz).itype(eig_type).uplo(uplo).build()?.run();
                 device.with_blas_num_threads(nthreads, task)?
             },
             _ => rstsr_invalid!(driver)?,
@@ -302,26 +275,14 @@ where
     let driver = driver.unwrap_or("gesdd");
     match driver {
         "gesvd" => {
-            let task = || {
-                GESVD::default()
-                    .a(a.view())
-                    .full_matrices(full_matrices)
-                    .compute_uv(compute_uv)
-                    .build()?
-                    .run()
-            };
+            let task =
+                || GESVD::default().a(a.view()).full_matrices(full_matrices).compute_uv(compute_uv).build()?.run();
             let (s, u, vt, _) = device.with_blas_num_threads(nthreads, task)?;
             Ok((u, s, vt))
         },
         "gesdd" => {
-            let task = || {
-                GESDD::default()
-                    .a(a.view())
-                    .full_matrices(full_matrices)
-                    .compute_uv(compute_uv)
-                    .build()?
-                    .run()
-            };
+            let task =
+                || GESDD::default().a(a.view()).full_matrices(full_matrices).compute_uv(compute_uv).build()?.run();
             let (s, u, vt) = device.with_blas_num_threads(nthreads, task)?;
             Ok((u, s, vt))
         },

@@ -30,10 +30,7 @@ macro_rules! impl_change_device {
                 DeviceChangeAPI::change_device(tensor, device)
             }
 
-            fn to_device(
-                tensor: &'a TensorAny<R, T, $DevA, D>,
-                device: &$DevB,
-            ) -> Result<TensorView<'a, T, $DevB, D>> {
+            fn to_device(tensor: &'a TensorAny<R, T, $DevA, D>, device: &$DevB) -> Result<TensorView<'a, T, $DevB, D>> {
                 let view = tensor.view();
                 DeviceChangeAPI::change_device(view, device)
             }

@@ -13,13 +13,7 @@ use std::slice::from_raw_parts_mut;
    [f64] [dpotrf_];
 )]
 impl POTRFDriverAPI<T> for DeviceBLAS {
-    unsafe fn driver_potrf(
-        order: FlagOrder,
-        uplo: FlagUpLo,
-        n: usize,
-        a: *mut T,
-        lda: usize,
-    ) -> blas_int {
+    unsafe fn driver_potrf(order: FlagOrder, uplo: FlagUpLo, n: usize, a: *mut T, lda: usize) -> blas_int {
         use rstsr_lapack_ffi::lapack::func_;
 
         unsafe fn raise_info(mut info: blas_int) -> blas_int {
@@ -64,13 +58,7 @@ impl POTRFDriverAPI<T> for DeviceBLAS {
    [Complex<f64>] [zpotrf_];
 )]
 impl POTRFDriverAPI<T> for DeviceBLAS {
-    unsafe fn driver_potrf(
-        order: FlagOrder,
-        uplo: FlagUpLo,
-        n: usize,
-        a: *mut T,
-        lda: usize,
-    ) -> blas_int {
+    unsafe fn driver_potrf(order: FlagOrder, uplo: FlagUpLo, n: usize, a: *mut T, lda: usize) -> blas_int {
         use rstsr_lapack_ffi::lapack::func_;
 
         unsafe fn raise_info(mut info: blas_int) -> blas_int {

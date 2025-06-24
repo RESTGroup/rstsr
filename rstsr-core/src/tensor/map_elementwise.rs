@@ -12,10 +12,7 @@ where
 {
     /// Call `f` by reference on each element and create a new tensor with the
     /// new values.
-    pub fn map_fnmut_f<'f, TOut>(
-        &self,
-        mut f: impl FnMut(&T) -> TOut + 'f,
-    ) -> Result<Tensor<TOut, B, D>>
+    pub fn map_fnmut_f<'f, TOut>(&self, mut f: impl FnMut(&T) -> TOut + 'f) -> Result<Tensor<TOut, B, D>>
     where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
         B: DeviceOp_MutA_RefB_API<TOut, T, D, dyn FnMut(&mut TOut, &T) + 'f>,
@@ -41,10 +38,7 @@ where
 
     /// Call `f` by value on each element and create a new tensor with the new
     /// values.
-    pub fn mapv_fnmut_f<'f, TOut>(
-        &self,
-        mut f: impl FnMut(T) -> TOut + 'f,
-    ) -> Result<Tensor<TOut, B, D>>
+    pub fn mapv_fnmut_f<'f, TOut>(&self, mut f: impl FnMut(T) -> TOut + 'f) -> Result<Tensor<TOut, B, D>>
     where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
         T: Clone,
@@ -154,15 +148,7 @@ where
         let device = self.device();
         let mut storage_c = unsafe { device.empty_impl(lc.bounds_index()?.1)? };
         let mut f_inner = move |c: &mut TOut, a: &T, b: &T2| *c = f(a, b);
-        device.op_mutc_refa_refb_func(
-            storage_c.raw_mut(),
-            &lc,
-            self.raw(),
-            &la_b,
-            other.raw(),
-            &lb_b,
-            &mut f_inner,
-        )?;
+        device.op_mutc_refa_refb_func(storage_c.raw_mut(), &lc, self.raw(), &la_b, other.raw(), &lb_b, &mut f_inner)?;
         Tensor::new_f(storage_c, lc)
     }
 
@@ -233,10 +219,7 @@ where
 {
     /// Call `f` by reference on each element and create a new tensor with the
     /// new values.
-    pub fn map_f<'f, TOut>(
-        &self,
-        f: impl Fn(&T) -> TOut + Send + Sync + 'f,
-    ) -> Result<Tensor<TOut, B, D>>
+    pub fn map_f<'f, TOut>(&self, f: impl Fn(&T) -> TOut + Send + Sync + 'f) -> Result<Tensor<TOut, B, D>>
     where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
         B: DeviceOp_MutA_RefB_API<TOut, T, D, dyn Fn(&mut TOut, &T) + Send + Sync + 'f>,
@@ -262,10 +245,7 @@ where
 
     /// Call `f` by value on each element and create a new tensor with the new
     /// values.
-    pub fn mapv_f<'f, TOut>(
-        &self,
-        f: impl Fn(T) -> TOut + Send + Sync + 'f,
-    ) -> Result<Tensor<TOut, B, D>>
+    pub fn mapv_f<'f, TOut>(&self, f: impl Fn(T) -> TOut + Send + Sync + 'f) -> Result<Tensor<TOut, B, D>>
     where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
         T: Clone,
@@ -350,13 +330,7 @@ where
         DOut: DimAPI,
         D: DimMaxAPI<D2, Max = DOut>,
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
-        B: DeviceOp_MutC_RefA_RefB_API<
-            T,
-            T2,
-            TOut,
-            DOut,
-            dyn Fn(&mut TOut, &T, &T2) + Send + Sync + 'f,
-        >,
+        B: DeviceOp_MutC_RefA_RefB_API<T, T2, TOut, DOut, dyn Fn(&mut TOut, &T, &T2) + Send + Sync + 'f>,
     {
         // get tensor views
         let a = self.view();
@@ -381,15 +355,7 @@ where
         let device = self.device();
         let mut storage_c = unsafe { device.empty_impl(lc.bounds_index()?.1)? };
         let mut f_inner = move |c: &mut TOut, a: &T, b: &T2| *c = f(a, b);
-        device.op_mutc_refa_refb_func(
-            storage_c.raw_mut(),
-            &lc,
-            self.raw(),
-            &la_b,
-            other.raw(),
-            &lb_b,
-            &mut f_inner,
-        )?;
+        device.op_mutc_refa_refb_func(storage_c.raw_mut(), &lc, self.raw(), &la_b, other.raw(), &lb_b, &mut f_inner)?;
         Tensor::new_f(storage_c, lc)
     }
 
@@ -404,13 +370,7 @@ where
         DOut: DimAPI,
         D: DimMaxAPI<D2, Max = DOut>,
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
-        B: DeviceOp_MutC_RefA_RefB_API<
-            T,
-            T2,
-            TOut,
-            DOut,
-            dyn Fn(&mut TOut, &T, &T2) + Send + Sync + 'f,
-        >,
+        B: DeviceOp_MutC_RefA_RefB_API<T, T2, TOut, DOut, dyn Fn(&mut TOut, &T, &T2) + Send + Sync + 'f>,
     {
         self.mapb_f(other, f).unwrap()
     }
@@ -428,13 +388,7 @@ where
         T: Clone,
         T2: Clone,
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
-        B: DeviceOp_MutC_RefA_RefB_API<
-            T,
-            T2,
-            TOut,
-            DOut,
-            dyn Fn(&mut TOut, &T, &T2) + Send + Sync + 'f,
-        >,
+        B: DeviceOp_MutC_RefA_RefB_API<T, T2, TOut, DOut, dyn Fn(&mut TOut, &T, &T2) + Send + Sync + 'f>,
     {
         self.mapb_f(other, move |x, y| f(x.clone(), y.clone()))
     }
@@ -452,13 +406,7 @@ where
         T: Clone,
         T2: Clone,
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
-        B: DeviceOp_MutC_RefA_RefB_API<
-            T,
-            T2,
-            TOut,
-            DOut,
-            dyn Fn(&mut TOut, &T, &T2) + Send + Sync + 'f,
-        >,
+        B: DeviceOp_MutC_RefA_RefB_API<T, T2, TOut, DOut, dyn Fn(&mut TOut, &T, &T2) + Send + Sync + 'f>,
     {
         self.mapb_f(other, move |x, y| f(x.clone(), y.clone())).unwrap()
     }

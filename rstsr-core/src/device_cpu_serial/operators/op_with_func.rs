@@ -75,14 +75,7 @@ where
     D: DimAPI,
     F: FnMut(&mut TA, &TB) + ?Sized,
 {
-    fn op_muta_refb_func(
-        &self,
-        a: &mut Vec<TA>,
-        la: &Layout<D>,
-        b: &Vec<TB>,
-        lb: &Layout<D>,
-        f: &mut F,
-    ) -> Result<()> {
+    fn op_muta_refb_func(&self, a: &mut Vec<TA>, la: &Layout<D>, b: &Vec<TB>, lb: &Layout<D>, f: &mut F) -> Result<()> {
         op_muta_refb_func_cpu_serial(a, la, b, lb, f)
     }
 }

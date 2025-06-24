@@ -69,8 +69,7 @@ where
         let ptr_w = w.as_mut_ptr();
 
         // run driver
-        let info =
-            unsafe { B::driver_sygv(order, itype, jobz, uplo, n, ptr_a, lda, ptr_b, ldb, ptr_w) };
+        let info = unsafe { B::driver_sygv(order, itype, jobz, uplo, n, ptr_a, lda, ptr_b, ldb, ptr_w) };
         rstsr_assert_eq!(info, 0, InvalidLayout)?;
 
         Ok((w, a.clone_to_mut()))

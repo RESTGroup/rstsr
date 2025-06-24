@@ -115,8 +115,7 @@ where
     let (_, size_contig) = translate_to_col_major_with_contig(&[&layout_axes]);
     if size_contig >= CONTIG_SWITCH {
         // generate layouts for actual evaluation
-        let layouts_swapped =
-            translate_to_col_major(&[&layout_out, &layout_rest], TensorIterOrder::default())?;
+        let layouts_swapped = translate_to_col_major(&[&layout_out, &layout_rest], TensorIterOrder::default())?;
         let layout_out_swapped = &layouts_swapped[0];
         let layout_rest_swapped = &layouts_swapped[1];
 
@@ -132,14 +131,12 @@ where
         let mut out = unsafe { uninitialized_vec(len_out)? };
 
         // actual evaluation
-        izip!(iter_out_swapped, iter_rest_swapped).try_for_each(
-            |(idx_out, idx_rest)| -> Result<()> {
-                unsafe { layout_inner.set_offset(idx_rest) };
-                let acc = reduce_all_cpu_serial(a, &layout_inner, &init, &f, &f_sum, &f_out)?;
-                out[idx_out] = acc;
-                Ok(())
-            },
-        )?;
+        izip!(iter_out_swapped, iter_rest_swapped).try_for_each(|(idx_out, idx_rest)| -> Result<()> {
+            unsafe { layout_inner.set_offset(idx_rest) };
+            let acc = reduce_all_cpu_serial(a, &layout_inner, &init, &f, &f_sum, &f_out)?;
+            out[idx_out] = acc;
+            Ok(())
+        })?;
         Ok((out, layout_out))
     } else {
         // iterate layout_axes
@@ -194,8 +191,7 @@ where
     let (_, size_contig) = translate_to_col_major_with_contig(&[&layout_axes]);
     if size_contig >= CONTIG_SWITCH {
         // generate layouts for actual evaluation
-        let layouts_swapped =
-            translate_to_col_major(&[&layout_out, &layout_rest], TensorIterOrder::default())?;
+        let layouts_swapped = translate_to_col_major(&[&layout_out, &layout_rest], TensorIterOrder::default())?;
         let layout_out_swapped = &layouts_swapped[0];
         let layout_rest_swapped = &layouts_swapped[1];
 
@@ -211,14 +207,12 @@ where
         let mut out = unsafe { uninitialized_vec(len_out)? };
 
         // actual evaluation
-        izip!(iter_out_swapped, iter_rest_swapped).try_for_each(
-            |(idx_out, idx_rest)| -> Result<()> {
-                unsafe { layout_inner.set_offset(idx_rest) };
-                let acc = reduce_all_cpu_serial(a, &layout_inner, &init, &f, &f_sum, &f_out)?;
-                out[idx_out] = acc;
-                Ok(())
-            },
-        )?;
+        izip!(iter_out_swapped, iter_rest_swapped).try_for_each(|(idx_out, idx_rest)| -> Result<()> {
+            unsafe { layout_inner.set_offset(idx_rest) };
+            let acc = reduce_all_cpu_serial(a, &layout_inner, &init, &f, &f_sum, &f_out)?;
+            out[idx_out] = acc;
+            Ok(())
+        })?;
         Ok((out, layout_out))
     } else {
         // iterate layout_axes
@@ -327,8 +321,7 @@ where
     let layout_out = layout_for_array_copy(&layout_rest, TensorIterOrder::default())?;
 
     // generate layouts for actual evaluation
-    let layouts_swapped =
-        translate_to_col_major(&[&layout_out, &layout_rest], TensorIterOrder::default())?;
+    let layouts_swapped = translate_to_col_major(&[&layout_out, &layout_rest], TensorIterOrder::default())?;
     let layout_out_swapped = &layouts_swapped[0];
     let layout_rest_swapped = &layouts_swapped[1];
 
@@ -344,14 +337,12 @@ where
     let mut out = vec![IxD::default(); len_out];
 
     // actual evaluation
-    izip!(iter_out_swapped, iter_rest_swapped).try_for_each(
-        |(idx_out, idx_rest)| -> Result<()> {
-            unsafe { layout_inner.set_offset(idx_rest) };
-            let acc = reduce_all_unraveled_arg_cpu_serial(a, &layout_inner, &f_comp, &f_eq)?;
-            out[idx_out] = acc;
-            Ok(())
-        },
-    )?;
+    izip!(iter_out_swapped, iter_rest_swapped).try_for_each(|(idx_out, idx_rest)| -> Result<()> {
+        unsafe { layout_inner.set_offset(idx_rest) };
+        let acc = reduce_all_unraveled_arg_cpu_serial(a, &layout_inner, &f_comp, &f_eq)?;
+        out[idx_out] = acc;
+        Ok(())
+    })?;
     Ok((out, layout_out))
 }
 
@@ -397,10 +388,7 @@ where
         RowMajor => pseudo_shape.c(),
         ColMajor => pseudo_shape.f(),
     };
-    let out = idx
-        .into_iter()
-        .map(|x| unsafe { pseudo_layout.index_uncheck(x.as_ref()) as usize })
-        .collect();
+    let out = idx.into_iter().map(|x| unsafe { pseudo_layout.index_uncheck(x.as_ref()) as usize }).collect();
     Ok((out, layout))
 }
 

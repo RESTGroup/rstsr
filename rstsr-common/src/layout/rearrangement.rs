@@ -24,10 +24,10 @@ type Order = TensorIterOrder;
 ///
 /// For example of layout shape `[5, 1, 2, 1, 3, 6]` and stride `[1000, 10, 10,
 /// 40, 0, 100]`,
-/// - false: shape `[2, 6, 5, 1, 1, 1]` and stride `[10, 100, 1000, 0, 0, 0]`;
-///   meaning that broadcasted shapes are eliminated and moved to last axes.
-/// - true: shape `[3, 1, 1, 2, 6, 5]` and stride `[0, 10, 40, 10, 100, 1000]`;
-///   meaning that broadcasted shapes are iterated with most priority.
+/// - false: shape `[2, 6, 5, 1, 1, 1]` and stride `[10, 100, 1000, 0, 0, 0]`; meaning that
+///   broadcasted shapes are eliminated and moved to last axes.
+/// - true: shape `[3, 1, 1, 2, 6, 5]` and stride `[0, 10, 40, 10, 100, 1000]`; meaning that
+///   broadcasted shapes are iterated with most priority.
 ///
 /// # Returns
 ///
@@ -62,8 +62,7 @@ where
         // sort shape and strides if keep shape
         // - (shape = 1 / stride = 0) the smallest (pointer not moving for these cases)
         // - if (shape = 1 / stride = 0, broadcastable axes) preserve order
-        // - (larger shape first) if not broadcastable axes, then compare stride size
-        //   (smaller stride first)
+        // - (larger shape first) if not broadcastable axes, then compare stride size (smaller stride first)
         index.sort_by(|&i1, &i2| {
             let d1 = shape_old[i1 as usize];
             let d2 = shape_old[i2 as usize];
@@ -161,12 +160,8 @@ where
 /// - A: B if contiguous, C if c-prefer, F if f-prefer; otherwise default
 /// - K: greedy layout, keep shape
 /// - G: greedy layout, eliminate broadcastable dimensions
-/// - B: sequential memory; valid option if `size = bound_max - bound_min`,
-///   otherwise raise err
-pub fn translate_to_col_major_unary<D>(
-    layout: &Layout<D>,
-    order: TensorIterOrder,
-) -> Result<Layout<D>>
+/// - B: sequential memory; valid option if `size = bound_max - bound_min`, otherwise raise err
+pub fn translate_to_col_major_unary<D>(layout: &Layout<D>, order: TensorIterOrder) -> Result<Layout<D>>
 where
     D: DimDevAPI,
 {
@@ -227,17 +222,13 @@ where
 /// - C: reverse axes
 /// - F: preserve axes
 /// - A: B if contiguous, C if c-prefer, F if f-prefer; otherwise default
-/// - K: greedy layout for the one which have the largest non-broadcast-size,
-///   otherwise left-most layout (usually for mutable-assign/inplace-op)
+/// - K: greedy layout for the one which have the largest non-broadcast-size, otherwise left-most
+///   layout (usually for mutable-assign/inplace-op)
 /// - G: invalid option here
-/// - B: sequential memory; valid option if `size = bound_max - bound_min`,
-///   otherwise raise err
+/// - B: sequential memory; valid option if `size = bound_max - bound_min`, otherwise raise err
 ///
 /// This operation will not flip any strides.
-pub fn translate_to_col_major<D>(
-    layouts: &[&Layout<D>],
-    order: TensorIterOrder,
-) -> Result<Vec<Layout<D>>>
+pub fn translate_to_col_major<D>(layouts: &[&Layout<D>], order: TensorIterOrder) -> Result<Vec<Layout<D>>>
 where
     D: DimAPI,
 {
@@ -247,17 +238,11 @@ where
 
     // this function will map all layouts to column-major iteration by a single
     // iter-order.
-    let fn_single = |ls: &[&Layout<D>], order| {
-        ls.iter().map(|l| translate_to_col_major_unary(l, order)).collect()
-    };
+    let fn_single = |ls: &[&Layout<D>], order| ls.iter().map(|l| translate_to_col_major_unary(l, order)).collect();
 
     // make sure all layouts have the same shape
     let is_same_shape = layouts.windows(2).all(|w| w[0].shape() == w[1].shape());
-    rstsr_assert!(
-        is_same_shape,
-        InvalidLayout,
-        "All shape of layout in this function must be the same."
-    )?;
+    rstsr_assert!(is_same_shape, InvalidLayout, "All shape of layout in this function must be the same.")?;
 
     match order {
         Order::C | Order::F | Order::B => fn_single(layouts, order),
@@ -306,8 +291,8 @@ where
 ///
 /// - Should be used after [`translate_to_col_major`].
 /// - Accepts multiple layouts to be compared.
-/// - Due to that final dimension is not known to compiler, this function will
-///   return dynamic layout.
+/// - Due to that final dimension is not known to compiler, this function will return dynamic
+///   layout.
 pub fn translate_to_col_major_with_contig<D>(layouts: &[&Layout<D>]) -> (Vec<Layout<IxD>>, usize)
 where
     D: DimAPI,

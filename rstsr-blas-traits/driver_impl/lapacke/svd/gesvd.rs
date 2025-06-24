@@ -27,8 +27,7 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
         superb: *mut T,
     ) -> blas_int {
         rstsr_lapack_ffi::lapacke::lapacke_func(
-            order as _, jobu as _, jobvt as _, m as _, n as _, a, lda as _, s, u, ldu as _, vt,
-            ldvt as _, superb,
+            order as _, jobu as _, jobvt as _, m as _, n as _, a, lda as _, s, u, ldu as _, vt, ldvt as _, superb,
         )
     }
 }

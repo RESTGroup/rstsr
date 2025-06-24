@@ -95,12 +95,7 @@ where
     } else {
         // manual fold when not contiguous
         let iter_a = IterLayoutColMajor::new(&layout)?;
-        let task = || {
-            iter_a
-                .into_par_iter()
-                .fold(&init, |acc, idx| f(acc, a[idx].clone()))
-                .reduce(&init, &f_sum)
-        };
+        let task = || iter_a.into_par_iter().fold(&init, |acc, idx| f(acc, a[idx].clone())).reduce(&init, &f_sum);
         let acc = match pool {
             None => task(),
             Some(pool) => pool.install(task),
@@ -145,8 +140,7 @@ where
     let (_, size_contig) = translate_to_col_major_with_contig(&[&layout_axes]);
     if size_contig >= CONTIG_SWITCH {
         // generate layouts for actual evaluation
-        let layouts_swapped =
-            translate_to_col_major(&[&layout_out, &layout_rest], TensorIterOrder::default())?;
+        let layouts_swapped = translate_to_col_major(&[&layout_out, &layout_rest], TensorIterOrder::default())?;
         let layout_out_swapped = &layouts_swapped[0];
         let layout_rest_swapped = &layouts_swapped[1];
 
@@ -161,18 +155,15 @@ where
 
         // actual evaluation
         let task = || {
-            (iter_out_swapped, iter_rest_swapped).into_par_iter().try_for_each(
-                |(idx_out, idx_rest)| -> Result<()> {
-                    let out_ptr = out_ptr.load(Ordering::Relaxed);
-                    // let out_ptr = out_ptr.get();
-                    let mut layout_inner = layout_axes.clone();
-                    unsafe { layout_inner.set_offset(idx_rest) };
-                    let acc =
-                        reduce_all_cpu_rayon(a, &layout_inner, &init, &f, &f_sum, &f_out, pool)?;
-                    unsafe { *out_ptr.add(idx_out) = acc };
-                    Ok(())
-                },
-            )
+            (iter_out_swapped, iter_rest_swapped).into_par_iter().try_for_each(|(idx_out, idx_rest)| -> Result<()> {
+                let out_ptr = out_ptr.load(Ordering::Relaxed);
+                // let out_ptr = out_ptr.get();
+                let mut layout_inner = layout_axes.clone();
+                unsafe { layout_inner.set_offset(idx_rest) };
+                let acc = reduce_all_cpu_rayon(a, &layout_inner, &init, &f, &f_sum, &f_out, pool)?;
+                unsafe { *out_ptr.add(idx_out) = acc };
+                Ok(())
+            })
         };
         match pool {
             None => task()?,
@@ -241,8 +232,7 @@ where
     let (_, size_contig) = translate_to_col_major_with_contig(&[&layout_axes]);
     if size_contig >= CONTIG_SWITCH {
         // generate layouts for actual evaluation
-        let layouts_swapped =
-            translate_to_col_major(&[&layout_out, &layout_rest], TensorIterOrder::default())?;
+        let layouts_swapped = translate_to_col_major(&[&layout_out, &layout_rest], TensorIterOrder::default())?;
         let layout_out_swapped = &layouts_swapped[0];
         let layout_rest_swapped = &layouts_swapped[1];
 
@@ -257,18 +247,15 @@ where
 
         // actual evaluation
         let task = || {
-            (iter_out_swapped, iter_rest_swapped).into_par_iter().try_for_each(
-                |(idx_out, idx_rest)| -> Result<()> {
-                    let out_ptr = out_ptr.load(Ordering::Relaxed);
-                    // let out_ptr = out_ptr.get();
-                    let mut layout_inner = layout_axes.clone();
-                    unsafe { layout_inner.set_offset(idx_rest) };
-                    let acc =
-                        reduce_all_cpu_rayon(a, &layout_inner, &init, &f, &f_sum, &f_out, pool)?;
-                    unsafe { *out_ptr.add(idx_out) = acc };
-                    Ok(())
-                },
-            )
+            (iter_out_swapped, iter_rest_swapped).into_par_iter().try_for_each(|(idx_out, idx_rest)| -> Result<()> {
+                let out_ptr = out_ptr.load(Ordering::Relaxed);
+                // let out_ptr = out_ptr.get();
+                let mut layout_inner = layout_axes.clone();
+                unsafe { layout_inner.set_offset(idx_rest) };
+                let acc = reduce_all_cpu_rayon(a, &layout_inner, &init, &f, &f_sum, &f_out, pool)?;
+                unsafe { *out_ptr.add(idx_out) = acc };
+                Ok(())
+            })
         };
         match pool {
             None => task()?,
@@ -297,14 +284,7 @@ where
 
         let mut out_converted = unsafe { uninitialized_vec(len_out)? };
         let mut f_out = |a: &mut TO, b: &TS| *a = f_out(b.clone());
-        op_muta_refb_func_cpu_rayon(
-            &mut out_converted,
-            &layout_out,
-            &out,
-            &layout_out,
-            &mut f_out,
-            pool,
-        )?;
+        op_muta_refb_func_cpu_rayon(&mut out_converted, &layout_out, &out, &layout_out, &mut f_out, pool)?;
         Ok((out_converted, layout_out))
     }
 }
@@ -365,10 +345,9 @@ where
         }
     };
     let sum_func = |acc1: Option<(D, T)>, acc2: Option<(D, T)>| match (acc1, acc2) {
-        (Some((idx1, val1)), Some((idx2, _))) => fold_func(
-            Some((idx1, val1)),
-            (idx2.clone(), unsafe { la.index_uncheck(idx2.as_ref()) as usize }),
-        ),
+        (Some((idx1, val1)), Some((idx2, _))) => {
+            fold_func(Some((idx1, val1)), (idx2.clone(), unsafe { la.index_uncheck(idx2.as_ref()) as usize }))
+        },
         (Some((idx1, val1)), None) => Some((idx1, val1)),
         (None, Some((idx2, val2))) => Some((idx2, val2)),
         (None, None) => None,
@@ -414,8 +393,7 @@ where
     let layout_out = layout_for_array_copy(&layout_rest, TensorIterOrder::default())?;
 
     // generate layouts for actual evaluation
-    let layouts_swapped =
-        translate_to_col_major(&[&layout_out, &layout_rest], TensorIterOrder::default())?;
+    let layouts_swapped = translate_to_col_major(&[&layout_out, &layout_rest], TensorIterOrder::default())?;
     let layout_out_swapped = &layouts_swapped[0];
     let layout_rest_swapped = &layouts_swapped[1];
 
@@ -430,18 +408,15 @@ where
 
     // actual evaluation
     let task = || {
-        (iter_out_swapped, iter_rest_swapped).into_par_iter().try_for_each(
-            |(idx_out, idx_rest)| -> Result<()> {
-                let out_ptr = out_ptr.load(Ordering::Relaxed);
-                // let out_ptr = out_ptr.get();
-                let mut layout_inner = layout_axes.clone();
-                unsafe { layout_inner.set_offset(idx_rest) };
-                let acc =
-                    reduce_all_unraveled_arg_cpu_rayon(a, &layout_inner, &f_comp, &f_eq, pool)?;
-                unsafe { *out_ptr.add(idx_out) = acc.clone() };
-                Ok(())
-            },
-        )
+        (iter_out_swapped, iter_rest_swapped).into_par_iter().try_for_each(|(idx_out, idx_rest)| -> Result<()> {
+            let out_ptr = out_ptr.load(Ordering::Relaxed);
+            // let out_ptr = out_ptr.get();
+            let mut layout_inner = layout_axes.clone();
+            unsafe { layout_inner.set_offset(idx_rest) };
+            let acc = reduce_all_unraveled_arg_cpu_rayon(a, &layout_inner, &f_comp, &f_eq, pool)?;
+            unsafe { *out_ptr.add(idx_out) = acc.clone() };
+            Ok(())
+        })
     };
     match pool {
         None => task()?,
@@ -494,11 +469,7 @@ where
         RowMajor => pseudo_shape.c(),
         ColMajor => pseudo_shape.f(),
     };
-    let task = || {
-        idx.into_par_iter()
-            .map(|x| unsafe { pseudo_layout.index_uncheck(x.as_ref()) as usize })
-            .collect()
-    };
+    let task = || idx.into_par_iter().map(|x| unsafe { pseudo_layout.index_uncheck(x.as_ref()) as usize }).collect();
     let out = match pool {
         None => task(),
         Some(pool) => pool.install(task),

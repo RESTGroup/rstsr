@@ -114,10 +114,7 @@ where
     type Repr = R;
     type ReprTo = DataRef<'a, Vec<T>>;
 
-    fn change_device(
-        tensor: TensorAny<R, T, DevA, D>,
-        device: &DevB,
-    ) -> Result<TensorAny<Self::Repr, T, DevB, D>> {
+    fn change_device(tensor: TensorAny<R, T, DevA, D>, device: &DevB) -> Result<TensorAny<Self::Repr, T, DevB, D>> {
         let (storage, layout) = tensor.into_raw_parts();
         let (data, _) = storage.into_raw_parts();
         let storage = Storage::new(data, device.clone());
@@ -133,10 +130,7 @@ where
         DeviceChangeAPI::change_device(tensor, device)
     }
 
-    fn to_device(
-        tensor: &'a TensorAny<R, T, DevA, D>,
-        device: &DevB,
-    ) -> Result<TensorView<'a, T, DevB, D>> {
+    fn to_device(tensor: &'a TensorAny<R, T, DevA, D>, device: &DevB) -> Result<TensorView<'a, T, DevB, D>> {
         let view = tensor.view();
         DeviceChangeAPI::change_device(view, device)
     }

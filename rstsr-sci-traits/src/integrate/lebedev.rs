@@ -104,8 +104,8 @@ pub fn lebedev_rule_from_degree_f<B>(degree: usize, device: &B) -> Result<Lebede
 where
     B: DeviceAPI<f64> + LebedevRuleAPI,
 {
-    let order = lebedev_degree_to_order(degree)
-        .map_err(|_| rstsr_error!(InvalidValue, "Invalid Lebedev degree {degree}"))?;
+    let order =
+        lebedev_degree_to_order(degree).map_err(|_| rstsr_error!(InvalidValue, "Invalid Lebedev degree {degree}"))?;
     lebedev_rule_f(order, device)
 }
 
@@ -124,8 +124,7 @@ where
 
 /// Lebedev quadrature rule data structure.
 ///
-/// * `quads`: A tensor of shape (m, 3) representing the quadrature points
-///   (c-contiguous).
+/// * `quads`: A tensor of shape (m, 3) representing the quadrature points (c-contiguous).
 /// * `weights`: A tensor of shape (m,) representing the quadrature weights.
 pub struct LebedevQuad<B>
 where

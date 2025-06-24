@@ -210,11 +210,8 @@ impl GESDDDriverAPI<T> for DeviceBLAS {
         // Query optimal working array(s) size
         let mut info = 0;
         let lwork = -1;
-        let lrwork = if jobz == 'N' {
-            7 * m.min(n)
-        } else {
-            m.min(n) * (5 * m.min(n) + 7).max(2 * m.max(n) + 2 * m.min(n) + 1)
-        };
+        let lrwork =
+            if jobz == 'N' { 7 * m.min(n) } else { m.min(n) * (5 * m.min(n) + 7).max(2 * m.max(n) + 2 * m.min(n) + 1) };
         let mut work_query = Complex::new(0.0, 0.0);
         let mut rwork_query = 0.0;
         func_(

@@ -17,12 +17,7 @@ where
 {
     type Out = T;
     fn det_f(self) -> Result<Self::Out> {
-        rstsr_assert_eq!(
-            self.ndim(),
-            2,
-            InvalidLayout,
-            "Currently we can only handle 2-D matrix."
-        )?;
+        rstsr_assert_eq!(self.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let a = self;
         let a_view = a.view().into_dim::<Ix2>();
         let (sign, logabsdet) = ref_impl_slogdet_f(a_view.into())?;
@@ -43,12 +38,7 @@ where
 {
     type Out = T;
     fn det_f(self) -> Result<Self::Out> {
-        rstsr_assert_eq!(
-            self.ndim(),
-            2,
-            InvalidLayout,
-            "Currently we can only handle 2-D matrix."
-        )?;
+        rstsr_assert_eq!(self.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let mut a = self;
         let a_view = a.view_mut().into_dim::<Ix2>();
         let (sign, logabsdet) = ref_impl_slogdet_f(a_view.into())?;

@@ -21,13 +21,8 @@ where
 }
 
 #[inline]
-pub fn inner_pack_tril_general<T>(
-    a: &mut [T],
-    la: &Layout<Ix1>,
-    b: &[T],
-    lb: &Layout<Ix2>,
-    n: usize,
-) where
+pub fn inner_pack_tril_general<T>(a: &mut [T], la: &Layout<Ix1>, b: &[T], lb: &Layout<Ix2>, n: usize)
+where
     T: Clone,
 {
     let mut idx_a = 0;
@@ -58,13 +53,8 @@ where
 }
 
 #[inline]
-pub fn inner_pack_triu_general<T>(
-    a: &mut [T],
-    la: &Layout<Ix1>,
-    b: &[T],
-    lb: &Layout<Ix2>,
-    n: usize,
-) where
+pub fn inner_pack_triu_general<T>(a: &mut [T], la: &Layout<Ix1>, b: &[T], lb: &Layout<Ix2>, n: usize)
+where
     T: Clone,
 {
     let mut idx_a = 0;
@@ -78,13 +68,7 @@ pub fn inner_pack_triu_general<T>(
     }
 }
 
-pub fn pack_tri_cpu_serial<T>(
-    a: &mut [T],
-    la: &Layout<IxD>,
-    b: &[T],
-    lb: &Layout<IxD>,
-    uplo: FlagUpLo,
-) -> Result<()>
+pub fn pack_tri_cpu_serial<T>(a: &mut [T], la: &Layout<IxD>, b: &[T], lb: &Layout<IxD>, uplo: FlagUpLo) -> Result<()>
 where
     T: Clone,
 {
@@ -158,14 +142,8 @@ where
 /* #region unpack tri */
 
 #[inline]
-pub fn inner_unpack_tril_c_contig<T>(
-    a: &mut [T],
-    offset_a: usize,
-    b: &[T],
-    offset_b: usize,
-    n: usize,
-    symm: FlagSymm,
-) where
+pub fn inner_unpack_tril_c_contig<T>(a: &mut [T], offset_a: usize, b: &[T], offset_b: usize, n: usize, symm: FlagSymm)
+where
     T: ComplexFloat,
 {
     let a = &mut a[offset_a..];
@@ -224,14 +202,8 @@ pub fn inner_unpack_tril_c_contig<T>(
 }
 
 #[inline]
-pub fn inner_unpack_tril_general<T>(
-    a: &mut [T],
-    la: &Layout<Ix2>,
-    b: &[T],
-    lb: &Layout<Ix1>,
-    n: usize,
-    symm: FlagSymm,
-) where
+pub fn inner_unpack_tril_general<T>(a: &mut [T], la: &Layout<Ix2>, b: &[T], lb: &Layout<Ix1>, n: usize, symm: FlagSymm)
+where
     T: ComplexFloat,
 {
     let mut idx_b = 0;
@@ -304,14 +276,8 @@ pub fn inner_unpack_tril_general<T>(
 }
 
 #[inline]
-pub fn inner_unpack_triu_c_contig<T>(
-    a: &mut [T],
-    offset_a: usize,
-    b: &[T],
-    offset_b: usize,
-    n: usize,
-    symm: FlagSymm,
-) where
+pub fn inner_unpack_triu_c_contig<T>(a: &mut [T], offset_a: usize, b: &[T], offset_b: usize, n: usize, symm: FlagSymm)
+where
     T: ComplexFloat,
 {
     let a = &mut a[offset_a..];
@@ -370,14 +336,8 @@ pub fn inner_unpack_triu_c_contig<T>(
 }
 
 #[inline]
-pub fn inner_unpack_triu_general<T>(
-    a: &mut [T],
-    la: &Layout<Ix2>,
-    b: &[T],
-    lb: &Layout<Ix1>,
-    n: usize,
-    symm: FlagSymm,
-) where
+pub fn inner_unpack_triu_general<T>(a: &mut [T], la: &Layout<Ix2>, b: &[T], lb: &Layout<Ix1>, n: usize, symm: FlagSymm)
+where
     T: ComplexFloat,
 {
     let mut idx_b = 0;

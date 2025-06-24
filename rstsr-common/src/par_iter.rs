@@ -163,12 +163,7 @@ where
     Ok(())
 }
 
-pub fn layout_col_major_dim_dispatch_par_3<D, F>(
-    la: &Layout<D>,
-    lb: &Layout<D>,
-    lc: &Layout<D>,
-    f: F,
-) -> Result<()>
+pub fn layout_col_major_dim_dispatch_par_3<D, F>(la: &Layout<D>, lb: &Layout<D>, lc: &Layout<D>, f: F) -> Result<()>
 where
     D: DimAPI,
     F: Fn((usize, usize, usize)) + Send + Sync,
@@ -213,11 +208,7 @@ where
     Ok(())
 }
 
-pub fn layout_col_major_dim_dispatch_par_2diff<DA, DB, F>(
-    la: &Layout<DA>,
-    lb: &Layout<DB>,
-    f: F,
-) -> Result<()>
+pub fn layout_col_major_dim_dispatch_par_2diff<DA, DB, F>(la: &Layout<DA>, lb: &Layout<DB>, f: F) -> Result<()>
 where
     DA: DimAPI,
     DB: DimAPI,

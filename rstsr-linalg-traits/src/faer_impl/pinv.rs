@@ -33,8 +33,7 @@ where
     let faer_a = a.into_faer();
 
     // svd computation
-    let svd_result =
-        faer_a.thin_svd().map_err(|e| rstsr_error!(FaerError, "Faer SvD error: {e:?}"))?;
+    let svd_result = faer_a.thin_svd().map_err(|e| rstsr_error!(FaerError, "Faer SvD error: {e:?}"))?;
     let (u, s, v) = (svd_result.U(), svd_result.S(), svd_result.V());
 
     // return to rstsr tensors

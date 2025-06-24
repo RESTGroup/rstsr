@@ -100,10 +100,8 @@ pub enum TensorIterOrder {
     /// Automatically choose row/col-major order.
     ///
     /// - try c/f-contig first (also see [`TensorIterOrder::B`]),
-    /// - try c/f-prefer second (also see [`TensorIterOrder::C`],
-    ///   [`TensorIterOrder::F`]),
-    /// - otherwise [`FlagOrder::default()`], which is defined by crate feature
-    ///   `f_prefer`.
+    /// - try c/f-prefer second (also see [`TensorIterOrder::C`], [`TensorIterOrder::F`]),
+    /// - otherwise [`FlagOrder::default()`], which is defined by crate feature `f_prefer`.
     ///
     /// - safe for multi-array iteration like `get_iter(a, b)`
     /// - not safe for cases like `a.iter().zip(b.iter())`
@@ -112,8 +110,7 @@ pub enum TensorIterOrder {
     ///
     /// - safe for multi-array iteration like `get_iter(a, b)`
     /// - not safe for cases like `a.iter().zip(b.iter())`
-    /// - if it is used to create a new array, the stride of new array will be
-    ///   in K order
+    /// - if it is used to create a new array, the stride of new array will be in K order
     K,
     /// Greedy when possible (reset dimension to 1 if axis is broadcasted).
     ///

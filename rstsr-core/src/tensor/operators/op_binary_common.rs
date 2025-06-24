@@ -93,14 +93,7 @@ mod impl_trait_binary {
             // perform operation and return
             let device = self.device();
             let mut storage_c = unsafe { device.empty_impl(lc.bounds_index()?.1)? };
-            device.op_mutc_refa_refb(
-                storage_c.raw_mut(),
-                &lc,
-                self.raw(),
-                &la_b,
-                b.raw(),
-                &lb_b,
-            )?;
+            device.op_mutc_refa_refb(storage_c.raw_mut(), &lc, self.raw(), &la_b, b.raw(), &lb_b)?;
             Tensor::new_f(storage_c, lc)
         }
     }

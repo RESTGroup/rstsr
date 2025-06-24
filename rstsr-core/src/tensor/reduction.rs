@@ -11,10 +11,7 @@ macro_rules! trait_reduction {
             tensor.device().$fn_all(tensor.raw(), tensor.layout())
         }
 
-        pub fn $fn_axes_f<R, T, B, D, I>(
-            tensor: &TensorAny<R, T, B, D>,
-            axes: I,
-        ) -> Result<Tensor<B::TOut, B, IxD>>
+        pub fn $fn_axes_f<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, axes: I) -> Result<Tensor<B::TOut, B, IxD>>
         where
             R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
@@ -31,8 +28,7 @@ macro_rules! trait_reduction {
                 return Tensor::new_f(storage, layout);
             }
 
-            let (storage, layout) =
-                tensor.device().$fn_axes(tensor.raw(), tensor.layout(), axes.as_ref())?;
+            let (storage, layout) = tensor.device().$fn_axes(tensor.raw(), tensor.layout(), axes.as_ref())?;
             Tensor::new_f(storage, layout)
         }
 
@@ -45,10 +41,7 @@ macro_rules! trait_reduction {
             $fn_all_f(tensor).unwrap()
         }
 
-        pub fn $fn_axes<R, T, B, D, I>(
-            tensor: &TensorAny<R, T, B, D>,
-            axes: I,
-        ) -> Tensor<B::TOut, B, IxD>
+        pub fn $fn_axes<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, axes: I) -> Tensor<B::TOut, B, IxD>
         where
             R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
@@ -144,10 +137,7 @@ macro_rules! trait_reduction_arg {
             tensor.device().$fn_all(tensor.raw(), tensor.layout())
         }
 
-        pub fn $fn_axes_f<R, T, B, D, I>(
-            tensor: &TensorAny<R, T, B, D>,
-            axes: I,
-        ) -> Result<Tensor<IxD, B, IxD>>
+        pub fn $fn_axes_f<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, axes: I) -> Result<Tensor<IxD, B, IxD>>
         where
             R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
@@ -156,8 +146,7 @@ macro_rules! trait_reduction_arg {
         {
             let axes = axes.try_into()?;
 
-            let (storage, layout) =
-                tensor.device().$fn_axes(tensor.raw(), tensor.layout(), axes.as_ref())?;
+            let (storage, layout) = tensor.device().$fn_axes(tensor.raw(), tensor.layout(), axes.as_ref())?;
             Tensor::new_f(storage, layout)
         }
 
@@ -170,10 +159,7 @@ macro_rules! trait_reduction_arg {
             $fn_all_f(tensor).unwrap()
         }
 
-        pub fn $fn_axes<R, T, B, D, I>(
-            tensor: &TensorAny<R, T, B, D>,
-            axes: I,
-        ) -> Tensor<IxD, B, IxD>
+        pub fn $fn_axes<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, axes: I) -> Tensor<IxD, B, IxD>
         where
             R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
@@ -332,9 +318,7 @@ mod test {
 
         // np.arange(3240).reshape(12, 15, 18)
         //   .swapaxes(-1, -2)[2:-3, 1:-4:2, -1:3:-2].sum()
-        let a_owned = arange((3240, &DeviceCpuSerial::default()))
-            .into_shape([12, 15, 18])
-            .into_swapaxes(-1, -2);
+        let a_owned = arange((3240, &DeviceCpuSerial::default())).into_shape([12, 15, 18]).into_swapaxes(-1, -2);
         let a = a_owned.i((slice!(2, -3), slice!(1, -4, 2), slice!(-1, 3, -2)));
         let s = a.sum_all();
         assert_eq!(s, 446586);
@@ -372,9 +356,7 @@ mod test {
         // a = permutedims(a, (1, 3, 2));
         // a = a[3:9, 2:2:15, 15:-2:4];
         // sum(a)
-        let a_owned = arange((3240, &DeviceCpuSerial::default()))
-            .into_shape([12, 15, 18])
-            .into_swapaxes(-1, -2);
+        let a_owned = arange((3240, &DeviceCpuSerial::default())).into_shape([12, 15, 18]).into_swapaxes(-1, -2);
         let a = a_owned.i((slice!(2, -3), slice!(1, -4, 2), slice!(-1, 3, -2)));
         let s = a.sum_all();
         assert_eq!(s, 403662);
@@ -405,9 +387,7 @@ mod test {
             // a = np.arange(3240).reshape(4, 6, 15, 9).transpose(2, 0, 3, 1)
             // a.sum(axis=(0, -2))
             // DeviceCpuSerial
-            let a = arange((3240, &DeviceCpuSerial::default()))
-                .into_shape([4, 6, 15, 9])
-                .into_transpose([2, 0, 3, 1]);
+            let a = arange((3240, &DeviceCpuSerial::default())).into_shape([4, 6, 15, 9]).into_transpose([2, 0, 3, 1]);
             let s = a.sum_axes([0, -2]);
             println!("{s:?}");
             assert_eq!(s[[0, 1]], 27270);
@@ -415,8 +395,7 @@ mod test {
             assert_eq!(s[[3, 5]], 428220);
 
             // DeviceFaer
-            let a: Tensor<usize> =
-                arange(3240).into_shape([4, 6, 15, 9]).into_transpose([2, 0, 3, 1]);
+            let a: Tensor<usize> = arange(3240).into_shape([4, 6, 15, 9]).into_transpose([2, 0, 3, 1]);
             let s = a.sum_axes([0, -2]);
             println!("{s:?}");
             assert_eq!(s[[0, 1]], 27270);
@@ -429,9 +408,7 @@ mod test {
             // a = permutedims(a, (3, 1, 4, 2));
             // sum(a, dims=(1, 3))
             // DeviceCpuSerial
-            let a = arange((3240, &DeviceCpuSerial::default()))
-                .into_shape([4, 6, 15, 9])
-                .into_transpose([2, 0, 3, 1]);
+            let a = arange((3240, &DeviceCpuSerial::default())).into_shape([4, 6, 15, 9]).into_transpose([2, 0, 3, 1]);
             let s = a.sum_axes([0, -2]);
             println!("{s:?}");
             assert_eq!(s[[0, 1]], 217620);
@@ -439,8 +416,7 @@ mod test {
             assert_eq!(s[[3, 5]], 220185);
 
             // DeviceFaer
-            let a: Tensor<usize> =
-                arange(3240).into_shape([4, 6, 15, 9]).into_transpose([2, 0, 3, 1]);
+            let a: Tensor<usize> = arange(3240).into_shape([4, 6, 15, 9]).into_transpose([2, 0, 3, 1]);
             let s = a.sum_axes([0, -2]);
             println!("{s:?}");
             assert_eq!(s[[0, 1]], 217620);

@@ -59,8 +59,8 @@ pub fn aligned_alloc(numbytes: usize, alignment: usize) -> Result<Option<NonNull
 ///
 /// The alignment is always 64 bytes.
 ///
-/// - `N`: condition for alignment; if `N < size`, then this function will not
-///   allocate aligned vector.
+/// - `N`: condition for alignment; if `N < size`, then this function will not allocate aligned
+///   vector.
 ///
 /// # Safety
 ///
@@ -70,10 +70,7 @@ pub fn aligned_alloc(numbytes: usize, alignment: usize) -> Result<Option<NonNull
 /// undefined-behavior (UB).
 /// Nevertheless, if `T` is some type of `MaybeUninit`, then this will not UB.
 #[allow(clippy::uninit_vec)]
-pub unsafe fn aligned_uninitialized_vec<T, const N: usize>(
-    size: usize,
-    alignment: usize,
-) -> Result<Vec<T>> {
+pub unsafe fn aligned_uninitialized_vec<T, const N: usize>(size: usize, alignment: usize) -> Result<Vec<T>> {
     if size == 0 {
         return Ok(vec![]);
     } else if size < N {

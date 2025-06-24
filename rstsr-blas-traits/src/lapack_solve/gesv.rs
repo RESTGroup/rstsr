@@ -34,8 +34,7 @@ where
 {
     pub fn internal_run(
         self,
-    ) -> Result<(TensorMutable2<'a, T, B>, Tensor<blas_int, B, Ix1>, TensorMutable2<'b, T, B>)>
-    {
+    ) -> Result<(TensorMutable2<'a, T, B>, Tensor<blas_int, B, Ix1>, TensorMutable2<'b, T, B>)> {
         let Self { a, b } = self;
 
         let device = a.device().clone();
@@ -65,10 +64,7 @@ where
         Ok((a.clone_to_mut(), ipiv, b.clone_to_mut()))
     }
 
-    pub fn run(
-        self,
-    ) -> Result<(TensorMutable2<'a, T, B>, Tensor<blas_int, B, Ix1>, TensorMutable2<'b, T, B>)>
-    {
+    pub fn run(self) -> Result<(TensorMutable2<'a, T, B>, Tensor<blas_int, B, Ix1>, TensorMutable2<'b, T, B>)> {
         self.internal_run()
     }
 }

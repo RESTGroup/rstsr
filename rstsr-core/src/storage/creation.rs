@@ -48,12 +48,7 @@ where
     T: Num + PartialOrd,
     Self: DeviceRawAPI<T>,
 {
-    fn arange_impl(
-        &self,
-        start: T,
-        end: T,
-        step: T,
-    ) -> Result<Storage<DataOwned<Self::Raw>, T, Self>>;
+    fn arange_impl(&self, start: T, end: T, step: T) -> Result<Storage<DataOwned<Self::Raw>, T, Self>>;
 }
 
 pub trait DeviceCreationTriAPI<T>

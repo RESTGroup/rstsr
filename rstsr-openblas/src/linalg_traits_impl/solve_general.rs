@@ -20,7 +20,7 @@ where
     fn solve_general_f(self) -> Result<Self::Out> {
         let (a, b) = self;
         rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
-        rstsr_assert_eq!(b.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
+        rstsr_pattern!(b.ndim(), 1..=2, InvalidLayout, "Currently we can only handle 1/2-D matrix.")?;
         let a_view = a.view().into_dim::<Ix2>();
         let b_view = b.view().into_dim::<Ix2>();
         let result = ref_impl_solve_general_f(a_view.into(), b_view.into())?;

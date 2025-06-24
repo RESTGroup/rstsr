@@ -19,13 +19,7 @@ where
     TB: Clone + Send + Sync,
     D: DimAPI,
 {
-    fn op_muta_refb(
-        &self,
-        a: &mut Vec<TA>,
-        la: &Layout<D>,
-        b: &Vec<TB>,
-        lb: &Layout<D>,
-    ) -> Result<()> {
+    fn op_muta_refb(&self, a: &mut Vec<TA>, la: &Layout<D>, b: &Vec<TB>, lb: &Layout<D>) -> Result<()> {
         self.op_muta_refb_func(a, la, b, lb, &mut func)
     }
 
@@ -53,13 +47,7 @@ where
     TB: Clone + Send + Sync,
     D: DimAPI,
 {
-    fn op_muta_refb(
-        &self,
-        a: &mut Vec<TA>,
-        la: &Layout<D>,
-        b: &Vec<TB>,
-        lb: &Layout<D>,
-    ) -> Result<()> {
+    fn op_muta_refb(&self, a: &mut Vec<TA>, la: &Layout<D>, b: &Vec<TB>, lb: &Layout<D>) -> Result<()> {
         self.op_muta_refb_func(a, la, b, lb, &mut func)
     }
 
@@ -87,13 +75,7 @@ where
     TB: Clone + Send + Sync,
     D: DimAPI,
 {
-    fn op_muta_refb(
-        &self,
-        b: &mut Vec<TB>,
-        lb: &Layout<D>,
-        a: &Vec<TA>,
-        la: &Layout<D>,
-    ) -> Result<()> {
+    fn op_muta_refb(&self, b: &mut Vec<TB>, lb: &Layout<D>, a: &Vec<TA>, la: &Layout<D>) -> Result<()> {
         self.op_muta_refb_func(b, lb, a, la, &mut func)
     }
 
@@ -113,13 +95,7 @@ where
     TB: Clone + Send + Sync,
     D: DimAPI,
 {
-    fn op_muta_refb(
-        &self,
-        a: &mut Vec<TA>,
-        la: &Layout<D>,
-        b: &Vec<TB>,
-        lb: &Layout<D>,
-    ) -> Result<()>
+    fn op_muta_refb(&self, a: &mut Vec<TA>, la: &Layout<D>, b: &Vec<TB>, lb: &Layout<D>) -> Result<()>
     where
         TB: Op<Output = TA>,
     {

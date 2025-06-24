@@ -23,12 +23,7 @@ where
     let offset_a = la.offset();
     let offset_b = lb.offset();
 
-    rstsr_assert_eq!(
-        shape_a[1],
-        shape_b[1],
-        InvalidLayout,
-        "The number of columns in xa and xb must match."
-    )?;
+    rstsr_assert_eq!(shape_a[1], shape_b[1], InvalidLayout, "The number of columns in xa and xb must match.")?;
     let k = shape_a[1];
 
     let m = shape_a[0];
@@ -59,8 +54,7 @@ where
                             let indices = (i, j);
                             let strides = (stride_a[1], stride_b[1]);
                             let size = k;
-                            let dist = kernel
-                                .distance::<{ $STRIDED }>(uv, offsets, indices, strides, size);
+                            let dist = kernel.distance::<{ $STRIDED }>(uv, offsets, indices, strides, size);
                             match $ORDER {
                                 RowMajor => dists[i * n + j] = dist,
                                 ColMajor => dists[i + j * m] = dist,
@@ -100,12 +94,7 @@ where
     let offset_a = la.offset();
     let offset_b = lb.offset();
 
-    rstsr_assert_eq!(
-        shape_a[1],
-        shape_b[1],
-        InvalidLayout,
-        "The number of columns in xa and xb must match."
-    )?;
+    rstsr_assert_eq!(shape_a[1], shape_b[1], InvalidLayout, "The number of columns in xa and xb must match.")?;
     let k = shape_a[1];
 
     let m = shape_a[0];
@@ -192,12 +181,7 @@ where
     let offset_a = la.offset();
     let offset_b = lb.offset();
 
-    rstsr_assert_eq!(
-        shape_a[1],
-        shape_b[1],
-        InvalidLayout,
-        "The number of columns in xa and xb must match."
-    )?;
+    rstsr_assert_eq!(shape_a[1], shape_b[1], InvalidLayout, "The number of columns in xa and xb must match.")?;
     let k = shape_a[1];
 
     let m = shape_a[0];
@@ -228,8 +212,7 @@ where
                             let indices = (i, j);
                             let strides = (stride_a[1], stride_b[1]);
                             let size = k;
-                            let dist = kernel
-                                .distance::<{ $STRIDED }>(uv, offsets, indices, strides, size);
+                            let dist = kernel.distance::<{ $STRIDED }>(uv, offsets, indices, strides, size);
                             unsafe {
                                 let dist_ij = match $ORDER {
                                     RowMajor => dists.as_ptr().add(i * n + j) as *mut _,
@@ -282,12 +265,7 @@ where
     let offset_a = la.offset();
     let offset_b = lb.offset();
 
-    rstsr_assert_eq!(
-        shape_a[1],
-        shape_b[1],
-        InvalidLayout,
-        "The number of columns in xa and xb must match."
-    )?;
+    rstsr_assert_eq!(shape_a[1], shape_b[1], InvalidLayout, "The number of columns in xa and xb must match.")?;
     let k = shape_a[1];
 
     let m = shape_a[0];

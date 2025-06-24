@@ -254,9 +254,7 @@ where
     fn into_owned(self) -> DataOwned<Self::Data> {
         match self {
             DataRef::TrueRef(raw) => DataOwned::from(raw.clone()),
-            DataRef::ManuallyDropOwned(raw) => {
-                DataOwned::from(ManuallyDrop::into_inner(raw.clone()))
-            },
+            DataRef::ManuallyDropOwned(raw) => DataOwned::from(ManuallyDrop::into_inner(raw.clone())),
         }
     }
 
@@ -289,9 +287,7 @@ where
     fn into_owned(self) -> DataOwned<Self::Data> {
         match self {
             DataMut::TrueRef(raw) => DataOwned::from(raw.clone()),
-            DataMut::ManuallyDropOwned(raw) => {
-                DataOwned::from(ManuallyDrop::into_inner(raw.clone()))
-            },
+            DataMut::ManuallyDropOwned(raw) => DataOwned::from(ManuallyDrop::into_inner(raw.clone())),
         }
     }
 

@@ -20,15 +20,7 @@ impl SYEVDriverAPI<T> for DeviceBLAS {
         lda: usize,
         w: *mut T,
     ) -> blas_int {
-        rstsr_lapack_ffi::lapacke::lapacke_func(
-            order as _,
-            jobz as _,
-            uplo.into(),
-            n as _,
-            a,
-            lda as _,
-            w,
-        )
+        rstsr_lapack_ffi::lapacke::lapacke_func(order as _, jobz as _, uplo.into(), n as _, a, lda as _, w)
     }
 }
 
@@ -47,14 +39,6 @@ impl SYEVDriverAPI<T> for DeviceBLAS {
         lda: usize,
         w: *mut <T as ComplexFloat>::Real,
     ) -> blas_int {
-        rstsr_lapack_ffi::lapacke::lapacke_func(
-            order as _,
-            jobz as _,
-            uplo.into(),
-            n as _,
-            a as *mut _,
-            lda as _,
-            w,
-        )
+        rstsr_lapack_ffi::lapacke::lapacke_func(order as _, jobz as _, uplo.into(), n as _, a as *mut _, lda as _, w)
     }
 }

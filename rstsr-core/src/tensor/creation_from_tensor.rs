@@ -26,8 +26,7 @@ pub trait DiagAPI<Inp> {
 /// Extract a diagonal or construct a diagonal tensor.
 ///
 /// - If input is a 2-D tensor, return a copy of its diagonal (with offset).
-/// - If input is a 1-D tensor, construct a 2-D tensor with the input as its
-///   diagonal.
+/// - If input is a 1-D tensor, construct a 2-D tensor with the input as its diagonal.
 ///
 /// # See also
 ///
@@ -63,12 +62,7 @@ where
             let mut result = full_f(([n_row, n_row], T::default(), tensor.device()))?;
             let layout_result = result.layout().diagonal(Some(offset), Some(0), Some(1))?;
             let device = tensor.device();
-            device.assign(
-                result.raw_mut(),
-                &layout_result.to_dim()?,
-                tensor.raw(),
-                &layout_diag,
-            )?;
+            device.assign(result.raw_mut(), &layout_result.to_dim()?, tensor.raw(), &layout_diag)?;
             return Ok(result);
         } else if tensor.ndim() == 2 {
             let layout = tensor.layout().to_dim::<Ix2>()?;
@@ -139,10 +133,7 @@ where
     R: DataAPI<Data = B::Raw> + DataCloneAPI,
     T: Clone,
     D: DimAPI,
-    B: DeviceAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + OpAssignAPI<T, IxD>
-        + OpAssignArbitaryAPI<T, IxD, IxD>,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD> + OpAssignArbitaryAPI<T, IxD, IxD>,
     B::Raw: Clone,
 {
     type Out = Vec<Tensor<T, B, IxD>>;
@@ -231,10 +222,7 @@ where
     R: DataAPI<Data = B::Raw> + DataCloneAPI,
     T: Clone,
     D: DimAPI,
-    B: DeviceAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + OpAssignAPI<T, IxD>
-        + OpAssignArbitaryAPI<T, IxD, IxD>,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD> + OpAssignArbitaryAPI<T, IxD, IxD>,
     B::Raw: Clone,
 {
     type Out = Vec<Tensor<T, B, IxD>>;
@@ -267,10 +255,7 @@ where
     R: DataAPI<Data = B::Raw> + DataCloneAPI,
     T: Clone,
     D: DimAPI,
-    B: DeviceAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + OpAssignAPI<T, IxD>
-        + OpAssignArbitaryAPI<T, IxD, IxD>,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD> + OpAssignArbitaryAPI<T, IxD, IxD>,
     B::Raw: Clone,
 {
     type Out = Vec<Tensor<T, B, IxD>>;
@@ -342,12 +327,7 @@ where
 
         rstsr_assert!(ndim > 0, InvalidLayout, "All tensors must have ndim > 0 in concat.")?;
         tensors.iter().try_for_each(|tensor| -> Result<()> {
-            rstsr_assert_eq!(
-                tensor.ndim(),
-                ndim,
-                InvalidLayout,
-                "All tensors must have the same ndim."
-            )?;
+            rstsr_assert_eq!(tensor.ndim(), ndim, InvalidLayout, "All tensors must have the same ndim.")?;
             rstsr_assert!(
                 tensor.device().same_device(&device),
                 DeviceMismatch,
@@ -387,8 +367,7 @@ where
         for tensor in tensors {
             let layout = tensor.layout().to_dim::<IxD>()?;
             let axis_size = tensor.shape()[axis];
-            let layout_result =
-                result.layout().dim_narrow(axis as isize, slice!(offset, offset + axis_size))?;
+            let layout_result = result.layout().dim_narrow(axis as isize, slice!(offset, offset + axis_size))?;
             device.assign(result.raw_mut(), &layout_result, tensor.raw(), &layout)?;
             offset += axis_size;
         }
@@ -651,12 +630,7 @@ where
 
         rstsr_assert!(ndim > 0, InvalidLayout, "All tensors must have ndim > 0 in stack.")?;
         tensors.iter().try_for_each(|tensor| -> Result<()> {
-            rstsr_assert_eq!(
-                tensor.shape(),
-                shape_orig,
-                InvalidLayout,
-                "All tensors must have the same shape."
-            )?;
+            rstsr_assert_eq!(tensor.shape(), shape_orig, InvalidLayout, "All tensors must have the same shape.")?;
             rstsr_assert!(
                 tensor.device().same_device(&device),
                 DeviceMismatch,
@@ -671,10 +645,7 @@ where
         let axis = axis as usize;
 
         // expand the shape of each tensor
-        let tensors = tensors
-            .into_iter()
-            .map(|tensor| tensor.into_expand_dims_f(axis))
-            .collect::<Result<Vec<_>>>()?;
+        let tensors = tensors.into_iter().map(|tensor| tensor.into_expand_dims_f(axis)).collect::<Result<Vec<_>>>()?;
 
         // use concat function to perform the stacking
         ConcatAPI::concat_f((tensors, axis as isize))
@@ -794,11 +765,7 @@ where
         let (tensor, axis) = self;
 
         // check tensor ndim
-        rstsr_assert!(
-            tensor.ndim() > 0,
-            InvalidLayout,
-            "unstack requires a tensor with ndim > 0."
-        )?;
+        rstsr_assert!(tensor.ndim() > 0, InvalidLayout, "unstack requires a tensor with ndim > 0.")?;
 
         // check axis
         let ndim = tensor.ndim();

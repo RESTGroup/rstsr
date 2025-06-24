@@ -152,10 +152,7 @@ where
     D: DimAPI,
     B: DeviceAPI<T, Raw = Vec<T>> + 'a,
 {
-    pub fn iter_mut_with_order_f(
-        &'a mut self,
-        order: TensorIterOrder,
-    ) -> Result<IterVecMut<'a, T, D>> {
+    pub fn iter_mut_with_order_f(&'a mut self, order: TensorIterOrder) -> Result<IterVecMut<'a, T, D>> {
         let layout_iter = IterLayout::new(self.layout(), order)?;
         let raw = self.raw_mut().as_mut();
         let iter = IterVecMut { layout_iter, view: raw };
@@ -247,10 +244,7 @@ where
     D: DimAPI,
     B: DeviceAPI<T, Raw = Vec<T>> + 'a,
 {
-    pub fn indexed_iter_with_order_f(
-        &self,
-        order: TensorIterOrder,
-    ) -> Result<IndexedIterVecView<'a, T, D>> {
+    pub fn indexed_iter_with_order_f(&self, order: TensorIterOrder) -> Result<IndexedIterVecView<'a, T, D>> {
         use TensorIterOrder::*;
         // this function only accepts c/f iter order currently
         match order {
@@ -306,9 +300,7 @@ where
             IterLayout::ColMajor(iter_inner) => iter_inner.index_start().clone(),
             IterLayout::RowMajor(iter_inner) => iter_inner.index_start().clone(),
         };
-        self.layout_iter
-            .next()
-            .map(|offset| (index, unsafe { transmute::<&mut T, &mut T>(&mut self.view[offset]) }))
+        self.layout_iter.next().map(|offset| (index, unsafe { transmute::<&mut T, &mut T>(&mut self.view[offset]) }))
     }
 }
 
@@ -359,10 +351,7 @@ where
     D: DimAPI,
     B: DeviceAPI<T, Raw = Vec<T>> + 'a,
 {
-    pub fn indexed_iter_mut_with_order_f(
-        &'a mut self,
-        order: TensorIterOrder,
-    ) -> Result<IndexedIterVecMut<'a, T, D>> {
+    pub fn indexed_iter_mut_with_order_f(&'a mut self, order: TensorIterOrder) -> Result<IndexedIterVecMut<'a, T, D>> {
         use TensorIterOrder::*;
         // this function only accepts c/f iter order currently
         match order {
@@ -376,10 +365,7 @@ where
         Ok(iter)
     }
 
-    pub fn indexed_iter_mut_with_order(
-        &'a mut self,
-        order: TensorIterOrder,
-    ) -> IndexedIterVecMut<'a, T, D> {
+    pub fn indexed_iter_mut_with_order(&'a mut self, order: TensorIterOrder) -> IndexedIterVecMut<'a, T, D> {
         self.indexed_iter_mut_with_order_f(order).unwrap()
     }
 
@@ -441,44 +427,16 @@ mod tests_serial {
         let iter = a.indexed_iter_with_order(TensorIterOrder::C);
         let vec = iter.collect::<Vec<_>>();
         #[cfg(not(feature = "col_major"))]
-        assert_eq!(vec, vec![
-            ([0, 0], &0),
-            ([0, 1], &1),
-            ([1, 0], &2),
-            ([1, 1], &3),
-            ([2, 0], &4),
-            ([2, 1], &5)
-        ]);
+        assert_eq!(vec, vec![([0, 0], &0), ([0, 1], &1), ([1, 0], &2), ([1, 1], &3), ([2, 0], &4), ([2, 1], &5)]);
         #[cfg(feature = "col_major")]
-        assert_eq!(vec, vec![
-            ([0, 0], &0),
-            ([0, 1], &3),
-            ([1, 0], &1),
-            ([1, 1], &4),
-            ([2, 0], &2),
-            ([2, 1], &5)
-        ]);
+        assert_eq!(vec, vec![([0, 0], &0), ([0, 1], &3), ([1, 0], &1), ([1, 1], &4), ([2, 0], &2), ([2, 1], &5)]);
 
         let iter_t = a.t().indexed_iter_with_order(TensorIterOrder::C);
         let vec_t = iter_t.collect::<Vec<_>>();
         #[cfg(not(feature = "col_major"))]
-        assert_eq!(vec_t, vec![
-            ([0, 0], &0),
-            ([0, 1], &2),
-            ([0, 2], &4),
-            ([1, 0], &1),
-            ([1, 1], &3),
-            ([1, 2], &5)
-        ]);
+        assert_eq!(vec_t, vec![([0, 0], &0), ([0, 1], &2), ([0, 2], &4), ([1, 0], &1), ([1, 1], &3), ([1, 2], &5)]);
         #[cfg(feature = "col_major")]
-        assert_eq!(vec_t, vec![
-            ([0, 0], &0),
-            ([0, 1], &1),
-            ([0, 2], &2),
-            ([1, 0], &3),
-            ([1, 1], &4),
-            ([1, 2], &5)
-        ]);
+        assert_eq!(vec_t, vec![([0, 0], &0), ([0, 1], &1), ([0, 2], &2), ([1, 0], &3), ([1, 1], &4), ([1, 2], &5)]);
     }
 }
 

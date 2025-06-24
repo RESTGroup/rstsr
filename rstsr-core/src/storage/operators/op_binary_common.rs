@@ -52,11 +52,7 @@ where
         lb: &Layout<D>,
     ) -> Result<()>;
 
-    fn op_muta(
-        &self,
-        a: &mut <Self as DeviceRawAPI<Self::TOut>>::Raw,
-        la: &Layout<D>,
-    ) -> Result<()>;
+    fn op_muta(&self, a: &mut <Self as DeviceRawAPI<Self::TOut>>::Raw, la: &Layout<D>) -> Result<()>;
 }
 
 // Python Array API specifications (2023.1)

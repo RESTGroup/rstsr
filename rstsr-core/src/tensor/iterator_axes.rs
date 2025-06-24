@@ -77,22 +77,14 @@ where
     D: DimAPI,
     B: DeviceAPI<T, Raw = Vec<T>> + 'a,
 {
-    pub fn axes_iter_with_order_f<I>(
-        &self,
-        axes: I,
-        order: TensorIterOrder,
-    ) -> Result<IterAxesView<'a, T, B>>
+    pub fn axes_iter_with_order_f<I>(&self, axes: I, order: TensorIterOrder) -> Result<IterAxesView<'a, T, B>>
     where
         I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         // convert axis to negative indexes and sort
         let ndim: isize = TryInto::<isize>::try_into(self.ndim())?;
-        let axes: Vec<isize> = axes
-            .try_into()?
-            .as_ref()
-            .iter()
-            .map(|&v| if v >= 0 { v } else { v + ndim })
-            .collect::<Vec<isize>>();
+        let axes: Vec<isize> =
+            axes.try_into()?.as_ref().iter().map(|&v| if v >= 0 { v } else { v + ndim }).collect::<Vec<isize>>();
         let mut axes_check = axes.clone();
         axes_check.sort();
         // check no two axis are the same, and no negative index too small
@@ -100,11 +92,7 @@ where
             return Err(rstsr_error!(InvalidValue, "Some negative index is too small."));
         }
         for i in 0..axes_check.len() - 1 {
-            rstsr_assert!(
-                axes_check[i] != axes_check[i + 1],
-                InvalidValue,
-                "Same axes is not allowed here."
-            )?;
+            rstsr_assert!(axes_check[i] != axes_check[i + 1], InvalidValue, "Same axes is not allowed here.")?;
         }
 
         // get full layout
@@ -239,22 +227,14 @@ where
     D: DimAPI,
     B: DeviceAPI<T, Raw = Vec<T>> + 'a,
 {
-    pub fn axes_iter_mut_with_order_f<I>(
-        &'a mut self,
-        axes: I,
-        order: TensorIterOrder,
-    ) -> Result<IterAxesMut<'a, T, B>>
+    pub fn axes_iter_mut_with_order_f<I>(&'a mut self, axes: I, order: TensorIterOrder) -> Result<IterAxesMut<'a, T, B>>
     where
         I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         // convert axis to negative indexes and sort
         let ndim: isize = TryInto::<isize>::try_into(self.ndim())?;
-        let axes: Vec<isize> = axes
-            .try_into()?
-            .as_ref()
-            .iter()
-            .map(|&v| if v >= 0 { v } else { v + ndim })
-            .collect::<Vec<isize>>();
+        let axes: Vec<isize> =
+            axes.try_into()?.as_ref().iter().map(|&v| if v >= 0 { v } else { v + ndim }).collect::<Vec<isize>>();
         let mut axes_check = axes.clone();
         axes_check.sort();
         // check no two axis are the same, and no negative index too small
@@ -262,11 +242,7 @@ where
             return Err(rstsr_error!(InvalidValue, "Some negative index is too small."));
         }
         for i in 0..axes_check.len() - 1 {
-            rstsr_assert!(
-                axes_check[i] != axes_check[i + 1],
-                InvalidValue,
-                "Same axes is not allowed here."
-            )?;
+            rstsr_assert!(axes_check[i] != axes_check[i + 1], InvalidValue, "Same axes is not allowed here.")?;
         }
 
         // get full layout
@@ -310,11 +286,7 @@ where
         self.axes_iter_mut_with_order_f(axes, TensorIterOrder::default())
     }
 
-    pub fn axes_iter_mut_with_order<I>(
-        &'a mut self,
-        axes: I,
-        order: TensorIterOrder,
-    ) -> IterAxesMut<'a, T, B>
+    pub fn axes_iter_mut_with_order<I>(&'a mut self, axes: I, order: TensorIterOrder) -> IterAxesMut<'a, T, B>
     where
         I: TryInto<AxesIndex<isize>, Error = Error>,
     {
@@ -425,18 +397,12 @@ where
         // this function only accepts c/f iter order currently
         match order {
             C | F => (),
-            _ => {
-                rstsr_invalid!(order, "This function only accepts TensorIterOrder::C|F.",).unwrap()
-            },
+            _ => rstsr_invalid!(order, "This function only accepts TensorIterOrder::C|F.",).unwrap(),
         };
         // convert axis to negative indexes and sort
         let ndim: isize = TryInto::<isize>::try_into(self.ndim())?;
-        let axes: Vec<isize> = axes
-            .try_into()?
-            .as_ref()
-            .iter()
-            .map(|&v| if v >= 0 { v } else { v + ndim })
-            .collect::<Vec<isize>>();
+        let axes: Vec<isize> =
+            axes.try_into()?.as_ref().iter().map(|&v| if v >= 0 { v } else { v + ndim }).collect::<Vec<isize>>();
         let mut axes_check = axes.clone();
         axes_check.sort();
         // check no two axis are the same, and no negative index too small
@@ -444,11 +410,7 @@ where
             return Err(rstsr_error!(InvalidValue, "Some negative index is too small."));
         }
         for i in 0..axes_check.len() - 1 {
-            rstsr_assert!(
-                axes_check[i] != axes_check[i + 1],
-                InvalidValue,
-                "Same axes is not allowed here."
-            )?;
+            rstsr_assert!(axes_check[i] != axes_check[i + 1], InvalidValue, "Same axes is not allowed here.")?;
         }
 
         // get full layout
@@ -497,11 +459,7 @@ where
         self.indexed_axes_iter_with_order_f(axes, order)
     }
 
-    pub fn indexed_axes_iter_with_order<I>(
-        &self,
-        axes: I,
-        order: TensorIterOrder,
-    ) -> IndexedIterAxesView<'a, T, B>
+    pub fn indexed_axes_iter_with_order<I>(&self, axes: I, order: TensorIterOrder) -> IndexedIterAxesView<'a, T, B>
     where
         I: TryInto<AxesIndex<isize>, Error = Error>,
     {
@@ -610,12 +568,8 @@ where
     {
         // convert axis to negative indexes and sort
         let ndim: isize = TryInto::<isize>::try_into(self.ndim())?;
-        let axes: Vec<isize> = axes
-            .try_into()?
-            .as_ref()
-            .iter()
-            .map(|&v| if v >= 0 { v } else { v + ndim })
-            .collect::<Vec<isize>>();
+        let axes: Vec<isize> =
+            axes.try_into()?.as_ref().iter().map(|&v| if v >= 0 { v } else { v + ndim }).collect::<Vec<isize>>();
         let mut axes_check = axes.clone();
         axes_check.sort();
         // check no two axis are the same, and no negative index too small
@@ -623,11 +577,7 @@ where
             return Err(rstsr_error!(InvalidValue, "Some negative index is too small."));
         }
         for i in 0..axes_check.len() - 1 {
-            rstsr_assert!(
-                axes_check[i] != axes_check[i + 1],
-                InvalidValue,
-                "Same axes is not allowed here."
-            )?;
+            rstsr_assert!(axes_check[i] != axes_check[i + 1], InvalidValue, "Same axes is not allowed here.")?;
         }
 
         // get full layout
@@ -829,8 +779,7 @@ mod tests_parallel {
             // a = np.arange(65536).reshape(16, 16, 16, 16)
             // a[:, 1, :, 2].reshape(-1)[:17] + 1
             assert_eq!(res[..17], vec![
-                259, 275, 291, 307, 323, 339, 355, 371, 387, 403, 419, 435, 451, 467, 483, 499,
-                4355
+                259, 275, 291, 307, 323, 339, 355, 371, 387, 403, 419, 435, 451, 467, 483, 499, 4355
             ]);
         }
         #[cfg(feature = "col_major")]
@@ -839,8 +788,7 @@ mod tests_parallel {
             // a = reshape(a, (16, 16, 16, 16))
             // (reshape(a[:, 2, :, 3], 16 * 16) .+ 1)[1:17]
             assert_eq!(res[..17], vec![
-                8209, 8210, 8211, 8212, 8213, 8214, 8215, 8216, 8217, 8218, 8219, 8220, 8221, 8222,
-                8223, 8224, 8465
+                8209, 8210, 8211, 8212, 8213, 8214, 8215, 8216, 8217, 8218, 8219, 8220, 8221, 8222, 8223, 8224, 8465
             ]);
         }
     }

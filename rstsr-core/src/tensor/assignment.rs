@@ -39,11 +39,7 @@ where
         rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch)?;
         let device = a.device().clone();
         // check layout
-        rstsr_assert!(
-            !a.layout().is_broadcasted(),
-            InvalidLayout,
-            "cannot assign to broadcasted tensor"
-        )?;
+        rstsr_assert!(!a.layout().is_broadcasted(), InvalidLayout, "cannot assign to broadcasted tensor")?;
         let la = a.layout().to_dim::<IxD>()?;
         let lb = b.layout().to_dim::<IxD>()?;
         let default_order = a.device().default_order();
@@ -120,11 +116,7 @@ where
 {
     fn fill_f(a: &mut Self, b: T) -> Result<()> {
         // check layout
-        rstsr_assert!(
-            !a.layout().is_broadcasted(),
-            InvalidLayout,
-            "cannot fill broadcasted tensor"
-        )?;
+        rstsr_assert!(!a.layout().is_broadcasted(), InvalidLayout, "cannot fill broadcasted tensor")?;
         let la = a.layout().clone();
         let device = a.device().clone();
         device.fill(a.raw_mut(), &la, b)

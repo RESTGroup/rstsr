@@ -68,16 +68,7 @@ where
                 _ => (uplo, a.to_contig_f(ColMajor)?),
             };
             let b_cow = b.to_contig_f(ColMajor)?;
-            let obj = SYHEMM_ {
-                a: a_cow.view(),
-                b: b_cow.view(),
-                c,
-                alpha,
-                beta,
-                side,
-                uplo,
-                order: Some(ColMajor),
-            };
+            let obj = SYHEMM_ { a: a_cow.view(), b: b_cow.view(), c, alpha, beta, side, uplo, order: Some(ColMajor) };
             obj.internal_run()
         } else {
             let (uplo, a_cow) = match (HERMI, a.c_prefer()) {
@@ -142,9 +133,7 @@ where
         let ptr_c = c.view_mut().raw_mut().as_mut_ptr();
 
         unsafe {
-            B::driver_syhemm(
-                ColMajor, side, uplo, m, n, alpha, ptr_a, lda, ptr_b, ldb, beta, ptr_c, m,
-            );
+            B::driver_syhemm(ColMajor, side, uplo, m, n, alpha, ptr_a, lda, ptr_b, ldb, beta, ptr_c, m);
         }
 
         Ok(c.clone_to_mut())

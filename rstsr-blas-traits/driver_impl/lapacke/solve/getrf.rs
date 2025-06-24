@@ -36,13 +36,6 @@ impl GETRFDriverAPI<T> for DeviceBLAS {
         lda: usize,
         ipiv: *mut blas_int,
     ) -> blas_int {
-        rstsr_lapack_ffi::lapacke::lapacke_func(
-            order as _,
-            m as _,
-            n as _,
-            a as *mut _,
-            lda as _,
-            ipiv,
-        )
+        rstsr_lapack_ffi::lapacke::lapacke_func(order as _, m as _, n as _, a as *mut _, lda as _, ipiv)
     }
 }

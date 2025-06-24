@@ -453,8 +453,7 @@ where
 
         // rest of axes
         // this is not the most efficient way, but low cost when dimension is small
-        let axes_rest =
-            (0..self.ndim()).filter(|&axis| !axes_update.contains(&axis)).collect::<Vec<_>>();
+        let axes_rest = (0..self.ndim()).filter(|&axis| !axes_update.contains(&axis)).collect::<Vec<_>>();
 
         // split layouts for axes
         let offset = self.offset();

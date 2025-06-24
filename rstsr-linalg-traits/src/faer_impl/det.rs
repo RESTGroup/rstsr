@@ -39,12 +39,7 @@ where
 {
     type Out = T::Real;
     fn det_f(self) -> Result<Self::Out> {
-        rstsr_assert_eq!(
-            self.ndim(),
-            2,
-            InvalidLayout,
-            "Currently we can only handle 2-D matrix."
-        )?;
+        rstsr_assert_eq!(self.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let a = self;
         let a_view = a.view().into_dim::<Ix2>();
         let result = faer_impl_det_f(a_view)?;

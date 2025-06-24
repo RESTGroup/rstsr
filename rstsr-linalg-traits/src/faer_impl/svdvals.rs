@@ -4,9 +4,7 @@ use faer::traits::ComplexField;
 use faer_ext::IntoFaer;
 use rstsr_core::prelude_dev::*;
 
-pub fn faer_impl_svdvals_f<T>(
-    a: TensorView<'_, T, DeviceFaer, Ix2>,
-) -> Result<Tensor<T::Real, DeviceFaer, Ix1>>
+pub fn faer_impl_svdvals_f<T>(a: TensorView<'_, T, DeviceFaer, Ix2>) -> Result<Tensor<T::Real, DeviceFaer, Ix1>>
 where
     T: ComplexField,
 {
@@ -20,9 +18,8 @@ where
     let faer_a = a.into_faer();
 
     // svd computation
-    let result = faer_a
-        .singular_values()
-        .map_err(|e| rstsr_error!(FaerError, "Faer SVD singular values error: {e:?}"))?;
+    let result =
+        faer_a.singular_values().map_err(|e| rstsr_error!(FaerError, "Faer SVD singular values error: {e:?}"))?;
     let result = asarray((result, &device)).into_dim::<Ix1>();
 
     // restore parallel mode

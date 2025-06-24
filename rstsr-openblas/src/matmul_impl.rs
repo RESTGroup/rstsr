@@ -46,17 +46,7 @@ pub fn fn_name(
         // we do not handle conj, so this can be done easily
         if lc.c_prefer() {
             // c-prefer, transpose and run
-            return fn_name(
-                c,
-                &lc.reverse_axes(),
-                b,
-                &lb.reverse_axes(),
-                a,
-                &la.reverse_axes(),
-                alpha,
-                beta,
-                pool,
-            );
+            return fn_name(c, &lc.reverse_axes(), b, &lb.reverse_axes(), a, &la.reverse_axes(), alpha, beta, pool);
         } else {
             // not c-prefer, allocate new buffer and copy back
             let lc_new = lc.shape().new_f_contig(None);
@@ -117,22 +107,14 @@ pub fn fn_name(
     let ldc = if lc.shape()[1] != 1 { lc.stride()[1] } else { lc.shape()[0] as isize };
 
     let ptr_c = unsafe { c.as_mut_ptr().add(lc.offset()) };
-    let ptr_a = if let Some(a_data) = a_data.as_ref() {
-        a_data.as_ptr()
-    } else {
-        unsafe { a.as_ptr().add(la.offset()) }
-    };
-    let ptr_b = if let Some(b_data) = b_data.as_ref() {
-        b_data.as_ptr()
-    } else {
-        unsafe { b.as_ptr().add(lb.offset()) }
-    };
+    let ptr_a =
+        if let Some(a_data) = a_data.as_ref() { a_data.as_ptr() } else { unsafe { a.as_ptr().add(la.offset()) } };
+    let ptr_b =
+        if let Some(b_data) = b_data.as_ref() { b_data.as_ptr() } else { unsafe { b.as_ptr().add(lb.offset()) } };
 
     // actual computation
     unsafe {
-        cblas_wrap(
-            ColMajor, a_trans, b_trans, m, n, k, alpha, ptr_a, lda, ptr_b, ldb, beta, ptr_c, ldc,
-        );
+        cblas_wrap(ColMajor, a_trans, b_trans, m, n, k, alpha, ptr_a, lda, ptr_b, ldb, beta, ptr_c, ldc);
     }
     Ok(())
 }
@@ -353,11 +335,8 @@ pub fn fn_name(
     let ldc = if lc.shape()[1] != 1 { lc.stride()[1] } else { lc.shape()[0] as isize };
 
     let ptr_c = unsafe { c.as_mut_ptr().add(lc.offset()) };
-    let ptr_a = if let Some(a_data) = a_data.as_ref() {
-        a_data.as_ptr()
-    } else {
-        unsafe { a.as_ptr().add(la.offset()) }
-    };
+    let ptr_a =
+        if let Some(a_data) = a_data.as_ref() { a_data.as_ptr() } else { unsafe { a.as_ptr().add(la.offset()) } };
 
     // actual computation
     unsafe {

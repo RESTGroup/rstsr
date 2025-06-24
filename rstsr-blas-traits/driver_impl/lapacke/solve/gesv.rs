@@ -20,9 +20,7 @@ impl GESVDriverAPI<T> for DeviceBLAS {
         b: *mut T,
         ldb: usize,
     ) -> blas_int {
-        rstsr_lapack_ffi::lapacke::lapacke_func(
-            order as _, n as _, nrhs as _, a, lda as _, ipiv, b, ldb as _,
-        )
+        rstsr_lapack_ffi::lapacke::lapacke_func(order as _, n as _, nrhs as _, a, lda as _, ipiv, b, ldb as _)
     }
 }
 

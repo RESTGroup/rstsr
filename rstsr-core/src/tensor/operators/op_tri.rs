@@ -167,11 +167,7 @@ where
         self.unpack_tri(FlagUpLo::U, symm).unwrap()
     }
 
-    pub fn unpack_tri_f(
-        &self,
-        uplo: FlagUpLo,
-        symm: FlagSymm,
-    ) -> Result<Tensor<T, B, D::LargerOne>> {
+    pub fn unpack_tri_f(&self, uplo: FlagUpLo, symm: FlagSymm) -> Result<Tensor<T, B, D::LargerOne>> {
         self.unpack_tri(uplo, symm)
     }
 
@@ -216,9 +212,7 @@ mod tests {
             println!("{a_triu:?}");
             println!("{:?}", a.slice((.., 0)));
             println!("{:?}", a_triu.slice((.., 0)).to_vec());
-            assert_eq!(a_triu.slice((.., 1)).to_vec(), [
-                1., 4., 16., 7., 19., 31., 10., 22., 34., 46.
-            ]);
+            assert_eq!(a_triu.slice((.., 1)).to_vec(), [1., 4., 16., 7., 19., 31., 10., 22., 34., 46.]);
 
             let b = a_triu.unpack_triu(FlagSymm::Sy);
             println!("{b:?}");
@@ -232,8 +226,7 @@ mod tests {
         #[cfg(not(feature = "col_major"))]
         {
             use num::complex::c64;
-            let a = linspace((c64(-2.0, 1.5), c64(1.7, -2.3), 256 * 256 * 256))
-                .into_layout([4, 64, 256, 256].f());
+            let a = linspace((c64(-2.0, 1.5), c64(1.7, -2.3), 256 * 256 * 256)).into_layout([4, 64, 256, 256].f());
             let a_tril = a.pack_tril();
             println!("{a_tril:20.5}");
             let b = a_tril.unpack_tril(FlagSymm::Ah);
@@ -242,8 +235,7 @@ mod tests {
         #[cfg(feature = "col_major")]
         {
             use num::complex::c64;
-            let a = linspace((c64(-2.0, 1.5), c64(1.7, -2.3), 256 * 256 * 256))
-                .into_layout([256, 256, 64, 4].c());
+            let a = linspace((c64(-2.0, 1.5), c64(1.7, -2.3), 256 * 256 * 256)).into_layout([256, 256, 64, 4].c());
             let a_tril = a.pack_tril();
             println!("{a_tril:20.5}");
             let b = a_tril.unpack_tril(FlagSymm::Ah);

@@ -16,12 +16,7 @@ where
 {
     type Out = Tensor<T, DeviceBLAS, D>;
     fn inv_f(self) -> Result<Self::Out> {
-        rstsr_assert_eq!(
-            self.ndim(),
-            2,
-            InvalidLayout,
-            "Currently we can only handle 2-D matrix."
-        )?;
+        rstsr_assert_eq!(self.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let a = self.view().into_dim::<Ix2>();
         let result = ref_impl_inv_f(a.into())?.into_owned();
         Ok(result.into_dim::<IxD>().into_dim::<D>())
@@ -41,12 +36,7 @@ where
 {
     type Out = Tr;
     fn inv_f(self) -> Result<Self::Out> {
-        rstsr_assert_eq!(
-            self.ndim(),
-            2,
-            InvalidLayout,
-            "Currently we can only handle 2-D matrix."
-        )?;
+        rstsr_assert_eq!(self.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let mut a = self;
         let a_view = a.view_mut().into_dim::<Ix2>();
         let result = ref_impl_inv_f(a_view.into())?;

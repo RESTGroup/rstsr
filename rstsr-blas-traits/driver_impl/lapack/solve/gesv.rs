@@ -105,16 +105,7 @@ impl GESVDriverAPI<T> for DeviceBLAS {
         let mut info = 0;
 
         if order == ColMajor {
-            func_(
-                &(n as _),
-                &(nrhs as _),
-                a as *mut _,
-                &(lda as _),
-                ipiv,
-                b as *mut _,
-                &(ldb as _),
-                &mut info,
-            );
+            func_(&(n as _), &(nrhs as _), a as *mut _, &(lda as _), ipiv, b as *mut _, &(ldb as _), &mut info);
             if info != 0 {
                 return raise_info(info);
             }

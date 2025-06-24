@@ -37,9 +37,7 @@ where
         // generate col-major iterator
         let lc = translate_to_col_major_unary(lc, order)?;
         let la = translate_to_col_major_unary(la, order)?;
-        layout_col_major_dim_dispatch_2diff(&lc, &la, |(idx_c, idx_a)| {
-            c[idx_c] = a[idx_a].clone()
-        })?;
+        layout_col_major_dim_dispatch_2diff(&lc, &la, |(idx_c, idx_a)| c[idx_c] = a[idx_a].clone())?;
     }
     Ok(())
 }

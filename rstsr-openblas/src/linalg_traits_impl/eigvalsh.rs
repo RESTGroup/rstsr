@@ -125,13 +125,8 @@ where
         rstsr_pattern!(eig_type, 1..=3, InvalidLayout, "Only eig_type = 1, 2, or 3 allowed.")?;
         let a_view = a.view().into_dim::<Ix2>();
         let b_view = b.view().into_dim::<Ix2>();
-        let eigh_args = EighArgs::default()
-            .a(a_view)
-            .b(b_view)
-            .uplo(uplo)
-            .eig_type(eig_type)
-            .eigvals_only(true)
-            .build()?;
+        let eigh_args =
+            EighArgs::default().a(a_view).b(b_view).uplo(uplo).eig_type(eig_type).eigvals_only(true).build()?;
         let (vals, _) = ref_impl_eigh_simple_f(eigh_args)?;
         let vals = vals.into_dim::<IxD>().into_dim::<D::SmallerOne>();
         return Ok(vals);
@@ -196,11 +191,7 @@ where
     type Out = Tensor<T::Real, DeviceBLAS, Ix1>;
     fn eigvalsh_f(self) -> Result<Self::Out> {
         let args = self.build()?;
-        rstsr_assert!(
-            args.eigvals_only,
-            InvalidValue,
-            "Eigvalsh only supports eigvals_only = true."
-        )?;
+        rstsr_assert!(args.eigvals_only, InvalidValue, "Eigvalsh only supports eigvals_only = true.")?;
         let (vals, _) = ref_impl_eigh_simple_f(args)?;
         Ok(vals)
     }
@@ -214,11 +205,7 @@ where
     type Out = Tensor<T::Real, DeviceBLAS, Ix1>;
     fn eigvalsh_f(self) -> Result<Self::Out> {
         let args = self;
-        rstsr_assert!(
-            args.eigvals_only,
-            InvalidValue,
-            "Eigvalsh only supports eigvals_only = true."
-        )?;
+        rstsr_assert!(args.eigvals_only, InvalidValue, "Eigvalsh only supports eigvals_only = true.")?;
         let (vals, _) = ref_impl_eigh_simple_f(args)?;
         Ok(vals)
     }

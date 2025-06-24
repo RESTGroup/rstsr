@@ -7,11 +7,7 @@ use crate::prelude_dev::*;
 
 /* #region index_select */
 
-pub fn index_select_f<R, T, B, D, I>(
-    tensor: &TensorAny<R, T, B, D>,
-    axis: isize,
-    indices: I,
-) -> Result<Tensor<T, B, D>>
+pub fn index_select_f<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, axis: isize, indices: I) -> Result<Tensor<T, B, D>>
 where
     R: DataAPI<Data = B::Raw>,
     D: DimAPI + DimSmallerOneAPI,
@@ -48,14 +44,7 @@ where
     out_shape[axis] = indices.len();
     let out_layout = out_shape.new_contig(None, device.default_order()).into_dim()?;
     let mut out_storage = unsafe { device.empty_impl(out_layout.size())? };
-    device.index_select(
-        out_storage.raw_mut(),
-        &out_layout,
-        tensor.storage().raw(),
-        tensor_layout,
-        axis,
-        &indices,
-    )?;
+    device.index_select(out_storage.raw_mut(), &out_layout, tensor.storage().raw(), tensor_layout, axis, &indices)?;
     TensorBase::new_f(out_storage, out_layout)
 }
 
@@ -65,11 +54,7 @@ where
 /// # See also
 ///
 /// This function should be similar to PyTorch's [`torch.index_select`](https://docs.pytorch.org/docs/stable/generated/torch.index_select.html).
-pub fn index_select<R, T, B, D, I>(
-    tensor: &TensorAny<R, T, B, D>,
-    axis: isize,
-    indices: I,
-) -> Tensor<T, B, D>
+pub fn index_select<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, axis: isize, indices: I) -> Tensor<T, B, D>
 where
     R: DataAPI<Data = B::Raw>,
     D: DimAPI + DimSmallerOneAPI,
@@ -112,11 +97,7 @@ where
 
 /* #region bool_select */
 
-pub fn bool_select_f<R, T, B, D, I>(
-    tensor: &TensorAny<R, T, B, D>,
-    axis: isize,
-    mask: I,
-) -> Result<Tensor<T, B, D>>
+pub fn bool_select_f<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, axis: isize, mask: I) -> Result<Tensor<T, B, D>>
 where
     R: DataAPI<Data = B::Raw>,
     D: DimAPI + DimSmallerOneAPI,
@@ -125,23 +106,14 @@ where
     I: TryInto<AxesIndex<bool>, Error = Error>,
 {
     // transform bool to index
-    let indices = mask
-        .try_into()?
-        .as_ref()
-        .iter()
-        .enumerate()
-        .filter_map(|(i, &m)| m.then_some(i))
-        .collect::<Vec<usize>>();
+    let indices =
+        mask.try_into()?.as_ref().iter().enumerate().filter_map(|(i, &m)| m.then_some(i)).collect::<Vec<usize>>();
     index_select_f(tensor, axis, indices)
 }
 
 /// Returns a new tensor, which indexes the input tensor along dimension `axis`
 /// using the boolean entries in `mask`.
-pub fn bool_select<R, T, B, D, I>(
-    tensor: &TensorAny<R, T, B, D>,
-    axis: isize,
-    mask: I,
-) -> Tensor<T, B, D>
+pub fn bool_select<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, axis: isize, mask: I) -> Tensor<T, B, D>
 where
     R: DataAPI<Data = B::Raw>,
     D: DimAPI + DimSmallerOneAPI,

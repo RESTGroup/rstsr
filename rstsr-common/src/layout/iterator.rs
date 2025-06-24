@@ -83,20 +83,11 @@ where
         let offset_start = layout.offset() as isize;
         let offset_end = unsafe { layout.index_uncheck(index_end.as_ref()) };
 
-        return Ok(Self {
-            layout,
-            index_start,
-            iter_start,
-            offset_start,
-            index_end,
-            iter_end,
-            offset_end,
-        });
+        return Ok(Self { layout, index_start, iter_start, offset_start, index_end, iter_end, offset_end });
     }
 
     pub fn split_at(&self, index: usize) -> Result<(Self, Self)> {
-        let Self { layout, index_start, iter_start, offset_start, index_end, iter_end, offset_end } =
-            self.clone();
+        let Self { layout, index_start, iter_start, offset_start, index_end, iter_end, offset_end } = self.clone();
         let shape = layout.shape();
         let iter_ins = iter_start + index;
         let index_ins = unsafe { shape.unravel_index_f(iter_ins) };
@@ -415,20 +406,11 @@ where
         let offset_start = layout.offset() as isize;
         let offset_end = unsafe { layout.index_uncheck(index_end.as_ref()) };
 
-        return Ok(Self {
-            layout,
-            index_start,
-            iter_start,
-            offset_start,
-            index_end,
-            iter_end,
-            offset_end,
-        });
+        return Ok(Self { layout, index_start, iter_start, offset_start, index_end, iter_end, offset_end });
     }
 
     pub fn split_at(&self, index: usize) -> Result<(Self, Self)> {
-        let Self { layout, index_start, iter_start, offset_start, index_end, iter_end, offset_end } =
-            self.clone();
+        let Self { layout, index_start, iter_start, offset_start, index_end, iter_end, offset_end } = self.clone();
         let shape = layout.shape();
         let iter_ins = iter_start + index;
         let index_ins = unsafe { shape.unravel_index_c(iter_ins) };
@@ -932,12 +914,7 @@ where
 }
 
 #[allow(unused_mut)]
-pub fn layout_col_major_dim_dispatch_3<D, F>(
-    la: &Layout<D>,
-    lb: &Layout<D>,
-    lc: &Layout<D>,
-    mut f: F,
-) -> Result<()>
+pub fn layout_col_major_dim_dispatch_3<D, F>(la: &Layout<D>, lb: &Layout<D>, lc: &Layout<D>, mut f: F) -> Result<()>
 where
     D: DimAPI,
     F: FnMut((usize, usize, usize)),
@@ -983,11 +960,7 @@ where
 }
 
 #[allow(unused_mut)]
-pub fn layout_col_major_dim_dispatch_2diff<DA, DB, F>(
-    la: &Layout<DA>,
-    lb: &Layout<DB>,
-    mut f: F,
-) -> Result<()>
+pub fn layout_col_major_dim_dispatch_2diff<DA, DB, F>(la: &Layout<DA>, lb: &Layout<DB>, mut f: F) -> Result<()>
 where
     DA: DimAPI,
     DB: DimAPI,
@@ -1078,27 +1051,24 @@ mod test_col_major {
         let iter = IterLayoutColMajor::new(&layout_trans).unwrap();
         let vec = iter.collect::<Vec<_>>();
         assert_eq!(vec, [
-            782, 797, 812, 827, 842, 857, 602, 617, 632, 647, 662, 677, 785, 800, 815, 830, 845,
-            860, 605, 620, 635, 650, 665, 680, 788, 803, 818, 833, 848, 863, 608, 623, 638, 653,
-            668, 683
+            782, 797, 812, 827, 842, 857, 602, 617, 632, 647, 662, 677, 785, 800, 815, 830, 845, 860, 605, 620, 635,
+            650, 665, 680, 788, 803, 818, 833, 848, 863, 608, 623, 638, 653, 668, 683
         ]);
         // np.array(np.nditer(a, order="F"))
         let layout_trans = translate_to_col_major_unary(&layout, Order::F).unwrap();
         let iter = IterLayoutColMajor::new(&layout_trans).unwrap();
         let vec = iter.collect::<Vec<_>>();
         assert_eq!(vec, [
-            782, 785, 788, 602, 605, 608, 797, 800, 803, 617, 620, 623, 812, 815, 818, 632, 635,
-            638, 827, 830, 833, 647, 650, 653, 842, 845, 848, 662, 665, 668, 857, 860, 863, 677,
-            680, 683
+            782, 785, 788, 602, 605, 608, 797, 800, 803, 617, 620, 623, 812, 815, 818, 632, 635, 638, 827, 830, 833,
+            647, 650, 653, 842, 845, 848, 662, 665, 668, 857, 860, 863, 677, 680, 683
         ]);
         // np.array(np.nditer(a, order="K"))
         let layout_trans = translate_to_col_major_unary(&layout, Order::K).unwrap();
         let iter = IterLayoutColMajor::new(&layout_trans).unwrap();
         let vec = iter.collect::<Vec<_>>();
         assert_eq!(vec, [
-            602, 605, 608, 617, 620, 623, 632, 635, 638, 647, 650, 653, 662, 665, 668, 677, 680,
-            683, 782, 785, 788, 797, 800, 803, 812, 815, 818, 827, 830, 833, 842, 845, 848, 857,
-            860, 863
+            602, 605, 608, 617, 620, 623, 632, 635, 638, 647, 650, 653, 662, 665, 668, 677, 680, 683, 782, 785, 788,
+            797, 800, 803, 812, 815, 818, 827, 830, 833, 842, 845, 848, 857, 860, 863
         ]);
         // np.array(np.nditer(a, order="G"))
         // for no broadcast case, greedy-order is same as k-order
@@ -1106,9 +1076,8 @@ mod test_col_major {
         let iter = IterLayoutColMajor::new(&layout_trans).unwrap();
         let vec = iter.collect::<Vec<_>>();
         assert_eq!(vec, [
-            602, 605, 608, 617, 620, 623, 632, 635, 638, 647, 650, 653, 662, 665, 668, 677, 680,
-            683, 782, 785, 788, 797, 800, 803, 812, 815, 818, 827, 830, 833, 842, 845, 848, 857,
-            860, 863
+            602, 605, 608, 617, 620, 623, 632, 635, 638, 647, 650, 653, 662, 665, 668, 677, 680, 683, 782, 785, 788,
+            797, 800, 803, 812, 815, 818, 827, 830, 833, 842, 845, 848, 857, 860, 863
         ]);
         // buffer should fail
         assert!(translate_to_col_major_unary(&layout, Order::B).is_err());
@@ -1166,16 +1135,14 @@ mod test_row_major {
         let iter = IterLayoutRowMajor::new(&layout).unwrap();
         let vec = iter.collect::<Vec<_>>();
         assert_eq!(vec, [
-            782, 797, 812, 827, 842, 857, 602, 617, 632, 647, 662, 677, 785, 800, 815, 830, 845,
-            860, 605, 620, 635, 650, 665, 680, 788, 803, 818, 833, 848, 863, 608, 623, 638, 653,
-            668, 683
+            782, 797, 812, 827, 842, 857, 602, 617, 632, 647, 662, 677, 785, 800, 815, 830, 845, 860, 605, 620, 635,
+            650, 665, 680, 788, 803, 818, 833, 848, 863, 608, 623, 638, 653, 668, 683
         ]);
         let iter = IterLayoutRowMajor::new(&layout).unwrap();
         let vec = iter.rev().collect::<Vec<_>>();
         assert_eq!(vec, [
-            683, 668, 653, 638, 623, 608, 863, 848, 833, 818, 803, 788, 680, 665, 650, 635, 620,
-            605, 860, 845, 830, 815, 800, 785, 677, 662, 647, 632, 617, 602, 857, 842, 827, 812,
-            797, 782
+            683, 668, 653, 638, 623, 608, 863, 848, 833, 818, 803, 788, 680, 665, 650, 635, 620, 605, 860, 845, 830,
+            815, 800, 785, 677, 662, 647, 632, 617, 602, 857, 842, 827, 812, 797, 782
         ]);
     }
 }

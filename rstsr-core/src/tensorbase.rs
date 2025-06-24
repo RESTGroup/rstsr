@@ -10,16 +10,14 @@ where
     pub(crate) layout: Layout<D>,
 }
 
-pub type Tensor<T, B = DeviceCpu, D = IxD> =
-    TensorBase<Storage<DataOwned<<B as DeviceRawAPI<T>>::Raw>, T, B>, D>;
+pub type Tensor<T, B = DeviceCpu, D = IxD> = TensorBase<Storage<DataOwned<<B as DeviceRawAPI<T>>::Raw>, T, B>, D>;
 pub type TensorView<'a, T, B = DeviceCpu, D = IxD> =
     TensorBase<Storage<DataRef<'a, <B as DeviceRawAPI<T>>::Raw>, T, B>, D>;
 pub type TensorViewMut<'a, T, B = DeviceCpu, D = IxD> =
     TensorBase<Storage<DataMut<'a, <B as DeviceRawAPI<T>>::Raw>, T, B>, D>;
 pub type TensorCow<'a, T, B = DeviceCpu, D = IxD> =
     TensorBase<Storage<DataCow<'a, <B as DeviceRawAPI<T>>::Raw>, T, B>, D>;
-pub type TensorArc<T, B = DeviceCpu, D = IxD> =
-    TensorBase<Storage<DataArc<<B as DeviceRawAPI<T>>::Raw>, T, B>, D>;
+pub type TensorArc<T, B = DeviceCpu, D = IxD> = TensorBase<Storage<DataArc<<B as DeviceRawAPI<T>>::Raw>, T, B>, D>;
 pub type TensorReference<'a, T, B = DeviceCpu, D = IxD> =
     TensorBase<Storage<DataReference<'a, <B as DeviceRawAPI<T>>::Raw>, T, B>, D>;
 pub type TensorAny<R, T, B, D> = TensorBase<Storage<R, T, B>, D>;
@@ -227,8 +225,7 @@ where
         let data = match data {
             DataReference::Ref(data) => data,
             DataReference::Mut(_) => {
-                rstsr_raise!(RuntimeError, "cannot convert to TensorView if data is mutable")
-                    .unwrap()
+                rstsr_raise!(RuntimeError, "cannot convert to TensorView if data is mutable").unwrap()
             },
         };
         let storage = Storage::new(data, device);
@@ -247,8 +244,7 @@ where
         let data = match data {
             DataReference::Mut(data) => data,
             DataReference::Ref(_) => {
-                rstsr_raise!(RuntimeError, "cannot convert to TensorMut if data is immutable")
-                    .unwrap()
+                rstsr_raise!(RuntimeError, "cannot convert to TensorMut if data is immutable").unwrap()
             },
         };
         let storage = Storage::new(data, device);

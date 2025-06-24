@@ -126,9 +126,7 @@ where
         let ptr_a = a.raw().as_ptr();
         let ptr_b = b.view_mut().raw_mut().as_mut_ptr();
 
-        unsafe {
-            B::driver_trsm(ColMajor, side, uplo, transa, diag, m, n, alpha, ptr_a, lda, ptr_b, m)
-        };
+        unsafe { B::driver_trsm(ColMajor, side, uplo, transa, diag, m, n, alpha, ptr_a, lda, ptr_b, m) };
 
         Ok(b.clone_to_mut())
     }

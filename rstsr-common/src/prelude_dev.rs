@@ -24,6 +24,6 @@ pub use crate::par_iter::*;
 pub use rayon::ThreadPool;
 
 pub use crate::{
-    impl_from_tuple_to_axes_index, rstsr_assert, rstsr_assert_eq, rstsr_errcode, rstsr_error,
-    rstsr_invalid, rstsr_pattern, rstsr_raise, s, slice,
+    impl_from_tuple_to_axes_index, rstsr_assert, rstsr_assert_eq, rstsr_errcode, rstsr_error, rstsr_invalid,
+    rstsr_pattern, rstsr_raise, s, slice,
 };

@@ -8,12 +8,7 @@ const BLOCK_SIZE: usize = 64;
 ///
 /// Transpose from `a` (row-major) to `c` (col-major).
 /// If shape or stride is not compatible, an error will be returned.
-pub fn orderchange_out_r2c_ix2_cpu_serial<T>(
-    c: &mut [T],
-    lc: &Layout<Ix2>,
-    a: &[T],
-    la: &Layout<Ix2>,
-) -> Result<()>
+pub fn orderchange_out_r2c_ix2_cpu_serial<T>(c: &mut [T], lc: &Layout<Ix2>, a: &[T], la: &Layout<Ix2>) -> Result<()>
 where
     T: Clone,
 {
@@ -56,12 +51,7 @@ where
 ///
 /// Transpose from `a` (col-major) to `c` (row-major).
 /// If shape or stride is not compatible, an error will be returned.
-pub fn orderchange_out_c2r_ix2_cpu_serial<T>(
-    c: &mut [T],
-    lc: &Layout<Ix2>,
-    a: &[T],
-    la: &Layout<Ix2>,
-) -> Result<()>
+pub fn orderchange_out_c2r_ix2_cpu_serial<T>(c: &mut [T], lc: &Layout<Ix2>, a: &[T], la: &Layout<Ix2>) -> Result<()>
 where
     T: Clone,
 {

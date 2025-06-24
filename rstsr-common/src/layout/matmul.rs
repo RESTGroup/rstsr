@@ -112,10 +112,7 @@ impl LayoutMatMulAPI<Ix2, Ix2> for LayoutMatMulConfig<Ix2, Ix2> {
     }
 }
 
-fn layout_matmul_dyn_row_major(
-    la: &Layout<IxD>,
-    lb: &Layout<IxD>,
-) -> Result<LayoutMatMulConfig<IxD, IxD>> {
+fn layout_matmul_dyn_row_major(la: &Layout<IxD>, lb: &Layout<IxD>) -> Result<LayoutMatMulConfig<IxD, IxD>> {
     let na = la.ndim();
     let nb = lb.ndim();
     match (na, nb) {
@@ -268,10 +265,7 @@ fn layout_matmul_dyn_row_major(
     }
 }
 
-fn layout_matmul_dyn_col_major(
-    la: &Layout<IxD>,
-    lb: &Layout<IxD>,
-) -> Result<LayoutMatMulConfig<IxD, IxD>> {
+fn layout_matmul_dyn_col_major(la: &Layout<IxD>, lb: &Layout<IxD>) -> Result<LayoutMatMulConfig<IxD, IxD>> {
     let na = la.ndim();
     let nb = lb.ndim();
     match (na, nb) {

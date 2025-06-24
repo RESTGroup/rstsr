@@ -190,10 +190,7 @@ macro_rules! impl_from_tuple_to_axes_index {
             type Error = Error;
 
             fn try_from(value: (F1, F2)) -> Result<Self> {
-                Ok(AxesIndex::Vec(vec![
-                    value.0.try_into().ok().unwrap(),
-                    value.1.try_into().ok().unwrap(),
-                ]))
+                Ok(AxesIndex::Vec(vec![value.0.try_into().ok().unwrap(), value.1.try_into().ok().unwrap()]))
             }
         }
 
@@ -265,13 +262,7 @@ macro_rules! impl_from_tuple_to_axes_index {
 
         impl<F1, F2, F3, F4, F5, F6, F7> TryFrom<(F1, F2, F3, F4, F5, F6, F7)> for AxesIndex<$t>
         where
-            $t: TryFrom<F1>
-                + TryFrom<F2>
-                + TryFrom<F3>
-                + TryFrom<F4>
-                + TryFrom<F5>
-                + TryFrom<F6>
-                + TryFrom<F7>,
+            $t: TryFrom<F1> + TryFrom<F2> + TryFrom<F3> + TryFrom<F4> + TryFrom<F5> + TryFrom<F6> + TryFrom<F7>,
         {
             type Error = Error;
 
@@ -288,8 +279,7 @@ macro_rules! impl_from_tuple_to_axes_index {
             }
         }
 
-        impl<F1, F2, F3, F4, F5, F6, F7, F8> TryFrom<(F1, F2, F3, F4, F5, F6, F7, F8)>
-            for AxesIndex<$t>
+        impl<F1, F2, F3, F4, F5, F6, F7, F8> TryFrom<(F1, F2, F3, F4, F5, F6, F7, F8)> for AxesIndex<$t>
         where
             $t: TryFrom<F1>
                 + TryFrom<F2>
@@ -316,8 +306,7 @@ macro_rules! impl_from_tuple_to_axes_index {
             }
         }
 
-        impl<F1, F2, F3, F4, F5, F6, F7, F8, F9> TryFrom<(F1, F2, F3, F4, F5, F6, F7, F8, F9)>
-            for AxesIndex<$t>
+        impl<F1, F2, F3, F4, F5, F6, F7, F8, F9> TryFrom<(F1, F2, F3, F4, F5, F6, F7, F8, F9)> for AxesIndex<$t>
         where
             $t: TryFrom<F1>
                 + TryFrom<F2>
@@ -346,8 +335,8 @@ macro_rules! impl_from_tuple_to_axes_index {
             }
         }
 
-        impl<F1, F2, F3, F4, F5, F6, F7, F8, F9, F10>
-            TryFrom<(F1, F2, F3, F4, F5, F6, F7, F8, F9, F10)> for AxesIndex<$t>
+        impl<F1, F2, F3, F4, F5, F6, F7, F8, F9, F10> TryFrom<(F1, F2, F3, F4, F5, F6, F7, F8, F9, F10)>
+            for AxesIndex<$t>
         where
             $t: TryFrom<F1>
                 + TryFrom<F2>

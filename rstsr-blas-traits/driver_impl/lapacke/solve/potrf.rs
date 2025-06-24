@@ -10,13 +10,7 @@ use rstsr_common::prelude::*;
    [f64] [LAPACKE_dpotrf];
 )]
 impl POTRFDriverAPI<T> for DeviceBLAS {
-    unsafe fn driver_potrf(
-        order: FlagOrder,
-        uplo: FlagUpLo,
-        n: usize,
-        a: *mut T,
-        lda: usize,
-    ) -> blas_int {
+    unsafe fn driver_potrf(order: FlagOrder, uplo: FlagUpLo, n: usize, a: *mut T, lda: usize) -> blas_int {
         rstsr_lapack_ffi::lapacke::lapacke_func(order as _, uplo.into(), n as _, a, lda as _)
     }
 }
@@ -27,19 +21,7 @@ impl POTRFDriverAPI<T> for DeviceBLAS {
    [Complex<f64>] [LAPACKE_zpotrf];
 )]
 impl POTRFDriverAPI<T> for DeviceBLAS {
-    unsafe fn driver_potrf(
-        order: FlagOrder,
-        uplo: FlagUpLo,
-        n: usize,
-        a: *mut T,
-        lda: usize,
-    ) -> blas_int {
-        rstsr_lapack_ffi::lapacke::lapacke_func(
-            order as _,
-            uplo.into(),
-            n as _,
-            a as *mut _,
-            lda as _,
-        )
+    unsafe fn driver_potrf(order: FlagOrder, uplo: FlagUpLo, n: usize, a: *mut T, lda: usize) -> blas_int {
+        rstsr_lapack_ffi::lapacke::lapacke_func(order as _, uplo.into(), n as _, a as *mut _, lda as _)
     }
 }

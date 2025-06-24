@@ -44,12 +44,8 @@ where
 {
     pub fn internal_run(
         self,
-    ) -> Result<(
-        Tensor<T::Real, B, Ix1>,
-        Option<Tensor<T, B, Ix2>>,
-        Option<Tensor<T, B, Ix2>>,
-        Tensor<T::Real, B, Ix1>,
-    )> {
+    ) -> Result<(Tensor<T::Real, B, Ix1>, Option<Tensor<T, B, Ix2>>, Option<Tensor<T, B, Ix2>>, Tensor<T::Real, B, Ix1>)>
+    {
         let Self { a, full_matrices, compute_uv } = self;
 
         let device = a.device().clone();
@@ -117,12 +113,8 @@ where
 
     pub fn run(
         self,
-    ) -> Result<(
-        Tensor<T::Real, B, Ix1>,
-        Option<Tensor<T, B, Ix2>>,
-        Option<Tensor<T, B, Ix2>>,
-        Tensor<T::Real, B, Ix1>,
-    )> {
+    ) -> Result<(Tensor<T::Real, B, Ix1>, Option<Tensor<T, B, Ix2>>, Option<Tensor<T, B, Ix2>>, Tensor<T::Real, B, Ix1>)>
+    {
         self.internal_run()
     }
 }

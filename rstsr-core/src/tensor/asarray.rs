@@ -605,9 +605,7 @@ macro_rules! impl_asarray_scalar {
     };
 }
 
-impl_asarray_scalar!(
-    i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize, f32, f64, Complex32, Complex64
-);
+impl_asarray_scalar!(i8, i16, i32, i64, i128, isize, u8, u16, u32, u64, u128, usize, f32, f64, Complex32, Complex64);
 
 /* #endregion */
 

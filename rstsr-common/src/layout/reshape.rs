@@ -51,20 +51,11 @@ pub fn reshape_substitute_negatives(shape_out: &[isize], size_in: usize) -> Resu
 /// this kind of situation.
 ///
 /// For order option, row-major and col-major behaves differently.
-fn quick_check(
-    shape_out: &Vec<usize>,
-    layout_in: &Layout<IxD>,
-    order: FlagOrder,
-) -> Result<Option<Layout<IxD>>> {
+fn quick_check(shape_out: &Vec<usize>, layout_in: &Layout<IxD>, order: FlagOrder) -> Result<Option<Layout<IxD>>> {
     // check if size is the same
     let size_in = layout_in.size();
     let size_out = shape_out.iter().product();
-    rstsr_assert_eq!(
-        size_in,
-        size_out,
-        InvalidValue,
-        "Size mismatch between input tensor and output tensor.",
-    )?;
+    rstsr_assert_eq!(size_in, size_out, InvalidValue, "Size mismatch between input tensor and output tensor.",)?;
 
     // if size is zero or one, return immediately
     // currently, we use broadcast way to handle this case
@@ -102,8 +93,7 @@ fn quick_check(
 /// This function is for c-prefer (row-major) only.
 ///
 /// # Returns
-/// * `Vec<usize>` - The size of partly contiguous (with a minimum stride) batch
-///   of input tensor.
+/// * `Vec<usize>` - The size of partly contiguous (with a minimum stride) batch of input tensor.
 /// * `Vec<isize>` - The minimum stride of the current batch.
 fn pop_layout_in(shape_in: &mut Vec<usize>, stride_in: &mut Vec<isize>) -> (usize, isize) {
     rstsr_assert_eq!(shape_in.len(), stride_in.len(), RuntimeError).unwrap();
@@ -116,8 +106,7 @@ fn pop_layout_in(shape_in: &mut Vec<usize>, stride_in: &mut Vec<isize>) -> (usiz
     if size == 1 || stride_min == 0 {
         // broadcasted, reset stride_min to 0
         stride_min = 0;
-        while stride_in.last().is_some_and(|&v| v == 0) || shape_in.last().is_some_and(|&v| v == 1)
-        {
+        while stride_in.last().is_some_and(|&v| v == 0) || shape_in.last().is_some_and(|&v| v == 1) {
             stride_in.pop();
             size *= shape_in.pop().unwrap();
         }
@@ -160,11 +149,7 @@ fn pop_shape_out(
 }
 
 /// Internal function for reshaping a tensor in any cases.
-fn complicated_reshape(
-    shape_out: &[usize],
-    layout_in: &Layout<IxD>,
-    order: FlagOrder,
-) -> Option<Layout<IxD>> {
+fn complicated_reshape(shape_out: &[usize], layout_in: &Layout<IxD>, order: FlagOrder) -> Option<Layout<IxD>> {
     let shape_out_ref = shape_out; // the original shape_out not modified
     let mut shape_out = shape_out.to_vec(); // the shape_out to be destroyed in iteration
     let mut stride_out = Vec::new();
@@ -194,8 +179,7 @@ fn complicated_reshape(
         ColMajor => shape_out.reverse(),
     };
 
-    let layout_out =
-        unsafe { Layout::<IxD>::new_unchecked(shape_out_ref.to_vec(), stride_out, offset) };
+    let layout_out = unsafe { Layout::<IxD>::new_unchecked(shape_out_ref.to_vec(), stride_out, offset) };
     return Some(layout_out);
 }
 

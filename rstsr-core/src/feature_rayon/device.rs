@@ -24,9 +24,9 @@ pub trait DeviceRayonAPI {
 
     /// Get the current thread pool for the device.
     ///
-    /// - If in parallel worker, this returns None. This means the program
-    ///   should use the thread pool from the parent. It is important that this
-    ///   does not necessarily means this work should be done in serial.
+    /// - If in parallel worker, this returns None. This means the program should use the thread
+    ///   pool from the parent. It is important that this does not necessarily means this work
+    ///   should be done in serial.
     /// - If not in rayon parallel worker, this returns the thread pool.
     fn get_current_pool(&self) -> Option<&ThreadPool>;
 }

@@ -48,20 +48,12 @@ mod test {
         println!("{:} usec", time.elapsed().as_micros());
         let t_ndarray = t_ndarray.into_raw_vec();
 
-        let diff = t_rstsr
-            .iter()
-            .zip(t_ndarray.iter())
-            .map(|(a, b)| (a - b).abs())
-            .max_by(|a, b| a.total_cmp(b))
-            .unwrap();
+        let diff =
+            t_rstsr.iter().zip(t_ndarray.iter()).map(|(a, b)| (a - b).abs()).max_by(|a, b| a.total_cmp(b)).unwrap();
         assert!(diff < 1e-6);
 
-        let diff = t_rayon
-            .iter()
-            .zip(t_ndarray.iter())
-            .map(|(a, b)| (a - b).abs())
-            .max_by(|a, b| a.total_cmp(b))
-            .unwrap();
+        let diff =
+            t_rayon.iter().zip(t_ndarray.iter()).map(|(a, b)| (a - b).abs()).max_by(|a, b| a.total_cmp(b)).unwrap();
         assert!(diff < 1e-6);
     }
 
@@ -104,20 +96,12 @@ mod test {
         println!("{:} usec", time.elapsed().as_micros());
         let t_ndarray = t_ndarray.into_raw_vec();
 
-        let diff = t_rstsr
-            .iter()
-            .zip(t_ndarray.iter())
-            .map(|(a, b)| (a - b).abs())
-            .max_by(|a, b| a.total_cmp(b))
-            .unwrap();
+        let diff =
+            t_rstsr.iter().zip(t_ndarray.iter()).map(|(a, b)| (a - b).abs()).max_by(|a, b| a.total_cmp(b)).unwrap();
         assert!(diff < 1e-6);
 
-        let diff = t_rayon
-            .iter()
-            .zip(t_ndarray.iter())
-            .map(|(a, b)| (a - b).abs())
-            .max_by(|a, b| a.total_cmp(b))
-            .unwrap();
+        let diff =
+            t_rayon.iter().zip(t_ndarray.iter()).map(|(a, b)| (a - b).abs()).max_by(|a, b| a.total_cmp(b)).unwrap();
         assert!(diff < 1e-6);
     }
 }

@@ -21,8 +21,8 @@ pub mod storage;
 pub mod tensor;
 pub mod tensorbase;
 pub use tensorbase::{
-    Tensor, TensorAny, TensorArc, TensorBase, TensorCow, TensorMut, TensorRef, TensorReference,
-    TensorView, TensorViewMut,
+    Tensor, TensorAny, TensorArc, TensorBase, TensorCow, TensorMut, TensorRef, TensorReference, TensorView,
+    TensorViewMut,
 };
 
 pub mod format;

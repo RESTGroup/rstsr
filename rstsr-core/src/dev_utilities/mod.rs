@@ -8,10 +8,7 @@ use num::complex::ComplexFloat;
 ///
 /// This function assumes c-contiguous iteration, and will not check two
 /// dimensions are broadcastable.
-pub fn allclose_f64<RA, RB, DA, DB, BA, BB>(
-    a: &TensorAny<RA, f64, BA, DA>,
-    b: &TensorAny<RB, f64, BB, DB>,
-) -> bool
+pub fn allclose_f64<RA, RB, DA, DB, BA, BB>(a: &TensorAny<RA, f64, BA, DA>, b: &TensorAny<RB, f64, BB, DB>) -> bool
 where
     RA: DataAPI<Data = <BA as DeviceRawAPI<f64>>::Raw>,
     RB: DataAPI<Data = <BB as DeviceRawAPI<f64>>::Raw>,

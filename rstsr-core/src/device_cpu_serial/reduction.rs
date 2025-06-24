@@ -31,8 +31,7 @@ where
         let f_sum = |acc1, acc2| acc1 + acc2;
         let f_out = |acc| acc;
 
-        let (out, layout_out) =
-            reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+        let (out, layout_out) = reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 }
@@ -71,8 +70,7 @@ where
         let f_sum = |acc1: T, acc2: T| acc1.min(acc2);
         let f_out = |acc| acc;
 
-        let (out, layout_out) =
-            reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+        let (out, layout_out) = reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 }
@@ -112,8 +110,7 @@ where
         let f_sum = |acc1: T, acc2: T| acc1.max(acc2);
         let f_out = |acc| acc;
 
-        let (out, layout_out) =
-            reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+        let (out, layout_out) = reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 }
@@ -145,8 +142,7 @@ where
         let f_sum = |acc1, acc2| acc1 * acc2;
         let f_out = |acc| acc;
 
-        let (out, layout_out) =
-            reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+        let (out, layout_out) = reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 }
@@ -182,8 +178,7 @@ where
         let f_sum = |acc, x| acc + x;
         let f_out = |acc| acc / T::from_usize(size).unwrap();
 
-        let (out, layout_out) =
-            reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+        let (out, layout_out) = reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 }
@@ -232,8 +227,7 @@ where
             acc_2 / size_2 - (mean * mean.conj()).re()
         };
 
-        let (out, layout_out) =
-            reduce_axes_difftype_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+        let (out, layout_out) = reduce_axes_difftype_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
 
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
@@ -285,8 +279,7 @@ where
             var.sqrt()
         };
 
-        let (out, layout_out) =
-            reduce_axes_difftype_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+        let (out, layout_out) = reduce_axes_difftype_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
 
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
@@ -321,8 +314,7 @@ where
         let f_sum = |acc: T::Real, x: T::Real| acc + x;
         let f_out = |acc: T::Real| acc.sqrt();
 
-        let (out, layout_out) =
-            reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+        let (out, layout_out) = reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
 
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
@@ -459,11 +451,7 @@ where
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 
-    fn unraveled_argmin_all(
-        &self,
-        a: &<Self as DeviceRawAPI<T>>::Raw,
-        la: &Layout<D>,
-    ) -> Result<D> {
+    fn unraveled_argmin_all(&self, a: &<Self as DeviceRawAPI<T>>::Raw, la: &Layout<D>) -> Result<D> {
         let f_comp = |x: Option<T>, y: T| -> Option<bool> {
             if let Some(x) = x {
                 Some(y < x)
@@ -512,11 +500,7 @@ where
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 
-    fn unraveled_argmax_all(
-        &self,
-        a: &<Self as DeviceRawAPI<T>>::Raw,
-        la: &Layout<D>,
-    ) -> Result<D> {
+    fn unraveled_argmax_all(&self, a: &<Self as DeviceRawAPI<T>>::Raw, la: &Layout<D>) -> Result<D> {
         let f_comp = |x: Option<T>, y: T| -> Option<bool> {
             if let Some(x) = x {
                 Some(y > x)
@@ -566,8 +550,7 @@ where
         let f_sum = |acc1, acc2| acc1 + acc2;
         let f_out = |acc| acc;
 
-        let (out, layout_out) =
-            reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+        let (out, layout_out) = reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 }

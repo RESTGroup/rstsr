@@ -26,10 +26,7 @@ where
         a: &<Self as DeviceRawAPI<T>>::Raw,
         la: &Layout<D>,
         axes: &[isize],
-    ) -> Result<(
-        Storage<DataOwned<<Self as DeviceRawAPI<Self::TOut>>::Raw>, Self::TOut, Self>,
-        Layout<IxD>,
-    )>;
+    ) -> Result<(Storage<DataOwned<<Self as DeviceRawAPI<Self::TOut>>::Raw>, Self::TOut, Self>, Layout<IxD>)>;
 }
 
 #[allow(clippy::type_complexity)]

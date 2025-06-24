@@ -5,14 +5,7 @@ impl<T> DeviceOpPackTriAPI<T> for DeviceCpuSerial
 where
     T: Clone,
 {
-    fn pack_tri(
-        &self,
-        a: &mut Vec<T>,
-        la: &Layout<IxD>,
-        b: &Vec<T>,
-        lb: &Layout<IxD>,
-        uplo: FlagUpLo,
-    ) -> Result<()> {
+    fn pack_tri(&self, a: &mut Vec<T>, la: &Layout<IxD>, b: &Vec<T>, lb: &Layout<IxD>, uplo: FlagUpLo) -> Result<()> {
         let default_order = self.default_order();
         match default_order {
             RowMajor => pack_tri_cpu_serial(a, la, b, lb, uplo),

@@ -5,19 +5,12 @@ impl<T> DeviceCreationAnyAPI<T> for DeviceCpuSerial
 where
     DeviceCpuSerial: DeviceRawAPI<T, Raw = Vec<T>>,
 {
-    unsafe fn empty_impl(
-        &self,
-        len: usize,
-    ) -> Result<Storage<DataOwned<Vec<T>>, T, DeviceCpuSerial>> {
+    unsafe fn empty_impl(&self, len: usize) -> Result<Storage<DataOwned<Vec<T>>, T, DeviceCpuSerial>> {
         let raw = uninitialized_vec(len)?;
         Ok(Storage::new(raw.into(), self.clone()))
     }
 
-    fn full_impl(
-        &self,
-        len: usize,
-        fill: T,
-    ) -> Result<Storage<DataOwned<Vec<T>>, T, DeviceCpuSerial>>
+    fn full_impl(&self, len: usize, fill: T) -> Result<Storage<DataOwned<Vec<T>>, T, DeviceCpuSerial>>
     where
         T: Clone,
     {
@@ -52,10 +45,7 @@ where
         Ok(Storage::new(raw.into(), self.clone()))
     }
 
-    fn arange_int_impl(
-        &self,
-        len: usize,
-    ) -> Result<Storage<DataOwned<Vec<T>>, T, DeviceCpuSerial>> {
+    fn arange_int_impl(&self, len: usize) -> Result<Storage<DataOwned<Vec<T>>, T, DeviceCpuSerial>> {
         let mut raw = Vec::with_capacity(len);
         let mut v = T::zero();
         for _ in 0..len {
@@ -71,12 +61,7 @@ where
     T: Num + PartialOrd + Clone,
     DeviceCpuSerial: DeviceRawAPI<T, Raw = Vec<T>>,
 {
-    fn arange_impl(
-        &self,
-        start: T,
-        end: T,
-        step: T,
-    ) -> Result<Storage<DataOwned<Vec<T>>, T, DeviceCpuSerial>> {
+    fn arange_impl(&self, start: T, end: T, step: T) -> Result<Storage<DataOwned<Vec<T>>, T, DeviceCpuSerial>> {
         rstsr_assert!(step != T::zero(), InvalidValue)?;
         let mut raw = Vec::new();
         let mut current = start.clone();
@@ -163,8 +148,7 @@ mod test {
         println!("{storage:?}");
         let storage = device.linspace_impl(0.0, 1.0, 10, true).unwrap();
         println!("{storage:?}");
-        let storage =
-            device.linspace_impl(Complex::new(1.0, 2.0), Complex::new(3.5, 4.7), 10, true).unwrap();
+        let storage = device.linspace_impl(Complex::new(1.0, 2.0), Complex::new(3.5, 4.7), 10, true).unwrap();
         println!("{storage:?}");
         let storage = device.arange_impl(0.0, 1.0, 0.1).unwrap();
         println!("{storage:?}");

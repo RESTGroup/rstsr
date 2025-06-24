@@ -42,8 +42,7 @@ where
         let order = device.default_order();
         let weight = weight.into_contig_f(RowMajor)?;
         let pool = device.get_current_pool();
-        let dist =
-            cdist_weighted_rayon(xa.raw(), xb.raw(), &la, &lb, weight.raw(), kernel, order, pool)?;
+        let dist = cdist_weighted_rayon(xa.raw(), xb.raw(), &la, &lb, weight.raw(), kernel, order, pool)?;
 
         let m = la.shape()[0];
         let n = lb.shape()[0];
@@ -57,9 +56,8 @@ where
     M: MetricDistAPI<Vec<T>> + Send + Sync,
     T: Send + Sync,
     M::Out: Send + Sync,
-    DeviceRayonAutoImpl: DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<M::Out, Raw = Vec<M::Out>>
-        + DeviceCreationAnyAPI<M::Out>,
+    DeviceRayonAutoImpl:
+        DeviceAPI<T, Raw = Vec<T>> + DeviceAPI<M::Out, Raw = Vec<M::Out>> + DeviceCreationAnyAPI<M::Out>,
     D: DimAPI + DimIntoAPI<Ix2>,
 {
     type Out = Tensor<M::Out, DeviceRayonAutoImpl, D>;

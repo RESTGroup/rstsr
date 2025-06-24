@@ -314,10 +314,7 @@ where
     B: DeviceAPI<T>,
     D: DimAPI,
 {
-    pub fn matmul_f<RB, TB, TC, DB, DC>(
-        &self,
-        rhs: &TensorAny<RB, TB, B, DB>,
-    ) -> Result<Tensor<TC, B, DC>>
+    pub fn matmul_f<RB, TB, TC, DB, DC>(&self, rhs: &TensorAny<RB, TB, B, DB>) -> Result<Tensor<TC, B, DC>>
     where
         // storage
         RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
@@ -494,9 +491,7 @@ mod test {
             c.matmul_from(&a, &b, 2.0, 1.5);
             println!("{c}");
 
-            let c_ref = vec![
-                240., 261.5, 283., 304.5, 646., 717.5, 789., 860.5, 1052., 1173.5, 1295., 1416.5,
-            ];
+            let c_ref = vec![240., 261.5, 283., 304.5, 646., 717.5, 789., 860.5, 1052., 1173.5, 1295., 1416.5];
             assert!(allclose_f64(&c.raw().into(), &c_ref.into()));
         }
         #[cfg(feature = "col_major")]
@@ -507,10 +502,7 @@ mod test {
             c.matmul_from(&a, &b, 2.0, 1.5);
             println!("{c}");
 
-            let c_ref = vec![
-                180.0, 201.5, 223.0, 484.5, 556.0, 627.5, 789.0, 910.5, 1032.0, 1093.5, 1265.0,
-                1436.5,
-            ];
+            let c_ref = vec![180.0, 201.5, 223.0, 484.5, 556.0, 627.5, 789.0, 910.5, 1032.0, 1093.5, 1265.0, 1436.5];
             assert!(allclose_f64(&c.raw().into(), &c_ref.into()));
         }
     }

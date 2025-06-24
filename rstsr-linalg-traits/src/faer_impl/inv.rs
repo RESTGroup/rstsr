@@ -5,9 +5,7 @@ use faer::traits::ComplexField;
 use faer_ext::IntoFaer;
 use rstsr_core::prelude_dev::*;
 
-pub fn faer_impl_inv_f<T>(
-    a: TensorView<'_, T, DeviceFaer, Ix2>,
-) -> Result<Tensor<T, DeviceFaer, Ix2>>
+pub fn faer_impl_inv_f<T>(a: TensorView<'_, T, DeviceFaer, Ix2>) -> Result<Tensor<T, DeviceFaer, Ix2>>
 where
     T: ComplexField,
 {
@@ -46,12 +44,7 @@ where
 {
     type Out = Tensor<T, DeviceFaer, D>;
     fn inv_f(self) -> Result<Self::Out> {
-        rstsr_assert_eq!(
-            self.ndim(),
-            2,
-            InvalidLayout,
-            "Currently we can only handle 2-D matrix."
-        )?;
+        rstsr_assert_eq!(self.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let a = self;
         let a_view = a.view().into_dim::<Ix2>();
         let result = faer_impl_inv_f(a_view)?;

@@ -27,12 +27,7 @@ where
         lb: &Layout<D>,
     ) -> Result<()>;
 
-    fn op_muta_numb(
-        &self,
-        a: &mut <Self as DeviceRawAPI<TA>>::Raw,
-        la: &Layout<D>,
-        b: TB,
-    ) -> Result<()>;
+    fn op_muta_numb(&self, a: &mut <Self as DeviceRawAPI<TA>>::Raw, la: &Layout<D>, b: TB) -> Result<()>;
 }
 
 #[duplicate_item(
@@ -62,12 +57,7 @@ where
         lb: &Layout<D>,
     ) -> Result<()>;
 
-    fn op_muta_numb(
-        &self,
-        a: &mut <Self as DeviceRawAPI<TA>>::Raw,
-        la: &Layout<D>,
-        b: TB,
-    ) -> Result<()>;
+    fn op_muta_numb(&self, a: &mut <Self as DeviceRawAPI<TA>>::Raw, la: &Layout<D>, b: TB) -> Result<()>;
 }
 
 #[duplicate_item(
@@ -97,12 +87,7 @@ where
         la: &Layout<D>,
     ) -> Result<()>;
 
-    fn op_muta_numb(
-        &self,
-        b: &mut <Self as DeviceRawAPI<TB>>::Raw,
-        lb: &Layout<D>,
-        a: TA,
-    ) -> Result<()>;
+    fn op_muta_numb(&self, b: &mut <Self as DeviceRawAPI<TB>>::Raw, lb: &Layout<D>, a: TA) -> Result<()>;
 }
 
 #[duplicate_item(

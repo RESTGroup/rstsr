@@ -254,9 +254,7 @@ where
                         // clone alpha and beta
                         let alpha = alpha.clone();
                         let beta = beta.clone();
-                        gemm_blas_ix2_no_conj_dispatch(
-                            c, &lc_m, a, &la_m, b, &lb_m, alpha, beta, None,
-                        )
+                        gemm_blas_ix2_no_conj_dispatch(c, &lc_m, a, &la_m, b, &lb_m, alpha, beta, None)
                     },
                 )
             };
@@ -422,9 +420,7 @@ mod test {
     #[ignore]
     fn parallel_test_par_rule6_fprefer() {
         let device = DeviceBLAS::default();
-        let a = linspace((0.0, 1.0, 8192 * 8192, &device))
-            .into_shape([512, 512, 256])
-            .into_reverse_axes();
+        let a = linspace((0.0, 1.0, 8192 * 8192, &device)).into_shape([512, 512, 256]).into_reverse_axes();
         let b = linspace((0.0, 1.0, 512 * 512, &device)).into_shape([512, 512]);
         for i in 0..10 {
             let start = std::time::Instant::now();

@@ -113,12 +113,7 @@ where
     }
 }
 
-pub fn fill_cpu_rayon<T, D>(
-    c: &mut [T],
-    lc: &Layout<D>,
-    fill: T,
-    pool: Option<&ThreadPool>,
-) -> Result<()>
+pub fn fill_cpu_rayon<T, D>(c: &mut [T], lc: &Layout<D>, fill: T, pool: Option<&ThreadPool>) -> Result<()>
 where
     T: Clone + Send + Sync,
     D: DimAPI,

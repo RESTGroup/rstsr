@@ -10,18 +10,9 @@ where
     type Type;
     type Dim: DimAPI;
 
-    fn change_device_f(
-        self,
-        device: &BOut,
-    ) -> Result<TensorAny<Self::Repr, Self::Type, BOut, Self::Dim>>;
-    fn into_device_f(
-        self,
-        device: &BOut,
-    ) -> Result<TensorAny<DataOwned<BOut::Raw>, Self::Type, BOut, Self::Dim>>;
-    fn to_device_f(
-        &'l self,
-        device: &BOut,
-    ) -> Result<TensorAny<Self::ReprTo, Self::Type, BOut, Self::Dim>>;
+    fn change_device_f(self, device: &BOut) -> Result<TensorAny<Self::Repr, Self::Type, BOut, Self::Dim>>;
+    fn into_device_f(self, device: &BOut) -> Result<TensorAny<DataOwned<BOut::Raw>, Self::Type, BOut, Self::Dim>>;
+    fn to_device_f(&'l self, device: &BOut) -> Result<TensorAny<Self::ReprTo, Self::Type, BOut, Self::Dim>>;
 
     fn change_device(self, device: &BOut) -> TensorAny<Self::Repr, Self::Type, BOut, Self::Dim>
     where
@@ -30,10 +21,7 @@ where
         self.change_device_f(device).unwrap()
     }
 
-    fn into_device(
-        self,
-        device: &BOut,
-    ) -> TensorAny<DataOwned<BOut::Raw>, Self::Type, BOut, Self::Dim>
+    fn into_device(self, device: &BOut) -> TensorAny<DataOwned<BOut::Raw>, Self::Type, BOut, Self::Dim>
     where
         Self: Sized,
     {
@@ -65,10 +53,7 @@ where
         B::into_device(self, device)
     }
 
-    fn to_device_f(
-        &'a self,
-        device: &BOut,
-    ) -> Result<TensorAny<B::ReprTo, Self::Type, BOut, Self::Dim>> {
+    fn to_device_f(&'a self, device: &BOut) -> Result<TensorAny<B::ReprTo, Self::Type, BOut, Self::Dim>> {
         B::to_device(self, device)
     }
 }
@@ -83,18 +68,9 @@ where
     type Type;
     type Dim: DimAPI;
 
-    fn change_device_f(
-        self,
-        device: &BOut,
-    ) -> Result<TensorAny<Self::Repr, Self::Type, BOut, Self::Dim>>;
-    fn into_device_f(
-        self,
-        device: &BOut,
-    ) -> Result<TensorAny<DataOwned<BOut::Raw>, Self::Type, BOut, Self::Dim>>;
-    fn to_device_f(
-        &'l self,
-        device: &BOut,
-    ) -> Result<TensorAny<Self::ReprTo, Self::Type, BOut, Self::Dim>>;
+    fn change_device_f(self, device: &BOut) -> Result<TensorAny<Self::Repr, Self::Type, BOut, Self::Dim>>;
+    fn into_device_f(self, device: &BOut) -> Result<TensorAny<DataOwned<BOut::Raw>, Self::Type, BOut, Self::Dim>>;
+    fn to_device_f(&'l self, device: &BOut) -> Result<TensorAny<Self::ReprTo, Self::Type, BOut, Self::Dim>>;
 
     fn change_device(self, device: &BOut) -> TensorAny<Self::Repr, Self::Type, BOut, Self::Dim>
     where
@@ -103,10 +79,7 @@ where
         self.change_device_f(device).unwrap()
     }
 
-    fn into_device(
-        self,
-        device: &BOut,
-    ) -> TensorAny<DataOwned<BOut::Raw>, Self::Type, BOut, Self::Dim>
+    fn into_device(self, device: &BOut) -> TensorAny<DataOwned<BOut::Raw>, Self::Type, BOut, Self::Dim>
     where
         Self: Sized,
     {

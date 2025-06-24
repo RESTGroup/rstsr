@@ -6,15 +6,10 @@ use rstsr_core::prelude_dev::*;
 pub type TensorMutable1<'a, T, B> = TensorMutable<'a, T, B, Ix1>;
 pub type TensorMutable2<'a, T, B> = TensorMutable<'a, T, B, Ix2>;
 
-pub fn overwritable_convert<T, B, D>(
-    a: TensorReference<'_, T, B, D>,
-) -> Result<TensorMutable<'_, T, B, D>>
+pub fn overwritable_convert<T, B, D>(a: TensorReference<'_, T, B, D>) -> Result<TensorMutable<'_, T, B, D>>
 where
     T: Clone,
-    B: DeviceAPI<T, Raw = Vec<T>>
-        + DeviceCreationAnyAPI<T>
-        + OpAssignArbitaryAPI<T, D, D>
-        + OpAssignAPI<T, D>,
+    B: DeviceAPI<T, Raw = Vec<T>> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D, D> + OpAssignAPI<T, D>,
     D: DimAPI,
 {
     let order = match (a.f_prefer(), a.c_prefer()) {
@@ -42,10 +37,7 @@ pub fn overwritable_convert_with_order<T, B, D>(
 ) -> Result<TensorMutable<'_, T, B, D>>
 where
     T: Clone,
-    B: DeviceAPI<T, Raw = Vec<T>>
-        + DeviceCreationAnyAPI<T>
-        + OpAssignArbitaryAPI<T, D, D>
-        + OpAssignAPI<T, D>,
+    B: DeviceAPI<T, Raw = Vec<T>> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D, D> + OpAssignAPI<T, D>,
     D: DimAPI,
 {
     let a = if a.is_ref() {
@@ -93,10 +85,7 @@ where
                 false => view.into_reverse_axes().change_prefer(order),
             })),
             FlagTrans::T => Ok((trans.flip(hermi)?, view.into_reverse_axes().change_prefer(order))),
-            FlagTrans::C => Ok((
-                trans.flip(hermi)?,
-                view.into_reverse_axes().change_prefer(order).conj().into_cow(),
-            )),
+            FlagTrans::C => Ok((trans.flip(hermi)?, view.into_reverse_axes().change_prefer(order).conj().into_cow())),
             _ => rstsr_invalid!(trans),
         }
     }

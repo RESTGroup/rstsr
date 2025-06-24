@@ -63,12 +63,7 @@ where
     T: Num + PartialOrd + Clone,
     Self: DeviceRawAPI<T, Raw = Vec<T>>,
 {
-    fn arange_impl(
-        &self,
-        start: T,
-        end: T,
-        step: T,
-    ) -> Result<Storage<DataOwned<Vec<T>>, T, Self>> {
+    fn arange_impl(&self, start: T, end: T, step: T) -> Result<Storage<DataOwned<Vec<T>>, T, Self>> {
         let storage = DeviceCpuSerial::default().arange_impl(start, end, step)?;
         let (data, _) = storage.into_raw_parts();
         Ok(Storage::new(data, self.clone()))
@@ -80,13 +75,7 @@ where
     T: ComplexFloat + Clone + Send + Sync,
     Self: DeviceRawAPI<T, Raw = Vec<T>>,
 {
-    fn linspace_impl(
-        &self,
-        start: T,
-        end: T,
-        n: usize,
-        endpoint: bool,
-    ) -> Result<Storage<DataOwned<Vec<T>>, T, Self>> {
+    fn linspace_impl(&self, start: T, end: T, n: usize, endpoint: bool) -> Result<Storage<DataOwned<Vec<T>>, T, Self>> {
         let storage = DeviceCpuSerial::default().linspace_impl(start, end, n, endpoint)?;
         let (data, _) = storage.into_raw_parts();
         Ok(Storage::new(data, self.clone()))

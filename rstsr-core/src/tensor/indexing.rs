@@ -25,10 +25,7 @@ where
     into_slice_f(tensor, index).unwrap()
 }
 
-pub fn slice_f<R, T, B, D, I>(
-    tensor: &TensorAny<R, T, B, D>,
-    index: I,
-) -> Result<TensorView<'_, T, B, IxD>>
+pub fn slice_f<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, index: I) -> Result<TensorView<'_, T, B, IxD>>
 where
     D: DimAPI,
     I: TryInto<AxesIndex<Indexer>, Error = Error>,
@@ -101,10 +98,7 @@ where
 
 /* #region slice mut */
 
-pub fn slice_mut_f<R, T, B, D, I>(
-    tensor: &mut TensorAny<R, T, B, D>,
-    index: I,
-) -> Result<TensorMut<'_, T, B, IxD>>
+pub fn slice_mut_f<R, T, B, D, I>(tensor: &mut TensorAny<R, T, B, D>, index: I) -> Result<TensorMut<'_, T, B, IxD>>
 where
     D: DimAPI,
     I: TryInto<AxesIndex<Indexer>, Error = Error>,
@@ -114,10 +108,7 @@ where
     into_slice_f(tensor.view_mut(), index)
 }
 
-pub fn slice_mut<R, T, B, D, I>(
-    tensor: &mut TensorAny<R, T, B, D>,
-    index: I,
-) -> TensorMut<'_, T, B, IxD>
+pub fn slice_mut<R, T, B, D, I>(tensor: &mut TensorAny<R, T, B, D>, index: I) -> TensorMut<'_, T, B, IxD>
 where
     D: DimAPI,
     I: TryInto<AxesIndex<Indexer>, Error = Error>,
@@ -184,11 +175,7 @@ pub struct DiagonalArgs {
 impl From<(S0, S1, S2)> for DiagonalArgs {
     fn from(args: (S0, S1, S2)) -> Self {
         let (offset, axis1, axis2) = args;
-        Self {
-            offset: Some(offset as isize),
-            axis1: Some(axis1 as isize),
-            axis2: Some(axis2 as isize),
-        }
+        Self { offset: Some(offset as isize), axis1: Some(axis1 as isize), axis2: Some(axis2 as isize) }
     }
 }
 
@@ -270,31 +257,19 @@ where
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
 {
-    pub fn into_diagonal_f(
-        self,
-        diagonal_args: impl Into<DiagonalArgs>,
-    ) -> Result<TensorAny<R, T, B, D::SmallerOne>> {
+    pub fn into_diagonal_f(self, diagonal_args: impl Into<DiagonalArgs>) -> Result<TensorAny<R, T, B, D::SmallerOne>> {
         into_diagonal_f(self, diagonal_args)
     }
 
-    pub fn into_diagonal(
-        self,
-        diagonal_args: impl Into<DiagonalArgs>,
-    ) -> TensorAny<R, T, B, D::SmallerOne> {
+    pub fn into_diagonal(self, diagonal_args: impl Into<DiagonalArgs>) -> TensorAny<R, T, B, D::SmallerOne> {
         into_diagonal(self, diagonal_args)
     }
 
-    pub fn diagonal_f(
-        &self,
-        diagonal_args: impl Into<DiagonalArgs>,
-    ) -> Result<TensorView<'_, T, B, D::SmallerOne>> {
+    pub fn diagonal_f(&self, diagonal_args: impl Into<DiagonalArgs>) -> Result<TensorView<'_, T, B, D::SmallerOne>> {
         diagonal_f(self, diagonal_args)
     }
 
-    pub fn diagonal(
-        &self,
-        diagonal_args: impl Into<DiagonalArgs>,
-    ) -> TensorView<'_, T, B, D::SmallerOne> {
+    pub fn diagonal(&self, diagonal_args: impl Into<DiagonalArgs>) -> TensorView<'_, T, B, D::SmallerOne> {
         diagonal(self, diagonal_args)
     }
 }
@@ -368,10 +343,7 @@ where
         into_diagonal_mut_f(self, diagonal_args)
     }
 
-    pub fn into_diagonal_mut(
-        self,
-        diagonal_args: impl Into<DiagonalArgs>,
-    ) -> TensorAny<R, T, B, D::SmallerOne> {
+    pub fn into_diagonal_mut(self, diagonal_args: impl Into<DiagonalArgs>) -> TensorAny<R, T, B, D::SmallerOne> {
         into_diagonal_mut(self, diagonal_args)
     }
 
@@ -382,10 +354,7 @@ where
         diagonal_mut_f(self, diagonal_args)
     }
 
-    pub fn diagonal_mut(
-        &mut self,
-        diagonal_args: impl Into<DiagonalArgs>,
-    ) -> TensorMut<'_, T, B, D::SmallerOne> {
+    pub fn diagonal_mut(&mut self, diagonal_args: impl Into<DiagonalArgs>) -> TensorMut<'_, T, B, D::SmallerOne> {
         diagonal_mut(self, diagonal_args)
     }
 }

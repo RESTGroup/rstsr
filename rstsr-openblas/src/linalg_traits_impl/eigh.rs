@@ -127,8 +127,7 @@ where
         rstsr_pattern!(eig_type, 1..=3, InvalidLayout, "Only eig_type = 1, 2, or 3 allowed.")?;
         let a_view = a.view().into_dim::<Ix2>();
         let b_view = b.view().into_dim::<Ix2>();
-        let eigh_args =
-            EighArgs::default().a(a_view).b(b_view).uplo(uplo).eig_type(eig_type).build()?;
+        let eigh_args = EighArgs::default().a(a_view).b(b_view).uplo(uplo).eig_type(eig_type).build()?;
         let (vals, vecs) = ref_impl_eigh_simple_f(eigh_args)?;
         let vals = vals.into_dim::<IxD>().into_dim::<D::SmallerOne>();
         let vecs = vecs.unwrap().into_owned().into_dim::<IxD>().into_dim::<D>();
@@ -194,11 +193,7 @@ where
     type Out = EighResult<Tensor<T::Real, DeviceBLAS, Ix1>, TensorMutable<'a, T, DeviceBLAS, Ix2>>;
     fn eigh_f(self) -> Result<Self::Out> {
         let args = self.build()?;
-        rstsr_assert!(
-            !args.eigvals_only,
-            InvalidValue,
-            "Eigh only supports eigvals_only = false."
-        )?;
+        rstsr_assert!(!args.eigvals_only, InvalidValue, "Eigh only supports eigvals_only = false.")?;
         let (vals, vecs) = ref_impl_eigh_simple_f(args)?;
         Ok(EighResult { eigenvalues: vals, eigenvectors: vecs.unwrap() })
     }
@@ -212,11 +207,7 @@ where
     type Out = EighResult<Tensor<T::Real, DeviceBLAS, Ix1>, TensorMutable<'a, T, DeviceBLAS, Ix2>>;
     fn eigh_f(self) -> Result<Self::Out> {
         let args = self;
-        rstsr_assert!(
-            !args.eigvals_only,
-            InvalidValue,
-            "Eigh only supports eigvals_only = false."
-        )?;
+        rstsr_assert!(!args.eigvals_only, InvalidValue, "Eigh only supports eigvals_only = false.")?;
         let (vals, vecs) = ref_impl_eigh_simple_f(args)?;
         Ok(EighResult { eigenvalues: vals, eigenvectors: vecs.unwrap() })
     }

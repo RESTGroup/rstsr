@@ -166,8 +166,7 @@ mod impl_binary_arithmetic_ref {
     use super::*;
 
     #[doc(hidden)]
-    impl<RA, RB, TA, TB, TC, DA, DB, DC, B> TensorOpAPI<&TensorAny<RB, TB, B, DB>>
-        for &TensorAny<RA, TA, B, DA>
+    impl<RA, RB, TA, TB, TC, DA, DB, DC, B> TensorOpAPI<&TensorAny<RB, TB, B, DB>> for &TensorAny<RA, TA, B, DA>
     where
         // tensor types
         RA: DataAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
@@ -1019,8 +1018,8 @@ mod test {
         let b = b.into_shape_assume_contig([5, 1, 2, 1]);
         let c = &a + &b;
         let c_ref = vec![
-            2., 3., 4., 6., 7., 8., 4., 5., 6., 8., 9., 10., 6., 7., 8., 10., 11., 12., 8., 9.,
-            10., 12., 13., 14., 10., 11., 12., 14., 15., 16.,
+            2., 3., 4., 6., 7., 8., 4., 5., 6., 8., 9., 10., 6., 7., 8., 10., 11., 12., 8., 9., 10., 12., 13., 14.,
+            10., 11., 12., 14., 15., 16.,
         ];
         let c_ref = c_ref.into();
         assert!(allclose_f64(&c, &c_ref));
@@ -1095,8 +1094,8 @@ mod test {
         let b = b.into_shape_assume_contig([1, 2, 1, 5]);
         let c = &a + &b;
         let c_ref = vec![
-            2., 3., 4., 6., 7., 8., 4., 5., 6., 8., 9., 10., 6., 7., 8., 10., 11., 12., 8., 9.,
-            10., 12., 13., 14., 10., 11., 12., 14., 15., 16.,
+            2., 3., 4., 6., 7., 8., 4., 5., 6., 8., 9., 10., 6., 7., 8., 10., 11., 12., 8., 9., 10., 12., 13., 14.,
+            10., 11., 12., 14., 15., 16.,
         ];
         assert!(allclose_f64(&c.raw().into(), &c_ref.into()));
 

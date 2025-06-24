@@ -137,23 +137,9 @@ where
         let axis = if axis < 0 { self.ndim() as isize + axis } else { axis };
         rstsr_pattern!(axis, 0..self.ndim() as isize, ValueOutOfRange)?;
         let axis = axis as usize;
-        rstsr_assert_eq!(
-            self.layout().stride()[axis],
-            1,
-            InvalidLayout,
-            "The axis must be contiguous"
-        )?;
-        rstsr_assert_eq!(
-            self.layout().shape()[axis],
-            N,
-            InvalidLayout,
-            "The axis length must be a exactly {N}"
-        )?;
-        rstsr_assert!(
-            self.layout().offset() % N == 0,
-            InvalidLayout,
-            "The offset must be a multiple of {N}"
-        )?;
+        rstsr_assert_eq!(self.layout().stride()[axis], 1, InvalidLayout, "The axis must be contiguous")?;
+        rstsr_assert_eq!(self.layout().shape()[axis], N, InvalidLayout, "The axis length must be a exactly {N}")?;
+        rstsr_assert!(self.layout().offset() % N == 0, InvalidLayout, "The offset must be a multiple of {N}")?;
 
         let (storage, layout) = self.into_raw_parts();
         let (data, device) = storage.into_raw_parts();
@@ -169,8 +155,7 @@ where
             .try_into()
             .unwrap_or_else(|_| panic!("stride conversion failed"));
         let new_offset = layout.offset() / N;
-        let new_layout =
-            unsafe { Layout::new_unchecked(layout.shape().clone(), stride, new_offset) };
+        let new_layout = unsafe { Layout::new_unchecked(layout.shape().clone(), stride, new_offset) };
         let tensor = unsafe { TensorAny::new_unchecked(storage, new_layout) };
         Ok(tensor)
     }
@@ -180,10 +165,7 @@ where
         ArrayType [<R as PackableArrayAPI<T, N>>::Array];
     )]
     #[allow(clippy::type_complexity)]
-    pub fn into_pack_array<const N: usize>(
-        self,
-        axis: isize,
-    ) -> TensorAny<ArrayData, ArrayType, B, D::SmallerOne>
+    pub fn into_pack_array<const N: usize>(self, axis: isize) -> TensorAny<ArrayData, ArrayType, B, D::SmallerOne>
     where
         B: DeviceAPI<ArrayType>,
         R: PackableArrayAPI<T, N> + PackArrayAPI<T>,

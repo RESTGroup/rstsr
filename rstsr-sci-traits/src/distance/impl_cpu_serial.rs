@@ -38,8 +38,7 @@ where
         let device = xa.device().clone();
         let order = device.default_order();
         let weight = weight.into_contig_f(RowMajor)?;
-        let dist =
-            cdist_weighted_serial(xa.raw(), xb.raw(), &la, &lb, weight.raw(), kernel, order)?;
+        let dist = cdist_weighted_serial(xa.raw(), xb.raw(), &la, &lb, weight.raw(), kernel, order)?;
 
         let m = la.shape()[0];
         let n = lb.shape()[0];
@@ -50,9 +49,7 @@ where
 impl<T, D, M> CDistAPI<DeviceCpuSerial>
     for (TensorView<'_, T, DeviceCpuSerial, D>, TensorView<'_, T, DeviceCpuSerial, D>, M)
 where
-    DeviceCpuSerial: DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<M::Out, Raw = Vec<M::Out>>
-        + DeviceCreationAnyAPI<M::Out>,
+    DeviceCpuSerial: DeviceAPI<T, Raw = Vec<T>> + DeviceAPI<M::Out, Raw = Vec<M::Out>> + DeviceCreationAnyAPI<M::Out>,
     M: MetricDistAPI<Vec<T>>,
     D: DimAPI + DimIntoAPI<Ix2>,
 {
@@ -75,8 +72,7 @@ where
     }
 }
 
-impl<T, D> CDistAPI<DeviceCpuSerial>
-    for (TensorView<'_, T, DeviceCpuSerial, D>, TensorView<'_, T, DeviceCpuSerial, D>)
+impl<T, D> CDistAPI<DeviceCpuSerial> for (TensorView<'_, T, DeviceCpuSerial, D>, TensorView<'_, T, DeviceCpuSerial, D>)
 where
     T: Float,
     DeviceCpuSerial: DeviceAPI<T, Raw = Vec<T>> + DeviceCreationAnyAPI<T>,
@@ -138,13 +134,10 @@ mod test {
         let d = cdist((a.view(), b.view(), MetricJensenShannon::new()));
         println!("{d:16.8?}");
 
-        let vec_a = vec![
-            true, false, false, false, false, false, true, true, true, true, true, false, true,
-            true, true, true,
-        ];
+        let vec_a =
+            vec![true, false, false, false, false, false, true, true, true, true, true, false, true, true, true, true];
         let vec_b = vec![
-            false, false, true, false, false, true, true, false, false, true, true, false, false,
-            false, false, false,
+            false, false, true, false, false, true, true, false, false, true, true, false, false, false, false, false,
         ];
         let a = asarray((vec_a, &device)).into_shape((4, 4));
         let b = asarray((vec_b, &device)).into_shape((4, 4));
@@ -155,10 +148,8 @@ mod test {
         let d = cdist((a.view(), b.view(), MetricYule, w.view()));
         println!("{d:16.8?}");
 
-        let a = asarray((vec![-3., 6., 3., 6., -3., 3., 6., 1., 0., -8., 1., -2.], &device))
-            .into_shape((3, 4));
-        let b = asarray((vec![3., 1., -1., 1., -6., 0., 3., -1., -5., -4., 4., -2.], &device))
-            .into_shape((3, 4));
+        let a = asarray((vec![-3., 6., 3., 6., -3., 3., 6., 1., 0., -8., 1., -2.], &device)).into_shape((3, 4));
+        let b = asarray((vec![3., 1., -1., 1., -6., 0., 3., -1., -5., -4., 4., -2.], &device)).into_shape((3, 4));
 
         let d = cdist((a.view(), b.view(), MetricCorrelation::default(), w.view()));
         println!("{d:16.8?}");

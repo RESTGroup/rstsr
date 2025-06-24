@@ -43,13 +43,7 @@ where
 {
     type TOut = T;
 
-    fn op_muta_refb(
-        &self,
-        a: &mut Vec<T>,
-        la: &Layout<D>,
-        b: &Vec<T>,
-        lb: &Layout<D>,
-    ) -> Result<()> {
+    fn op_muta_refb(&self, a: &mut Vec<T>, la: &Layout<D>, b: &Vec<T>, lb: &Layout<D>) -> Result<()> {
         self.op_muta_refb_func(a, la, b, lb, &mut func)
     }
 
@@ -76,13 +70,7 @@ where
 {
     type TOut = bool;
 
-    fn op_muta_refb(
-        &self,
-        a: &mut Vec<bool>,
-        la: &Layout<D>,
-        b: &Vec<T>,
-        lb: &Layout<D>,
-    ) -> Result<()> {
+    fn op_muta_refb(&self, a: &mut Vec<bool>, la: &Layout<D>, b: &Vec<T>, lb: &Layout<D>) -> Result<()> {
         self.op_muta_refb_func(a, la, b, lb, &mut func)
     }
 
@@ -104,13 +92,7 @@ where
 {
     type TOut = T::Out;
 
-    fn op_muta_refb(
-        &self,
-        a: &mut Vec<T::Out>,
-        la: &Layout<D>,
-        b: &Vec<T>,
-        lb: &Layout<D>,
-    ) -> Result<()> {
+    fn op_muta_refb(&self, a: &mut Vec<T::Out>, la: &Layout<D>, b: &Vec<T>, lb: &Layout<D>) -> Result<()> {
         self.op_muta_refb_func(a, la, b, lb, &mut |a, b| *a = b.clone().abs())
     }
 
@@ -134,13 +116,7 @@ where
 {
     type TOut = T::Out;
 
-    fn op_muta_refb(
-        &self,
-        a: &mut Vec<T::Out>,
-        la: &Layout<D>,
-        b: &Vec<T>,
-        lb: &Layout<D>,
-    ) -> Result<()> {
+    fn op_muta_refb(&self, a: &mut Vec<T::Out>, la: &Layout<D>, b: &Vec<T>, lb: &Layout<D>) -> Result<()> {
         self.op_muta_refb_func(a, la, b, lb, &mut |a, b| *a = b.clone().imag())
     }
 
@@ -162,13 +138,7 @@ where
 {
     type TOut = T::Out;
 
-    fn op_muta_refb(
-        &self,
-        a: &mut Vec<T::Out>,
-        la: &Layout<D>,
-        b: &Vec<T>,
-        lb: &Layout<D>,
-    ) -> Result<()> {
+    fn op_muta_refb(&self, a: &mut Vec<T::Out>, la: &Layout<D>, b: &Vec<T>, lb: &Layout<D>) -> Result<()> {
         self.op_muta_refb_func(a, la, b, lb, &mut |a, b| *a = b.clone().real())
     }
 
@@ -191,13 +161,7 @@ where
 {
     type TOut = T;
 
-    fn op_muta_refb(
-        &self,
-        a: &mut Vec<T>,
-        la: &Layout<D>,
-        b: &Vec<T>,
-        lb: &Layout<D>,
-    ) -> Result<()> {
+    fn op_muta_refb(&self, a: &mut Vec<T>, la: &Layout<D>, b: &Vec<T>, lb: &Layout<D>) -> Result<()> {
         self.op_muta_refb_func(a, la, b, lb, &mut |a, b| *a = *b / b.abs())
     }
 

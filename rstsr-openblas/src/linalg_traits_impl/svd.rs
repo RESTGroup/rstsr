@@ -13,11 +13,8 @@ where
     D::SmallerOne: DimAPI,
     DeviceBLAS: LapackDriverAPI<T>,
 {
-    type Out = SVDResult<
-        Tensor<T, DeviceBLAS, D>,
-        Tensor<T::Real, DeviceBLAS, D::SmallerOne>,
-        Tensor<T, DeviceBLAS, D>,
-    >;
+    type Out =
+        SVDResult<Tensor<T, DeviceBLAS, D>, Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
     fn svd_f(self) -> Result<Self::Out> {
         let (a, full_matrices) = self;
         rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
@@ -42,11 +39,8 @@ where
     D::SmallerOne: DimAPI,
     DeviceBLAS: LapackDriverAPI<T>,
 {
-    type Out = SVDResult<
-        Tensor<T, DeviceBLAS, D>,
-        Tensor<T::Real, DeviceBLAS, D::SmallerOne>,
-        Tensor<T, DeviceBLAS, D>,
-    >;
+    type Out =
+        SVDResult<Tensor<T, DeviceBLAS, D>, Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
     fn svd_f(self) -> Result<Self::Out> {
         let (a, full_matrices) = self;
         SVDAPI::<DeviceBLAS>::svd_f((&a, full_matrices))
@@ -85,11 +79,7 @@ where
     T: BlasFloat,
     DeviceBLAS: LapackDriverAPI<T>,
 {
-    type Out = SVDResult<
-        Tensor<T, DeviceBLAS, Ix2>,
-        Tensor<T::Real, DeviceBLAS, Ix1>,
-        Tensor<T, DeviceBLAS, Ix2>,
-    >;
+    type Out = SVDResult<Tensor<T, DeviceBLAS, Ix2>, Tensor<T::Real, DeviceBLAS, Ix1>, Tensor<T, DeviceBLAS, Ix2>>;
     fn svd_f(self) -> Result<Self::Out> {
         SVDAPI::<DeviceBLAS>::svd_f(self.build()?)
     }
@@ -100,11 +90,7 @@ where
     T: BlasFloat,
     DeviceBLAS: LapackDriverAPI<T>,
 {
-    type Out = SVDResult<
-        Tensor<T, DeviceBLAS, Ix2>,
-        Tensor<T::Real, DeviceBLAS, Ix1>,
-        Tensor<T, DeviceBLAS, Ix2>,
-    >;
+    type Out = SVDResult<Tensor<T, DeviceBLAS, Ix2>, Tensor<T::Real, DeviceBLAS, Ix1>, Tensor<T, DeviceBLAS, Ix2>>;
     fn svd_f(self) -> Result<Self::Out> {
         let args = self;
         rstsr_assert!(

@@ -29,8 +29,7 @@ where
     };
 
     // llt computation
-    let result =
-        faer_a.llt(faer_uplo).map_err(|e| rstsr_error!(FaerError, "Faer cholesky error: {e}"))?;
+    let result = faer_a.llt(faer_uplo).map_err(|e| rstsr_error!(FaerError, "Faer cholesky error: {e}"))?;
 
     // faer always returns lower triangular matrix
     let result = match uplo {

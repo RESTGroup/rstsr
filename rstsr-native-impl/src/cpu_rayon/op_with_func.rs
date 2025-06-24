@@ -334,12 +334,7 @@ where
     }
 }
 
-pub fn op_muta_func_cpu_rayon<T, D, F>(
-    a: &mut [T],
-    la: &Layout<D>,
-    f: &mut F,
-    pool: Option<&ThreadPool>,
-) -> Result<()>
+pub fn op_muta_func_cpu_rayon<T, D, F>(a: &mut [T], la: &Layout<D>, f: &mut F, pool: Option<&ThreadPool>) -> Result<()>
 where
     T: Send + Sync,
     D: DimAPI,

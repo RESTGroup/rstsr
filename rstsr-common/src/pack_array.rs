@@ -104,8 +104,7 @@ impl<T> PackArrayAPI<T> for &mut [T] {
             InvalidValue,
             "Length of &[T] {len} must be a multiple to cast into Vec<[T; {N}]>"
         )?;
-        let arr =
-            unsafe { core::slice::from_raw_parts_mut(self.as_mut_ptr() as *mut [T; N], len / N) };
+        let arr = unsafe { core::slice::from_raw_parts_mut(self.as_mut_ptr() as *mut [T; N], len / N) };
         Ok(arr)
     }
 }

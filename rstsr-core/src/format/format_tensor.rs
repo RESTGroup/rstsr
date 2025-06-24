@@ -54,12 +54,9 @@ where
         } else {
             let p1_prev = idx_prev.pop().unwrap();
             let p2_prev = idx_prev.pop().unwrap();
-            let offset = offset as isize
-                - p1_prev as isize * stride[len_prev - 1]
-                - p2_prev as isize * stride[len_prev - 2];
-            if shape[len_prev - 2] < max_print
-                || p2_prev + min_print >= shape[len_prev - 2]
-                || p2_prev + 1 < min_print
+            let offset =
+                offset as isize - p1_prev as isize * stride[len_prev - 1] - p2_prev as isize * stride[len_prev - 2];
+            if shape[len_prev - 2] < max_print || p2_prev + min_print >= shape[len_prev - 2] || p2_prev + 1 < min_print
             {
                 let p2 = p2_prev + 1;
                 idx_prev.push(p2);
@@ -203,8 +200,7 @@ where
 {
     let idx_prev = vec![];
     let offset = layout.offset();
-    let mut config =
-        FnPrintVecWithLayout { vec, layout, offset, idx_prev, max_print, min_print, fmt };
+    let mut config = FnPrintVecWithLayout { vec, layout, offset, idx_prev, max_print, min_print, fmt };
     print_vec_with_layout_dfs(&mut config)
 }
 
@@ -229,9 +225,7 @@ where
 
 /* #region debug print */
 
-pub fn print_vec_with_layout_dfs_debug<T, D>(
-    c: &mut FnPrintVecWithLayout<T, D>,
-) -> core::fmt::Result
+pub fn print_vec_with_layout_dfs_debug<T, D>(c: &mut FnPrintVecWithLayout<T, D>) -> core::fmt::Result
 where
     T: Clone + Debug,
     D: DimAPI,
@@ -265,12 +259,9 @@ where
         } else {
             let p1_prev = idx_prev.pop().unwrap();
             let p2_prev = idx_prev.pop().unwrap();
-            let offset = offset as isize
-                - p1_prev as isize * stride[len_prev - 1]
-                - p2_prev as isize * stride[len_prev - 2];
-            if shape[len_prev - 2] < max_print
-                || p2_prev + min_print >= shape[len_prev - 2]
-                || p2_prev + 1 < min_print
+            let offset =
+                offset as isize - p1_prev as isize * stride[len_prev - 1] - p2_prev as isize * stride[len_prev - 2];
+            if shape[len_prev - 2] < max_print || p2_prev + min_print >= shape[len_prev - 2] || p2_prev + 1 < min_print
             {
                 let p2 = p2_prev + 1;
                 idx_prev.push(p2);
@@ -414,8 +405,7 @@ where
 {
     let idx_prev = vec![];
     let offset = layout.offset();
-    let mut config =
-        FnPrintVecWithLayout { vec, layout, offset, idx_prev, max_print, min_print, fmt };
+    let mut config = FnPrintVecWithLayout { vec, layout, offset, idx_prev, max_print, min_print, fmt };
     print_vec_with_layout_dfs_debug(&mut config)
 }
 

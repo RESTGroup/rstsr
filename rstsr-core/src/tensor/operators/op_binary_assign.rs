@@ -105,8 +105,7 @@ mod impl_binary_assign {
     use super::*;
 
     #[doc(hidden)]
-    impl<RA, RB, TA, TB, DA, DB, B> TensorOpAPI<&TensorAny<RB, TB, B, DB>>
-        for &mut TensorAny<RA, TA, B, DA>
+    impl<RA, RB, TA, TB, DA, DB, B> TensorOpAPI<&TensorAny<RB, TB, B, DB>> for &mut TensorAny<RA, TA, B, DA>
     where
         // tensor types
         RA: DataMutAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
@@ -125,11 +124,7 @@ mod impl_binary_assign {
             let lb = b.layout();
             let default_order = a.device().default_order();
             // check layout broadcast
-            let (la_b, lb_b) = broadcast_layout_to_first(
-                &la.to_dim::<IxD>()?,
-                &lb.to_dim::<IxD>()?,
-                default_order,
-            )?;
+            let (la_b, lb_b) = broadcast_layout_to_first(&la.to_dim::<IxD>()?, &lb.to_dim::<IxD>()?, default_order)?;
             rstsr_assert_eq!(la_b, la.to_dim::<IxD>()?, InvalidLayout)?;
             // op provided by device
             let device = a.device().clone();
@@ -138,8 +133,7 @@ mod impl_binary_assign {
     }
 
     #[doc(hidden)]
-    impl<RA, RB, TA, TB, DA, DB, B> TensorOpAPI<TensorAny<RB, TB, B, DB>>
-        for &mut TensorAny<RA, TA, B, DA>
+    impl<RA, RB, TA, TB, DA, DB, B> TensorOpAPI<TensorAny<RB, TB, B, DB>> for &mut TensorAny<RA, TA, B, DA>
     where
         // tensor types
         RA: DataMutAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,

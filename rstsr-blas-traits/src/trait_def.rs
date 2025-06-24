@@ -32,11 +32,7 @@ where
 }
 
 pub trait BlasDriverAPI<T>:
-    BlasDriverBaseAPI<T>
-    + GEMMDriverAPI<T>
-    + TRSMDriverAPI<T>
-    + SYHEMMDriverAPI<T, false>
-    + SYHEMMDriverAPI<T, true>
+    BlasDriverBaseAPI<T> + GEMMDriverAPI<T> + TRSMDriverAPI<T> + SYHEMMDriverAPI<T, false> + SYHEMMDriverAPI<T, true>
 where
     T: BlasFloat,
 {

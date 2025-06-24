@@ -333,11 +333,7 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
                 s as *mut _,
                 if jobu == 'A' || jobu == 'S' { u_t.as_mut_ptr() as *mut _ } else { u as *mut _ },
                 &(ldu_t as _),
-                if jobvt == 'A' || jobvt == 'S' {
-                    vt_t.as_mut_ptr() as *mut _
-                } else {
-                    vt as *mut _
-                },
+                if jobvt == 'A' || jobvt == 'S' { vt_t.as_mut_ptr() as *mut _ } else { vt as *mut _ },
                 &(ldvt_t as _),
                 work.as_mut_ptr() as *mut _,
                 &(lwork as _),

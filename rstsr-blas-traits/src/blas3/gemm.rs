@@ -65,16 +65,7 @@ where
             // f-prefer: C = op(A) op(B)
             let (transa, a_cow) = flip_trans(order, transa, a, false)?;
             let (transb, b_cow) = flip_trans(order, transb, b, false)?;
-            let obj = GEMM_ {
-                a: a_cow.view(),
-                b: b_cow.view(),
-                c,
-                alpha,
-                beta,
-                transa,
-                transb,
-                order: Some(ColMajor),
-            };
+            let obj = GEMM_ { a: a_cow.view(), b: b_cow.view(), c, alpha, beta, transa, transb, order: Some(ColMajor) };
             obj.internal_run()
         } else {
             // c-prefer: C' = op(B') op(A')
@@ -148,9 +139,7 @@ where
         let ptr_c = c.view_mut().raw_mut().as_mut_ptr();
 
         unsafe {
-            B::driver_gemm(
-                ColMajor, transa, transb, m, n, k, alpha, ptr_a, lda, ptr_b, ldb, beta, ptr_c, m,
-            );
+            B::driver_gemm(ColMajor, transa, transb, m, n, k, alpha, ptr_a, lda, ptr_b, ldb, beta, ptr_c, m);
         }
 
         Ok(c.clone_to_mut())

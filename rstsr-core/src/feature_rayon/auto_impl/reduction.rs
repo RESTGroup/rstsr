@@ -35,8 +35,7 @@ where
         let f_sum = |acc1, acc2| acc1 + acc2;
         let f_out = |acc| acc;
 
-        let (out, layout_out) =
-            reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 }
@@ -80,8 +79,7 @@ where
         let f_sum = |acc1: T, acc2: T| acc1.min(acc2);
         let f_out = |acc| acc;
 
-        let (out, layout_out) =
-            reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 }
@@ -125,8 +123,7 @@ where
         let f_sum = |acc1: T, acc2: T| acc1.max(acc2);
         let f_out = |acc| acc;
 
-        let (out, layout_out) =
-            reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 }
@@ -162,8 +159,7 @@ where
         let f_sum = |acc1, acc2| acc1 * acc2;
         let f_out = |acc| acc;
 
-        let (out, layout_out) =
-            reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 }
@@ -203,8 +199,7 @@ where
         let f_sum = |acc, x| acc + x;
         let f_out = |acc| acc / T::from_usize(size).unwrap();
 
-        let (out, layout_out) =
-            reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 }
@@ -257,8 +252,7 @@ where
             acc_2 / size_2 - (mean * mean.conj()).re()
         };
 
-        let (out, layout_out) =
-            reduce_axes_difftype_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        let (out, layout_out) = reduce_axes_difftype_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
 
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
@@ -314,8 +308,7 @@ where
             var.sqrt()
         };
 
-        let (out, layout_out) =
-            reduce_axes_difftype_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        let (out, layout_out) = reduce_axes_difftype_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
 
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
@@ -354,8 +347,7 @@ where
         let f_sum = |acc: T::Real, x: T::Real| acc + x;
         let f_out = |acc: T::Real| acc.sqrt();
 
-        let (out, layout_out) =
-            reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
 
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
@@ -390,8 +382,7 @@ where
                 Some(false)
             }
         };
-        let (out, layout_out) =
-            reduce_axes_arg_cpu_rayon(a, la, axes, f_comp, f_eq, RowMajor, pool)?;
+        let (out, layout_out) = reduce_axes_arg_cpu_rayon(a, la, axes, f_comp, f_eq, RowMajor, pool)?;
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 
@@ -446,8 +437,7 @@ where
                 Some(false)
             }
         };
-        let (out, layout_out) =
-            reduce_axes_arg_cpu_rayon(a, la, axes, f_comp, f_eq, RowMajor, pool)?;
+        let (out, layout_out) = reduce_axes_arg_cpu_rayon(a, la, axes, f_comp, f_eq, RowMajor, pool)?;
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 
@@ -500,16 +490,11 @@ where
                 Some(false)
             }
         };
-        let (out, layout_out) =
-            reduce_axes_unraveled_arg_cpu_rayon(a, la, axes, f_comp, f_eq, pool)?;
+        let (out, layout_out) = reduce_axes_unraveled_arg_cpu_rayon(a, la, axes, f_comp, f_eq, pool)?;
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 
-    fn unraveled_argmin_all(
-        &self,
-        a: &<Self as DeviceRawAPI<T>>::Raw,
-        la: &Layout<D>,
-    ) -> Result<D> {
+    fn unraveled_argmin_all(&self, a: &<Self as DeviceRawAPI<T>>::Raw, la: &Layout<D>) -> Result<D> {
         let pool = self.get_current_pool();
 
         let f_comp = |x: Option<T>, y: T| -> Option<bool> {
@@ -558,16 +543,11 @@ where
                 Some(false)
             }
         };
-        let (out, layout_out) =
-            reduce_axes_unraveled_arg_cpu_rayon(a, la, axes, f_comp, f_eq, pool)?;
+        let (out, layout_out) = reduce_axes_unraveled_arg_cpu_rayon(a, la, axes, f_comp, f_eq, pool)?;
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 
-    fn unraveled_argmax_all(
-        &self,
-        a: &<Self as DeviceRawAPI<T>>::Raw,
-        la: &Layout<D>,
-    ) -> Result<D> {
+    fn unraveled_argmax_all(&self, a: &<Self as DeviceRawAPI<T>>::Raw, la: &Layout<D>) -> Result<D> {
         let pool = self.get_current_pool();
 
         let f_comp = |x: Option<T>, y: T| -> Option<bool> {
@@ -623,8 +603,7 @@ where
         let f_sum = |acc1, acc2| acc1 + acc2;
         let f_out = |acc| acc;
 
-        let (out, layout_out) =
-            reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 }

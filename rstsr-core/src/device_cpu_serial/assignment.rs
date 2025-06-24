@@ -6,13 +6,7 @@ where
     DC: DimAPI,
     DA: DimAPI,
 {
-    fn assign_arbitary(
-        &self,
-        c: &mut Vec<T>,
-        lc: &Layout<DC>,
-        a: &Vec<T>,
-        la: &Layout<DA>,
-    ) -> Result<()> {
+    fn assign_arbitary(&self, c: &mut Vec<T>, lc: &Layout<DC>, a: &Vec<T>, la: &Layout<DA>) -> Result<()> {
         let default_order = self.default_order();
         return assign_arbitary_cpu_serial(c, lc, a, la, default_order);
     }

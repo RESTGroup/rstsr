@@ -81,8 +81,7 @@ where
             .fold(
                 || TC::zero(),
                 |acc, i| unsafe {
-                    acc + a[la.index_uncheck(&[i]) as usize].clone()
-                        * b[lb.index_uncheck(&[i]) as usize].clone()
+                    acc + a[la.index_uncheck(&[i]) as usize].clone() * b[lb.index_uncheck(&[i]) as usize].clone()
                 },
             )
             .reduce_with(|a, b| a + b)

@@ -98,12 +98,7 @@ where
     F: FnMut(&mut T) + ?Sized,
     Self: DeviceAPI<T>,
 {
-    fn op_muta_func(
-        &self,
-        a: &mut <Self as DeviceRawAPI<T>>::Raw,
-        la: &Layout<D>,
-        f: &mut F,
-    ) -> Result<()>;
+    fn op_muta_func(&self, a: &mut <Self as DeviceRawAPI<T>>::Raw, la: &Layout<D>, f: &mut F) -> Result<()>;
 }
 
 /* #endregion */

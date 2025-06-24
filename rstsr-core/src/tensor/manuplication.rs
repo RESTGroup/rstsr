@@ -9,9 +9,7 @@ use crate::prelude_dev::*;
 /// # See also
 ///
 /// [Python Array API standard: `broadcast_arrays`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.broadcast_arrays.html)
-pub fn broadcast_arrays<R, T, B>(
-    tensors: Vec<TensorAny<R, T, B, IxD>>,
-) -> Vec<TensorAny<R, T, B, IxD>>
+pub fn broadcast_arrays<R, T, B>(tensors: Vec<TensorAny<R, T, B, IxD>>) -> Vec<TensorAny<R, T, B, IxD>>
 where
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
@@ -19,9 +17,7 @@ where
     broadcast_arrays_f(tensors).unwrap()
 }
 
-pub fn broadcast_arrays_f<R, T, B>(
-    tensors: Vec<TensorAny<R, T, B, IxD>>,
-) -> Result<Vec<TensorAny<R, T, B, IxD>>>
+pub fn broadcast_arrays_f<R, T, B>(tensors: Vec<TensorAny<R, T, B, IxD>>) -> Result<Vec<TensorAny<R, T, B, IxD>>>
 where
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
@@ -51,10 +47,7 @@ where
 
 /* #region broadcast_to */
 
-pub fn into_broadcast_f<R, T, B, D, D2>(
-    tensor: TensorAny<R, T, B, D>,
-    shape: D2,
-) -> Result<TensorAny<R, T, B, D2>>
+pub fn into_broadcast_f<R, T, B, D, D2>(tensor: TensorAny<R, T, B, D>, shape: D2) -> Result<TensorAny<R, T, B, D2>>
 where
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
@@ -75,10 +68,7 @@ where
 /// # See also
 ///
 /// [Python Array API standard: `broadcast_to`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.broadcast_to.html)
-pub fn to_broadcast<R, T, B, D, D2>(
-    tensor: &TensorAny<R, T, B, D>,
-    shape: D2,
-) -> TensorView<'_, T, B, D2>
+pub fn to_broadcast<R, T, B, D, D2>(tensor: &TensorAny<R, T, B, D>, shape: D2) -> TensorView<'_, T, B, D2>
 where
     D: DimAPI + DimMaxAPI<D2, Max = D2>,
     D2: DimAPI,
@@ -88,10 +78,7 @@ where
     into_broadcast_f(tensor.view(), shape).unwrap()
 }
 
-pub fn to_broadcast_f<R, T, B, D, D2>(
-    tensor: &TensorAny<R, T, B, D>,
-    shape: D2,
-) -> Result<TensorView<'_, T, B, D2>>
+pub fn to_broadcast_f<R, T, B, D, D2>(tensor: &TensorAny<R, T, B, D>, shape: D2) -> Result<TensorView<'_, T, B, D2>>
 where
     D: DimAPI + DimMaxAPI<D2, Max = D2>,
     D2: DimAPI,
@@ -101,10 +88,7 @@ where
     into_broadcast_f(tensor.view(), shape)
 }
 
-pub fn into_broadcast<R, T, B, D, D2>(
-    tensor: TensorAny<R, T, B, D>,
-    shape: D2,
-) -> TensorAny<R, T, B, D2>
+pub fn into_broadcast<R, T, B, D, D2>(tensor: TensorAny<R, T, B, D>, shape: D2) -> TensorAny<R, T, B, D2>
 where
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
@@ -176,12 +160,8 @@ where
     let ndim: isize = TryInto::<isize>::try_into(tensor.ndim())?;
     let (storage, layout) = tensor.into_raw_parts();
     let mut layout = layout.into_dim::<IxD>()?;
-    let mut axes: Vec<isize> = axes
-        .try_into()?
-        .as_ref()
-        .iter()
-        .map(|&v| if v >= 0 { v - ndim - 1 } else { v })
-        .collect::<Vec<isize>>();
+    let mut axes: Vec<isize> =
+        axes.try_into()?.as_ref().iter().map(|&v| if v >= 0 { v - ndim - 1 } else { v }).collect::<Vec<isize>>();
     axes.sort();
     for &axis in axes.iter() {
         layout = layout.dim_insert(axis)?;
@@ -199,10 +179,7 @@ where
 /// # See also
 ///
 /// [Python Array API standard: `expand_dims`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.expand_dims.html)
-pub fn expand_dims<I, R, T, B, D>(
-    tensor: &TensorAny<R, T, B, D>,
-    axes: I,
-) -> TensorView<'_, T, B, IxD>
+pub fn expand_dims<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axes: I) -> TensorView<'_, T, B, IxD>
 where
     D: DimAPI,
     I: TryInto<AxesIndex<isize>, Error = Error>,
@@ -212,10 +189,7 @@ where
     into_expand_dims_f(tensor.view(), axes).unwrap()
 }
 
-pub fn expand_dims_f<I, R, T, B, D>(
-    tensor: &TensorAny<R, T, B, D>,
-    axes: I,
-) -> Result<TensorView<'_, T, B, IxD>>
+pub fn expand_dims_f<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axes: I) -> Result<TensorView<'_, T, B, IxD>>
 where
     D: DimAPI,
     I: TryInto<AxesIndex<isize>, Error = Error>,
@@ -308,8 +282,7 @@ where
 ///
 /// # Panics
 ///
-/// - If some index in `axis` is greater than the number of axes in the original
-///   tensor.
+/// - If some index in `axis` is greater than the number of axes in the original tensor.
 ///
 /// # See also
 ///
@@ -324,10 +297,7 @@ where
     into_flip_f(tensor.view(), axes).unwrap()
 }
 
-pub fn flip_f<I, R, T, B, D>(
-    tensor: &TensorAny<R, T, B, D>,
-    axes: I,
-) -> Result<TensorView<'_, T, B, D>>
+pub fn flip_f<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axes: I) -> Result<TensorView<'_, T, B, D>>
 where
     D: DimAPI,
     I: TryInto<AxesIndex<isize>, Error = Error>,
@@ -423,10 +393,7 @@ where
     into_transpose_f(tensor.view(), axes).unwrap()
 }
 
-pub fn transpose_f<I, R, T, B, D>(
-    tensor: &TensorAny<R, T, B, D>,
-    axes: I,
-) -> Result<TensorView<'_, T, B, D>>
+pub fn transpose_f<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axes: I) -> Result<TensorView<'_, T, B, D>>
 where
     D: DimAPI,
     I: TryInto<AxesIndex<isize>, Error = Error>,
@@ -593,11 +560,7 @@ where
 
 /* #region swapaxes */
 
-pub fn into_swapaxes_f<I, S, D>(
-    tensor: TensorBase<S, D>,
-    axis1: I,
-    axis2: I,
-) -> Result<TensorBase<S, D>>
+pub fn into_swapaxes_f<I, S, D>(tensor: TensorBase<S, D>, axis1: I, axis2: I) -> Result<TensorBase<S, D>>
 where
     D: DimAPI,
     I: TryInto<isize>,
@@ -614,11 +577,7 @@ where
 /// # See also
 ///
 /// - [numpy `swapaxes`](https://numpy.org/doc/stable/reference/generated/numpy.swapaxes.html)
-pub fn swapaxes<I, R, T, B, D>(
-    tensor: &TensorAny<R, T, B, D>,
-    axis1: I,
-    axis2: I,
-) -> TensorView<'_, T, B, D>
+pub fn swapaxes<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axis1: I, axis2: I) -> TensorView<'_, T, B, D>
 where
     D: DimAPI,
     I: TryInto<isize>,
@@ -628,11 +587,7 @@ where
     into_swapaxes_f(tensor.view(), axis1, axis2).unwrap()
 }
 
-pub fn swapaxes_f<I, R, T, B, D>(
-    tensor: &TensorAny<R, T, B, D>,
-    axis1: I,
-    axis2: I,
-) -> Result<TensorView<'_, T, B, D>>
+pub fn swapaxes_f<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axis1: I, axis2: I) -> Result<TensorView<'_, T, B, D>>
 where
     D: DimAPI,
     I: TryInto<isize>,
@@ -740,10 +695,7 @@ where
     into_squeeze_f(tensor.view(), axes).unwrap()
 }
 
-pub fn squeeze_f<I, R, T, B, D>(
-    tensor: &TensorAny<R, T, B, D>,
-    axes: I,
-) -> Result<TensorView<'_, T, B, IxD>>
+pub fn squeeze_f<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axes: I) -> Result<TensorView<'_, T, B, IxD>>
 where
     D: DimAPI,
     I: TryInto<AxesIndex<isize>, Error = Error>,
@@ -950,12 +902,7 @@ where
     let default_order = tensor.device().default_order();
     let (storage, layout) = tensor.into_raw_parts();
 
-    rstsr_assert_eq!(
-        layout.size(),
-        shape.shape_size(),
-        InvalidLayout,
-        "Number of elements not same."
-    )?;
+    rstsr_assert_eq!(layout.size(), shape.shape_size(), InvalidLayout, "Number of elements not same.")?;
 
     let new_layout = {
         if default_order == FlagOrder::C && layout.c_contig() {
@@ -977,10 +924,7 @@ where
 /// # See also
 ///
 /// [Python array API standard: `reshape`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.reshape.html)
-pub fn to_shape_assume_contig<R, T, B, D, D2>(
-    tensor: &TensorAny<R, T, B, D>,
-    shape: D2,
-) -> TensorView<'_, T, B, D2>
+pub fn to_shape_assume_contig<R, T, B, D, D2>(tensor: &TensorAny<R, T, B, D>, shape: D2) -> TensorView<'_, T, B, D2>
 where
     D: DimAPI,
     D2: DimAPI,
@@ -1003,10 +947,7 @@ where
     into_shape_assume_contig_f(tensor.view(), shape)
 }
 
-pub fn into_shape_assume_contig<R, T, B, D, D2>(
-    tensor: TensorAny<R, T, B, D>,
-    shape: D2,
-) -> TensorAny<R, T, B, D2>
+pub fn into_shape_assume_contig<R, T, B, D, D2>(tensor: TensorAny<R, T, B, D>, shape: D2) -> TensorAny<R, T, B, D2>
 where
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
@@ -1077,10 +1018,7 @@ where
 
 /* #region reshape */
 
-pub fn change_shape_f<'a, I, R, T, B, D>(
-    tensor: TensorAny<R, T, B, D>,
-    shape: I,
-) -> Result<TensorCow<'a, T, B, IxD>>
+pub fn change_shape_f<'a, I, R, T, B, D>(tensor: TensorAny<R, T, B, D>, shape: I) -> Result<TensorCow<'a, T, B, IxD>>
 where
     I: TryInto<AxesIndex<isize>, Error = Error>,
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
@@ -1090,9 +1028,7 @@ where
     // own shape, this is cheap operation
     let shape_new = reshape_substitute_negatives(shape.try_into()?.as_ref(), tensor.size())?;
     let default_order = tensor.device().default_order();
-    if let Some(layout_new) =
-        layout_reshapeable(&tensor.layout().to_dim()?, &shape_new, default_order)?
-    {
+    if let Some(layout_new) = layout_reshapeable(&tensor.layout().to_dim()?, &shape_new, default_order)? {
         // shape does not need to be changed
         let (storage, _) = tensor.into_raw_parts();
         let layout = layout_new.into_dim::<IxD>()?;
@@ -1111,10 +1047,7 @@ where
     }
 }
 
-pub fn change_shape<'a, I, R, T, B, D>(
-    tensor: TensorAny<R, T, B, D>,
-    shape: I,
-) -> TensorCow<'a, T, B, IxD>
+pub fn change_shape<'a, I, R, T, B, D>(tensor: TensorAny<R, T, B, D>, shape: I) -> TensorCow<'a, T, B, IxD>
 where
     I: TryInto<AxesIndex<isize>, Error = Error>,
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
@@ -1124,19 +1057,13 @@ where
     change_shape_f(tensor, shape).unwrap()
 }
 
-pub fn into_shape_f<'a, I, R, T, B, D>(
-    tensor: TensorAny<R, T, B, D>,
-    shape: I,
-) -> Result<Tensor<T, B, IxD>>
+pub fn into_shape_f<'a, I, R, T, B, D>(tensor: TensorAny<R, T, B, D>, shape: I) -> Result<Tensor<T, B, IxD>>
 where
     I: TryInto<AxesIndex<isize>, Error = Error>,
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
     T: Clone,
-    B: DeviceAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + OpAssignArbitaryAPI<T, IxD, D>
-        + OpAssignAPI<T, IxD>,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D> + OpAssignAPI<T, IxD>,
     B::Raw: Clone + 'a,
 {
     change_shape_f(tensor, shape).map(|v| v.into_owned())
@@ -1148,19 +1075,13 @@ where
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
     T: Clone,
-    B: DeviceAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + OpAssignArbitaryAPI<T, IxD, D>
-        + OpAssignAPI<T, IxD>,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D> + OpAssignAPI<T, IxD>,
     B::Raw: Clone + 'a,
 {
     into_shape_f(tensor, shape).unwrap()
 }
 
-pub fn to_shape_f<'a, I, R, T, B, D>(
-    tensor: &'a TensorAny<R, T, B, D>,
-    shape: I,
-) -> Result<TensorCow<'a, T, B, IxD>>
+pub fn to_shape_f<'a, I, R, T, B, D>(tensor: &'a TensorAny<R, T, B, D>, shape: I) -> Result<TensorCow<'a, T, B, IxD>>
 where
     I: TryInto<AxesIndex<isize>, Error = Error>,
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
@@ -1170,10 +1091,7 @@ where
     change_shape_f(tensor.view(), shape)
 }
 
-pub fn to_shape<'a, I, R, T, B, D>(
-    tensor: &'a TensorAny<R, T, B, D>,
-    shape: I,
-) -> TensorCow<'a, T, B, IxD>
+pub fn to_shape<'a, I, R, T, B, D>(tensor: &'a TensorAny<R, T, B, D>, shape: I) -> TensorCow<'a, T, B, IxD>
 where
     I: TryInto<AxesIndex<isize>, Error = Error>,
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
@@ -1183,10 +1101,7 @@ where
     to_shape_f(tensor, shape).unwrap()
 }
 
-pub fn reshape_f<'a, I, R, T, B, D>(
-    tensor: &'a TensorAny<R, T, B, D>,
-    shape: I,
-) -> Result<TensorCow<'a, T, B, IxD>>
+pub fn reshape_f<'a, I, R, T, B, D>(tensor: &'a TensorAny<R, T, B, D>, shape: I) -> Result<TensorCow<'a, T, B, IxD>>
 where
     I: TryInto<AxesIndex<isize>, Error = Error>,
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
@@ -1196,10 +1111,7 @@ where
     to_shape_f(tensor, shape)
 }
 
-pub fn reshape<'a, I, R, T, B, D>(
-    tensor: &'a TensorAny<R, T, B, D>,
-    shape: I,
-) -> TensorCow<'a, T, B, IxD>
+pub fn reshape<'a, I, R, T, B, D>(tensor: &'a TensorAny<R, T, B, D>, shape: I) -> TensorCow<'a, T, B, IxD>
 where
     I: TryInto<AxesIndex<isize>, Error = Error>,
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
@@ -1213,10 +1125,7 @@ impl<'a, R, T, B, D> TensorAny<R, T, B, D>
 where
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
-    B: DeviceAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + OpAssignArbitaryAPI<T, IxD, D>
-        + OpAssignAPI<T, IxD>,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D> + OpAssignAPI<T, IxD>,
     T: Clone,
 {
     pub fn change_shape_f<I>(self, shape: I) -> Result<TensorCow<'a, T, B, IxD>>
@@ -1295,10 +1204,8 @@ where
     let shape = layout.shape();
     rstsr_assert_eq!(tensor.size(), shape.shape_size(), InvalidLayout)?;
     let same_layout = tensor.layout().to_dim::<IxD>()? == layout.to_dim::<IxD>()?;
-    let contig_c =
-        tensor.c_contig() && layout.c_contig() && tensor.layout().offset() == layout.offset();
-    let contig_f =
-        tensor.f_contig() && layout.f_contig() && tensor.layout().offset() == layout.offset();
+    let contig_c = tensor.c_contig() && layout.c_contig() && tensor.layout().offset() == layout.offset();
+    let contig_f = tensor.f_contig() && layout.f_contig() && tensor.layout().offset() == layout.offset();
     let default_order = tensor.device().default_order();
     let contig = match default_order {
         RowMajor => contig_c,
@@ -1323,10 +1230,7 @@ where
 }
 
 /// Convert tensor to the other layout.
-pub fn to_layout<R, T, D, B, D2>(
-    tensor: &TensorAny<R, T, B, D>,
-    layout: Layout<D2>,
-) -> TensorCow<'_, T, B, D2>
+pub fn to_layout<R, T, D, B, D2>(tensor: &TensorAny<R, T, B, D>, layout: Layout<D2>) -> TensorCow<'_, T, B, D2>
 where
     R: DataAPI<Data = B::Raw>,
     D: DimAPI,
@@ -1349,10 +1253,7 @@ where
     change_layout_f(tensor.view(), layout)
 }
 
-pub fn into_layout_f<'a, R, T, B, D, D2>(
-    tensor: TensorAny<R, T, B, D>,
-    layout: Layout<D2>,
-) -> Result<Tensor<T, B, D2>>
+pub fn into_layout_f<'a, R, T, B, D, D2>(tensor: TensorAny<R, T, B, D>, layout: Layout<D2>) -> Result<Tensor<T, B, D2>>
 where
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
@@ -1364,10 +1265,7 @@ where
     change_layout_f(tensor, layout).map(|v| v.into_owned())
 }
 
-pub fn into_layout<'a, R, T, B, D, D2>(
-    tensor: TensorAny<R, T, B, D>,
-    layout: Layout<D2>,
-) -> Tensor<T, B, D2>
+pub fn into_layout<'a, R, T, B, D, D2>(tensor: TensorAny<R, T, B, D>, layout: Layout<D2>) -> Tensor<T, B, D2>
 where
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
@@ -1379,10 +1277,7 @@ where
     into_layout_f(tensor, layout).unwrap()
 }
 
-pub fn change_layout<'a, R, T, B, D, D2>(
-    tensor: TensorAny<R, T, B, D>,
-    layout: Layout<D2>,
-) -> TensorCow<'a, T, B, D2>
+pub fn change_layout<'a, R, T, B, D, D2>(tensor: TensorAny<R, T, B, D>, layout: Layout<D2>) -> TensorCow<'a, T, B, D2>
 where
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
@@ -1476,10 +1371,7 @@ where
     change_layout_f(tensor, layout_new)
 }
 
-pub fn to_contig_f<R, T, B, D>(
-    tensor: &TensorAny<R, T, B, D>,
-    order: FlagOrder,
-) -> Result<TensorCow<'_, T, B, D>>
+pub fn to_contig_f<R, T, B, D>(tensor: &TensorAny<R, T, B, D>, order: FlagOrder) -> Result<TensorCow<'_, T, B, D>>
 where
     R: DataAPI<Data = B::Raw>,
     D: DimAPI,
@@ -1488,10 +1380,7 @@ where
     change_contig_f(tensor.view(), order)
 }
 
-pub fn into_contig_f<'a, R, T, B, D>(
-    tensor: TensorAny<R, T, B, D>,
-    order: FlagOrder,
-) -> Result<Tensor<T, B, D>>
+pub fn into_contig_f<'a, R, T, B, D>(tensor: TensorAny<R, T, B, D>, order: FlagOrder) -> Result<Tensor<T, B, D>>
 where
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
@@ -1502,10 +1391,7 @@ where
     change_contig_f(tensor, order).map(|v| v.into_owned())
 }
 
-pub fn change_contig<'a, R, T, B, D>(
-    tensor: TensorAny<R, T, B, D>,
-    order: FlagOrder,
-) -> TensorCow<'a, T, B, D>
+pub fn change_contig<'a, R, T, B, D>(tensor: TensorAny<R, T, B, D>, order: FlagOrder) -> TensorCow<'a, T, B, D>
 where
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
@@ -1514,10 +1400,7 @@ where
     change_contig_f(tensor, order).unwrap()
 }
 
-pub fn to_contig<R, T, B, D>(
-    tensor: &TensorAny<R, T, B, D>,
-    order: FlagOrder,
-) -> TensorCow<'_, T, B, D>
+pub fn to_contig<R, T, B, D>(tensor: &TensorAny<R, T, B, D>, order: FlagOrder) -> TensorCow<'_, T, B, D>
 where
     R: DataAPI<Data = B::Raw>,
     D: DimAPI,
@@ -1526,10 +1409,7 @@ where
     to_contig_f(tensor, order).unwrap()
 }
 
-pub fn into_contig<'a, R, T, B, D>(
-    tensor: TensorAny<R, T, B, D>,
-    order: FlagOrder,
-) -> Tensor<T, B, D>
+pub fn into_contig<'a, R, T, B, D>(tensor: TensorAny<R, T, B, D>, order: FlagOrder) -> Tensor<T, B, D>
 where
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
@@ -1606,18 +1486,14 @@ where
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D, D>,
 {
-    if (order == FlagOrder::C && tensor.c_prefer()) || (order == FlagOrder::F && tensor.f_prefer())
-    {
+    if (order == FlagOrder::C && tensor.c_prefer()) || (order == FlagOrder::F && tensor.f_prefer()) {
         Ok(tensor.into_cow())
     } else {
         change_contig_f(tensor, order)
     }
 }
 
-pub fn to_prefer_f<R, T, B, D>(
-    tensor: &TensorAny<R, T, B, D>,
-    order: FlagOrder,
-) -> Result<TensorCow<'_, T, B, D>>
+pub fn to_prefer_f<R, T, B, D>(tensor: &TensorAny<R, T, B, D>, order: FlagOrder) -> Result<TensorCow<'_, T, B, D>>
 where
     R: DataAPI<Data = B::Raw>,
     D: DimAPI,
@@ -1626,10 +1502,7 @@ where
     change_prefer_f(tensor.view(), order)
 }
 
-pub fn into_prefer_f<'a, R, T, B, D>(
-    tensor: TensorAny<R, T, B, D>,
-    order: FlagOrder,
-) -> Result<Tensor<T, B, D>>
+pub fn into_prefer_f<'a, R, T, B, D>(tensor: TensorAny<R, T, B, D>, order: FlagOrder) -> Result<Tensor<T, B, D>>
 where
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
@@ -1640,10 +1513,7 @@ where
     change_prefer_f(tensor, order).map(|v| v.into_owned())
 }
 
-pub fn change_prefer<'a, R, T, B, D>(
-    tensor: TensorAny<R, T, B, D>,
-    order: FlagOrder,
-) -> TensorCow<'a, T, B, D>
+pub fn change_prefer<'a, R, T, B, D>(tensor: TensorAny<R, T, B, D>, order: FlagOrder) -> TensorCow<'a, T, B, D>
 where
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
@@ -1652,10 +1522,7 @@ where
     change_prefer_f(tensor, order).unwrap()
 }
 
-pub fn to_prefer<R, T, B, D>(
-    tensor: &TensorAny<R, T, B, D>,
-    order: FlagOrder,
-) -> TensorCow<'_, T, B, D>
+pub fn to_prefer<R, T, B, D>(tensor: &TensorAny<R, T, B, D>, order: FlagOrder) -> TensorCow<'_, T, B, D>
 where
     R: DataAPI<Data = B::Raw>,
     D: DimAPI,
@@ -1664,10 +1531,7 @@ where
     to_prefer_f(tensor, order).unwrap()
 }
 
-pub fn into_prefer<'a, R, T, B, D>(
-    tensor: TensorAny<R, T, B, D>,
-    order: FlagOrder,
-) -> Tensor<T, B, D>
+pub fn into_prefer<'a, R, T, B, D>(tensor: TensorAny<R, T, B, D>, order: FlagOrder) -> Tensor<T, B, D>
 where
     R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
@@ -1795,8 +1659,7 @@ mod test_reshape {
             let layout_out = layout_reshapeable(&layout_in, &vec![3, 2, 4], default_order).unwrap();
             assert_eq!(layout_out.unwrap(), vec![3, 2, 4].c());
 
-            let layout_out =
-                layout_reshapeable(&layout_in, &vec![1, 4, 1, 6], default_order).unwrap();
+            let layout_out = layout_reshapeable(&layout_in, &vec![1, 4, 1, 6], default_order).unwrap();
             assert_eq!(layout_out.unwrap(), vec![1, 4, 1, 6].c());
         }
         #[cfg(feature = "col_major")]
@@ -1809,8 +1672,7 @@ mod test_reshape {
             let layout_out = layout_reshapeable(&layout_in, &vec![3, 2, 4], default_order).unwrap();
             assert_eq!(layout_out.unwrap(), vec![3, 2, 4].f());
 
-            let layout_out =
-                layout_reshapeable(&layout_in, &vec![1, 4, 1, 6], default_order).unwrap();
+            let layout_out = layout_reshapeable(&layout_in, &vec![1, 4, 1, 6], default_order).unwrap();
             assert_eq!(layout_out.unwrap(), vec![1, 4, 1, 6].f());
         }
     }
@@ -1824,21 +1686,18 @@ mod test_reshape {
             let layout_in = Layout::new(vec![9, 15, 6], vec![270, 18, 3], 810).unwrap();
             let default_order = RowMajor;
 
-            let layout_out =
-                layout_reshapeable(&layout_in, &vec![15, 9, 2, 3], default_order).unwrap();
+            let layout_out = layout_reshapeable(&layout_in, &vec![15, 9, 2, 3], default_order).unwrap();
             assert_eq!(layout_out.as_ref().unwrap().shape(), &vec![15, 9, 2, 3]);
             assert_eq!(layout_out.as_ref().unwrap().stride(), &vec![162, 18, 9, 3]);
             assert_eq!(layout_out.as_ref().unwrap().offset(), layout_in.offset());
 
-            let layout_out =
-                layout_reshapeable(&layout_in, &vec![10, 27, 3], default_order).unwrap();
+            let layout_out = layout_reshapeable(&layout_in, &vec![10, 27, 3], default_order).unwrap();
             assert_eq!(layout_out.as_ref().unwrap().shape(), &vec![10, 27, 3]);
             assert_eq!(layout_out.as_ref().unwrap().stride(), &vec![243, 9, 3]);
             assert_eq!(layout_out.as_ref().unwrap().offset(), layout_in.offset());
 
             // insert some new axes
-            let layout_out =
-                layout_reshapeable(&layout_in, &vec![1, 10, 1, 27, 3], default_order).unwrap();
+            let layout_out = layout_reshapeable(&layout_in, &vec![1, 10, 1, 27, 3], default_order).unwrap();
             assert_eq!(layout_out.as_ref().unwrap().shape(), &vec![1, 10, 1, 27, 3]);
             // strides follows c-contiguous, but zero is also valid for broadcast
             assert_eq!(layout_out.as_ref().unwrap().stride(), &vec![2430, 243, 243, 9, 3]);
@@ -1847,14 +1706,12 @@ mod test_reshape {
             // this case is not contiguous in last two dimensions
             let layout_in = Layout::new(vec![9, 15, 6], vec![270, 18, 2], 813).unwrap();
 
-            let layout_out =
-                layout_reshapeable(&layout_in, &vec![15, 9, 2, 3], default_order).unwrap();
+            let layout_out = layout_reshapeable(&layout_in, &vec![15, 9, 2, 3], default_order).unwrap();
             assert_eq!(layout_out.as_ref().unwrap().shape(), &vec![15, 9, 2, 3]);
             assert_eq!(layout_out.as_ref().unwrap().stride(), &vec![162, 18, 6, 2]);
             assert_eq!(layout_out.as_ref().unwrap().offset(), layout_in.offset());
 
-            let layout_out =
-                layout_reshapeable(&layout_in, &vec![10, 27, 3], default_order).unwrap();
+            let layout_out = layout_reshapeable(&layout_in, &vec![10, 27, 3], default_order).unwrap();
             assert!(layout_out.is_none());
         }
         #[cfg(feature = "col_major")]
@@ -1862,21 +1719,18 @@ mod test_reshape {
             let layout_in = Layout::new(vec![6, 15, 9], vec![3, 18, 270], 810).unwrap();
             let default_order = ColMajor;
 
-            let layout_out =
-                layout_reshapeable(&layout_in, &vec![3, 2, 9, 15], default_order).unwrap();
+            let layout_out = layout_reshapeable(&layout_in, &vec![3, 2, 9, 15], default_order).unwrap();
             assert_eq!(layout_out.as_ref().unwrap().shape(), &vec![3, 2, 9, 15]);
             assert_eq!(layout_out.as_ref().unwrap().stride(), &vec![3, 9, 18, 162]);
             assert_eq!(layout_out.as_ref().unwrap().offset(), layout_in.offset());
 
-            let layout_out =
-                layout_reshapeable(&layout_in, &vec![3, 27, 10], default_order).unwrap();
+            let layout_out = layout_reshapeable(&layout_in, &vec![3, 27, 10], default_order).unwrap();
             assert_eq!(layout_out.as_ref().unwrap().shape(), &vec![3, 27, 10]);
             assert_eq!(layout_out.as_ref().unwrap().stride(), &vec![3, 9, 243]);
             assert_eq!(layout_out.as_ref().unwrap().offset(), layout_in.offset());
 
             // insert some new axes
-            let layout_out =
-                layout_reshapeable(&layout_in, &vec![3, 27, 1, 10, 1], default_order).unwrap();
+            let layout_out = layout_reshapeable(&layout_in, &vec![3, 27, 1, 10, 1], default_order).unwrap();
             assert_eq!(layout_out.as_ref().unwrap().shape(), &vec![3, 27, 1, 10, 1]);
             // strides follows f-contiguous, but zero is also valid for broadcast
             assert_eq!(layout_out.as_ref().unwrap().stride(), &vec![3, 9, 243, 243, 2430]);
@@ -1885,14 +1739,12 @@ mod test_reshape {
             // this case is not contiguous in last two dimensions
             let layout_in = Layout::new(vec![6, 15, 9], vec![2, 18, 270], 813).unwrap();
 
-            let layout_out =
-                layout_reshapeable(&layout_in, &vec![3, 2, 9, 15], default_order).unwrap();
+            let layout_out = layout_reshapeable(&layout_in, &vec![3, 2, 9, 15], default_order).unwrap();
             assert_eq!(layout_out.as_ref().unwrap().shape(), &vec![3, 2, 9, 15]);
             assert_eq!(layout_out.as_ref().unwrap().stride(), &vec![2, 6, 18, 162]);
             assert_eq!(layout_out.as_ref().unwrap().offset(), layout_in.offset());
 
-            let layout_out =
-                layout_reshapeable(&layout_in, &vec![10, 27, 3], default_order).unwrap();
+            let layout_out = layout_reshapeable(&layout_in, &vec![10, 27, 3], default_order).unwrap();
             assert!(layout_out.is_none());
         }
     }
@@ -1906,12 +1758,10 @@ mod test_reshape {
             let layout_in = Layout::new(vec![9, 15, 6], vec![270, -18, -3], 1079).unwrap();
             let default_order = RowMajor;
 
-            let layout_out =
-                layout_reshapeable(&layout_in, &vec![15, 9, 2, 3], default_order).unwrap();
+            let layout_out = layout_reshapeable(&layout_in, &vec![15, 9, 2, 3], default_order).unwrap();
             assert!(layout_out.is_none());
 
-            let layout_out =
-                layout_reshapeable(&layout_in, &vec![3, 3, 10, 9], default_order).unwrap();
+            let layout_out = layout_reshapeable(&layout_in, &vec![3, 3, 10, 9], default_order).unwrap();
             assert_eq!(layout_out.as_ref().unwrap().shape(), &vec![3, 3, 10, 9]);
             assert_eq!(layout_out.as_ref().unwrap().stride(), &vec![810, 270, -27, -3]);
         }
@@ -1923,17 +1773,14 @@ mod test_reshape {
         {
             // a = np.zeros(12, 15, 18);
             // b = np.broadcast_to(a[:, None], (12, 16, 15, 18))
-            let layout_in =
-                unsafe { Layout::new_unchecked(vec![12, 16, 15, 18], vec![270, 0, 18, 1], 0) };
+            let layout_in = unsafe { Layout::new_unchecked(vec![12, 16, 15, 18], vec![270, 0, 18, 1], 0) };
             let default_order = RowMajor;
 
-            let layout_out =
-                layout_reshapeable(&layout_in, &vec![4, 3, 4, 4, 9, 1, 30], default_order).unwrap();
+            let layout_out = layout_reshapeable(&layout_in, &vec![4, 3, 4, 4, 9, 1, 30], default_order).unwrap();
             assert_eq!(layout_out.as_ref().unwrap().shape(), &vec![4, 3, 4, 4, 9, 1, 30]);
             assert_eq!(layout_out.as_ref().unwrap().stride(), &vec![810, 270, 0, 0, 30, 30, 1]);
 
-            let layout_out =
-                layout_reshapeable(&layout_in, &vec![16, 12, 15, 18], default_order).unwrap();
+            let layout_out = layout_reshapeable(&layout_in, &vec![16, 12, 15, 18], default_order).unwrap();
             assert!(layout_out.is_none());
         }
     }
@@ -2025,9 +1872,7 @@ mod tests {
             let a = a.into_shape_assume_contig_f([4, 1, 4]).unwrap();
             let a = a.to_broadcast_f([6, 4, 3, 4]).unwrap();
             println!("{a:?}");
-            assert_eq!(a.layout(), unsafe {
-                &Layout::new_unchecked([6, 4, 3, 4], [0, 4, 0, 1], 0)
-            });
+            assert_eq!(a.layout(), unsafe { &Layout::new_unchecked([6, 4, 3, 4], [0, 4, 0, 1], 0) });
         }
         #[cfg(feature = "col_major")]
         {
@@ -2035,9 +1880,7 @@ mod tests {
             let a = a.into_shape_assume_contig_f([4, 1, 4]).unwrap();
             let a = a.to_broadcast_f([4, 3, 4, 6]).unwrap();
             println!("{a:?}");
-            assert_eq!(a.layout(), unsafe {
-                &Layout::new_unchecked([4, 3, 4, 6], [1, 0, 4, 0], 0)
-            });
+            assert_eq!(a.layout(), unsafe { &Layout::new_unchecked([4, 3, 4, 6], [1, 0, 4, 0], 0) });
         }
     }
 

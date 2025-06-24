@@ -18,11 +18,7 @@ impl<T> Slice<T>
 where
     T: Integer + Clone,
 {
-    pub fn new(
-        start: impl Into<Option<T>>,
-        stop: impl Into<Option<T>>,
-        step: impl Into<Option<T>>,
-    ) -> Self {
+    pub fn new(start: impl Into<Option<T>>, stop: impl Into<Option<T>>, step: impl Into<Option<T>>) -> Self {
         Self { start: start.into(), stop: stop.into(), step: step.into() }
     }
 
