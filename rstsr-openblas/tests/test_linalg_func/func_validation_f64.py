@@ -78,6 +78,11 @@ b = b_raw[:1024*512].copy().reshape(1024, 512)
 x = np.linalg.solve(a, b)
 fingerprint(x)
 
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw[:1024].copy().reshape(1024)
+x = np.linalg.solve(a, b)
+fingerprint(x)
+
 # ### sovle_symmetric
 
 a = a_raw.copy().reshape(1024, 1024)
