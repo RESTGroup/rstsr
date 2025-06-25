@@ -27,4 +27,4 @@ jobs:
         cd rstsr-openblas/tests/test_linalg_func
         python func_validation_f64.py
     - name: test faer implementation
-      run: cargo test -p rstsr-linalg-traits --test "*" --features="faer"
+      run: cargo test -p rstsr-linalg-traits --test "*" --release --features="faer"

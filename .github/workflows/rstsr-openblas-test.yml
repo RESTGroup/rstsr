@@ -34,4 +34,4 @@ jobs:
         cd rstsr-openblas/tests/test_linalg_func
         python func_validation_f64.py
     - name: test
-      run: RSTSR_DEV=1 cargo test -p rstsr-openblas --features="openmp linalg"
+      run: RSTSR_DEV=1 cargo test -p rstsr-openblas --release --features="openmp linalg"
