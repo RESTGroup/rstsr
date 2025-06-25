@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.3.7 -- 2025-06-25
+
+Bug Fix:
+- Fix panic when layout iterator size is zero ([#42](https://github.com/RESTGroup/rstsr/pull/42))
+
+Enhancements:
+- Add common function numa_refb and refb_numa implementation ([#42](https://github.com/RESTGroup/rstsr/pull/42))
+- Implement clone for Tensor and TensorCow ([#42](https://github.com/RESTGroup/rstsr/pull/42))
+- Added into_pack_array, into_unpack_array as associated function of TensorAny ([#42](https://github.com/RESTGroup/rstsr/pull/42))
+- linalg: Solve-related functions supports vector (Ix1) RHS ([#43](https://github.com/RESTGroup/rstsr/pull/43))
+
 ## v0.3.6 -- 2025-06-05
 
 Bug Fix:
