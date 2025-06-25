@@ -1,12 +1,12 @@
-<center>
+<div align="center">
 
-![Logo of RSTSR](assets/logo-3-white.png)
+<img src="./assets/logo-3-white.png" width="500px" alt="Logo of RSTSR" />
 
-</center>
+</div>
 
 # RSTSR: An n-Dimensional Rust Tensor Toolkit
 
-<center>
+<div align="center">
 
 | Resources | Badges |
 |--|--|
@@ -14,11 +14,13 @@
 | API Document | [![API Documentation](https://docs.rs/rstsr/badge.svg)](https://docs.rs/rstsr) |
 | Crate | [![Crate](https://img.shields.io/crates/v/rstsr.svg)](https://crates.io/crates/rstsr) |
 
-</center>
+</div>
 
 Welcome to RSTSR, an n-dimensional tensor toolkit library, in native rust.
 
 This crate will be a building block for scientific computation in native Rust, similar to NumPy of Python.
+
+For users comes from NumPy, the [NumPy-RSTSR Cheatsheet](https://restgroup.github.io/rstsr-book/docs/numpy-cheatsheet) ([简体中文](https://restgroup.github.io/rstsr-book/zh-hans/docs/numpy-cheatsheet)) will let you quickly be familiar with RSTSR.
 
 **This project is still in early stage, and radical code factorization could occur; dev-documentation can still be greatly improved.**
 
