@@ -9,10 +9,12 @@ where
     T: ComplexField,
 {
     // set parallel mode
-    let pool = a.device().get_current_pool();
+    let device = a.device().clone();
+    let pool = device.get_current_pool();
     let faer_par_orig = faer::get_global_parallelism();
-    let faer_par = pool.map_or(Par::Seq, |pool| Par::rayon(pool.current_num_threads()));
-    faer::set_global_parallelism(faer_par);
+    if let Some(pool) = pool {
+        faer::set_global_parallelism(Par::rayon(pool.current_num_threads()));
+    }
 
     let faer_a = a.into_faer();
 
@@ -21,7 +23,9 @@ where
     let result = T::real_part_impl(&result);
 
     // restore parallel mode
-    faer::set_global_parallelism(faer_par_orig);
+    if pool.is_some() {
+        faer::set_global_parallelism(faer_par_orig)
+    }
 
     Ok(result)
 }

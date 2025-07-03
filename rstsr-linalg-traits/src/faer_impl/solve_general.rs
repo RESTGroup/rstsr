@@ -16,8 +16,9 @@ where
     let device = a.device().clone();
     let pool = device.get_current_pool();
     let faer_par_orig = faer::get_global_parallelism();
-    let faer_par = pool.map_or(Par::Seq, |pool| Par::rayon(pool.current_num_threads()));
-    faer::set_global_parallelism(faer_par);
+    if let Some(pool) = pool {
+        faer::set_global_parallelism(Par::rayon(pool.current_num_threads()));
+    }
 
     let faer_a = a.view().into_faer();
 
@@ -32,7 +33,9 @@ where
     svd_result.solve_in_place(faer_b);
 
     // restore parallel mode
-    faer::set_global_parallelism(faer_par_orig);
+    if pool.is_some() {
+        faer::set_global_parallelism(faer_par_orig)
+    }
 
     Ok(b.clone_to_mut())
 }
