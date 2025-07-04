@@ -15,8 +15,9 @@ where
     let device = a.device().clone();
     let pool = device.get_current_pool();
     let faer_par_orig = faer::get_global_parallelism();
-    let faer_par = pool.map_or(Par::Seq, |pool| Par::rayon(pool.current_num_threads()));
-    faer::set_global_parallelism(faer_par);
+    if let Some(pool) = pool {
+        faer::set_global_parallelism(Par::rayon(pool.current_num_threads()));
+    }
 
     let uplo = uplo.unwrap_or(match a.device().default_order() {
         RowMajor => Lower,
@@ -33,14 +34,16 @@ where
 
     // faer always returns lower triangular matrix
     let result = match uplo {
-        Lower => result.L(),
-        Upper => result.L().transpose(),
+        Lower => result.L().to_owned(),
+        Upper => result.L().adjoint().to_owned(),
     };
     // convert to rstsr tensor with certain layout
     let result = result.into_rstsr().into_contig(device.default_order());
 
     // restore parallel mode
-    faer::set_global_parallelism(faer_par_orig);
+    if pool.is_some() {
+        faer::set_global_parallelism(faer_par_orig)
+    }
 
     Ok(result)
 }

@@ -128,8 +128,6 @@ det
 
 np.linalg.slogdet(a)
 
-scipy.linalg.lapack.dgetrf(a)
-
 # ### svd
 
 a = a_raw[:1024*512].copy().reshape(1024, 512)
@@ -147,8 +145,8 @@ assert np.isclose(fingerprint(np.abs(vt)), 13.465522484136157)
 fingerprint(np.abs(u)), fingerprint(s), fingerprint(np.abs(vt))
 
 a = a_raw[:1024*512].copy().reshape(1024, 512)
-assert np.isclose(fingerprint(s), 33.969339071043095)
 s = scipy.linalg.svd(a, compute_uv=False)
+assert np.isclose(fingerprint(s), 33.969339071043095)
 fingerprint(s)
 
 a = a_raw[:1024*512].copy().reshape(512, 1024)

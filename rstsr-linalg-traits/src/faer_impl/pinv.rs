@@ -18,8 +18,9 @@ where
     let device = a.device().clone();
     let pool = device.get_current_pool();
     let faer_par_orig = faer::get_global_parallelism();
-    let faer_par = pool.map_or(Par::Seq, |pool| Par::rayon(pool.current_num_threads()));
-    faer::set_global_parallelism(faer_par);
+    if let Some(pool) = pool {
+        faer::set_global_parallelism(Par::rayon(pool.current_num_threads()));
+    }
 
     // compute rcond value
     let atol = atol.unwrap_or(T::Real::zero());
@@ -48,11 +49,13 @@ where
     let rank = s.raw().iter().take_while(|&&x| x > val).count();
     let mut u = u.into_slice((.., ..rank));
     u /= s.i((None, ..rank));
-    let a_pinv = v.i((.., ..rank)) % u.t();
-    let pinv = a_pinv.mapv(|x| T::conj_impl(&x)).into_dim::<Ix2>();
+    let a_pinv = v.i((.., ..rank)) % u.mapv(|x| T::conj_impl(&x)).t();
+    let pinv = a_pinv.into_dim::<Ix2>();
 
     // restore parallel mode
-    faer::set_global_parallelism(faer_par_orig);
+    if pool.is_some() {
+        faer::set_global_parallelism(faer_par_orig)
+    }
 
     Ok(PinvResult { pinv, rank })
 }
