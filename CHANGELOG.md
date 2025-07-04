@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.3.8 -- 2025-07-04
+
+Bug Fix:
+- Tested complex linalgs for Faer and OpenBLAS devices.
+
+Enhancements:
+- DeviceFaer: generalized eigen, triangular solve ([#44](https://github.com/RESTGroup/rstsr/pull/44))
+
 ## v0.3.7 -- 2025-06-25
 
 Bug Fix:
