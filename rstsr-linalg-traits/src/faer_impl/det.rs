@@ -4,7 +4,7 @@ use faer::traits::ComplexField;
 use faer_ext::IntoFaer;
 use rstsr_core::prelude_dev::*;
 
-pub fn faer_impl_det_f<T>(a: TensorView<'_, T, DeviceFaer, Ix2>) -> Result<T::Real>
+pub fn faer_impl_det_f<T>(a: TensorView<'_, T, DeviceFaer, Ix2>) -> Result<T>
 where
     T: ComplexField,
 {
@@ -20,7 +20,6 @@ where
 
     // det computation
     let result = faer_a.determinant();
-    let result = T::real_part_impl(&result);
 
     // restore parallel mode
     if pool.is_some() {
@@ -41,7 +40,7 @@ where
     T: ComplexField,
     D: DimAPI,
 {
-    type Out = T::Real;
+    type Out = T;
     fn det_f(self) -> Result<Self::Out> {
         rstsr_assert_eq!(self.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
         let a = self;

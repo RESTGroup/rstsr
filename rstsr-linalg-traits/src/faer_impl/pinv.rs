@@ -49,8 +49,8 @@ where
     let rank = s.raw().iter().take_while(|&&x| x > val).count();
     let mut u = u.into_slice((.., ..rank));
     u /= s.i((None, ..rank));
-    let a_pinv = v.i((.., ..rank)) % u.t();
-    let pinv = a_pinv.mapv(|x| T::conj_impl(&x)).into_dim::<Ix2>();
+    let a_pinv = v.i((.., ..rank)) % u.mapv(|x| T::conj_impl(&x)).t();
+    let pinv = a_pinv.into_dim::<Ix2>();
 
     // restore parallel mode
     if pool.is_some() {

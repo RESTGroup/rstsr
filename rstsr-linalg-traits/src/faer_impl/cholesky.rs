@@ -34,8 +34,8 @@ where
 
     // faer always returns lower triangular matrix
     let result = match uplo {
-        Lower => result.L(),
-        Upper => result.L().transpose(),
+        Lower => result.L().to_owned(),
+        Upper => result.L().adjoint().to_owned(),
     };
     // convert to rstsr tensor with certain layout
     let result = result.into_rstsr().into_contig(device.default_order());

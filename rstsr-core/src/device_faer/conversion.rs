@@ -57,6 +57,27 @@ impl<'a, T> IntoRSTSR for MatRef<'a, T> {
     }
 }
 
+impl<T> IntoRSTSR for Mat<T> {
+    type RSTSR = Tensor<T, DeviceFaer, Ix2>;
+
+    fn into_rstsr(self) -> Self::RSTSR {
+        let nrows = self.nrows();
+        let ncols = self.ncols();
+        let row_stride = self.row_stride();
+        let col_stride = self.col_stride();
+        let ptr = self.as_ptr();
+        core::mem::forget(self); // prevent double free
+
+        let layout = Layout::new([nrows, ncols], [row_stride, col_stride], 0).unwrap();
+        let (_, upper_bound) = layout.bounds_index().unwrap();
+        let raw = unsafe { Vec::from_raw_parts(ptr as *mut T, upper_bound, upper_bound) };
+        let data = DataOwned::from(raw);
+        let storage = Storage::new(data, DeviceFaer::default());
+        let tensor = unsafe { Tensor::new_unchecked(storage, layout) };
+        return tensor;
+    }
+}
+
 impl<'a, T> IntoRSTSR for ColRef<'a, T> {
     type RSTSR = TensorView<'a, T, DeviceFaer, Ix1>;
 
