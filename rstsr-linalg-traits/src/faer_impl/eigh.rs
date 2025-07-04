@@ -137,7 +137,39 @@ where
 
             (e, c)
         },
-        _ => unimplemented!(),
+        2 | 3 => {
+            // inv(l)
+            let mut l_inv = Mat::identity(n, n);
+            faer::linalg::triangular_solve::solve_lower_triangular_in_place(l.as_ref(), l_inv.as_mut(), faer_par);
+
+            // l.t.conj @ a @ l
+            let mut a = a.view_mut().into_faer();
+            faer::linalg::triangular_solve::solve_upper_triangular_in_place(l_inv.adjoint(), a.as_mut(), faer_par);
+            let mut a = a.transpose_mut();
+            faer::linalg::triangular_solve::solve_upper_triangular_in_place(l_inv.transpose(), a.as_mut(), faer_par);
+            let a = a.transpose_mut();
+
+            // eig(a)
+            let eig_a = a
+                .self_adjoint_eigen(faer_uplo)
+                .map_err(|e| rstsr_error!(FaerError, "Faer SelfAdjointEigen error: {e:?}"))?;
+            let e = eig_a.S().column_vector().into_rstsr().mapv(|v| T::real_part_impl(&v));
+
+            let mut c = eig_a.U().to_owned();
+            match itype {
+                2 => faer::linalg::triangular_solve::solve_upper_triangular_in_place(l.adjoint(), c.as_mut(), faer_par),
+                3 => faer::linalg::triangular_solve::solve_lower_triangular_in_place(
+                    l_inv.as_ref(),
+                    c.as_mut(),
+                    faer_par,
+                ),
+                _ => unreachable!(),
+            };
+            let c = c.into_rstsr().into_contig(device.default_order());
+
+            (e, c)
+        },
+        _ => unreachable!(),
     };
 
     // restore parallel mode
