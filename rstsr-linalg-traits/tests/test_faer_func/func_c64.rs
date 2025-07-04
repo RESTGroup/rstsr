@@ -209,3 +209,29 @@ mod test {
         assert!((fingerprint(&s) - 47.599274835886646).abs() < 1e-8);
     }
 }
+
+#[cfg(test)]
+mod test_generalized_eigh {
+    use super::*;
+
+    #[test]
+    fn test_generalized_eigh() {
+        let device = DeviceFaer::default();
+        let a_vec = get_vec::<c64>('a')[..1024 * 1024].to_vec();
+        let b_vec = get_vec::<c64>('b')[..1024 * 1024].to_vec();
+        let a = rt::asarray((a_vec, [1024, 1024].c(), &device)).into_dim::<Ix2>();
+        let b = rt::asarray((b_vec, [1024, 1024].c(), &device)).into_dim::<Ix2>();
+
+        // 1, lower
+        let (w, v) = rt::linalg::eigh((a.view(), b.view(), Lower, 1)).into();
+        println!("w: {:?}, v: {:?}", fingerprint(&w), fingerprint(&v.abs()));
+        assert!((fingerprint(&w) - -97.43376763322635).abs() < 1e-8);
+        assert!((fingerprint(&v.abs()) - -4.3181177983574255).abs() < 1e-8);
+
+        // 1, upper
+        let (w, v) = rt::linalg::eigh((a.view(), b.view(), Upper, 1)).into();
+        println!("w: {:?}, v: {:?}", fingerprint(&w), fingerprint(&v.abs()));
+        assert!((fingerprint(&w) - -54.81859256480441).abs() < 1e-8);
+        assert!((fingerprint(&v.abs()) - -1.4841788446757156).abs() < 1e-8);
+    }
+}

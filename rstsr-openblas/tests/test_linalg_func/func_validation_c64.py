@@ -64,6 +64,56 @@ assert np.isclose(fingerprint(w), -4656.824753078057)
 assert np.isclose(fingerprint(np.abs(v)), -0.15861903557045487)
 fingerprint(w), fingerprint(np.abs(v))
 
+# ### Tests of eigh (itype, lower)
+
+# 1, lower
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw.copy().reshape(1024, 1024)
+w, v = scipy.linalg.eigh(a, b, type=1, lower=True)
+assert np.isclose(fingerprint(w), -97.43376763322635)
+assert np.isclose(fingerprint(np.abs(v)), -4.3181177983574255)
+fingerprint(w), fingerprint(np.abs(v))
+
+# 1, upper
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw.copy().reshape(1024, 1024)
+w, v = scipy.linalg.eigh(a, b, type=1, lower=False)
+assert np.isclose(fingerprint(w), -54.81859256480441)
+assert np.isclose(fingerprint(np.abs(v)), -1.4841788446757156)
+fingerprint(w), fingerprint(np.abs(v))
+
+# 2, lower
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw.copy().reshape(1024, 1024)
+w, v = scipy.linalg.eigh(a, b, type=2, lower=True)
+assert np.isclose(fingerprint(w), -4967.627482507203)
+assert np.isclose(fingerprint(np.abs(v)), 5.541034627252399)
+fingerprint(w), fingerprint(np.abs(v))
+
+# 2, upper
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw.copy().reshape(1024, 1024)
+w, v = scipy.linalg.eigh(a, b, type=2, lower=False)
+assert np.isclose(fingerprint(w), -4656.824753078057)
+assert np.isclose(fingerprint(np.abs(v)), 1.0609263552377188)
+fingerprint(w), fingerprint(np.abs(v))
+
+# 3, lower
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw.copy().reshape(1024, 1024)
+w, v = scipy.linalg.eigh(a, b, type=3, lower=True)
+assert np.isclose(fingerprint(w), -4967.627482507203)
+assert np.isclose(fingerprint(np.abs(v)), 118.76501084045631)
+fingerprint(w), fingerprint(np.abs(v))
+
+# 3, upper
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw.copy().reshape(1024, 1024)
+w, v = scipy.linalg.eigh(a, b, type=3, lower=False)
+assert np.isclose(fingerprint(w), -4656.824753078057)
+assert np.isclose(fingerprint(np.abs(v)), -0.15861903557045487)
+fingerprint(w), fingerprint(np.abs(v))
+
 # ### inv
 
 a = a_raw.copy().reshape(1024, 1024)
