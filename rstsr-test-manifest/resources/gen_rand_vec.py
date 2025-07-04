@@ -24,10 +24,12 @@ for dtype, dtype_name, dtype_name_complex in [
 
     np.random.seed(42)
     a = np.random.randn(1024*1024).astype(dtype) + 1j * np.random.randn(1024*1024).astype(dtype)
+    # for i in range(1024):
+    #     a[i * 1024 + i] = a[i * 1024 + i].real
     # b is special tensor of positive-definite
     b = np.random.randn(1024*1024).astype(dtype) + 1j * np.random.randn(1024*1024).astype(dtype)
     w, v = np.linalg.eigh(b.reshape(1024, 1024))
-    b = (v @ np.diag(np.abs(w)) @ v.T).reshape(-1)
+    b = (v @ np.diag(np.abs(w)) @ v.T.conj()).reshape(-1)
     
     for name, arr in [
         (f"a-{dtype_name_complex}.npy", a),
@@ -35,3 +37,5 @@ for dtype, dtype_name, dtype_name_complex in [
     ]:
         with open(os.path.join(os.path.dirname(__file__), name), "wb") as f:
             np.save(f, arr)
+
+
