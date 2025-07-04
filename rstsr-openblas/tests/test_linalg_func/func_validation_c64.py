@@ -140,8 +140,6 @@ det = np.linalg.det(a)
 assert np.isclose(det, -24.808965756481086+11.800248863799464j)
 det
 
-np.linalg.slogdet(a)
-
 # ### svd
 
 a = a_raw[:1024*512].copy().reshape(1024, 512)
