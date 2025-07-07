@@ -35,7 +35,7 @@ default = ["row_major", "aligned_alloc", "faer", "faer_as_default"]
 std = ["rstsr-common/std"]
 rayon = ["dep:rayon", "rstsr-common/rayon", "rstsr-native-impl/rayon"]
 faer = ["rayon", "dep:faer", "dep:faer-ext"]
-faer_as_default = []
+faer_as_default = ["faer"]
 
 # Row-major or Col-major will be contractidary features.
 # Only one is accepted, otherwise this will panic in runtime.
