@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.3.9 -- 2025-07-07
+
+Enhancements:
+- Feature with optional dependencies. Now in main crate `rstsr`, using feature `faer` and `openblas` along with `linalg` and `sci` should be ok, without explicitly declaring `rstsr-linalg-traits` and `rstsr-sci-traits` as dependencies. 
+
 ## v0.3.8 -- 2025-07-04
 
 Bug Fix:
