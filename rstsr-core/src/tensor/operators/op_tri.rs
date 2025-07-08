@@ -101,7 +101,7 @@ where
     D::LargerOne: DimAPI,
     B: DeviceAPI<T> + DeviceOpUnpackTriAPI<T> + DeviceCreationAnyAPI<T>,
 {
-    pub fn unpack_tri(&self, uplo: FlagUpLo, symm: FlagSymm) -> Result<Tensor<T, B, D::LargerOne>> {
+    pub fn unpack_tri_f(&self, uplo: FlagUpLo, symm: FlagSymm) -> Result<Tensor<T, B, D::LargerOne>> {
         // layouts manuplication
         let lb = self.layout().to_dim::<IxD>()?;
 
@@ -159,20 +159,24 @@ where
         Tensor::new_f(storage_a, la.into_dim()?)
     }
 
+    pub fn unpack_tri(&self, uplo: FlagUpLo, symm: FlagSymm) -> Tensor<T, B, D::LargerOne> {
+        self.unpack_tri_f(uplo, symm).unwrap()
+    }
+
     pub fn unpack_tril(&self, symm: FlagSymm) -> Tensor<T, B, D::LargerOne> {
-        self.unpack_tri(FlagUpLo::L, symm).unwrap()
+        self.unpack_tri_f(FlagUpLo::L, symm).unwrap()
     }
 
     pub fn unpack_triu(&self, symm: FlagSymm) -> Tensor<T, B, D::LargerOne> {
-        self.unpack_tri(FlagUpLo::U, symm).unwrap()
-    }
-
-    pub fn unpack_tri_f(&self, uplo: FlagUpLo, symm: FlagSymm) -> Result<Tensor<T, B, D::LargerOne>> {
-        self.unpack_tri(uplo, symm)
+        self.unpack_tri_f(FlagUpLo::U, symm).unwrap()
     }
 
     pub fn unpack_tril_f(&self, symm: FlagSymm) -> Result<Tensor<T, B, D::LargerOne>> {
-        self.unpack_tri(FlagUpLo::L, symm)
+        self.unpack_tri_f(FlagUpLo::L, symm)
+    }
+
+    pub fn unpack_triu_f(&self, symm: FlagSymm) -> Result<Tensor<T, B, D::LargerOne>> {
+        self.unpack_tri_f(FlagUpLo::U, symm)
     }
 }
 
