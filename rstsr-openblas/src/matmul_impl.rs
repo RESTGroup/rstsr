@@ -74,6 +74,18 @@ pub fn fn_name(
     let n = sc[1];
     let k = sa[1];
 
+    // handle the special case that k is zero-dimensional
+    if k == 0 {
+        // if k is zero, the result is a zero matrix
+        return fill_cpu_rayon(c, lc, <ty>::ZERO, pool);
+    }
+
+    // handle the special case that n/m is zero-dimensional
+    if n == 0 || m == 0 {
+        // if n or m is zero, the result matrix size is zero, and nothing to do
+        return Ok(());
+    }
+
     // determine trans/layout and clone data if necessary
     let mut a_data: Option<Vec<ty>> = None;
     let mut b_data: Option<Vec<ty>> = None;
@@ -314,6 +326,18 @@ pub fn fn_name(
 
     let n = sc[0];
     let k = sa[1];
+
+    // handle the special case that k is zero-dimensional
+    if k == 0 {
+        // if k is zero, the result is a zero matrix
+        return fill_cpu_rayon(c, lc, <ty>::ZERO, pool);
+    }
+
+    // handle the special case that n is zero-dimensional
+    if n == 0 {
+        // if n is zero, the result matrix size is zero, and nothing to do
+        return Ok(());
+    }
 
     // determine trans/layout and clone data if necessary
     let mut a_data: Option<Vec<ty>> = None;
