@@ -13,7 +13,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.3"
+version = "0.3.10"
 edition = "2021"
 description = "An n-Dimension Rust Tensor Toolkit"
 repository = "https://github.com/RESTGroup/rstsr"
@@ -24,7 +24,7 @@ license = "Apache-2.0"
 [workspace.dependencies]
 rstsr-core = { path = "./rstsr-core", default-features = false, version = "0.3.10" }
 # members without core
-rstsr-common = { path = "./rstsr-common", default-features = false, version = "0.3" }
+rstsr-common = { path = "./rstsr-common", default-features = false, version = "0.3.10" }
 rstsr-dtype-traits = { path = "./rstsr-dtype-traits", default-features = false, version = "0.3.10" }
 rstsr-native-impl = { path = "./rstsr-native-impl", default-features = false, version = "0.3.10" }
 # members
