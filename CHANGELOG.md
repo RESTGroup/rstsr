@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.3.10 -- 2025-07-22
+
+Fix:
+- Fix unpack_tri signature
+- Fix gemm/syrk bug when k=0 ([#46](https://github.com/RESTGroup/rstsr/pull/46))
+
 ## v0.3.9 -- 2025-07-07
 
 Enhancements:
