@@ -1,11 +1,11 @@
 #![allow(non_camel_case_types)]
 
 use crate::prelude_dev::*;
+use lapack_ffi::cblas;
 use num::complex::Complex;
 use num::traits::ConstZero;
 use rayon::prelude::*;
 use rstsr_core::prelude_dev::uninitialized_vec;
-use lapack_ffi::cblas;
 use std::ffi::c_void;
 
 type c32 = Complex<f32>;
