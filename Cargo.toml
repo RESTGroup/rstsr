@@ -64,8 +64,10 @@ opt-level = 0
 opt-level = 2
 
 [profile.dev.package.rstsr-lapack-ffi]
+opt-level = 0
 debug = false
 
 [profile.dev.package.rstsr-openblas-ffi]
+opt-level = 0
 debug = false
 
