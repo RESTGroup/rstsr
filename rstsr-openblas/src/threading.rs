@@ -1,7 +1,7 @@
 //! openblas threading
 
 use crate::prelude_dev::*;
-#[cfg(feature = "openmp")]
+#[cfg(any(feature = "openmp", feature = "dynamic_loading"))]
 use core::ffi::c_int;
 use rstsr_blas_traits::prelude_dev::*;
 use std::sync::Mutex;
@@ -27,15 +27,17 @@ pub fn get_parallel() -> OpenBLASParallel {
             OPENBLAS_SEQUENTIAL => OpenBLASParallel::Sequential,
             OPENBLAS_THREAD => OpenBLASParallel::Thread,
             OPENBLAS_OPENMP => {
-                #[cfg(not(feature = "openmp"))]
-                panic!(concat!(
-                    "OpenMP is not enabled in `rstsr-openblas-ffi`, but detected using shared library `libopenblas` compiled with OpenMP.\n",
-                    "Please either\n",
-                    "- enable feature `openmp` when building `rstsr-openblas-ffi` and rebuild this crate;\n",
-                    "- run with libopenblas compiled with pthread (rebuild `rstsr-openblas-ffi` is not required in this case).",
-                ));
-                #[cfg(feature = "openmp")]
-                OpenBLASParallel::OpenMP
+                if cfg!(any(feature = "openmp", feature = "dynamic_loading")) {
+                    OpenBLASParallel::OpenMP
+                } else {
+                    panic!(concat!(
+                        "OpenMP is not enabled in `rstsr-openblas-ffi`, but detected using shared library `libopenblas` compiled with OpenMP.\n",
+                        "Please either\n",
+                        "- enable feature `dynamic_loading` when building `rstsr-openblas` and rebuild this crate, and everything will be determined at runtime;\n",
+                        "- enable feature `openmp` when building `rstsr-openblas` and rebuild this crate, with OpenMP library linked;\n",
+                        "- run with libopenblas compiled with pthread (rebuild `rstsr-openblas-ffi` is not required in this case).",
+                    ))
+                }
             },
             _ => panic!("Unknown parallelism type"),
         }
@@ -55,7 +57,7 @@ impl OpenBLASConfig {
         unsafe {
             match self.get_parallel() {
                 OPENBLAS_THREAD => rstsr_openblas_ffi::cblas::openblas_set_num_threads(n as i32),
-                #[cfg(feature = "openmp")]
+                #[cfg(any(feature = "openmp", feature = "dynamic_loading"))]
                 OPENBLAS_OPENMP => rstsr_openblas_ffi::cblas::omp_set_num_threads(n as c_int),
                 _ => (),
             }
@@ -66,7 +68,7 @@ impl OpenBLASConfig {
         unsafe {
             match self.get_parallel() {
                 OPENBLAS_THREAD => rstsr_openblas_ffi::cblas::openblas_get_num_threads() as usize,
-                #[cfg(feature = "openmp")]
+                #[cfg(any(feature = "openmp", feature = "dynamic_loading"))]
                 OPENBLAS_OPENMP => rstsr_openblas_ffi::cblas::omp_get_max_threads() as usize,
                 _ => 1,
             }
@@ -78,17 +80,18 @@ impl OpenBLASConfig {
             Some(p) => p,
             None => {
                 let p = unsafe { rstsr_openblas_ffi::cblas::openblas_get_parallel() } as u32;
-                #[cfg(not(feature = "openmp"))]
-                if p == OPENBLAS_OPENMP {
+                if cfg!(any(feature = "openmp", feature = "dynamic_loading")) {
+                    self.parallel = Some(p);
+                    p
+                } else {
                     panic!(concat!(
                         "OpenMP is not enabled in `rstsr-openblas-ffi`, but detected using shared library `libopenblas` compiled with OpenMP.\n",
                         "Please either\n",
-                        "- enable feature `openmp` when building `rstsr-openblas-ffi` and rebuild this crate;\n",
+                        "- enable feature `dynamic_loading` when building `rstsr-openblas` and rebuild this crate, and everything will be determined at runtime;\n",
+                        "- enable feature `openmp` when building `rstsr-openblas` and rebuild this crate, with OpenMP library linked;\n",
                         "- run with libopenblas compiled with pthread (rebuild `rstsr-openblas-ffi` is not required in this case).",
-                    ));
+                    ))
                 }
-                self.parallel = Some(p);
-                p
             },
         }
     }
