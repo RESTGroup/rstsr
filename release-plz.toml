@@ -1,8 +1,6 @@
 [workspace]
-git_tag_enable = false
 git_release_enable = false
 
 [[package]]
 name = "rstsr"
-git_tag_enable = true
 git_release_enable = true
