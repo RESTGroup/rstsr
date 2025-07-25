@@ -1,10 +1,10 @@
+use crate::lapack_ffi;
 use crate::DeviceBLAS;
 use num::complex::ComplexFloat;
 use num::{Complex, Zero};
 use rstsr_blas_traits::prelude::*;
 use rstsr_common::prelude_dev::*;
-use rstsr_lapack_ffi::blas::xerbla_;
-use rstsr_lapack_ffi::lapacke::{LAPACK_TRANSPOSE_MEMORY_ERROR, LAPACK_WORK_MEMORY_ERROR};
+
 use rstsr_native_impl::prelude_dev::*;
 use std::slice::from_raw_parts_mut;
 
@@ -29,12 +29,7 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
         ldvt: usize,
         superb: *mut T,
     ) -> blas_int {
-        use rstsr_lapack_ffi::lapack::func_;
-
-        unsafe fn raise_info(mut info: blas_int) -> blas_int {
-            xerbla_(c"gesvd".as_ptr() as _, &mut info as *mut _ as *mut _);
-            return if info < 0 { info - 1 } else { info };
-        }
+        use lapack_ffi::lapack::func_;
 
         // Query optimal working array size
         let mut info = 0;
@@ -57,14 +52,14 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
             &mut info,
         );
         if info != 0 {
-            return raise_info(info);
+            return info;
         }
         let lwork = work_query as usize;
 
         // Allocate memory for work array
         let mut work: Vec<T> = match uninitialized_vec(lwork) {
             Ok(work) => work,
-            Err(_) => return LAPACK_WORK_MEMORY_ERROR,
+            Err(_) => return -1010,
         };
 
         if order == ColMajor {
@@ -86,7 +81,7 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
                 &mut info,
             );
             if info != 0 {
-                return raise_info(info);
+                return info;
             }
         } else {
             let lda_t = m.max(1);
@@ -111,7 +106,7 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
             // Transpose input matrices
             let mut a_t: Vec<T> = match uninitialized_vec(m * n) {
                 Ok(a_t) => a_t,
-                Err(_) => return LAPACK_TRANSPOSE_MEMORY_ERROR,
+                Err(_) => return -1011,
             };
             let a_slice = from_raw_parts_mut(a, m * lda);
             let la = Layout::new_unchecked([m, n], [lda as isize, 1], 0);
@@ -121,7 +116,7 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
             let mut u_t = if jobu == 'A' || jobu == 'S' {
                 match uninitialized_vec(nrows_u * ncols_u) {
                     Ok(u_t) => u_t,
-                    Err(_) => return LAPACK_TRANSPOSE_MEMORY_ERROR,
+                    Err(_) => return -1011,
                 }
             } else {
                 Vec::new()
@@ -130,7 +125,7 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
             let mut vt_t = if jobvt == 'A' || jobvt == 'S' {
                 match uninitialized_vec(nrows_vt * n) {
                     Ok(vt_t) => vt_t,
-                    Err(_) => return LAPACK_TRANSPOSE_MEMORY_ERROR,
+                    Err(_) => return -1011,
                 }
             } else {
                 Vec::new()
@@ -154,7 +149,7 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
                 &mut info,
             );
             if info != 0 {
-                return raise_info(info);
+                return info;
             }
 
             // Transpose output matrices
@@ -206,18 +201,13 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
         ldvt: usize,
         superb: *mut <T as ComplexFloat>::Real,
     ) -> blas_int {
-        use rstsr_lapack_ffi::lapack::func_;
-
-        unsafe fn raise_info(mut info: blas_int) -> blas_int {
-            xerbla_(c"gesvd".as_ptr() as _, &mut info as *mut _ as *mut _);
-            return if info < 0 { info - 1 } else { info };
-        }
+        use lapack_ffi::lapack::func_;
 
         // Allocate rwork
         let min_mn = m.min(n);
         let mut rwork: Vec<<T as ComplexFloat>::Real> = match uninitialized_vec(5 * min_mn) {
             Ok(rwork) => rwork,
-            Err(_) => return LAPACK_WORK_MEMORY_ERROR,
+            Err(_) => return -1010,
         };
 
         // Query optimal working array size
@@ -242,14 +232,14 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
             &mut info,
         );
         if info != 0 {
-            return raise_info(info);
+            return info;
         }
         let lwork = work_query.re() as usize;
 
         // Allocate memory for work array
         let mut work: Vec<T> = match uninitialized_vec(lwork) {
             Ok(work) => work,
-            Err(_) => return LAPACK_WORK_MEMORY_ERROR,
+            Err(_) => return -1010,
         };
 
         if order == ColMajor {
@@ -272,7 +262,7 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
                 &mut info,
             );
             if info != 0 {
-                return raise_info(info);
+                return info;
             }
         } else {
             let lda_t = m.max(1);
@@ -297,7 +287,7 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
             // Transpose input matrices
             let mut a_t: Vec<T> = match uninitialized_vec(m * n) {
                 Ok(a_t) => a_t,
-                Err(_) => return LAPACK_TRANSPOSE_MEMORY_ERROR,
+                Err(_) => return -1011,
             };
             let a_slice = from_raw_parts_mut(a, m * lda);
             let la = Layout::new_unchecked([m, n], [lda as isize, 1], 0);
@@ -307,7 +297,7 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
             let mut u_t = if jobu == 'A' || jobu == 'S' {
                 match uninitialized_vec(nrows_u * ncols_u) {
                     Ok(u_t) => u_t,
-                    Err(_) => return LAPACK_TRANSPOSE_MEMORY_ERROR,
+                    Err(_) => return -1011,
                 }
             } else {
                 Vec::new()
@@ -316,7 +306,7 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
             let mut vt_t = if jobvt == 'A' || jobvt == 'S' {
                 match uninitialized_vec(nrows_vt * n) {
                     Ok(vt_t) => vt_t,
-                    Err(_) => return LAPACK_TRANSPOSE_MEMORY_ERROR,
+                    Err(_) => return -1011,
                 }
             } else {
                 Vec::new()
@@ -341,7 +331,7 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
                 &mut info,
             );
             if info != 0 {
-                return raise_info(info);
+                return info;
             }
 
             // Transpose output matrices

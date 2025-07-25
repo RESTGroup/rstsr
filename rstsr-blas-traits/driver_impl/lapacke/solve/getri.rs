@@ -1,3 +1,4 @@
+use crate::lapack_ffi;
 use crate::DeviceBLAS;
 use duplicate::duplicate_item;
 use num::Complex;
@@ -11,7 +12,7 @@ use rstsr_common::prelude::*;
 )]
 impl GETRIDriverAPI<T> for DeviceBLAS {
     unsafe fn driver_getri(order: FlagOrder, n: usize, a: *mut T, lda: usize, ipiv: *mut blas_int) -> blas_int {
-        rstsr_lapack_ffi::lapacke::lapacke_func(order as _, n as _, a, lda as _, ipiv)
+        lapack_ffi::lapacke::lapacke_func(order as _, n as _, a, lda as _, ipiv)
     }
 }
 
@@ -22,6 +23,6 @@ impl GETRIDriverAPI<T> for DeviceBLAS {
 )]
 impl GETRIDriverAPI<T> for DeviceBLAS {
     unsafe fn driver_getri(order: FlagOrder, n: usize, a: *mut T, lda: usize, ipiv: *mut blas_int) -> blas_int {
-        rstsr_lapack_ffi::lapacke::lapacke_func(order as _, n as _, a as *mut _, lda as _, ipiv)
+        lapack_ffi::lapacke::lapacke_func(order as _, n as _, a as *mut _, lda as _, ipiv)
     }
 }

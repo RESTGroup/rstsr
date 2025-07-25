@@ -10,12 +10,6 @@ use rstsr_openblas_ffi::cblas::{OPENBLAS_OPENMP, OPENBLAS_SEQUENTIAL, OPENBLAS_T
 
 /* #region required openmp ffi */
 
-#[cfg(feature = "openmp")]
-extern "C" {
-    pub fn omp_set_num_threads(arg1: c_int);
-    pub fn omp_get_max_threads() -> c_int;
-}
-
 /* #endregion */
 
 /* #region parallel scheme */
@@ -62,7 +56,7 @@ impl OpenBLASConfig {
             match self.get_parallel() {
                 OPENBLAS_THREAD => rstsr_openblas_ffi::cblas::openblas_set_num_threads(n as i32),
                 #[cfg(feature = "openmp")]
-                OPENBLAS_OPENMP => omp_set_num_threads(n as c_int),
+                OPENBLAS_OPENMP => rstsr_openblas_ffi::cblas::omp_set_num_threads(n as c_int),
                 _ => (),
             }
         }
@@ -73,7 +67,7 @@ impl OpenBLASConfig {
             match self.get_parallel() {
                 OPENBLAS_THREAD => rstsr_openblas_ffi::cblas::openblas_get_num_threads() as usize,
                 #[cfg(feature = "openmp")]
-                OPENBLAS_OPENMP => omp_get_max_threads() as usize,
+                OPENBLAS_OPENMP => rstsr_openblas_ffi::cblas::omp_get_max_threads() as usize,
                 _ => 1,
             }
         }

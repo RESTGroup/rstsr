@@ -1,3 +1,4 @@
+use crate::lapack_ffi;
 use crate::DeviceBLAS;
 use duplicate::duplicate_item;
 use num::Complex;
@@ -26,7 +27,7 @@ impl GEMMDriverAPI<T> for DeviceBLAS {
         c: *mut T,
         ldc: usize,
     ) {
-        rstsr_lapack_ffi::cblas::cblas_func(
+        lapack_ffi::cblas::cblas_func(
             order.into(),
             transa.into(),
             transb.into(),
@@ -67,7 +68,7 @@ impl GEMMDriverAPI<T> for DeviceBLAS {
         c: *mut T,
         ldc: usize,
     ) {
-        rstsr_lapack_ffi::cblas::cblas_func(
+        lapack_ffi::cblas::cblas_func(
             order.into(),
             transa.into(),
             transb.into(),

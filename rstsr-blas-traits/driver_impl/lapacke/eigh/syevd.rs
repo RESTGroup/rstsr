@@ -1,3 +1,4 @@
+use crate::lapack_ffi;
 use crate::DeviceBLAS;
 use duplicate::duplicate_item;
 use num::complex::ComplexFloat;
@@ -20,7 +21,7 @@ impl SYEVDDriverAPI<T> for DeviceBLAS {
         lda: usize,
         w: *mut T,
     ) -> blas_int {
-        rstsr_lapack_ffi::lapacke::lapacke_func(order as _, jobz as _, uplo.into(), n as _, a, lda as _, w)
+        lapack_ffi::lapacke::lapacke_func(order as _, jobz as _, uplo.into(), n as _, a, lda as _, w)
     }
 }
 
@@ -39,6 +40,6 @@ impl SYEVDDriverAPI<T> for DeviceBLAS {
         lda: usize,
         w: *mut <T as ComplexFloat>::Real,
     ) -> blas_int {
-        rstsr_lapack_ffi::lapacke::lapacke_func(order as _, jobz as _, uplo.into(), n as _, a as *mut _, lda as _, w)
+        lapack_ffi::lapacke::lapacke_func(order as _, jobz as _, uplo.into(), n as _, a as *mut _, lda as _, w)
     }
 }

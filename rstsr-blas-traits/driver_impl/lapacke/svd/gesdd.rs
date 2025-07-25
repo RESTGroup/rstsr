@@ -1,3 +1,4 @@
+use crate::lapack_ffi;
 use crate::DeviceBLAS;
 use duplicate::duplicate_item;
 use num::complex::ComplexFloat;
@@ -24,7 +25,7 @@ impl GESDDDriverAPI<T> for DeviceBLAS {
         vt: *mut T,
         ldvt: usize,
     ) -> blas_int {
-        rstsr_lapack_ffi::lapacke::lapacke_func(
+        lapack_ffi::lapacke::lapacke_func(
             order as _, jobz as _, m as _, n as _, a, lda as _, s, u, ldu as _, vt, ldvt as _,
         )
     }
@@ -49,7 +50,7 @@ impl GESDDDriverAPI<T> for DeviceBLAS {
         vt: *mut T,
         ldvt: usize,
     ) -> blas_int {
-        rstsr_lapack_ffi::lapacke::lapacke_func(
+        lapack_ffi::lapacke::lapacke_func(
             order as _,
             jobz as _,
             m as _,

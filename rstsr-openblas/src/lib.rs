@@ -25,5 +25,6 @@ pub struct DeviceOpenBLAS {
     base: DeviceCpuRayon,
 }
 
+pub(crate) use rstsr_openblas_ffi as lapack_ffi;
 pub(crate) use DeviceOpenBLAS as DeviceBLAS;
 pub(crate) use DeviceOpenBLAS as DeviceRayonAutoImpl;

@@ -1,3 +1,4 @@
+use crate::lapack_ffi;
 use crate::DeviceBLAS;
 use duplicate::duplicate_item;
 use num::complex::ComplexFloat;
@@ -26,7 +27,7 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
         ldvt: usize,
         superb: *mut T,
     ) -> blas_int {
-        rstsr_lapack_ffi::lapacke::lapacke_func(
+        lapack_ffi::lapacke::lapacke_func(
             order as _, jobu as _, jobvt as _, m as _, n as _, a, lda as _, s, u, ldu as _, vt, ldvt as _, superb,
         )
     }
@@ -53,7 +54,7 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
         ldvt: usize,
         superb: *mut <T as ComplexFloat>::Real,
     ) -> blas_int {
-        rstsr_lapack_ffi::lapacke::lapacke_func(
+        lapack_ffi::lapacke::lapacke_func(
             order as _,
             jobu as _,
             jobvt as _,

@@ -1,3 +1,4 @@
+use crate::lapack_ffi;
 use crate::DeviceBLAS;
 use duplicate::duplicate_item;
 use num::Complex;
@@ -21,7 +22,7 @@ impl<const HERMI: bool> SYSVDriverAPI<T, HERMI> for DeviceBLAS {
         b: *mut T,
         ldb: usize,
     ) -> blas_int {
-        rstsr_lapack_ffi::lapacke::lapacke_func(
+        lapack_ffi::lapacke::lapacke_func(
             order as _,
             uplo.into(),
             n as _,
@@ -54,7 +55,7 @@ impl SYSVDriverAPI<T, HERMI> for DeviceBLAS {
         b: *mut T,
         ldb: usize,
     ) -> blas_int {
-        rstsr_lapack_ffi::lapacke::lapacke_func(
+        lapack_ffi::lapacke::lapacke_func(
             order as _,
             uplo.into(),
             n as _,
