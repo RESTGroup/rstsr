@@ -2,7 +2,7 @@
 
 ## v0.4.0 -- 2025-07-25
 
-API breaking change: Supporting dynamic loading for OpenBLAS
+API breaking change: Supporting dynamic loading for OpenBLAS ([#47](https://github.com/RESTGroup/rstsr/pull/47))
 
 - Update `rstsr-lapack-ffi` and `rstsr-openblas-ffi` version to v0.4.
 - Default to `dynamic_loading` for using OpenBLAS.

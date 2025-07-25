@@ -114,6 +114,8 @@ RSTSR actually refers to its relationship with **R**E**S**T **T**en**s**o**r** (
 We refer a project that developed before rstsr v0.1: [showcase of RI-CCSD](https://github.com/ajz34/showcase_rust_riccsd).
 File [riccsd.rs](https://github.com/ajz34/showcase_rust_riccsd/blob/master/src/riccsd.rs) is a demonstration of code style to use RSTSR.
 
+> 如果您能阅读简体中文，[REST Workshop：Rust 计算化学程序开发演示](https://github.com/RESTGroup/showcase-workshop-rstsr-ricc) 是更加完整的实战项目。它表明 RSTSR 在开发电子结构程序时，兼备开发效率与运行效率。该项目也可以作为 RSTSR 的代码风格展示。
+
 > **What features will not be implemented?**
 
 We do not support autodiff and lazy-evaluation in far future. In this mean time, we are not very concern on machine-learning applications, but focus more on traditional scientific computing, especially applications in electronic structure.
