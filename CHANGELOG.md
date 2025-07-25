@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.4.0 -- 2025-07-25
+
+API breaking change: Supporting dynamic loading for OpenBLAS
+
+- Update `rstsr-lapack-ffi` and `rstsr-openblas-ffi` version to v0.4.
+- Default to `dynamic_loading` for using OpenBLAS.
+- Changes internal ways to call BLAS and LAPACK functions.
+
+If compile time and disk usage becomes very large for `rstsr-openblas-ffi`, you may wish to set those options in Cargo.toml:
+
+```toml
+[profile.dev.package.rstsr-lapack-ffi]
+opt-level = 0
+debug = false
+
+[profile.dev.package.rstsr-openblas-ffi]
+opt-level = 0
+debug = false
+```
+
 ## v0.3.10 -- 2025-07-22
 
 Fix:

@@ -13,7 +13,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.3.10"
+version = "0.4.0"
 edition = "2021"
 description = "An n-Dimension Rust Tensor Toolkit"
 repository = "https://github.com/RESTGroup/rstsr"
@@ -22,21 +22,21 @@ categories = ["science"]
 license = "Apache-2.0"
 
 [workspace.dependencies]
-rstsr-core = { path = "./rstsr-core", default-features = false, version = "0.3.10" }
+rstsr-core = { path = "./rstsr-core", default-features = false, version = "0.4.0" }
 # members without core
-rstsr-common = { path = "./rstsr-common", default-features = false, version = "0.3.10" }
-rstsr-dtype-traits = { path = "./rstsr-dtype-traits", default-features = false, version = "0.3.10" }
-rstsr-native-impl = { path = "./rstsr-native-impl", default-features = false, version = "0.3.10" }
+rstsr-common = { path = "./rstsr-common", default-features = false, version = "0.4.0" }
+rstsr-dtype-traits = { path = "./rstsr-dtype-traits", default-features = false, version = "0.4.0" }
+rstsr-native-impl = { path = "./rstsr-native-impl", default-features = false, version = "0.4.0" }
 # members
-rstsr-openblas = { path = "./rstsr-openblas", default-features = false, version = "0.3.10" }
-rstsr-blas-traits = { path = "./rstsr-blas-traits", default-features = false, version = "0.3.10" }
-rstsr-linalg-traits = { path = "./rstsr-linalg-traits", default-features = false, version = "0.3.10" }
-rstsr-sci-traits = { path = "./rstsr-sci-traits", default-features = false, version = "0.3.10" }
+rstsr-openblas = { path = "./rstsr-openblas", default-features = false, version = "0.4.0" }
+rstsr-blas-traits = { path = "./rstsr-blas-traits", default-features = false, version = "0.4.0" }
+rstsr-linalg-traits = { path = "./rstsr-linalg-traits", default-features = false, version = "0.4.0" }
+rstsr-sci-traits = { path = "./rstsr-sci-traits", default-features = false, version = "0.4.0" }
 # develop dependencies that should not publish
 rstsr-test-manifest = { path = "./rstsr-test-manifest", default-features = false }
 # ffi dependencies
-rstsr-lapack-ffi = { version = "0.4.0", default-features = false, features = ["blas", "cblas", "lapack"] }
-rstsr-openblas-ffi = { version = "0.4.0", default-features = false, features = ["blas", "cblas", "lapack"] }
+rstsr-lapack-ffi = { version = "0.4", default-features = false, features = ["blas", "cblas", "lapack"] }
+rstsr-openblas-ffi = { version = "0.4", default-features = false, features = ["blas", "cblas", "lapack"] }
 # basic dependencies
 num = { version = "0.4" }
 itertools = { version = "0.13" }
