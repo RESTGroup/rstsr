@@ -16,7 +16,7 @@ rstsr-sci-traits = { workspace = true, optional = true }
 rstsr-openblas = { workspace = true, optional = true }
 
 [features]
-default = ["rstsr-core/default", "faer"]
+default = ["rstsr-core/default", "faer", "dynamic_loading"]
 
 # rstsr-core features
 std = ["rstsr-core/std"]
@@ -34,3 +34,7 @@ openblas = ["dep:rstsr-openblas"]
 # dependencies specification
 linalg = ["dep:rstsr-linalg-traits", "rstsr-openblas?/linalg"]
 sci = ["dep:rstsr-sci-traits", "rstsr-openblas?/sci"]
+
+# BLAS configurations
+dynamic_loading = ["rstsr-openblas?/dynamic_loading"]
+ilp64 = ["rstsr-openblas?/ilp64"]

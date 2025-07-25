@@ -1,3 +1,4 @@
+use crate::lapack_ffi;
 use crate::DeviceBLAS;
 use duplicate::duplicate_item;
 use num::Complex;
@@ -11,7 +12,7 @@ use rstsr_common::prelude::*;
 )]
 impl POTRFDriverAPI<T> for DeviceBLAS {
     unsafe fn driver_potrf(order: FlagOrder, uplo: FlagUpLo, n: usize, a: *mut T, lda: usize) -> blas_int {
-        rstsr_lapack_ffi::lapacke::lapacke_func(order as _, uplo.into(), n as _, a, lda as _)
+        lapack_ffi::lapacke::lapacke_func(order as _, uplo.into(), n as _, a, lda as _)
     }
 }
 
@@ -22,6 +23,6 @@ impl POTRFDriverAPI<T> for DeviceBLAS {
 )]
 impl POTRFDriverAPI<T> for DeviceBLAS {
     unsafe fn driver_potrf(order: FlagOrder, uplo: FlagUpLo, n: usize, a: *mut T, lda: usize) -> blas_int {
-        rstsr_lapack_ffi::lapacke::lapacke_func(order as _, uplo.into(), n as _, a as *mut _, lda as _)
+        lapack_ffi::lapacke::lapacke_func(order as _, uplo.into(), n as _, a as *mut _, lda as _)
     }
 }
