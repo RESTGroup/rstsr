@@ -7,7 +7,7 @@ where
 {
     unsafe fn driver_sygvd(
         order: FlagOrder,
-        itype: i32,
+        itype: blas_int,
         jobz: char,
         uplo: FlagUpLo,
         n: usize,
@@ -32,7 +32,7 @@ where
     pub b: TensorReference<'b, T, B, Ix2>,
 
     #[builder(setter(into), default = "1")]
-    pub itype: i32,
+    pub itype: blas_int,
     #[builder(setter(into), default = "'V'")]
     pub jobz: char,
     #[builder(setter(into), default = "None")]
