@@ -1,5 +1,5 @@
 [package]
-name = "rstsr-mkl"
+name = "rstsr-blis"
 version.workspace = true
 edition.workspace = true
 description.workspace = true
@@ -13,7 +13,7 @@ readme = "readme.md"
 rayon = { workspace = true }
 num = { workspace = true }
 duplicate = { workspace = true }
-rstsr-mkl-ffi = { workspace = true }
+rstsr-blis-ffi = { workspace = true }
 rstsr-native-impl = { workspace = true, features = ["rayon"] }
 rstsr-core = { workspace = true, features = ["rayon"] }
 rstsr-common = { workspace = true, features = ["rayon"] }
@@ -23,16 +23,13 @@ rstsr-linalg-traits = { workspace = true, optional = true }
 rstsr-sci-traits = { workspace = true, optional = true }
 
 [dev-dependencies]
-rstsr = { path = "../rstsr", default-features = false, features = ["mkl", "linalg"] }
+rstsr = { path = "../rstsr", default-features = false, features = ["blis", "linalg"] }
 rstsr-test-manifest = { workspace = true }
 
 [features]
 default = ["linalg", "dynamic_loading"]
-dynamic_loading = ["rstsr-mkl-ffi/dynamic_loading"]
+dynamic_loading = ["rstsr-blis-ffi/dynamic_loading"]
 faer = ["rstsr-core/faer"]
-ilp64 = ["rstsr-mkl-ffi/ilp64", "rstsr-blas-traits/ilp64"]
+ilp64 = ["rstsr-blis-ffi/ilp64", "rstsr-blas-traits/ilp64"]
 linalg = ["dep:rstsr-linalg-traits"]
 sci = ["dep:rstsr-sci-traits"]
-
-# use lapacke instead of lapack for linalg functions
-lapacke = ["rstsr-mkl-ffi/lapacke"]

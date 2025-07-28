@@ -14,7 +14,7 @@ use rstsr_common::prelude::*;
 impl SYGVDriverAPI<T> for DeviceBLAS {
     unsafe fn driver_sygv(
         order: FlagOrder,
-        itype: i32,
+        itype: blas_int,
         jobz: char,
         uplo: FlagUpLo,
         n: usize,
@@ -47,7 +47,7 @@ impl SYGVDriverAPI<T> for DeviceBLAS {
 impl SYGVDriverAPI<T> for DeviceBLAS {
     unsafe fn driver_sygv(
         order: FlagOrder,
-        itype: i32,
+        itype: blas_int,
         jobz: char,
         uplo: FlagUpLo,
         n: usize,

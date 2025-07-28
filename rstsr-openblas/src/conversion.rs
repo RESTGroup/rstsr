@@ -53,13 +53,13 @@ mod test {
     #[test]
     fn test_device_conversion_cpu_serial() {
         let device_serial = DeviceCpuSerial::default();
-        let device_openblas = DeviceBLAS::new(0);
-        let a = linspace((1.0, 5.0, 5, &device_openblas));
+        let device = DeviceBLAS::new(0);
+        let a = linspace((1.0, 5.0, 5, &device));
         let b = a.to_device(&device_serial);
         println!("{b:?}");
         let a = linspace((1.0, 5.0, 5, &device_serial));
         let a_view = a.view();
-        let b = a_view.to_device(&device_openblas);
+        let b = a_view.to_device(&device);
         println!("{b:?}");
     }
 
@@ -67,13 +67,13 @@ mod test {
     #[cfg(feature = "faer")]
     fn test_device_conversion_faer() {
         let device_faer = DeviceFaer::new(0);
-        let device_openblas = DeviceBLAS::new(0);
-        let a = linspace((1.0, 5.0, 5, &device_openblas));
+        let device = DeviceBLAS::new(0);
+        let a = linspace((1.0, 5.0, 5, &device));
         let b = a.to_device(&device_faer);
         println!("{b:?}");
         let a = linspace((1.0, 5.0, 5, &device_faer));
         let a_view = a.view();
-        let b = a_view.to_device(&device_openblas);
+        let b = a_view.to_device(&device);
         println!("{b:?}");
     }
 }

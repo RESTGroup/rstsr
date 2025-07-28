@@ -15,6 +15,7 @@ rstsr-linalg-traits = { workspace = true, optional = true }
 rstsr-sci-traits = { workspace = true, optional = true }
 rstsr-openblas = { workspace = true, optional = true }
 rstsr-mkl = { workspace = true, optional = true }
+rstsr-blis = { workspace = true, optional = true }
 
 [features]
 default = ["rstsr-core/default", "faer", "dynamic_loading"]
@@ -22,7 +23,7 @@ default = ["rstsr-core/default", "faer", "dynamic_loading"]
 # rstsr-core features
 std = ["rstsr-core/std"]
 rayon = ["rstsr-core/rayon"]
-faer = ["rstsr-core/faer", "rstsr-linalg-traits?/faer", "rstsr-sci-traits?/faer", "rstsr-openblas?/faer", "rstsr-mkl?/faer"]
+faer = ["rstsr-core/faer", "rstsr-linalg-traits?/faer", "rstsr-sci-traits?/faer", "rstsr-openblas?/faer", "rstsr-mkl?/faer", "rstsr-blis?/faer"]
 faer_as_default = ["rstsr-core/faer_as_default", "faer"]
 row_major = ["rstsr-core/row_major"]
 col_major = ["rstsr-core/col_major"]
@@ -32,11 +33,12 @@ dispatch_dim_layout_iter = ["rstsr-core/dispatch_dim_layout_iter"]
 # rstsr BLAS device features
 openblas = ["dep:rstsr-openblas"]
 mkl = ["dep:rstsr-mkl"]
+blis = ["dep:rstsr-blis"]
 
 # dependencies specification
-linalg = ["dep:rstsr-linalg-traits", "rstsr-openblas?/linalg", "rstsr-mkl?/linalg"]
-sci = ["dep:rstsr-sci-traits", "rstsr-openblas?/sci", "rstsr-mkl?/sci"]
+linalg = ["dep:rstsr-linalg-traits", "rstsr-openblas?/linalg", "rstsr-mkl?/linalg", "rstsr-blis?/linalg"]
+sci = ["dep:rstsr-sci-traits", "rstsr-openblas?/sci", "rstsr-mkl?/sci", "rstsr-blis?/sci"]
 
 # BLAS configurations
-dynamic_loading = ["rstsr-openblas?/dynamic_loading", "rstsr-mkl?/dynamic_loading"]
-ilp64 = ["rstsr-openblas?/ilp64", "rstsr-mkl?/ilp64"]
+dynamic_loading = ["rstsr-openblas?/dynamic_loading", "rstsr-mkl?/dynamic_loading", "rstsr-blis?/dynamic_loading"]
+ilp64 = ["rstsr-openblas?/ilp64", "rstsr-mkl?/ilp64", "rstsr-blis?/ilp64"]
