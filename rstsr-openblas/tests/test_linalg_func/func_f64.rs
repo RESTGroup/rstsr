@@ -1,5 +1,6 @@
 use rstsr::prelude::*;
 use rstsr_core::prelude_dev::fingerprint;
+use rstsr_openblas::DeviceOpenBLAS as DeviceBLAS;
 use rstsr_test_manifest::get_vec;
 
 #[cfg(test)]
