@@ -21,10 +21,10 @@ pub mod sci_auto_impl;
 use rstsr_core::prelude_dev::DeviceCpuRayon;
 
 #[derive(Clone, Debug)]
-pub struct DeviceOpenBLAS {
+pub struct DeviceMKL {
     base: DeviceCpuRayon,
 }
 
-pub(crate) use rstsr_openblas_ffi as lapack_ffi;
-pub(crate) use DeviceOpenBLAS as DeviceBLAS;
-pub(crate) use DeviceOpenBLAS as DeviceRayonAutoImpl;
+pub(crate) use rstsr_mkl_ffi as lapack_ffi;
+pub(crate) use DeviceMKL as DeviceBLAS;
+pub(crate) use DeviceMKL as DeviceRayonAutoImpl;
