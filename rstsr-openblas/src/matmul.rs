@@ -1,6 +1,6 @@
 use crate::matmul_impl::*;
 use crate::prelude_dev::*;
-use crate::threading::with_num_threads as openblas_with_num_threads;
+use crate::threading::with_num_threads;
 use core::any::TypeId;
 use core::ops::{Add, Mul};
 use core::slice::{from_raw_parts, from_raw_parts_mut};
@@ -121,16 +121,14 @@ where
             let lb = &lb.clone().into_dim::<Ix1>().unwrap();
             let lc = &lc.clone().into_dim::<Ix0>().unwrap();
             let c_num = &mut c[lc.offset()];
-            return openblas_with_num_threads(nthreads, || {
-                inner_dot_naive_cpu_rayon(c_num, a, la, b, lb, alpha, beta, pool)
-            });
+            return with_num_threads(nthreads, || inner_dot_naive_cpu_rayon(c_num, a, la, b, lb, alpha, beta, pool));
         },
         (2, 2, 2) => {
             // rule 2: matrix multiplication
             let la = &la.clone().into_dim::<Ix2>().unwrap();
             let lb = &lb.clone().into_dim::<Ix2>().unwrap();
             let lc = &lc.clone().into_dim::<Ix2>().unwrap();
-            return openblas_with_num_threads(nthreads, || {
+            return with_num_threads(nthreads, || {
                 gemm_blas_ix2_no_conj_dispatch(c, lc, a, la, b, lb, alpha, beta, pool)
             });
         },
@@ -232,7 +230,7 @@ where
     let itc_rest = IterLayoutColMajor::new(&lc_rest)?;
     if n_task >= 4 * nthreads {
         // parallel outer, sequential matmul
-        openblas_with_num_threads(1, || {
+        with_num_threads(1, || {
             let task = || {
                 ita_rest.into_par_iter().zip(itb_rest).zip(itc_rest).try_for_each(
                     |((ia_rest, ib_rest), ic_rest)| -> Result<()> {
@@ -265,7 +263,7 @@ where
         })
     } else {
         // sequential outer, parallel matmul
-        openblas_with_num_threads(nthreads, || -> Result<()> {
+        with_num_threads(nthreads, || -> Result<()> {
             izip!(ita_rest, itb_rest, itc_rest).try_for_each(|(ia_rest, ib_rest, ic_rest)| {
                 // prepare layout
                 let mut la_m = la_matmul.clone();
