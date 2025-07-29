@@ -2,7 +2,7 @@
 
 use crate::prelude_dev::*;
 use core::ffi::c_char;
-use rstsr_lapack_ffi::cblas::{CBLAS_DIAG, CBLAS_LAYOUT, CBLAS_SIDE, CBLAS_TRANSPOSE, CBLAS_UPLO};
+use rstsr_cblas_base::*;
 
 /* #region changeable default */
 

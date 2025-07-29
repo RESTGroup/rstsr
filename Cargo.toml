@@ -39,7 +39,7 @@ rstsr-sci-traits = { path = "./rstsr-sci-traits", default-features = false, vers
 # develop dependencies that should not publish
 rstsr-test-manifest = { path = "./rstsr-test-manifest", default-features = false }
 # ffi dependencies
-rstsr-lapack-ffi = { version = "0.4", default-features = false, features = ["blas", "cblas", "lapack"] }
+rstsr-cblas-base = { version = "0.1" }
 rstsr-openblas-ffi = { version = "0.4", default-features = false, features = ["blas", "cblas", "lapack"] }
 rstsr-mkl-ffi = { version = "0.1", default-features = false, features = ["blas", "cblas", "lapack"] }
 rstsr-blis-ffi = { version = "0.1", default-features = false, features = ["lapack"] }
@@ -68,10 +68,6 @@ opt-level = 0
 
 [profile.dev]
 opt-level = 2
-
-[profile.dev.package.rstsr-lapack-ffi]
-opt-level = 0
-debug = false
 
 [profile.dev.package.rstsr-openblas-ffi]
 opt-level = 0

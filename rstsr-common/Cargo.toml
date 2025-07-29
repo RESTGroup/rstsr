@@ -14,7 +14,7 @@ itertools = { workspace = true }
 num = { workspace = true }
 derive_builder = { workspace = true }
 rayon = { workspace = true, optional = true }
-rstsr-lapack-ffi = { workspace = true, default-features = false, features = ["cblas"] }
+rstsr-cblas-base = { workspace = true }
 
 [dev-dependencies]
 rstsr-core = { path = "../rstsr-core", default-features = false }
