@@ -23,15 +23,23 @@ pub mod rstsr_structs {
         pub use rstsr_sci_traits::prelude::rstsr_structs::*;
     }
 
+    #[cfg(feature = "aocl")]
+    pub use rstsr_aocl::DeviceAOCL;
+    #[cfg(feature = "blis")]
+    pub use rstsr_blis::DeviceBLIS;
     #[cfg(feature = "mkl")]
     pub use rstsr_mkl::DeviceMKL;
     #[cfg(feature = "openblas")]
     pub use rstsr_openblas::DeviceOpenBLAS;
 
-    #[cfg(all(feature = "openblas", not(feature = "mkl")))]
+    #[cfg(all(feature = "openblas", not(feature = "mkl"), not(feature = "blis"), not(feature = "aocl")))]
     pub type DeviceBLAS = DeviceOpenBLAS;
-    #[cfg(all(not(feature = "openblas"), feature = "mkl"))]
+    #[cfg(all(not(feature = "openblas"), feature = "mkl", not(feature = "blis"), not(feature = "aocl")))]
     pub type DeviceBLAS = DeviceMKL;
+    #[cfg(all(not(feature = "openblas"), not(feature = "mkl"), feature = "blis", not(feature = "aocl")))]
+    pub type DeviceBLAS = DeviceBLIS;
+    #[cfg(all(not(feature = "openblas"), not(feature = "mkl"), not(feature = "blis"), feature = "aocl"))]
+    pub type DeviceBLAS = DeviceAOCL;
 }
 
 pub mod rstsr_funcs {

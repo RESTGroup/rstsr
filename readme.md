@@ -28,13 +28,22 @@ For users comes from NumPy, the [NumPy-RSTSR Cheatsheet](https://restgroup.githu
 
 - Simple syntex (looks like NumPy, and some core concepts from rust crate [ndarray](https://github.com/rust-ndarray/ndarray/)).
 - % (remainder) as matrix multiplication (you can `&a % &b` to perform `a.matmul(&b)`).
-- Allow different devices in framework. Currently supports `DeviceFaer` and `DeviceOpenBLAS`.
+- Allow different devices in framework.
     - We will try to support CUDA and HIP in near future.
 - Full support of n-dimensional, broadcasting, basic slicing, reshape.
 - Fast on multi-threading CPU.
     - Matmul is provided by backends (such as [faer](https://github.com/sarah-quinones/faer-rs/) or [OpenBLAS](https://github.com/OpenMathLib/OpenBLAS/)).
     - Other cases (summation, element-wise operations) are on-par or even much faster than NumPy (by fast layout iterators and [rayon](https://github.com/rayon-rs/rayon/) threading).
 - Either row-major or column-major is supported (controled by cargo feature). Dynamic row/col-major control can also be performed by device setting.
+
+| Supported devices (backends) | Device type name | Crate | Cargo feature |
+|--|--|
+| Naive Serial CPU | `DeviceCpuSerial` | rstsr-core | (always built) |
+| Faer | `DeviceFaer` | rstsr-core | `rstsr/faer` |
+| OpenBLAS | `DeviceOpenBLAS` | rstsr-openblas | `rstsr/openblas` |
+| oneAPI MKL | `DeviceMKL` | rstsr-mkl | `rstsr/mkl` |
+| BLIS/FLAME | `DeviceBLIS` | rstsr-blis | `rstsr/blis` |
+| AOCL | `DeviceAOCL` | rstsr-aocl | `rstsr/aocl` |
 
 ## Illustrative Example
 

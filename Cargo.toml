@@ -12,6 +12,7 @@ members = [
     "rstsr-sci-traits",
     "rstsr-mkl",
     "rstsr-blis",
+    "rstsr-aocl",
 ]
 
 [workspace.package]
@@ -33,6 +34,7 @@ rstsr-native-impl = { path = "./rstsr-native-impl", default-features = false, ve
 rstsr-openblas = { path = "./rstsr-openblas", default-features = false, version = "0.4.0" }
 rstsr-mkl = { path = "./rstsr-mkl", default-features = false, version = "0.4.0" }
 rstsr-blis = { path = "./rstsr-blis", default-features = false, version = "0.4.0" }
+rstsr-aocl = { path = "./rstsr-aocl", default-features = false, version = "0.4.0" }
 rstsr-blas-traits = { path = "./rstsr-blas-traits", default-features = false, version = "0.4.0" }
 rstsr-linalg-traits = { path = "./rstsr-linalg-traits", default-features = false, version = "0.4.0" }
 rstsr-sci-traits = { path = "./rstsr-sci-traits", default-features = false, version = "0.4.0" }
@@ -43,6 +45,7 @@ rstsr-cblas-base = { version = "0.1" }
 rstsr-openblas-ffi = { version = "0.4", default-features = false, features = ["blas", "cblas", "lapack"] }
 rstsr-mkl-ffi = { version = "0.1", default-features = false, features = ["blas", "cblas", "lapack"] }
 rstsr-blis-ffi = { version = "0.1", default-features = false, features = ["lapack"] }
+rstsr-aocl-ffi = { version = "0.1", default-features = false, features = ["blis", "lapack"] }
 # basic dependencies
 num = { version = "0.4" }
 itertools = { version = "0.13" }
@@ -78,6 +81,10 @@ opt-level = 0
 debug = false
 
 [profile.dev.package.rstsr-blis-ffi]
+opt-level = 0
+debug = false
+
+[profile.dev.package.rstsr-aocl-ffi]
 opt-level = 0
 debug = false
 
