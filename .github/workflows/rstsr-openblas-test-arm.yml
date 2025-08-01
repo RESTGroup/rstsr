@@ -1,4 +1,4 @@
-name: rstsr-openblas tests
+name: rstsr-openblas tests arm64
 
 on:
   push:
@@ -8,11 +8,12 @@ on:
 
 jobs:
   unittests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     steps:
     - uses: actions/checkout@v4
-    - uses: conda-incubator/setup-miniconda@v2
+    - uses: conda-incubator/setup-miniconda@v3
       with:
+        architecture: aarch64
         miniconda-version: "latest"
     - name: install dependencies
       run: sudo apt-get install -y libopenblas-openmp-dev
