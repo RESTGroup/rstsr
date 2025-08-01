@@ -15,6 +15,9 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: conda-incubator/setup-miniconda@v2
+      with:
+        miniconda-version: "latest"
+        miniforge-version: "latest"
     - name: install dependencies
       run: sudo apt-get install -y libopenblas-openmp-dev
     - name: conda environment setup
