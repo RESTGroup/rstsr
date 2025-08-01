@@ -44,6 +44,7 @@ For users comes from NumPy, the [NumPy-RSTSR Cheatsheet](https://restgroup.githu
 | oneAPI MKL | `DeviceMKL` | rstsr-mkl | `rstsr/mkl` |
 | BLIS/FLAME | `DeviceBLIS` | rstsr-blis | `rstsr/blis` |
 | AOCL | `DeviceAOCL` | rstsr-aocl | `rstsr/aocl` |
+| KML | `DeviceKML` | rstsr-kml | `rstsr/kml` |
 
 ## Illustrative Example
 
