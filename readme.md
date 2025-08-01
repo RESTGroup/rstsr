@@ -37,7 +37,7 @@ For users comes from NumPy, the [NumPy-RSTSR Cheatsheet](https://restgroup.githu
 - Either row-major or column-major is supported (controled by cargo feature). Dynamic row/col-major control can also be performed by device setting.
 
 | Supported devices (backends) | Device type name | Crate | Cargo feature |
-|--|--|
+|--|--|--|--|
 | Naive Serial CPU | `DeviceCpuSerial` | rstsr-core | (always built) |
 | Faer | `DeviceFaer` | rstsr-core | `rstsr/faer` |
 | OpenBLAS | `DeviceOpenBLAS` | rstsr-openblas | `rstsr/openblas` |
