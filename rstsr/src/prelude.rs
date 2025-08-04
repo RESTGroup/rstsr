@@ -32,14 +32,46 @@ pub mod rstsr_structs {
     #[cfg(feature = "openblas")]
     pub use rstsr_openblas::DeviceOpenBLAS;
 
-    #[cfg(all(feature = "openblas", not(feature = "mkl"), not(feature = "blis"), not(feature = "aocl")))]
+    #[cfg(all(
+        feature = "openblas",
+        not(feature = "mkl"),
+        not(feature = "blis"),
+        not(feature = "aocl"),
+        not(feature = "kml")
+    ))]
     pub type DeviceBLAS = DeviceOpenBLAS;
-    #[cfg(all(not(feature = "openblas"), feature = "mkl", not(feature = "blis"), not(feature = "aocl")))]
+    #[cfg(all(
+        not(feature = "openblas"),
+        feature = "mkl",
+        not(feature = "blis"),
+        not(feature = "aocl"),
+        not(feature = "kml")
+    ))]
     pub type DeviceBLAS = DeviceMKL;
-    #[cfg(all(not(feature = "openblas"), not(feature = "mkl"), feature = "blis", not(feature = "aocl")))]
+    #[cfg(all(
+        not(feature = "openblas"),
+        not(feature = "mkl"),
+        feature = "blis",
+        not(feature = "aocl"),
+        not(feature = "kml")
+    ))]
     pub type DeviceBLAS = DeviceBLIS;
-    #[cfg(all(not(feature = "openblas"), not(feature = "mkl"), not(feature = "blis"), feature = "aocl"))]
+    #[cfg(all(
+        not(feature = "openblas"),
+        not(feature = "mkl"),
+        not(feature = "blis"),
+        feature = "aocl",
+        not(feature = "kml")
+    ))]
     pub type DeviceBLAS = DeviceAOCL;
+    #[cfg(all(
+        not(feature = "openblas"),
+        not(feature = "mkl"),
+        not(feature = "blis"),
+        not(feature = "aocl"),
+        feature = "kml"
+    ))]
+    pub type DeviceBLAS = rstsr_kml::DeviceKML;
 }
 
 pub mod rstsr_funcs {

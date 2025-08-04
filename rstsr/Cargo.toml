@@ -17,6 +17,7 @@ rstsr-openblas = { workspace = true, optional = true }
 rstsr-mkl = { workspace = true, optional = true }
 rstsr-blis = { workspace = true, optional = true }
 rstsr-aocl = { workspace = true, optional = true }
+rstsr-kml = { workspace = true, optional = true }
 
 [features]
 default = ["rstsr-core/default", "faer", "dynamic_loading"]
@@ -24,7 +25,7 @@ default = ["rstsr-core/default", "faer", "dynamic_loading"]
 # rstsr-core features
 std = ["rstsr-core/std"]
 rayon = ["rstsr-core/rayon"]
-faer = ["rstsr-core/faer", "rstsr-linalg-traits?/faer", "rstsr-sci-traits?/faer", "rstsr-openblas?/faer", "rstsr-mkl?/faer", "rstsr-blis?/faer", "rstsr-aocl?/faer"]
+faer = ["rstsr-core/faer", "rstsr-linalg-traits?/faer", "rstsr-sci-traits?/faer", "rstsr-openblas?/faer", "rstsr-mkl?/faer", "rstsr-blis?/faer", "rstsr-aocl?/faer", "rstsr-kml?/faer"]
 faer_as_default = ["rstsr-core/faer_as_default", "faer"]
 row_major = ["rstsr-core/row_major"]
 col_major = ["rstsr-core/col_major"]
@@ -36,11 +37,12 @@ openblas = ["dep:rstsr-openblas"]
 mkl = ["dep:rstsr-mkl"]
 blis = ["dep:rstsr-blis"]
 aocl = ["dep:rstsr-aocl"]
+kml = ["dep:rstsr-kml"]
 
 # dependencies specification
-linalg = ["dep:rstsr-linalg-traits", "rstsr-openblas?/linalg", "rstsr-mkl?/linalg", "rstsr-blis?/linalg", "rstsr-aocl?/linalg"]
-sci = ["dep:rstsr-sci-traits", "rstsr-openblas?/sci", "rstsr-mkl?/sci", "rstsr-blis?/sci", "rstsr-aocl?/sci"]
+linalg = ["dep:rstsr-linalg-traits", "rstsr-openblas?/linalg", "rstsr-mkl?/linalg", "rstsr-blis?/linalg", "rstsr-aocl?/linalg", "rstsr-kml?/linalg"]
+sci = ["dep:rstsr-sci-traits", "rstsr-openblas?/sci", "rstsr-mkl?/sci", "rstsr-blis?/sci", "rstsr-aocl?/sci", "rstsr-kml?/sci"]
 
 # BLAS configurations
-dynamic_loading = ["rstsr-openblas?/dynamic_loading", "rstsr-mkl?/dynamic_loading", "rstsr-blis?/dynamic_loading", "rstsr-aocl?/dynamic_loading"]
-ilp64 = ["rstsr-openblas?/ilp64", "rstsr-mkl?/ilp64", "rstsr-blis?/ilp64", "rstsr-aocl?/ilp64"]
+dynamic_loading = ["rstsr-openblas?/dynamic_loading", "rstsr-mkl?/dynamic_loading", "rstsr-blis?/dynamic_loading", "rstsr-aocl?/dynamic_loading", "rstsr-kml?/dynamic_loading"]
+ilp64 = ["rstsr-openblas?/ilp64", "rstsr-mkl?/ilp64", "rstsr-blis?/ilp64", "rstsr-aocl?/ilp64", "rstsr-kml?/ilp64"]
