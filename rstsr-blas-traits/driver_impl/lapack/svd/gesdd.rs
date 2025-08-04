@@ -28,7 +28,7 @@ impl GESDDDriverAPI<T> for DeviceBLAS {
         ldvt: usize,
     ) -> blas_int {
         use lapack_ffi::lapack::func_;
-        
+
         // Allocate memory for temporary array(s)
         let liwork = 8 * m.min(n);
         let mut iwork: Vec<blas_int> = match uninitialized_vec(liwork) {

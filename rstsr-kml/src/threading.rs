@@ -14,8 +14,7 @@ impl KMLConfig {
     }
 
     fn get_num_threads(&mut self) -> usize {
-        let n_blas = unsafe { rstsr_kml_ffi::kblas::BlasGetNumThreadsLocal() as usize };
-        n_blas
+        unsafe { rstsr_kml_ffi::kblas::BlasGetNumThreadsLocal() as usize }
     }
 }
 

@@ -1,6 +1,6 @@
 use rstsr::prelude::*;
-use rstsr_kml::DeviceKML as DeviceBLAS;
 use rstsr_core::prelude_dev::fingerprint;
+use rstsr_kml::DeviceKML as DeviceBLAS;
 use rstsr_test_manifest::get_vec;
 
 #[allow(non_camel_case_types)]
