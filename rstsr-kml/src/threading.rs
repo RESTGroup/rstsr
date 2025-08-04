@@ -10,15 +10,11 @@ struct KMLConfig;
 impl KMLConfig {
     fn set_num_threads(&mut self, n: usize) {
         unsafe { rstsr_kml_ffi::kblas::BlasSetNumThreadsLocal(n as _) };
-        unsafe { rstsr_kml_ffi::service::KmlSetNumThreads(n as _) };
+        unsafe { rstsr_kml_ffi::service::KmlSetNumThreads(1) };
     }
 
     fn get_num_threads(&mut self) -> usize {
         let n_blas = unsafe { rstsr_kml_ffi::kblas::BlasGetNumThreadsLocal() as usize };
-        let n_kml = unsafe { rstsr_kml_ffi::service::KmlGetMaxThreads() as usize };
-        if n_blas != n_kml {
-            eprintln!("KML thread counts are inconsistent: {n_blas} (kblas) vs {n_kml} (service)");
-        }
         n_blas
     }
 }
