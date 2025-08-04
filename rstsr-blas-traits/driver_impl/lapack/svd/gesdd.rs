@@ -28,6 +28,13 @@ impl GESDDDriverAPI<T> for DeviceBLAS {
         ldvt: usize,
     ) -> blas_int {
         use lapack_ffi::lapack::func_;
+        
+        // Allocate memory for temporary array(s)
+        let liwork = 8 * m.min(n);
+        let mut iwork: Vec<blas_int> = match uninitialized_vec(liwork) {
+            Ok(iwork) => iwork,
+            Err(_) => return -1010,
+        };
 
         // Query optimal working array(s) size
         let mut info = 0;
@@ -46,22 +53,17 @@ impl GESDDDriverAPI<T> for DeviceBLAS {
             &(m.max(n) as _),
             &mut work_query,
             &lwork,
-            std::ptr::null_mut(),
+            iwork.as_mut_ptr(),
             &mut info,
         );
         if info != 0 {
             return info;
         }
         let lwork = work_query as usize;
-        let liwork = 8 * m.min(n);
 
         // Allocate memory for temporary array(s)
         let mut work: Vec<T> = match uninitialized_vec(lwork) {
             Ok(work) => work,
-            Err(_) => return -1010,
-        };
-        let mut iwork: Vec<blas_int> = match uninitialized_vec(liwork) {
-            Ok(iwork) => iwork,
             Err(_) => return -1010,
         };
 
@@ -197,6 +199,13 @@ impl GESDDDriverAPI<T> for DeviceBLAS {
     ) -> blas_int {
         use lapack_ffi::lapack::func_;
 
+        // Allocate memory for temporary array(s)
+        let liwork = 8 * m.min(n);
+        let mut iwork: Vec<blas_int> = match uninitialized_vec(liwork) {
+            Ok(iwork) => iwork,
+            Err(_) => return -1010,
+        };
+
         // Query optimal working array(s) size
         let mut info = 0;
         let lwork = -1;
@@ -218,14 +227,13 @@ impl GESDDDriverAPI<T> for DeviceBLAS {
             &mut work_query as *mut _ as *mut _,
             &lwork,
             &mut rwork_query as *mut _ as *mut _,
-            std::ptr::null_mut(),
+            iwork.as_mut_ptr(),
             &mut info,
         );
         if info != 0 {
             return info;
         }
         let lwork = work_query.re as usize;
-        let liwork = 8 * m.min(n);
 
         // Allocate memory for temporary array(s)
         let mut work: Vec<T> = match uninitialized_vec(lwork) {
@@ -234,10 +242,6 @@ impl GESDDDriverAPI<T> for DeviceBLAS {
         };
         let mut rwork: Vec<<T as ComplexFloat>::Real> = match uninitialized_vec(lrwork) {
             Ok(rwork) => rwork,
-            Err(_) => return -1010,
-        };
-        let mut iwork: Vec<blas_int> = match uninitialized_vec(liwork) {
-            Ok(iwork) => iwork,
             Err(_) => return -1010,
         };
 
