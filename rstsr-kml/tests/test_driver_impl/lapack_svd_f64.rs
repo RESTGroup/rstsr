@@ -18,6 +18,7 @@ mod test {
         let driver = DGESVD::default().a(a.view()).build().unwrap();
         if let (s, Some(u), Some(vt), _) = driver.run().unwrap() {
             assert!((fingerprint(&s) - 33.969339071043095).abs() < 1e-8);
+            println!("fingerprint(u) = {}", fingerprint(&(&u).abs())); // 8.932956543614006
             assert!((fingerprint(&u.abs()) - -1.9368850983570982).abs() < 1e-8);
             assert!((fingerprint(&vt.abs()) - 13.465522484136157).abs() < 1e-8);
         } else {

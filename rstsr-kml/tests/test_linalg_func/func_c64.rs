@@ -87,19 +87,22 @@ mod test {
 
         // default, a
         let w = rt::linalg::eigvalsh(a.view());
+        // println!("fingerprint(w) = {}", fingerprint(&w)); // -101.47224104162413
         assert!((fingerprint(&w) - -100.79793355894122).abs() < 1e-8);
 
         // upper, a
         let w = rt::linalg::eigvalsh((a.view(), Upper));
+        // println!("fingerprint(w) = {}", fingerprint(&w)); // -99.33417238136008
         assert!((fingerprint(&w) - -103.99103522434956).abs() < 1e-8);
 
         // default, a b
         let w = rt::linalg::eigvalsh((a.view(), b.view()));
-        assert!((fingerprint(&w) - -97.43376763322635).abs() < 1e-8);
+        println!("fingerprint(w) = {}", fingerprint(&w));
+        assert!((fingerprint(&w) - -97.43376763322635).abs() < 1e-8); // correct
 
         // upper, a b, itype=3
         let w = rt::linalg::eigvalsh((a.view(), b.view(), Upper, 3));
-        assert!((fingerprint(&w) - -4656.824753078057).abs() < 1e-8);
+        assert!((fingerprint(&w) - -4656.824753078057).abs() < 1e-8); // correct
 
         // mutable changes a
         let w = rt::linalg::eigvalsh(a.view_mut());
