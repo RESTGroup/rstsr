@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.4.1 -- 2025-08-05
+
+Enhancements:
+
+- Added CPU devices (backends) MKL ([#48](https://github.com/RESTGroup/rstsr/pull/48)), BLIS ([#49](https://github.com/RESTGroup/rstsr/pull/49)), AOCL ([#51](https://github.com/RESTGroup/rstsr/pull/51)), KML ([#53](https://github.com/RESTGroup/rstsr/pull/53))
+
+Possible API breaking change:
+
+- For conversion between CBLAS flags and RSTSR flags (defined in crate rstsr-common), previously CBLAS flags are in crate rstsr-lapack-ffi. Now those flags are defined in rstsr-cblas-base, and been applied in all FFI crates (at [RESTGroup/rstsr-ffi](https://github.com/RESTGroup/rstsr-ffi)).
+
+Actions:
+
+- Added ARM support ([#52](https://github.com/RESTGroup/rstsr/pull/52))
+
 ## v0.4.0 -- 2025-07-25
 
 API breaking change: Supporting dynamic loading for OpenBLAS ([#47](https://github.com/RESTGroup/rstsr/pull/47))

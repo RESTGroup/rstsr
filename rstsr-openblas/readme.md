@@ -2,6 +2,8 @@
 
 This crate enables OpenBLAS device.
 
+For more information of OpenBLAS and its usage, we refer to [document of rstsr-openblas-ffi](https://docs.rs/rstsr-openblas-ffi/).
+
 ## Usage
 
 ```rust
