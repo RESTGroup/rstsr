@@ -14,6 +14,8 @@ pub mod threading;
 pub mod driver_impl;
 #[cfg(feature = "linalg")]
 pub mod linalg_auto_impl;
+#[cfg(feature = "linalg")]
+pub mod linalg_spec_impl;
 
 #[cfg(feature = "sci")]
 pub mod sci_auto_impl;
