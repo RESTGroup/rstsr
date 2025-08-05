@@ -106,14 +106,12 @@ This crate gets inspires from [NumPy](https://github.com/data-apis/array-api/), 
 
 > **What is supposed to be supported in near future?**
 
-- Lapack functions and basic linear algebra APIs
-- CUDA and HIP device support
-- MKL and BLIS device support
-- Full support of [Python array API standard](https://data-apis.org/array-api/latest/) (in native rust instead of python binding)
-    - statistical (reduction) functions (norm, std, etc)
+- Plugins: Einstein summation, FFT
+- GPU devices: CUDA and HIP device support
+- `rstsr-sci-traits`: Optimization, ODE, special functions
+- `rstsr-core`: Full support of [Python array API standard](https://data-apis.org/array-api/latest/) (in native rust instead of python binding)
     - searching functions
-    - manuplication functions (stack, unstack, tile, roll, moveaxis)
-- Einstein summation
+    - manuplication functions (tile, roll, moveaxis)
 
 > **What's RSTSR meaning?**
 
