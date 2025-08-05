@@ -16,7 +16,7 @@ mod test {
 
         // default
         let driver = DGESVD::default().a(a.view()).build().unwrap();
-        if let (s, Some(u), Some(vt), _) = driver.run().unwrap() {
+        if let (s, _, Some(vt), _) = driver.run().unwrap() {
             assert!((fingerprint(&s) - 33.969339071043095).abs() < 1e-8);
             // the following check will be skipped, since in U is not unique in zero singular value
             // see also https://github.com/ajz34/issue-kml/tree/master/issue-dgesvd-full
