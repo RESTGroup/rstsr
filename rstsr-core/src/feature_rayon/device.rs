@@ -66,6 +66,7 @@ impl DeviceCpuRayon {
     ///     rayon::ThreadPoolBuilder::new().num_threads(xxx).build_global().unwrap()
     ///     ```
     ///   - The value you have declared in environmental variable `RAYON_NUM_THREADS`.
+    ///   - The number of logical CPUs on the machine.
     fn generate_pool(n: usize) -> Result<ThreadPool> {
         let actual_threads = if n == 0 { rayon::current_num_threads() } else { n };
         rayon::ThreadPoolBuilder::new().num_threads(actual_threads).build().map_err(Error::from)
