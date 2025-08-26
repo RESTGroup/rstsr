@@ -61,7 +61,9 @@ impl DeviceCpuRayon {
     ///   that relates to `RAYON_NUM_THREADS`, but the number of threads of global thread pool
     ///   instead. That is to say, the priority of number of threads is
     ///   - The value you initialized the rayon's global thread pool before calling this function:
-    ///     ```rust,ignore rayon::ThreadPoolBuilder::new().num_threads(xxx).build_global().unwrap()
+    ///
+    ///     ```rust,ignore
+    ///     rayon::ThreadPoolBuilder::new().num_threads(xxx).build_global().unwrap()
     ///     ```
     ///   - The value you have declared in environmental variable `RAYON_NUM_THREADS`.
     fn generate_pool(n: usize) -> Result<ThreadPool> {
