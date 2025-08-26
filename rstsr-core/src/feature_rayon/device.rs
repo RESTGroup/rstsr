@@ -60,6 +60,8 @@ impl DeviceCpuRayon {
     /// - For input number of threads 0, this function technically **DOES NOT** give thread pool
     ///   that relates to `RAYON_NUM_THREADS`, but the number of threads of global thread pool
     ///   instead. That is to say, the priority of number of threads is
+    ///   - The value of current number of threads, if this function is called inside a user custom
+    ///     thread pool.
     ///   - The value you initialized the rayon's global thread pool before calling this function:
     ///
     ///     ```rust,ignore
