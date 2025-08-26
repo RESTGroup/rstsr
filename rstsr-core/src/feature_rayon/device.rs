@@ -50,8 +50,23 @@ impl DeviceCpuRayon {
         DeviceCpuRayon { num_threads, pool, default_order: FlagOrder::default() }
     }
 
+    /// Generate a new thread pool with the given number of threads.
+    ///
+    /// If the number of threads is 0, the current number of threads will be used.
+    ///
+    /// Notes for developers:
+    /// - This function will still gives number of threads > 1 when inside parallelled rayon thread
+    ///   pool.
+    /// - For input number of threads 0, this function technically **DOES NOT** give thread pool
+    ///   that relates to `RAYON_NUM_THREADS`, but the number of threads of global thread pool
+    ///   instead. That is to say, the priority of number of threads is
+    ///   - The value you initialized the rayon's global thread pool before calling this function:
+    ///     ```rust,ignore rayon::ThreadPoolBuilder::new().num_threads(xxx).build_global().unwrap()
+    ///     ```
+    ///   - The value you have declared in environmental variable `RAYON_NUM_THREADS`.
     fn generate_pool(n: usize) -> Result<ThreadPool> {
-        rayon::ThreadPoolBuilder::new().num_threads(n).build().map_err(Error::from)
+        let actual_threads = if n == 0 { rayon::current_num_threads() } else { n };
+        rayon::ThreadPoolBuilder::new().num_threads(actual_threads).build().map_err(Error::from)
     }
 }
 
