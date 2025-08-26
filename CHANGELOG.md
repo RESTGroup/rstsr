@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.5.0 -- 2025-08-26
+
+API breaking changes:
+
+- Revert to non-default for dynamic loading (RESTGroup/rstsr#57)
+
+Fixes (with API breaking behavior change):
+
+- Change Behavior of `DeviceCpuRayon::generate_pool` (RESTGroup/rstsr#56, RESTGroup/rstsr-ffi#9)
+- Fix KML threading lock in LAPACK functions (RESTGroup/rstsr#58)
+
 ## v0.4.1 -- 2025-08-05
 
 Enhancements:
