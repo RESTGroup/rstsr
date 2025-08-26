@@ -43,11 +43,11 @@ rstsr-sci-traits = { path = "./rstsr-sci-traits", default-features = false, vers
 rstsr-test-manifest = { path = "./rstsr-test-manifest", default-features = false }
 # ffi dependencies
 rstsr-cblas-base = { version = "0.1" }
-rstsr-openblas-ffi = { version = "0.4", default-features = false, features = ["blas", "cblas", "lapack"] }
-rstsr-mkl-ffi = { version = "0.1", default-features = false, features = ["blas", "cblas", "lapack"] }
-rstsr-blis-ffi = { version = "0.1", default-features = false, features = ["lapack"] }
-rstsr-aocl-ffi = { version = "0.1", default-features = false, features = ["blis", "lapack"] }
-rstsr-kml-ffi = { version = "0.0.2", default-features = false, features = ["kblas", "lapack"] }
+rstsr-openblas-ffi = { version = "0.5", default-features = false, features = ["blas", "cblas", "lapack"] }
+rstsr-mkl-ffi = { version = "0.2", default-features = false, features = ["blas", "cblas", "lapack"] }
+rstsr-blis-ffi = { version = "0.2", default-features = false, features = ["lapack"] }
+rstsr-aocl-ffi = { version = "0.2", default-features = false, features = ["blis", "lapack"] }
+rstsr-kml-ffi = { version = "0.2", default-features = false, features = ["kblas", "lapack"] }
 # basic dependencies
 num = { version = "0.4" }
 itertools = { version = "0.13" }

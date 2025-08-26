@@ -27,7 +27,7 @@ rstsr = { path = "../rstsr", default-features = false, features = ["kml", "linal
 rstsr-test-manifest = { workspace = true }
 
 [features]
-default = ["linalg", "dynamic_loading"]
+default = ["linalg"]
 dynamic_loading = ["rstsr-kml-ffi/dynamic_loading"]
 faer = ["rstsr-core/faer"]
 ilp64 = ["rstsr-kml-ffi/ilp64", "rstsr-blas-traits/ilp64"]
