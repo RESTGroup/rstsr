@@ -9,12 +9,28 @@ struct KMLConfig;
 
 impl KMLConfig {
     fn set_num_threads(&mut self, n: usize) {
-        unsafe { rstsr_kml_ffi::kblas::BlasSetNumThreadsLocal(n as _) };
-        unsafe { rstsr_kml_ffi::service::KmlSetNumThreads(1) };
+        if rayon::current_thread_index().is_some() {
+            // Inside rayon parallel region
+            // For RSTSR usage, here `n` should always be 1 before actual computation.
+            // if n != 1 { eprintln!("Warning: Setting KML threads to {n} inside a rayon parallel region instead
+            // of 1. This may lead to thread lock in KML."); }
+            unsafe { rstsr_kml_ffi::kblas::BlasSetNumThreadsLocal(n as _) };
+            unsafe { rstsr_kml_ffi::service::KmlSetNumThreads(n as _) };
+        } else {
+            // Outside rayon parallel region
+            unsafe { rstsr_kml_ffi::kblas::BlasSetNumThreads(n as _) };
+            unsafe { rstsr_kml_ffi::service::KmlSetNumThreads(n as _) };
+        }
     }
 
     fn get_num_threads(&mut self) -> usize {
-        unsafe { rstsr_kml_ffi::kblas::BlasGetNumThreadsLocal() as usize }
+        if rayon::current_thread_index().is_some() {
+            // Inside rayon parallel region
+            unsafe { rstsr_kml_ffi::kblas::BlasGetNumThreadsLocal() as usize }
+        } else {
+            // Outside rayon parallel region
+            unsafe { rstsr_kml_ffi::kblas::BlasGetNumThreads() as usize }
+        }
     }
 }
 
