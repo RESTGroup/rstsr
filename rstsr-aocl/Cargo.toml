@@ -27,7 +27,7 @@ rstsr = { path = "../rstsr", default-features = false, features = ["aocl", "lina
 rstsr-test-manifest = { workspace = true }
 
 [features]
-default = ["linalg", "dynamic_loading"]
+default = ["linalg"]
 dynamic_loading = ["rstsr-aocl-ffi/dynamic_loading"]
 faer = ["rstsr-core/faer"]
 ilp64 = ["rstsr-aocl-ffi/ilp64", "rstsr-blas-traits/ilp64"]

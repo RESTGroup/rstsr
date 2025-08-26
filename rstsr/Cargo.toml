@@ -20,7 +20,7 @@ rstsr-aocl = { workspace = true, optional = true }
 rstsr-kml = { workspace = true, optional = true }
 
 [features]
-default = ["rstsr-core/default", "faer", "dynamic_loading"]
+default = ["rstsr-core/default", "faer"]
 
 # rstsr-core features
 std = ["rstsr-core/std"]
