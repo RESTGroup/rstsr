@@ -137,7 +137,7 @@ fn pop_shape_out(
 
     while size != 1 || shape_out.last().is_some_and(|&v| v == 1) {
         let s_out = shape_out.pop().unwrap();
-        if !size.is_multiple_of(s_out) {
+        if size % s_out != 0 {
             return false;
         }
         size /= s_out;

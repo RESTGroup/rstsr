@@ -1,10 +1,14 @@
 #![cfg_attr(not(test), no_std)]
 #![doc = include_str!("docs/lib.md")]
+#![allow(unknown_lints)]
 // This option is for myself as python-like developer.
 #![allow(clippy::needless_return)]
 // Resolution to something like `tensor.slice_mut() += scalar`.
 // This code is not allowed in rust, but `*&mut tensor.slice_mut() += scalar` is allowed.
 #![allow(clippy::deref_addrof)]
+// Allow `a % b == 0` instead of `is_multiple_of`
+// which is only stabilized after rustc 1.89
+#![allow(clippy::manual_is_multiple_of)]
 
 // this line is for docs
 #[allow(unused_imports)]

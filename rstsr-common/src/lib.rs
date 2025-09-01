@@ -1,7 +1,11 @@
+#![allow(unknown_lints)]
 #![allow(clippy::needless_return)]
 // Resolution to something like `tensor.slice_mut() += scalar`.
 // This code is not allowed in rust, but `*&mut tensor.slice_mut() += scalar` is allowed.
 #![allow(clippy::deref_addrof)]
+// Allow `a % b == 0` instead of `is_multiple_of`
+// which is only stabilized after rustc 1.89
+#![allow(clippy::manual_is_multiple_of)]
 
 pub mod prelude;
 pub mod prelude_dev;

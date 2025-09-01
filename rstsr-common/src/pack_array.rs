@@ -36,7 +36,7 @@ impl<T> PackArrayAPI<T> for Vec<T> {
     fn pack_array_f<const N: usize>(self) -> Result<<Self as PackableArrayAPI<T, N>>::ArrayVec> {
         let len = self.len();
         rstsr_assert!(
-            len.is_multiple_of(N),
+            len % N == 0,
             InvalidValue,
             "Length of Vec<T> {len} must be a multiple to cast into Vec<[T; {N}]>"
         )?;
@@ -69,7 +69,7 @@ impl<T> PackArrayAPI<T> for &[T] {
     fn pack_array_f<const N: usize>(self) -> Result<<Self as PackableArrayAPI<T, N>>::ArrayVec> {
         let len = self.len();
         rstsr_assert!(
-            len.is_multiple_of(N),
+            len % N == 0,
             InvalidValue,
             "Length of &[T] {len} must be a multiple to cast into Vec<[T; {N}]>"
         )?;
@@ -100,7 +100,7 @@ impl<T> PackArrayAPI<T> for &mut [T] {
     fn pack_array_f<const N: usize>(self) -> Result<<Self as PackableArrayAPI<T, N>>::ArrayVec> {
         let len = self.len();
         rstsr_assert!(
-            len.is_multiple_of(N),
+            len % N == 0,
             InvalidValue,
             "Length of &[T] {len} must be a multiple to cast into Vec<[T; {N}]>"
         )?;
