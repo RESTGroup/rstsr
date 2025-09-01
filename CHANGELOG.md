@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.5.1 -- 2025-09-01
+
+MSRV specified:
+
+- 1.84.1: with crate faer built;
+- 1.82.0: other cases (due to crate `half` and rust language usage of `unsafe extern "C"`).
+
+Code refactor:
+
+- Revert MSRV from 1.87 to 1.84/1.82 (RESTGroup/rstsr#59).
+
 ## v0.5.0 -- 2025-08-26
 
 API breaking changes:
