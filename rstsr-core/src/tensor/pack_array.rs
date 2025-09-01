@@ -139,7 +139,7 @@ where
         let axis = axis as usize;
         rstsr_assert_eq!(self.layout().stride()[axis], 1, InvalidLayout, "The axis must be contiguous")?;
         rstsr_assert_eq!(self.layout().shape()[axis], N, InvalidLayout, "The axis length must be a exactly {N}")?;
-        rstsr_assert!(self.layout().offset().is_multiple_of(N), InvalidLayout, "The offset must be a multiple of {N}")?;
+        rstsr_assert!(self.layout().offset() % N == 0, InvalidLayout, "The offset must be a multiple of {N}")?;
 
         let (storage, layout) = self.into_raw_parts();
         let (data, device) = storage.into_raw_parts();

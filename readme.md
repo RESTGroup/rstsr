@@ -130,4 +130,8 @@ We do not support autodiff and lazy-evaluation in far future. In this mean time,
 
 ## Miscellaneous
 
+Current MSRV (minimal supported rust version) is
+- 1.84.1: with crate faer built;
+- 1.82.0: other cases (due to crate `half` and rust language usage of `unsafe extern "C"`).
+
 You are welcomed to raise problems or suggestions in github repo issues or discussions.
