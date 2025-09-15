@@ -582,9 +582,9 @@ mod impl_binary_lr_consume {
 pub fn op_f<TrA, TrB, TrC, TA, TB, TC, DA, DB, DC, B>(a: TrA, b: TrB, mut c: TrC) -> Result<()>
 where
     // tensor types
-    TrA: TensorViewAPI<TA, B, DA>,
-    TrB: TensorViewAPI<TB, B, DB>,
-    TrC: TensorViewMutAPI<TC, B, DC>,
+    TrA: TensorViewAPI<Type = TA, Backend = B, Dim = DA>,
+    TrB: TensorViewAPI<Type = TB, Backend = B, Dim = DB>,
+    TrC: TensorViewMutAPI<Type = TC, Backend = B, Dim = DC>,
     // data constraints
     DA: DimAPI,
     DB: DimAPI,
@@ -634,9 +634,9 @@ where
 pub fn op<TrA, TrB, TrC, TA, TB, TC, DA, DB, DC, B>(a: TrA, b: TrB, c: TrC)
 where
     // tensor types
-    TrA: TensorViewAPI<TA, B, DA>,
-    TrB: TensorViewAPI<TB, B, DB>,
-    TrC: TensorViewMutAPI<TC, B, DC>,
+    TrA: TensorViewAPI<Type = TA, Backend = B, Dim = DA>,
+    TrB: TensorViewAPI<Type = TB, Backend = B, Dim = DB>,
+    TrC: TensorViewMutAPI<Type = TC, Backend = B, Dim = DC>,
     // data constraints
     DA: DimAPI,
     DB: DimAPI,

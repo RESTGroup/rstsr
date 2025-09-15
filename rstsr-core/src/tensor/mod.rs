@@ -16,3 +16,4 @@ pub mod pack_array;
 pub mod reduction;
 pub mod tensor2_impl;
 pub mod tensor_mutable;
+pub mod tensor_view_list;
