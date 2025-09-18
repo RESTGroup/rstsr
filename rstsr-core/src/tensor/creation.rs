@@ -1174,9 +1174,7 @@ where
     B: DeviceAPI<T> + DeviceAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T>,
 {
     let (storage, layout) = tensor.into_raw_parts();
-    let (data, device) = storage.into_raw_parts();
-    let data = device.assume_init_impl(data)?;
-    let storage = Storage::new(data, device);
+    let storage = B::assume_init_impl(storage)?;
     unsafe { Ok(Tensor::new_unchecked(storage, layout)) }
 }
 

@@ -10,6 +10,17 @@ where
         let default_order = self.default_order();
         return assign_arbitary_cpu_serial(c, lc, a, la, default_order);
     }
+
+    fn assign_arbitary_uninit(
+        &self,
+        c: &mut <Self as DeviceRawAPI<MaybeUninit<T>>>::Raw,
+        lc: &Layout<DC>,
+        a: &Vec<T>,
+        la: &Layout<DA>,
+    ) -> Result<()> {
+        let default_order = self.default_order();
+        return assign_arbitary_uninit_cpu_serial(c, lc, a, la, default_order);
+    }
 }
 
 impl<T, D> OpAssignAPI<T, D> for DeviceCpuSerial

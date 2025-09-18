@@ -130,11 +130,15 @@ where
 
 impl<R, T, B, D> MeshgridAPI<()> for (Vec<&TensorAny<R, T, B, D>>, &str, bool)
 where
-    R: DataAPI<Data = B::Raw> + DataCloneAPI,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataCloneAPI,
     T: Clone,
     D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD> + OpAssignArbitaryAPI<T, IxD, IxD>,
-    B::Raw: Clone,
+    B: DeviceAPI<T>
+        + DeviceRawAPI<MaybeUninit<T>>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignAPI<T, IxD>
+        + OpAssignArbitaryAPI<T, IxD, IxD>,
+    <B as DeviceRawAPI<T>>::Raw: Clone,
 {
     type Out = Vec<Tensor<T, B, IxD>>;
 
@@ -219,11 +223,15 @@ where
 )]
 impl<R, T, B, D, ImplType> MeshgridAPI<()> for ImplStruct
 where
-    R: DataAPI<Data = B::Raw> + DataCloneAPI,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataCloneAPI,
     T: Clone,
     D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD> + OpAssignArbitaryAPI<T, IxD, IxD>,
-    B::Raw: Clone,
+    B: DeviceAPI<T>
+        + DeviceRawAPI<MaybeUninit<T>>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignAPI<T, IxD>
+        + OpAssignArbitaryAPI<T, IxD, IxD>,
+    <B as DeviceRawAPI<T>>::Raw: Clone,
 {
     type Out = Vec<Tensor<T, B, IxD>>;
 
@@ -252,11 +260,15 @@ where
 )]
 impl<R, T, B, D, ImplType> MeshgridAPI<()> for ImplStruct
 where
-    R: DataAPI<Data = B::Raw> + DataCloneAPI,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataCloneAPI,
     T: Clone,
     D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD> + OpAssignArbitaryAPI<T, IxD, IxD>,
-    B::Raw: Clone,
+    B: DeviceAPI<T>
+        + DeviceRawAPI<MaybeUninit<T>>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignAPI<T, IxD>
+        + OpAssignArbitaryAPI<T, IxD, IxD>,
+    <B as DeviceRawAPI<T>>::Raw: Clone,
 {
     type Out = Vec<Tensor<T, B, IxD>>;
 

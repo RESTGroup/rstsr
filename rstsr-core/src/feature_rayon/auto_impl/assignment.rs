@@ -11,6 +11,18 @@ where
         let default_order = self.default_order();
         assign_arbitary_cpu_rayon(c, lc, a, la, default_order, pool)
     }
+
+    fn assign_arbitary_uninit(
+        &self,
+        c: &mut <Self as DeviceRawAPI<MaybeUninit<T>>>::Raw,
+        lc: &Layout<DC>,
+        a: &Vec<T>,
+        la: &Layout<DA>,
+    ) -> Result<()> {
+        let pool = self.get_current_pool();
+        let default_order = self.default_order();
+        return assign_arbitary_uninit_cpu_rayon(c, lc, a, la, default_order, pool);
+    }
 }
 
 impl<T, D> OpAssignAPI<T, D> for DeviceRayonAutoImpl

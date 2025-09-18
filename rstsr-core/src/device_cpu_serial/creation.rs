@@ -37,14 +37,18 @@ where
         Ok(Storage::new(raw.into(), self.clone()))
     }
 
-    unsafe fn assume_init_impl(&self, data: DataOwned<Vec<MaybeUninit<T>>>) -> Result<DataOwned<Vec<T>>>
+    unsafe fn assume_init_impl(
+        storage: Storage<DataOwned<Vec<MaybeUninit<T>>>, MaybeUninit<T>, Self>,
+    ) -> Result<Storage<DataOwned<Vec<T>>, T, Self>>
     where
         Self: DeviceRawAPI<MaybeUninit<T>>,
     {
+        let (data, device) = storage.into_raw_parts();
         let vec = data.into_raw();
         // transmute `Vec<MaybeUninit<T>>` to `Vec<T>`
         let vec = core::mem::transmute::<Vec<MaybeUninit<T>>, Vec<T>>(vec);
-        Ok(vec.into())
+        let data = vec.into();
+        Ok(Storage::new(data, device))
     }
 }
 

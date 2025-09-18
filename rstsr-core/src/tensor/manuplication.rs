@@ -1021,9 +1021,9 @@ where
 pub fn change_shape_f<'a, I, R, T, B, D>(tensor: TensorAny<R, T, B, D>, shape: I) -> Result<TensorCow<'a, T, B, IxD>>
 where
     I: TryInto<AxesIndex<isize>, Error = Error>,
-    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
+    B: DeviceAPI<T> + DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
 {
     // own shape, this is cheap operation
     let shape_new = reshape_substitute_negatives(shape.try_into()?.as_ref(), tensor.size())?;
@@ -1041,8 +1041,9 @@ where
             RowMajor => shape_new.new_c_contig(None),
             ColMajor => shape_new.new_f_contig(None),
         };
-        let mut storage_new = unsafe { device.empty_impl(layout_new.size())? };
-        device.assign_arbitary(storage_new.raw_mut(), &layout_new, storage.raw(), &layout)?;
+        let mut storage_new = device.uninit_impl(layout_new.size())?;
+        device.assign_arbitary_uninit(storage_new.raw_mut(), &layout_new, storage.raw(), &layout)?;
+        let storage_new = unsafe { B::assume_init_impl(storage_new)? };
         return unsafe { Ok(TensorBase::new_unchecked(storage_new, layout_new).into_cow()) };
     }
 }
@@ -1050,9 +1051,9 @@ where
 pub fn change_shape<'a, I, R, T, B, D>(tensor: TensorAny<R, T, B, D>, shape: I) -> TensorCow<'a, T, B, IxD>
 where
     I: TryInto<AxesIndex<isize>, Error = Error>,
-    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
+    B: DeviceAPI<T> + DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
 {
     change_shape_f(tensor, shape).unwrap()
 }
@@ -1060,11 +1061,15 @@ where
 pub fn into_shape_f<'a, I, R, T, B, D>(tensor: TensorAny<R, T, B, D>, shape: I) -> Result<Tensor<T, B, IxD>>
 where
     I: TryInto<AxesIndex<isize>, Error = Error>,
-    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
     T: Clone,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D> + OpAssignAPI<T, IxD>,
-    B::Raw: Clone + 'a,
+    B: DeviceAPI<T>
+        + DeviceRawAPI<MaybeUninit<T>>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignArbitaryAPI<T, IxD, D>
+        + OpAssignAPI<T, IxD>,
+    <B as DeviceRawAPI<T>>::Raw: Clone + 'a,
 {
     change_shape_f(tensor, shape).map(|v| v.into_owned())
 }
@@ -1072,11 +1077,15 @@ where
 pub fn into_shape<'a, I, R, T, B, D>(tensor: TensorAny<R, T, B, D>, shape: I) -> Tensor<T, B, IxD>
 where
     I: TryInto<AxesIndex<isize>, Error = Error>,
-    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
     T: Clone,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D> + OpAssignAPI<T, IxD>,
-    B::Raw: Clone + 'a,
+    B: DeviceAPI<T>
+        + DeviceRawAPI<MaybeUninit<T>>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignArbitaryAPI<T, IxD, D>
+        + OpAssignAPI<T, IxD>,
+    <B as DeviceRawAPI<T>>::Raw: Clone + 'a,
 {
     into_shape_f(tensor, shape).unwrap()
 }
@@ -1084,9 +1093,9 @@ where
 pub fn to_shape_f<'a, I, R, T, B, D>(tensor: &'a TensorAny<R, T, B, D>, shape: I) -> Result<TensorCow<'a, T, B, IxD>>
 where
     I: TryInto<AxesIndex<isize>, Error = Error>,
-    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
+    B: DeviceAPI<T> + DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
 {
     change_shape_f(tensor.view(), shape)
 }
@@ -1094,9 +1103,9 @@ where
 pub fn to_shape<'a, I, R, T, B, D>(tensor: &'a TensorAny<R, T, B, D>, shape: I) -> TensorCow<'a, T, B, IxD>
 where
     I: TryInto<AxesIndex<isize>, Error = Error>,
-    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
+    B: DeviceAPI<T> + DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
 {
     to_shape_f(tensor, shape).unwrap()
 }
@@ -1104,9 +1113,9 @@ where
 pub fn reshape_f<'a, I, R, T, B, D>(tensor: &'a TensorAny<R, T, B, D>, shape: I) -> Result<TensorCow<'a, T, B, IxD>>
 where
     I: TryInto<AxesIndex<isize>, Error = Error>,
-    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
+    B: DeviceAPI<T> + DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
 {
     to_shape_f(tensor, shape)
 }
@@ -1114,18 +1123,18 @@ where
 pub fn reshape<'a, I, R, T, B, D>(tensor: &'a TensorAny<R, T, B, D>, shape: I) -> TensorCow<'a, T, B, IxD>
 where
     I: TryInto<AxesIndex<isize>, Error = Error>,
-    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
+    B: DeviceAPI<T> + DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
 {
     to_shape(tensor, shape)
 }
 
 impl<'a, R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = B::Raw> + DataIntoCowAPI<'a>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
     D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D> + OpAssignAPI<T, IxD>,
+    B: DeviceAPI<T> + DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
     T: Clone,
 {
     pub fn change_shape_f<I>(self, shape: I) -> Result<TensorCow<'a, T, B, IxD>>
@@ -1145,7 +1154,8 @@ where
     pub fn into_shape_f<I>(self, shape: I) -> Result<Tensor<T, B, IxD>>
     where
         I: TryInto<AxesIndex<isize>, Error = Error>,
-        B::Raw: Clone + 'a,
+        <B as DeviceRawAPI<T>>::Raw: Clone + 'a,
+        B: OpAssignAPI<T, IxD>,
     {
         into_shape_f(self, shape)
     }
@@ -1153,7 +1163,8 @@ where
     pub fn into_shape<I>(self, shape: I) -> Tensor<T, B, IxD>
     where
         I: TryInto<AxesIndex<isize>, Error = Error>,
-        B::Raw: Clone + 'a,
+        <B as DeviceRawAPI<T>>::Raw: Clone + 'a,
+        B: OpAssignAPI<T, IxD>,
     {
         into_shape(self, shape)
     }

@@ -42,6 +42,46 @@ where
     Ok(())
 }
 
+pub fn assign_arbitary_uninit_cpu_serial<T, DC, DA>(
+    c: &mut [MaybeUninit<T>],
+    lc: &Layout<DC>,
+    a: &[T],
+    la: &Layout<DA>,
+    order: FlagOrder,
+) -> Result<()>
+where
+    T: Clone,
+    DC: DimAPI,
+    DA: DimAPI,
+{
+    let contig = match order {
+        RowMajor => lc.c_contig() && la.c_contig(),
+        ColMajor => lc.f_contig() && la.f_contig(),
+    };
+    if contig {
+        // contiguous case
+        let offset_c = lc.offset();
+        let offset_a = la.offset();
+        let size = lc.size();
+        c[offset_c..(offset_c + size)].iter_mut().zip(a[offset_a..(offset_a + size)].iter()).for_each(|(ci, ai)| {
+            ci.write(ai.clone());
+        });
+    } else {
+        // determine order by layout preference
+        let order = match order {
+            RowMajor => TensorIterOrder::C,
+            ColMajor => TensorIterOrder::F,
+        };
+        // generate col-major iterator
+        let lc = translate_to_col_major_unary(lc, order)?;
+        let la = translate_to_col_major_unary(la, order)?;
+        let _ = layout_col_major_dim_dispatch_2diff(&lc, &la, |(idx_c, idx_a)| {
+            c[idx_c].write(a[idx_a].clone());
+        });
+    }
+    Ok(())
+}
+
 pub fn assign_cpu_serial<T, D>(c: &mut [T], lc: &Layout<D>, a: &[T], la: &Layout<D>) -> Result<()>
 where
     T: Clone,

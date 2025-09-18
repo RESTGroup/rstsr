@@ -29,10 +29,10 @@ where
     /// # Safety
     ///
     /// This function is unsafe because it assumes that the input storage is fully initialized.
+    #[allow(clippy::type_complexity)]
     unsafe fn assume_init_impl(
-        &self,
-        data: DataOwned<<Self as DeviceRawAPI<MaybeUninit<T>>>::Raw>,
-    ) -> Result<DataOwned<<Self as DeviceRawAPI<T>>::Raw>>
+        storage: Storage<DataOwned<<Self as DeviceRawAPI<MaybeUninit<T>>>::Raw>, MaybeUninit<T>, Self>,
+    ) -> Result<Storage<DataOwned<<Self as DeviceRawAPI<T>>::Raw>, T, Self>>
     where
         Self: DeviceRawAPI<MaybeUninit<T>>;
 }
