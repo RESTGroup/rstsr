@@ -17,6 +17,24 @@ where
     fn from_cpu_vec(&self, vec: &[T]) -> Result<Storage<DataOwned<Self::Raw>, T, Self>>
     where
         T: Clone;
+
+    #[allow(clippy::type_complexity)]
+    fn uninit_impl(
+        &self,
+        len: usize,
+    ) -> Result<Storage<DataOwned<<Self as DeviceRawAPI<MaybeUninit<T>>>::Raw>, MaybeUninit<T>, Self>>
+    where
+        Self: DeviceRawAPI<MaybeUninit<T>>;
+
+    /// # Safety
+    ///
+    /// This function is unsafe because it assumes that the input storage is fully initialized.
+    unsafe fn assume_init_impl(
+        &self,
+        data: DataOwned<<Self as DeviceRawAPI<MaybeUninit<T>>>::Raw>,
+    ) -> Result<DataOwned<<Self as DeviceRawAPI<T>>::Raw>>
+    where
+        Self: DeviceRawAPI<MaybeUninit<T>>;
 }
 
 pub trait DeviceCreationNumAPI<T>

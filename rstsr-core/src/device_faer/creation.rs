@@ -4,7 +4,7 @@ use num::{complex::ComplexFloat, Num};
 // for creation, we use most of the functions from DeviceCpuSerial
 impl<T> DeviceCreationAnyAPI<T> for DeviceFaer
 where
-    Self: DeviceRawAPI<T, Raw = Vec<T>>,
+    Self: DeviceRawAPI<T, Raw = Vec<T>> + DeviceRawAPI<MaybeUninit<T>, Raw = Vec<MaybeUninit<T>>>,
 {
     unsafe fn empty_impl(&self, len: usize) -> Result<Storage<DataOwned<Vec<T>>, T, Self>> {
         let storage = DeviceCpuSerial::default().empty_impl(len)?;
@@ -31,6 +31,18 @@ where
     {
         let raw = vec.to_vec();
         Ok(Storage::new(DataOwned::from(raw), self.clone()))
+    }
+
+    fn uninit_impl(&self, len: usize) -> Result<Storage<DataOwned<Vec<MaybeUninit<T>>>, MaybeUninit<T>, Self>> {
+        let raw = unsafe { uninitialized_vec(len) }?;
+        Ok(Storage::new(raw.into(), self.clone()))
+    }
+
+    unsafe fn assume_init_impl(&self, data: DataOwned<Vec<MaybeUninit<T>>>) -> Result<DataOwned<Vec<T>>> {
+        let vec = data.into_raw();
+        // transmute `Vec<MaybeUninit<T>>` to `Vec<T>`
+        let vec = core::mem::transmute::<Vec<MaybeUninit<T>>, Vec<T>>(vec);
+        Ok(vec.into())
     }
 }
 

@@ -3,7 +3,7 @@ use num::{complex::ComplexFloat, Num};
 
 impl<T> DeviceCreationAnyAPI<T> for DeviceCpuSerial
 where
-    DeviceCpuSerial: DeviceRawAPI<T, Raw = Vec<T>>,
+    Self: DeviceRawAPI<T, Raw = Vec<T>> + DeviceRawAPI<MaybeUninit<T>, Raw = Vec<MaybeUninit<T>>>,
 {
     unsafe fn empty_impl(&self, len: usize) -> Result<Storage<DataOwned<Vec<T>>, T, DeviceCpuSerial>> {
         let raw = uninitialized_vec(len)?;
@@ -27,6 +27,24 @@ where
         T: Clone,
     {
         Ok(Storage::new(vec.to_vec().into(), self.clone()))
+    }
+
+    fn uninit_impl(&self, len: usize) -> Result<Storage<DataOwned<Vec<MaybeUninit<T>>>, MaybeUninit<T>, Self>>
+    where
+        Self: DeviceRawAPI<MaybeUninit<T>>,
+    {
+        let raw = unsafe { uninitialized_vec(len) }?;
+        Ok(Storage::new(raw.into(), self.clone()))
+    }
+
+    unsafe fn assume_init_impl(&self, data: DataOwned<Vec<MaybeUninit<T>>>) -> Result<DataOwned<Vec<T>>>
+    where
+        Self: DeviceRawAPI<MaybeUninit<T>>,
+    {
+        let vec = data.into_raw();
+        // transmute `Vec<MaybeUninit<T>>` to `Vec<T>`
+        let vec = core::mem::transmute::<Vec<MaybeUninit<T>>, Vec<T>>(vec);
+        Ok(vec.into())
     }
 }
 

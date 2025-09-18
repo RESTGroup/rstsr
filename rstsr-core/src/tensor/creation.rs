@@ -1055,6 +1055,147 @@ where
 
 /* #endregion */
 
+/* #region uninit */
+
+pub trait UninitAPI<Inp> {
+    type Out;
+
+    fn uninit_f(self) -> Result<Self::Out>;
+
+    fn uninit(self) -> Self::Out
+    where
+        Self: Sized,
+    {
+        Self::uninit_f(self).unwrap()
+    }
+}
+
+/// New tensor filled with uninitialized values and having a specified shape.
+pub fn uninit<Args, Inp>(param: Args) -> Args::Out
+where
+    Args: UninitAPI<Inp>,
+{
+    return UninitAPI::uninit(param);
+}
+
+pub fn uninit_f<Args, Inp>(param: Args) -> Result<Args::Out>
+where
+    Args: UninitAPI<Inp>,
+{
+    return UninitAPI::uninit_f(param);
+}
+
+impl<T, D, B> UninitAPI<(T, D)> for (Layout<D>, &B)
+where
+    T: Num,
+    D: DimAPI,
+    B: DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T>,
+{
+    type Out = Tensor<MaybeUninit<T>, B, IxD>;
+
+    fn uninit_f(self) -> Result<Self::Out> {
+        let (layout, device) = self;
+        let (_, idx_max) = layout.bounds_index()?;
+        let storage = B::uninit_impl(device, idx_max)?;
+        unsafe { Ok(Tensor::new_unchecked(storage, layout.into_dim()?)) }
+    }
+}
+
+impl<T, D, B> UninitAPI<(T, D)> for (D, FlagOrder, &B)
+where
+    T: Num,
+    D: DimAPI,
+    B: DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T>,
+{
+    type Out = Tensor<MaybeUninit<T>, B, IxD>;
+
+    fn uninit_f(self) -> Result<Self::Out> {
+        let (shape, order, device) = self;
+        let layout = shape.new_contig(None, order);
+        uninit_f((layout, device))
+    }
+}
+
+impl<T, D, B> UninitAPI<(T, D)> for (D, &B)
+where
+    T: Num,
+    D: DimAPI,
+    B: DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T>,
+{
+    type Out = Tensor<MaybeUninit<T>, B, IxD>;
+
+    fn uninit_f(self) -> Result<Self::Out> {
+        let (shape, device) = self;
+        let default_order = device.default_order();
+        let layout = shape.new_contig(None, default_order);
+        uninit_f((layout, device))
+    }
+}
+
+impl<T, D> UninitAPI<(T, D)> for (D, FlagOrder)
+where
+    T: Num + Clone,
+    D: DimAPI,
+{
+    type Out = Tensor<MaybeUninit<T>, DeviceCpu, IxD>;
+
+    fn uninit_f(self) -> Result<Self::Out> {
+        let (shape, order) = self;
+        uninit_f((shape, order, &DeviceCpu::default()))
+    }
+}
+
+#[duplicate_item(L; [D]; [Layout<D>])]
+impl<T, D> UninitAPI<(T, D)> for L
+where
+    T: Num + Clone,
+    D: DimAPI,
+{
+    type Out = Tensor<MaybeUninit<T>, DeviceCpu, IxD>;
+
+    fn uninit_f(self) -> Result<Self::Out> {
+        uninit_f((self, &DeviceCpu::default()))
+    }
+}
+
+/* #endregion */
+
+/* #region assume_init */
+
+/// Converts a tensor with uninitialized values into a tensor with initialized values.
+///
+/// # Safety
+///
+/// This function is unsafe because it assumes that all elements in the input tensor are properly
+/// initialized.
+pub unsafe fn assume_init_f<T, B, D>(tensor: Tensor<MaybeUninit<T>, B, D>) -> Result<Tensor<T, B, D>>
+where
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T>,
+{
+    let (storage, layout) = tensor.into_raw_parts();
+    let (data, device) = storage.into_raw_parts();
+    let data = device.assume_init_impl(data)?;
+    let storage = Storage::new(data, device);
+    unsafe { Ok(Tensor::new_unchecked(storage, layout)) }
+}
+
+/// Converts a tensor with uninitialized values into a tensor with initialized values.
+///
+/// # Safety
+///
+/// This function is unsafe because it assumes that all elements in the input tensor are properly
+/// initialized.
+pub unsafe fn assume_init<T, B, D>(tensor: Tensor<MaybeUninit<T>, B, D>) -> Tensor<T, B, D>
+where
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T>,
+{
+    unsafe { assume_init_f(tensor).unwrap() }
+}
+
+/* #endregion */
+
 /* #region zeros */
 
 pub trait ZerosAPI<Inp> {
