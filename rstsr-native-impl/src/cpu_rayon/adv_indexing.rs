@@ -1,7 +1,7 @@
 use crate::prelude_dev::*;
 
 pub fn index_select_cpu_rayon<T, D>(
-    c: &mut [T],
+    c: &mut [MaybeUninit<T>],
     lc: &Layout<D>,
     a: &[T],
     la: &Layout<D>,
@@ -41,9 +41,9 @@ where
         if axis_contig_a {
             // both axis are contiguous
             let func = |(idx_c, idx_a): (usize, usize)| unsafe {
-                let c_ptr = c.as_ptr().add(idx_c) as *mut T;
+                let c_ptr = c.as_ptr().add(idx_c) as *mut MaybeUninit<T>;
                 (0..size_indices).for_each(|idx| {
-                    *c_ptr.add(idx) = a[idx_a + indices[idx]].clone();
+                    (*c_ptr.add(idx)).write(a[idx_a + indices[idx]].clone());
                 });
             };
             let task = || layout_col_major_dim_dispatch_par_2(lc_rest, la_rest, func);
@@ -51,10 +51,10 @@ where
         } else {
             let axis_stride_a = la.stride()[axis];
             let func = |(idx_c, idx_a): (usize, usize)| unsafe {
-                let c_ptr = c.as_ptr().add(idx_c) as *mut T;
+                let c_ptr = c.as_ptr().add(idx_c) as *mut MaybeUninit<T>;
                 (0..size_indices).for_each(|idx| {
                     let idx_a_out = idx_a as isize + axis_stride_a * indices[idx] as isize;
-                    *c_ptr.add(idx) = a[idx_a_out as usize].clone();
+                    (*c_ptr.add(idx)).write(a[idx_a_out as usize].clone());
                 });
             };
             let task = || layout_col_major_dim_dispatch_par_2(lc_rest, la_rest, func);
@@ -64,7 +64,7 @@ where
         (0..size_indices).try_for_each(|idx| {
             let lc_selected = lc.dim_select(axis as isize, idx as isize)?;
             let la_selected = la.dim_select(axis as isize, indices[idx] as isize)?;
-            assign_cpu_rayon(c, &lc_selected, a, &la_selected, pool)
+            assign_uninit_cpu_rayon(c, &lc_selected, a, &la_selected, pool)
         })
     }
 }

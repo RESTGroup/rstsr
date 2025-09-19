@@ -1,7 +1,7 @@
 use crate::prelude_dev::*;
 
 pub fn index_select_cpu_serial<T, D>(
-    c: &mut [T],
+    c: &mut [MaybeUninit<T>],
     lc: &Layout<D>,
     a: &[T],
     la: &Layout<D>,
@@ -47,7 +47,7 @@ where
             // both axis are contiguous
             let func = |(idx_c, idx_a): (usize, usize)| {
                 (0..size_indices).for_each(|idx| {
-                    c[idx_c + idx] = a[idx_a + indices[idx]].clone();
+                    c[idx_c + idx].write(a[idx_a + indices[idx]].clone());
                 });
             };
             layout_col_major_dim_dispatch_2(lc_rest, la_rest, func)
@@ -56,7 +56,7 @@ where
             let func = |(idx_c, idx_a): (usize, usize)| {
                 (0..size_indices).for_each(|idx| {
                     let idx_a_out = idx_a as isize + axis_stride_a * indices[idx] as isize;
-                    c[idx_c + idx] = a[idx_a_out as usize].clone();
+                    c[idx_c + idx].write(a[idx_a_out as usize].clone());
                 });
             };
             layout_col_major_dim_dispatch_2(lc_rest, la_rest, func)
@@ -65,7 +65,7 @@ where
         (0..size_indices).try_for_each(|idx| {
             let lc_selected = lc.dim_select(axis as isize, idx as isize)?;
             let la_selected = la.dim_select(axis as isize, indices[idx] as isize)?;
-            assign_cpu_serial(c, &lc_selected, a, &la_selected)
+            assign_uninit_cpu_serial(c, &lc_selected, a, &la_selected)
         })
     }
 }

@@ -8,9 +8,9 @@ where
 {
     fn index_select(
         &self,
-        c: &mut <Self as DeviceRawAPI<T>>::Raw,
+        c: &mut Vec<MaybeUninit<T>>,
         lc: &Layout<D>,
-        a: &<Self as DeviceRawAPI<T>>::Raw,
+        a: &Vec<T>,
         la: &Layout<D>,
         axis: usize,
         indices: &[usize],

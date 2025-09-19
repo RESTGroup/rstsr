@@ -9,7 +9,7 @@ use crate::prelude_dev::*;
 
 pub fn index_select_f<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, axis: isize, indices: I) -> Result<Tensor<T, B, D>>
 where
-    R: DataAPI<Data = B::Raw>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
     B: DeviceAPI<T> + DeviceIndexSelectAPI<T, D> + DeviceCreationAnyAPI<T>,
@@ -43,8 +43,9 @@ where
     let mut out_shape = tensor_layout.shape().as_ref().to_vec();
     out_shape[axis] = indices.len();
     let out_layout = out_shape.new_contig(None, device.default_order()).into_dim()?;
-    let mut out_storage = unsafe { device.empty_impl(out_layout.size())? };
+    let mut out_storage = device.uninit_impl(out_layout.size())?;
     device.index_select(out_storage.raw_mut(), &out_layout, tensor.storage().raw(), tensor_layout, axis, &indices)?;
+    let out_storage = unsafe { B::assume_init_impl(out_storage)? };
     TensorBase::new_f(out_storage, out_layout)
 }
 
@@ -56,7 +57,7 @@ where
 /// This function should be similar to PyTorch's [`torch.index_select`](https://docs.pytorch.org/docs/stable/generated/torch.index_select.html).
 pub fn index_select<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, axis: isize, indices: I) -> Tensor<T, B, D>
 where
-    R: DataAPI<Data = B::Raw>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
     B: DeviceAPI<T> + DeviceIndexSelectAPI<T, D> + DeviceCreationAnyAPI<T>,
@@ -67,7 +68,7 @@ where
 
 impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = B::Raw>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
     B: DeviceAPI<T> + DeviceIndexSelectAPI<T, D> + DeviceCreationAnyAPI<T>,
@@ -99,7 +100,7 @@ where
 
 pub fn bool_select_f<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, axis: isize, mask: I) -> Result<Tensor<T, B, D>>
 where
-    R: DataAPI<Data = B::Raw>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
     B: DeviceAPI<T> + DeviceIndexSelectAPI<T, D> + DeviceCreationAnyAPI<T>,
@@ -115,7 +116,7 @@ where
 /// using the boolean entries in `mask`.
 pub fn bool_select<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, axis: isize, mask: I) -> Tensor<T, B, D>
 where
-    R: DataAPI<Data = B::Raw>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
     B: DeviceAPI<T> + DeviceIndexSelectAPI<T, D> + DeviceCreationAnyAPI<T>,
@@ -126,7 +127,7 @@ where
 
 impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = B::Raw>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
     B: DeviceAPI<T> + DeviceIndexSelectAPI<T, D> + DeviceCreationAnyAPI<T>,
