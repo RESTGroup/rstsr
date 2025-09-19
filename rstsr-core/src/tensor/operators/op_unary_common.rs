@@ -1,4 +1,5 @@
 use crate::prelude_dev::*;
+use core::mem::transmute;
 
 /* Structure of implementation
 
@@ -138,7 +139,7 @@ mod impl_tensor_unary_common {
     where
         D: DimAPI,
         R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
-        B: DeviceAPI<T>,
+        B: DeviceAPI<T> + DeviceAPI<B::TOut>,
         B: DeviceOpAPI<T, D> + DeviceCreationAnyAPI<B::TOut>,
     {
         type Output = Tensor<B::TOut, B, D>;
@@ -147,9 +148,10 @@ mod impl_tensor_unary_common {
             // generate empty output tensor
             let device = self.device();
             let la = layout_for_array_copy(lb, TensorIterOrder::K)?;
-            let mut storage_a = unsafe { device.empty_impl(la.bounds_index()?.1)? };
+            let mut storage_a = device.uninit_impl(la.bounds_index()?.1)?;
             // compute and return
             device.op_muta_refb(storage_a.raw_mut(), &la, self.raw(), lb)?;
+            let storage_a = unsafe { B::assume_init_impl(storage_a) }?;
             return Tensor::new_f(storage_a, la);
         }
     }
@@ -158,7 +160,7 @@ mod impl_tensor_unary_common {
     impl<T, B, D> TensorOpAPI for TensorView<'_, T, B, D>
     where
         D: DimAPI,
-        B: DeviceAPI<T>,
+        B: DeviceAPI<T> + DeviceAPI<B::TOut>,
         B: DeviceOpAPI<T, D> + DeviceCreationAnyAPI<B::TOut>,
     {
         type Output = Tensor<B::TOut, B, D>;
@@ -179,7 +181,12 @@ mod impl_tensor_unary_common {
             let layout = self.layout().clone();
             let device = self.device().clone();
             // generate empty output tensor
-            device.op_muta(self.raw_mut(), &layout)?;
+            let self_raw_mut = unsafe {
+                transmute::<&mut <B as DeviceRawAPI<T>>::Raw, &mut <B as DeviceRawAPI<MaybeUninit<T>>>::Raw>(
+                    self.raw_mut(),
+                )
+            };
+            device.op_muta(self_raw_mut, &layout)?;
             return Ok(self);
         }
     }

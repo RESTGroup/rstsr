@@ -87,11 +87,11 @@ where
 
 impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataCloneAPI<Data = B::Raw>,
+    R: DataCloneAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     R::Data: Clone,
     D: DimAPI,
     T: Clone,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
+    B: DeviceAPI<T> + DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
 {
     pub fn into_owned(self) -> Tensor<T, B, D> {
         let (idx_min, idx_max) = self.layout().bounds_index().unwrap();
@@ -120,8 +120,8 @@ impl<T, B, D> Clone for Tensor<T, B, D>
 where
     T: Clone,
     D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
-    B::Raw: Clone,
+    B: DeviceAPI<T> + DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
+    <B as DeviceRawAPI<T>>::Raw: Clone,
 {
     fn clone(&self) -> Self {
         self.to_owned()
@@ -132,8 +132,8 @@ impl<T, B, D> Clone for TensorCow<'_, T, B, D>
 where
     T: Clone,
     D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
-    B::Raw: Clone,
+    B: DeviceAPI<T> + DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
+    <B as DeviceRawAPI<T>>::Raw: Clone,
 {
     fn clone(&self) -> Self {
         let tsr_owned = self.to_owned();
@@ -169,7 +169,7 @@ where
 
 impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = B::Raw>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     T: Clone,
     D: DimAPI,
     B: DeviceAPI<T, Raw = Vec<T>> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, Ix1>,
@@ -179,9 +179,10 @@ where
         let device = self.device();
         let layout = self.layout().to_dim::<Ix1>()?;
         let size = layout.size();
-        let mut new_storage = unsafe { device.empty_impl(size)? };
-        device.assign(new_storage.raw_mut(), &[size].c(), self.raw(), &layout)?;
-        let (data, _) = new_storage.into_raw_parts();
+        let mut new_storage = device.uninit_impl(size)?;
+        device.assign_uninit(new_storage.raw_mut(), &[size].c(), self.raw(), &layout)?;
+        let storage = unsafe { B::assume_init_impl(new_storage) }?;
+        let (data, _) = storage.into_raw_parts();
         Ok(data.into_raw())
     }
 
@@ -349,11 +350,11 @@ where
 
 impl<R, T, B, D> TensorIntoOwnedAPI<T, B, D> for TensorAny<R, T, B, D>
 where
-    R: DataCloneAPI<Data = B::Raw>,
-    B::Raw: Clone,
+    R: DataCloneAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+    <B as DeviceRawAPI<T>>::Raw: Clone,
     T: Clone,
     D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
+    B: DeviceAPI<T> + DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
 {
     fn into_owned(self) -> Tensor<T, B, D> {
         TensorAny::into_owned(self)

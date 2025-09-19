@@ -5,6 +5,7 @@
 #![allow(clippy::too_many_arguments)]
 
 use crate::prelude_dev::*;
+use core::mem::transmute;
 use core::num::NonZeroUsize;
 use faer::prelude::*;
 use faer::traits::ComplexField;
@@ -79,7 +80,14 @@ where
     } else {
         if beta != T::one() {
             // perform inplace multiplication
-            op_muta_numb_func_cpu_rayon(c, lc, beta, &mut |vc, vb| *vc *= vb.clone(), pool)?;
+            let c = unsafe { transmute::<&mut [T], &mut [MaybeUninit<T>]>(c) };
+            op_muta_numb_func_cpu_rayon(
+                c,
+                lc,
+                beta,
+                &mut |vc, vb| unsafe { *vc.assume_init_mut() *= vb.clone() },
+                pool,
+            )?;
         }
         faer::linalg::matmul::matmul(
             faer_c,
@@ -166,7 +174,14 @@ where
     } else {
         if beta != T::one() {
             // perform inplace multiplication
-            op_muta_numb_func_cpu_rayon(c, lc, beta, &mut |vc, vb| *vc *= vb.clone(), pool)?;
+            let c = unsafe { transmute::<&mut [T], &mut [MaybeUninit<T>]>(c) };
+            op_muta_numb_func_cpu_rayon(
+                c,
+                lc,
+                beta,
+                &mut |vc, vb| unsafe { *vc.assume_init_mut() *= vb.clone() },
+                pool,
+            )?;
         }
         faer::linalg::matmul::triangular::matmul(
             faer_c,

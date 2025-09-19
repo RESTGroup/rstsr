@@ -7,6 +7,7 @@ pub use alloc::vec::Vec;
 
 pub use core::fmt::{Debug, Display, Write};
 pub use core::marker::PhantomData;
+pub use core::mem::MaybeUninit;
 
 pub use duplicate::{duplicate, duplicate_item, substitute_item};
 pub use itertools::{izip, Itertools};

@@ -3,7 +3,7 @@ use num::{complex::ComplexFloat, Num};
 
 impl<T> DeviceCreationAnyAPI<T> for DeviceCpuSerial
 where
-    DeviceCpuSerial: DeviceRawAPI<T, Raw = Vec<T>>,
+    Self: DeviceRawAPI<T, Raw = Vec<T>> + DeviceRawAPI<MaybeUninit<T>, Raw = Vec<MaybeUninit<T>>>,
 {
     unsafe fn empty_impl(&self, len: usize) -> Result<Storage<DataOwned<Vec<T>>, T, DeviceCpuSerial>> {
         let raw = uninitialized_vec(len)?;
@@ -27,6 +27,28 @@ where
         T: Clone,
     {
         Ok(Storage::new(vec.to_vec().into(), self.clone()))
+    }
+
+    fn uninit_impl(&self, len: usize) -> Result<Storage<DataOwned<Vec<MaybeUninit<T>>>, MaybeUninit<T>, Self>>
+    where
+        Self: DeviceRawAPI<MaybeUninit<T>>,
+    {
+        let raw = unsafe { uninitialized_vec(len) }?;
+        Ok(Storage::new(raw.into(), self.clone()))
+    }
+
+    unsafe fn assume_init_impl(
+        storage: Storage<DataOwned<Vec<MaybeUninit<T>>>, MaybeUninit<T>, Self>,
+    ) -> Result<Storage<DataOwned<Vec<T>>, T, Self>>
+    where
+        Self: DeviceRawAPI<MaybeUninit<T>>,
+    {
+        let (data, device) = storage.into_raw_parts();
+        let vec = data.into_raw();
+        // transmute `Vec<MaybeUninit<T>>` to `Vec<T>`
+        let vec = core::mem::transmute::<Vec<MaybeUninit<T>>, Vec<T>>(vec);
+        let data = vec.into();
+        Ok(Storage::new(data, device))
     }
 }
 
@@ -109,7 +131,6 @@ where
 impl<T> DeviceCreationTriAPI<T> for DeviceCpuSerial
 where
     T: Num + Clone,
-    DeviceCpuSerial: DeviceRawAPI<T, Raw = Vec<T>>,
 {
     fn tril_impl<D>(&self, raw: &mut Vec<T>, layout: &Layout<D>, k: isize) -> Result<()>
     where

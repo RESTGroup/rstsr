@@ -17,11 +17,11 @@ pub trait DeviceOpAPI<TA, TB, TC, D>
 where
     TA: Op<TB, Output = TC>,
     D: DimAPI,
-    Self: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<TC>,
+    Self: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<MaybeUninit<TC>>,
 {
     fn op_mutc_refa_refb(
         &self,
-        c: &mut <Self as DeviceRawAPI<TC>>::Raw,
+        c: &mut <Self as DeviceRawAPI<MaybeUninit<TC>>>::Raw,
         lc: &Layout<D>,
         a: &<Self as DeviceRawAPI<TA>>::Raw,
         la: &Layout<D>,
@@ -31,7 +31,7 @@ where
 
     fn op_mutc_refa_numb(
         &self,
-        c: &mut <Self as DeviceRawAPI<TC>>::Raw,
+        c: &mut <Self as DeviceRawAPI<MaybeUninit<TC>>>::Raw,
         lc: &Layout<D>,
         a: &<Self as DeviceRawAPI<TA>>::Raw,
         la: &Layout<D>,
@@ -40,7 +40,7 @@ where
 
     fn op_mutc_numa_refb(
         &self,
-        c: &mut <Self as DeviceRawAPI<TC>>::Raw,
+        c: &mut <Self as DeviceRawAPI<MaybeUninit<TC>>>::Raw,
         lc: &Layout<D>,
         a: TA,
         b: &<Self as DeviceRawAPI<TB>>::Raw,

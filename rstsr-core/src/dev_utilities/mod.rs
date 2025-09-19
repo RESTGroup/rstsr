@@ -50,6 +50,7 @@ where
     T: ComplexFloat,
     D: DimAPI,
     B: DeviceAPI<T>
+        + DeviceRawAPI<MaybeUninit<T>>
         + DeviceCreationComplexFloatAPI<T>
         + DeviceCosAPI<T, IxD, TOut = T>
         + DeviceCreationAnyAPI<T>

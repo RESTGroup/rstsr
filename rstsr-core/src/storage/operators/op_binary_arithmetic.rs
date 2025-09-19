@@ -98,11 +98,11 @@ where
 pub trait DeviceOpAPI<TA, TB, D>
 where
     D: DimAPI,
-    Self: DeviceAPI<TA> + DeviceAPI<TB>,
+    Self: DeviceAPI<MaybeUninit<TA>> + DeviceAPI<TA> + DeviceAPI<TB>,
 {
     fn op_muta_refb(
         &self,
-        a: &mut <Self as DeviceRawAPI<TA>>::Raw,
+        a: &mut <Self as DeviceRawAPI<MaybeUninit<TA>>>::Raw,
         la: &Layout<D>,
         b: &<Self as DeviceRawAPI<TB>>::Raw,
         lb: &Layout<D>,

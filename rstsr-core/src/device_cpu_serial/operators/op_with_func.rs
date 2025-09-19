@@ -12,11 +12,11 @@ where
     TB: Clone,
     TC: Clone,
     D: DimAPI,
-    F: FnMut(&mut TC, &TA, &TB) + ?Sized,
+    F: FnMut(&mut MaybeUninit<TC>, &TA, &TB) + ?Sized,
 {
     fn op_mutc_refa_refb_func(
         &self,
-        c: &mut Vec<TC>,
+        c: &mut Vec<MaybeUninit<TC>>,
         lc: &Layout<D>,
         a: &Vec<TA>,
         la: &Layout<D>,
@@ -33,11 +33,11 @@ where
     TA: Clone,
     TC: Clone,
     D: DimAPI,
-    F: FnMut(&mut TC, &TA, &TB) + ?Sized,
+    F: FnMut(&mut MaybeUninit<TC>, &TA, &TB) + ?Sized,
 {
     fn op_mutc_refa_numb_func(
         &self,
-        c: &mut Vec<TC>,
+        c: &mut Vec<MaybeUninit<TC>>,
         lc: &Layout<D>,
         a: &Vec<TA>,
         la: &Layout<D>,
@@ -53,11 +53,11 @@ where
     TB: Clone,
     TC: Clone,
     D: DimAPI,
-    F: FnMut(&mut TC, &TA, &TB) + ?Sized,
+    F: FnMut(&mut MaybeUninit<TC>, &TA, &TB) + ?Sized,
 {
     fn op_mutc_numa_refb_func(
         &self,
-        c: &mut Vec<TC>,
+        c: &mut Vec<MaybeUninit<TC>>,
         lc: &Layout<D>,
         a: TA,
         b: &Vec<TB>,
@@ -73,9 +73,16 @@ where
     TA: Clone,
     TB: Clone,
     D: DimAPI,
-    F: FnMut(&mut TA, &TB) + ?Sized,
+    F: FnMut(&mut MaybeUninit<TA>, &TB) + ?Sized,
 {
-    fn op_muta_refb_func(&self, a: &mut Vec<TA>, la: &Layout<D>, b: &Vec<TB>, lb: &Layout<D>, f: &mut F) -> Result<()> {
+    fn op_muta_refb_func(
+        &self,
+        a: &mut Vec<MaybeUninit<TA>>,
+        la: &Layout<D>,
+        b: &Vec<TB>,
+        lb: &Layout<D>,
+        f: &mut F,
+    ) -> Result<()> {
         op_muta_refb_func_cpu_serial(a, la, b, lb, f)
     }
 }
@@ -84,9 +91,9 @@ impl<TA, TB, D, F> DeviceOp_MutA_NumB_API<TA, TB, D, F> for DeviceCpuSerial
 where
     TA: Clone,
     D: DimAPI,
-    F: FnMut(&mut TA, &TB) + ?Sized,
+    F: FnMut(&mut MaybeUninit<TA>, &TB) + ?Sized,
 {
-    fn op_muta_numb_func(&self, a: &mut Vec<TA>, la: &Layout<D>, b: TB, f: &mut F) -> Result<()> {
+    fn op_muta_numb_func(&self, a: &mut Vec<MaybeUninit<TA>>, la: &Layout<D>, b: TB, f: &mut F) -> Result<()> {
         op_muta_numb_func_cpu_serial(a, la, b, f)
     }
 }
@@ -95,9 +102,9 @@ impl<T, D, F> DeviceOp_MutA_API<T, D, F> for DeviceCpuSerial
 where
     T: Clone,
     D: DimAPI,
-    F: FnMut(&mut T) + ?Sized,
+    F: FnMut(&mut MaybeUninit<T>) + ?Sized,
 {
-    fn op_muta_func(&self, a: &mut Vec<T>, la: &Layout<D>, f: &mut F) -> Result<()> {
+    fn op_muta_func(&self, a: &mut Vec<MaybeUninit<T>>, la: &Layout<D>, f: &mut F) -> Result<()> {
         op_muta_func_cpu_serial(a, la, f)
     }
 }
