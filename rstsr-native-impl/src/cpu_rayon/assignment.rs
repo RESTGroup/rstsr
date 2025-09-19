@@ -166,6 +166,54 @@ where
     }
 }
 
+pub fn assign_uninit_cpu_rayon<T, D>(
+    c: &mut [MaybeUninit<T>],
+    lc: &Layout<D>,
+    a: &[T],
+    la: &Layout<D>,
+    pool: Option<&ThreadPool>,
+) -> Result<()>
+where
+    T: Clone + Send + Sync,
+    D: DimAPI,
+{
+    // determine whether to use parallel iteration
+    let size = lc.size();
+    if size < PARALLEL_SWITCH || pool.is_none() {
+        return assign_uninit_cpu_serial(c, lc, a, la);
+    }
+
+    // re-align layouts
+    let layouts_full = translate_to_col_major(&[lc, la], TensorIterOrder::K)?;
+    let layouts_full_ref = layouts_full.iter().collect_vec();
+    let (layouts_contig, size_contig) = translate_to_col_major_with_contig(&layouts_full_ref);
+
+    // actual parallel iteration
+    if size_contig < CONTIG_SWITCH {
+        // not possible for contiguous assign
+        let lc = &layouts_full[0];
+        let la = &layouts_full[1];
+        let func = |(idx_c, idx_a): (usize, usize)| unsafe {
+            let c_ptr = c.as_ptr() as *mut MaybeUninit<T>;
+            (*c_ptr.add(idx_c)).write(a[idx_a].clone());
+        };
+        let task = || layout_col_major_dim_dispatch_par_2(lc, la, func);
+        pool.map_or_else(task, |pool| pool.install(task))
+    } else {
+        // parallel for outer iteration
+        let lc = &layouts_contig[0];
+        let la = &layouts_contig[1];
+        let func = |(idx_c, idx_a): (usize, usize)| unsafe {
+            let c_ptr = c.as_ptr().add(idx_c) as *mut MaybeUninit<T>;
+            (0..size_contig).for_each(|idx| {
+                (*c_ptr.add(idx)).write(a[idx_a + idx].clone());
+            })
+        };
+        let task = || layout_col_major_dim_dispatch_par_2(lc, la, func);
+        pool.map_or_else(task, |pool| pool.install(task))
+    }
+}
+
 pub fn fill_cpu_rayon<T, D>(c: &mut [T], lc: &Layout<D>, fill: T, pool: Option<&ThreadPool>) -> Result<()>
 where
     T: Clone + Send + Sync,

@@ -108,6 +108,35 @@ where
     Ok(())
 }
 
+pub fn assign_uninit_cpu_serial<T, D>(c: &mut [MaybeUninit<T>], lc: &Layout<D>, a: &[T], la: &Layout<D>) -> Result<()>
+where
+    T: Clone,
+    D: DimAPI,
+{
+    let layouts_full = translate_to_col_major(&[lc, la], TensorIterOrder::K)?;
+    let layouts_full_ref = layouts_full.iter().collect_vec();
+    let (layouts_contig, size_contig) = translate_to_col_major_with_contig(&layouts_full_ref);
+
+    if size_contig >= CONTIG_SWITCH {
+        let lc = &layouts_contig[0];
+        let la = &layouts_contig[1];
+        layout_col_major_dim_dispatch_2(lc, la, |(idx_c, idx_a)| {
+            c[idx_c..(idx_c + size_contig)].iter_mut().zip(a[idx_a..(idx_a + size_contig)].iter()).for_each(
+                |(ci, ai)| {
+                    ci.write(ai.clone());
+                },
+            );
+        })?;
+    } else {
+        let lc = &layouts_full[0];
+        let la = &layouts_full[1];
+        layout_col_major_dim_dispatch_2(lc, la, |(idx_c, idx_a)| {
+            c[idx_c].write(a[idx_a].clone());
+        })?;
+    }
+    Ok(())
+}
+
 pub fn fill_cpu_serial<T, D>(c: &mut [T], lc: &Layout<D>, fill: T) -> Result<()>
 where
     T: Clone,

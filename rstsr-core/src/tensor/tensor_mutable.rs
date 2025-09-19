@@ -54,8 +54,8 @@ impl<T, B, D> TensorIntoOwnedAPI<T, B, D> for TensorMutable<'_, T, B, D>
 where
     T: Clone,
     D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
-    B::Raw: Clone,
+    B: DeviceAPI<T> + DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
+    <B as DeviceRawAPI<T>>::Raw: Clone,
 {
     fn into_owned(self) -> Tensor<T, B, D> {
         match self {
@@ -113,8 +113,8 @@ impl<T, B, D> TensorMutable<'_, T, B, D>
 where
     T: Clone,
     D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
-    B::Raw: Clone,
+    B: DeviceAPI<T> + DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
+    <B as DeviceRawAPI<T>>::Raw: Clone,
 {
     pub fn to_owned(&self) -> Tensor<T, B, D> {
         match self {

@@ -1464,11 +1464,12 @@ where
     T: Num + Clone,
     D: DimAPI,
     B: DeviceAPI<T>
+        + DeviceRawAPI<MaybeUninit<T>>
         + DeviceCreationTriAPI<T>
         + DeviceCreationAnyAPI<T>
         + OpAssignArbitaryAPI<T, D, D>
         + OpAssignAPI<T, D>,
-    B::Raw: Clone,
+    <B as DeviceRawAPI<T>>::Raw: Clone,
 {
     type Out = Tensor<T, B, D>;
 
@@ -1488,11 +1489,12 @@ where
     T: Num + Clone,
     D: DimAPI,
     B: DeviceAPI<T>
+        + DeviceRawAPI<MaybeUninit<T>>
         + DeviceCreationTriAPI<T>
         + DeviceCreationAnyAPI<T>
         + OpAssignArbitaryAPI<T, D, D>
         + OpAssignAPI<T, D>,
-    B::Raw: Clone,
+    <B as DeviceRawAPI<T>>::Raw: Clone,
 {
     type Out = Tensor<T, B, D>;
 
@@ -1571,15 +1573,16 @@ where
 
 impl<R, T, D, B> TrilAPI<()> for (&TensorAny<R, T, B, D>, isize)
 where
-    R: DataAPI<Data = B::Raw>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     T: Num + Clone,
     D: DimAPI,
     B: DeviceAPI<T>
+        + DeviceRawAPI<MaybeUninit<T>>
         + DeviceCreationTriAPI<T>
         + DeviceCreationAnyAPI<T>
         + OpAssignArbitaryAPI<T, D, D>
         + OpAssignAPI<T, D>,
-    B::Raw: Clone,
+    <B as DeviceRawAPI<T>>::Raw: Clone,
 {
     type Out = Tensor<T, B, D>;
 
@@ -1591,15 +1594,16 @@ where
 
 impl<R, T, D, B> TrilAPI<()> for &TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = B::Raw>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     T: Num + Clone,
     D: DimAPI,
     B: DeviceAPI<T>
+        + DeviceRawAPI<MaybeUninit<T>>
         + DeviceCreationTriAPI<T>
         + DeviceCreationAnyAPI<T>
         + OpAssignArbitaryAPI<T, D, D>
         + OpAssignAPI<T, D>,
-    B::Raw: Clone,
+    <B as DeviceRawAPI<T>>::Raw: Clone,
 {
     type Out = Tensor<T, B, D>;
 
@@ -1649,11 +1653,12 @@ where
     T: Num + Clone,
     D: DimAPI,
     B: DeviceAPI<T>
+        + DeviceRawAPI<MaybeUninit<T>>
         + DeviceCreationTriAPI<T>
         + DeviceCreationAnyAPI<T>
         + OpAssignArbitaryAPI<T, D, D>
         + OpAssignAPI<T, D>,
-    B::Raw: Clone,
+    <B as DeviceRawAPI<T>>::Raw: Clone,
 {
     type Out = Tensor<T, B, D>;
 
@@ -1673,11 +1678,12 @@ where
     T: Num + Clone,
     D: DimAPI,
     B: DeviceAPI<T>
+        + DeviceRawAPI<MaybeUninit<T>>
         + DeviceCreationTriAPI<T>
         + DeviceCreationAnyAPI<T>
         + OpAssignArbitaryAPI<T, D, D>
         + OpAssignAPI<T, D>,
-    B::Raw: Clone,
+    <B as DeviceRawAPI<T>>::Raw: Clone,
 {
     type Out = Tensor<T, B, D>;
 
@@ -1756,15 +1762,16 @@ where
 
 impl<R, T, D, B> TriuAPI<()> for (&TensorAny<R, T, B, D>, isize)
 where
-    R: DataAPI<Data = B::Raw>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     T: Num + Clone,
     D: DimAPI,
     B: DeviceAPI<T>
+        + DeviceRawAPI<MaybeUninit<T>>
         + DeviceCreationTriAPI<T>
         + DeviceCreationAnyAPI<T>
         + OpAssignArbitaryAPI<T, D, D>
         + OpAssignAPI<T, D>,
-    B::Raw: Clone,
+    <B as DeviceRawAPI<T>>::Raw: Clone,
 {
     type Out = Tensor<T, B, D>;
 
@@ -1776,15 +1783,16 @@ where
 
 impl<R, T, D, B> TriuAPI<()> for &TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = B::Raw>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     T: Num + Clone,
     D: DimAPI,
     B: DeviceAPI<T>
+        + DeviceRawAPI<MaybeUninit<T>>
         + DeviceCreationTriAPI<T>
         + DeviceCreationAnyAPI<T>
         + OpAssignArbitaryAPI<T, D, D>
         + OpAssignAPI<T, D>,
-    B::Raw: Clone,
+    <B as DeviceRawAPI<T>>::Raw: Clone,
 {
     type Out = Tensor<T, B, D>;
 

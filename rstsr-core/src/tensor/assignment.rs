@@ -25,8 +25,8 @@ where
 
 impl<RA, DA, RB, DB, T, B> TensorAssignAPI<TensorAny<RB, T, B, DB>> for TensorAny<RA, T, B, DA>
 where
-    RA: DataMutAPI<Data = B::Raw>,
-    RB: DataAPI<Data = B::Raw>,
+    RA: DataMutAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+    RB: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     DA: DimAPI,
     DB: DimAPI,
     B: DeviceAPI<T> + OpAssignAPI<T, DA>,
@@ -53,8 +53,8 @@ where
 
 impl<RA, DA, RB, DB, T, B> TensorAssignAPI<&TensorAny<RB, T, B, DB>> for TensorAny<RA, T, B, DA>
 where
-    RA: DataMutAPI<Data = B::Raw>,
-    RB: DataAPI<Data = B::Raw>,
+    RA: DataMutAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+    RB: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     DA: DimAPI,
     DB: DimAPI,
     B: DeviceAPI<T> + OpAssignAPI<T, DA>,
@@ -110,7 +110,7 @@ where
 
 impl<RA, DA, T, B> TensorFillAPI<T> for TensorAny<RA, T, B, DA>
 where
-    RA: DataMutAPI<Data = B::Raw>,
+    RA: DataMutAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     DA: DimAPI,
     B: DeviceAPI<T> + OpAssignAPI<T, DA>,
 {

@@ -13,7 +13,7 @@ where
 
     fn assign_arbitary_uninit(
         &self,
-        c: &mut <Self as DeviceRawAPI<MaybeUninit<T>>>::Raw,
+        c: &mut Vec<MaybeUninit<T>>,
         lc: &Layout<DC>,
         a: &Vec<T>,
         la: &Layout<DA>,
@@ -30,6 +30,10 @@ where
 {
     fn assign(&self, c: &mut Vec<T>, lc: &Layout<D>, a: &Vec<T>, la: &Layout<D>) -> Result<()> {
         return assign_cpu_serial(c, lc, a, la);
+    }
+
+    fn assign_uninit(&self, c: &mut Vec<MaybeUninit<T>>, lc: &Layout<D>, a: &Vec<T>, la: &Layout<D>) -> Result<()> {
+        return assign_uninit_cpu_serial(c, lc, a, la);
     }
 
     fn fill(&self, c: &mut Vec<T>, lc: &Layout<D>, fill: T) -> Result<()> {
