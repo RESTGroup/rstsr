@@ -38,7 +38,9 @@ where
     rstsr_assert_eq!(lc_b, *lc, InvalidLayout)?;
     // op provided by device
     let device = c.device().clone();
-    let c_raw_mut = unsafe { transmute(c.raw_mut()) };
+    let c_raw_mut = unsafe {
+        transmute::<&mut <B as DeviceRawAPI<TC>>::Raw, &mut <B as DeviceRawAPI<MaybeUninit<TC>>>::Raw>(c.raw_mut())
+    };
     device.op_mutc_refa_refb_func(c_raw_mut, &lc_b, a.raw(), &la_b, b.raw(), &lb_b, f)
 }
 
@@ -116,7 +118,9 @@ where
     rstsr_assert_eq!(la_b, *la, InvalidLayout)?;
     // op provided by device
     let device = a.device().clone();
-    let a_raw_mut = unsafe { transmute(a.raw_mut()) };
+    let a_raw_mut = unsafe {
+        transmute::<&mut <B as DeviceRawAPI<TA>>::Raw, &mut <B as DeviceRawAPI<MaybeUninit<TA>>>::Raw>(a.raw_mut())
+    };
     device.op_muta_refb_func(a_raw_mut, &la_b, b.raw(), &lb_b, f)
 }
 
@@ -130,7 +134,9 @@ where
 {
     let la = a.layout().clone();
     let device = a.device().clone();
-    let a_raw_mut = unsafe { transmute(a.raw_mut()) };
+    let a_raw_mut = unsafe {
+        transmute::<&mut <B as DeviceRawAPI<T>>::Raw, &mut <B as DeviceRawAPI<MaybeUninit<T>>>::Raw>(a.raw_mut())
+    };
     device.op_muta_func(a_raw_mut, &la, f)
 }
 

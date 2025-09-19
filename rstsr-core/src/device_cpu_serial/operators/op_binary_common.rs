@@ -172,7 +172,7 @@ where
 
     fn op_muta_refb(&self, a: &mut Vec<MaybeUninit<T>>, la: &Layout<D>, b: &Vec<T>, lb: &Layout<D>) -> Result<()> {
         self.op_muta_refb_func(a, la, b, lb, &mut |a, b| {
-            a.write(b.clone() / b.abs());
+            a.write(*b / b.abs());
         })
     }
 

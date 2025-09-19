@@ -1,4 +1,5 @@
 use crate::prelude_dev::*;
+use core::mem::transmute;
 
 /* #region binary operation function and traits */
 
@@ -617,7 +618,9 @@ where
     // op provided by device
     let device = c.device().clone();
     // REVIEWME: transmute &Raw<T> to &MaybeUninit<Raw<T>>
-    let c_raw_mut = unsafe { core::mem::transmute(c.raw_mut()) };
+    let c_raw_mut = unsafe {
+        transmute::<&mut <B as DeviceRawAPI<TC>>::Raw, &mut <B as DeviceRawAPI<MaybeUninit<TC>>>::Raw>(c.raw_mut())
+    };
     device.op_mutc_refa_refb(c_raw_mut, &lc_b, a.raw(), &la_b, b.raw(), &lb_b)
 }
 

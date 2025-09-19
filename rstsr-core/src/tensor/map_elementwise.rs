@@ -71,7 +71,9 @@ where
     {
         let (la, _) = greedy_layout(self.layout(), false);
         let device = self.device().clone();
-        let self_raw_mut = unsafe { transmute(self.raw_mut()) };
+        let self_raw_mut = unsafe {
+            transmute::<&mut <B as DeviceRawAPI<T>>::Raw, &mut <B as DeviceRawAPI<MaybeUninit<T>>>::Raw>(self.raw_mut())
+        };
         let mut f_inner = move |x: &mut MaybeUninit<T>| {
             let x_ref = unsafe { x.assume_init_mut() };
             f(x_ref);
@@ -289,7 +291,9 @@ where
     {
         let (la, _) = greedy_layout(self.layout(), false);
         let device = self.device().clone();
-        let self_raw_mut = unsafe { transmute(self.raw_mut()) };
+        let self_raw_mut = unsafe {
+            transmute::<&mut <B as DeviceRawAPI<T>>::Raw, &mut <B as DeviceRawAPI<MaybeUninit<T>>>::Raw>(self.raw_mut())
+        };
         let mut f_inner = move |x: &mut MaybeUninit<T>| {
             let x_ref = unsafe { x.assume_init_mut() };
             f(x_ref);

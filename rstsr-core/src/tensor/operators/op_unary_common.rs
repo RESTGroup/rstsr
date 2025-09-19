@@ -181,7 +181,11 @@ mod impl_tensor_unary_common {
             let layout = self.layout().clone();
             let device = self.device().clone();
             // generate empty output tensor
-            let self_raw_mut = unsafe { transmute(self.raw_mut()) };
+            let self_raw_mut = unsafe {
+                transmute::<&mut <B as DeviceRawAPI<T>>::Raw, &mut <B as DeviceRawAPI<MaybeUninit<T>>>::Raw>(
+                    self.raw_mut(),
+                )
+            };
             device.op_muta(self_raw_mut, &layout)?;
             return Ok(self);
         }
