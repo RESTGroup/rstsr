@@ -5,7 +5,14 @@ impl<T> DeviceOpPackTriAPI<T> for DeviceRayonAutoImpl
 where
     T: Clone + Send + Sync,
 {
-    fn pack_tri(&self, a: &mut Vec<T>, la: &Layout<IxD>, b: &Vec<T>, lb: &Layout<IxD>, uplo: FlagUpLo) -> Result<()> {
+    fn pack_tri(
+        &self,
+        a: &mut Vec<MaybeUninit<T>>,
+        la: &Layout<IxD>,
+        b: &Vec<T>,
+        lb: &Layout<IxD>,
+        uplo: FlagUpLo,
+    ) -> Result<()> {
         let pool = self.get_current_pool();
         let default_order = self.default_order();
         match default_order {
@@ -26,7 +33,7 @@ where
 {
     fn unpack_tri(
         &self,
-        a: &mut Vec<T>,
+        a: &mut Vec<MaybeUninit<T>>,
         la: &Layout<IxD>,
         b: &Vec<T>,
         lb: &Layout<IxD>,

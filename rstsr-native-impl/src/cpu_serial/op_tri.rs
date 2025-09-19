@@ -5,7 +5,7 @@ use num::Num;
 /* #region pack tri */
 
 #[inline]
-pub fn inner_pack_tril_c_contig<T>(a: &mut [T], offset_a: usize, b: &[T], offset_b: usize, n: usize)
+pub fn inner_pack_tril_c_contig<T>(a: &mut [MaybeUninit<T>], offset_a: usize, b: &[T], offset_b: usize, n: usize)
 where
     T: Clone,
 {
@@ -16,12 +16,14 @@ where
         let (b_prev, b_next) = b.split_at(n);
         a = a_next;
         b = b_next;
-        a_prev.iter_mut().zip(b_prev.iter()).for_each(|(ai, bi)| *ai = bi.clone());
+        a_prev.iter_mut().zip(b_prev.iter()).for_each(|(ai, bi)| {
+            ai.write(bi.clone());
+        });
     }
 }
 
 #[inline]
-pub fn inner_pack_tril_general<T>(a: &mut [T], la: &Layout<Ix1>, b: &[T], lb: &Layout<Ix2>, n: usize)
+pub fn inner_pack_tril_general<T>(a: &mut [MaybeUninit<T>], la: &Layout<Ix1>, b: &[T], lb: &Layout<Ix2>, n: usize)
 where
     T: Clone,
 {
@@ -30,14 +32,14 @@ where
         for j in 0..=i {
             let loc_b = unsafe { lb.index_uncheck(&[i, j]) } as usize;
             let loc_a = unsafe { la.index_uncheck(&[idx_a]) } as usize;
-            a[loc_a] = b[loc_b].clone();
+            a[loc_a].write(b[loc_b].clone());
             idx_a += 1;
         }
     }
 }
 
 #[inline]
-pub fn inner_pack_triu_c_contig<T>(a: &mut [T], offset_a: usize, b: &[T], offset_b: usize, n: usize)
+pub fn inner_pack_triu_c_contig<T>(a: &mut [MaybeUninit<T>], offset_a: usize, b: &[T], offset_b: usize, n: usize)
 where
     T: Clone,
 {
@@ -46,14 +48,14 @@ where
     let mut idx_a = 0;
     for i in 0..n {
         for j in i..n {
-            a[idx_a] = b[i * n + j].clone();
+            a[idx_a].write(b[i * n + j].clone());
             idx_a += 1;
         }
     }
 }
 
 #[inline]
-pub fn inner_pack_triu_general<T>(a: &mut [T], la: &Layout<Ix1>, b: &[T], lb: &Layout<Ix2>, n: usize)
+pub fn inner_pack_triu_general<T>(a: &mut [MaybeUninit<T>], la: &Layout<Ix1>, b: &[T], lb: &Layout<Ix2>, n: usize)
 where
     T: Clone,
 {
@@ -62,13 +64,19 @@ where
         for j in i..n {
             let loc_b = unsafe { lb.index_uncheck(&[i, j]) } as usize;
             let loc_a = unsafe { la.index_uncheck(&[idx_a]) } as usize;
-            a[loc_a] = b[loc_b].clone();
+            a[loc_a].write(b[loc_b].clone());
             idx_a += 1;
         }
     }
 }
 
-pub fn pack_tri_cpu_serial<T>(a: &mut [T], la: &Layout<IxD>, b: &[T], lb: &Layout<IxD>, uplo: FlagUpLo) -> Result<()>
+pub fn pack_tri_cpu_serial<T>(
+    a: &mut [MaybeUninit<T>],
+    la: &Layout<IxD>,
+    b: &[T],
+    lb: &Layout<IxD>,
+    uplo: FlagUpLo,
+) -> Result<()>
 where
     T: Clone,
 {
@@ -142,8 +150,14 @@ where
 /* #region unpack tri */
 
 #[inline]
-pub fn inner_unpack_tril_c_contig<T>(a: &mut [T], offset_a: usize, b: &[T], offset_b: usize, n: usize, symm: FlagSymm)
-where
+pub fn inner_unpack_tril_c_contig<T>(
+    a: &mut [MaybeUninit<T>],
+    offset_a: usize,
+    b: &[T],
+    offset_b: usize,
+    n: usize,
+    symm: FlagSymm,
+) where
     T: ComplexFloat,
 {
     let a = &mut a[offset_a..];
@@ -153,8 +167,8 @@ where
         FlagSymm::Sy => {
             for i in 0..n {
                 for j in 0..=i {
-                    a[i * n + j] = b[idx_b];
-                    a[j * n + i] = b[idx_b];
+                    a[i * n + j].write(b[idx_b]);
+                    a[j * n + i].write(b[idx_b]);
                     idx_b += 1;
                 }
             }
@@ -162,8 +176,8 @@ where
         FlagSymm::He => {
             for i in 0..n {
                 for j in 0..=i {
-                    a[i * n + j] = b[idx_b];
-                    a[j * n + i] = b[idx_b].conj();
+                    a[i * n + j].write(b[idx_b]);
+                    a[j * n + i].write(b[idx_b].conj());
                     idx_b += 1;
                 }
             }
@@ -171,29 +185,29 @@ where
         FlagSymm::Ay => {
             for i in 0..n {
                 for j in 0..i {
-                    a[i * n + j] = b[idx_b];
-                    a[j * n + i] = -b[idx_b];
+                    a[i * n + j].write(b[idx_b]);
+                    a[j * n + i].write(-b[idx_b]);
                     idx_b += 1;
                 }
-                a[i * n + i] = T::zero();
+                a[i * n + i].write(T::zero());
                 idx_b += 1;
             }
         },
         FlagSymm::Ah => {
             for i in 0..n {
                 for j in 0..i {
-                    a[i * n + j] = b[idx_b];
-                    a[j * n + i] = -b[idx_b].conj();
+                    a[i * n + j].write(b[idx_b]);
+                    a[j * n + i].write(-b[idx_b].conj());
                     idx_b += 1;
                 }
-                a[i * n + i] = T::zero();
+                a[i * n + i].write(T::zero());
                 idx_b += 1;
             }
         },
         FlagSymm::N => {
             for i in 0..n {
                 for j in 0..=i {
-                    a[i * n + j] = b[idx_b];
+                    a[i * n + j].write(b[idx_b]);
                     idx_b += 1;
                 }
             }
@@ -202,8 +216,14 @@ where
 }
 
 #[inline]
-pub fn inner_unpack_tril_general<T>(a: &mut [T], la: &Layout<Ix2>, b: &[T], lb: &Layout<Ix1>, n: usize, symm: FlagSymm)
-where
+pub fn inner_unpack_tril_general<T>(
+    a: &mut [MaybeUninit<T>],
+    la: &Layout<Ix2>,
+    b: &[T],
+    lb: &Layout<Ix1>,
+    n: usize,
+    symm: FlagSymm,
+) where
     T: ComplexFloat,
 {
     let mut idx_b = 0;
@@ -214,8 +234,8 @@ where
                     let loc_b = unsafe { lb.index_uncheck(&[idx_b]) } as usize;
                     let loc_a_ij = unsafe { la.index_uncheck(&[i, j]) } as usize;
                     let loc_a_ji = unsafe { la.index_uncheck(&[j, i]) } as usize;
-                    a[loc_a_ij] = b[loc_b];
-                    a[loc_a_ji] = b[loc_b];
+                    a[loc_a_ij].write(b[loc_b]);
+                    a[loc_a_ji].write(b[loc_b]);
                     idx_b += 1;
                 }
             }
@@ -226,8 +246,8 @@ where
                     let loc_b = unsafe { lb.index_uncheck(&[idx_b]) } as usize;
                     let loc_a_ij = unsafe { la.index_uncheck(&[i, j]) } as usize;
                     let loc_a_ji = unsafe { la.index_uncheck(&[j, i]) } as usize;
-                    a[loc_a_ij] = b[loc_b];
-                    a[loc_a_ji] = b[loc_b].conj();
+                    a[loc_a_ij].write(b[loc_b]);
+                    a[loc_a_ji].write(b[loc_b].conj());
                     idx_b += 1;
                 }
             }
@@ -238,12 +258,12 @@ where
                     let loc_b = unsafe { lb.index_uncheck(&[idx_b]) } as usize;
                     let loc_a_ij = unsafe { la.index_uncheck(&[i, j]) } as usize;
                     let loc_a_ji = unsafe { la.index_uncheck(&[j, i]) } as usize;
-                    a[loc_a_ij] = b[loc_b];
-                    a[loc_a_ji] = -b[loc_b];
+                    a[loc_a_ij].write(b[loc_b]);
+                    a[loc_a_ji].write(-b[loc_b]);
                     idx_b += 1;
                 }
                 let loc_a_ii = unsafe { la.index_uncheck(&[i, i]) } as usize;
-                a[loc_a_ii] = T::zero();
+                a[loc_a_ii].write(T::zero());
                 idx_b += 1;
             }
         },
@@ -253,12 +273,12 @@ where
                     let loc_b = unsafe { lb.index_uncheck(&[idx_b]) } as usize;
                     let loc_a_ij = unsafe { la.index_uncheck(&[i, j]) } as usize;
                     let loc_a_ji = unsafe { la.index_uncheck(&[j, i]) } as usize;
-                    a[loc_a_ij] = b[loc_b];
-                    a[loc_a_ji] = -b[loc_b].conj();
+                    a[loc_a_ij].write(b[loc_b]);
+                    a[loc_a_ji].write(-b[loc_b].conj());
                     idx_b += 1;
                 }
                 let loc_a_ii = unsafe { la.index_uncheck(&[i, i]) } as usize;
-                a[loc_a_ii] = T::zero();
+                a[loc_a_ii].write(T::zero());
                 idx_b += 1;
             }
         },
@@ -267,7 +287,7 @@ where
                 for j in 0..=i {
                     let loc_b = unsafe { lb.index_uncheck(&[idx_b]) } as usize;
                     let loc_a_ij = unsafe { la.index_uncheck(&[i, j]) } as usize;
-                    a[loc_a_ij] = b[loc_b];
+                    a[loc_a_ij].write(b[loc_b]);
                     idx_b += 1;
                 }
             }
@@ -276,8 +296,14 @@ where
 }
 
 #[inline]
-pub fn inner_unpack_triu_c_contig<T>(a: &mut [T], offset_a: usize, b: &[T], offset_b: usize, n: usize, symm: FlagSymm)
-where
+pub fn inner_unpack_triu_c_contig<T>(
+    a: &mut [MaybeUninit<T>],
+    offset_a: usize,
+    b: &[T],
+    offset_b: usize,
+    n: usize,
+    symm: FlagSymm,
+) where
     T: ComplexFloat,
 {
     let a = &mut a[offset_a..];
@@ -287,8 +313,8 @@ where
         FlagSymm::Sy => {
             for i in 0..n {
                 for j in i..n {
-                    a[i * n + j] = b[idx_b];
-                    a[j * n + i] = b[idx_b];
+                    a[i * n + j].write(b[idx_b]);
+                    a[j * n + i].write(b[idx_b]);
                     idx_b += 1;
                 }
             }
@@ -296,30 +322,30 @@ where
         FlagSymm::He => {
             for i in 0..n {
                 for j in i..n {
-                    a[i * n + j] = b[idx_b];
-                    a[j * n + i] = b[idx_b].conj();
+                    a[i * n + j].write(b[idx_b]);
+                    a[j * n + i].write(b[idx_b].conj());
                     idx_b += 1;
                 }
             }
         },
         FlagSymm::Ay => {
             for i in 0..n {
-                a[i * n + i] = T::zero();
+                a[i * n + i].write(T::zero());
                 idx_b += 1;
                 for j in (i + 1)..n {
-                    a[i * n + j] = b[idx_b];
-                    a[j * n + i] = -b[idx_b];
+                    a[i * n + j].write(b[idx_b]);
+                    a[j * n + i].write(-b[idx_b]);
                     idx_b += 1;
                 }
             }
         },
         FlagSymm::Ah => {
             for i in 0..n {
-                a[i * n + i] = T::zero();
+                a[i * n + i].write(T::zero());
                 idx_b += 1;
                 for j in (i + 1)..n {
-                    a[i * n + j] = b[idx_b];
-                    a[j * n + i] = -b[idx_b].conj();
+                    a[i * n + j].write(b[idx_b]);
+                    a[j * n + i].write(-b[idx_b].conj());
                     idx_b += 1;
                 }
             }
@@ -327,7 +353,7 @@ where
         FlagSymm::N => {
             for i in 0..n {
                 for j in i..n {
-                    a[i * n + j] = b[idx_b];
+                    a[i * n + j].write(b[idx_b]);
                     idx_b += 1;
                 }
             }
@@ -336,8 +362,14 @@ where
 }
 
 #[inline]
-pub fn inner_unpack_triu_general<T>(a: &mut [T], la: &Layout<Ix2>, b: &[T], lb: &Layout<Ix1>, n: usize, symm: FlagSymm)
-where
+pub fn inner_unpack_triu_general<T>(
+    a: &mut [MaybeUninit<T>],
+    la: &Layout<Ix2>,
+    b: &[T],
+    lb: &Layout<Ix1>,
+    n: usize,
+    symm: FlagSymm,
+) where
     T: ComplexFloat,
 {
     let mut idx_b = 0;
@@ -348,8 +380,8 @@ where
                     let loc_b = unsafe { lb.index_uncheck(&[idx_b]) } as usize;
                     let loc_a_ij = unsafe { la.index_uncheck(&[i, j]) } as usize;
                     let loc_a_ji = unsafe { la.index_uncheck(&[j, i]) } as usize;
-                    a[loc_a_ij] = b[loc_b];
-                    a[loc_a_ji] = b[loc_b];
+                    a[loc_a_ij].write(b[loc_b]);
+                    a[loc_a_ji].write(b[loc_b]);
                     idx_b += 1;
                 }
             }
@@ -360,8 +392,8 @@ where
                     let loc_b = unsafe { lb.index_uncheck(&[idx_b]) } as usize;
                     let loc_a_ij = unsafe { la.index_uncheck(&[i, j]) } as usize;
                     let loc_a_ji = unsafe { la.index_uncheck(&[j, i]) } as usize;
-                    a[loc_a_ij] = b[loc_b];
-                    a[loc_a_ji] = b[loc_b].conj();
+                    a[loc_a_ij].write(b[loc_b]);
+                    a[loc_a_ji].write(b[loc_b].conj());
                     idx_b += 1;
                 }
             }
@@ -369,14 +401,14 @@ where
         FlagSymm::Ay => {
             for i in 0..n {
                 let loc_a_ii = unsafe { la.index_uncheck(&[i, i]) } as usize;
-                a[loc_a_ii] = T::zero();
+                a[loc_a_ii].write(T::zero());
                 idx_b += 1;
                 for j in (i + 1)..n {
                     let loc_b = unsafe { lb.index_uncheck(&[idx_b]) } as usize;
                     let loc_a_ij = unsafe { la.index_uncheck(&[i, j]) } as usize;
                     let loc_a_ji = unsafe { la.index_uncheck(&[j, i]) } as usize;
-                    a[loc_a_ij] = b[loc_b];
-                    a[loc_a_ji] = -b[loc_b];
+                    a[loc_a_ij].write(b[loc_b]);
+                    a[loc_a_ji].write(-b[loc_b]);
                     idx_b += 1;
                 }
             }
@@ -384,14 +416,14 @@ where
         FlagSymm::Ah => {
             for i in 0..n {
                 let loc_a_ii = unsafe { la.index_uncheck(&[i, i]) } as usize;
-                a[loc_a_ii] = T::zero();
+                a[loc_a_ii].write(T::zero());
                 idx_b += 1;
                 for j in (i + 1)..n {
                     let loc_b = unsafe { lb.index_uncheck(&[idx_b]) } as usize;
                     let loc_a_ij = unsafe { la.index_uncheck(&[i, j]) } as usize;
                     let loc_a_ji = unsafe { la.index_uncheck(&[j, i]) } as usize;
-                    a[loc_a_ij] = b[loc_b];
-                    a[loc_a_ji] = -b[loc_b].conj();
+                    a[loc_a_ij].write(b[loc_b]);
+                    a[loc_a_ji].write(-b[loc_b].conj());
                     idx_b += 1;
                 }
             }
@@ -401,7 +433,7 @@ where
                 for j in i..n {
                     let loc_b = unsafe { lb.index_uncheck(&[idx_b]) } as usize;
                     let loc_a_ij = unsafe { la.index_uncheck(&[i, j]) } as usize;
-                    a[loc_a_ij] = b[loc_b];
+                    a[loc_a_ij].write(b[loc_b]);
                     idx_b += 1;
                 }
             }
@@ -410,7 +442,7 @@ where
 }
 
 pub fn unpack_tri_cpu_serial<T>(
-    a: &mut [T],
+    a: &mut [MaybeUninit<T>],
     la: &Layout<IxD>,
     b: &[T],
     lb: &Layout<IxD>,

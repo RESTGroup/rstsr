@@ -5,7 +5,7 @@ use num::complex::ComplexFloat;
 use rayon::prelude::*;
 
 pub fn pack_tri_cpu_rayon<T>(
-    a: &mut [T],
+    a: &mut [MaybeUninit<T>],
     la: &Layout<IxD>,
     b: &[T],
     lb: &Layout<IxD>,
@@ -105,7 +105,7 @@ where
 }
 
 pub fn unpack_tri_cpu_rayon<T>(
-    a: &mut [T],
+    a: &mut [MaybeUninit<T>],
     la: &Layout<IxD>,
     b: &[T],
     lb: &Layout<IxD>,

@@ -131,7 +131,6 @@ where
 impl<T> DeviceCreationTriAPI<T> for DeviceCpuSerial
 where
     T: Num + Clone,
-    DeviceCpuSerial: DeviceRawAPI<T, Raw = Vec<T>>,
 {
     fn tril_impl<D>(&self, raw: &mut Vec<T>, layout: &Layout<D>, k: isize) -> Result<()>
     where
