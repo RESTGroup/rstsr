@@ -175,7 +175,7 @@ mod impl_binary_arithmetic_ref {
         DA: DimAPI,
         DB: DimAPI,
         DC: DimAPI,
-        B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<TC>,
+        B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<TC> + DeviceRawAPI<MaybeUninit<TC>>,
         B: DeviceCreationAnyAPI<TC>,
         // broadcast constraints
         DA: DimMaxAPI<DB, Max = DC>,
@@ -207,10 +207,11 @@ mod impl_binary_arithmetic_ref {
             };
             // generate empty c
             let device = a.device();
-            let mut storage_c = unsafe { device.empty_impl(lc.bounds_index()?.1)? };
+            let mut storage_c = device.uninit_impl(lc.bounds_index()?.1)?;
             // add provided by device
             device.op_mutc_refa_refb(storage_c.raw_mut(), &lc, a.raw(), &la_b, b.raw(), &lb_b)?;
             // return tensor
+            let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
             Tensor::new_f(storage_c, lc)
         }
     }
@@ -478,7 +479,7 @@ mod impl_binary_lr_consume {
         B: DeviceRConsumeAPI<T, T, DB>,
         // cow constraints
         T: Clone,
-        B::Raw: Clone,
+        <B as DeviceRawAPI<T>>::Raw: Clone,
         B: OpAssignAPI<T, DA>,
     {
         type Output = Tensor<T, B, DC>;
@@ -516,7 +517,7 @@ mod impl_binary_lr_consume {
         B: DeviceRConsumeAPI<T, T, DB>,
         // cow constraints
         T: Clone,
-        B::Raw: Clone,
+        <B as DeviceRawAPI<T>>::Raw: Clone,
         B: OpAssignAPI<T, DB>,
     {
         type Output = Tensor<T, B, DC>;
@@ -547,7 +548,7 @@ mod impl_binary_lr_consume {
         B: DeviceRConsumeAPI<T, T, DB>,
         // cow constraints
         T: Clone,
-        B::Raw: Clone,
+        <B as DeviceRawAPI<T>>::Raw: Clone,
         B: OpAssignAPI<T, DA> + OpAssignAPI<T, DB>,
     {
         type Output = Tensor<T, B, DC>;
@@ -615,7 +616,9 @@ where
     rstsr_assert_eq!(lc_b, *lc, InvalidLayout)?;
     // op provided by device
     let device = c.device().clone();
-    device.op_mutc_refa_refb(c.raw_mut(), &lc_b, a.raw(), &la_b, b.raw(), &lb_b)
+    // REVIEWME: transmute &Raw<T> to &MaybeUninit<Raw<T>>
+    let c_raw_mut = unsafe { core::mem::transmute(c.raw_mut()) };
+    device.op_mutc_refa_refb(c_raw_mut, &lc_b, a.raw(), &la_b, b.raw(), &lb_b)
 }
 
 #[duplicate_item(
@@ -661,7 +664,7 @@ macro_rules! impl_arithmetic_scalar_lhs {
         impl<T, R, D, B> $TensorOpAPI<&TensorAny<R, T, B, D>> for $ty
         where
             T: From<$ty> + $Op<T, Output = T>,
-            R: DataAPI<Data = B::Raw>,
+            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
             B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
             B: $DeviceOpAPI<T, T, T, D>,
@@ -672,8 +675,9 @@ macro_rules! impl_arithmetic_scalar_lhs {
                 let device = b.device();
                 let lb = b.layout();
                 let lc = layout_for_array_copy(lb, TensorIterOrder::default())?;
-                let mut storage_c = unsafe { device.empty_impl(lc.bounds_index()?.1)? };
+                let mut storage_c = device.uninit_impl(lc.bounds_index()?.1)?;
                 device.op_mutc_numa_refb(storage_c.raw_mut(), &lc, a, b.raw(), lb)?;
+                let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
                 Tensor::new_f(storage_c, lc)
             }
         }
@@ -682,7 +686,7 @@ macro_rules! impl_arithmetic_scalar_lhs {
         impl<T, R, D, B> $Op<&TensorAny<R, T, B, D>> for $ty
         where
             T: From<$ty> + $Op<T, Output = T>,
-            R: DataAPI<Data = B::Raw>,
+            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
             B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
             B: $DeviceOpAPI<T, T, T, D>,
@@ -707,8 +711,9 @@ macro_rules! impl_arithmetic_scalar_lhs {
                 let device = b.device();
                 let lb = b.layout();
                 let lc = layout_for_array_copy(lb, TensorIterOrder::default())?;
-                let mut storage_c = unsafe { device.empty_impl(lc.bounds_index()?.1)? };
+                let mut storage_c = device.uninit_impl(lc.bounds_index()?.1)?;
                 device.op_mutc_numa_refb(storage_c.raw_mut(), &lc, a, b.raw(), lb)?;
+                let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
                 Tensor::new_f(storage_c, lc)
             }
         }
@@ -768,7 +773,7 @@ macro_rules! impl_arithmetic_scalar_lhs {
             B: $DeviceRConsumeOpAPI<T, T, D> + $DeviceOpAPI<T, T, T, D>,
             // cow constraints
             T: Clone,
-            B::Raw: Clone,
+            <B as DeviceRawAPI<T>>::Raw: Clone,
             B: OpAssignAPI<T, D>,
         {
             type Output = Tensor<T, B, D>;
@@ -789,7 +794,7 @@ macro_rules! impl_arithmetic_scalar_lhs {
             B: $DeviceRConsumeOpAPI<T, T, D> + $DeviceOpAPI<T, T, T, D>,
             // cow constraints
             T: Clone,
-            B::Raw: Clone,
+            <B as DeviceRawAPI<T>>::Raw: Clone,
             B: OpAssignAPI<T, D>,
         {
             type Output = Tensor<T, B, D>;
@@ -891,7 +896,7 @@ mod impl_arithmetic_scalar_rhs {
     impl<T, TB, R, D, B> TensorOpAPI<TB> for &TensorAny<R, T, B, D>
     where
         T: From<TB> + Op<T, Output = T>,
-        R: DataAPI<Data = B::Raw>,
+        R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
         D: DimAPI,
         B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
         B: DeviceOpAPI<T, T, T, D>,
@@ -904,8 +909,9 @@ mod impl_arithmetic_scalar_rhs {
             let device = a.device();
             let la = a.layout();
             let lc = layout_for_array_copy(la, TensorIterOrder::default())?;
-            let mut storage_c = unsafe { device.empty_impl(lc.bounds_index()?.1)? };
+            let mut storage_c = device.uninit_impl(lc.bounds_index()?.1)?;
             device.op_mutc_refa_numb(storage_c.raw_mut(), &lc, a.raw(), la, b)?;
+            let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
             Tensor::new_f(storage_c, lc)
         }
     }
@@ -926,8 +932,9 @@ mod impl_arithmetic_scalar_rhs {
             let device = a.device();
             let la = a.layout();
             let lc = layout_for_array_copy(la, TensorIterOrder::default())?;
-            let mut storage_c = unsafe { device.empty_impl(lc.bounds_index()?.1)? };
+            let mut storage_c = device.uninit_impl(lc.bounds_index()?.1)?;
             device.op_mutc_refa_numb(storage_c.raw_mut(), &lc, a.raw(), la, b)?;
+            let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
             Tensor::new_f(storage_c, lc)
         }
     }
@@ -963,7 +970,7 @@ mod impl_arithmetic_scalar_rhs {
         TB: num::Num,
         // cow constraints
         T: Clone,
-        B::Raw: Clone,
+        <B as DeviceRawAPI<T>>::Raw: Clone,
         B: DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
     {
         type Output = Tensor<T, B, D>;

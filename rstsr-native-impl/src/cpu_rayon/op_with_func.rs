@@ -11,7 +11,7 @@ const PARALLEL_SWITCH: usize = 4096;
 
 #[allow(clippy::too_many_arguments)]
 pub fn op_mutc_refa_refb_func_cpu_rayon<TA, TB, TC, D, F>(
-    c: &mut [TC],
+    c: &mut [MaybeUninit<TC>],
     lc: &Layout<D>,
     a: &[TA],
     la: &Layout<D>,
@@ -25,7 +25,7 @@ where
     TB: Send + Sync,
     TC: Send + Sync,
     D: DimAPI,
-    F: Fn(&mut TC, &TA, &TB) + ?Sized + Sync + Send,
+    F: Fn(&mut MaybeUninit<TC>, &TA, &TB) + ?Sized + Sync + Send,
 {
     // determine whether to use parallel iteration
     let size = lc.size();
@@ -47,7 +47,7 @@ where
         if size_contig < PARALLEL_SWITCH {
             // not parallel inner iteration
             let func = |(idx_c, idx_a, idx_b)| unsafe {
-                let c_ptr = c.as_ptr().add(idx_c) as *mut TC;
+                let c_ptr = c.as_ptr().add(idx_c) as *mut MaybeUninit<TC>;
                 (0..size_contig).for_each(|idx| {
                     f(&mut *c_ptr.add(idx), &a[idx_a + idx], &b[idx_b + idx]);
                 });
@@ -58,7 +58,7 @@ where
             // parallel inner iteration
             let func = |(idx_c, idx_a, idx_b)| unsafe {
                 (0..size_contig).into_par_iter().for_each(|idx| {
-                    let c_ptr = c.as_ptr().add(idx_c + idx) as *mut TC;
+                    let c_ptr = c.as_ptr().add(idx_c + idx) as *mut MaybeUninit<TC>;
                     f(&mut *c_ptr, &a[idx_a + idx], &b[idx_b + idx]);
                 });
             };
@@ -71,7 +71,7 @@ where
         let la = &layouts_full[1];
         let lb = &layouts_full[2];
         let func = |(idx_c, idx_a, idx_b)| unsafe {
-            let c_ptr = c.as_ptr() as *mut TC;
+            let c_ptr = c.as_ptr() as *mut MaybeUninit<TC>;
             f(&mut *c_ptr.add(idx_c), &a[idx_a], &b[idx_b]);
         };
         let task = || layout_col_major_dim_dispatch_par_3(lc, la, lb, func);
@@ -80,7 +80,7 @@ where
 }
 
 pub fn op_mutc_refa_numb_func_cpu_rayon<TA, TB, TC, D, F>(
-    c: &mut [TC],
+    c: &mut [MaybeUninit<TC>],
     lc: &Layout<D>,
     a: &[TA],
     la: &Layout<D>,
@@ -93,7 +93,7 @@ where
     TB: Send + Sync,
     TC: Send + Sync,
     D: DimAPI,
-    F: Fn(&mut TC, &TA, &TB) + ?Sized + Send + Sync,
+    F: Fn(&mut MaybeUninit<TC>, &TA, &TB) + ?Sized + Send + Sync,
 {
     // determine whether to use parallel iteration
     let size = lc.size();
@@ -114,7 +114,7 @@ where
         if size_contig < PARALLEL_SWITCH {
             // not parallel inner iteration
             let func = |(idx_c, idx_a)| unsafe {
-                let c_ptr = c.as_ptr().add(idx_c) as *mut TC;
+                let c_ptr = c.as_ptr().add(idx_c) as *mut MaybeUninit<TC>;
                 (0..size_contig).for_each(|idx| {
                     f(&mut *c_ptr.add(idx), &a[idx_a + idx], &b);
                 });
@@ -125,7 +125,7 @@ where
             // parallel inner iteration
             let func = |(idx_c, idx_a)| unsafe {
                 (0..size_contig).into_par_iter().for_each(|idx| {
-                    let c_ptr = c.as_ptr().add(idx_c + idx) as *mut TC;
+                    let c_ptr = c.as_ptr().add(idx_c + idx) as *mut MaybeUninit<TC>;
                     f(&mut *c_ptr, &a[idx_a + idx], &b);
                 });
             };
@@ -137,7 +137,7 @@ where
         let lc = &layouts_full[0];
         let la = &layouts_full[1];
         let func = |(idx_c, idx_a)| unsafe {
-            let c_ptr = c.as_ptr() as *mut TC;
+            let c_ptr = c.as_ptr() as *mut MaybeUninit<TC>;
             f(&mut *c_ptr.add(idx_c), &a[idx_a], &b);
         };
         let task = || layout_col_major_dim_dispatch_par_2(lc, la, func);
@@ -146,7 +146,7 @@ where
 }
 
 pub fn op_mutc_numa_refb_func_cpu_rayon<TA, TB, TC, D, F>(
-    c: &mut [TC],
+    c: &mut [MaybeUninit<TC>],
     lc: &Layout<D>,
     a: TA,
     b: &[TB],
@@ -159,7 +159,7 @@ where
     TB: Send + Sync,
     TC: Send + Sync,
     D: DimAPI,
-    F: Fn(&mut TC, &TA, &TB) + ?Sized + Send + Sync,
+    F: Fn(&mut MaybeUninit<TC>, &TA, &TB) + ?Sized + Send + Sync,
 {
     // determine whether to use parallel iteration
     let size = lc.size();
@@ -180,7 +180,7 @@ where
         if size_contig < PARALLEL_SWITCH {
             // not parallel inner iteration
             let func = |(idx_c, idx_b)| unsafe {
-                let c_ptr = c.as_ptr().add(idx_c) as *mut TC;
+                let c_ptr = c.as_ptr().add(idx_c) as *mut MaybeUninit<TC>;
                 (0..size_contig).for_each(|idx| {
                     f(&mut *c_ptr.add(idx), &a, &b[idx_b + idx]);
                 });
@@ -191,7 +191,7 @@ where
             // parallel inner iteration
             let func = |(idx_c, idx_b)| unsafe {
                 (0..size_contig).into_par_iter().for_each(|idx| {
-                    let c_ptr = c.as_ptr().add(idx_c + idx) as *mut TC;
+                    let c_ptr = c.as_ptr().add(idx_c + idx) as *mut MaybeUninit<TC>;
                     f(&mut *c_ptr, &a, &b[idx_b + idx]);
                 });
             };
@@ -203,7 +203,7 @@ where
         let lc = &layouts_full[0];
         let lb = &layouts_full[1];
         let func = |(idx_c, idx_b)| unsafe {
-            let c_ptr = c.as_ptr() as *mut TC;
+            let c_ptr = c.as_ptr() as *mut MaybeUninit<TC>;
             f(&mut *c_ptr.add(idx_c), &a, &b[idx_b]);
         };
         let task = || layout_col_major_dim_dispatch_par_2(lc, lb, func);
@@ -212,7 +212,7 @@ where
 }
 
 pub fn op_muta_refb_func_cpu_rayon<TA, TB, D, F>(
-    a: &mut [TA],
+    a: &mut [MaybeUninit<TA>],
     la: &Layout<D>,
     b: &[TB],
     lb: &Layout<D>,
@@ -223,7 +223,7 @@ where
     TA: Send + Sync,
     TB: Send + Sync,
     D: DimAPI,
-    F: Fn(&mut TA, &TB) + ?Sized + Send + Sync,
+    F: Fn(&mut MaybeUninit<TA>, &TB) + ?Sized + Send + Sync,
 {
     // determine whether to use parallel iteration
     let size = la.size();
@@ -244,7 +244,7 @@ where
         if size_contig < PARALLEL_SWITCH {
             // not parallel inner iteration
             let func = |(idx_a, idx_b)| unsafe {
-                let a_ptr = a.as_ptr().add(idx_a) as *mut TA;
+                let a_ptr = a.as_ptr().add(idx_a) as *mut MaybeUninit<TA>;
                 (0..size_contig).for_each(|idx| {
                     f(&mut *a_ptr.add(idx), &b[idx_b + idx]);
                 });
@@ -255,7 +255,7 @@ where
             // parallel inner iteration
             let func = |(idx_a, idx_b)| unsafe {
                 (0..size_contig).into_par_iter().for_each(|idx| {
-                    let a_ptr = a.as_ptr().add(idx_a + idx) as *mut TA;
+                    let a_ptr = a.as_ptr().add(idx_a + idx) as *mut MaybeUninit<TA>;
                     f(&mut *a_ptr, &b[idx_b + idx]);
                 });
             };
@@ -267,7 +267,7 @@ where
         let la = &layouts_full[0];
         let lb = &layouts_full[1];
         let func = |(idx_a, idx_b): (usize, usize)| unsafe {
-            let a_ptr = a.as_ptr() as *mut TA;
+            let a_ptr = a.as_ptr() as *mut MaybeUninit<TA>;
             f(&mut *a_ptr.add(idx_a), &b[idx_b]);
         };
         let task = || layout_col_major_dim_dispatch_par_2(la, lb, func);
@@ -276,7 +276,7 @@ where
 }
 
 pub fn op_muta_numb_func_cpu_rayon<TA, TB, D, F>(
-    a: &mut [TA],
+    a: &mut [MaybeUninit<TA>],
     la: &Layout<D>,
     b: TB,
     f: &mut F,
@@ -286,7 +286,7 @@ where
     TA: Send + Sync,
     TB: Send + Sync,
     D: DimAPI,
-    F: Fn(&mut TA, &TB) + ?Sized + Send + Sync,
+    F: Fn(&mut MaybeUninit<TA>, &TB) + ?Sized + Send + Sync,
 {
     // determine whether to use parallel iteration
     let size = la.size();
@@ -305,7 +305,7 @@ where
         if size_contig < PARALLEL_SWITCH {
             // not parallel inner iteration
             let func = |idx_a| unsafe {
-                let a_ptr = a.as_ptr().add(idx_a) as *mut TA;
+                let a_ptr = a.as_ptr().add(idx_a) as *mut MaybeUninit<TA>;
                 (0..size_contig).for_each(|idx| {
                     f(&mut *a_ptr.add(idx), &b);
                 });
@@ -316,7 +316,7 @@ where
             // parallel inner iteration
             let func = |idx_a| unsafe {
                 (0..size_contig).into_par_iter().for_each(|idx| {
-                    let a_ptr = a.as_ptr().add(idx_a + idx) as *mut TA;
+                    let a_ptr = a.as_ptr().add(idx_a + idx) as *mut MaybeUninit<TA>;
                     f(&mut *a_ptr, &b);
                 });
             };
@@ -326,7 +326,7 @@ where
     } else {
         // not possible for contiguous assign
         let func = |idx_a| unsafe {
-            let a_ptr = a.as_ptr() as *mut TA;
+            let a_ptr = a.as_ptr() as *mut MaybeUninit<TA>;
             f(&mut *a_ptr.add(idx_a), &b);
         };
         let task = || layout_col_major_dim_dispatch_par_1(&layout, func);
@@ -334,11 +334,16 @@ where
     }
 }
 
-pub fn op_muta_func_cpu_rayon<T, D, F>(a: &mut [T], la: &Layout<D>, f: &mut F, pool: Option<&ThreadPool>) -> Result<()>
+pub fn op_muta_func_cpu_rayon<T, D, F>(
+    a: &mut [MaybeUninit<T>],
+    la: &Layout<D>,
+    f: &mut F,
+    pool: Option<&ThreadPool>,
+) -> Result<()>
 where
     T: Send + Sync,
     D: DimAPI,
-    F: Fn(&mut T) + ?Sized + Send + Sync,
+    F: Fn(&mut MaybeUninit<T>) + ?Sized + Send + Sync,
 {
     // determine whether to use parallel iteration
     let size = la.size();
@@ -356,7 +361,7 @@ where
         if size_contig < PARALLEL_SWITCH {
             // not parallel inner iteration
             let func = |idx_a| unsafe {
-                let a_ptr = a.as_ptr().add(idx_a) as *mut T;
+                let a_ptr = a.as_ptr().add(idx_a) as *mut MaybeUninit<T>;
                 (0..size_contig).for_each(|idx| {
                     f(&mut *a_ptr.add(idx));
                 });
@@ -367,7 +372,7 @@ where
             // parallel inner iteration
             let func = |idx_a| unsafe {
                 (0..size_contig).into_par_iter().for_each(|idx| {
-                    let a_ptr = a.as_ptr().add(idx_a + idx) as *mut T;
+                    let a_ptr = a.as_ptr().add(idx_a + idx) as *mut MaybeUninit<T>;
                     f(&mut *a_ptr);
                 });
             };
@@ -376,7 +381,7 @@ where
         }
     } else {
         let func = |idx_a| unsafe {
-            let a_ptr = a.as_ptr() as *mut T;
+            let a_ptr = a.as_ptr() as *mut MaybeUninit<T>;
             f(&mut *a_ptr.add(idx_a));
         };
         let task = || layout_col_major_dim_dispatch_par_1(&layout, func);

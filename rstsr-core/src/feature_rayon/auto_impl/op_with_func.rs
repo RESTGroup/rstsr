@@ -8,11 +8,11 @@ where
     TB: Clone + Send + Sync,
     TC: Clone + Send + Sync,
     D: DimAPI,
-    F: Fn(&mut TC, &TA, &TB) + ?Sized + Send + Sync,
+    F: Fn(&mut MaybeUninit<TC>, &TA, &TB) + ?Sized + Send + Sync,
 {
     fn op_mutc_refa_refb_func(
         &self,
-        c: &mut Vec<TC>,
+        c: &mut Vec<MaybeUninit<TC>>,
         lc: &Layout<D>,
         a: &Vec<TA>,
         la: &Layout<D>,
@@ -31,11 +31,11 @@ where
     TB: Clone + Send + Sync,
     TC: Clone + Send + Sync,
     D: DimAPI,
-    F: Fn(&mut TC, &TA, &TB) + ?Sized + Send + Sync,
+    F: Fn(&mut MaybeUninit<TC>, &TA, &TB) + ?Sized + Send + Sync,
 {
     fn op_mutc_refa_numb_func(
         &self,
-        c: &mut Vec<TC>,
+        c: &mut Vec<MaybeUninit<TC>>,
         lc: &Layout<D>,
         a: &Vec<TA>,
         la: &Layout<D>,
@@ -53,11 +53,11 @@ where
     TB: Clone + Send + Sync,
     TC: Clone + Send + Sync,
     D: DimAPI,
-    F: Fn(&mut TC, &TA, &TB) + ?Sized + Send + Sync,
+    F: Fn(&mut MaybeUninit<TC>, &TA, &TB) + ?Sized + Send + Sync,
 {
     fn op_mutc_numa_refb_func(
         &self,
-        c: &mut Vec<TC>,
+        c: &mut Vec<MaybeUninit<TC>>,
         lc: &Layout<D>,
         a: TA,
         b: &Vec<TB>,
@@ -74,9 +74,16 @@ where
     TA: Clone + Send + Sync,
     TB: Clone + Send + Sync,
     D: DimAPI,
-    F: Fn(&mut TA, &TB) + ?Sized + Send + Sync,
+    F: Fn(&mut MaybeUninit<TA>, &TB) + ?Sized + Send + Sync,
 {
-    fn op_muta_refb_func(&self, a: &mut Vec<TA>, la: &Layout<D>, b: &Vec<TB>, lb: &Layout<D>, f: &mut F) -> Result<()> {
+    fn op_muta_refb_func(
+        &self,
+        a: &mut Vec<MaybeUninit<TA>>,
+        la: &Layout<D>,
+        b: &Vec<TB>,
+        lb: &Layout<D>,
+        f: &mut F,
+    ) -> Result<()> {
         let pool = self.get_current_pool();
         op_muta_refb_func_cpu_rayon(a, la, b, lb, f, pool)
     }
@@ -87,9 +94,9 @@ where
     TA: Clone + Send + Sync,
     TB: Clone + Send + Sync,
     D: DimAPI,
-    F: Fn(&mut TA, &TB) + ?Sized + Send + Sync,
+    F: Fn(&mut MaybeUninit<TA>, &TB) + ?Sized + Send + Sync,
 {
-    fn op_muta_numb_func(&self, a: &mut Vec<TA>, la: &Layout<D>, b: TB, f: &mut F) -> Result<()> {
+    fn op_muta_numb_func(&self, a: &mut Vec<MaybeUninit<TA>>, la: &Layout<D>, b: TB, f: &mut F) -> Result<()> {
         let pool = self.get_current_pool();
         op_muta_numb_func_cpu_rayon(a, la, b, f, pool)
     }
@@ -99,9 +106,9 @@ impl<T, D, F> DeviceOp_MutA_API<T, D, F> for DeviceRayonAutoImpl
 where
     T: Clone + Send + Sync,
     D: DimAPI,
-    F: Fn(&mut T) + ?Sized + Send + Sync,
+    F: Fn(&mut MaybeUninit<T>) + ?Sized + Send + Sync,
 {
-    fn op_muta_func(&self, a: &mut Vec<T>, la: &Layout<D>, f: &mut F) -> Result<()> {
+    fn op_muta_func(&self, a: &mut Vec<MaybeUninit<T>>, la: &Layout<D>, f: &mut F) -> Result<()> {
         let pool = self.get_current_pool();
         op_muta_func_cpu_rayon(a, la, f, pool)
     }

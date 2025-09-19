@@ -8,13 +8,13 @@ use crate::prelude_dev::*;
 const CONTIG_SWITCH: usize = 16;
 
 pub fn op_mutc_refa_refb_func_cpu_serial<TA, TB, TC, D>(
-    c: &mut [TC],
+    c: &mut [MaybeUninit<TC>],
     lc: &Layout<D>,
     a: &[TA],
     la: &Layout<D>,
     b: &[TB],
     lb: &Layout<D>,
-    mut f: impl FnMut(&mut TC, &TA, &TB),
+    mut f: impl FnMut(&mut MaybeUninit<TC>, &TA, &TB),
 ) -> Result<()>
 where
     D: DimAPI,
@@ -45,12 +45,12 @@ where
 }
 
 pub fn op_mutc_refa_numb_func_cpu_serial<TA, TB, TC, D>(
-    c: &mut [TC],
+    c: &mut [MaybeUninit<TC>],
     lc: &Layout<D>,
     a: &[TA],
     la: &Layout<D>,
     b: TB,
-    mut f: impl FnMut(&mut TC, &TA, &TB),
+    mut f: impl FnMut(&mut MaybeUninit<TC>, &TA, &TB),
 ) -> Result<()>
 where
     D: DimAPI,
@@ -79,12 +79,12 @@ where
 }
 
 pub fn op_mutc_numa_refb_func_cpu_serial<TA, TB, TC, D>(
-    c: &mut [TC],
+    c: &mut [MaybeUninit<TC>],
     lc: &Layout<D>,
     a: TA,
     b: &[TB],
     lb: &Layout<D>,
-    mut f: impl FnMut(&mut TC, &TA, &TB),
+    mut f: impl FnMut(&mut MaybeUninit<TC>, &TA, &TB),
 ) -> Result<()>
 where
     D: DimAPI,
@@ -113,11 +113,11 @@ where
 }
 
 pub fn op_muta_refb_func_cpu_serial<TA, TB, D>(
-    a: &mut [TA],
+    a: &mut [MaybeUninit<TA>],
     la: &Layout<D>,
     b: &[TB],
     lb: &Layout<D>,
-    mut f: impl FnMut(&mut TA, &TB),
+    mut f: impl FnMut(&mut MaybeUninit<TA>, &TB),
 ) -> Result<()>
 where
     D: DimAPI,
@@ -146,10 +146,10 @@ where
 }
 
 pub fn op_muta_numb_func_cpu_serial<TA, TB, D>(
-    a: &mut [TA],
+    a: &mut [MaybeUninit<TA>],
     la: &Layout<D>,
     b: TB,
-    mut f: impl FnMut(&mut TA, &TB),
+    mut f: impl FnMut(&mut MaybeUninit<TA>, &TB),
 ) -> Result<()>
 where
     D: DimAPI,
@@ -172,7 +172,11 @@ where
     }
 }
 
-pub fn op_muta_func_cpu_serial<T, D>(a: &mut [T], la: &Layout<D>, mut f: impl FnMut(&mut T)) -> Result<()>
+pub fn op_muta_func_cpu_serial<T, D>(
+    a: &mut [MaybeUninit<T>],
+    la: &Layout<D>,
+    mut f: impl FnMut(&mut MaybeUninit<T>),
+) -> Result<()>
 where
     D: DimAPI,
 {

@@ -1,4 +1,5 @@
 use crate::prelude_dev::*;
+use core::mem::transmute;
 use core::sync::atomic::{AtomicPtr, Ordering};
 use rayon::prelude::*;
 
@@ -180,17 +181,23 @@ where
         // prepare output
         let len_out = layout_out.size();
         let init_val = init();
-        let mut out = vec![init_val; len_out];
+        let out = vec![init_val; len_out];
+        let mut out = unsafe { transmute::<Vec<TS>, Vec<MaybeUninit<TS>>>(out) };
 
         // closure for adding to mutable reference
-        let mut f_add = |a: &mut TS, b: &TI| *a = f(a.clone(), b.clone());
+        let mut f_add = |a: &mut MaybeUninit<TS>, b: &TI| unsafe {
+            a.write(f(a.assume_init_read(), b.clone()));
+        };
 
         for idx_axes in iter_layout_axes {
             unsafe { layout_inner.set_offset(idx_axes) };
             op_muta_refb_func_cpu_rayon(&mut out, &layout_out, a, &layout_inner, &mut f_add, pool)?;
         }
-        let mut fin_inplace = |a: &mut TS| *a = f_out(a.clone());
+        let mut fin_inplace = |a: &mut MaybeUninit<TS>| unsafe {
+            a.write(f_out(a.assume_init_read()));
+        };
         op_muta_func_cpu_rayon(&mut out, &layout_out, &mut fin_inplace, pool)?;
+        let out = unsafe { transmute::<Vec<MaybeUninit<TS>>, Vec<TS>>(out) };
         Ok((out, layout_out))
     }
 }
@@ -272,10 +279,13 @@ where
         // prepare output
         let len_out = layout_out.size();
         let init_val = init();
-        let mut out = vec![init_val; len_out];
+        let out = vec![init_val; len_out];
+        let mut out = unsafe { transmute::<Vec<TS>, Vec<MaybeUninit<TS>>>(out) };
 
         // closure for adding to mutable reference
-        let mut f_add = |a: &mut TS, b: &TI| *a = f(a.clone(), b.clone());
+        let mut f_add = |a: &mut MaybeUninit<TS>, b: &TI| unsafe {
+            a.write(f(a.assume_init_read(), b.clone()));
+        };
 
         for idx_axes in iter_layout_axes {
             unsafe { layout_inner.set_offset(idx_axes) };
@@ -283,8 +293,11 @@ where
         }
 
         let mut out_converted = unsafe { uninitialized_vec(len_out)? };
-        let mut f_out = |a: &mut TO, b: &TS| *a = f_out(b.clone());
+        let mut f_out = |a: &mut MaybeUninit<TO>, b: &MaybeUninit<TS>| unsafe {
+            a.write(f_out(b.assume_init_read()));
+        };
         op_muta_refb_func_cpu_rayon(&mut out_converted, &layout_out, &out, &layout_out, &mut f_out, pool)?;
+        let out_converted = unsafe { transmute::<Vec<MaybeUninit<TO>>, Vec<TO>>(out_converted) };
         Ok((out_converted, layout_out))
     }
 }
