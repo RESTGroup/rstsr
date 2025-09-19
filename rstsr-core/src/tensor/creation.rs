@@ -1087,7 +1087,6 @@ where
 
 impl<T, D, B> UninitAPI<(T, D)> for (Layout<D>, &B)
 where
-    T: Num,
     D: DimAPI,
     B: DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T>,
 {
@@ -1103,7 +1102,6 @@ where
 
 impl<T, D, B> UninitAPI<(T, D)> for (D, FlagOrder, &B)
 where
-    T: Num,
     D: DimAPI,
     B: DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T>,
 {
@@ -1118,7 +1116,6 @@ where
 
 impl<T, D, B> UninitAPI<(T, D)> for (D, &B)
 where
-    T: Num,
     D: DimAPI,
     B: DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T>,
 {
@@ -1134,7 +1131,7 @@ where
 
 impl<T, D> UninitAPI<(T, D)> for (D, FlagOrder)
 where
-    T: Num + Clone,
+    T: Clone,
     D: DimAPI,
 {
     type Out = Tensor<MaybeUninit<T>, DeviceCpu, IxD>;
@@ -1148,7 +1145,7 @@ where
 #[duplicate_item(L; [D]; [Layout<D>])]
 impl<T, D> UninitAPI<(T, D)> for L
 where
-    T: Num + Clone,
+    T: Clone,
     D: DimAPI,
 {
     type Out = Tensor<MaybeUninit<T>, DeviceCpu, IxD>;
