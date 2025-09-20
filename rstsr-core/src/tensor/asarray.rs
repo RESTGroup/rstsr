@@ -43,10 +43,10 @@ where
 
 impl<R, T, B, D> AsArrayAPI<()> for (&TensorAny<R, T, B, D>, TensorIterOrder)
 where
-    R: DataAPI<Data = B::Raw>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     T: Clone,
     D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
+    B: DeviceAPI<T> + DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
 {
     type Out = Tensor<T, B, D>;
 
@@ -55,8 +55,9 @@ where
         let device = input.device();
         let layout_a = input.layout();
         let layout_c = layout_for_array_copy(layout_a, order)?;
-        let mut storage_c = unsafe { device.empty_impl(layout_c.size())? };
-        device.assign(storage_c.raw_mut(), &layout_c, input.raw(), layout_a)?;
+        let mut storage_c = device.uninit_impl(layout_c.size())?;
+        device.assign_uninit(storage_c.raw_mut(), &layout_c, input.raw(), layout_a)?;
+        let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
         let tensor = unsafe { Tensor::new_unchecked(storage_c, layout_c) };
         return Ok(tensor);
     }
@@ -64,10 +65,10 @@ where
 
 impl<R, T, B, D> AsArrayAPI<()> for &TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = B::Raw>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     T: Clone,
     D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
+    B: DeviceAPI<T> + DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
 {
     type Out = Tensor<T, B, D>;
 
@@ -93,8 +94,9 @@ where
         if layout_c == *layout_a {
             return Ok(input);
         } else {
-            let mut storage_c = unsafe { device.empty_impl(layout_c.size())? };
-            device.assign(storage_c.raw_mut(), &layout_c, storage_a.raw(), layout_a)?;
+            let mut storage_c = device.uninit_impl(layout_c.size())?;
+            device.assign_uninit(storage_c.raw_mut(), &layout_c, storage_a.raw(), layout_a)?;
+            let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
             let tensor = unsafe { Tensor::new_unchecked(storage_c, layout_c) };
             return Ok(tensor);
         }

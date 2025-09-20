@@ -122,9 +122,10 @@ mod impl_unary {
             // generate empty output tensor
             let device = self.device();
             let la = layout_for_array_copy(lb, TensorIterOrder::K)?;
-            let mut storage_a = unsafe { device.empty_impl(la.bounds_index()?.1)? };
+            let mut storage_a = device.uninit_impl(la.bounds_index()?.1)?;
             // compute and return
             device.op_muta_refb(storage_a.raw_mut(), &la, self.raw(), lb)?;
+            let storage_a = unsafe { B::assume_init_impl(storage_a) }?;
             return Tensor::new_f(storage_a, la);
         }
     }

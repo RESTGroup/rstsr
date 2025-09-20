@@ -11,6 +11,18 @@ where
         let default_order = self.default_order();
         assign_arbitary_cpu_rayon(c, lc, a, la, default_order, pool)
     }
+
+    fn assign_arbitary_uninit(
+        &self,
+        c: &mut Vec<MaybeUninit<T>>,
+        lc: &Layout<DC>,
+        a: &Vec<T>,
+        la: &Layout<DA>,
+    ) -> Result<()> {
+        let pool = self.get_current_pool();
+        let default_order = self.default_order();
+        return assign_arbitary_uninit_cpu_rayon(c, lc, a, la, default_order, pool);
+    }
 }
 
 impl<T, D> OpAssignAPI<T, D> for DeviceRayonAutoImpl
@@ -21,6 +33,11 @@ where
     fn assign(&self, c: &mut Vec<T>, lc: &Layout<D>, a: &Vec<T>, la: &Layout<D>) -> Result<()> {
         let pool = self.get_current_pool();
         assign_cpu_rayon(c, lc, a, la, pool)
+    }
+
+    fn assign_uninit(&self, c: &mut Vec<MaybeUninit<T>>, lc: &Layout<D>, a: &Vec<T>, la: &Layout<D>) -> Result<()> {
+        let pool = self.get_current_pool();
+        return assign_uninit_cpu_rayon(c, lc, a, la, pool);
     }
 
     fn fill(&self, c: &mut Vec<T>, lc: &Layout<D>, fill: T) -> Result<()> {

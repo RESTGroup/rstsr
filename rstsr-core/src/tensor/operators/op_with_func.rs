@@ -1,4 +1,5 @@
 use crate::prelude_dev::*;
+use core::mem::transmute;
 
 /* #region op_func */
 
@@ -21,7 +22,7 @@ where
     DC: DimMaxAPI<DA, Max = DC> + DimMaxAPI<DB, Max = DC>,
     // operation constraints
     B: DeviceOp_MutC_RefA_RefB_API<TA, TB, TC, DC, F>,
-    F: FnMut(&mut TC, &TA, &TB),
+    F: FnMut(&mut MaybeUninit<TC>, &TA, &TB),
 {
     rstsr_assert!(c.device().same_device(a.device()), DeviceMismatch)?;
     rstsr_assert!(c.device().same_device(b.device()), DeviceMismatch)?;
@@ -37,7 +38,10 @@ where
     rstsr_assert_eq!(lc_b, *lc, InvalidLayout)?;
     // op provided by device
     let device = c.device().clone();
-    device.op_mutc_refa_refb_func(c.raw_mut(), &lc_b, a.raw(), &la_b, b.raw(), &lb_b, f)
+    let c_raw_mut = unsafe {
+        transmute::<&mut <B as DeviceRawAPI<TC>>::Raw, &mut <B as DeviceRawAPI<MaybeUninit<TC>>>::Raw>(c.raw_mut())
+    };
+    device.op_mutc_refa_refb_func(c_raw_mut, &lc_b, a.raw(), &la_b, b.raw(), &lb_b, f)
 }
 
 pub fn op_refa_refb_func<RA, RB, DA, DB, DC, TA, TB, TC, B, F>(
@@ -52,13 +56,13 @@ where
     DA: DimAPI,
     DB: DimAPI,
     DC: DimAPI,
-    B: DeviceAPI<TA> + DeviceAPI<TB>,
+    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<TC>,
     // broadcast constraints
     DA: DimMaxAPI<DB, Max = DC>,
     // operation constraints
     B: DeviceOp_MutC_RefA_RefB_API<TA, TB, TC, DC, F>,
     B: DeviceCreationAnyAPI<TC>,
-    F: FnMut(&mut TC, &TA, &TB),
+    F: FnMut(&mut MaybeUninit<TC>, &TA, &TB),
 {
     rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch)?;
     let la = a.layout();
@@ -78,10 +82,11 @@ where
     };
     // generate empty c
     let device = a.device();
-    let mut storage_c = unsafe { device.empty_impl(lc.bounds_index()?.1)? };
+    let mut storage_c = device.uninit_impl(lc.bounds_index()?.1)?;
     // add provided by device
     device.op_mutc_refa_refb_func(storage_c.raw_mut(), &lc, a.raw(), &la_b, b.raw(), &lb_b, f)?;
     // return tensor
+    let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
     Tensor::new_f(storage_c, lc)
 }
 
@@ -101,7 +106,7 @@ where
     DA: DimMaxAPI<DB, Max = DA>,
     // operation constraints
     B: DeviceOp_MutA_RefB_API<TA, TB, DA, F>,
-    F: FnMut(&mut TA, &TB),
+    F: FnMut(&mut MaybeUninit<TA>, &TB),
 {
     rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch)?;
     let la = a.layout();
@@ -113,20 +118,26 @@ where
     rstsr_assert_eq!(la_b, *la, InvalidLayout)?;
     // op provided by device
     let device = a.device().clone();
-    device.op_muta_refb_func(a.raw_mut(), &la_b, b.raw(), &lb_b, f)
+    let a_raw_mut = unsafe {
+        transmute::<&mut <B as DeviceRawAPI<TA>>::Raw, &mut <B as DeviceRawAPI<MaybeUninit<TA>>>::Raw>(a.raw_mut())
+    };
+    device.op_muta_refb_func(a_raw_mut, &la_b, b.raw(), &lb_b, f)
 }
 
 pub fn op_muta_func<R, T, D, B, F>(a: &mut TensorAny<R, T, B, D>, f: &mut F) -> Result<()>
 where
-    R: DataMutAPI<Data = B::Raw>,
+    R: DataMutAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     D: DimAPI,
     B: DeviceAPI<T>,
     B: DeviceOp_MutA_API<T, D, F>,
-    F: FnMut(&mut T),
+    F: FnMut(&mut MaybeUninit<T>),
 {
     let la = a.layout().clone();
     let device = a.device().clone();
-    device.op_muta_func(a.raw_mut(), &la, f)
+    let a_raw_mut = unsafe {
+        transmute::<&mut <B as DeviceRawAPI<T>>::Raw, &mut <B as DeviceRawAPI<MaybeUninit<T>>>::Raw>(a.raw_mut())
+    };
+    device.op_muta_func(a_raw_mut, &la, f)
 }
 
 /* #endregion */

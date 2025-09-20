@@ -9,12 +9,12 @@ pub trait DeviceIndexSelectAPI<T, D>
 where
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    Self: DeviceAPI<T>,
+    Self: DeviceAPI<T> + DeviceRawAPI<MaybeUninit<T>>,
 {
     /// Index select on one axis.
     fn index_select(
         &self,
-        c: &mut <Self as DeviceRawAPI<T>>::Raw,
+        c: &mut <Self as DeviceRawAPI<MaybeUninit<T>>>::Raw,
         lc: &Layout<D>,
         a: &<Self as DeviceRawAPI<T>>::Raw,
         la: &Layout<D>,

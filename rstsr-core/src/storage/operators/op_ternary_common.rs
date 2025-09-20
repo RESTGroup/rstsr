@@ -20,13 +20,13 @@ use crate::prelude_dev::*;
 pub trait DeviceOpAPI<TA, TB, D>
 where
     D: DimAPI,
-    Self: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<Self::TOut>,
+    Self: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<MaybeUninit<Self::TOut>>,
 {
     type TOut;
 
     fn op_mutc_refa_refb(
         &self,
-        c: &mut <Self as DeviceRawAPI<Self::TOut>>::Raw,
+        c: &mut <Self as DeviceRawAPI<MaybeUninit<Self::TOut>>>::Raw,
         lc: &Layout<D>,
         a: &<Self as DeviceRawAPI<TA>>::Raw,
         la: &Layout<D>,
@@ -36,7 +36,7 @@ where
 
     fn op_mutc_refa_numb(
         &self,
-        c: &mut <Self as DeviceRawAPI<Self::TOut>>::Raw,
+        c: &mut <Self as DeviceRawAPI<MaybeUninit<Self::TOut>>>::Raw,
         lc: &Layout<D>,
         a: &<Self as DeviceRawAPI<TA>>::Raw,
         la: &Layout<D>,
@@ -45,7 +45,7 @@ where
 
     fn op_mutc_numa_refb(
         &self,
-        c: &mut <Self as DeviceRawAPI<Self::TOut>>::Raw,
+        c: &mut <Self as DeviceRawAPI<MaybeUninit<Self::TOut>>>::Raw,
         lc: &Layout<D>,
         a: TA,
         b: &<Self as DeviceRawAPI<TB>>::Raw,

@@ -5,7 +5,7 @@ use num::ToPrimitive;
 
 impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = B::Raw>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
     B: DeviceAPI<T> + DeviceOpPackTriAPI<T> + DeviceCreationAnyAPI<T>,
@@ -64,8 +64,9 @@ where
 
         // device alloc and compute
         let device = self.device();
-        let mut storage_a = unsafe { device.empty_impl(la.bounds_index()?.1)? };
+        let mut storage_a = device.uninit_impl(la.bounds_index()?.1)?;
         device.pack_tri(storage_a.raw_mut(), &la, self.raw(), &lb, uplo)?;
+        let storage_a = unsafe { B::assume_init_impl(storage_a)? };
         Tensor::new_f(storage_a, la.into_dim()?)
     }
 
@@ -96,7 +97,7 @@ where
 
 impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = B::Raw>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     D: DimAPI + DimLargerOneAPI,
     D::LargerOne: DimAPI,
     B: DeviceAPI<T> + DeviceOpUnpackTriAPI<T> + DeviceCreationAnyAPI<T>,
@@ -154,8 +155,9 @@ where
 
         // device alloc and compute
         let device = self.device();
-        let mut storage_a = unsafe { device.empty_impl(la.bounds_index()?.1)? };
+        let mut storage_a = device.uninit_impl(la.bounds_index()?.1)?;
         device.unpack_tri(storage_a.raw_mut(), &la, self.raw(), &lb, uplo, symm)?;
+        let storage_a = unsafe { B::assume_init_impl(storage_a)? };
         Tensor::new_f(storage_a, la.into_dim()?)
     }
 

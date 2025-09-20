@@ -47,7 +47,7 @@ where
 
 impl<R, T, B, D> DiagAPI<()> for (&TensorAny<R, T, B, D>, isize)
 where
-    R: DataAPI<Data = B::Raw>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     T: Clone + Default,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, Ix1>,
@@ -81,7 +81,7 @@ where
 
 impl<R, T, B, D> DiagAPI<()> for &TensorAny<R, T, B, D>
 where
-    R: DataAPI<Data = B::Raw>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     T: Clone + Default,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, Ix1>,
@@ -130,11 +130,15 @@ where
 
 impl<R, T, B, D> MeshgridAPI<()> for (Vec<&TensorAny<R, T, B, D>>, &str, bool)
 where
-    R: DataAPI<Data = B::Raw> + DataCloneAPI,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataCloneAPI,
     T: Clone,
     D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD> + OpAssignArbitaryAPI<T, IxD, IxD>,
-    B::Raw: Clone,
+    B: DeviceAPI<T>
+        + DeviceRawAPI<MaybeUninit<T>>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignAPI<T, IxD>
+        + OpAssignArbitaryAPI<T, IxD, IxD>,
+    <B as DeviceRawAPI<T>>::Raw: Clone,
 {
     type Out = Vec<Tensor<T, B, IxD>>;
 
@@ -219,11 +223,15 @@ where
 )]
 impl<R, T, B, D, ImplType> MeshgridAPI<()> for ImplStruct
 where
-    R: DataAPI<Data = B::Raw> + DataCloneAPI,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataCloneAPI,
     T: Clone,
     D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD> + OpAssignArbitaryAPI<T, IxD, IxD>,
-    B::Raw: Clone,
+    B: DeviceAPI<T>
+        + DeviceRawAPI<MaybeUninit<T>>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignAPI<T, IxD>
+        + OpAssignArbitaryAPI<T, IxD, IxD>,
+    <B as DeviceRawAPI<T>>::Raw: Clone,
 {
     type Out = Vec<Tensor<T, B, IxD>>;
 
@@ -252,11 +260,15 @@ where
 )]
 impl<R, T, B, D, ImplType> MeshgridAPI<()> for ImplStruct
 where
-    R: DataAPI<Data = B::Raw> + DataCloneAPI,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataCloneAPI,
     T: Clone,
     D: DimAPI,
-    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD> + OpAssignArbitaryAPI<T, IxD, IxD>,
-    B::Raw: Clone,
+    B: DeviceAPI<T>
+        + DeviceRawAPI<MaybeUninit<T>>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignAPI<T, IxD>
+        + OpAssignArbitaryAPI<T, IxD, IxD>,
+    <B as DeviceRawAPI<T>>::Raw: Clone,
 {
     type Out = Vec<Tensor<T, B, IxD>>;
 
@@ -308,7 +320,7 @@ pub use concat_f as concatenate_f;
 
 impl<R, T, B, D> ConcatAPI<()> for (Vec<TensorAny<R, T, B, D>>, isize)
 where
-    R: DataAPI<Data = B::Raw>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     T: Clone + Default,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD>,
@@ -398,7 +410,7 @@ where
 )]
 impl<R, T, B, D, ImplType> ConcatAPI<()> for ImplStruct
 where
-    R: DataAPI<Data = B::Raw>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     T: Clone + Default,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD>,
@@ -425,7 +437,7 @@ where
 )]
 impl<R, T, B, D, ImplType> ConcatAPI<()> for ImplStruct
 where
-    R: DataAPI<Data = B::Raw>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     T: Clone + Default,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD>,
@@ -487,7 +499,7 @@ where
 )]
 impl<R, T, B, D, ImplType> HStackAPI<()> for ImplStruct
 where
-    R: DataAPI<Data = B::Raw>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     T: Clone + Default,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD>,
@@ -555,7 +567,7 @@ where
 )]
 impl<R, T, B, D, ImplType> VStackAPI<()> for ImplStruct
 where
-    R: DataAPI<Data = B::Raw>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     T: Clone + Default,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD>,
@@ -610,7 +622,7 @@ where
 
 impl<R, T, B, D> StackAPI<()> for (Vec<TensorAny<R, T, B, D>>, isize)
 where
-    R: DataAPI<Data = B::Raw>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     T: Clone + Default,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD>,
@@ -674,7 +686,7 @@ where
 )]
 impl<R, T, B, D, ImplType> StackAPI<()> for ImplStruct
 where
-    R: DataAPI<Data = B::Raw>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     T: Clone + Default,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD>,
@@ -701,7 +713,7 @@ where
 )]
 impl<R, T, B, D, ImplType> StackAPI<()> for ImplStruct
 where
-    R: DataAPI<Data = B::Raw>,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     T: Clone + Default,
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD>,
