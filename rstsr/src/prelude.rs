@@ -9,6 +9,11 @@ pub mod rstsr_traits {
     pub mod sci {
         pub use rstsr_sci_traits::prelude::rstsr_traits::*;
     }
+
+    #[cfg(feature = "tblis")]
+    pub mod tblis {
+        pub use rstsr_tblis::prelude::rstsr_traits::*;
+    }
 }
 
 pub mod rstsr_structs {
@@ -85,6 +90,11 @@ pub mod rstsr_funcs {
     pub mod sci {
         pub use rstsr_sci_traits::prelude::rstsr_funcs::*;
     }
+
+    #[cfg(feature = "tblis")]
+    pub mod tblis {
+        pub use rstsr_tblis::prelude::rstsr_funcs::*;
+    }
 }
 
 pub mod rstsr_macros {
@@ -127,6 +137,9 @@ pub mod rt {
 
     #[cfg(feature = "sci")]
     pub use super::sci;
+
+    #[cfg(feature = "tblis")]
+    pub use super::tblis;
 
     pub use rstsr_core::prelude::rt::{Error, Result};
 }

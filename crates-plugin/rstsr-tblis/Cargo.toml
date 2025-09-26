@@ -1,0 +1,18 @@
+[package]
+name = "rstsr-tblis"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+license.workspace = true
+
+[dependencies]
+rstsr-core = { workspace = true, features = ["rayon"] }
+tblis = { workspace = true }
+opt-einsum-path = { workspace = true }
+
+[dev-dependencies]
+tblis-src = { workspace = true }
+rstsr-core = { workspace = true, features = ["rayon", "faer"] }

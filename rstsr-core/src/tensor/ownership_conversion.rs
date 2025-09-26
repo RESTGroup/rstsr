@@ -266,21 +266,28 @@ where
 
 /* #region view API */
 
-pub trait TensorViewAPI<T, B, D>
+pub trait TensorViewAPI
 where
-    D: DimAPI,
-    B: DeviceAPI<T>,
+    Self::Dim: DimAPI,
+    Self::Backend: DeviceAPI<Self::Type>,
 {
+    type Type;
+    type Backend;
+    type Dim;
     /// Get a view of tensor.
-    fn view(&self) -> TensorView<'_, T, B, D>;
+    fn view(&self) -> TensorView<'_, Self::Type, Self::Backend, Self::Dim>;
 }
 
-impl<R, T, B, D> TensorViewAPI<T, B, D> for TensorAny<R, T, B, D>
+impl<R, T, B, D> TensorViewAPI for TensorAny<R, T, B, D>
 where
     D: DimAPI,
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
+    type Type = T;
+    type Backend = B;
+    type Dim = D;
+
     fn view(&self) -> TensorView<'_, T, B, D> {
         let data = self.data().as_ref();
         let storage = Storage::new(data, self.device().clone());
@@ -289,32 +296,44 @@ where
     }
 }
 
-impl<R, T, B, D> TensorViewAPI<T, B, D> for &TensorAny<R, T, B, D>
+impl<R, T, B, D> TensorViewAPI for &TensorAny<R, T, B, D>
 where
     D: DimAPI,
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
+    type Type = T;
+    type Backend = B;
+    type Dim = D;
+
     fn view(&self) -> TensorView<'_, T, B, D> {
         (*self).view()
     }
 }
 
-pub trait TensorViewMutAPI<T, B, D>
+pub trait TensorViewMutAPI
 where
-    D: DimAPI,
-    B: DeviceAPI<T>,
+    Self::Dim: DimAPI,
+    Self::Backend: DeviceAPI<Self::Type>,
 {
+    type Type;
+    type Backend;
+    type Dim;
+
     /// Get a mutable view of tensor.
-    fn view_mut(&mut self) -> TensorMut<'_, T, B, D>;
+    fn view_mut(&mut self) -> TensorMut<'_, Self::Type, Self::Backend, Self::Dim>;
 }
 
-impl<R, T, B, D> TensorViewMutAPI<T, B, D> for TensorAny<R, T, B, D>
+impl<R, T, B, D> TensorViewMutAPI for TensorAny<R, T, B, D>
 where
     D: DimAPI,
     R: DataMutAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
+    type Type = T;
+    type Backend = B;
+    type Dim = D;
+
     fn view_mut(&mut self) -> TensorMut<'_, T, B, D> {
         let device = self.device().clone();
         let layout = self.layout().clone();
@@ -324,12 +343,16 @@ where
     }
 }
 
-impl<R, T, B, D> TensorViewMutAPI<T, B, D> for &mut TensorAny<R, T, B, D>
+impl<R, T, B, D> TensorViewMutAPI for &mut TensorAny<R, T, B, D>
 where
     D: DimAPI,
     R: DataMutAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
+    type Type = T;
+    type Backend = B;
+    type Dim = D;
+
     fn view_mut(&mut self) -> TensorMut<'_, T, B, D> {
         (*self).view_mut()
     }
@@ -371,14 +394,14 @@ where
     D: DimAPI,
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
-    Self: TensorViewAPI<T, B, D>,
+    Self: TensorViewAPI,
 {
 }
 impl<T, B, D> TensorRefAPI for TensorView<'_, T, B, D>
 where
     D: DimAPI,
     B: DeviceAPI<T>,
-    Self: TensorViewAPI<T, B, D>,
+    Self: TensorViewAPI,
 {
 }
 
@@ -388,14 +411,14 @@ where
     D: DimAPI,
     R: DataMutAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
-    Self: TensorViewMutAPI<T, B, D>,
+    Self: TensorViewMutAPI,
 {
 }
 impl<T, B, D> TensorRefMutAPI for TensorMut<'_, T, B, D>
 where
     D: DimAPI,
     B: DeviceAPI<T>,
-    Self: TensorViewMutAPI<T, B, D>,
+    Self: TensorViewMutAPI,
 {
 }
 

@@ -13,11 +13,14 @@ readme = "readme.md"
 rstsr-core = { workspace = true }
 rstsr-linalg-traits = { workspace = true, optional = true }
 rstsr-sci-traits = { workspace = true, optional = true }
+# device dependencies
 rstsr-openblas = { workspace = true, optional = true }
 rstsr-mkl = { workspace = true, optional = true }
 rstsr-blis = { workspace = true, optional = true }
 rstsr-aocl = { workspace = true, optional = true }
 rstsr-kml = { workspace = true, optional = true }
+# plugin dependencies
+rstsr-tblis = { workspace = true, optional = true }
 
 [features]
 default = ["rstsr-core/default", "faer"]
@@ -42,6 +45,7 @@ kml = ["dep:rstsr-kml"]
 # dependencies specification
 linalg = ["dep:rstsr-linalg-traits", "rstsr-openblas?/linalg", "rstsr-mkl?/linalg", "rstsr-blis?/linalg", "rstsr-aocl?/linalg", "rstsr-kml?/linalg"]
 sci = ["dep:rstsr-sci-traits", "rstsr-openblas?/sci", "rstsr-mkl?/sci", "rstsr-blis?/sci", "rstsr-aocl?/sci", "rstsr-kml?/sci"]
+tblis = ["dep:rstsr-tblis"]
 
 # BLAS configurations
 dynamic_loading = ["rstsr-openblas?/dynamic_loading", "rstsr-mkl?/dynamic_loading", "rstsr-blis?/dynamic_loading", "rstsr-aocl?/dynamic_loading", "rstsr-kml?/dynamic_loading"]

@@ -22,11 +22,15 @@ where
     ToBeCloned(TensorMut<'a, T, B, D>, Tensor<T, B, D>),
 }
 
-impl<T, B, D> TensorViewAPI<T, B, D> for TensorMutable<'_, T, B, D>
+impl<T, B, D> TensorViewAPI for TensorMutable<'_, T, B, D>
 where
     D: DimAPI,
     B: DeviceAPI<T>,
 {
+    type Type = T;
+    type Backend = B;
+    type Dim = D;
+
     fn view(&self) -> TensorView<'_, T, B, D> {
         match self {
             TensorMutable::Owned(t) => t.view(),
@@ -36,11 +40,15 @@ where
     }
 }
 
-impl<T, B, D> TensorViewMutAPI<T, B, D> for TensorMutable<'_, T, B, D>
+impl<T, B, D> TensorViewMutAPI for TensorMutable<'_, T, B, D>
 where
     D: DimAPI,
     B: DeviceAPI<T>,
 {
+    type Type = T;
+    type Backend = B;
+    type Dim = D;
+
     fn view_mut(&mut self) -> TensorViewMut<'_, T, B, D> {
         match self {
             TensorMutable::Owned(t) => t.view_mut(),
