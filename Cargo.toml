@@ -42,6 +42,7 @@ rstsr-blis = { path = "./rstsr-blis", default-features = false, version = "0.5.1
 rstsr-aocl = { path = "./rstsr-aocl", default-features = false, version = "0.5.1" }
 rstsr-kml = { path = "./rstsr-kml", default-features = false, version = "0.5.1" }
 # members (plugin)
+rstsr-tblis = { path = "./crates-plugin/rstsr-tblis", default-features = false, version = "0.5.1" }
 # develop dependencies that should not publish
 rstsr-test-manifest = { path = "./rstsr-test-manifest", default-features = false }
 # ffi dependencies

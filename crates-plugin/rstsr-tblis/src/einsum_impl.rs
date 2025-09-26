@@ -1,17 +1,17 @@
-use crate::prelude_dev::*;
 pub use opt_einsum_path::paths::PathOptimizer;
 use opt_einsum_path::typing::SizeLimitType;
+use rstsr_core::prelude_dev::*;
 use rstsr_core::tensor::tensor_view_list::TensorViewListAPI;
 pub use tblis::prelude::*;
 
-pub trait RTToTblisTensor<T>
+pub trait RTToTblisTensorAPI<T>
 where
     T: TblisFloatAPI,
 {
     fn to_tblis_tensor(&self) -> TblisTensor<T>;
 }
 
-impl<R, T, B, D> RTToTblisTensor<T> for &TensorAny<R, T, B, D>
+impl<R, T, B, D> RTToTblisTensorAPI<T> for &TensorAny<R, T, B, D>
 where
     R: DataAPI<Data = B::Raw>,
     T: TblisFloatAPI,
@@ -27,7 +27,7 @@ where
     }
 }
 
-impl<R, T, B, D> RTToTblisTensor<T> for TensorAny<R, T, B, D>
+impl<R, T, B, D> RTToTblisTensorAPI<T> for TensorAny<R, T, B, D>
 where
     R: DataAPI<Data = B::Raw>,
     T: TblisFloatAPI,
@@ -39,7 +39,7 @@ where
     }
 }
 
-pub fn rt_from_tblis_tensor<T, B>(vec: Vec<T>, tblis_tensor: &TblisTensor<T>, device: B) -> Result<Tensor<T, B>>
+pub fn from_tblis_tensor<T, B>(vec: Vec<T>, tblis_tensor: &TblisTensor<T>, device: B) -> Result<Tensor<T, B>>
 where
     T: TblisFloatAPI,
     B: DeviceAPI<T, Raw = Vec<T>>,
@@ -99,7 +99,7 @@ where
     tblis_set_num_threads(num_threads_original);
 
     if let Some((vec, tsr)) = out {
-        rt_from_tblis_tensor(vec, &tsr, device).map(Some)
+        from_tblis_tensor(vec, &tsr, device).map(Some)
     } else {
         Ok(None)
     }
