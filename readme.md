@@ -128,6 +128,12 @@ File [riccsd.rs](https://github.com/ajz34/showcase_rust_riccsd/blob/master/src/r
 
 We do not support autodiff and lazy-evaluation in far future. In this mean time, we are not very concern on machine-learning applications, but focus more on traditional scientific computing, especially applications in electronic structure.
 
+## Acknowledge
+
+This project is supported by NSFC (National Natural Science Foundation of China).
+<!-- supported  22393912, 22503020 -->
+<!-- related    22125301, 22233002, 22393911 -->
+
 ## Miscellaneous
 
 Current MSRV (minimal supported rust version) is
