@@ -352,8 +352,8 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| | | `all` | Tests whether all input array elements evaluate to True along a specified axis. |
-| | | `any` | Tests whether any input array element evaluates to True along a specified axis. |
+| Y | [`all`], [`all_axes`] | `all` | Tests whether all input array elements evaluate to True along a specified axis. |
+| Y | [`any`], [`any_axes`] | `any` | Tests whether any input array element evaluates to True along a specified axis. |
 | | | `diff` | Calculates the n-th discrete forward difference along a specified axis. |
 
 ## Other Dropped Specifications

@@ -463,6 +463,76 @@ where
     }
 }
 
+impl<D> OpAllAPI<bool, D> for DeviceRayonAutoImpl
+where
+    D: DimAPI,
+{
+    type TOut = bool;
+
+    fn all_all(&self, a: &Vec<bool>, la: &Layout<D>) -> Result<bool> {
+        let pool = self.get_current_pool();
+
+        let f_init = || true;
+        let f = |acc, x| acc && x;
+        let f_sum = |acc1, acc2| acc1 && acc2;
+        let f_out = |acc| acc;
+
+        reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
+    }
+
+    fn all_axes(
+        &self,
+        a: &Vec<bool>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<bool>>, bool, Self>, Layout<IxD>)> {
+        let pool = self.get_current_pool();
+
+        let f_init = || true;
+        let f = |acc, x| acc && x;
+        let f_sum = |acc1, acc2| acc1 && acc2;
+        let f_out = |acc| acc;
+
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<D> OpAnyAPI<bool, D> for DeviceRayonAutoImpl
+where
+    D: DimAPI,
+{
+    type TOut = bool;
+
+    fn any_all(&self, a: &Vec<bool>, la: &Layout<D>) -> Result<bool> {
+        let pool = self.get_current_pool();
+
+        let f_init = || false;
+        let f = |acc, x| acc || x;
+        let f_sum = |acc1, acc2| acc1 || acc2;
+        let f_out = |acc| acc;
+
+        reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
+    }
+
+    fn any_axes(
+        &self,
+        a: &Vec<bool>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<bool>>, bool, Self>, Layout<IxD>)> {
+        let pool = self.get_current_pool();
+
+        let f_init = || false;
+        let f = |acc, x| acc || x;
+        let f_sum = |acc1, acc2| acc1 || acc2;
+        let f_out = |acc| acc;
+
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
 impl<T, D> OpUnraveledArgMinAPI<T, D> for DeviceRayonAutoImpl
 where
     T: Clone + PartialOrd + Send + Sync,

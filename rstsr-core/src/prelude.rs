@@ -116,6 +116,7 @@ pub mod rstsr_funcs {
     };
     // reduction
     pub use crate::tensor::reduction::{
+        all, all_all, all_all_f, all_axes, all_axes_f, all_f, any, any_all, any_all_f, any_axes, any_axes_f, any_f,
         argmax, argmax_all, argmax_all_f, argmax_axes, argmax_axes_f, argmax_f, argmin, argmin_all, argmin_all_f,
         argmin_axes, argmin_axes_f, argmin_f, l2_norm, l2_norm_all, l2_norm_all_f, l2_norm_axes, l2_norm_axes_f,
         l2_norm_f, max, max_all, max_all_f, max_axes, max_axes_f, max_f, mean, mean_all, mean_all_f, mean_axes,

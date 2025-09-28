@@ -123,6 +123,8 @@ mod impl_trait_reduction {
     trait_reduction!(OpL2NormAPI, l2_norm, l2_norm_f, l2_norm_axes, l2_norm_axes_f, l2_norm_all, l2_norm_all_f);
     trait_reduction!(OpArgMinAPI, argmin, argmin_f, argmin_axes, argmin_axes_f, argmin_all, argmin_all_f);
     trait_reduction!(OpArgMaxAPI, argmax, argmax_f, argmax_axes, argmax_axes_f, argmax_all, argmax_all_f);
+    trait_reduction!(OpAllAPI, all, all_f, all_axes, all_axes_f, all_all, all_all_f);
+    trait_reduction!(OpAnyAPI, any, any_f, any_axes, any_axes_f, any_all, any_all_f);
 }
 pub use impl_trait_reduction::*;
 
@@ -758,5 +760,13 @@ mod test {
         println!("{m:?}");
         let m_vec = m.raw();
         assert_eq!(m_vec, &vec![2, 2, 1]);
+    }
+
+    #[test]
+    fn test_all() {
+        let a = asarray((vec![true, true, false, true, true, true], [2, 3].c()));
+        let a_all = a.all_axes(-2);
+        println!("{:?}", a_all);
+        assert_eq!(a_all.raw(), &[true, true, false]);
     }
 }
