@@ -10,7 +10,7 @@ def fingerprint(a):
 
 # Path of npy files in rstsr-test-manifest
 
-root = "../../../rstsr-test-manifest/resources/"
+root = "../../../../rstsr-test-manifest/resources/"
 
 # ## make sure of random generation
 
