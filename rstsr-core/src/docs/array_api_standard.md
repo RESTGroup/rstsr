@@ -204,7 +204,7 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 | [`Neg`] | `-`, [`neg`] | `negative` | Computes the numerical negative of each element x_i (i.e., y_i = -x_i) of the input array x. |
 | Dropped | | `positive` | Computes the numerical positive of each element x_i (i.e., y_i = +x_i) of the input array x. |
 | [`ReImAPI`] | [`real`] | `real` | Returns the real component of a complex number for each element x_i of the input array x. |
-| | | `reciprocal` | Returns the reciprocal for each element x_i of the input array x. |
+| [`ComplexFloat`] | [`reciprocal`] | `reciprocal` | Returns the reciprocal for each element x_i of the input array x. |
 | [`Float`] | [`round`] | `round` | Rounds each element x_i of the input array x to the nearest integer-valued number. |
 | [`ComplexFloat`] | [`sign`] | `sign` | Returns an indication of the sign of a number for each element x_i of the input array x. |
 | [`Signed`] | [`signbit`] | `signbit` | Determines whether the sign bit is set for each element x_i of the input array x. |

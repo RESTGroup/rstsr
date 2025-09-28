@@ -103,8 +103,8 @@ pub mod rstsr_funcs {
         abs, abs_f, acos, acos_f, acosh, acosh_f, asin, asin_f, asinh, asinh_f, atan, atan_f, atanh, atanh_f, ceil,
         ceil_f, conj, conj_f, cos, cos_f, cosh, cosh_f, exp, exp_f, expm1, expm1_f, floor, floor_f, imag, imag_f, inv,
         inv_f, is_finite, is_finite_f, is_inf, is_inf_f, is_nan, is_nan_f, log, log10, log10_f, log2, log2_f, log_f,
-        real, real_f, round, round_f, sign, sign_f, signbit, signbit_f, sin, sin_f, sinh, sinh_f, sqrt, sqrt_f, square,
-        square_f, tan, tan_f, tanh, tanh_f, trunc, trunc_f,
+        real, real_f, reciprocal, reciprocal_f, round, round_f, sign, sign_f, signbit, signbit_f, sin, sin_f, sinh,
+        sinh_f, sqrt, sqrt_f, square, square_f, tan, tan_f, tanh, tanh_f, trunc, trunc_f,
     };
     // binary common functions
     pub use crate::tensor::operators::{

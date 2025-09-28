@@ -9,32 +9,33 @@ use rstsr_dtype_traits::{AbsAPI, ReImAPI};
 /* #region same type */
 
 #[duplicate_item(
-     DeviceOpAPI       NumTrait       func                                func_inplace                   ;
-    [DeviceAcosAPI  ] [ComplexFloat] [|a, b| { a.write(b.acos()             ); }] [|a| unsafe { a.write(a.assume_init_read().acos()                ); }];
-    [DeviceAcoshAPI ] [ComplexFloat] [|a, b| { a.write(b.acosh()            ); }] [|a| unsafe { a.write(a.assume_init_read().acosh()               ); }];
-    [DeviceAsinAPI  ] [ComplexFloat] [|a, b| { a.write(b.asin()             ); }] [|a| unsafe { a.write(a.assume_init_read().asin()                ); }];
-    [DeviceAsinhAPI ] [ComplexFloat] [|a, b| { a.write(b.asinh()            ); }] [|a| unsafe { a.write(a.assume_init_read().asinh()               ); }];
-    [DeviceAtanAPI  ] [ComplexFloat] [|a, b| { a.write(b.atan()             ); }] [|a| unsafe { a.write(a.assume_init_read().atan()                ); }];
-    [DeviceAtanhAPI ] [ComplexFloat] [|a, b| { a.write(b.atanh()            ); }] [|a| unsafe { a.write(a.assume_init_read().atanh()               ); }];
-    [DeviceCeilAPI  ] [Float       ] [|a, b| { a.write(b.ceil()             ); }] [|a| unsafe { a.write(a.assume_init_read().ceil()                ); }];
-    [DeviceConjAPI  ] [ComplexFloat] [|a, b| { a.write(b.conj()             ); }] [|a| unsafe { a.write(a.assume_init_read().conj()                ); }];
-    [DeviceCosAPI   ] [ComplexFloat] [|a, b| { a.write(b.cos()              ); }] [|a| unsafe { a.write(a.assume_init_read().cos()                 ); }];
-    [DeviceCoshAPI  ] [ComplexFloat] [|a, b| { a.write(b.cosh()             ); }] [|a| unsafe { a.write(a.assume_init_read().cosh()                ); }];
-    [DeviceExpAPI   ] [ComplexFloat] [|a, b| { a.write(b.exp()              ); }] [|a| unsafe { a.write(a.assume_init_read().exp()                 ); }];
-    [DeviceExpm1API ] [Float       ] [|a, b| { a.write(b.exp_m1()           ); }] [|a| unsafe { a.write(a.assume_init_read().exp_m1()              ); }];
-    [DeviceFloorAPI ] [Float       ] [|a, b| { a.write(b.floor()            ); }] [|a| unsafe { a.write(a.assume_init_read().floor()               ); }];
-    [DeviceInvAPI   ] [ComplexFloat] [|a, b| { a.write(b.recip()            ); }] [|a| unsafe { a.write(a.assume_init_read().recip()               ); }];
-    [DeviceLogAPI   ] [ComplexFloat] [|a, b| { a.write(b.ln()               ); }] [|a| unsafe { a.write(a.assume_init_read().ln()                  ); }];
-    [DeviceLog2API  ] [ComplexFloat] [|a, b| { a.write(b.log2()             ); }] [|a| unsafe { a.write(a.assume_init_read().log2()                ); }];
-    [DeviceLog10API ] [ComplexFloat] [|a, b| { a.write(b.log10()            ); }] [|a| unsafe { a.write(a.assume_init_read().log10()               ); }];
-    [DeviceRoundAPI ] [Float       ] [|a, b| { a.write(b.round()            ); }] [|a| unsafe { a.write(a.assume_init_read().round()               ); }];
-    [DeviceSinAPI   ] [ComplexFloat] [|a, b| { a.write(b.sin()              ); }] [|a| unsafe { a.write(a.assume_init_read().sin()                 ); }];
-    [DeviceSinhAPI  ] [ComplexFloat] [|a, b| { a.write(b.sinh()             ); }] [|a| unsafe { a.write(a.assume_init_read().sinh()                ); }];
-    [DeviceSqrtAPI  ] [ComplexFloat] [|a, b| { a.write(b.sqrt()             ); }] [|a| unsafe { a.write(a.assume_init_read().sqrt()                ); }];
-    [DeviceSquareAPI] [Num         ] [|a, b| { a.write(b.clone() * b.clone()); }] [|a| unsafe { a.write(a.assume_init_read() * a.assume_init_read()); }];
-    [DeviceTanAPI   ] [ComplexFloat] [|a, b| { a.write(b.tan()              ); }] [|a| unsafe { a.write(a.assume_init_read().tan()                 ); }];
-    [DeviceTanhAPI  ] [ComplexFloat] [|a, b| { a.write(b.tanh()             ); }] [|a| unsafe { a.write(a.assume_init_read().tanh()                ); }];
-    [DeviceTruncAPI ] [Float       ] [|a, b| { a.write(b.trunc()            ); }] [|a| unsafe { a.write(a.assume_init_read().trunc()               ); }];
+     DeviceOpAPI           NumTrait       func                                         func_inplace                                                         ;
+    [DeviceAcosAPI      ] [ComplexFloat] [|a, b| { a.write(b.acos()             ); }] [|a| unsafe { a.write(a.assume_init_read().acos()                ); }];
+    [DeviceAcoshAPI     ] [ComplexFloat] [|a, b| { a.write(b.acosh()            ); }] [|a| unsafe { a.write(a.assume_init_read().acosh()               ); }];
+    [DeviceAsinAPI      ] [ComplexFloat] [|a, b| { a.write(b.asin()             ); }] [|a| unsafe { a.write(a.assume_init_read().asin()                ); }];
+    [DeviceAsinhAPI     ] [ComplexFloat] [|a, b| { a.write(b.asinh()            ); }] [|a| unsafe { a.write(a.assume_init_read().asinh()               ); }];
+    [DeviceAtanAPI      ] [ComplexFloat] [|a, b| { a.write(b.atan()             ); }] [|a| unsafe { a.write(a.assume_init_read().atan()                ); }];
+    [DeviceAtanhAPI     ] [ComplexFloat] [|a, b| { a.write(b.atanh()            ); }] [|a| unsafe { a.write(a.assume_init_read().atanh()               ); }];
+    [DeviceCeilAPI      ] [Float       ] [|a, b| { a.write(b.ceil()             ); }] [|a| unsafe { a.write(a.assume_init_read().ceil()                ); }];
+    [DeviceConjAPI      ] [ComplexFloat] [|a, b| { a.write(b.conj()             ); }] [|a| unsafe { a.write(a.assume_init_read().conj()                ); }];
+    [DeviceCosAPI       ] [ComplexFloat] [|a, b| { a.write(b.cos()              ); }] [|a| unsafe { a.write(a.assume_init_read().cos()                 ); }];
+    [DeviceCoshAPI      ] [ComplexFloat] [|a, b| { a.write(b.cosh()             ); }] [|a| unsafe { a.write(a.assume_init_read().cosh()                ); }];
+    [DeviceExpAPI       ] [ComplexFloat] [|a, b| { a.write(b.exp()              ); }] [|a| unsafe { a.write(a.assume_init_read().exp()                 ); }];
+    [DeviceExpm1API     ] [Float       ] [|a, b| { a.write(b.exp_m1()           ); }] [|a| unsafe { a.write(a.assume_init_read().exp_m1()              ); }];
+    [DeviceFloorAPI     ] [Float       ] [|a, b| { a.write(b.floor()            ); }] [|a| unsafe { a.write(a.assume_init_read().floor()               ); }];
+    [DeviceInvAPI       ] [ComplexFloat] [|a, b| { a.write(b.recip()            ); }] [|a| unsafe { a.write(a.assume_init_read().recip()               ); }];
+    [DeviceLogAPI       ] [ComplexFloat] [|a, b| { a.write(b.ln()               ); }] [|a| unsafe { a.write(a.assume_init_read().ln()                  ); }];
+    [DeviceLog2API      ] [ComplexFloat] [|a, b| { a.write(b.log2()             ); }] [|a| unsafe { a.write(a.assume_init_read().log2()                ); }];
+    [DeviceLog10API     ] [ComplexFloat] [|a, b| { a.write(b.log10()            ); }] [|a| unsafe { a.write(a.assume_init_read().log10()               ); }];
+    [DeviceReciprocalAPI] [ComplexFloat] [|a, b| { a.write(b.recip()            ); }] [|a| unsafe { a.write(a.assume_init_read().recip()               ); }];
+    [DeviceRoundAPI     ] [Float       ] [|a, b| { a.write(b.round()            ); }] [|a| unsafe { a.write(a.assume_init_read().round()               ); }];
+    [DeviceSinAPI       ] [ComplexFloat] [|a, b| { a.write(b.sin()              ); }] [|a| unsafe { a.write(a.assume_init_read().sin()                 ); }];
+    [DeviceSinhAPI      ] [ComplexFloat] [|a, b| { a.write(b.sinh()             ); }] [|a| unsafe { a.write(a.assume_init_read().sinh()                ); }];
+    [DeviceSqrtAPI      ] [ComplexFloat] [|a, b| { a.write(b.sqrt()             ); }] [|a| unsafe { a.write(a.assume_init_read().sqrt()                ); }];
+    [DeviceSquareAPI    ] [Num         ] [|a, b| { a.write(b.clone() * b.clone()); }] [|a| unsafe { a.write(a.assume_init_read() * a.assume_init_read()); }];
+    [DeviceTanAPI       ] [ComplexFloat] [|a, b| { a.write(b.tan()              ); }] [|a| unsafe { a.write(a.assume_init_read().tan()                 ); }];
+    [DeviceTanhAPI      ] [ComplexFloat] [|a, b| { a.write(b.tanh()             ); }] [|a| unsafe { a.write(a.assume_init_read().tanh()                ); }];
+    [DeviceTruncAPI     ] [Float       ] [|a, b| { a.write(b.trunc()            ); }] [|a| unsafe { a.write(a.assume_init_read().trunc()               ); }];
 )]
 impl<T, D> DeviceOpAPI<T, D> for DeviceCpuSerial
 where

@@ -273,7 +273,7 @@ Trait function calls like associated methods, so we also do not recommend usage 
 
 ### Unary functions
 
-[`abs`], [`acos`], [`acosh`], [`asin`], [`asinh`], [`atan`], [`atanh`], [`ceil`], [`conj`], [`cos`], [`cosh`], [`exp`], [`expm1`], [`floor`], [`imag`], [`inv`], [`is_finite`], [`is_inf`], [`is_nan`], [`log`], [`log10`], [`log2`], [`real`], [`round`], [`sign`], [`signbit`], [`sin`], [`sinh`], [`sqrt`], [`square`], [`tan`], [`tanh`], [`trunc`]
+[`abs`], [`acos`], [`acosh`], [`asin`], [`asinh`], [`atan`], [`atanh`], [`ceil`], [`conj`], [`cos`], [`cosh`], [`exp`], [`expm1`], [`floor`], [`imag`], [`inv`], [`is_finite`], [`is_inf`], [`is_nan`], [`log`], [`log10`], [`log2`], [`real`], [`reciprocal`], [`round`], [`sign`], [`signbit`], [`sin`], [`sinh`], [`sqrt`], [`square`], [`tan`], [`tanh`], [`trunc`]
 
 ### Binary functions
 
