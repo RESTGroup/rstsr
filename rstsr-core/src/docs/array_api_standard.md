@@ -290,7 +290,7 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 |-|-|-|-|
 | Y | [`broadcast_arrays`] | [`broadcast_arrays`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.broadcast_arrays.html) | Broadcasts one or more arrays against one another. |
 | Y | [`to_broadcast`] | [`broadcast_to`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.broadcast_to.html) | Broadcasts an array to a specified shape. |
-| Y | [`concat()`] | `concat` | Joins a sequence of arrays along an existing axis. |
+| Y | [`concat`](concat()) | `concat` | Joins a sequence of arrays along an existing axis. |
 | Y | [`expand_dims`] | [`expand_dims`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.expand_dims.html) | Expands the shape of an array by inserting a new axis (dimension) of size one at the position specified by `axis`. |
 | Y | [`flip`] | [`flip`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.flip.html) | Reverses the order of elements in an array along the given axis. |
 | | | `moveaxis` | Moves array axes (dimensions) to new positions, while leaving other axes in their original positions. |
