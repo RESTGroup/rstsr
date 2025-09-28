@@ -13,6 +13,7 @@ readme = "readme.md"
 libm = { workspace = true }
 num = { workspace = true }
 half = { workspace = true, optional = true }
+duplicate = { workspace = true }
 
 [features]
 defaults = ["half"]
