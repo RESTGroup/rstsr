@@ -533,6 +533,42 @@ where
     }
 }
 
+impl<T, D> OpCountNonZeroAPI<T, D> for DeviceRayonAutoImpl
+where
+    T: Clone + PartialEq + Zero + Send + Sync,
+    D: DimAPI,
+{
+    type TOut = usize;
+
+    fn count_nonzero_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<usize> {
+        let pool = self.get_current_pool();
+
+        let f_init = || 0;
+        let f = |acc, x| if x != T::zero() { acc + 1 } else { acc };
+        let f_sum = |acc1, acc2| acc1 + acc2;
+        let f_out = |acc| acc;
+
+        reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
+    }
+
+    fn count_nonzero_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<usize>>, usize, Self>, Layout<IxD>)> {
+        let pool = self.get_current_pool();
+
+        let f_init = || 0;
+        let f = |acc, x| if x != T::zero() { acc + 1 } else { acc };
+        let f_sum = |acc1, acc2| acc1 + acc2;
+        let f_out = |acc| acc;
+
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
 impl<T, D> OpUnraveledArgMinAPI<T, D> for DeviceRayonAutoImpl
 where
     T: Clone + PartialOrd + Send + Sync,

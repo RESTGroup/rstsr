@@ -313,7 +313,7 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 |-|-|-|-|
 | Y | [`argmax`], [`argmax_axes`] | `argmax` | Returns the indices of the maximum values along a specified axis. |
 | Y | [`argmin`], [`argmin_axes`] | `argmin` | Returns the indices of the minimum values along a specified axis. |
-| | | `count_nonzero` | Counts the number of array elements which are non-zero. |
+| Y | [`count_nonzero`], [`count_nonzero_axes`] | `count_nonzero` | Counts the number of array elements which are non-zero. |
 | | | `nonzero` | Returns the indices of the array elements which are non-zero. |
 | | | `searchsorted` | Finds the indices into x1 such that, if the corresponding elements in x2 were inserted before the indices, the order of x1, when sorted in ascending order, would be preserved. |
 | | | `where` | Returns elements chosen from x1 or x2 depending on condition. |

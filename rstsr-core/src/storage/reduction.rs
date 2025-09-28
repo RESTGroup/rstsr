@@ -15,6 +15,7 @@ use crate::prelude_dev::*;
    [OpArgMaxAPI] [argmax_axes ] [argmax_all ];
    [OpAllAPI   ] [all_axes    ] [all_all    ];
    [OpAnyAPI   ] [any_axes    ] [any_all    ];
+   [OpCountNonZeroAPI] [count_nonzero_axes] [count_nonzero_all];
 )]
 pub trait OpReduceAPI<T, D>
 where
