@@ -58,6 +58,7 @@ rstsr-kml-ffi = { version = "0.2", default-features = false, features = ["kblas"
 num = { version = "0.4" }
 itertools = { version = "0.13" }
 half = { version = "2.4", features = ["num-traits"] }
+libm = { version = "0.2" }
 derive_builder = { version = "0.20" }
 duplicate = { version = "2.0" }
 # optional dependencies

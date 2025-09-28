@@ -1,7 +1,7 @@
 use crate::prelude_dev::*;
 use num::complex::ComplexFloat;
 use num::{pow::Pow, Float};
-use rstsr_dtype_traits::{FloorDivideAPI, MinMaxAPI};
+use rstsr_dtype_traits::{FloorDivideAPI, MinMaxAPI, NextAfterAPI};
 
 #[duplicate_item(
      DeviceOpAPI             TO     TraitT           func;
@@ -18,6 +18,7 @@ use rstsr_dtype_traits::{FloorDivideAPI, MinMaxAPI};
     [DeviceMinimumAPI     ] [T   ] [MinMaxAPI     ] [|c,  a,  b| { c.write(a.clone().min(b.clone())         ); }];
     [DeviceNotEqualAPI    ] [bool] [PartialEq     ] [|c,  a,  b| { c.write(a != b                           ); }];
     [DeviceFloorDivideAPI ] [T   ] [FloorDivideAPI] [|c,  a,  b| { c.write(a.clone().floor_divide(b.clone())); }];
+    [DeviceNextAfterAPI   ] [T   ] [NextAfterAPI  ] [|c,  a,  b| { c.write(a.clone().nextafter(b.clone())   ); }];
 )]
 impl<T, D> DeviceOpAPI<T, T, D> for DeviceCpuSerial
 where

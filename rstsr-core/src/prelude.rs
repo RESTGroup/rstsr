@@ -112,7 +112,8 @@ pub mod rstsr_funcs {
         floor_divide_f, ge, ge_f, greater, greater_equal, greater_equal_f, greater_equal_to, greater_equal_to_f,
         greater_f, greater_than, greater_than_f, gt, gt_f, hypot, hypot_f, le, le_f, less, less_equal, less_equal_f,
         less_equal_to, less_equal_to_f, less_f, less_than, less_than_f, log_add_exp, log_add_exp_f, lt, lt_f, maximum,
-        maximum_f, minimum, minimum_f, ne, ne_f, not_equal, not_equal_f, not_equal_to, not_equal_to_f, pow, pow_f,
+        maximum_f, minimum, minimum_f, ne, ne_f, nextafter, nextafter_f, not_equal, not_equal_f, not_equal_to,
+        not_equal_to_f, pow, pow_f,
     };
     // reduction
     pub use crate::tensor::reduction::{

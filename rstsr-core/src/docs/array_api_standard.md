@@ -243,7 +243,7 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 | [`MinMaxAPI`] | [`maximum`] | `maximum` | Computes the maximum value for each element x1_i of the input array x1 relative to the respective element x2_i of the input array x2. |
 | [`MinMaxAPI`] | [`minimum`] | `minimum` | Computes the minimum value for each element x1_i of the input array x1 relative to the respective element x2_i of the input array x2. |
 | [`Mul`] | [`mul`] | `multiply` | Calculates the product for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
-| | | `nextafter` | Returns the next representable floating-point value for each element x1_i of the input array x1 in the direction of the respective element x2_i of the input array x2. |
+| [`NextAfterAPI`] | [`nextafter`] | `nextafter` | Returns the next representable floating-point value for each element x1_i of the input array x1 in the direction of the respective element x2_i of the input array x2. |
 | [`PartialEq`] | [`ne`], [`not_equal`] | `not_equal` | Computes the truth value of x1_i != x2_i for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
 | [`Pow`] | [`pow`] | `pow` | Calculates an implementation-dependent approximation of exponentiation by raising each element x1_i (the base) of the input array x1 to the power of x2_i (the exponent), where x2_i is the corresponding element of the input array x2. |
 | [`Rem`] | [`rt::rem`][^2] | `remainder` | Returns the remainder of division for each element x1_i of the input array x1 and the respective element x2_i of the input array x2. |
