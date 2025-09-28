@@ -1,30 +1,30 @@
-/// External traits for float types ([`num::Float`]).
+/// Extension trait for float types ([`num::Float`]).
 pub trait ExtFloat: Clone {
     /// Returns the next representable floating-point value after `self` in the direction of
     /// `other`.
-    fn ext_next_after(self, other: Self) -> Self;
+    fn ext_nextafter(self, other: Self) -> Self;
 }
 
 impl ExtFloat for f32 {
-    fn ext_next_after(self, other: Self) -> Self {
+    fn ext_nextafter(self, other: Self) -> Self {
         libm::nextafterf(self, other)
     }
 }
 
 impl ExtFloat for f64 {
-    fn ext_next_after(self, other: Self) -> Self {
+    fn ext_nextafter(self, other: Self) -> Self {
         libm::nextafter(self, other)
     }
 }
 
 impl ExtFloat for half::bf16 {
-    fn ext_next_after(self, other: Self) -> Self {
+    fn ext_nextafter(self, other: Self) -> Self {
         nextafter_bf16(self, other)
     }
 }
 
 impl ExtFloat for half::f16 {
-    fn ext_next_after(self, other: Self) -> Self {
+    fn ext_nextafter(self, other: Self) -> Self {
         nextafter_f16(self, other)
     }
 }

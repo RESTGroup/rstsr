@@ -177,7 +177,7 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| [`AbsAPI`] | [`abs`] | `abs` | Calculates the absolute value for each element x_i of the input array x. |
+| [`ExtNum`] | [`abs`] | `abs` | Calculates the absolute value for each element x_i of the input array x. |
 | [`ComplexFloat`] | [`acos`] | `acos` | Calculates an implementation-dependent approximation of the principal value of the inverse cosine for each element x_i of the input array x. |
 | [`ComplexFloat`] | [`acosh`] | `acosh` | Calculates an implementation-dependent approximation to the inverse hyperbolic cosine for each element x_i of the input array x. |
 | [`ComplexFloat`] | [`asin`] | `asin` | Calculates an implementation-dependent approximation of the principal value of the inverse sine for each element x_i of the input array x. |
@@ -192,7 +192,7 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 | [`ComplexFloat`] | [`exp`] | `exp` | Calculates an implementation-dependent approximation to the exponential function for each element x_i of the input array x (e raised to the power of x_i, where e is the base of the natural logarithm). |
 | [`Float`] (partial) | [`expm1`] | `expm1` | Calculates an implementation-dependent approximation to exp(x)-1 for each element x_i of the input array x. |
 | [`Float`] | [`floor`] | `floor` | Rounds each element x_i of the input array x to the greatest (i.e., closest to +infinity) integer-valued number that is not greater than x_i. |
-| [`ReImAPI`] | [`imag`] | `imag` | Returns the imaginary component of a complex number for each element x_i of the input array x. |
+| [`ExtNum`] | [`imag`] | `imag` | Returns the imaginary component of a complex number for each element x_i of the input array x. |
 | [`ComplexFloat`] | [`is_finite`] | `isfinite` | Tests each element x_i of the input array x to determine if finite. |
 | [`ComplexFloat`] | [`is_inf`] | `isinf` | Tests each element x_i of the input array x to determine if equal to positive or negative infinity. |
 | [`ComplexFloat`] | [`is_nan`] | `isnan` | Tests each element x_i of the input array x to determine whether the element is NaN. |
@@ -203,7 +203,7 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 | [`Not`] | [`not`] instead | `logical_not` | Computes the logical NOT for each element x_i of the input array x. |
 | [`Neg`] | `-`, [`neg`] | `negative` | Computes the numerical negative of each element x_i (i.e., y_i = -x_i) of the input array x. |
 | Dropped | | `positive` | Computes the numerical positive of each element x_i (i.e., y_i = +x_i) of the input array x. |
-| [`ReImAPI`] | [`real`] | `real` | Returns the real component of a complex number for each element x_i of the input array x. |
+| [`ExtNum`] | [`real`] | `real` | Returns the real component of a complex number for each element x_i of the input array x. |
 | [`ComplexFloat`] | [`reciprocal`] | `reciprocal` | Returns the reciprocal for each element x_i of the input array x. |
 | [`Float`] | [`round`] | `round` | Rounds each element x_i of the input array x to the nearest integer-valued number. |
 | [`ComplexFloat`] | [`sign`] | `sign` | Returns an indication of the sign of a number for each element x_i of the input array x. |
@@ -230,7 +230,7 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 | [`Float`] | [`copysign`] | `copysign` | Composes a floating-point value with the magnitude of x1_i and the sign of x2_i for each element of the input array x1. |
 | [`Div`] | `/`, [`div`] | `divide` | Calculates the division of each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
 | [`PartialEq`] | [`eq`], [`equal`] | `equal` | Computes the truth value of x1_i == x2_i for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
-| [`FloorDivideAPI`] | [`floor_divide`] | `floor_divide` | Rounds the result of dividing each element x1_i of the input array x1 by the respective element x2_i of the input array x2 to the greatest (i.e., closest to +infinity) integer-value number that is not greater than the division result. |
+| [`ExtReal`] | [`floor_divide`] | `floor_divide` | Rounds the result of dividing each element x1_i of the input array x1 by the respective element x2_i of the input array x2 to the greatest (i.e., closest to +infinity) integer-value number that is not greater than the division result. |
 | [`PartialOrd`] | [`gt`], [`greater`] | `greater` | Computes the truth value of x1_i > x2_i for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
 | [`PartialOrd`] | [`ge`], [`greater_equal`] | `greater_equal` | Computes the truth value of x1_i >= x2_i for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
 | [`Float`] | [`hypot`] | `hypot` | Computes the square root of the sum of squares for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
@@ -240,10 +240,10 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 | | [`bitand`] instead | `logical_and` | Computes the logical AND for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
 | | [`bitor`] instead | `logical_or` | Computes the logical OR for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
 | | [`bitxor`] instead | `logical_xor` | Computes the logical XOR for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
-| [`MinMaxAPI`] | [`maximum`] | `maximum` | Computes the maximum value for each element x1_i of the input array x1 relative to the respective element x2_i of the input array x2. |
-| [`MinMaxAPI`] | [`minimum`] | `minimum` | Computes the minimum value for each element x1_i of the input array x1 relative to the respective element x2_i of the input array x2. |
+| [`ExtReal`] | [`maximum`] | `maximum` | Computes the maximum value for each element x1_i of the input array x1 relative to the respective element x2_i of the input array x2. |
+| [`ExtReal`] | [`minimum`] | `minimum` | Computes the minimum value for each element x1_i of the input array x1 relative to the respective element x2_i of the input array x2. |
 | [`Mul`] | [`mul`] | `multiply` | Calculates the product for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
-| [`NextAfterAPI`] | [`nextafter`] | `nextafter` | Returns the next representable floating-point value for each element x1_i of the input array x1 in the direction of the respective element x2_i of the input array x2. |
+| [`ExtFloat`] | [`nextafter`] | `nextafter` | Returns the next representable floating-point value for each element x1_i of the input array x1 in the direction of the respective element x2_i of the input array x2. |
 | [`PartialEq`] | [`ne`], [`not_equal`] | `not_equal` | Computes the truth value of x1_i != x2_i for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
 | [`Pow`] | [`pow`] | `pow` | Calculates an implementation-dependent approximation of exponentiation by raising each element x1_i (the base) of the input array x1 to the power of x2_i (the exponent), where x2_i is the corresponding element of the input array x2. |
 | [`Rem`] | [`rt::rem`][^2] | `remainder` | Returns the remainder of division for each element x1_i of the input array x1 and the respective element x2_i of the input array x2. |

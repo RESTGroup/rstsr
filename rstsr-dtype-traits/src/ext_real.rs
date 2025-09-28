@@ -14,6 +14,9 @@ pub trait ExtReal: Clone {
     /// std library of rust).
     fn ext_min(self, other: Self) -> Self;
 
+    /// The minimum value that can be represented by this type.
+    fn ext_min_value() -> Self;
+
     /// Returns the maximum of two numbers.
     ///
     /// # Note
@@ -21,6 +24,9 @@ pub trait ExtReal: Clone {
     /// For floats, this uses the `min` method which handles NaNs according to IEEE 754-2008 (the
     /// std library of rust).
     fn ext_max(self, other: Self) -> Self;
+
+    /// The maximum value that can be represented by this type.
+    fn ext_max_value() -> Self;
 }
 
 #[duplicate_item(T; [u8]; [u16]; [u32]; [u64]; [u128]; [usize];)]
@@ -31,8 +37,14 @@ impl ExtReal for T {
     fn ext_min(self, other: Self) -> Self {
         Ord::min(self, other)
     }
+    fn ext_min_value() -> Self {
+        Self::MIN
+    }
     fn ext_max(self, other: Self) -> Self {
         Ord::max(self, other)
+    }
+    fn ext_max_value() -> Self {
+        Self::MAX
     }
 }
 
@@ -44,8 +56,14 @@ impl ExtReal for T {
     fn ext_min(self, other: Self) -> Self {
         Ord::min(self, other)
     }
+    fn ext_min_value() -> Self {
+        Self::MIN
+    }
     fn ext_max(self, other: Self) -> Self {
         Ord::max(self, other)
+    }
+    fn ext_max_value() -> Self {
+        Self::MAX
     }
 }
 
@@ -57,8 +75,14 @@ impl ExtReal for T {
     fn ext_min(self, other: Self) -> Self {
         T::min(self, other)
     }
+    fn ext_min_value() -> Self {
+        Self::MIN
+    }
     fn ext_max(self, other: Self) -> Self {
         T::max(self, other)
+    }
+    fn ext_max_value() -> Self {
+        Self::MAX
     }
 }
 
@@ -71,7 +95,13 @@ impl ExtReal for T {
     fn ext_min(self, other: Self) -> Self {
         T::min(self, other)
     }
+    fn ext_min_value() -> Self {
+        Self::MIN
+    }
     fn ext_max(self, other: Self) -> Self {
         T::max(self, other)
+    }
+    fn ext_max_value() -> Self {
+        Self::MAX
     }
 }

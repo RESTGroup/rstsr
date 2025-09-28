@@ -1,8 +1,8 @@
 use crate::prelude_dev::*;
 use core::ops::{Add, Mul};
 use num::complex::ComplexFloat;
-use num::{Bounded, FromPrimitive, One, Zero};
-use rstsr_dtype_traits::MinMaxAPI;
+use num::{FromPrimitive, One, Zero};
+use rstsr_dtype_traits::ExtReal;
 
 impl<T, D> OpSumAPI<T, D> for DeviceCpuSerial
 where
@@ -38,7 +38,7 @@ where
 
 impl<T, D> OpMinAPI<T, D> for DeviceCpuSerial
 where
-    T: Clone + MinMaxAPI + Bounded,
+    T: ExtReal,
     D: DimAPI,
 {
     type TOut = T;
@@ -48,9 +48,9 @@ where
             rstsr_raise!(InvalidValue, "zero-size array is not supported for min")?;
         }
 
-        let f_init = T::max_value;
-        let f = |acc: T, x: T| acc.min(x);
-        let f_sum = |acc1: T, acc2: T| acc1.min(acc2);
+        let f_init = T::ext_max_value;
+        let f = |acc: T, x: T| acc.ext_min(x);
+        let f_sum = |acc1: T, acc2: T| acc1.ext_min(acc2);
         let f_out = |acc| acc;
         reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)
     }
@@ -65,9 +65,9 @@ where
             rstsr_raise!(InvalidValue, "zero-size array is not supported for min")?;
         }
 
-        let f_init = T::max_value;
-        let f = |acc: T, x: T| acc.min(x);
-        let f_sum = |acc1: T, acc2: T| acc1.min(acc2);
+        let f_init = T::ext_max_value;
+        let f = |acc: T, x: T| acc.ext_min(x);
+        let f_sum = |acc1: T, acc2: T| acc1.ext_min(acc2);
         let f_out = |acc| acc;
 
         let (out, layout_out) = reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
@@ -77,7 +77,7 @@ where
 
 impl<T, D> OpMaxAPI<T, D> for DeviceCpuSerial
 where
-    T: Clone + MinMaxAPI + Bounded,
+    T: ExtReal,
     D: DimAPI,
 {
     type TOut = T;
@@ -87,9 +87,9 @@ where
             rstsr_raise!(InvalidValue, "zero-size array is not supported for max")?;
         }
 
-        let f_init = T::min_value;
-        let f = |acc: T, x: T| acc.max(x);
-        let f_sum = |acc1: T, acc2: T| acc1.max(acc2);
+        let f_init = T::ext_min_value;
+        let f = |acc: T, x: T| acc.ext_max(x);
+        let f_sum = |acc1: T, acc2: T| acc1.ext_max(acc2);
         let f_out = |acc| acc;
 
         reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)
@@ -105,9 +105,9 @@ where
             rstsr_raise!(InvalidValue, "zero-size array is not supported for max")?;
         }
 
-        let f_init = T::min_value;
-        let f = |acc: T, x: T| acc.max(x);
-        let f_sum = |acc1: T, acc2: T| acc1.max(acc2);
+        let f_init = T::ext_min_value;
+        let f = |acc: T, x: T| acc.ext_max(x);
+        let f_sum = |acc1: T, acc2: T| acc1.ext_max(acc2);
         let f_out = |acc| acc;
 
         let (out, layout_out) = reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;

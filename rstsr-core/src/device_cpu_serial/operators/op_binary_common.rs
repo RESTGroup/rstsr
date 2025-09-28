@@ -2,7 +2,7 @@ use crate::prelude_dev::*;
 use core::ops::Div;
 use num::complex::ComplexFloat;
 use num::{Float, Num, Signed};
-use rstsr_dtype_traits::{AbsAPI, ReImAPI};
+use rstsr_dtype_traits::ExtNum;
 
 // TODO: log1p
 
@@ -87,23 +87,29 @@ where
 
 impl<T, D> DeviceAbsAPI<T, D> for DeviceCpuSerial
 where
-    T: Clone + AbsAPI,
+    T: ExtNum,
     D: DimAPI,
 {
-    type TOut = T::Out;
+    type TOut = T::AbsOut;
 
-    fn op_muta_refb(&self, a: &mut Vec<MaybeUninit<T::Out>>, la: &Layout<D>, b: &Vec<T>, lb: &Layout<D>) -> Result<()> {
+    fn op_muta_refb(
+        &self,
+        a: &mut Vec<MaybeUninit<T::AbsOut>>,
+        la: &Layout<D>,
+        b: &Vec<T>,
+        lb: &Layout<D>,
+    ) -> Result<()> {
         self.op_muta_refb_func(a, la, b, lb, &mut |a, b| {
-            a.write(b.clone().abs());
+            a.write(b.clone().ext_abs());
         })
     }
 
-    fn op_muta(&self, a: &mut Vec<MaybeUninit<T::Out>>, la: &Layout<D>) -> Result<()> {
-        if T::UNCHANGED {
+    fn op_muta(&self, a: &mut Vec<MaybeUninit<T::AbsOut>>, la: &Layout<D>) -> Result<()> {
+        if T::ABS_UNCHANGED {
             return Ok(());
-        } else if T::SAME_TYPE {
+        } else if T::ABS_SAME_TYPE {
             return self.op_muta_func(a, la, &mut |a| unsafe {
-                a.write(a.assume_init_read().abs());
+                a.write(a.assume_init_read().ext_abs());
             });
         } else {
             let type_b = core::any::type_name::<T>();
@@ -114,21 +120,27 @@ where
 
 impl<T, D> DeviceImagAPI<T, D> for DeviceCpuSerial
 where
-    T: Clone + ReImAPI,
+    T: ExtNum,
     D: DimAPI,
 {
-    type TOut = T::Out;
+    type TOut = T::AbsOut;
 
-    fn op_muta_refb(&self, a: &mut Vec<MaybeUninit<T::Out>>, la: &Layout<D>, b: &Vec<T>, lb: &Layout<D>) -> Result<()> {
+    fn op_muta_refb(
+        &self,
+        a: &mut Vec<MaybeUninit<T::AbsOut>>,
+        la: &Layout<D>,
+        b: &Vec<T>,
+        lb: &Layout<D>,
+    ) -> Result<()> {
         self.op_muta_refb_func(a, la, b, lb, &mut |a, b| {
-            a.write(b.clone().imag());
+            a.write(b.clone().ext_imag());
         })
     }
 
-    fn op_muta(&self, a: &mut Vec<MaybeUninit<T::Out>>, la: &Layout<D>) -> Result<()> {
-        if T::SAME_TYPE {
+    fn op_muta(&self, a: &mut Vec<MaybeUninit<T::AbsOut>>, la: &Layout<D>) -> Result<()> {
+        if T::ABS_SAME_TYPE {
             return self.op_muta_func(a, la, &mut |a| unsafe {
-                a.write(a.assume_init_read().imag());
+                a.write(a.assume_init_read().ext_imag());
             });
         } else {
             let type_b = core::any::type_name::<T>();
@@ -139,24 +151,26 @@ where
 
 impl<T, D> DeviceRealAPI<T, D> for DeviceCpuSerial
 where
-    T: Clone + ReImAPI,
+    T: ExtNum,
     D: DimAPI,
 {
-    type TOut = T::Out;
+    type TOut = T::AbsOut;
 
-    fn op_muta_refb(&self, a: &mut Vec<MaybeUninit<T::Out>>, la: &Layout<D>, b: &Vec<T>, lb: &Layout<D>) -> Result<()> {
+    fn op_muta_refb(
+        &self,
+        a: &mut Vec<MaybeUninit<T::AbsOut>>,
+        la: &Layout<D>,
+        b: &Vec<T>,
+        lb: &Layout<D>,
+    ) -> Result<()> {
         self.op_muta_refb_func(a, la, b, lb, &mut |a, b| {
-            a.write(b.clone().real());
+            a.write(b.clone().ext_real());
         })
     }
 
-    fn op_muta(&self, a: &mut Vec<MaybeUninit<T::Out>>, la: &Layout<D>) -> Result<()> {
-        if T::REALIDENT {
+    fn op_muta(&self, _a: &mut Vec<MaybeUninit<T::AbsOut>>, _la: &Layout<D>) -> Result<()> {
+        if T::ABS_SAME_TYPE {
             return Ok(());
-        } else if T::SAME_TYPE {
-            return self.op_muta_func(a, la, &mut |a| unsafe {
-                a.write(a.assume_init_read().real());
-            });
         } else {
             let type_b = core::any::type_name::<T>();
             unreachable!("{:?} is not supported in this function.", type_b);
