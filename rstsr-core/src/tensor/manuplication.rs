@@ -8,7 +8,7 @@ use crate::prelude_dev::*;
 ///
 /// # See also
 ///
-/// [Python Array API standard: `broadcast_arrays`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.broadcast_arrays.html)
+/// [Python Array API standard: `broadcast_arrays`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.broadcast_arrays.html)
 pub fn broadcast_arrays<R, T, B>(tensors: Vec<TensorAny<R, T, B, IxD>>) -> Vec<TensorAny<R, T, B, IxD>>
 where
     R: DataAPI<Data = B::Raw>,
@@ -67,7 +67,7 @@ where
 ///
 /// # See also
 ///
-/// [Python Array API standard: `broadcast_to`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.broadcast_to.html)
+/// [Python Array API standard: `broadcast_to`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.broadcast_to.html)
 pub fn to_broadcast<R, T, B, D, D2>(tensor: &TensorAny<R, T, B, D>, shape: D2) -> TensorView<'_, T, B, D2>
 where
     D: DimAPI + DimMaxAPI<D2, Max = D2>,
@@ -178,7 +178,7 @@ where
 ///
 /// # See also
 ///
-/// [Python Array API standard: `expand_dims`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.expand_dims.html)
+/// [Python Array API standard: `expand_dims`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.expand_dims.html)
 pub fn expand_dims<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axes: I) -> TensorView<'_, T, B, IxD>
 where
     D: DimAPI,
@@ -286,7 +286,7 @@ where
 ///
 /// # See also
 ///
-/// [Python array API standard: `flip`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.flip.html)
+/// [Python array API standard: `flip`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.flip.html)
 pub fn flip<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axes: I) -> TensorView<'_, T, B, D>
 where
     D: DimAPI,
@@ -382,7 +382,7 @@ where
 ///
 /// # See also
 ///
-/// - [Python array API standard: `permute_dims`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.permute_dims.html)
+/// - [Python array API standard: `permute_dims`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.permute_dims.html)
 pub fn transpose<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axes: I) -> TensorView<'_, T, B, D>
 where
     D: DimAPI,
@@ -684,7 +684,7 @@ where
 ///
 /// # See also
 ///
-/// [Python array API standard: `squeeze`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.squeeze.html)
+/// [Python array API standard: `squeeze`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.squeeze.html)
 pub fn squeeze<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axes: I) -> TensorView<'_, T, B, IxD>
 where
     D: DimAPI,
@@ -923,7 +923,7 @@ where
 ///
 /// # See also
 ///
-/// [Python array API standard: `reshape`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.reshape.html)
+/// [Python array API standard: `reshape`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.reshape.html)
 pub fn to_shape_assume_contig<R, T, B, D, D2>(tensor: &TensorAny<R, T, B, D>, shape: D2) -> TensorView<'_, T, B, D2>
 where
     D: DimAPI,

@@ -1,6 +1,6 @@
 //! Creation methods for `Tensor` struct.
 //!
-//! This module relates to the [Python array API standard v2023.12](https://data-apis.org/array-api/2023.12/API_specification/creation_functions.html).
+//! This module relates to the [Python array API standard v2024.12](https://data-apis.org/array-api/2024.12/API_specification/creation_functions.html).
 //!
 //! Todo list:
 //! - [x] `arange`: [`arange`]
@@ -44,7 +44,7 @@ pub trait ArangeAPI<Inp> {
 ///
 /// # See also
 ///
-/// - [Python array API standard: `arange`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.arange.html)
+/// - [Python array API standard: `arange`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.arange.html)
 pub fn arange<Args, Inp>(param: Args) -> Args::Out
 where
     Args: ArangeAPI<Inp>,
@@ -175,7 +175,7 @@ pub trait EmptyAPI<Inp> {
 ///
 /// # See also
 ///
-/// - [Python array API standard: `empty`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.empty.html)
+/// - [Python array API standard: `empty`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.empty.html)
 pub unsafe fn empty<Args, Inp>(param: Args) -> Args::Out
 where
     Args: EmptyAPI<Inp>,
@@ -292,7 +292,7 @@ pub trait EmptyLikeAPI<Inp> {
 ///
 /// # See also
 ///
-/// - [Python array API standard: `empty_like`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.empty_like.html)
+/// - [Python array API standard: `empty_like`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.empty_like.html)
 pub unsafe fn empty_like<Args, Inp>(param: Args) -> Args::Out
 where
     Args: EmptyLikeAPI<Inp>,
@@ -392,7 +392,7 @@ pub trait EyeAPI<Inp> {
 ///
 /// # See also
 ///
-/// - [Python array API standard: `eye`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.eye.html)
+/// - [Python array API standard: `eye`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.eye.html)
 pub fn eye<Args, Inp>(param: Args) -> Args::Out
 where
     Args: EyeAPI<Inp>,
@@ -519,7 +519,7 @@ pub trait FullAPI<Inp> {
 ///
 /// # See also
 ///
-/// - [Python array API standard: `full`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.full.html)
+/// - [Python array API standard: `full`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.full.html)
 pub fn full<Args, Inp>(param: Args) -> Args::Out
 where
     Args: FullAPI<Inp>,
@@ -630,7 +630,7 @@ pub trait FullLikeAPI<Inp> {
 ///
 /// # See also
 ///
-/// - [Python array API standard: `full_like`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.full_like.html)
+/// - [Python array API standard: `full_like`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.full_like.html)
 pub fn full_like<Args, Inp>(param: Args) -> Args::Out
 where
     Args: FullLikeAPI<Inp>,
@@ -751,7 +751,7 @@ pub trait LinspaceAPI<Inp> {
 ///
 /// # See also
 ///
-/// - [Python array API standard: `linspace`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.linspace.html)
+/// - [Python array API standard: `linspace`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.linspace.html)
 pub fn linspace<Args, Inp>(param: Args) -> Args::Out
 where
     Args: LinspaceAPI<Inp>,
@@ -842,7 +842,7 @@ pub trait OnesAPI<Inp> {
 ///
 /// # See also
 ///
-/// - [Python array API standard: `ones`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.ones.html)
+/// - [Python array API standard: `ones`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.ones.html)
 pub fn ones<Args, Inp>(param: Args) -> Args::Out
 where
     Args: OnesAPI<Inp>,
@@ -952,7 +952,7 @@ pub trait OnesLikeAPI<Inp> {
 ///
 /// # See also
 ///
-/// - [Python array API standard: `ones_like`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.ones_like.html)
+/// - [Python array API standard: `ones_like`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.ones_like.html)
 pub fn ones_like<Args, Inp>(param: Args) -> Args::Out
 where
     Args: OnesLikeAPI<Inp>,
@@ -1210,7 +1210,7 @@ pub trait ZerosAPI<Inp> {
 ///
 /// # See also
 ///
-/// - [Python array API standard: `zeros`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.zeros.html)
+/// - [Python array API standard: `zeros`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.zeros.html)
 pub fn zeros<Args, Inp>(param: Args) -> Args::Out
 where
     Args: ZerosAPI<Inp>,
@@ -1320,7 +1320,7 @@ pub trait ZerosLikeAPI<Inp> {
 ///
 /// # See also
 ///
-/// - [Python array API standard: `zeros_like`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.zeros_like.html)
+/// - [Python array API standard: `zeros_like`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.zeros_like.html)
 pub fn zeros_like<Args, Inp>(param: Args) -> Args::Out
 where
     Args: ZerosLikeAPI<Inp>,
@@ -1441,7 +1441,7 @@ pub trait TrilAPI<Inp> {
 ///
 /// # See also
 ///
-/// - [Python array API standard: `tril`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.tril.html)
+/// - [Python array API standard: `tril`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.tril.html)
 pub fn tril<Args, Inp>(param: Args) -> Args::Out
 where
     Args: TrilAPI<Inp>,
@@ -1630,7 +1630,7 @@ pub trait TriuAPI<Inp> {
 ///
 /// # See also
 ///
-/// - [Python array API standard: `triu`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.triu.html)
+/// - [Python array API standard: `triu`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.triu.html)
 pub fn triu<Args, Inp>(param: Args) -> Args::Out
 where
     Args: TriuAPI<Inp>,

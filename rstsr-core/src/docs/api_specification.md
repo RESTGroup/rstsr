@@ -45,7 +45,7 @@
 
 | Type | Identifier | Minimal Description |
 |--|--|--|
-| module | [layout][crate::layout] | Defining layout of tensor and dimensionality. |
+| module | [layout][rstsr_common::layout] | Defining layout of tensor and dimensionality. |
 | struct | [`Layout<D>`] | Layout of tensor. |
 | trait | [`DimAPI`] | Main basic interface for dimensionality. |
 | alias | [`IxD`] | Dynamic dimensionality (alias to `Vec<usize>`). |
@@ -153,15 +153,15 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 
 | Type | Identifier | Minimal Description |
 |--|--|--|
-| module | [error][crate::error] | Error handling in RSTSR. |
+| module | [error][rstsr_common::error] | Error handling in RSTSR. |
 | enum | [`Error`] | Error type in RSTSR. |
-| alias | [`Result<E>`][crate::error::Result] | Result type in RSTSR. |
+| alias | [`Result<E>`][rstsr_common::error::Result] | Result type in RSTSR. |
 
 ### Flags
 
 | Type | Identifier | Minimal Description |
 |--|--|--|
-| flags | [flags][crate::flags] | Flags for tensor. |
+| flags | [flags][rstsr_common::flags] | Flags for tensor. |
 | enum | [`FlagOrder`] | The order of tensor. |
 | enum | [`FlagDiag`] | Unit-diagonal of matrix. |
 | enum | [`FlagSide`] | Side of matrix operation. |

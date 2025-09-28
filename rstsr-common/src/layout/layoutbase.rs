@@ -435,7 +435,7 @@ where
     /// # See also
     ///
     /// - [`numpy.transpose`](https://numpy.org/doc/stable/reference/generated/numpy.transpose.html)
-    /// - [Python array API: `permute_dims`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.permute_dims.html)
+    /// - [Python array API: `permute_dims`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.permute_dims.html)
     pub fn transpose(&self, axes: &[isize]) -> Result<Self> {
         // check axes and cast to usize
         let n = self.ndim();
