@@ -28,12 +28,12 @@ jobs:
     - name: validate manifest (driver_validation_f64)
       run: |
         conda init; source $HOME/.bashrc; conda activate
-        cd rstsr-openblas/tests/test_driver_impl
+        cd crates-device/rstsr-openblas/tests/test_driver_impl
         python driver_validation_f64.py
     - name: validate manifest (func_validation_f64)
       run: |
         conda init; source $HOME/.bashrc; conda activate
-        cd rstsr-openblas/tests/test_linalg_func
+        cd crates-device/rstsr-openblas/tests/test_linalg_func
         python func_validation_f64.py
     - name: test
       run: RSTSR_DEV=1 cargo test -p rstsr-openblas --release --features="openmp linalg"

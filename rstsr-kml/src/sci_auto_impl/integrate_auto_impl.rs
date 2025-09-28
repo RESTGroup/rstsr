@@ -1,1 +1,0 @@
-../../../rstsr-sci-traits/src/integrate/auto_impl_rayon.rs

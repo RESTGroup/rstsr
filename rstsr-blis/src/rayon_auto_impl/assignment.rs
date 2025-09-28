@@ -1,1 +1,0 @@
-../../../rstsr-core/src/feature_rayon/auto_impl/assignment.rs
