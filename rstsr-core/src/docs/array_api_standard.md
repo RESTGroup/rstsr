@@ -259,8 +259,11 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| | | `take` | Returns elements of an array along an axis. |
+| P | [`take`] | `take` | Returns elements of an array along an axis. |
 | | | `take_along_axis` | Returns elements from an array at the one-dimensional indices specified by indices along a provided axis. |
+
+**Partial implementation**
+- [`take`] currently only supports indexing from an axis, which is also the Python Array API requires. However, NumPy also allows `axis = None` to index the flattened array, which is not implemented in RSTSR.
 
 ## Inspection
 
