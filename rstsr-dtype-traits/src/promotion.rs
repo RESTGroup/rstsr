@@ -500,7 +500,7 @@ macro_rules! impl_promotion_primitive_complex_cast_other {
             type Res = Complex<$ResComp>;
             const CAN_CAST_SELF: bool = $can_cast_self;
             const CAN_CAST_OTHER: bool = $can_cast_other;
-            const CAN_ASTYPE: bool = false;
+            const CAN_ASTYPE: bool = true;
             #[inline]
             fn promote_self(self) -> Self::Res {
                 Self::Res::new(self as _, 0 as _)
@@ -523,7 +523,7 @@ macro_rules! impl_promotion_primitive_complex_nocast_other {
             type Res = Complex<$ResComp>;
             const CAN_CAST_SELF: bool = $can_cast_self;
             const CAN_CAST_OTHER: bool = $can_cast_other;
-            const CAN_ASTYPE: bool = false;
+            const CAN_ASTYPE: bool = true;
             #[inline]
             fn promote_self(self) -> Self::Res {
                 Self::Res::new(self as _, 0 as _)
