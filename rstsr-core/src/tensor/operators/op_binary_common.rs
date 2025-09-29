@@ -314,7 +314,7 @@ mod test {
         #[cfg(not(feature = "col_major"))]
         {
             let a = arange(6u32).into_shape([2, 3]); // u32
-            let b = asarray(vec![1, 2, 2]); // i32
+            let b = asarray(vec![1_i32, 2, 2]); // i32
             let c = a.floor_divide(&b); // i64
             println!("{c:?}");
             assert_eq!(c.reshape([6]).to_vec(), vec![0_i64, 0, 1, 3, 2, 2]);
@@ -334,7 +334,7 @@ mod test {
         {
             // [3, 2] + [3]
             let a = arange(6u32).into_shape([3, 2]); // u32
-            let b = asarray(vec![1, 2, 2]); // i32
+            let b = asarray(vec![1_i32, 2, 2]); // i32
             let c = a.floor_divide(&b); // i64
             println!("{c:?}");
             assert_eq!(c.reshape([6]).to_vec(), vec![0_i64, 0, 1, 3, 2, 2]);
