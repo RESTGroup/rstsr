@@ -66,6 +66,33 @@ where
     index_select_f(tensor, axis, indices).unwrap()
 }
 
+pub fn take_f<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, indices: I, axis: isize) -> Result<Tensor<T, B, D>>
+where
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+    D: DimAPI + DimSmallerOneAPI,
+    D::SmallerOne: DimAPI,
+    B: DeviceAPI<T> + DeviceIndexSelectAPI<T, D> + DeviceCreationAnyAPI<T>,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
+{
+    index_select_f(tensor, axis, indices)
+}
+
+/// Take elements from an array along an axis.
+///
+/// # See also
+///
+/// [Python Array API standard: take](https://data-apis.org/array-api/latest/API_specification/generated/array_api.take.html#array_api.take)
+pub fn take<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, indices: I, axis: isize) -> Tensor<T, B, D>
+where
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+    D: DimAPI + DimSmallerOneAPI,
+    D::SmallerOne: DimAPI,
+    B: DeviceAPI<T> + DeviceIndexSelectAPI<T, D> + DeviceCreationAnyAPI<T>,
+    I: TryInto<AxesIndex<isize>, Error = Error>,
+{
+    index_select(tensor, axis, indices)
+}
+
 impl<R, T, B, D> TensorAny<R, T, B, D>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
@@ -91,6 +118,25 @@ where
         I: TryInto<AxesIndex<isize>, Error = Error>,
     {
         index_select(self, axis, indices)
+    }
+
+    pub fn take_f<I>(&self, indices: I, axis: isize) -> Result<Tensor<T, B, D>>
+    where
+        I: TryInto<AxesIndex<isize>, Error = Error>,
+    {
+        take_f(self, indices, axis)
+    }
+
+    /// Take elements from an array along an axis.
+    ///
+    /// # See also
+    ///
+    /// [Python Array API standard: take](https://data-apis.org/array-api/latest/API_specification/generated/array_api.take.html#array_api.take)
+    pub fn take<I>(&self, indices: I, axis: isize) -> Tensor<T, B, D>
+    where
+        I: TryInto<AxesIndex<isize>, Error = Error>,
+    {
+        take(self, indices, axis)
     }
 }
 

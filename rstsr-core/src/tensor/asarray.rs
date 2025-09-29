@@ -24,7 +24,7 @@ pub trait AsArrayAPI<Inp> {
 ///
 /// # See also
 ///
-/// [Python array API: `asarray`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.asarray.html)
+/// [Python array API: `asarray`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.asarray.html)
 pub fn asarray<Args, Inp>(param: Args) -> Args::Out
 where
     Args: AsArrayAPI<Inp>,

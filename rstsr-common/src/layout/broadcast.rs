@@ -1,6 +1,6 @@
 //! Layout broadcasting.
 //!
-//! We refer to documentation of Python array API: [broadcasting](https://data-apis.org/array-api/2023.12/API_specification/broadcasting.html).
+//! We refer to documentation of Python array API: [broadcasting](https://data-apis.org/array-api/2024.12/API_specification/broadcasting.html).
 
 // use super::DimMaxAPI;
 use crate::prelude_dev::*;
@@ -17,7 +17,7 @@ pub enum BroadcastType {
 ///
 /// # See also
 ///
-/// [broadcasting](https://data-apis.org/array-api/2023.12/API_specification/broadcasting.html)
+/// [broadcasting](https://data-apis.org/array-api/2024.12/API_specification/broadcasting.html)
 pub fn broadcast_shape<D1, D2, D>(
     shape1: &D1,
     shape2: &D2,
@@ -162,7 +162,7 @@ impl<D> DimBroadcastableAPI for D where D: DimAPI {}
 ///
 /// # See also
 ///
-/// [broadcasting](https://data-apis.org/array-api/2023.12/API_specification/broadcasting.html)
+/// [broadcasting](https://data-apis.org/array-api/2024.12/API_specification/broadcasting.html)
 pub fn broadcast_layout<D1, D2, D>(
     layout1: &Layout<D1>,
     layout2: &Layout<D2>,

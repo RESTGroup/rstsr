@@ -3,7 +3,7 @@ use faer::prelude::*;
 use faer::traits::ComplexField;
 use faer_ext::IntoFaer;
 use rstsr_core::prelude_dev::*;
-use rstsr_dtype_traits::ReImAPI;
+use rstsr_dtype_traits::ExtNum;
 
 pub fn faer_impl_standard_eigh_f<T>(
     a: TensorView<'_, T, DeviceFaer, Ix2>,
@@ -216,7 +216,7 @@ where
 )]
 impl<ImplType> EighAPI<DeviceFaer> for (Tr, FlagUpLo)
 where
-    T: ComplexField + ReImAPI<Out = T::Real>,
+    T: ComplexField + ExtNum<AbsOut = T::Real>,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
 {
@@ -235,7 +235,7 @@ where
 )]
 impl<ImplType> EighAPI<DeviceFaer> for Tr
 where
-    T: ComplexField + ReImAPI<Out = T::Real>,
+    T: ComplexField + ExtNum<AbsOut = T::Real>,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
 {

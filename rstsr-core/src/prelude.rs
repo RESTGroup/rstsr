@@ -47,7 +47,7 @@ pub mod rstsr_structs {
 }
 
 pub mod rstsr_funcs {
-    pub use crate::tensor::adv_indexing::{bool_select, bool_select_f, index_select, index_select_f};
+    pub use crate::tensor::adv_indexing::{bool_select, bool_select_f, index_select, index_select_f, take, take_f};
     pub use crate::tensor::asarray::{asarray, asarray_f};
     pub use crate::tensor::creation::{
         arange, arange_f, assume_init, assume_init_f, empty, empty_f, empty_like, empty_like_f, eye, eye_f, full,
@@ -103,8 +103,8 @@ pub mod rstsr_funcs {
         abs, abs_f, acos, acos_f, acosh, acosh_f, asin, asin_f, asinh, asinh_f, atan, atan_f, atanh, atanh_f, ceil,
         ceil_f, conj, conj_f, cos, cos_f, cosh, cosh_f, exp, exp_f, expm1, expm1_f, floor, floor_f, imag, imag_f, inv,
         inv_f, is_finite, is_finite_f, is_inf, is_inf_f, is_nan, is_nan_f, log, log10, log10_f, log2, log2_f, log_f,
-        real, real_f, round, round_f, sign, sign_f, signbit, signbit_f, sin, sin_f, sinh, sinh_f, sqrt, sqrt_f, square,
-        square_f, tan, tan_f, tanh, tanh_f, trunc, trunc_f,
+        real, real_f, reciprocal, reciprocal_f, round, round_f, sign, sign_f, signbit, signbit_f, sin, sin_f, sinh,
+        sinh_f, sqrt, sqrt_f, square, square_f, tan, tan_f, tanh, tanh_f, trunc, trunc_f,
     };
     // binary common functions
     pub use crate::tensor::operators::{
@@ -112,16 +112,19 @@ pub mod rstsr_funcs {
         floor_divide_f, ge, ge_f, greater, greater_equal, greater_equal_f, greater_equal_to, greater_equal_to_f,
         greater_f, greater_than, greater_than_f, gt, gt_f, hypot, hypot_f, le, le_f, less, less_equal, less_equal_f,
         less_equal_to, less_equal_to_f, less_f, less_than, less_than_f, log_add_exp, log_add_exp_f, lt, lt_f, maximum,
-        maximum_f, minimum, minimum_f, ne, ne_f, not_equal, not_equal_f, not_equal_to, not_equal_to_f, pow, pow_f,
+        maximum_f, minimum, minimum_f, ne, ne_f, nextafter, nextafter_f, not_equal, not_equal_f, not_equal_to,
+        not_equal_to_f, pow, pow_f,
     };
     // reduction
     pub use crate::tensor::reduction::{
+        all, all_all, all_all_f, all_axes, all_axes_f, all_f, any, any_all, any_all_f, any_axes, any_axes_f, any_f,
         argmax, argmax_all, argmax_all_f, argmax_axes, argmax_axes_f, argmax_f, argmin, argmin_all, argmin_all_f,
-        argmin_axes, argmin_axes_f, argmin_f, l2_norm, l2_norm_all, l2_norm_all_f, l2_norm_axes, l2_norm_axes_f,
-        l2_norm_f, max, max_all, max_all_f, max_axes, max_axes_f, max_f, mean, mean_all, mean_all_f, mean_axes,
-        mean_axes_f, mean_f, min, min_all, min_all_f, min_axes, min_axes_f, min_f, prod, prod_all, prod_all_f,
-        prod_axes, prod_axes_f, prod_f, std, std_all, std_all_f, std_axes, std_axes_f, std_f, sum, sum_all, sum_all_f,
-        sum_axes, sum_axes_f, sum_f, unraveled_argmax, unraveled_argmax_all, unraveled_argmax_all_f,
+        argmin_axes, argmin_axes_f, argmin_f, count_nonzero, count_nonzero_all, count_nonzero_all_f,
+        count_nonzero_axes, count_nonzero_axes_f, count_nonzero_f, l2_norm, l2_norm_all, l2_norm_all_f, l2_norm_axes,
+        l2_norm_axes_f, l2_norm_f, max, max_all, max_all_f, max_axes, max_axes_f, max_f, mean, mean_all, mean_all_f,
+        mean_axes, mean_axes_f, mean_f, min, min_all, min_all_f, min_axes, min_axes_f, min_f, prod, prod_all,
+        prod_all_f, prod_axes, prod_axes_f, prod_f, std, std_all, std_all_f, std_axes, std_axes_f, std_f, sum, sum_all,
+        sum_all_f, sum_axes, sum_axes_f, sum_f, unraveled_argmax, unraveled_argmax_all, unraveled_argmax_all_f,
         unraveled_argmax_axes, unraveled_argmax_axes_f, unraveled_argmax_f, unraveled_argmin, unraveled_argmin_all,
         unraveled_argmin_all_f, unraveled_argmin_axes, unraveled_argmin_axes_f, unraveled_argmin_f, var, var_all,
         var_all_f, var_axes, var_axes_f, var_f,

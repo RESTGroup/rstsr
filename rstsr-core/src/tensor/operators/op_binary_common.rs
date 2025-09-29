@@ -26,6 +26,7 @@ Exception functions:
    [minimum      ] [minimum_f      ] [TensorMinimumAPI     ];
    [not_equal    ] [not_equal_f    ] [TensorNotEqualAPI    ];
    [pow          ] [pow_f          ] [TensorPowAPI         ];
+   [nextafter    ] [nextafter_f    ] [TensorNextAfterAPI   ];
 )]
 pub trait TensorOpAPI<TRB> {
     type Output;
@@ -54,6 +55,7 @@ pub trait TensorOpAPI<TRB> {
    [minimum_f      ] [TensorMinimumAPI     ] [DeviceMinimumAPI     ];
    [not_equal_f    ] [TensorNotEqualAPI    ] [DeviceNotEqualAPI    ];
    [pow_f          ] [TensorPowAPI         ] [DevicePowAPI         ];
+   [nextafter_f    ] [TensorNextAfterAPI   ] [DeviceNextAfterAPI   ];
 )]
 mod impl_trait_binary {
     use super::*;
@@ -252,6 +254,7 @@ mod func_binary {
     func_binary!(less_equal    , less_equal_f      , TensorLessEqualAPI        , DeviceLessEqualAPI        , le, le_f, less_equal_to   , less_equal_to_f   );
     func_binary!(greater_equal , greater_equal_f   , TensorGreaterEqualAPI     , DeviceGreaterEqualAPI     , ge, ge_f, greater_equal_to, greater_equal_to_f);
     func_binary!(not_equal     , not_equal_f       , TensorNotEqualAPI         , DeviceNotEqualAPI         , ne, ne_f, not_equal_to    , not_equal_to_f    );
+    func_binary!(nextafter     , nextafter_f       , TensorNextAfterAPI        , DeviceNextAfterAPI        ,);
 }
 
 pub use func_binary::*;

@@ -45,7 +45,7 @@
 
 | Type | Identifier | Minimal Description |
 |--|--|--|
-| module | [layout][crate::layout] | Defining layout of tensor and dimensionality. |
+| module | [layout][rstsr_common::layout] | Defining layout of tensor and dimensionality. |
 | struct | [`Layout<D>`] | Layout of tensor. |
 | trait | [`DimAPI`] | Main basic interface for dimensionality. |
 | alias | [`IxD`] | Dynamic dimensionality (alias to `Vec<usize>`). |
@@ -88,12 +88,22 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 
 ## Indexing
 
+### Basic Indexing
+
 | Type | Identifier | Minimal Description |
 |--|--|--|
 | assoc/fn | [`slice`][prim@slice] <br/> [`slice_mut`] | Basic slicing to tensor, generating view of smaller tensor. |
 | assoc | [`i`][Tensor::i] <br/> [`i_mut`][Tensor::i_mut] | Alias to [`slice`][prim@slice] and [`slice_mut`]. |
 | core ops | operator `[]` <br/> [`Index`] <br/> [`IndexMut`] | Indexing tensor element, giving reference of scalar value (not efficient due to boundary check). |
 | assoc | [`index_uncheck`][Tensor::index_uncheck] <br/>[`index_mut_uncheck`][Tensor::index_mut_uncheck] | Indexing tensor element, giving reference of scalar value. |
+
+### Advanced Indexing
+
+| Type | Identifier | Minimal Description |
+|--|--|--|
+| assoc/fn | [`bool_select`] | Returns a new tensor, which indexes the input tensor along dimension `axis` using the boolean entries in `mask`. |
+| assoc/fn | [`index_select`] | Returns a new tensor, which indexes the input tensor along dimension `axis` using the entries in `indices`. |
+| assoc/fn | [`take`] | Take elements from an array along an axis. |
 
 ## RSTSR Specific Identifiers
 
@@ -153,15 +163,15 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 
 | Type | Identifier | Minimal Description |
 |--|--|--|
-| module | [error][crate::error] | Error handling in RSTSR. |
+| module | [error][rstsr_common::error] | Error handling in RSTSR. |
 | enum | [`Error`] | Error type in RSTSR. |
-| alias | [`Result<E>`][crate::error::Result] | Result type in RSTSR. |
+| alias | [`Result<E>`][rstsr_common::error::Result] | Result type in RSTSR. |
 
 ### Flags
 
 | Type | Identifier | Minimal Description |
 |--|--|--|
-| flags | [flags][crate::flags] | Flags for tensor. |
+| flags | [flags][rstsr_common::flags] | Flags for tensor. |
 | enum | [`FlagOrder`] | The order of tensor. |
 | enum | [`FlagDiag`] | Unit-diagonal of matrix. |
 | enum | [`FlagSide`] | Side of matrix operation. |
@@ -196,7 +206,12 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 
 ### Storage-creation manuplication
 
-These functions are to be realized in future (concat, stack, etc).
+| fn | [`concat`](concat()) |  Join a sequence of arrays along an existing axis. |
+| fn | [`stack`] | Joins a sequence of arrays along a new axis. |
+| fn | [`hstack`] | Stack tensors in sequence horizontally (column-wise). |
+| fn | [`vstack`] | Stack tensors in sequence horizontally (row-wise). |
+| fn | [`vstack`] | Stack tensors in sequence horizontally (row-wise). |
+| assoc/fn | [`unstack`] | Splits an array into a sequence of arrays along the given axis. |
 
 ## Tensor Creation
 
@@ -258,19 +273,23 @@ Trait function calls like associated methods, so we also do not recommend usage 
 
 ### Unary functions
 
-[`abs`], [`acos`], [`acosh`], [`asin`], [`asinh`], [`atan`], [`atanh`], [`ceil`], [`conj`], [`cos`], [`cosh`], [`exp`], [`expm1`], [`floor`], [`imag`], [`inv`], [`is_finite`], [`is_inf`], [`is_nan`], [`log`], [`log10`], [`log2`], [`real`], [`round`], [`sign`], [`signbit`], [`sin`], [`sinh`], [`sqrt`], [`square`], [`tan`], [`tanh`], [`trunc`]
+[`abs`], [`acos`], [`acosh`], [`asin`], [`asinh`], [`atan`], [`atanh`], [`ceil`], [`conj`], [`cos`], [`cosh`], [`exp`], [`expm1`], [`floor`], [`imag`], [`inv`], [`is_finite`], [`is_inf`], [`is_nan`], [`log`], [`log10`], [`log2`], [`real`], [`reciprocal`], [`round`], [`sign`], [`signbit`], [`sin`], [`sinh`], [`sqrt`], [`square`], [`tan`], [`tanh`], [`trunc`]
 
 ### Binary functions
 
-[`atan2`], [`copysign`], [`eq`]/[`equal`], [`floor_divide`], [`ge`]/[`greater_equal`], [`gt`]/[`greater`], [`hypot`], [`le`]/[`less_equal`], [`lt`]/[`less`], [`log_add_exp`], [`maximum`], [`minimum`], [`ne`]/[`not_equal`], [`pow`]
+[`atan2`], [`copysign`], [`eq`]/[`equal`], [`floor_divide`], [`ge`]/[`greater_equal`], [`gt`]/[`greater`], [`hypot`], [`le`]/[`less_equal`], [`lt`]/[`less`], [`log_add_exp`], [`maximum`], [`minimum`], [`ne`]/[`not_equal`], [`nextafter`], [`pow`]
 
 ### Statistical functions
 
-[`max`], [`mean`], [`min`], [`prod`], [`std`], [`sum`], [`var`]
+[`max`]/[`max_axes`], [`mean`]/[`mean_axes`], [`min`]/[`min_axes`], [`prod`]/[`prod_axes`], [`std`]/[`std_axes`], [`sum`]/[`sum_axes`], [`var`]/[`var_axes`]
 
 ### Sorting, searching and counting functions
 
-[`argmin`], [`argmax`], [`unraveled_argmin`], [`unraveled_argmax`]
+[`argmin`]/[`argmin_axes`], [`argmax`]/[`argmax_axes`], [`count_nonzero`]/[`count_nonzero_axes`], [`unraveled_argmin`]/[`unraveled_argmin_axes`], [`unraveled_argmax`]/[`unraveled_argmax_axes`]
+
+### Utilitiy functions
+
+[`all`]/[`all_axes`], [`any`]/[`any_axes`]
 
 ## Developer Area
 

@@ -16,6 +16,7 @@ use crate::prelude_dev::*;
    [DeviceMinimumAPI     ];
    [DeviceNotEqualAPI    ];
    [DevicePowAPI         ];
+   [DeviceNextAfterAPI   ];
 )]
 pub trait DeviceOpAPI<TA, TB, D>
 where

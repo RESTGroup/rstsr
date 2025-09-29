@@ -97,7 +97,7 @@ Dropped support
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| P | [`abs`] | `__abs__` | Calculates the absolute value for each element of an array instance. |
+| Y | [`abs`] | `__abs__` | Calculates the absolute value for each element of an array instance. |
 | Y | [`asarray`] | `__bool__` | Converts a zero-dimensional array to a Python bool object. |
 | Y | [`asarray`] | `__complex__` | Converts a zero-dimensional array to a Python `complex` object. |
 | Y | [`asarray`] | `__float__` | Converts a zero-dimensional array to a Python `float` object. |
@@ -107,38 +107,35 @@ Dropped support
 | Y | [`IndexMut`] | `__setitem__` | Sets `self[key]` to `value`. |
 | P | [`DeviceChangeAPI::to_device`] | `to_device` | Copy the array from the device on which it currently resides to the specified `device`. |
 
-**Partial Implemented**
-- Only [`ComplexFloat`] types implemented [`abs`]. Integer types has not been implemented for absolute value.
-
 ## Constants
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| Y | [`core::f64::consts::E`] | [`e`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.constants.e.html) | IEEE 754 floating-point representation of Euler's constant. |
-| Y | [`f64::INFINITY`] | [`inf`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.constants.inf.html) | IEEE 754 floating-point representation of (positive) infinity. |
-| Y | [`f64::NAN`] | [`nan`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.constants.nan.html) | IEEE 754 floating-point representation of Not a Number (NaN). |
-| Y | [`Indexer::Insert`] | [`newaxis`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.constants.newaxis.html) | An alias for None which is useful for indexing arrays. |
-| Y | [`core::f64::consts::PI`] | [`pi`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.constants.pi.html) | IEEE 754 floating-point representation of the mathematical constant π. |
+| Y | [`core::f64::consts::E`] | [`e`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.constants.e.html) | IEEE 754 floating-point representation of Euler's constant. |
+| Y | [`f64::INFINITY`] | [`inf`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.constants.inf.html) | IEEE 754 floating-point representation of (positive) infinity. |
+| Y | [`f64::NAN`] | [`nan`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.constants.nan.html) | IEEE 754 floating-point representation of Not a Number (NaN). |
+| Y | [`Indexer::Insert`] | [`newaxis`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.constants.newaxis.html) | An alias for None which is useful for indexing arrays. |
+| Y | [`core::f64::consts::PI`] | [`pi`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.constants.pi.html) | IEEE 754 floating-point representation of the mathematical constant π. |
 
 ## Creation Functions
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| Y | [`arange`] | [`arange`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.empty.html) | Returns evenly spaced values within the half-open interval `[start, stop)` as a one-dimensional array. |
-| P | [`asarray`] | [`asarray`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.asarray.html) | Convert the input to an array. |
-| Y | [`empty`] | [`empty`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.empty.html) | Returns an uninitialized array having a specified `shape`. |
-| Y | [`empty_like`] | [`empty_like`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.empty_like.html) | Returns an uninitialized array with the same `shape` as an input array `x`. |
-| Y | [`eye`] | [`eye`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.eye.html) | Returns a two-dimensional array with ones on the kth diagonal and zeros elsewhere. |
-| Y | [`full`] | [`full`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.full.html) | Returns a new array having a specified `shape` and filled with `fill_value`. |
-| Y | [`full_like`] | [`full_like`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.full_like.html) | Returns a new array filled with fill_value and having the same `shape` as an input array `x`. |
-| Y | [`linspace`] | [`linspace`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.linspace.html) | Returns evenly spaced numbers over a specified interval. |
-| | | `meshgrid` | Returns coordinate matrices from coordinate vectors. |
-| Y | [`ones`] | [`ones`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.ones.html) | Returns a new array having a specified shape and filled with ones. |
-| Y | [`ones_like`] | [`ones_like`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.ones_like.html) | Returns a new array filled with ones and having the same `shape` as an input array `x`. |
+| Y | [`arange`] | [`arange`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.empty.html) | Returns evenly spaced values within the half-open interval `[start, stop)` as a one-dimensional array. |
+| P | [`asarray`] | [`asarray`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.asarray.html) | Convert the input to an array. |
+| Y | [`empty`] | [`empty`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.empty.html) | Returns an uninitialized array having a specified `shape`. |
+| Y | [`empty_like`] | [`empty_like`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.empty_like.html) | Returns an uninitialized array with the same `shape` as an input array `x`. |
+| Y | [`eye`] | [`eye`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.eye.html) | Returns a two-dimensional array with ones on the kth diagonal and zeros elsewhere. |
+| Y | [`full`] | [`full`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.full.html) | Returns a new array having a specified `shape` and filled with `fill_value`. |
+| Y | [`full_like`] | [`full_like`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.full_like.html) | Returns a new array filled with fill_value and having the same `shape` as an input array `x`. |
+| Y | [`linspace`] | [`linspace`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.linspace.html) | Returns evenly spaced numbers over a specified interval. |
+| Y | [`meshgrid`] | `meshgrid` | Returns coordinate matrices from coordinate vectors. |
+| Y | [`ones`] | [`ones`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.ones.html) | Returns a new array having a specified shape and filled with ones. |
+| Y | [`ones_like`] | [`ones_like`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.ones_like.html) | Returns a new array filled with ones and having the same `shape` as an input array `x`. |
 | Y | [`tril`] | `tril` | Returns the lower triangular part of a matrix (or a stack of matrices) `x`. |
 | Y | [`triu`] | `triu` | Returns the upper triangular part of a matrix (or a stack of matrices) `x`. |
-| Y | [`zeros`] | [`zeros`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.zeros.html) | Returns a new array having a specified `shape` and filled with zeros. |
-| Y | [`zeros_like`] | [`zeros_like`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.zeros_like.html) | Returns a new array filled with zeros and having the same `shape` as an input array x. |
+| Y | [`zeros`] | [`zeros`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.zeros.html) | Returns a new array having a specified `shape` and filled with zeros. |
+| Y | [`zeros_like`] | [`zeros_like`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.zeros_like.html) | Returns a new array filled with zeros and having the same `shape` as an input array x. |
 
 **Partial implementation**
 - [`asarray`]: This function have different implementations for `Vec<T>`, `[T; N]` and [`Tensor<T, B, D>`]. Different signatures are utilized for different inputs and purposes.
@@ -162,12 +159,12 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 
 | rust trait or struct | data type category | dtypes |
 |-|-|-|
-| [`num::Num`] | Numeric | int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64, complex64, complex128 |
-| | Real-valued | int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64 |
-| [`num::Integer`] | Integer | int8, int16, int32, int64, uint8, uint16, uint32, uint64 |
-| [`num::complex::ComplexFloat`] | Floating-point | float32, float64, complex64, complex128 |
-| [`num::Float`] | Real-valued floating-point | float32, float64 |
-| [`num::Complex`] | Complex floating-point | complex64, complex128 |
+| [`Num`], [`ExtNum`] | Numeric | int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64, complex64, complex128 |
+| [`ExtReal`] | Real-valued | int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64 |
+| [`Integer`] | Integer | int8, int16, int32, int64, uint8, uint16, uint32, uint64 |
+| [`ComplexFloat`] | Floating-point | float32, float64, complex64, complex128 |
+| [`Float`], [`ExtFloat`] | Real-valued floating-point | float32, float64 |
+| [`Complex`] | Complex floating-point | complex64, complex128 |
 | [`bool`] | Boolean | bool |
 
 
@@ -177,7 +174,7 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| [`AbsAPI`] | [`abs`] | `abs` | Calculates the absolute value for each element x_i of the input array x. |
+| [`ExtNum`] | [`abs`] | `abs` | Calculates the absolute value for each element x_i of the input array x. |
 | [`ComplexFloat`] | [`acos`] | `acos` | Calculates an implementation-dependent approximation of the principal value of the inverse cosine for each element x_i of the input array x. |
 | [`ComplexFloat`] | [`acosh`] | `acosh` | Calculates an implementation-dependent approximation to the inverse hyperbolic cosine for each element x_i of the input array x. |
 | [`ComplexFloat`] | [`asin`] | `asin` | Calculates an implementation-dependent approximation of the principal value of the inverse sine for each element x_i of the input array x. |
@@ -192,7 +189,7 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 | [`ComplexFloat`] | [`exp`] | `exp` | Calculates an implementation-dependent approximation to the exponential function for each element x_i of the input array x (e raised to the power of x_i, where e is the base of the natural logarithm). |
 | [`Float`] (partial) | [`expm1`] | `expm1` | Calculates an implementation-dependent approximation to exp(x)-1 for each element x_i of the input array x. |
 | [`Float`] | [`floor`] | `floor` | Rounds each element x_i of the input array x to the greatest (i.e., closest to +infinity) integer-valued number that is not greater than x_i. |
-| [`ReImAPI`] | [`imag`] | `imag` | Returns the imaginary component of a complex number for each element x_i of the input array x. |
+| [`ExtNum`] | [`imag`] | `imag` | Returns the imaginary component of a complex number for each element x_i of the input array x. |
 | [`ComplexFloat`] | [`is_finite`] | `isfinite` | Tests each element x_i of the input array x to determine if finite. |
 | [`ComplexFloat`] | [`is_inf`] | `isinf` | Tests each element x_i of the input array x to determine if equal to positive or negative infinity. |
 | [`ComplexFloat`] | [`is_nan`] | `isnan` | Tests each element x_i of the input array x to determine whether the element is NaN. |
@@ -203,7 +200,8 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 | [`Not`] | [`not`] instead | `logical_not` | Computes the logical NOT for each element x_i of the input array x. |
 | [`Neg`] | `-`, [`neg`] | `negative` | Computes the numerical negative of each element x_i (i.e., y_i = -x_i) of the input array x. |
 | Dropped | | `positive` | Computes the numerical positive of each element x_i (i.e., y_i = +x_i) of the input array x. |
-| [`ReImAPI`] | [`real`] | `real` | Returns the real component of a complex number for each element x_i of the input array x. |
+| [`ExtNum`] | [`real`] | `real` | Returns the real component of a complex number for each element x_i of the input array x. |
+| [`ComplexFloat`] | [`reciprocal`] | `reciprocal` | Returns the reciprocal for each element x_i of the input array x. |
 | [`Float`] | [`round`] | `round` | Rounds each element x_i of the input array x to the nearest integer-valued number. |
 | [`ComplexFloat`] | [`sign`] | `sign` | Returns an indication of the sign of a number for each element x_i of the input array x. |
 | [`Signed`] | [`signbit`] | `signbit` | Determines whether the sign bit is set for each element x_i of the input array x. |
@@ -229,7 +227,7 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 | [`Float`] | [`copysign`] | `copysign` | Composes a floating-point value with the magnitude of x1_i and the sign of x2_i for each element of the input array x1. |
 | [`Div`] | `/`, [`div`] | `divide` | Calculates the division of each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
 | [`PartialEq`] | [`eq`], [`equal`] | `equal` | Computes the truth value of x1_i == x2_i for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
-| [`FloorDivideAPI`] | [`floor_divide`] | `floor_divide` | Rounds the result of dividing each element x1_i of the input array x1 by the respective element x2_i of the input array x2 to the greatest (i.e., closest to +infinity) integer-value number that is not greater than the division result. |
+| [`ExtReal`] | [`floor_divide`] | `floor_divide` | Rounds the result of dividing each element x1_i of the input array x1 by the respective element x2_i of the input array x2 to the greatest (i.e., closest to +infinity) integer-value number that is not greater than the division result. |
 | [`PartialOrd`] | [`gt`], [`greater`] | `greater` | Computes the truth value of x1_i > x2_i for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
 | [`PartialOrd`] | [`ge`], [`greater_equal`] | `greater_equal` | Computes the truth value of x1_i >= x2_i for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
 | [`Float`] | [`hypot`] | `hypot` | Computes the square root of the sum of squares for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
@@ -239,15 +237,14 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 | | [`bitand`] instead | `logical_and` | Computes the logical AND for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
 | | [`bitor`] instead | `logical_or` | Computes the logical OR for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
 | | [`bitxor`] instead | `logical_xor` | Computes the logical XOR for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
-| [`MinMaxAPI`] | [`maximum`] | `maximum` | Computes the maximum value for each element x1_i of the input array x1 relative to the respective element x2_i of the input array x2. |
-| [`MinMaxAPI`] | [`minimum`] | `minimum` | Computes the minimum value for each element x1_i of the input array x1 relative to the respective element x2_i of the input array x2. |
+| [`ExtReal`] | [`maximum`] | `maximum` | Computes the maximum value for each element x1_i of the input array x1 relative to the respective element x2_i of the input array x2. |
+| [`ExtReal`] | [`minimum`] | `minimum` | Computes the minimum value for each element x1_i of the input array x1 relative to the respective element x2_i of the input array x2. |
 | [`Mul`] | [`mul`] | `multiply` | Calculates the product for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
+| [`ExtFloat`] | [`nextafter`] | `nextafter` | Returns the next representable floating-point value for each element x1_i of the input array x1 in the direction of the respective element x2_i of the input array x2. |
 | [`PartialEq`] | [`ne`], [`not_equal`] | `not_equal` | Computes the truth value of x1_i != x2_i for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
 | [`Pow`] | [`pow`] | `pow` | Calculates an implementation-dependent approximation of exponentiation by raising each element x1_i (the base) of the input array x1 to the power of x2_i (the exponent), where x2_i is the corresponding element of the input array x2. |
 | [`Rem`] | [`rt::rem`][^2] | `remainder` | Returns the remainder of division for each element x1_i of the input array x1 and the respective element x2_i of the input array x2. |
 | [`Sub`] | `-`, [`sub`] | `subtract` | Calculates the difference for each element x1_i of the input array x1 with the respective element x2_i of the input array x2. |
-
-
 
 ### Other functions
 
@@ -259,7 +256,11 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| | | `take` | Returns elements of an array along an axis. |
+| P | [`take`] | `take` | Returns elements of an array along an axis. |
+| | | `take_along_axis` | Returns elements from an array at the one-dimensional indices specified by indices along a provided axis. |
+
+**Partial implementation**
+- [`take`] currently only supports indexing from an axis, which is also the Python Array API requires. However, NumPy also allows `axis = None` to index the flattened array, which is not implemented in RSTSR.
 
 ## Inspection
 
@@ -284,20 +285,20 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| Y | [`broadcast_arrays`] | [`broadcast_arrays`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.broadcast_arrays.html) | Broadcasts one or more arrays against one another. |
-| Y | [`to_broadcast`] | [`broadcast_to`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.broadcast_to.html) | Broadcasts an array to a specified shape. |
-| | | `concat` | Joins a sequence of arrays along an existing axis. |
-| Y | [`expand_dims`] | [`expand_dims`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.expand_dims.html) | Expands the shape of an array by inserting a new axis (dimension) of size one at the position specified by `axis`. |
-| Y | [`flip`] | [`flip`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.flip.html) | Reverses the order of elements in an array along the given axis. |
+| Y | [`broadcast_arrays`] | [`broadcast_arrays`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.broadcast_arrays.html) | Broadcasts one or more arrays against one another. |
+| Y | [`to_broadcast`] | [`broadcast_to`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.broadcast_to.html) | Broadcasts an array to a specified shape. |
+| Y | [`concat`](concat()) | `concat` | Joins a sequence of arrays along an existing axis. |
+| Y | [`expand_dims`] | [`expand_dims`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.expand_dims.html) | Expands the shape of an array by inserting a new axis (dimension) of size one at the position specified by `axis`. |
+| Y | [`flip`] | [`flip`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.flip.html) | Reverses the order of elements in an array along the given axis. |
 | | | `moveaxis` | Moves array axes (dimensions) to new positions, while leaving other axes in their original positions. |
-| Y | [`transpose`], [`permute_dims`] | [`permute_dims`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.permute_dims.html) | Permutes the axes (dimensions) of an array `x`. |
+| Y | [`transpose`], [`permute_dims`] | [`permute_dims`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.permute_dims.html) | Permutes the axes (dimensions) of an array `x`. |
 | | | `repeat` | Repeats each element of an array a specified number of times on a per-element basis. |
-| P | [`reshape`], [`into_shape_assume_contig`] | [`reshape`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.reshape.html) | Reshapes an array without changing its data. |
+| P | [`reshape`], [`into_shape_assume_contig`] | [`reshape`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.reshape.html) | Reshapes an array without changing its data. |
 | | | `roll` | Rolls array elements along a specified axis. |
-| P | [`squeeze`] | [`squeeze`](https://data-apis.org/array-api/2023.12/API_specification/generated/array_api.squeeze.html) | Removes singleton dimensions (axes) from x. |
-| | | `stack` | Joins a sequence of arrays along a new axis. |
+| P | [`squeeze`] | [`squeeze`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.squeeze.html) | Removes singleton dimensions (axes) from x. |
+| Y | [`stack`] | `stack` | Joins a sequence of arrays along a new axis. |
 | | | `tile` | Constructs an array by tiling an input array. |
-| | | `unstack` | Splits an array into a sequence of arrays along the given axis. |
+| Y | [`unstack`] | `unstack` | Splits an array into a sequence of arrays along the given axis. |
 
 **Partial implementation**
 - [`squeeze`] accepts one axis as input, instead of accepting multiple axes. This is mostly because output of smaller dimension tensor can be fixed-dimension array ([`DimSmallerOneAPI::SmallerOne`]) when only one axis is passed as argument.
@@ -309,6 +310,7 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 |-|-|-|-|
 | Y | [`argmax`], [`argmax_axes`] | `argmax` | Returns the indices of the maximum values along a specified axis. |
 | Y | [`argmin`], [`argmin_axes`] | `argmin` | Returns the indices of the minimum values along a specified axis. |
+| Y | [`count_nonzero`], [`count_nonzero_axes`] | `count_nonzero` | Counts the number of array elements which are non-zero. |
 | | | `nonzero` | Returns the indices of the array elements which are non-zero. |
 | | | `searchsorted` | Finds the indices into x1 such that, if the corresponding elements in x2 were inserted before the indices, the order of x1, when sorted in ascending order, would be preserved. |
 | | | `where` | Returns elements chosen from x1 or x2 depending on condition. |
@@ -333,6 +335,7 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 
 | status | implementation | Python API | description |
 |-|-|-|-|
+| | | `cumulative_prod` | Calculates the cumulative product of elements in the input array x. |
 | | | `cumulative_sum` | Calculates the cumulative sum of elements in the input array x. |
 | Y | [`max`], [`max_axes`] | `max` | Calculates the maximum value of the input array x. |
 | Y | [`mean`], [`mean_axes`] | `mean` | Calculates the arithmetic mean of the input array x. |
@@ -346,8 +349,9 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| | | `all` | Tests whether all input array elements evaluate to True along a specified axis. |
-| | | `any` | Tests whether any input array element evaluates to True along a specified axis. |
+| Y | [`all`], [`all_axes`] | `all` | Tests whether all input array elements evaluate to True along a specified axis. |
+| Y | [`any`], [`any_axes`] | `any` | Tests whether any input array element evaluates to True along a specified axis. |
+| | | `diff` | Calculates the n-th discrete forward difference along a specified axis. |
 
 ## Other Dropped Specifications
 

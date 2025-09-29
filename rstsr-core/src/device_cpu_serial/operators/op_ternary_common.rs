@@ -1,23 +1,24 @@
 use crate::prelude_dev::*;
 use num::complex::ComplexFloat;
 use num::{pow::Pow, Float};
-use rstsr_dtype_traits::{FloorDivideAPI, MinMaxAPI};
+use rstsr_dtype_traits::{ExtFloat, ExtReal};
 
 #[duplicate_item(
      DeviceOpAPI             TO     TraitT           func;
-    [DeviceATan2API       ] [T   ] [Float         ] [|c, &a, &b| { c.write(a.atan2(b)                       ); }];
-    [DeviceCopySignAPI    ] [T   ] [Float         ] [|c, &a, &b| { c.write(a.copysign(b)                    ); }];
-    [DeviceEqualAPI       ] [bool] [PartialEq     ] [|c,  a,  b| { c.write(a == b                           ); }];
-    [DeviceGreaterAPI     ] [bool] [PartialOrd    ] [|c,  a,  b| { c.write(a > b                            ); }];
-    [DeviceGreaterEqualAPI] [bool] [PartialOrd    ] [|c,  a,  b| { c.write(a >= b                           ); }];
-    [DeviceHypotAPI       ] [T   ] [Float         ] [|c, &a, &b| { c.write(a.hypot(b)                       ); }];
-    [DeviceLessAPI        ] [bool] [PartialOrd    ] [|c,  a,  b| { c.write(a < b                            ); }];
-    [DeviceLessEqualAPI   ] [bool] [PartialOrd    ] [|c,  a,  b| { c.write(a <= b                           ); }];
-    [DeviceLogAddExpAPI   ] [T   ] [ComplexFloat  ] [|c, &a, &b| { c.write((a.exp() + b.exp()).ln()         ); }];
-    [DeviceMaximumAPI     ] [T   ] [MinMaxAPI     ] [|c,  a,  b| { c.write(a.clone().max(b.clone())         ); }];
-    [DeviceMinimumAPI     ] [T   ] [MinMaxAPI     ] [|c,  a,  b| { c.write(a.clone().min(b.clone())         ); }];
-    [DeviceNotEqualAPI    ] [bool] [PartialEq     ] [|c,  a,  b| { c.write(a != b                           ); }];
-    [DeviceFloorDivideAPI ] [T   ] [FloorDivideAPI] [|c,  a,  b| { c.write(a.clone().floor_divide(b.clone())); }];
+    [DeviceATan2API       ] [T   ] [Float         ] [|c, &a, &b| { c.write(a.atan2(b)                           ); }];
+    [DeviceCopySignAPI    ] [T   ] [Float         ] [|c, &a, &b| { c.write(a.copysign(b)                        ); }];
+    [DeviceEqualAPI       ] [bool] [PartialEq     ] [|c,  a,  b| { c.write(a == b                               ); }];
+    [DeviceGreaterAPI     ] [bool] [PartialOrd    ] [|c,  a,  b| { c.write(a > b                                ); }];
+    [DeviceGreaterEqualAPI] [bool] [PartialOrd    ] [|c,  a,  b| { c.write(a >= b                               ); }];
+    [DeviceHypotAPI       ] [T   ] [Float         ] [|c, &a, &b| { c.write(a.hypot(b)                           ); }];
+    [DeviceLessAPI        ] [bool] [PartialOrd    ] [|c,  a,  b| { c.write(a < b                                ); }];
+    [DeviceLessEqualAPI   ] [bool] [PartialOrd    ] [|c,  a,  b| { c.write(a <= b                               ); }];
+    [DeviceLogAddExpAPI   ] [T   ] [ComplexFloat  ] [|c, &a, &b| { c.write((a.exp() + b.exp()).ln()             ); }];
+    [DeviceMaximumAPI     ] [T   ] [ExtReal       ] [|c,  a,  b| { c.write(a.clone().ext_max(b.clone())         ); }];
+    [DeviceMinimumAPI     ] [T   ] [ExtReal       ] [|c,  a,  b| { c.write(a.clone().ext_min(b.clone())         ); }];
+    [DeviceNotEqualAPI    ] [bool] [PartialEq     ] [|c,  a,  b| { c.write(a != b                               ); }];
+    [DeviceFloorDivideAPI ] [T   ] [ExtReal       ] [|c,  a,  b| { c.write(a.clone().ext_floor_divide(b.clone())); }];
+    [DeviceNextAfterAPI   ] [T   ] [ExtFloat      ] [|c,  a,  b| { c.write(a.clone().ext_nextafter(b.clone())   ); }];
 )]
 impl<T, D> DeviceOpAPI<T, T, D> for DeviceCpuSerial
 where
