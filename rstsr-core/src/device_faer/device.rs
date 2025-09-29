@@ -1,5 +1,6 @@
 use crate::prelude_dev::*;
 use num::{complex::ComplexFloat, Num};
+use rstsr_dtype_traits::PromotionSpecialAPI;
 
 #[derive(Clone, Debug)]
 pub struct DeviceFaer {
@@ -125,8 +126,8 @@ impl<T> DeviceAPI<T> for DeviceFaer {}
 
 impl<T, D> DeviceComplexFloatAPI<T, D> for DeviceFaer
 where
-    T: ComplexFloat + Send + Sync,
-    T::Real: Send + Sync,
+    T: ComplexFloat + PromotionSpecialAPI<FloatType = T> + Send + Sync,
+    T::Real: PromotionSpecialAPI<FloatType = T::Real> + Send + Sync,
     D: DimAPI,
 {
 }

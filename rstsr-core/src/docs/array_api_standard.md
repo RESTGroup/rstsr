@@ -144,16 +144,20 @@ Dropped support
 
 ### Data Type Functions
 
+Data type promotion rules are handled by devices instead of core functions (you can implement your promotion rule for your device).
+
+The reference implementation (as in [`DeviceCpuSerial`] and [`DeviceFaer`]), follows two kinds of promotion rules:
+- The rule from operator itself: this affects most functions that comes with intrinsic operator (+, -, *, /, &, |, ...), as well as some functions ([`abs`], [`real`], [`imag`], [`pow`], etc.); also see crate [`num`].
+- The rule from promotion rule (the same rule of [NumPy's](https://numpy.org/doc/stable/reference/arrays.promotion.html)): this affects most common functions ([`sin`], [`greater`], [`sqrt`], to list a few).
+
 | status | implementation | Python API | description |
 |-|-|-|-|
-| T | [`num`] crate | `astype` | Copies an array to a specified data type irrespective of Type Promotion Rules rules. |
-| T | [`num`] crate | `can_cast` | Determines if one data type can be cast to another data type according Type Promotion Rules rules. |
-| T | [`num`] crate | `finfo` | Machine limits for floating-point data types. |
-| T | [`num`] crate | `iinfo` | Machine limits for integer data types. |
-| T | [`core::any::type_name`] | `isdtype` | Returns a boolean indicating whether a provided dtype is of a specified data type "kind". |
-| T | [`num`] crate | `result_type` | Returns the dtype that results from applying the type promotion rules (see Type Promotion Rules) to the arguments. |
-
-For this part, we refer to [`num`] crate, where data type conversion and promotion are regularized by trait bounds.
+| T | Rust type cast [`as`](https://doc.rust-lang.org/reference/expressions/operator-expr.html#type-cast-expressions)<br>[`PromotionAPI::promote_astype`]<br>[`num::ToPrimitive`] | `astype` | Copies an array to a specified data type irrespective of Type Promotion Rules rules. |
+| T | [`PromotionAPI::CAN_CAST_SELF`]<br>[`PromotionAPI::CAN_CAST_OTHER`]<br>operator trait definition | `can_cast` | Determines if one data type can be cast to another data type according Type Promotion Rules rules. |
+| T | [`num::Float`] | `finfo` | Machine limits for floating-point data types. |
+| T | [`num::Integer`] | `iinfo` | Machine limits for integer data types. |
+| T | [`core::any::TypeId`] | `isdtype` | Returns a boolean indicating whether a provided dtype is of a specified data type "kind". |
+| T | [`PromotionAPI::Res`] | `result_type` | Returns the dtype that results from applying the type promotion rules (see Type Promotion Rules) to the arguments. |
 
 ### Data Type Categories
 
