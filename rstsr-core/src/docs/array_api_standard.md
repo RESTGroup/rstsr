@@ -97,7 +97,7 @@ Dropped support
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| P | [`abs`] | `__abs__` | Calculates the absolute value for each element of an array instance. |
+| Y | [`abs`] | `__abs__` | Calculates the absolute value for each element of an array instance. |
 | Y | [`asarray`] | `__bool__` | Converts a zero-dimensional array to a Python bool object. |
 | Y | [`asarray`] | `__complex__` | Converts a zero-dimensional array to a Python `complex` object. |
 | Y | [`asarray`] | `__float__` | Converts a zero-dimensional array to a Python `float` object. |
@@ -106,9 +106,6 @@ Dropped support
 | Y | [`asarray`] | `__int__` | Converts a zero-dimensional array to a Python `int` object. |
 | Y | [`IndexMut`] | `__setitem__` | Sets `self[key]` to `value`. |
 | P | [`DeviceChangeAPI::to_device`] | `to_device` | Copy the array from the device on which it currently resides to the specified `device`. |
-
-**Partial Implemented**
-- Only [`ComplexFloat`] types implemented [`abs`]. Integer types has not been implemented for absolute value.
 
 ## Constants
 
@@ -162,12 +159,12 @@ For this part, we refer to [`num`] crate, where data type conversion and promoti
 
 | rust trait or struct | data type category | dtypes |
 |-|-|-|
-| [`num::Num`] | Numeric | int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64, complex64, complex128 |
-| | Real-valued | int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64 |
-| [`num::Integer`] | Integer | int8, int16, int32, int64, uint8, uint16, uint32, uint64 |
-| [`num::complex::ComplexFloat`] | Floating-point | float32, float64, complex64, complex128 |
-| [`num::Float`] | Real-valued floating-point | float32, float64 |
-| [`num::Complex`] | Complex floating-point | complex64, complex128 |
+| [`Num`], [`ExtNum`] | Numeric | int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64, complex64, complex128 |
+| [`ExtReal`] | Real-valued | int8, int16, int32, int64, uint8, uint16, uint32, uint64, float32, float64 |
+| [`Integer`] | Integer | int8, int16, int32, int64, uint8, uint16, uint32, uint64 |
+| [`ComplexFloat`] | Floating-point | float32, float64, complex64, complex128 |
+| [`Float`], [`ExtFloat`] | Real-valued floating-point | float32, float64 |
+| [`Complex`] | Complex floating-point | complex64, complex128 |
 | [`bool`] | Boolean | bool |
 
 

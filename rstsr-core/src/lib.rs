@@ -55,7 +55,7 @@ pub mod array_api_standard {
     use crate::prelude_dev::Indexer;
     use core::ops::*;
     use num::complex::ComplexFloat;
-    use num::{pow::Pow, Float, Num, Signed};
+    use num::{pow::Pow, Complex, Float, Integer, Num, Signed};
     use rstsr_dtype_traits::*;
     use rt::*;
 }

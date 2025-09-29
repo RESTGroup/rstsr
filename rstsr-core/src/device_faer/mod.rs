@@ -1,5 +1,4 @@
-//! Backend for CPU, some using rayon for parallel, but matmul should be
-//! implemented elsewhere.
+//! Backend for CPU, some using rayon for parallel, but matmul and linalg implemented by faer.
 
 pub mod conversion;
 pub mod creation;
