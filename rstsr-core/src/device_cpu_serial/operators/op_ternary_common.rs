@@ -146,7 +146,7 @@ where
     TA::Output: Clone,
     D: DimAPI,
 {
-    type TOut = <TA as Pow<TB>>::Output;
+    type TOut = TA::Output;
 
     fn op_mutc_refa_refb(
         &self,
