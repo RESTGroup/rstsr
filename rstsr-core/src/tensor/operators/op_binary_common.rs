@@ -313,11 +313,11 @@ mod test {
     fn test_floor_divide() {
         #[cfg(not(feature = "col_major"))]
         {
-            let a = arange(6u32).into_shape([2, 3]);
-            let b = asarray(vec![1, 2, 2]);
-            let c = a.floor_divide(&b);
+            let a = arange(6u32).into_shape([2, 3]); // u32
+            let b = asarray(vec![1, 2, 2]); // i32
+            let c = a.floor_divide(&b); // i64
             println!("{c:?}");
-            assert_eq!(c.reshape([6]).to_vec(), vec![0, 0, 1, 3, 2, 2]);
+            assert_eq!(c.reshape([6]).to_vec(), vec![0_i64, 0, 1, 3, 2, 2]);
 
             let a = arange(6.0).into_shape([2, 3]);
 
@@ -333,11 +333,11 @@ mod test {
         #[cfg(feature = "col_major")]
         {
             // [3, 2] + [3]
-            let a = arange(6u32).into_shape([3, 2]);
-            let b = asarray(vec![1, 2, 2]);
-            let c = a.floor_divide(&b);
+            let a = arange(6u32).into_shape([3, 2]); // u32
+            let b = asarray(vec![1, 2, 2]); // i32
+            let c = a.floor_divide(&b); // i64
             println!("{c:?}");
-            assert_eq!(c.reshape([6]).to_vec(), vec![0, 0, 1, 3, 2, 2]);
+            assert_eq!(c.reshape([6]).to_vec(), vec![0_i64, 0, 1, 3, 2, 2]);
 
             let a = arange(6.0).into_shape([3, 2]);
 

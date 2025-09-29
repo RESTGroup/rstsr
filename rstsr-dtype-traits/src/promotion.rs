@@ -94,9 +94,11 @@ where
 impl PromotionSpecialAPI for T {
     type FloatType = f64;
     type SumType = u64;
+    #[inline]
     fn to_float_type(self) -> Self::FloatType {
         self as _
     }
+    #[inline]
     fn to_sum_type(self) -> Self::SumType {
         self as _
     }
@@ -106,9 +108,11 @@ impl PromotionSpecialAPI for T {
 impl PromotionSpecialAPI for T {
     type FloatType = f64;
     type SumType = i64;
+    #[inline]
     fn to_float_type(self) -> Self::FloatType {
         self as _
     }
+    #[inline]
     fn to_sum_type(self) -> Self::SumType {
         self as _
     }
@@ -118,9 +122,26 @@ impl PromotionSpecialAPI for T {
 impl PromotionSpecialAPI for T {
     type FloatType = T;
     type SumType = T;
+    #[inline]
     fn to_float_type(self) -> Self::FloatType {
         self
     }
+    #[inline]
+    fn to_sum_type(self) -> Self::SumType {
+        self
+    }
+}
+
+#[cfg(feature = "half")]
+#[duplicate_item(T; [half::f16]; [half::bf16];)]
+impl PromotionSpecialAPI for T {
+    type FloatType = T;
+    type SumType = T;
+    #[inline]
+    fn to_float_type(self) -> Self::FloatType {
+        self
+    }
+    #[inline]
     fn to_sum_type(self) -> Self::SumType {
         self
     }
@@ -129,9 +150,11 @@ impl PromotionSpecialAPI for T {
 impl PromotionSpecialAPI for usize {
     type FloatType = f64;
     type SumType = usize;
+    #[inline]
     fn to_float_type(self) -> Self::FloatType {
         self as _
     }
+    #[inline]
     fn to_sum_type(self) -> Self::SumType {
         self
     }
@@ -140,9 +163,11 @@ impl PromotionSpecialAPI for usize {
 impl PromotionSpecialAPI for isize {
     type FloatType = f64;
     type SumType = isize;
+    #[inline]
     fn to_float_type(self) -> Self::FloatType {
         self as _
     }
+    #[inline]
     fn to_sum_type(self) -> Self::SumType {
         self
     }
