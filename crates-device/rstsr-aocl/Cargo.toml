@@ -23,7 +23,7 @@ rstsr-linalg-traits = { workspace = true, optional = true }
 rstsr-sci-traits = { workspace = true, optional = true }
 
 [dev-dependencies]
-rstsr = { workspace = true, features = ["aocl", "linalg"] }
+rstsr = { path = "../../rstsr", default-features = false, features = ["aocl", "linalg"] }
 rstsr-test-manifest = { workspace = true }
 
 [features]
