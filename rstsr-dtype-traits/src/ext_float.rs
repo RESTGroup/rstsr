@@ -17,12 +17,14 @@ impl ExtFloat for f64 {
     }
 }
 
+#[cfg(feature = "half")]
 impl ExtFloat for half::bf16 {
     fn ext_nextafter(self, other: Self) -> Self {
         nextafter_bf16(self, other)
     }
 }
 
+#[cfg(feature = "half")]
 impl ExtFloat for half::f16 {
     fn ext_nextafter(self, other: Self) -> Self {
         nextafter_f16(self, other)
