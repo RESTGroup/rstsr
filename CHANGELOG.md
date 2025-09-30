@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.6.0-alpha.1 -- 2025-09-30
+
+This is not a completed version. May have other API breaking changes before v0.6.0 release.
+
+API breaking changes:
+
+- Using `DeviceRawAPI<MaybeUninit<T>>` instead of `DeviceRawAPI<T>` for output types in device operator traits, changing both parameter types and trait bounds (RESTGroup/rstsr#60).
+- Using `ExtNum`, `ExtFloat`, `ExtReal` for trait extensions to crate `num`. Removed previous traits (per-functionality) `AbsAPI`, `ReImAPI`, etc. This affects trait bounds (RESTGroup/rstsr/#63).
+- Using data type promotion rules in several common functions in CPU device, changing trait bounds (RESTGroup/rstsr#64).
+
+Enhancements:
+
+- Added TBLIS plugin (RESTGroup/rstsr#60). Now Einstein summation is available from `rt::tblis::einsum` (with cargo feature `rstsr/tblis` enabled, and linkage of libtblis.so).
+- Added `uninit`, `assume_init` (RESTGroup/rstsr#61).
+- Added `take`, `all`, `any`, `count_nonzero`, `nextafter`, `reciprocal` (RESTGroup/rstsr#63).
+- Using data type promotion rules for several common functions in CPU device implementations (sin, greater, etc., making comparasion of different types, or sin to integer list be evaluatable) (RESTGroup/rstsr#64).
+
+Refactor:
+
+- Changed most internal device implementation that works with `empty_impl` to `uninit_impl` (RESTGroup/rstsr#61).
+- Changed directory structure for device implementations (currently BLAS devices are categorized to directory `crates-device`) (RESTGroup/rstsr#62).
+- Removed previous rstsr-book in this repository (RESTGroup/rstsr#63).
+
+Parts of API document also updated. 
+
 ## v0.5.1 -- 2025-09-01
 
 MSRV specified:
