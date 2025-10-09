@@ -102,7 +102,7 @@ And further more,
 
 Many crates in native rust done well in some aspects but not all.
 
-This crate gets inspires from [NumPy](https://github.com/data-apis/array-api/), [Array API standard](https://github.com/data-apis/array-api/), [ndarray](https://github.com/rust-ndarray/ndarray/), [candle](https://github.com/huggingface/candle), [Burn](https://github.com/tracel-ai/burn).
+This crate gets inspire from [NumPy](https://github.com/data-apis/array-api/), [Array API standard](https://github.com/data-apis/array-api/), [ndarray](https://github.com/rust-ndarray/ndarray/), [candle](https://github.com/huggingface/candle), [Burn](https://github.com/tracel-ai/burn).
 
 > **What is supposed to be supported in near future?**
 
@@ -115,7 +115,11 @@ This crate gets inspires from [NumPy](https://github.com/data-apis/array-api/), 
 
 > **What's RSTSR meaning?**
 
-RSTSR actually refers to its relationship with **R**E**S**T **T**en**s**o**r** ([REST](https://github.com/igor-1982/rest)), instead of **R**u**s**t **T**en**s**o**r**. This crate was originally tried to developed a more dev-friendly experience for chemist programmer from numpy/scipy/pytorch.
+RSTSR either refers to
+- its relationship with [REST](https://gitee.com/restgroup/rest): **R**EST (rust-based electronic structure toolkit) **S**ubproject for **T**en**s**o**r** support, or
+- the functionality itself: an *n*-dimensional **R**u**s**t **T**en**s**o**r** toolkit.
+
+This crate was originally trying to developed a more dev-friendly experience for chemist programmer from numpy/scipy/pytorch. However, scientists and engineers from any discipline are welcomed to try this tensor toolkit.
 
 > **Is there an illustrative project for using RSTSR in real-world project?**
 
@@ -130,9 +134,13 @@ We do not support autodiff and lazy-evaluation in far future. In this mean time,
 
 ## Acknowledge
 
-This project is supported by NSFC (National Natural Science Foundation of China).
-<!-- supported  22393912, 22503020 -->
-<!-- related    22125301, 22233002, 22393911 -->
+This is a subproject of [REST](https://gitee.com/restgroup/rest). REST is supported by 
+- NSFC (National Natural Science Foundation of China): 22125301, 22393911, 22393912, 22321003, 22233002;
+- Innovation Program for Quantum Science and Technology: 2021ZD0303305;
+- robotic AI-Scientist platform of Chinese Academy of Science.
+
+Additionally, RSTSR is also funded by
+- NSFC (National Natural Science Foundation of China): 22503020.
 
 ## Miscellaneous
 
