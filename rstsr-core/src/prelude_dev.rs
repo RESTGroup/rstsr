@@ -16,6 +16,7 @@ pub use itertools::{izip, Itertools};
 pub use rayon::ThreadPool;
 
 pub use rstsr_common::prelude_dev::*;
+pub use rstsr_dtype_traits::PromotionAPI;
 
 pub use rstsr_native_impl::prelude_dev::*;
 

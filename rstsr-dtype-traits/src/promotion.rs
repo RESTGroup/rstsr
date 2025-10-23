@@ -20,7 +20,7 @@ pub trait PromotionSpecialAPI {
     fn to_sum_type(self) -> Self::SumType;
 }
 
-pub trait PromotionAPI<T: Clone> {
+pub trait PromotionAPI<T> {
     type Res;
     const SAME_TYPE: bool = false;
     const CAN_CAST_SELF: bool = false;
@@ -38,7 +38,7 @@ pub trait PromotionAPI<T: Clone> {
     }
 }
 
-impl<T: Clone> PromotionAPI<T> for T {
+impl<T> PromotionAPI<T> for T {
     type Res = T;
     const SAME_TYPE: bool = true;
     const CAN_CAST_SELF: bool = true;
@@ -67,10 +67,7 @@ pub trait PromotionValAPI {
         Self: PromotionAPI<P>;
 }
 
-impl<T> PromotionValAPI for T
-where
-    T: Clone,
-{
+impl<T> PromotionValAPI for T {
     fn promote<P: Clone>(self) -> <T as PromotionAPI<P>>::Res
     where
         Self: PromotionAPI<P>,
