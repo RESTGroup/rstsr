@@ -58,31 +58,6 @@ impl<T> PromotionAPI<T> for T {
     }
 }
 
-pub trait PromotionValAPI {
-    fn promote<P: Clone>(self) -> Self::Res
-    where
-        Self: PromotionAPI<P>;
-    fn astype<P: Clone>(self) -> P
-    where
-        Self: PromotionAPI<P>;
-}
-
-impl<T> PromotionValAPI for T {
-    fn promote<P: Clone>(self) -> <T as PromotionAPI<P>>::Res
-    where
-        Self: PromotionAPI<P>,
-    {
-        self.promote_self()
-    }
-
-    fn astype<P: Clone>(self) -> P
-    where
-        Self: PromotionAPI<P>,
-    {
-        self.promote_astype()
-    }
-}
-
 /* #endregion */
 
 /* #region PromotionSpecialAPI */

@@ -152,7 +152,22 @@ mod tests {
     fn test_assign_with_cast() {
         let mut device = DeviceCpuSerial::default();
         device.set_default_order(RowMajor);
-        let mut a: Tensor<f32> = zeros(([2, 3], &device));
+        let mut a: Tensor<f32, _> = zeros(([2, 3], &device));
+        let b = arange((6i32, &device)).into_shape((2, 3));
+        a.assign(&b);
+        assert_eq!(a.raw(), &vec![0.0f32, 1.0, 2.0, 3.0, 4.0, 5.0]);
+
+        let c: i32 = 10;
+        a.fill(c);
+        assert_eq!(a.raw(), &vec![10.0f32; 6]);
+    }
+
+    #[test]
+    #[cfg(feature = "faer")]
+    fn test_assign_with_cast_faer() {
+        let mut device = DeviceFaer::default();
+        device.set_default_order(RowMajor);
+        let mut a: Tensor<f32, _> = zeros(([2, 3], &device));
         let b = arange((6i32, &device)).into_shape((2, 3));
         a.assign(&b);
         assert_eq!(a.raw(), &vec![0.0f32, 1.0, 2.0, 3.0, 4.0, 5.0]);

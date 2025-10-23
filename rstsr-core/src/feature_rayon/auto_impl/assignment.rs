@@ -1,47 +1,49 @@
 use crate::prelude_dev::*;
 
-impl<T, DC, DA> OpAssignArbitaryAPI<T, DC, DA> for DeviceRayonAutoImpl
+impl<TC, TA, DC, DA> OpAssignArbitaryAPI<TC, DC, DA, TA> for DeviceRayonAutoImpl
 where
-    T: Clone + Send + Sync,
+    TC: Clone + Send + Sync,
+    TA: Clone + Send + Sync + PromotionAPI<TC>,
     DC: DimAPI,
     DA: DimAPI,
 {
-    fn assign_arbitary(&self, c: &mut Vec<T>, lc: &Layout<DC>, a: &Vec<T>, la: &Layout<DA>) -> Result<()> {
+    fn assign_arbitary(&self, c: &mut Vec<TC>, lc: &Layout<DC>, a: &Vec<TA>, la: &Layout<DA>) -> Result<()> {
         let pool = self.get_current_pool();
         let default_order = self.default_order();
-        assign_arbitary_cpu_rayon(c, lc, a, la, default_order, pool)
+        assign_arbitary_promote_cpu_rayon(c, lc, a, la, default_order, pool)
     }
 
     fn assign_arbitary_uninit(
         &self,
-        c: &mut Vec<MaybeUninit<T>>,
+        c: &mut Vec<MaybeUninit<TC>>,
         lc: &Layout<DC>,
-        a: &Vec<T>,
+        a: &Vec<TA>,
         la: &Layout<DA>,
     ) -> Result<()> {
         let pool = self.get_current_pool();
         let default_order = self.default_order();
-        return assign_arbitary_uninit_cpu_rayon(c, lc, a, la, default_order, pool);
+        return assign_arbitary_uninit_promote_cpu_rayon(c, lc, a, la, default_order, pool);
     }
 }
 
-impl<T, D> OpAssignAPI<T, D> for DeviceRayonAutoImpl
+impl<TC, TA, D> OpAssignAPI<TC, D, TA> for DeviceRayonAutoImpl
 where
-    T: Clone + Send + Sync,
+    TC: Clone + Send + Sync,
+    TA: Clone + Send + Sync + PromotionAPI<TC>,
     D: DimAPI,
 {
-    fn assign(&self, c: &mut Vec<T>, lc: &Layout<D>, a: &Vec<T>, la: &Layout<D>) -> Result<()> {
+    fn assign(&self, c: &mut Vec<TC>, lc: &Layout<D>, a: &Vec<TA>, la: &Layout<D>) -> Result<()> {
         let pool = self.get_current_pool();
-        assign_cpu_rayon(c, lc, a, la, pool)
+        assign_promote_cpu_rayon(c, lc, a, la, pool)
     }
 
-    fn assign_uninit(&self, c: &mut Vec<MaybeUninit<T>>, lc: &Layout<D>, a: &Vec<T>, la: &Layout<D>) -> Result<()> {
+    fn assign_uninit(&self, c: &mut Vec<MaybeUninit<TC>>, lc: &Layout<D>, a: &Vec<TA>, la: &Layout<D>) -> Result<()> {
         let pool = self.get_current_pool();
-        return assign_uninit_cpu_rayon(c, lc, a, la, pool);
+        return assign_uninit_promote_cpu_rayon(c, lc, a, la, pool);
     }
 
-    fn fill(&self, c: &mut Vec<T>, lc: &Layout<D>, fill: T) -> Result<()> {
+    fn fill(&self, c: &mut Vec<TC>, lc: &Layout<D>, fill: TA) -> Result<()> {
         let pool = self.get_current_pool();
-        fill_cpu_rayon(c, lc, fill, pool)
+        fill_promote_cpu_rayon(c, lc, fill, pool)
     }
 }
