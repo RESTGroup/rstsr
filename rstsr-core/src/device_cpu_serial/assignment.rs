@@ -1,42 +1,44 @@
 use crate::prelude_dev::*;
 
-impl<T, DC, DA> OpAssignArbitaryAPI<T, DC, DA> for DeviceCpuSerial
+impl<TC, DC, DA, TA> OpAssignArbitaryAPI<TC, DC, DA, TA> for DeviceCpuSerial
 where
-    T: Clone,
+    TC: Clone,
+    TA: Clone + PromotionAPI<TC>,
     DC: DimAPI,
     DA: DimAPI,
 {
-    fn assign_arbitary(&self, c: &mut Vec<T>, lc: &Layout<DC>, a: &Vec<T>, la: &Layout<DA>) -> Result<()> {
+    fn assign_arbitary(&self, c: &mut Vec<TC>, lc: &Layout<DC>, a: &Vec<TA>, la: &Layout<DA>) -> Result<()> {
         let default_order = self.default_order();
-        return assign_arbitary_cpu_serial(c, lc, a, la, default_order);
+        return assign_arbitary_promote_cpu_serial(c, lc, a, la, default_order);
     }
 
     fn assign_arbitary_uninit(
         &self,
-        c: &mut Vec<MaybeUninit<T>>,
+        c: &mut Vec<MaybeUninit<TC>>,
         lc: &Layout<DC>,
-        a: &Vec<T>,
+        a: &Vec<TA>,
         la: &Layout<DA>,
     ) -> Result<()> {
         let default_order = self.default_order();
-        return assign_arbitary_uninit_cpu_serial(c, lc, a, la, default_order);
+        return assign_arbitary_uninit_promote_cpu_serial(c, lc, a, la, default_order);
     }
 }
 
-impl<T, D> OpAssignAPI<T, D> for DeviceCpuSerial
+impl<TC, D, TA> OpAssignAPI<TC, D, TA> for DeviceCpuSerial
 where
-    T: Clone,
+    TC: Clone,
+    TA: Clone + PromotionAPI<TC>,
     D: DimAPI,
 {
-    fn assign(&self, c: &mut Vec<T>, lc: &Layout<D>, a: &Vec<T>, la: &Layout<D>) -> Result<()> {
-        return assign_cpu_serial(c, lc, a, la);
+    fn assign(&self, c: &mut Vec<TC>, lc: &Layout<D>, a: &Vec<TA>, la: &Layout<D>) -> Result<()> {
+        return assign_promote_cpu_serial(c, lc, a, la);
     }
 
-    fn assign_uninit(&self, c: &mut Vec<MaybeUninit<T>>, lc: &Layout<D>, a: &Vec<T>, la: &Layout<D>) -> Result<()> {
-        return assign_uninit_cpu_serial(c, lc, a, la);
+    fn assign_uninit(&self, c: &mut Vec<MaybeUninit<TC>>, lc: &Layout<D>, a: &Vec<TA>, la: &Layout<D>) -> Result<()> {
+        return assign_uninit_promote_cpu_serial(c, lc, a, la);
     }
 
-    fn fill(&self, c: &mut Vec<T>, lc: &Layout<D>, fill: T) -> Result<()> {
-        return fill_cpu_serial(c, lc, fill);
+    fn fill(&self, c: &mut Vec<TC>, lc: &Layout<D>, fill: TA) -> Result<()> {
+        return fill_promote_cpu_serial(c, lc, fill);
     }
 }
