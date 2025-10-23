@@ -10,6 +10,7 @@ license.workspace = true
 
 [dependencies]
 rstsr-common = { workspace = true }
+rstsr-dtype-traits = { workspace = true }
 num = { workspace = true }
 rayon = { workspace = true, optional = true }
 
