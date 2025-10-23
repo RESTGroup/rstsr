@@ -3,57 +3,53 @@ use crate::prelude_dev::*;
 // this value is used to determine whether to use contiguous inner iteration
 const CONTIG_SWITCH: usize = 16;
 
-pub fn assign_arbitary_cpu_serial<T, DC, DA>(
-    c: &mut [T],
+#[duplicate_item(
+    func_name
+        TypeC TypeA Types
+        func_clone
+        bool_non_castable
+    ;
+    [assign_arbitary_cpu_serial]
+        [T] [T] [T: Clone]
+        [*ci = ai.clone()]
+        [false]
+    ;
+    [assign_arbitary_uninit_cpu_serial]
+        [MaybeUninit<T>] [T] [T: Clone]
+        [ci.write(ai.clone())]
+        [false]
+    ;
+    [assign_arbitary_promote_cpu_serial]
+        [TC] [TA] [TC: Clone, TA: Clone + PromotionAPI<TC>]
+        [*ci = ai.clone().promote_astype()]
+        [!<TA as PromotionAPI<TC>>::CAN_ASTYPE]
+    ;
+    [assign_arbitary_uninit_promote_cpu_serial]
+        [MaybeUninit<TC>] [TA] [TC: Clone, TA: Clone + PromotionAPI<TC>]
+        [ci.write(ai.clone().promote_astype())]
+        [!<TA as PromotionAPI<TC>>::CAN_ASTYPE]
+    ;
+)]
+pub fn func_name<Types, DC, DA>(
+    c: &mut [TypeC],
     lc: &Layout<DC>,
-    a: &[T],
+    a: &[TypeA],
     la: &Layout<DA>,
     order: FlagOrder,
 ) -> Result<()>
 where
-    T: Clone,
     DC: DimAPI,
     DA: DimAPI,
 {
-    let contig = match order {
-        RowMajor => lc.c_contig() && la.c_contig(),
-        ColMajor => lc.f_contig() && la.f_contig(),
-    };
-    if contig {
-        // contiguous case
-        let offset_c = lc.offset();
-        let offset_a = la.offset();
-        let size = lc.size();
-        c[offset_c..(offset_c + size)]
-            .iter_mut()
-            .zip(a[offset_a..(offset_a + size)].iter())
-            .for_each(|(ci, ai)| *ci = ai.clone());
-    } else {
-        // determine order by layout preference
-        let order = match order {
-            RowMajor => TensorIterOrder::C,
-            ColMajor => TensorIterOrder::F,
-        };
-        // generate col-major iterator
-        let lc = translate_to_col_major_unary(lc, order)?;
-        let la = translate_to_col_major_unary(la, order)?;
-        layout_col_major_dim_dispatch_2diff(&lc, &la, |(idx_c, idx_a)| c[idx_c] = a[idx_a].clone())?;
+    if bool_non_castable {
+        rstsr_raise!(
+            RuntimeError,
+            "Cannot promote from {} to {}",
+            std::any::type_name::<TypeA>(),
+            std::any::type_name::<TypeC>()
+        )?;
     }
-    Ok(())
-}
 
-pub fn assign_arbitary_uninit_cpu_serial<T, DC, DA>(
-    c: &mut [MaybeUninit<T>],
-    lc: &Layout<DC>,
-    a: &[T],
-    la: &Layout<DA>,
-    order: FlagOrder,
-) -> Result<()>
-where
-    T: Clone,
-    DC: DimAPI,
-    DA: DimAPI,
-{
     let contig = match order {
         RowMajor => lc.c_contig() && la.c_contig(),
         ColMajor => lc.f_contig() && la.f_contig(),
@@ -64,7 +60,7 @@ where
         let offset_a = la.offset();
         let size = lc.size();
         c[offset_c..(offset_c + size)].iter_mut().zip(a[offset_a..(offset_a + size)].iter()).for_each(|(ci, ai)| {
-            ci.write(ai.clone());
+            func_clone;
         });
     } else {
         // determine order by layout preference
@@ -75,44 +71,55 @@ where
         // generate col-major iterator
         let lc = translate_to_col_major_unary(lc, order)?;
         let la = translate_to_col_major_unary(la, order)?;
-        let _ = layout_col_major_dim_dispatch_2diff(&lc, &la, |(idx_c, idx_a)| {
-            c[idx_c].write(a[idx_a].clone());
-        });
-    }
-    Ok(())
-}
-
-pub fn assign_cpu_serial<T, D>(c: &mut [T], lc: &Layout<D>, a: &[T], la: &Layout<D>) -> Result<()>
-where
-    T: Clone,
-    D: DimAPI,
-{
-    let layouts_full = translate_to_col_major(&[lc, la], TensorIterOrder::K)?;
-    let layouts_full_ref = layouts_full.iter().collect_vec();
-    let (layouts_contig, size_contig) = translate_to_col_major_with_contig(&layouts_full_ref);
-
-    if size_contig >= CONTIG_SWITCH {
-        let lc = &layouts_contig[0];
-        let la = &layouts_contig[1];
-        layout_col_major_dim_dispatch_2(lc, la, |(idx_c, idx_a)| {
-            c[idx_c..(idx_c + size_contig)]
-                .iter_mut()
-                .zip(a[idx_a..(idx_a + size_contig)].iter())
-                .for_each(|(ci, ai)| *ci = ai.clone());
+        layout_col_major_dim_dispatch_2diff(&lc, &la, |(idx_c, idx_a)| {
+            let ci = &mut c[idx_c];
+            let ai = &a[idx_a];
+            func_clone;
         })?;
-    } else {
-        let lc = &layouts_full[0];
-        let la = &layouts_full[1];
-        layout_col_major_dim_dispatch_2(lc, la, |(idx_c, idx_a)| c[idx_c] = a[idx_a].clone())?;
     }
     Ok(())
 }
 
-pub fn assign_uninit_cpu_serial<T, D>(c: &mut [MaybeUninit<T>], lc: &Layout<D>, a: &[T], la: &Layout<D>) -> Result<()>
+#[duplicate_item(
+    func_name
+        TypeC TypeA Types
+        func_clone
+        bool_non_castable
+    ;
+    [assign_cpu_serial]
+        [T] [T] [T: Clone]
+        [*ci = ai.clone()]
+        [false]
+    ;
+    [assign_uninit_cpu_serial]
+        [MaybeUninit<T>] [T] [T: Clone]
+        [ci.write(ai.clone())]
+        [false]
+    ;
+    [assign_promote_cpu_serial]
+        [TC] [TA] [TC: Clone, TA: Clone + PromotionAPI<TC>]
+        [*ci = ai.clone().promote_astype()]
+        [!<TA as PromotionAPI<TC>>::CAN_ASTYPE]
+    ;
+    [assign_uninit_promote_cpu_serial]
+        [MaybeUninit<TC>] [TA] [TC: Clone, TA: Clone + PromotionAPI<TC>]
+        [ci.write(ai.clone().promote_astype())]
+        [!<TA as PromotionAPI<TC>>::CAN_ASTYPE]
+    ;
+)]
+pub fn func_name<Types, D>(c: &mut [TypeC], lc: &Layout<D>, a: &[TypeA], la: &Layout<D>) -> Result<()>
 where
-    T: Clone,
     D: DimAPI,
 {
+    if bool_non_castable {
+        rstsr_raise!(
+            RuntimeError,
+            "Cannot promote from {} to {}",
+            std::any::type_name::<TypeA>(),
+            std::any::type_name::<TypeC>()
+        )?;
+    }
+
     let layouts_full = translate_to_col_major(&[lc, la], TensorIterOrder::K)?;
     let layouts_full_ref = layouts_full.iter().collect_vec();
     let (layouts_contig, size_contig) = translate_to_col_major_with_contig(&layouts_full_ref);
@@ -123,7 +130,7 @@ where
         layout_col_major_dim_dispatch_2(lc, la, |(idx_c, idx_a)| {
             c[idx_c..(idx_c + size_contig)].iter_mut().zip(a[idx_a..(idx_a + size_contig)].iter()).for_each(
                 |(ci, ai)| {
-                    ci.write(ai.clone());
+                    func_clone;
                 },
             );
         })?;
@@ -131,7 +138,9 @@ where
         let lc = &layouts_full[0];
         let la = &layouts_full[1];
         layout_col_major_dim_dispatch_2(lc, la, |(idx_c, idx_a)| {
-            c[idx_c].write(a[idx_a].clone());
+            let ci = &mut c[idx_c];
+            let ai = &a[idx_a];
+            func_clone;
         })?;
     }
     Ok(())
@@ -142,6 +151,26 @@ where
     T: Clone,
     D: DimAPI,
 {
+    fill_promote_cpu_serial(c, lc, fill)
+}
+
+pub fn fill_promote_cpu_serial<TC, TA, D>(c: &mut [TC], lc: &Layout<D>, fill: TA) -> Result<()>
+where
+    TA: Clone + PromotionAPI<TC>,
+    TC: Clone,
+    D: DimAPI,
+{
+    if !<TA as PromotionAPI<TC>>::CAN_ASTYPE {
+        rstsr_raise!(
+            RuntimeError,
+            "Cannot promote from {} to {}",
+            std::any::type_name::<TA>(),
+            std::any::type_name::<TC>()
+        )?;
+    }
+
+    let fill = fill.clone().promote_astype();
+
     let layouts_full = [translate_to_col_major_unary(lc, TensorIterOrder::G)?];
     let layouts_full_ref = layouts_full.iter().collect_vec();
     let (layouts_contig, size_contig) = translate_to_col_major_with_contig(&layouts_full_ref);

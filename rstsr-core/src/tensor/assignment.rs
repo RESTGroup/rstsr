@@ -23,15 +23,15 @@ where
     TRA::assign(a, b)
 }
 
-impl<RA, DA, RB, DB, T, B> TensorAssignAPI<TensorAny<RB, T, B, DB>> for TensorAny<RA, T, B, DA>
+impl<RA, DA, RB, DB, TA, TB, B> TensorAssignAPI<TensorAny<RB, TB, B, DB>> for TensorAny<RA, TA, B, DA>
 where
-    RA: DataMutAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
-    RB: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+    RA: DataMutAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
+    RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
     DA: DimAPI,
     DB: DimAPI,
-    B: DeviceAPI<T> + OpAssignAPI<T, DA>,
+    B: DeviceAPI<TA> + DeviceAPI<TB> + OpAssignAPI<TA, DA, TB>,
 {
-    fn assign_f(a: &mut Self, b: TensorAny<RB, T, B, DB>) -> Result<()> {
+    fn assign_f(a: &mut Self, b: TensorAny<RB, TB, B, DB>) -> Result<()> {
         // get tensor views
         let mut a = a.view_mut();
         let b = b.view();
@@ -51,15 +51,15 @@ where
     }
 }
 
-impl<RA, DA, RB, DB, T, B> TensorAssignAPI<&TensorAny<RB, T, B, DB>> for TensorAny<RA, T, B, DA>
+impl<RA, DA, RB, DB, TA, TB, B> TensorAssignAPI<&TensorAny<RB, TB, B, DB>> for TensorAny<RA, TA, B, DA>
 where
-    RA: DataMutAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
-    RB: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+    RA: DataMutAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
+    RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
     DA: DimAPI,
     DB: DimAPI,
-    B: DeviceAPI<T> + OpAssignAPI<T, DA>,
+    B: DeviceAPI<TA> + DeviceAPI<TB> + OpAssignAPI<TA, DA, TB>,
 {
-    fn assign_f(a: &mut Self, b: &TensorAny<RB, T, B, DB>) -> Result<()> {
+    fn assign_f(a: &mut Self, b: &TensorAny<RB, TB, B, DB>) -> Result<()> {
         TensorAssignAPI::assign_f(a, b.view())
     }
 }
@@ -108,13 +108,13 @@ where
     TRA::fill(a, b)
 }
 
-impl<RA, DA, T, B> TensorFillAPI<T> for TensorAny<RA, T, B, DA>
+impl<RA, DA, TA, TB, B> TensorFillAPI<TB> for TensorAny<RA, TA, B, DA>
 where
-    RA: DataMutAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+    RA: DataMutAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
     DA: DimAPI,
-    B: DeviceAPI<T> + OpAssignAPI<T, DA>,
+    B: DeviceAPI<TA> + OpAssignAPI<TA, DA, TB>,
 {
-    fn fill_f(a: &mut Self, b: T) -> Result<()> {
+    fn fill_f(a: &mut Self, b: TB) -> Result<()> {
         // check layout
         rstsr_assert!(!a.layout().is_broadcasted(), InvalidLayout, "cannot fill broadcasted tensor")?;
         let la = a.layout().clone();
@@ -143,3 +143,37 @@ where
 }
 
 /* #endregion */
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_assign_with_cast() {
+        let mut device = DeviceCpuSerial::default();
+        device.set_default_order(RowMajor);
+        let mut a: Tensor<f32, _> = zeros(([2, 3], &device));
+        let b = arange((6i32, &device)).into_shape((2, 3));
+        a.assign(&b);
+        assert_eq!(a.raw(), &vec![0.0f32, 1.0, 2.0, 3.0, 4.0, 5.0]);
+
+        let c: i32 = 10;
+        a.fill(c);
+        assert_eq!(a.raw(), &vec![10.0f32; 6]);
+    }
+
+    #[test]
+    #[cfg(feature = "faer")]
+    fn test_assign_with_cast_faer() {
+        let mut device = DeviceFaer::default();
+        device.set_default_order(RowMajor);
+        let mut a: Tensor<f32, _> = zeros(([2, 3], &device));
+        let b = arange((6i32, &device)).into_shape((2, 3));
+        a.assign(&b);
+        assert_eq!(a.raw(), &vec![0.0f32, 1.0, 2.0, 3.0, 4.0, 5.0]);
+
+        let c: i32 = 10;
+        a.fill(c);
+        assert_eq!(a.raw(), &vec![10.0f32; 6]);
+    }
+}
