@@ -1,5 +1,5 @@
 pub(crate) use rstsr_common::prelude_dev::*;
-pub(crate) use rstsr_dtype_traits::PromotionAPI;
+pub(crate) use rstsr_dtype_traits::DTypePromotionAPI;
 
 pub use crate::cpu_serial::adv_indexing::*;
 pub use crate::cpu_serial::assignment::*;

@@ -20,14 +20,14 @@ const CONTIG_SWITCH: usize = 16;
         [false]
     ;
     [assign_arbitary_promote_cpu_serial]
-        [TC] [TA] [TC: Clone, TA: Clone + PromotionAPI<TC>]
+        [TC] [TA] [TC: Clone, TA: Clone + DTypePromotionAPI<TC>]
         [*ci = ai.clone().promote_astype()]
-        [!<TA as PromotionAPI<TC>>::CAN_ASTYPE]
+        [!<TA as DTypePromotionAPI<TC>>::CAN_ASTYPE]
     ;
     [assign_arbitary_uninit_promote_cpu_serial]
-        [MaybeUninit<TC>] [TA] [TC: Clone, TA: Clone + PromotionAPI<TC>]
+        [MaybeUninit<TC>] [TA] [TC: Clone, TA: Clone + DTypePromotionAPI<TC>]
         [ci.write(ai.clone().promote_astype())]
-        [!<TA as PromotionAPI<TC>>::CAN_ASTYPE]
+        [!<TA as DTypePromotionAPI<TC>>::CAN_ASTYPE]
     ;
 )]
 pub fn func_name<Types, DC, DA>(
@@ -97,14 +97,14 @@ where
         [false]
     ;
     [assign_promote_cpu_serial]
-        [TC] [TA] [TC: Clone, TA: Clone + PromotionAPI<TC>]
+        [TC] [TA] [TC: Clone, TA: Clone + DTypePromotionAPI<TC>]
         [*ci = ai.clone().promote_astype()]
-        [!<TA as PromotionAPI<TC>>::CAN_ASTYPE]
+        [!<TA as DTypePromotionAPI<TC>>::CAN_ASTYPE]
     ;
     [assign_uninit_promote_cpu_serial]
-        [MaybeUninit<TC>] [TA] [TC: Clone, TA: Clone + PromotionAPI<TC>]
+        [MaybeUninit<TC>] [TA] [TC: Clone, TA: Clone + DTypePromotionAPI<TC>]
         [ci.write(ai.clone().promote_astype())]
-        [!<TA as PromotionAPI<TC>>::CAN_ASTYPE]
+        [!<TA as DTypePromotionAPI<TC>>::CAN_ASTYPE]
     ;
 )]
 pub fn func_name<Types, D>(c: &mut [TypeC], lc: &Layout<D>, a: &[TypeA], la: &Layout<D>) -> Result<()>
@@ -156,11 +156,11 @@ where
 
 pub fn fill_promote_cpu_serial<TC, TA, D>(c: &mut [TC], lc: &Layout<D>, fill: TA) -> Result<()>
 where
-    TA: Clone + PromotionAPI<TC>,
+    TA: Clone + DTypePromotionAPI<TC>,
     TC: Clone,
     D: DimAPI,
 {
-    if !<TA as PromotionAPI<TC>>::CAN_ASTYPE {
+    if !<TA as DTypePromotionAPI<TC>>::CAN_ASTYPE {
         rstsr_raise!(
             RuntimeError,
             "Cannot promote from {} to {}",

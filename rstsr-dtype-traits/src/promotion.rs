@@ -20,7 +20,7 @@ pub trait PromotionSpecialAPI {
     fn to_sum_type(self) -> Self::SumType;
 }
 
-pub trait PromotionAPI<T> {
+pub trait DTypePromotionAPI<T> {
     type Res;
     const SAME_TYPE: bool = false;
     const CAN_CAST_SELF: bool = false;
@@ -38,7 +38,7 @@ pub trait PromotionAPI<T> {
     }
 }
 
-impl<T> PromotionAPI<T> for T {
+impl<T> DTypePromotionAPI<T> for T {
     type Res = T;
     const SAME_TYPE: bool = true;
     const CAN_CAST_SELF: bool = true;
@@ -151,7 +151,7 @@ impl PromotionSpecialAPI for isize {
 
 macro_rules! impl_promotion_bool_T {
     ($T:ty) => {
-        impl PromotionAPI<$T> for bool {
+        impl DTypePromotionAPI<$T> for bool {
             type Res = $T;
             const CAN_CAST_OTHER: bool = true;
             const CAN_ASTYPE: bool = true;
@@ -177,7 +177,7 @@ macro_rules! impl_promotion_bool_T {
             }
         }
 
-        impl PromotionAPI<bool> for $T {
+        impl DTypePromotionAPI<bool> for $T {
             type Res = $T;
             const CAN_CAST_SELF: bool = true;
             const CAN_ASTYPE: bool = true;
@@ -229,7 +229,7 @@ impl_promotion_bool_T!(c64);
 
 macro_rules! impl_promotion_asable {
     ($T1:ty, $T2:ty, $can_cast_self: ident, $can_cast_other: ident, $Res:ty) => {
-        impl PromotionAPI<$T2> for $T1 {
+        impl DTypePromotionAPI<$T2> for $T1 {
             type Res = $Res;
             const CAN_CAST_SELF: bool = $can_cast_self;
             const CAN_CAST_OTHER: bool = $can_cast_other;
@@ -391,7 +391,7 @@ impl_promotion_asable!(f64, usize, true, false, f64);
 
 macro_rules! impl_promotion_complex_primitive_cast_self {
     ($TComp:ty, $TPrim:ty, $can_cast_self:ident, $can_cast_other:ident, $ResComp:ty) => {
-        impl PromotionAPI<$TPrim> for Complex<$TComp> {
+        impl DTypePromotionAPI<$TPrim> for Complex<$TComp> {
             type Res = Complex<$ResComp>;
             const CAN_CAST_SELF: bool = $can_cast_self;
             const CAN_CAST_OTHER: bool = $can_cast_other;
@@ -414,7 +414,7 @@ macro_rules! impl_promotion_complex_primitive_cast_self {
 
 macro_rules! impl_promotion_complex_primitive_no_cast_self {
     ($TComp:ty, $TPrim:ty, $can_cast_self:ident, $can_cast_other:ident, $ResComp:ty) => {
-        impl PromotionAPI<$TPrim> for Complex<$TComp> {
+        impl DTypePromotionAPI<$TPrim> for Complex<$TComp> {
             type Res = Complex<$ResComp>;
             const CAN_CAST_SELF: bool = $can_cast_self;
             const CAN_CAST_OTHER: bool = $can_cast_other;
@@ -468,7 +468,7 @@ impl_promotion_complex_primitive_no_cast_self!(f32, f64, false, false, f64);
 
 macro_rules! impl_promotion_primitive_complex_cast_other {
     ($TComp:ty, $TPrim:ty, $can_cast_self:ident, $can_cast_other:ident, $ResComp:ty) => {
-        impl PromotionAPI<Complex<$TComp>> for $TPrim {
+        impl DTypePromotionAPI<Complex<$TComp>> for $TPrim {
             type Res = Complex<$ResComp>;
             const CAN_CAST_SELF: bool = $can_cast_self;
             const CAN_CAST_OTHER: bool = $can_cast_other;
@@ -491,7 +491,7 @@ macro_rules! impl_promotion_primitive_complex_cast_other {
 
 macro_rules! impl_promotion_primitive_complex_nocast_other {
     ($TComp:ty, $TPrim:ty, $can_cast_self:ident, $can_cast_other:ident, $ResComp:ty) => {
-        impl PromotionAPI<Complex<$TComp>> for $TPrim {
+        impl DTypePromotionAPI<Complex<$TComp>> for $TPrim {
             type Res = Complex<$ResComp>;
             const CAN_CAST_SELF: bool = $can_cast_self;
             const CAN_CAST_OTHER: bool = $can_cast_other;
@@ -543,7 +543,7 @@ impl_promotion_primitive_complex_nocast_other!(f32, f64, false, false, f64);
 
 /* #region complex to complex */
 
-impl PromotionAPI<c32> for c64 {
+impl DTypePromotionAPI<c32> for c64 {
     type Res = c64;
     const CAN_CAST_SELF: bool = true;
     const CAN_CAST_OTHER: bool = false;
@@ -562,7 +562,7 @@ impl PromotionAPI<c32> for c64 {
     }
 }
 
-impl PromotionAPI<c64> for c32 {
+impl DTypePromotionAPI<c64> for c32 {
     type Res = c64;
     const CAN_CAST_SELF: bool = false;
     const CAN_CAST_OTHER: bool = true;

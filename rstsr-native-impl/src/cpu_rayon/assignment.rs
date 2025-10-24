@@ -32,15 +32,15 @@ const PARALLEL_SWITCH: usize = 16384;
     ;
     [assign_arbitary_promote_cpu_rayon]
         [assign_arbitary_promote_cpu_serial]
-        [TC] [TA] [TC: Clone + Send + Sync, TA: Clone + Send + Sync + PromotionAPI<TC>]
+        [TC] [TA] [TC: Clone + Send + Sync, TA: Clone + Send + Sync + DTypePromotionAPI<TC>]
         [*ci = ai.clone().promote_astype()]
-        [!<TA as PromotionAPI<TC>>::CAN_ASTYPE]
+        [!<TA as DTypePromotionAPI<TC>>::CAN_ASTYPE]
     ;
     [assign_arbitary_uninit_promote_cpu_rayon]
         [assign_arbitary_uninit_promote_cpu_serial]
-        [MaybeUninit<TC>] [TA] [TC: Clone + Send + Sync, TA: Clone + Send + Sync + PromotionAPI<TC>]
+        [MaybeUninit<TC>] [TA] [TC: Clone + Send + Sync, TA: Clone + Send + Sync + DTypePromotionAPI<TC>]
         [ci.write(ai.clone().promote_astype())]
-        [!<TA as PromotionAPI<TC>>::CAN_ASTYPE]
+        [!<TA as DTypePromotionAPI<TC>>::CAN_ASTYPE]
     ;
 )]
 pub fn func_name<Types, DC, DA>(
@@ -127,15 +127,15 @@ where
     ;
     [assign_promote_cpu_rayon]
         [assign_promote_cpu_serial]
-        [TC] [TA] [TC: Clone + Send + Sync, TA: Clone + Send + Sync + PromotionAPI<TC>]
+        [TC] [TA] [TC: Clone + Send + Sync, TA: Clone + Send + Sync + DTypePromotionAPI<TC>]
         [*ci = ai.clone().promote_astype()]
-        [!<TA as PromotionAPI<TC>>::CAN_ASTYPE]
+        [!<TA as DTypePromotionAPI<TC>>::CAN_ASTYPE]
     ;
     [assign_uninit_promote_cpu_rayon]
         [assign_uninit_promote_cpu_serial]
-        [MaybeUninit<TC>] [TA] [TC: Clone + Send + Sync, TA: Clone + Send + Sync + PromotionAPI<TC>]
+        [MaybeUninit<TC>] [TA] [TC: Clone + Send + Sync, TA: Clone + Send + Sync + DTypePromotionAPI<TC>]
         [ci.write(ai.clone().promote_astype())]
-        [!<TA as PromotionAPI<TC>>::CAN_ASTYPE]
+        [!<TA as DTypePromotionAPI<TC>>::CAN_ASTYPE]
     ;
 )]
 pub fn func_name<Types, D>(
@@ -205,7 +205,7 @@ pub fn fill_promote_cpu_rayon<TC, TA, D>(
 ) -> Result<()>
 where
     TC: Clone + Send + Sync,
-    TA: Clone + Send + Sync + PromotionAPI<TC>,
+    TA: Clone + Send + Sync + DTypePromotionAPI<TC>,
     D: DimAPI,
 {
     // determine whether to use parallel iteration
@@ -214,7 +214,7 @@ where
         return fill_promote_cpu_serial(c, lc, fill);
     }
 
-    if !<TA as PromotionAPI<TC>>::CAN_ASTYPE {
+    if !<TA as DTypePromotionAPI<TC>>::CAN_ASTYPE {
         rstsr_raise!(
             RuntimeError,
             "Cannot promote from {} to {}",

@@ -1,7 +1,7 @@
 use crate::prelude_dev::*;
 use num::complex::ComplexFloat;
 use num::{pow::Pow, Float};
-use rstsr_dtype_traits::{ExtFloat, ExtReal, PromotionAPI, PromotionSpecialAPI};
+use rstsr_dtype_traits::{DTypePromotionAPI, ExtFloat, ExtReal, PromotionSpecialAPI};
 
 // output with special promotion
 #[duplicate_item(
@@ -14,7 +14,7 @@ use rstsr_dtype_traits::{ExtFloat, ExtReal, PromotionAPI, PromotionSpecialAPI};
 )]
 impl<TA, TB, D> DeviceOpAPI<TA, TB, D> for DeviceCpuSerial
 where
-    TA: Clone + PromotionAPI<TB, Res: PromotionSpecialAPI<FloatType: TraitT>>,
+    TA: Clone + DTypePromotionAPI<TB, Res: PromotionSpecialAPI<FloatType: TraitT>>,
     TB: Clone,
     D: DimAPI,
 {
@@ -84,7 +84,7 @@ where
 )]
 impl<TA, TB, D> DeviceOpAPI<TA, TB, D> for DeviceCpuSerial
 where
-    TA: Clone + PromotionAPI<TB, Res: TraitT>,
+    TA: Clone + DTypePromotionAPI<TB, Res: TraitT>,
     TB: Clone,
     D: DimAPI,
 {
