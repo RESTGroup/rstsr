@@ -17,6 +17,12 @@ pub trait ExtNum: Clone {
     /// Computes the absolute value of the number.
     fn ext_abs(self) -> Self::AbsOut;
 
+    /// Computes the absolute difference between two numbers.
+    ///
+    /// For most cases, this is equivalent to `(self - other).ext_abs()`.
+    /// However, for unsigned integer types, this avoids potential underflow.
+    fn ext_abs_diff(self, other: Self) -> Self::AbsOut;
+
     /* #endregion */
 
     /* #region real-imag */
@@ -28,6 +34,15 @@ pub trait ExtNum: Clone {
     fn ext_imag(self) -> Self::AbsOut;
 
     /* #endregion */
+
+    /* #region utilities */
+
+    #[inline]
+    fn is_nan(&self) -> bool {
+        false
+    }
+
+    /* #endregion */
 }
 
 #[duplicate_item(T; [u8]; [u16]; [u32]; [u64]; [u128]; [usize];)]
@@ -36,15 +51,22 @@ impl ExtNum for T {
     type AbsOut = Self;
     const ABS_UNCHANGED: bool = true;
     const ABS_SAME_TYPE: bool = true;
+    #[inline]
     fn ext_abs(self) -> Self {
         self
+    }
+    #[inline]
+    fn ext_abs_diff(self, other: Self) -> Self {
+        self.abs_diff(other)
     }
     /* #endregion */
 
     /* #region real-imag */
+    #[inline]
     fn ext_real(self) -> Self {
         self
     }
+    #[inline]
     fn ext_imag(self) -> Self {
         0 as Self
     }
@@ -56,15 +78,26 @@ impl ExtNum for T {
     type AbsOut = Self;
     const ABS_UNCHANGED: bool = false;
     const ABS_SAME_TYPE: bool = true;
+    #[inline]
     fn ext_abs(self) -> Self {
         self.abs()
+    }
+    #[inline]
+    fn ext_abs_diff(self, other: Self) -> Self {
+        if self >= other {
+            self - other
+        } else {
+            other - self
+        }
     }
     /* #endregion */
 
     /* #region real-imag */
+    #[inline]
     fn ext_real(self) -> Self {
         self
     }
+    #[inline]
     fn ext_imag(self) -> Self {
         0 as Self
     }
@@ -77,17 +110,31 @@ impl ExtNum for T {
     type AbsOut = Self;
     const ABS_UNCHANGED: bool = false;
     const ABS_SAME_TYPE: bool = true;
+    #[inline]
     fn ext_abs(self) -> Self {
         self.abs()
+    }
+    #[inline]
+    fn ext_abs_diff(self, other: Self) -> Self {
+        (self - other).abs()
     }
     /* #endregion */
 
     /* #region real-imag */
+    #[inline]
     fn ext_real(self) -> Self {
         self
     }
+    #[inline]
     fn ext_imag(self) -> Self {
         0 as Self
+    }
+    /* #endregion */
+
+    /* #region utilities */
+    fn is_nan(&self) -> bool {
+        use num::Float;
+        Float::is_nan(*self)
     }
     /* #endregion */
 }
@@ -99,17 +146,32 @@ impl ExtNum for T {
     type AbsOut = Self;
     const ABS_UNCHANGED: bool = false;
     const ABS_SAME_TYPE: bool = true;
+    #[inline]
     fn ext_abs(self) -> Self {
         self.abs()
+    }
+    #[inline]
+    fn ext_abs_diff(self, other: Self) -> Self {
+        (self - other).abs()
     }
     /* #endregion */
 
     /* #region real-imag */
+    #[inline]
     fn ext_real(self) -> Self {
         self
     }
+    #[inline]
     fn ext_imag(self) -> Self {
         Self::ZERO
+    }
+    /* #endregion */
+
+    /* #region utilities */
+    #[inline]
+    fn is_nan(&self) -> bool {
+        use num::Float;
+        Float::is_nan(*self)
     }
     /* #endregion */
 }
@@ -120,17 +182,32 @@ impl ExtNum for T {
     type AbsOut = <T as ComplexFloat>::Real;
     const ABS_UNCHANGED: bool = false;
     const ABS_SAME_TYPE: bool = false;
+    #[inline]
     fn ext_abs(self) -> Self::AbsOut {
         self.norm()
+    }
+    #[inline]
+    fn ext_abs_diff(self, other: Self) -> Self::AbsOut {
+        (self - other).norm()
     }
     /* #endregion */
 
     /* #region real-imag */
+    #[inline]
     fn ext_real(self) -> Self::AbsOut {
         self.re
     }
+    #[inline]
     fn ext_imag(self) -> Self::AbsOut {
         self.im
+    }
+    /* #endregion */
+
+    /* #region utilities */
+    #[inline]
+    fn is_nan(&self) -> bool {
+        use num::complex::ComplexFloat;
+        ComplexFloat::is_nan(*self)
     }
     /* #endregion */
 }
