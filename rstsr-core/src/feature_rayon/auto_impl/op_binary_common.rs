@@ -2,7 +2,7 @@ use crate::prelude_dev::*;
 use core::ops::Div;
 use num::complex::ComplexFloat;
 use num::{Float, Signed};
-use rstsr_dtype_traits::{ExtNum, PromotionSpecialAPI};
+use rstsr_dtype_traits::{DTypeIntoFloatAPI, ExtNum};
 
 // TODO: log1p
 
@@ -38,7 +38,7 @@ use rstsr_dtype_traits::{ExtNum, PromotionSpecialAPI};
 )]
 impl<T, D> DeviceOpAPI<T, D> for DeviceRayonAutoImpl
 where
-    T: Clone + Send + Sync + PromotionSpecialAPI<FloatType: NumTrait + Send + Sync>,
+    T: Clone + Send + Sync + DTypeIntoFloatAPI<FloatType: NumTrait + Send + Sync>,
     D: DimAPI,
 {
     type TOut = T::FloatType;
@@ -51,7 +51,7 @@ where
         lb: &Layout<D>,
     ) -> Result<()> {
         let mut func = |a: &mut MaybeUninit<Self::TOut>, b: &T| {
-            let b = b.clone().to_float_type();
+            let b = b.clone().into_float();
             a.write(func_inner);
         };
         self.op_muta_refb_func(a, la, b, lb, &mut func)

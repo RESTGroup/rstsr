@@ -1,6 +1,6 @@
 use crate::prelude_dev::*;
 use num::{complex::ComplexFloat, Num};
-use rstsr_dtype_traits::PromotionSpecialAPI;
+use rstsr_dtype_traits::DTypeIntoFloatAPI;
 
 impl DeviceBLAS {
     pub fn new(num_threads: usize) -> Self {
@@ -119,8 +119,8 @@ impl<T> DeviceAPI<T> for DeviceBLAS {}
 
 impl<T, D> DeviceComplexFloatAPI<T, D> for DeviceBLAS
 where
-    T: ComplexFloat + PromotionSpecialAPI<FloatType = T> + Send + Sync,
-    T::Real: PromotionSpecialAPI<FloatType = T::Real> + Send + Sync,
+    T: ComplexFloat + DTypeIntoFloatAPI<FloatType = T> + Send + Sync,
+    T::Real: DTypeIntoFloatAPI<FloatType = T::Real> + Send + Sync,
     D: DimAPI,
 {
 }

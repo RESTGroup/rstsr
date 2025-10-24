@@ -13,11 +13,9 @@ use duplicate::duplicate_item;
 use num::Complex;
 use num::{One, Zero};
 
-pub trait PromotionSpecialAPI {
+pub trait DTypeIntoFloatAPI {
     type FloatType;
-    type SumType;
-    fn to_float_type(self) -> Self::FloatType;
-    fn to_sum_type(self) -> Self::SumType;
+    fn into_float(self) -> Self::FloatType;
 }
 
 pub trait DTypePromotionAPI<T> {
@@ -60,88 +58,58 @@ impl<T> DTypePromotionAPI<T> for T {
 
 /* #endregion */
 
-/* #region PromotionSpecialAPI */
+/* #region DTypeIntoFloatAPI */
 
 #[duplicate_item(T; [u8]; [u16]; [u32]; [u64];)]
-impl PromotionSpecialAPI for T {
+impl DTypeIntoFloatAPI for T {
     type FloatType = f64;
-    type SumType = u64;
     #[inline]
-    fn to_float_type(self) -> Self::FloatType {
-        self as _
-    }
-    #[inline]
-    fn to_sum_type(self) -> Self::SumType {
+    fn into_float(self) -> Self::FloatType {
         self as _
     }
 }
 
 #[duplicate_item(T; [i8]; [i16]; [i32]; [i64];)]
-impl PromotionSpecialAPI for T {
+impl DTypeIntoFloatAPI for T {
     type FloatType = f64;
-    type SumType = i64;
     #[inline]
-    fn to_float_type(self) -> Self::FloatType {
-        self as _
-    }
-    #[inline]
-    fn to_sum_type(self) -> Self::SumType {
+    fn into_float(self) -> Self::FloatType {
         self as _
     }
 }
 
 #[duplicate_item(T; [f32]; [f64]; [c32]; [c64];)]
-impl PromotionSpecialAPI for T {
+impl DTypeIntoFloatAPI for T {
     type FloatType = T;
-    type SumType = T;
     #[inline]
-    fn to_float_type(self) -> Self::FloatType {
-        self
-    }
-    #[inline]
-    fn to_sum_type(self) -> Self::SumType {
+    fn into_float(self) -> Self::FloatType {
         self
     }
 }
 
 #[cfg(feature = "half")]
 #[duplicate_item(T; [half::f16]; [half::bf16];)]
-impl PromotionSpecialAPI for T {
+impl DTypeIntoFloatAPI for T {
     type FloatType = T;
-    type SumType = T;
     #[inline]
-    fn to_float_type(self) -> Self::FloatType {
-        self
-    }
-    #[inline]
-    fn to_sum_type(self) -> Self::SumType {
+    fn into_float(self) -> Self::FloatType {
         self
     }
 }
 
-impl PromotionSpecialAPI for usize {
+impl DTypeIntoFloatAPI for usize {
     type FloatType = f64;
-    type SumType = usize;
     #[inline]
-    fn to_float_type(self) -> Self::FloatType {
+    fn into_float(self) -> Self::FloatType {
         self as _
-    }
-    #[inline]
-    fn to_sum_type(self) -> Self::SumType {
-        self
     }
 }
 
-impl PromotionSpecialAPI for isize {
+impl DTypeIntoFloatAPI for isize {
     type FloatType = f64;
-    type SumType = isize;
     #[inline]
-    fn to_float_type(self) -> Self::FloatType {
+    fn into_float(self) -> Self::FloatType {
         self as _
-    }
-    #[inline]
-    fn to_sum_type(self) -> Self::SumType {
-        self
     }
 }
 

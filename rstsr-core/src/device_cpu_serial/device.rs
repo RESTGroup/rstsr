@@ -1,6 +1,6 @@
 use crate::prelude_dev::*;
 use num::{complex::ComplexFloat, Num};
-use rstsr_dtype_traits::PromotionSpecialAPI;
+use rstsr_dtype_traits::DTypeIntoFloatAPI;
 
 #[derive(Clone, Debug, Default)]
 pub struct DeviceCpuSerial {
@@ -88,8 +88,8 @@ impl<T> DeviceAPI<T> for DeviceCpuSerial {}
 
 impl<T, D> DeviceComplexFloatAPI<T, D> for DeviceCpuSerial
 where
-    T: ComplexFloat + PromotionSpecialAPI<FloatType = T>,
-    T::Real: PromotionSpecialAPI<FloatType = T::Real>,
+    T: ComplexFloat + DTypeIntoFloatAPI<FloatType = T>,
+    T::Real: DTypeIntoFloatAPI<FloatType = T::Real>,
     D: DimAPI,
 {
 }
