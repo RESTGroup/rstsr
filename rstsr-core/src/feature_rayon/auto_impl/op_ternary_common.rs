@@ -1,7 +1,7 @@
 use crate::prelude_dev::*;
 use num::complex::ComplexFloat;
 use num::{pow::Pow, Float};
-use rstsr_dtype_traits::{DTypeIntoFloatAPI, DTypePromotionAPI, ExtFloat, ExtReal};
+use rstsr_dtype_traits::{DTypeIntoFloatAPI, DTypePromoteAPI, ExtFloat, ExtReal};
 
 // output with special promotion
 #[duplicate_item(
@@ -14,7 +14,7 @@ use rstsr_dtype_traits::{DTypeIntoFloatAPI, DTypePromotionAPI, ExtFloat, ExtReal
 )]
 impl<TA, TB, D> DeviceOpAPI<TA, TB, D> for DeviceRayonAutoImpl
 where
-    TA: Clone + Send + Sync + DTypePromotionAPI<TB, Res: DTypeIntoFloatAPI<FloatType: TraitT + Send + Sync>>,
+    TA: Clone + Send + Sync + DTypePromoteAPI<TB, Res: DTypeIntoFloatAPI<FloatType: TraitT + Send + Sync>>,
     TB: Clone + Send + Sync,
     D: DimAPI,
 {
@@ -84,7 +84,7 @@ where
 )]
 impl<TA, TB, D> DeviceOpAPI<TA, TB, D> for DeviceRayonAutoImpl
 where
-    TA: Clone + Send + Sync + DTypePromotionAPI<TB, Res: TraitT + Send + Sync>,
+    TA: Clone + Send + Sync + DTypePromoteAPI<TB, Res: TraitT + Send + Sync>,
     TB: Clone + Send + Sync,
     D: DimAPI,
 {

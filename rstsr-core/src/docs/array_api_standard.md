@@ -152,12 +152,12 @@ The reference implementation (as in [`DeviceCpuSerial`] and [`DeviceFaer`]), fol
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| T | Rust type cast [`as`](https://doc.rust-lang.org/reference/expressions/operator-expr.html#type-cast-expressions)<br>[`DTypePromotionAPI::promote_astype`]<br>[`num::ToPrimitive`] | `astype` | Copies an array to a specified data type irrespective of Type Promotion Rules rules. |
-| T | [`DTypePromotionAPI::CAN_CAST_SELF`]<br>[`DTypePromotionAPI::CAN_CAST_OTHER`]<br>operator trait definition | `can_cast` | Determines if one data type can be cast to another data type according Type Promotion Rules rules. |
+| T | Rust type cast [`as`](https://doc.rust-lang.org/reference/expressions/operator-expr.html#type-cast-expressions)<br>[`DTypeCastAPI::into_cast`]<br>[`num::ToPrimitive`] | `astype` | Copies an array to a specified data type irrespective of Type Promotion Rules rules. |
+| T | [`DTypePromoteAPI::CAN_CAST_SELF`]<br>[`DTypePromoteAPI::CAN_CAST_OTHER`]<br>operator trait definition | `can_cast` | Determines if one data type can be cast to another data type according Type Promotion Rules rules. |
 | T | [`num::Float`] | `finfo` | Machine limits for floating-point data types. |
 | T | [`num::Integer`] | `iinfo` | Machine limits for integer data types. |
 | T | [`core::any::TypeId`] | `isdtype` | Returns a boolean indicating whether a provided dtype is of a specified data type "kind". |
-| T | [`DTypePromotionAPI::Res`] | `result_type` | Returns the dtype that results from applying the type promotion rules (see Type Promotion Rules) to the arguments. |
+| T | [`DTypePromoteAPI::Res`] | `result_type` | Returns the dtype that results from applying the type promotion rules (see Type Promotion Rules) to the arguments. |
 
 ### Data Type Categories
 

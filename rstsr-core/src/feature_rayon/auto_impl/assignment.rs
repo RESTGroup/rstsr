@@ -3,7 +3,7 @@ use crate::prelude_dev::*;
 impl<TC, TA, DC, DA> OpAssignArbitaryAPI<TC, DC, DA, TA> for DeviceRayonAutoImpl
 where
     TC: Clone + Send + Sync,
-    TA: Clone + Send + Sync + DTypePromotionAPI<TC>,
+    TA: Clone + Send + Sync + DTypeCastAPI<TC>,
     DC: DimAPI,
     DA: DimAPI,
 {
@@ -29,7 +29,7 @@ where
 impl<TC, TA, D> OpAssignAPI<TC, D, TA> for DeviceRayonAutoImpl
 where
     TC: Clone + Send + Sync,
-    TA: Clone + Send + Sync + DTypePromotionAPI<TC>,
+    TA: Clone + Send + Sync + DTypeCastAPI<TC>,
     D: DimAPI,
 {
     fn assign(&self, c: &mut Vec<TC>, lc: &Layout<D>, a: &Vec<TA>, la: &Layout<D>) -> Result<()> {

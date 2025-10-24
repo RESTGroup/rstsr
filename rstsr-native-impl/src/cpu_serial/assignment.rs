@@ -7,27 +7,22 @@ const CONTIG_SWITCH: usize = 16;
     func_name
         TypeC TypeA Types
         func_clone
-        bool_non_castable
     ;
     [assign_arbitary_cpu_serial]
         [T] [T] [T: Clone]
         [*ci = ai.clone()]
-        [false]
     ;
     [assign_arbitary_uninit_cpu_serial]
         [MaybeUninit<T>] [T] [T: Clone]
         [ci.write(ai.clone())]
-        [false]
     ;
     [assign_arbitary_promote_cpu_serial]
-        [TC] [TA] [TC: Clone, TA: Clone + DTypePromotionAPI<TC>]
-        [*ci = ai.clone().promote_astype()]
-        [!<TA as DTypePromotionAPI<TC>>::CAN_ASTYPE]
+        [TC] [TA] [TC: Clone, TA: Clone + DTypeCastAPI<TC>]
+        [*ci = ai.clone().into_cast()]
     ;
     [assign_arbitary_uninit_promote_cpu_serial]
-        [MaybeUninit<TC>] [TA] [TC: Clone, TA: Clone + DTypePromotionAPI<TC>]
-        [ci.write(ai.clone().promote_astype())]
-        [!<TA as DTypePromotionAPI<TC>>::CAN_ASTYPE]
+        [MaybeUninit<TC>] [TA] [TC: Clone, TA: Clone + DTypeCastAPI<TC>]
+        [ci.write(ai.clone().into_cast())]
     ;
 )]
 pub fn func_name<Types, DC, DA>(
@@ -41,15 +36,6 @@ where
     DC: DimAPI,
     DA: DimAPI,
 {
-    if bool_non_castable {
-        rstsr_raise!(
-            RuntimeError,
-            "Cannot promote from {} to {}",
-            std::any::type_name::<TypeA>(),
-            std::any::type_name::<TypeC>()
-        )?;
-    }
-
     let contig = match order {
         RowMajor => lc.c_contig() && la.c_contig(),
         ColMajor => lc.f_contig() && la.f_contig(),
@@ -84,42 +70,28 @@ where
     func_name
         TypeC TypeA Types
         func_clone
-        bool_non_castable
     ;
     [assign_cpu_serial]
         [T] [T] [T: Clone]
         [*ci = ai.clone()]
-        [false]
     ;
     [assign_uninit_cpu_serial]
         [MaybeUninit<T>] [T] [T: Clone]
         [ci.write(ai.clone())]
-        [false]
     ;
     [assign_promote_cpu_serial]
-        [TC] [TA] [TC: Clone, TA: Clone + DTypePromotionAPI<TC>]
-        [*ci = ai.clone().promote_astype()]
-        [!<TA as DTypePromotionAPI<TC>>::CAN_ASTYPE]
+        [TC] [TA] [TC: Clone, TA: Clone + DTypeCastAPI<TC>]
+        [*ci = ai.clone().into_cast()]
     ;
     [assign_uninit_promote_cpu_serial]
-        [MaybeUninit<TC>] [TA] [TC: Clone, TA: Clone + DTypePromotionAPI<TC>]
-        [ci.write(ai.clone().promote_astype())]
-        [!<TA as DTypePromotionAPI<TC>>::CAN_ASTYPE]
+        [MaybeUninit<TC>] [TA] [TC: Clone, TA: Clone + DTypeCastAPI<TC>]
+        [ci.write(ai.clone().into_cast())]
     ;
 )]
 pub fn func_name<Types, D>(c: &mut [TypeC], lc: &Layout<D>, a: &[TypeA], la: &Layout<D>) -> Result<()>
 where
     D: DimAPI,
 {
-    if bool_non_castable {
-        rstsr_raise!(
-            RuntimeError,
-            "Cannot promote from {} to {}",
-            std::any::type_name::<TypeA>(),
-            std::any::type_name::<TypeC>()
-        )?;
-    }
-
     let layouts_full = translate_to_col_major(&[lc, la], TensorIterOrder::K)?;
     let layouts_full_ref = layouts_full.iter().collect_vec();
     let (layouts_contig, size_contig) = translate_to_col_major_with_contig(&layouts_full_ref);
@@ -156,20 +128,11 @@ where
 
 pub fn fill_promote_cpu_serial<TC, TA, D>(c: &mut [TC], lc: &Layout<D>, fill: TA) -> Result<()>
 where
-    TA: Clone + DTypePromotionAPI<TC>,
+    TA: Clone + DTypeCastAPI<TC>,
     TC: Clone,
     D: DimAPI,
 {
-    if !<TA as DTypePromotionAPI<TC>>::CAN_ASTYPE {
-        rstsr_raise!(
-            RuntimeError,
-            "Cannot promote from {} to {}",
-            std::any::type_name::<TA>(),
-            std::any::type_name::<TC>()
-        )?;
-    }
-
-    let fill = fill.clone().promote_astype();
+    let fill = fill.clone().into_cast();
 
     let layouts_full = [translate_to_col_major_unary(lc, TensorIterOrder::G)?];
     let layouts_full_ref = layouts_full.iter().collect_vec();

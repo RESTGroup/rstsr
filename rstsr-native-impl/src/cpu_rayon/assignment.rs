@@ -16,31 +16,26 @@ const PARALLEL_SWITCH: usize = 16384;
         func_name_serial
         TypeC TypeA Types
         func_clone
-        bool_non_castable
     ;
     [assign_arbitary_cpu_rayon]
         [assign_arbitary_cpu_serial]
         [T] [T] [T: Clone + Send + Sync]
         [*ci = ai.clone()]
-        [false]
     ;
     [assign_arbitary_uninit_cpu_rayon]
         [assign_arbitary_uninit_cpu_serial]
         [MaybeUninit<T>] [T] [T: Clone + Send + Sync]
         [ci.write(ai.clone())]
-        [false]
     ;
     [assign_arbitary_promote_cpu_rayon]
         [assign_arbitary_promote_cpu_serial]
-        [TC] [TA] [TC: Clone + Send + Sync, TA: Clone + Send + Sync + DTypePromotionAPI<TC>]
-        [*ci = ai.clone().promote_astype()]
-        [!<TA as DTypePromotionAPI<TC>>::CAN_ASTYPE]
+        [TC] [TA] [TC: Clone + Send + Sync, TA: Clone + Send + Sync + DTypeCastAPI<TC>]
+        [*ci = ai.clone().into_cast()]
     ;
     [assign_arbitary_uninit_promote_cpu_rayon]
         [assign_arbitary_uninit_promote_cpu_serial]
-        [MaybeUninit<TC>] [TA] [TC: Clone + Send + Sync, TA: Clone + Send + Sync + DTypePromotionAPI<TC>]
-        [ci.write(ai.clone().promote_astype())]
-        [!<TA as DTypePromotionAPI<TC>>::CAN_ASTYPE]
+        [MaybeUninit<TC>] [TA] [TC: Clone + Send + Sync, TA: Clone + Send + Sync + DTypeCastAPI<TC>]
+        [ci.write(ai.clone().into_cast())]
     ;
 )]
 pub fn func_name<Types, DC, DA>(
@@ -59,15 +54,6 @@ where
     let size = lc.size();
     if size < PARALLEL_SWITCH || pool.is_none() {
         return func_name_serial(c, lc, a, la, default_order);
-    }
-
-    if bool_non_castable {
-        rstsr_raise!(
-            RuntimeError,
-            "Cannot promote from {} to {}",
-            std::any::type_name::<TypeA>(),
-            std::any::type_name::<TypeC>()
-        )?;
     }
 
     // actual parallel iteration
@@ -111,31 +97,26 @@ where
         func_name_serial
         TypeC TypeA Types
         func_clone
-        bool_non_castable
     ;
     [assign_cpu_rayon]
         [assign_cpu_serial]
         [T] [T] [T: Clone + Send + Sync]
         [*ci = ai.clone()]
-        [false]
     ;
     [assign_uninit_cpu_rayon]
         [assign_uninit_cpu_serial]
         [MaybeUninit<T>] [T] [T: Clone + Send + Sync]
         [ci.write(ai.clone())]
-        [false]
     ;
     [assign_promote_cpu_rayon]
         [assign_promote_cpu_serial]
-        [TC] [TA] [TC: Clone + Send + Sync, TA: Clone + Send + Sync + DTypePromotionAPI<TC>]
-        [*ci = ai.clone().promote_astype()]
-        [!<TA as DTypePromotionAPI<TC>>::CAN_ASTYPE]
+        [TC] [TA] [TC: Clone + Send + Sync, TA: Clone + Send + Sync + DTypeCastAPI<TC>]
+        [*ci = ai.clone().into_cast()]
     ;
     [assign_uninit_promote_cpu_rayon]
         [assign_uninit_promote_cpu_serial]
-        [MaybeUninit<TC>] [TA] [TC: Clone + Send + Sync, TA: Clone + Send + Sync + DTypePromotionAPI<TC>]
-        [ci.write(ai.clone().promote_astype())]
-        [!<TA as DTypePromotionAPI<TC>>::CAN_ASTYPE]
+        [MaybeUninit<TC>] [TA] [TC: Clone + Send + Sync, TA: Clone + Send + Sync + DTypeCastAPI<TC>]
+        [ci.write(ai.clone().into_cast())]
     ;
 )]
 pub fn func_name<Types, D>(
@@ -205,22 +186,13 @@ pub fn fill_promote_cpu_rayon<TC, TA, D>(
 ) -> Result<()>
 where
     TC: Clone + Send + Sync,
-    TA: Clone + Send + Sync + DTypePromotionAPI<TC>,
+    TA: Clone + Send + Sync + DTypeCastAPI<TC>,
     D: DimAPI,
 {
     // determine whether to use parallel iteration
     let size = lc.size();
     if size < PARALLEL_SWITCH || pool.is_none() {
         return fill_promote_cpu_serial(c, lc, fill);
-    }
-
-    if !<TA as DTypePromotionAPI<TC>>::CAN_ASTYPE {
-        rstsr_raise!(
-            RuntimeError,
-            "Cannot promote from {} to {}",
-            std::any::type_name::<TA>(),
-            std::any::type_name::<TC>()
-        )?;
     }
 
     // re-align layouts
@@ -234,7 +206,7 @@ where
         let lc = &layouts_full[0];
         let func = |idx_c| unsafe {
             let c_ptr = c.as_ptr() as *mut TC;
-            *c_ptr.add(idx_c) = fill.clone().promote_astype();
+            *c_ptr.add(idx_c) = fill.clone().into_cast();
         };
         let task = || layout_col_major_dim_dispatch_par_1(lc, func);
         pool.map_or_else(task, |pool| pool.install(task))
@@ -244,7 +216,7 @@ where
         let func = |idx_c| unsafe {
             let c_ptr = c.as_ptr().add(idx_c) as *mut TC;
             (0..size_contig).for_each(|idx| {
-                *c_ptr.add(idx) = fill.clone().promote_astype();
+                *c_ptr.add(idx) = fill.clone().into_cast();
             })
         };
         let task = || layout_col_major_dim_dispatch_par_1(lc, func);
