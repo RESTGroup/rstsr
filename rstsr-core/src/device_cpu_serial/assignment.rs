@@ -3,7 +3,7 @@ use crate::prelude_dev::*;
 impl<TC, DC, DA, TA> OpAssignArbitaryAPI<TC, DC, DA, TA> for DeviceCpuSerial
 where
     TC: Clone,
-    TA: Clone + PromotionAPI<TC>,
+    TA: Clone + DTypeCastAPI<TC>,
     DC: DimAPI,
     DA: DimAPI,
 {
@@ -27,7 +27,7 @@ where
 impl<TC, D, TA> OpAssignAPI<TC, D, TA> for DeviceCpuSerial
 where
     TC: Clone,
-    TA: Clone + PromotionAPI<TC>,
+    TA: Clone + DTypeCastAPI<TC>,
     D: DimAPI,
 {
     fn assign(&self, c: &mut Vec<TC>, lc: &Layout<D>, a: &Vec<TA>, la: &Layout<D>) -> Result<()> {

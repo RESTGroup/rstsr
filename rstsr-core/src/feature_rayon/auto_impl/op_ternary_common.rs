@@ -1,7 +1,7 @@
 use crate::prelude_dev::*;
 use num::complex::ComplexFloat;
 use num::{pow::Pow, Float};
-use rstsr_dtype_traits::{ExtFloat, ExtReal, PromotionAPI, PromotionSpecialAPI};
+use rstsr_dtype_traits::{DTypeIntoFloatAPI, DTypePromoteAPI, ExtFloat, ExtReal};
 
 // output with special promotion
 #[duplicate_item(
@@ -14,11 +14,11 @@ use rstsr_dtype_traits::{ExtFloat, ExtReal, PromotionAPI, PromotionSpecialAPI};
 )]
 impl<TA, TB, D> DeviceOpAPI<TA, TB, D> for DeviceRayonAutoImpl
 where
-    TA: Clone + Send + Sync + PromotionAPI<TB, Res: PromotionSpecialAPI<FloatType: TraitT + Send + Sync>>,
+    TA: Clone + Send + Sync + DTypePromoteAPI<TB, Res: DTypeIntoFloatAPI<FloatType: TraitT + Send + Sync>>,
     TB: Clone + Send + Sync,
     D: DimAPI,
 {
-    type TOut = <TA::Res as PromotionSpecialAPI>::FloatType;
+    type TOut = <TA::Res as DTypeIntoFloatAPI>::FloatType;
 
     fn op_mutc_refa_refb(
         &self,
@@ -31,7 +31,7 @@ where
     ) -> Result<()> {
         let mut func = |c: &mut MaybeUninit<Self::TOut>, a: &TA, b: &TB| {
             let (a, b) = TA::promote_pair(a.clone(), b.clone());
-            let (a, b) = (a.to_float_type(), b.to_float_type());
+            let (a, b) = (a.into_float(), b.into_float());
             c.write(func_inner);
         };
         self.op_mutc_refa_refb_func(c, lc, a, la, b, lb, &mut func)
@@ -47,7 +47,7 @@ where
     ) -> Result<()> {
         let mut func = |c: &mut MaybeUninit<Self::TOut>, a: &TA, b: &TB| {
             let (a, b) = TA::promote_pair(a.clone(), b.clone());
-            let (a, b) = (a.to_float_type(), b.to_float_type());
+            let (a, b) = (a.into_float(), b.into_float());
             c.write(func_inner);
         };
         self.op_mutc_refa_numb_func(c, lc, a, la, b, &mut func)
@@ -63,7 +63,7 @@ where
     ) -> Result<()> {
         let mut func = |c: &mut MaybeUninit<Self::TOut>, a: &TA, b: &TB| {
             let (a, b) = TA::promote_pair(a.clone(), b.clone());
-            let (a, b) = (a.to_float_type(), b.to_float_type());
+            let (a, b) = (a.into_float(), b.into_float());
             c.write(func_inner);
         };
         self.op_mutc_numa_refb_func(c, lc, a, b, lb, &mut func)
@@ -84,7 +84,7 @@ where
 )]
 impl<TA, TB, D> DeviceOpAPI<TA, TB, D> for DeviceRayonAutoImpl
 where
-    TA: Clone + Send + Sync + PromotionAPI<TB, Res: TraitT + Send + Sync>,
+    TA: Clone + Send + Sync + DTypePromoteAPI<TB, Res: TraitT + Send + Sync>,
     TB: Clone + Send + Sync,
     D: DimAPI,
 {

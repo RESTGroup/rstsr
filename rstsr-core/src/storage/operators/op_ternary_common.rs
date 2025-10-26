@@ -59,3 +59,44 @@ where
 // not implemented types (defined in arithmetics)
 // add, bitwise_and, bitwise_left_shift, bitwise_or, bitwise_right_shift,
 // bitwise_xor, divide, logical_and, logical_or, multiply, remainder, subtract
+
+// other common ternary operations
+
+use rstsr_dtype_traits::IsCloseArgs;
+
+pub trait DeviceIsCloseAPI<TA, TB, D, TE>
+where
+    D: DimAPI,
+    Self: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<MaybeUninit<bool>>,
+{
+    fn op_mutc_refa_refb(
+        &self,
+        out: &mut <Self as DeviceRawAPI<MaybeUninit<bool>>>::Raw,
+        lout: &Layout<D>,
+        a: &<Self as DeviceRawAPI<TA>>::Raw,
+        la: &Layout<D>,
+        b: &<Self as DeviceRawAPI<TB>>::Raw,
+        lb: &Layout<D>,
+        isclose_args: &IsCloseArgs<TE>,
+    ) -> Result<()>;
+
+    fn op_mutc_refa_numb(
+        &self,
+        out: &mut <Self as DeviceRawAPI<MaybeUninit<bool>>>::Raw,
+        lout: &Layout<D>,
+        a: &<Self as DeviceRawAPI<TA>>::Raw,
+        la: &Layout<D>,
+        b: TB,
+        isclose_args: &IsCloseArgs<TE>,
+    ) -> Result<()>;
+
+    fn op_mutc_numa_refb(
+        &self,
+        out: &mut <Self as DeviceRawAPI<MaybeUninit<bool>>>::Raw,
+        lout: &Layout<D>,
+        a: TA,
+        b: &<Self as DeviceRawAPI<TB>>::Raw,
+        lb: &Layout<D>,
+        isclose_args: &IsCloseArgs<TE>,
+    ) -> Result<()>;
+}

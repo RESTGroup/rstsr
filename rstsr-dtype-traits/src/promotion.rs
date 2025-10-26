@@ -13,22 +13,22 @@ use duplicate::duplicate_item;
 use num::Complex;
 use num::{One, Zero};
 
-pub trait PromotionSpecialAPI {
+pub trait DTypeIntoFloatAPI {
     type FloatType;
-    type SumType;
-    fn to_float_type(self) -> Self::FloatType;
-    fn to_sum_type(self) -> Self::SumType;
+    fn into_float(self) -> Self::FloatType;
 }
 
-pub trait PromotionAPI<T> {
+pub trait DTypeCastAPI<T> {
+    fn into_cast(self) -> T;
+}
+
+pub trait DTypePromoteAPI<T> {
     type Res;
     const SAME_TYPE: bool = false;
     const CAN_CAST_SELF: bool = false;
     const CAN_CAST_OTHER: bool = false;
-    const CAN_ASTYPE: bool = false;
     fn promote_self(self) -> Self::Res;
     fn promote_other(val: T) -> Self::Res;
-    fn promote_astype(self) -> T;
     #[inline]
     fn promote_pair(self, val: T) -> (Self::Res, Self::Res)
     where
@@ -38,12 +38,11 @@ pub trait PromotionAPI<T> {
     }
 }
 
-impl<T> PromotionAPI<T> for T {
+impl<T> DTypePromoteAPI<T> for T {
     type Res = T;
     const SAME_TYPE: bool = true;
     const CAN_CAST_SELF: bool = true;
     const CAN_CAST_OTHER: bool = true;
-    const CAN_ASTYPE: bool = true;
     #[inline]
     fn promote_self(self) -> Self::Res {
         self
@@ -52,96 +51,69 @@ impl<T> PromotionAPI<T> for T {
     fn promote_other(val: T) -> Self::Res {
         val
     }
+}
+
+impl<T> DTypeCastAPI<T> for T {
     #[inline]
-    fn promote_astype(self) -> T {
+    fn into_cast(self) -> T {
         self
     }
 }
 
 /* #endregion */
 
-/* #region PromotionSpecialAPI */
+/* #region DTypeIntoFloatAPI */
 
 #[duplicate_item(T; [u8]; [u16]; [u32]; [u64];)]
-impl PromotionSpecialAPI for T {
+impl DTypeIntoFloatAPI for T {
     type FloatType = f64;
-    type SumType = u64;
     #[inline]
-    fn to_float_type(self) -> Self::FloatType {
-        self as _
-    }
-    #[inline]
-    fn to_sum_type(self) -> Self::SumType {
+    fn into_float(self) -> Self::FloatType {
         self as _
     }
 }
 
 #[duplicate_item(T; [i8]; [i16]; [i32]; [i64];)]
-impl PromotionSpecialAPI for T {
+impl DTypeIntoFloatAPI for T {
     type FloatType = f64;
-    type SumType = i64;
     #[inline]
-    fn to_float_type(self) -> Self::FloatType {
-        self as _
-    }
-    #[inline]
-    fn to_sum_type(self) -> Self::SumType {
+    fn into_float(self) -> Self::FloatType {
         self as _
     }
 }
 
 #[duplicate_item(T; [f32]; [f64]; [c32]; [c64];)]
-impl PromotionSpecialAPI for T {
+impl DTypeIntoFloatAPI for T {
     type FloatType = T;
-    type SumType = T;
     #[inline]
-    fn to_float_type(self) -> Self::FloatType {
-        self
-    }
-    #[inline]
-    fn to_sum_type(self) -> Self::SumType {
+    fn into_float(self) -> Self::FloatType {
         self
     }
 }
 
 #[cfg(feature = "half")]
 #[duplicate_item(T; [half::f16]; [half::bf16];)]
-impl PromotionSpecialAPI for T {
+impl DTypeIntoFloatAPI for T {
     type FloatType = T;
-    type SumType = T;
     #[inline]
-    fn to_float_type(self) -> Self::FloatType {
-        self
-    }
-    #[inline]
-    fn to_sum_type(self) -> Self::SumType {
+    fn into_float(self) -> Self::FloatType {
         self
     }
 }
 
-impl PromotionSpecialAPI for usize {
+impl DTypeIntoFloatAPI for usize {
     type FloatType = f64;
-    type SumType = usize;
     #[inline]
-    fn to_float_type(self) -> Self::FloatType {
+    fn into_float(self) -> Self::FloatType {
         self as _
-    }
-    #[inline]
-    fn to_sum_type(self) -> Self::SumType {
-        self
     }
 }
 
-impl PromotionSpecialAPI for isize {
+impl DTypeIntoFloatAPI for isize {
     type FloatType = f64;
-    type SumType = isize;
     #[inline]
-    fn to_float_type(self) -> Self::FloatType {
+    fn into_float(self) -> Self::FloatType {
         self as _
-    }
-    #[inline]
-    fn to_sum_type(self) -> Self::SumType {
-        self
     }
 }
 
@@ -151,10 +123,9 @@ impl PromotionSpecialAPI for isize {
 
 macro_rules! impl_promotion_bool_T {
     ($T:ty) => {
-        impl PromotionAPI<$T> for bool {
+        impl DTypePromoteAPI<$T> for bool {
             type Res = $T;
             const CAN_CAST_OTHER: bool = true;
-            const CAN_ASTYPE: bool = true;
             #[inline]
             fn promote_self(self) -> Self::Res {
                 if self {
@@ -167,20 +138,11 @@ macro_rules! impl_promotion_bool_T {
             fn promote_other(val: $T) -> Self::Res {
                 val
             }
-            #[inline]
-            fn promote_astype(self) -> $T {
-                if self {
-                    <$T>::one()
-                } else {
-                    <$T>::zero()
-                }
-            }
         }
 
-        impl PromotionAPI<bool> for $T {
+        impl DTypePromoteAPI<bool> for $T {
             type Res = $T;
             const CAN_CAST_SELF: bool = true;
-            const CAN_ASTYPE: bool = true;
             #[inline]
             fn promote_self(self) -> Self::Res {
                 self
@@ -193,9 +155,23 @@ macro_rules! impl_promotion_bool_T {
                     <$T>::zero()
                 }
             }
+        }
+
+        impl DTypeCastAPI<bool> for $T {
             #[inline]
-            fn promote_astype(self) -> bool {
+            fn into_cast(self) -> bool {
                 self != <$T>::zero()
+            }
+        }
+
+        impl DTypeCastAPI<$T> for bool {
+            #[inline]
+            fn into_cast(self) -> $T {
+                if self {
+                    <$T>::one()
+                } else {
+                    <$T>::zero()
+                }
             }
         }
     };
@@ -229,11 +205,10 @@ impl_promotion_bool_T!(c64);
 
 macro_rules! impl_promotion_asable {
     ($T1:ty, $T2:ty, $can_cast_self: ident, $can_cast_other: ident, $Res:ty) => {
-        impl PromotionAPI<$T2> for $T1 {
+        impl DTypePromoteAPI<$T2> for $T1 {
             type Res = $Res;
             const CAN_CAST_SELF: bool = $can_cast_self;
             const CAN_CAST_OTHER: bool = $can_cast_other;
-            const CAN_ASTYPE: bool = true;
             #[inline]
             fn promote_self(self) -> Self::Res {
                 self as $Res
@@ -242,8 +217,11 @@ macro_rules! impl_promotion_asable {
             fn promote_other(val: $T2) -> Self::Res {
                 val as $Res
             }
+        }
+
+        impl DTypeCastAPI<$T2> for $T1 {
             #[inline]
-            fn promote_astype(self) -> $T2 {
+            fn into_cast(self) -> $T2 {
                 self as $T2
             }
         }
@@ -391,11 +369,10 @@ impl_promotion_asable!(f64, usize, true, false, f64);
 
 macro_rules! impl_promotion_complex_primitive_cast_self {
     ($TComp:ty, $TPrim:ty, $can_cast_self:ident, $can_cast_other:ident, $ResComp:ty) => {
-        impl PromotionAPI<$TPrim> for Complex<$TComp> {
+        impl DTypePromoteAPI<$TPrim> for Complex<$TComp> {
             type Res = Complex<$ResComp>;
             const CAN_CAST_SELF: bool = $can_cast_self;
             const CAN_CAST_OTHER: bool = $can_cast_other;
-            const CAN_ASTYPE: bool = false;
             #[inline]
             fn promote_self(self) -> Self::Res {
                 self
@@ -404,21 +381,16 @@ macro_rules! impl_promotion_complex_primitive_cast_self {
             fn promote_other(val: $TPrim) -> Self::Res {
                 Self::Res::new(val as _, 0 as _)
             }
-            #[inline]
-            fn promote_astype(self) -> $TPrim {
-                panic!("Cannot cast complex to primitive type.");
-            }
         }
     };
 }
 
 macro_rules! impl_promotion_complex_primitive_no_cast_self {
     ($TComp:ty, $TPrim:ty, $can_cast_self:ident, $can_cast_other:ident, $ResComp:ty) => {
-        impl PromotionAPI<$TPrim> for Complex<$TComp> {
+        impl DTypePromoteAPI<$TPrim> for Complex<$TComp> {
             type Res = Complex<$ResComp>;
             const CAN_CAST_SELF: bool = $can_cast_self;
             const CAN_CAST_OTHER: bool = $can_cast_other;
-            const CAN_ASTYPE: bool = false;
             #[inline]
             fn promote_self(self) -> Self::Res {
                 Self::Res::new(self.re as _, self.im as _)
@@ -426,10 +398,6 @@ macro_rules! impl_promotion_complex_primitive_no_cast_self {
             #[inline]
             fn promote_other(val: $TPrim) -> Self::Res {
                 Self::Res::new(val as _, 0 as _)
-            }
-            #[inline]
-            fn promote_astype(self) -> $TPrim {
-                panic!("Cannot cast complex to primitive type.");
             }
         }
     };
@@ -468,11 +436,10 @@ impl_promotion_complex_primitive_no_cast_self!(f32, f64, false, false, f64);
 
 macro_rules! impl_promotion_primitive_complex_cast_other {
     ($TComp:ty, $TPrim:ty, $can_cast_self:ident, $can_cast_other:ident, $ResComp:ty) => {
-        impl PromotionAPI<Complex<$TComp>> for $TPrim {
+        impl DTypePromoteAPI<Complex<$TComp>> for $TPrim {
             type Res = Complex<$ResComp>;
             const CAN_CAST_SELF: bool = $can_cast_self;
             const CAN_CAST_OTHER: bool = $can_cast_other;
-            const CAN_ASTYPE: bool = true;
             #[inline]
             fn promote_self(self) -> Self::Res {
                 Self::Res::new(self as _, 0 as _)
@@ -481,8 +448,11 @@ macro_rules! impl_promotion_primitive_complex_cast_other {
             fn promote_other(val: Complex<$TComp>) -> Self::Res {
                 val
             }
+        }
+
+        impl DTypeCastAPI<Complex<$TComp>> for $TPrim {
             #[inline]
-            fn promote_astype(self) -> Complex<$TComp> {
+            fn into_cast(self) -> Complex<$TComp> {
                 Complex::<$TComp>::new(self as _, 0 as _)
             }
         }
@@ -491,11 +461,10 @@ macro_rules! impl_promotion_primitive_complex_cast_other {
 
 macro_rules! impl_promotion_primitive_complex_nocast_other {
     ($TComp:ty, $TPrim:ty, $can_cast_self:ident, $can_cast_other:ident, $ResComp:ty) => {
-        impl PromotionAPI<Complex<$TComp>> for $TPrim {
+        impl DTypePromoteAPI<Complex<$TComp>> for $TPrim {
             type Res = Complex<$ResComp>;
             const CAN_CAST_SELF: bool = $can_cast_self;
             const CAN_CAST_OTHER: bool = $can_cast_other;
-            const CAN_ASTYPE: bool = true;
             #[inline]
             fn promote_self(self) -> Self::Res {
                 Self::Res::new(self as _, 0 as _)
@@ -504,8 +473,11 @@ macro_rules! impl_promotion_primitive_complex_nocast_other {
             fn promote_other(val: Complex<$TComp>) -> Self::Res {
                 Self::Res::new(val.re as _, val.im as _)
             }
+        }
+
+        impl DTypeCastAPI<Complex<$TComp>> for $TPrim {
             #[inline]
-            fn promote_astype(self) -> Complex<$TComp> {
+            fn into_cast(self) -> Complex<$TComp> {
                 Complex::<$TComp>::new(self as _, 0 as _)
             }
         }
@@ -543,11 +515,10 @@ impl_promotion_primitive_complex_nocast_other!(f32, f64, false, false, f64);
 
 /* #region complex to complex */
 
-impl PromotionAPI<c32> for c64 {
+impl DTypePromoteAPI<c32> for c64 {
     type Res = c64;
     const CAN_CAST_SELF: bool = true;
     const CAN_CAST_OTHER: bool = false;
-    const CAN_ASTYPE: bool = true;
     #[inline]
     fn promote_self(self) -> Self::Res {
         self
@@ -556,17 +527,12 @@ impl PromotionAPI<c32> for c64 {
     fn promote_other(val: c32) -> Self::Res {
         c64::new(val.re as f64, val.im as f64)
     }
-    #[inline]
-    fn promote_astype(self) -> c32 {
-        c32::new(self.re as f32, self.im as f32)
-    }
 }
 
-impl PromotionAPI<c64> for c32 {
+impl DTypePromoteAPI<c64> for c32 {
     type Res = c64;
     const CAN_CAST_SELF: bool = false;
     const CAN_CAST_OTHER: bool = true;
-    const CAN_ASTYPE: bool = true;
     #[inline]
     fn promote_self(self) -> Self::Res {
         c64::new(self.re as f64, self.im as f64)
@@ -575,8 +541,18 @@ impl PromotionAPI<c64> for c32 {
     fn promote_other(val: c64) -> Self::Res {
         val
     }
+}
+
+impl DTypeCastAPI<c32> for c64 {
     #[inline]
-    fn promote_astype(self) -> c64 {
+    fn into_cast(self) -> c32 {
+        c32::new(self.re as f32, self.im as f32)
+    }
+}
+
+impl DTypeCastAPI<c64> for c32 {
+    #[inline]
+    fn into_cast(self) -> c64 {
         c64::new(self.re as f64, self.im as f64)
     }
 }

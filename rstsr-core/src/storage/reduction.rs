@@ -68,3 +68,28 @@ where
         axes: &[isize],
     ) -> Result<(Storage<DataOwned<<Self as DeviceRawAPI<usize>>::Raw>, usize, Self>, Layout<IxD>)>;
 }
+
+#[allow(clippy::type_complexity)]
+pub trait OpAllCloseAPI<TA, TB, TE, D>
+where
+    D: DimAPI,
+    Self: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<bool>,
+{
+    fn allclose_all(
+        &self,
+        a: &<Self as DeviceRawAPI<TA>>::Raw,
+        la: &Layout<D>,
+        b: &<Self as DeviceRawAPI<TB>>::Raw,
+        lb: &Layout<D>,
+        isclose_args: &IsCloseArgs<TE>,
+    ) -> Result<bool>;
+    fn allclose_axes(
+        &self,
+        a: &<Self as DeviceRawAPI<TA>>::Raw,
+        la: &Layout<D>,
+        b: &<Self as DeviceRawAPI<TB>>::Raw,
+        lb: &Layout<D>,
+        axes: &[isize],
+        isclose_args: &IsCloseArgs<TE>,
+    ) -> Result<(Storage<DataOwned<<Self as DeviceRawAPI<bool>>::Raw>, bool, Self>, Layout<IxD>)>;
+}

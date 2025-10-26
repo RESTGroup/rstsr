@@ -2,23 +2,25 @@ use crate::prelude_dev::*;
 
 macro_rules! trait_reduction {
     ($OpReduceAPI: ident, $fn: ident, $fn_f: ident, $fn_axes: ident, $fn_axes_f: ident, $fn_all: ident, $fn_all_f: ident) => {
-        pub fn $fn_all_f<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> Result<B::TOut>
+        pub fn $fn_all_f<T, B, D>(tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>) -> Result<B::TOut>
         where
-            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
             B: $OpReduceAPI<T, D>,
         {
+            let tensor = tensor.view();
             tensor.device().$fn_all(tensor.raw(), tensor.layout())
         }
 
-        pub fn $fn_axes_f<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, axes: I) -> Result<Tensor<B::TOut, B, IxD>>
+        pub fn $fn_axes_f<T, B, D>(
+            tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
+            axes: impl TryInto<AxesIndex<isize>, Error = Error>,
+        ) -> Result<Tensor<B::TOut, B, IxD>>
         where
-            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
             B: $OpReduceAPI<T, D> + DeviceCreationAnyAPI<B::TOut>,
-            I: TryInto<AxesIndex<isize>, Error = Error>,
         {
             let axes = axes.try_into()?;
+            let tensor = tensor.view();
 
             // special case for summing all axes
             if axes.as_ref().is_empty() {
@@ -32,37 +34,35 @@ macro_rules! trait_reduction {
             Tensor::new_f(storage, layout)
         }
 
-        pub fn $fn_all<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> B::TOut
+        pub fn $fn_all<T, B, D>(tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>) -> B::TOut
         where
-            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
             B: $OpReduceAPI<T, D>,
         {
             $fn_all_f(tensor).unwrap()
         }
 
-        pub fn $fn_axes<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, axes: I) -> Tensor<B::TOut, B, IxD>
+        pub fn $fn_axes<T, B, D>(
+            tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
+            axes: impl TryInto<AxesIndex<isize>, Error = Error>,
+        ) -> Tensor<B::TOut, B, IxD>
         where
-            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
             B: $OpReduceAPI<T, D> + DeviceCreationAnyAPI<B::TOut>,
-            I: TryInto<AxesIndex<isize>, Error = Error>,
         {
             $fn_axes_f(tensor, axes).unwrap()
         }
 
-        pub fn $fn_f<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> Result<B::TOut>
+        pub fn $fn_f<T, B, D>(tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>) -> Result<B::TOut>
         where
-            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
             B: $OpReduceAPI<T, D>,
         {
             $fn_all_f(tensor)
         }
 
-        pub fn $fn<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> B::TOut
+        pub fn $fn<T, B, D>(tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>) -> B::TOut
         where
-            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
             B: $OpReduceAPI<T, D>,
         {
@@ -83,18 +83,19 @@ macro_rules! trait_reduction {
                 $fn_all(self)
             }
 
-            pub fn $fn_axes_f<I>(&self, axes: I) -> Result<Tensor<B::TOut, B, IxD>>
+            pub fn $fn_axes_f(
+                &self,
+                axes: impl TryInto<AxesIndex<isize>, Error = Error>,
+            ) -> Result<Tensor<B::TOut, B, IxD>>
             where
                 B: DeviceCreationAnyAPI<B::TOut>,
-                I: TryInto<AxesIndex<isize>, Error = Error>,
             {
                 $fn_axes_f(self, axes)
             }
 
-            pub fn $fn_axes<I>(&self, axes: I) -> Tensor<B::TOut, B, IxD>
+            pub fn $fn_axes(&self, axes: impl TryInto<AxesIndex<isize>, Error = Error>) -> Tensor<B::TOut, B, IxD>
             where
                 B: DeviceCreationAnyAPI<B::TOut>,
-                I: TryInto<AxesIndex<isize>, Error = Error>,
             {
                 $fn_axes(self, axes)
             }
@@ -131,59 +132,59 @@ pub use impl_trait_reduction::*;
 
 macro_rules! trait_reduction_arg {
     ($OpReduceAPI: ident, $fn: ident, $fn_f: ident, $fn_axes: ident, $fn_axes_f: ident, $fn_all: ident, $fn_all_f: ident) => {
-        pub fn $fn_all_f<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> Result<D>
+        pub fn $fn_all_f<T, B, D>(tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>) -> Result<D>
         where
-            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
             B: $OpReduceAPI<T, D>,
         {
+            let tensor = tensor.view();
             tensor.device().$fn_all(tensor.raw(), tensor.layout())
         }
 
-        pub fn $fn_axes_f<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, axes: I) -> Result<Tensor<IxD, B, IxD>>
+        pub fn $fn_axes_f<T, B, D>(
+            tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
+            axes: impl TryInto<AxesIndex<isize>, Error = Error>,
+        ) -> Result<Tensor<IxD, B, IxD>>
         where
-            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
             B: $OpReduceAPI<T, D> + DeviceAPI<IxD>,
-            I: TryInto<AxesIndex<isize>, Error = Error>,
         {
             let axes = axes.try_into()?;
+            let tensor = tensor.view();
 
             let (storage, layout) = tensor.device().$fn_axes(tensor.raw(), tensor.layout(), axes.as_ref())?;
             Tensor::new_f(storage, layout)
         }
 
-        pub fn $fn_all<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> D
+        pub fn $fn_all<T, B, D>(tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>) -> D
         where
-            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
             B: $OpReduceAPI<T, D>,
         {
             $fn_all_f(tensor).unwrap()
         }
 
-        pub fn $fn_axes<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, axes: I) -> Tensor<IxD, B, IxD>
+        pub fn $fn_axes<T, B, D>(
+            tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
+            axes: impl TryInto<AxesIndex<isize>, Error = Error>,
+        ) -> Tensor<IxD, B, IxD>
         where
-            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
             B: $OpReduceAPI<T, D> + DeviceAPI<IxD>,
-            I: TryInto<AxesIndex<isize>, Error = Error>,
         {
             $fn_axes_f(tensor, axes).unwrap()
         }
 
-        pub fn $fn_f<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> Result<D>
+        pub fn $fn_f<T, B, D>(tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>) -> Result<D>
         where
-            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
             B: $OpReduceAPI<T, D>,
         {
             $fn_all_f(tensor)
         }
 
-        pub fn $fn<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> D
+        pub fn $fn<T, B, D>(tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>) -> D
         where
-            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
             B: $OpReduceAPI<T, D>,
         {
@@ -204,18 +205,16 @@ macro_rules! trait_reduction_arg {
                 $fn_all(self)
             }
 
-            pub fn $fn_axes_f<I>(&self, axes: I) -> Result<Tensor<IxD, B, IxD>>
+            pub fn $fn_axes_f(&self, axes: impl TryInto<AxesIndex<isize>, Error = Error>) -> Result<Tensor<IxD, B, IxD>>
             where
                 B: DeviceAPI<IxD>,
-                I: TryInto<AxesIndex<isize>, Error = Error>,
             {
                 $fn_axes_f(self, axes)
             }
 
-            pub fn $fn_axes<I>(&self, axes: I) -> Tensor<IxD, B, IxD>
+            pub fn $fn_axes(&self, axes: impl TryInto<AxesIndex<isize>, Error = Error>) -> Tensor<IxD, B, IxD>
             where
                 B: DeviceAPI<IxD>,
-                I: TryInto<AxesIndex<isize>, Error = Error>,
             {
                 $fn_axes(self, axes)
             }
@@ -250,6 +249,8 @@ trait_reduction_arg!(
     unraveled_argmax_all_f
 );
 
+/* #region sum (bool) */
+
 pub trait TensorSumBoolAPI<B, D>
 where
     D: DimAPI,
@@ -265,13 +266,8 @@ where
     fn sum(&self) -> usize {
         self.sum_f().unwrap()
     }
-    fn sum_axes_f<I>(&self, axes: I) -> Result<Tensor<usize, B, IxD>>
-    where
-        I: TryInto<AxesIndex<isize>, Error = Error>;
-    fn sum_axes<I>(&self, axes: I) -> Tensor<usize, B, IxD>
-    where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
-    {
+    fn sum_axes_f(&self, axes: impl TryInto<AxesIndex<isize>, Error = Error>) -> Result<Tensor<usize, B, IxD>>;
+    fn sum_axes(&self, axes: impl TryInto<AxesIndex<isize>, Error = Error>) -> Tensor<usize, B, IxD> {
         self.sum_axes_f(axes).unwrap()
     }
 }
@@ -286,10 +282,7 @@ where
         self.device().sum_all(self.raw(), self.layout())
     }
 
-    fn sum_axes_f<I>(&self, axes: I) -> Result<Tensor<usize, B, IxD>>
-    where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
-    {
+    fn sum_axes_f(&self, axes: impl TryInto<AxesIndex<isize>, Error = Error>) -> Result<Tensor<usize, B, IxD>> {
         let axes = axes.try_into()?;
 
         // special case for summing all axes
@@ -304,6 +297,68 @@ where
         Tensor::new_f(storage, layout)
     }
 }
+
+/* #endregion */
+
+/* #region allclose */
+
+pub fn allclose_all_f<TA, TB, TE, B, D>(
+    tensor_a: impl TensorViewAPI<Type = TA, Backend = B, Dim = D>,
+    tensor_b: impl TensorViewAPI<Type = TB, Backend = B, Dim = D>,
+    isclose_args: impl Into<IsCloseArgs<TE>>,
+) -> Result<bool>
+where
+    D: DimAPI,
+    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, D>,
+    TE: 'static,
+{
+    let tensor_a = tensor_a.view();
+    let tensor_b = tensor_b.view();
+    let isclose_args = isclose_args.into();
+    let device = tensor_a.device();
+    device.allclose_all(tensor_a.raw(), tensor_a.layout(), tensor_b.raw(), tensor_b.layout(), &isclose_args)
+}
+
+pub fn allclose_all<TA, TB, TE, B, D>(
+    tensor_a: impl TensorViewAPI<Type = TA, Backend = B, Dim = D>,
+    tensor_b: impl TensorViewAPI<Type = TB, Backend = B, Dim = D>,
+    isclose_args: impl Into<IsCloseArgs<TE>>,
+) -> bool
+where
+    D: DimAPI,
+    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, D>,
+    TE: 'static,
+{
+    allclose_all_f(tensor_a, tensor_b, isclose_args).unwrap()
+}
+
+pub fn allclose_f<TA, TB, TE, B, D>(
+    tensor_a: impl TensorViewAPI<Type = TA, Backend = B, Dim = D>,
+    tensor_b: impl TensorViewAPI<Type = TB, Backend = B, Dim = D>,
+    isclose_args: impl Into<IsCloseArgs<TE>>,
+) -> Result<bool>
+where
+    D: DimAPI,
+    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, D>,
+    TE: 'static,
+{
+    allclose_all_f(tensor_a, tensor_b, isclose_args)
+}
+
+pub fn allclose<TA, TB, TE, B, D>(
+    tensor_a: impl TensorViewAPI<Type = TA, Backend = B, Dim = D>,
+    tensor_b: impl TensorViewAPI<Type = TB, Backend = B, Dim = D>,
+    isclose_args: impl Into<IsCloseArgs<TE>>,
+) -> bool
+where
+    D: DimAPI,
+    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, D>,
+    TE: 'static,
+{
+    allclose_f(tensor_a, tensor_b, isclose_args).unwrap()
+}
+
+/* #endregion */
 
 #[cfg(test)]
 mod test {
@@ -769,5 +824,40 @@ mod test {
         let a_all = a.all_axes(-2);
         println!("{:?}", a_all);
         assert_eq!(a_all.raw(), &[true, true, false]);
+    }
+
+    #[test]
+    fn test_allclose_cpu_serial() {
+        use rstsr_dtype_traits::IsCloseArgsBuilder;
+
+        let mut device = DeviceCpuSerial::default();
+        device.set_default_order(RowMajor);
+        let a = asarray((vec![1, 2, 3, 4], [2, 2].c(), &device));
+        let b = asarray((vec![1.0f32, 3.0, 2.0, 4.00001], [2, 2].f(), &device));
+        let result = allclose(&a, &b, None);
+        println!("Allclose result: {result}");
+        assert!(result);
+        let args = IsCloseArgsBuilder::default().atol(1e-8).rtol(1e-8).build().unwrap();
+        let result = allclose(&a, &b, args);
+        println!("Allclose result with tight args: {result}");
+        assert!(!result);
+    }
+
+    #[test]
+    #[cfg(feature = "faer")]
+    fn test_allclose_faer() {
+        use rstsr_dtype_traits::IsCloseArgsBuilder;
+
+        let mut device = DeviceFaer::default();
+        device.set_default_order(RowMajor);
+        let a = asarray((vec![1, 2, 3, 4], [2, 2].c(), &device));
+        let b = asarray((vec![1.0f32, 3.0, 2.0, 4.00001], [2, 2].f(), &device));
+        let result = allclose(&a, &b, None);
+        println!("Allclose result: {result}");
+        assert!(result);
+        let args = IsCloseArgsBuilder::default().atol(1e-8).rtol(1e-8).build().unwrap();
+        let result = allclose(&a, &b, args);
+        println!("Allclose result with tight args: {result}");
+        assert!(!result);
     }
 }

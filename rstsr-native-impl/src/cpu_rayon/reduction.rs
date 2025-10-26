@@ -151,7 +151,7 @@ where
 
         // prepare output
         let len_out = layout_out.size();
-        let mut out: Vec<TS> = unsafe { uninitialized_vec(len_out)? };
+        let mut out: Vec<MaybeUninit<TS>> = unsafe { uninitialized_vec(len_out)? };
         let out_ptr = AtomicPtr::new(out.as_mut_ptr());
 
         // actual evaluation
@@ -162,7 +162,7 @@ where
                 let mut layout_inner = layout_axes.clone();
                 unsafe { layout_inner.set_offset(idx_rest) };
                 let acc = reduce_all_cpu_rayon(a, &layout_inner, &init, &f, &f_sum, &f_out, pool)?;
-                unsafe { *out_ptr.add(idx_out) = acc };
+                unsafe { *out_ptr.add(idx_out) = MaybeUninit::new(acc) };
                 Ok(())
             })
         };
@@ -170,6 +170,7 @@ where
             None => task()?,
             Some(pool) => pool.install(task)?,
         };
+        let out = unsafe { transmute::<Vec<MaybeUninit<TS>>, Vec<TS>>(out) };
         Ok((out, layout_out))
     } else {
         // iterate layout_axes
@@ -249,7 +250,7 @@ where
 
         // prepare output
         let len_out = layout_out.size();
-        let mut out: Vec<TO> = unsafe { uninitialized_vec(len_out)? };
+        let mut out: Vec<MaybeUninit<TO>> = unsafe { uninitialized_vec(len_out)? };
         let out_ptr = AtomicPtr::new(out.as_mut_ptr());
 
         // actual evaluation
@@ -260,7 +261,7 @@ where
                 let mut layout_inner = layout_axes.clone();
                 unsafe { layout_inner.set_offset(idx_rest) };
                 let acc = reduce_all_cpu_rayon(a, &layout_inner, &init, &f, &f_sum, &f_out, pool)?;
-                unsafe { *out_ptr.add(idx_out) = acc };
+                unsafe { *out_ptr.add(idx_out) = MaybeUninit::new(acc) };
                 Ok(())
             })
         };
@@ -268,6 +269,7 @@ where
             None => task()?,
             Some(pool) => pool.install(task)?,
         };
+        let out = unsafe { transmute::<Vec<MaybeUninit<TO>>, Vec<TO>>(out) };
         Ok((out, layout_out))
     } else {
         // iterate layout_axes
@@ -299,6 +301,112 @@ where
         op_muta_refb_func_cpu_rayon(&mut out_converted, &layout_out, &out, &layout_out, &mut f_out, pool)?;
         let out_converted = unsafe { transmute::<Vec<MaybeUninit<TO>>, Vec<TO>>(out_converted) };
         Ok((out_converted, layout_out))
+    }
+}
+
+/* #endregion */
+
+/* #region reduce_binary */
+
+pub fn reduce_all_binary_cpu_rayon<TI1, TI2, TS, TO, D, I, F, FSum, FOut>(
+    a: &[TI1],
+    la: &Layout<D>,
+    b: &[TI2],
+    lb: &Layout<D>,
+    init: I,
+    f: F,
+    f_sum: FSum,
+    f_out: FOut,
+    pool: Option<&ThreadPool>,
+) -> Result<TO>
+where
+    TI1: Clone + Send + Sync,
+    TI2: Clone + Send + Sync,
+    TS: Clone + Send + Sync,
+    TO: Clone + Send + Sync,
+    D: DimAPI,
+    I: Fn() -> TS + Send + Sync,
+    F: Fn(TS, (TI1, TI2)) -> TS + Send + Sync,
+    FSum: Fn(TS, TS) -> TS + Send + Sync,
+    FOut: Fn(TS) -> TO + Send + Sync,
+{
+    // determine whether to use parallel iteration
+    let size = la.size();
+    if size < PARALLEL_SWITCH {
+        return reduce_all_binary_cpu_serial(a, la, b, lb, init, f, f_sum, f_out);
+    }
+
+    // re-allign layouts
+    let layouts_full = translate_to_col_major(&[la, lb], TensorIterOrder::K)?;
+    let layouts_full_ref = layouts_full.iter().collect_vec();
+    let (layouts_contig, size_contig) = translate_to_col_major_with_contig(&layouts_full_ref);
+
+    // actual parallel iteration
+    if size_contig >= CONTIG_SWITCH {
+        // parallel for outer iteration
+        let iter_a = IterLayoutColMajor::new(&layouts_contig[0])?;
+        let iter_b = IterLayoutColMajor::new(&layouts_contig[1])?;
+        if size_contig < PARALLEL_SWITCH {
+            // not parallel inner iteration
+            let task = || {
+                (iter_a, iter_b)
+                    .into_par_iter()
+                    .fold(&init, |acc_inner, (idx_a, idx_b)| {
+                        let slc_a = &a[idx_a..idx_a + size_contig];
+                        let slc_b = &b[idx_b..idx_b + size_contig];
+                        f_sum(acc_inner, unrolled_binary_reduce(slc_a, slc_b, &init, &f, &f_sum))
+                    })
+                    .reduce(&init, &f_sum)
+            };
+            let acc = match pool {
+                None => task(),
+                Some(pool) => pool.install(task),
+            };
+            Ok(f_out(acc))
+        } else {
+            // parallel inner iteration
+            let chunk = PARALLEL_CHUNK_MAX;
+            let task = || {
+                (iter_a, iter_b)
+                    .into_par_iter()
+                    .fold(&init, |acc_inner, (idx_a, idx_b)| {
+                        let res = (0..size_contig)
+                            .into_par_iter()
+                            .step_by(chunk)
+                            .fold(&init, |acc_chunk, idx| {
+                                let chunk = chunk.min(size_contig - idx);
+                                let start_a = idx_a + idx;
+                                let start_b = idx_b + idx;
+                                let slc_a = &a[start_a..start_a + chunk];
+                                let slc_b = &b[start_b..start_b + chunk];
+                                f_sum(acc_chunk, unrolled_binary_reduce(slc_a, slc_b, &init, &f, &f_sum))
+                            })
+                            .reduce(&init, &f_sum);
+                        f_sum(acc_inner, res)
+                    })
+                    .reduce(&init, &f_sum)
+            };
+            let acc = match pool {
+                None => task(),
+                Some(pool) => pool.install(task),
+            };
+            Ok(f_out(acc))
+        }
+    } else {
+        // manual fold when not contiguous
+        let iter_a = IterLayoutColMajor::new(&layouts_full[0])?;
+        let iter_b = IterLayoutColMajor::new(&layouts_full[1])?;
+        let task = || {
+            (iter_a, iter_b)
+                .into_par_iter()
+                .fold(&init, |acc, (idx_a, idx_b)| f(acc, (a[idx_a].clone(), b[idx_b].clone())))
+                .reduce(&init, &f_sum)
+        };
+        let acc = match pool {
+            None => task(),
+            Some(pool) => pool.install(task),
+        };
+        Ok(f_out(acc))
     }
 }
 
@@ -416,7 +524,7 @@ where
 
     // prepare output
     let len_out = layout_out.size();
-    let mut out: Vec<IxD> = unsafe { uninitialized_vec(len_out)? };
+    let mut out: Vec<MaybeUninit<IxD>> = unsafe { uninitialized_vec(len_out)? };
     let out_ptr = AtomicPtr::new(out.as_mut_ptr());
 
     // actual evaluation
@@ -427,7 +535,7 @@ where
             let mut layout_inner = layout_axes.clone();
             unsafe { layout_inner.set_offset(idx_rest) };
             let acc = reduce_all_unraveled_arg_cpu_rayon(a, &layout_inner, &f_comp, &f_eq, pool)?;
-            unsafe { *out_ptr.add(idx_out) = acc.clone() };
+            unsafe { *out_ptr.add(idx_out) = MaybeUninit::new(acc) };
             Ok(())
         })
     };
@@ -435,6 +543,7 @@ where
         None => task()?,
         Some(pool) => pool.install(task)?,
     };
+    let out = unsafe { transmute::<Vec<MaybeUninit<IxD>>, Vec<IxD>>(out) };
     Ok((out, layout_out))
 }
 

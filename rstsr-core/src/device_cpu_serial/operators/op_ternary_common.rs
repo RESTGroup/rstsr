@@ -1,7 +1,7 @@
 use crate::prelude_dev::*;
 use num::complex::ComplexFloat;
 use num::{pow::Pow, Float};
-use rstsr_dtype_traits::{ExtFloat, ExtReal, PromotionAPI, PromotionSpecialAPI};
+use rstsr_dtype_traits::{DTypeIntoFloatAPI, DTypePromoteAPI, ExtFloat, ExtReal};
 
 // output with special promotion
 #[duplicate_item(
@@ -14,11 +14,11 @@ use rstsr_dtype_traits::{ExtFloat, ExtReal, PromotionAPI, PromotionSpecialAPI};
 )]
 impl<TA, TB, D> DeviceOpAPI<TA, TB, D> for DeviceCpuSerial
 where
-    TA: Clone + PromotionAPI<TB, Res: PromotionSpecialAPI<FloatType: TraitT>>,
+    TA: Clone + DTypePromoteAPI<TB, Res: DTypeIntoFloatAPI<FloatType: TraitT>>,
     TB: Clone,
     D: DimAPI,
 {
-    type TOut = <TA::Res as PromotionSpecialAPI>::FloatType;
+    type TOut = <TA::Res as DTypeIntoFloatAPI>::FloatType;
 
     fn op_mutc_refa_refb(
         &self,
@@ -31,7 +31,7 @@ where
     ) -> Result<()> {
         let mut func = |c: &mut MaybeUninit<Self::TOut>, a: &TA, b: &TB| {
             let (a, b) = TA::promote_pair(a.clone(), b.clone());
-            let (a, b) = (a.to_float_type(), b.to_float_type());
+            let (a, b) = (a.into_float(), b.into_float());
             c.write(func_inner);
         };
         self.op_mutc_refa_refb_func(c, lc, a, la, b, lb, &mut func)
@@ -47,7 +47,7 @@ where
     ) -> Result<()> {
         let mut func = |c: &mut MaybeUninit<Self::TOut>, a: &TA, b: &TB| {
             let (a, b) = TA::promote_pair(a.clone(), b.clone());
-            let (a, b) = (a.to_float_type(), b.to_float_type());
+            let (a, b) = (a.into_float(), b.into_float());
             c.write(func_inner);
         };
         self.op_mutc_refa_numb_func(c, lc, a, la, b, &mut func)
@@ -63,7 +63,7 @@ where
     ) -> Result<()> {
         let mut func = |c: &mut MaybeUninit<Self::TOut>, a: &TA, b: &TB| {
             let (a, b) = TA::promote_pair(a.clone(), b.clone());
-            let (a, b) = (a.to_float_type(), b.to_float_type());
+            let (a, b) = (a.into_float(), b.into_float());
             c.write(func_inner);
         };
         self.op_mutc_numa_refb_func(c, lc, a, b, lb, &mut func)
@@ -84,7 +84,7 @@ where
 )]
 impl<TA, TB, D> DeviceOpAPI<TA, TB, D> for DeviceCpuSerial
 where
-    TA: Clone + PromotionAPI<TB, Res: TraitT>,
+    TA: Clone + DTypePromoteAPI<TB, Res: TraitT>,
     TB: Clone,
     D: DimAPI,
 {
@@ -185,6 +185,64 @@ where
     ) -> Result<()> {
         self.op_mutc_numa_refb_func(c, lc, a, b, lb, &mut |c, a, b| {
             c.write(a.clone().pow(b.clone()));
+        })
+    }
+}
+
+// Special case for isclose
+use rstsr_dtype_traits::*;
+
+impl<TA, TB, D, TE> DeviceIsCloseAPI<TA, TB, D, TE> for DeviceCpuSerial
+where
+    TA: Clone + DTypePromoteAPI<TB>,
+    TB: Clone,
+    <TA as DTypePromoteAPI<TB>>::Res: ExtNum<AbsOut: DTypeCastAPI<TE>>,
+    TE: ExtFloat + Add<TE, Output = TE> + Mul<TE, Output = TE> + PartialOrd + Clone,
+    D: DimAPI,
+{
+    fn op_mutc_refa_refb(
+        &self,
+        out: &mut <Self as DeviceRawAPI<MaybeUninit<bool>>>::Raw,
+        lout: &Layout<D>,
+        a: &<Self as DeviceRawAPI<TA>>::Raw,
+        la: &Layout<D>,
+        b: &<Self as DeviceRawAPI<TB>>::Raw,
+        lb: &Layout<D>,
+        isclose_args: &IsCloseArgs<TE>,
+    ) -> Result<()> {
+        self.op_mutc_refa_refb_func(out, lout, a, la, b, lb, &mut |c, a, b| {
+            let result = isclose(a, b, isclose_args);
+            c.write(result);
+        })
+    }
+
+    fn op_mutc_numa_refb(
+        &self,
+        out: &mut <Self as DeviceRawAPI<MaybeUninit<bool>>>::Raw,
+        lout: &Layout<D>,
+        a: TA,
+        b: &<Self as DeviceRawAPI<TB>>::Raw,
+        lb: &Layout<D>,
+        isclose_args: &IsCloseArgs<TE>,
+    ) -> Result<()> {
+        self.op_mutc_numa_refb_func(out, lout, a, b, lb, &mut |c, a, b| {
+            let result = isclose(a, b, isclose_args);
+            c.write(result);
+        })
+    }
+
+    fn op_mutc_refa_numb(
+        &self,
+        out: &mut <Self as DeviceRawAPI<MaybeUninit<bool>>>::Raw,
+        lout: &Layout<D>,
+        a: &<Self as DeviceRawAPI<TA>>::Raw,
+        la: &Layout<D>,
+        b: TB,
+        isclose_args: &IsCloseArgs<TE>,
+    ) -> Result<()> {
+        self.op_mutc_refa_numb_func(out, lout, a, la, b, &mut |c, a, b| {
+            let result = isclose(a, b, isclose_args);
+            c.write(result);
         })
     }
 }
