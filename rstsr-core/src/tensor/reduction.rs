@@ -250,6 +250,8 @@ trait_reduction_arg!(
     unraveled_argmax_all_f
 );
 
+/* #region sum (bool) */
+
 pub trait TensorSumBoolAPI<B, D>
 where
     D: DimAPI,
@@ -304,6 +306,74 @@ where
         Tensor::new_f(storage, layout)
     }
 }
+
+/* #endregion */
+
+/* #region allclose */
+
+pub fn allclose_all_f<RA, RB, TA, TB, TE, B, D>(
+    tensor_a: &TensorAny<RA, TA, B, D>,
+    tensor_b: &TensorAny<RB, TB, B, D>,
+    isclose_args: impl Into<IsCloseArgs<TE>>,
+) -> Result<bool>
+where
+    RA: DataAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
+    RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
+    D: DimAPI,
+    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, D>,
+    TE: 'static,
+{
+    let isclose_args = isclose_args.into();
+    let device = tensor_a.device();
+    device.allclose_all(tensor_a.raw(), tensor_a.layout(), tensor_b.raw(), tensor_b.layout(), &isclose_args)
+}
+
+pub fn allclose_all<RA, RB, TA, TB, TE, B, D>(
+    tensor_a: &TensorAny<RA, TA, B, D>,
+    tensor_b: &TensorAny<RB, TB, B, D>,
+    isclose_args: impl Into<IsCloseArgs<TE>>,
+) -> bool
+where
+    RA: DataAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
+    RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
+    D: DimAPI,
+    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, D>,
+    TE: 'static,
+{
+    allclose_all_f(tensor_a, tensor_b, isclose_args).unwrap()
+}
+
+pub fn allclose_f<RA, RB, TA, TB, TE, B, D>(
+    tensor_a: &TensorAny<RA, TA, B, D>,
+    tensor_b: &TensorAny<RB, TB, B, D>,
+    isclose_args: impl Into<IsCloseArgs<TE>>,
+) -> Result<bool>
+where
+    RA: DataAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
+    RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
+    D: DimAPI,
+    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, D>,
+    TE: 'static,
+{
+    allclose_all_f(tensor_a, tensor_b, isclose_args)
+}
+
+pub fn allclose<RA, RB, TA, TB, TE, B, D>(
+    tensor_a: &TensorAny<RA, TA, B, D>,
+    tensor_b: &TensorAny<RB, TB, B, D>,
+    isclose_args: impl Into<IsCloseArgs<TE>>,
+) -> bool
+where
+    RA: DataAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
+    RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
+    D: DimAPI,
+    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, D>,
+    TE: 'static,
+{
+    allclose_f(tensor_a, tensor_b, isclose_args).unwrap()
+}
+
+/* #endregion */
 
 #[cfg(test)]
 mod test {
@@ -769,5 +839,22 @@ mod test {
         let a_all = a.all_axes(-2);
         println!("{:?}", a_all);
         assert_eq!(a_all.raw(), &[true, true, false]);
+    }
+
+    #[test]
+    fn test_allclose() {
+        use rstsr_dtype_traits::IsCloseArgsBuilder;
+
+        let mut device = DeviceCpuSerial::default();
+        device.set_default_order(RowMajor);
+        let a = asarray((vec![1, 2, 3, 4], [2, 2].c(), &device));
+        let b = asarray((vec![1.0f32, 3.0, 2.0, 4.00001], [2, 2].f(), &device));
+        let result = allclose(&a, &b, None);
+        println!("Allclose result: {result}");
+        assert!(result);
+        let args = IsCloseArgsBuilder::default().atol(1e-8).rtol(1e-8).build().unwrap();
+        let result = allclose(&a, &b, args);
+        println!("Allclose result with tight args: {result}");
+        assert!(!result);
     }
 }

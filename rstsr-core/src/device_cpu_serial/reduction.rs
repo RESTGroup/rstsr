@@ -648,3 +648,49 @@ where
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 }
+
+impl<TA, TB, TE, D> OpAllCloseAPI<TA, TB, TE, D> for DeviceCpuSerial
+where
+    TA: Clone + DTypePromoteAPI<TB>,
+    TB: Clone,
+    <TA as DTypePromoteAPI<TB>>::Res: ExtNum<AbsOut: DTypeCastAPI<TE>>,
+    TE: ExtFloat + Add<TE, Output = TE> + Mul<TE, Output = TE> + PartialOrd + Clone,
+    D: DimAPI,
+{
+    fn allclose_all(
+        &self,
+        a: &<Self as DeviceRawAPI<TA>>::Raw,
+        la: &Layout<D>,
+        b: &<Self as DeviceRawAPI<TB>>::Raw,
+        lb: &Layout<D>,
+        isclose_args: &IsCloseArgs<TE>,
+    ) -> Result<bool> {
+        use rstsr_dtype_traits::isclose;
+
+        if la.size() == 0 || lb.size() == 0 {
+            rstsr_raise!(InvalidValue, "zero-size array is not supported for allclose")?;
+        }
+
+        let f_init = || true;
+        let f = |acc: bool, (a_elem, b_elem): (TA, TB)| {
+            let result = isclose(&a_elem, &b_elem, isclose_args);
+            acc && result
+        };
+        let f_sum = |acc1: bool, acc2: bool| acc1 && acc2;
+        let f_out = |acc: bool| acc;
+
+        reduce_all_binary_cpu_serial(a, la, b, lb, f_init, f, f_sum, f_out)
+    }
+
+    fn allclose_axes(
+        &self,
+        _a: &<Self as DeviceRawAPI<TA>>::Raw,
+        _la: &Layout<D>,
+        _b: &<Self as DeviceRawAPI<TB>>::Raw,
+        _lb: &Layout<D>,
+        _axes: &[isize],
+        _isclose_args: &IsCloseArgs<TE>,
+    ) -> Result<(Storage<DataOwned<<Self as DeviceRawAPI<bool>>::Raw>, bool, Self>, Layout<IxD>)> {
+        unimplemented!("This function (`allclose_axes`) is not planned to be implemented yet.");
+    }
+}

@@ -4,7 +4,7 @@ use core::mem::transmute;
 // this value is used to determine whether to use contiguous inner iteration
 const CONTIG_SWITCH: usize = 32;
 
-/// Fold over the manually unrolled `xs` with `f`
+/// Fold over the manually unrolled `xs` with `f`.
 ///
 /// # See also
 ///
@@ -46,6 +46,63 @@ where
             break;
         }
         acc = f(acc.clone(), x.clone())
+    }
+    acc
+}
+
+/// Fold over the manually unrolled `xs1` and `xs2` (binary inputs) with `f`.
+///
+/// This function does not check that the lengths of `xs1` and `xs2` are the same. The shorter one
+/// will determine the number of iterations.
+///
+/// # See also
+///
+/// This code is from <https://github.com/rust-ndarray/ndarray/blob/master/src/numeric_util.rs>
+pub fn unrolled_binary_reduce<TI1, TI2, TS, I, F, FSum>(
+    mut xs1: &[TI1],
+    mut xs2: &[TI2],
+    init: I,
+    f: F,
+    f_sum: FSum,
+) -> TS
+where
+    TI1: Clone,
+    TI2: Clone,
+    TS: Clone,
+    I: Fn() -> TS,
+    F: Fn(TS, (TI1, TI2)) -> TS,
+    FSum: Fn(TS, TS) -> TS,
+{
+    // eightfold unrolled so that floating point can be vectorized
+    // (even with strict floating point accuracy semantics)
+    let mut acc = init();
+    let (mut p0, mut p1, mut p2, mut p3, mut p4, mut p5, mut p6, mut p7) =
+        (init(), init(), init(), init(), init(), init(), init(), init());
+    while xs1.len() >= 8 && xs2.len() >= 8 {
+        p0 = f(p0, (xs1[0].clone(), xs2[0].clone()));
+        p1 = f(p1, (xs1[1].clone(), xs2[1].clone()));
+        p2 = f(p2, (xs1[2].clone(), xs2[2].clone()));
+        p3 = f(p3, (xs1[3].clone(), xs2[3].clone()));
+        p4 = f(p4, (xs1[4].clone(), xs2[4].clone()));
+        p5 = f(p5, (xs1[5].clone(), xs2[5].clone()));
+        p6 = f(p6, (xs1[6].clone(), xs2[6].clone()));
+        p7 = f(p7, (xs1[7].clone(), xs2[7].clone()));
+
+        xs1 = &xs1[8..];
+        xs2 = &xs2[8..];
+    }
+    acc = f_sum(acc.clone(), f_sum(p0, p4));
+    acc = f_sum(acc.clone(), f_sum(p1, p5));
+    acc = f_sum(acc.clone(), f_sum(p2, p6));
+    acc = f_sum(acc.clone(), f_sum(p3, p7));
+
+    // make it clear to the optimizer that this loop is short
+    // and can not be autovectorized.
+    for (i, (x1, x2)) in (xs1.iter().zip(xs2.iter())).enumerate() {
+        if i >= 7 {
+            break;
+        }
+        acc = f(acc.clone(), (x1.clone(), x2.clone()))
     }
     acc
 }
@@ -251,6 +308,57 @@ where
         op_muta_refb_func_cpu_serial(&mut out_converted, &layout_out, &out, &layout_out, f_out)?;
         let out_converted = unsafe { transmute::<Vec<MaybeUninit<TO>>, Vec<TO>>(out_converted) };
         Ok((out_converted, layout_out))
+    }
+}
+
+/* #endregion */
+
+/* #region binary_reduce */
+
+pub fn reduce_all_binary_cpu_serial<TI1, TI2, TS, TO, D, I, F, FSum, FOut>(
+    a: &[TI1],
+    la: &Layout<D>,
+    b: &[TI2],
+    lb: &Layout<D>,
+    init: I,
+    f: F,
+    f_sum: FSum,
+    f_out: FOut,
+) -> Result<TO>
+where
+    TI1: Clone,
+    TI2: Clone,
+    TS: Clone,
+    D: DimAPI,
+    I: Fn() -> TS,
+    F: Fn(TS, (TI1, TI2)) -> TS,
+    FSum: Fn(TS, TS) -> TS,
+    FOut: Fn(TS) -> TO,
+{
+    // re-align layouts
+    let layouts_full = translate_to_col_major(&[la, lb], TensorIterOrder::K)?;
+    let layouts_full_ref = layouts_full.iter().collect_vec();
+    let (layouts_contig, size_contig) = translate_to_col_major_with_contig(&layouts_full_ref);
+
+    if size_contig >= CONTIG_SWITCH {
+        let mut acc = init();
+        let la = &layouts_contig[0];
+        let lb = &layouts_contig[1];
+        layout_col_major_dim_dispatch_2(la, lb, |(idx_a, idx_b)| {
+            let slc_a = &a[idx_a..idx_a + size_contig];
+            let slc_b = &b[idx_b..idx_b + size_contig];
+            let acc_inner = unrolled_binary_reduce(slc_a, slc_b, &init, &f, &f_sum);
+            acc = f_sum(acc.clone(), acc_inner);
+        })?;
+        Ok(f_out(acc))
+    } else {
+        let la = &layouts_full[0];
+        let lb = &layouts_full[1];
+        let iter_a = IterLayoutColMajor::new(la)?;
+        let iter_b = IterLayoutColMajor::new(lb)?;
+        let acc =
+            izip!(iter_a, iter_b).fold(init(), |acc, (idx_a, idx_b)| f(acc, (a[idx_a].clone(), b[idx_b].clone())));
+        Ok(f_out(acc))
     }
 }
 

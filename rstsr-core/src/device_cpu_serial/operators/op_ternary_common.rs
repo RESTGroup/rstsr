@@ -188,3 +188,61 @@ where
         })
     }
 }
+
+// Special case for isclose
+use rstsr_dtype_traits::*;
+
+impl<TA, TB, D, TE> DeviceIsCloseAPI<TA, TB, D, TE> for DeviceCpuSerial
+where
+    TA: Clone + DTypePromoteAPI<TB>,
+    TB: Clone,
+    <TA as DTypePromoteAPI<TB>>::Res: ExtNum<AbsOut: DTypeCastAPI<TE>>,
+    TE: ExtFloat + Add<TE, Output = TE> + Mul<TE, Output = TE> + PartialOrd + Clone,
+    D: DimAPI,
+{
+    fn op_mutc_refa_refb(
+        &self,
+        out: &mut <Self as DeviceRawAPI<MaybeUninit<bool>>>::Raw,
+        lout: &Layout<D>,
+        a: &<Self as DeviceRawAPI<TA>>::Raw,
+        la: &Layout<D>,
+        b: &<Self as DeviceRawAPI<TB>>::Raw,
+        lb: &Layout<D>,
+        isclose_args: &IsCloseArgs<TE>,
+    ) -> Result<()> {
+        self.op_mutc_refa_refb_func(out, lout, a, la, b, lb, &mut |c, a, b| {
+            let result = isclose(a, b, isclose_args);
+            c.write(result);
+        })
+    }
+
+    fn op_mutc_numa_refb(
+        &self,
+        out: &mut <Self as DeviceRawAPI<MaybeUninit<bool>>>::Raw,
+        lout: &Layout<D>,
+        a: TA,
+        b: &<Self as DeviceRawAPI<TB>>::Raw,
+        lb: &Layout<D>,
+        isclose_args: &IsCloseArgs<TE>,
+    ) -> Result<()> {
+        self.op_mutc_numa_refb_func(out, lout, a, b, lb, &mut |c, a, b| {
+            let result = isclose(a, b, isclose_args);
+            c.write(result);
+        })
+    }
+
+    fn op_mutc_refa_numb(
+        &self,
+        out: &mut <Self as DeviceRawAPI<MaybeUninit<bool>>>::Raw,
+        lout: &Layout<D>,
+        a: &<Self as DeviceRawAPI<TA>>::Raw,
+        la: &Layout<D>,
+        b: TB,
+        isclose_args: &IsCloseArgs<TE>,
+    ) -> Result<()> {
+        self.op_mutc_refa_numb_func(out, lout, a, la, b, &mut |c, a, b| {
+            let result = isclose(a, b, isclose_args);
+            c.write(result);
+        })
+    }
+}
