@@ -151,7 +151,7 @@ where
 
         // prepare output
         let len_out = layout_out.size();
-        let mut out: Vec<TS> = unsafe { uninitialized_vec(len_out)? };
+        let mut out: Vec<MaybeUninit<TS>> = unsafe { uninitialized_vec(len_out)? };
         let out_ptr = AtomicPtr::new(out.as_mut_ptr());
 
         // actual evaluation
@@ -162,7 +162,7 @@ where
                 let mut layout_inner = layout_axes.clone();
                 unsafe { layout_inner.set_offset(idx_rest) };
                 let acc = reduce_all_cpu_rayon(a, &layout_inner, &init, &f, &f_sum, &f_out, pool)?;
-                unsafe { *out_ptr.add(idx_out) = acc };
+                unsafe { *out_ptr.add(idx_out) = MaybeUninit::new(acc) };
                 Ok(())
             })
         };
@@ -170,6 +170,7 @@ where
             None => task()?,
             Some(pool) => pool.install(task)?,
         };
+        let out = unsafe { transmute::<Vec<MaybeUninit<TS>>, Vec<TS>>(out) };
         Ok((out, layout_out))
     } else {
         // iterate layout_axes
@@ -249,7 +250,7 @@ where
 
         // prepare output
         let len_out = layout_out.size();
-        let mut out: Vec<TO> = unsafe { uninitialized_vec(len_out)? };
+        let mut out: Vec<MaybeUninit<TO>> = unsafe { uninitialized_vec(len_out)? };
         let out_ptr = AtomicPtr::new(out.as_mut_ptr());
 
         // actual evaluation
@@ -260,7 +261,7 @@ where
                 let mut layout_inner = layout_axes.clone();
                 unsafe { layout_inner.set_offset(idx_rest) };
                 let acc = reduce_all_cpu_rayon(a, &layout_inner, &init, &f, &f_sum, &f_out, pool)?;
-                unsafe { *out_ptr.add(idx_out) = acc };
+                unsafe { *out_ptr.add(idx_out) = MaybeUninit::new(acc) };
                 Ok(())
             })
         };
@@ -268,6 +269,7 @@ where
             None => task()?,
             Some(pool) => pool.install(task)?,
         };
+        let out = unsafe { transmute::<Vec<MaybeUninit<TO>>, Vec<TO>>(out) };
         Ok((out, layout_out))
     } else {
         // iterate layout_axes
@@ -522,7 +524,7 @@ where
 
     // prepare output
     let len_out = layout_out.size();
-    let mut out: Vec<IxD> = unsafe { uninitialized_vec(len_out)? };
+    let mut out: Vec<MaybeUninit<IxD>> = unsafe { uninitialized_vec(len_out)? };
     let out_ptr = AtomicPtr::new(out.as_mut_ptr());
 
     // actual evaluation
@@ -533,7 +535,7 @@ where
             let mut layout_inner = layout_axes.clone();
             unsafe { layout_inner.set_offset(idx_rest) };
             let acc = reduce_all_unraveled_arg_cpu_rayon(a, &layout_inner, &f_comp, &f_eq, pool)?;
-            unsafe { *out_ptr.add(idx_out) = acc.clone() };
+            unsafe { *out_ptr.add(idx_out) = MaybeUninit::new(acc) };
             Ok(())
         })
     };
@@ -541,6 +543,7 @@ where
         None => task()?,
         Some(pool) => pool.install(task)?,
     };
+    let out = unsafe { transmute::<Vec<MaybeUninit<IxD>>, Vec<IxD>>(out) };
     Ok((out, layout_out))
 }
 

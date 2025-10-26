@@ -186,15 +186,16 @@ where
 
         // prepare output
         let len_out = layout_out.size();
-        let mut out = unsafe { uninitialized_vec(len_out)? };
+        let mut out: Vec<MaybeUninit<TS>> = unsafe { uninitialized_vec(len_out)? };
 
         // actual evaluation
         izip!(iter_out_swapped, iter_rest_swapped).try_for_each(|(idx_out, idx_rest)| -> Result<()> {
             unsafe { layout_inner.set_offset(idx_rest) };
             let acc = reduce_all_cpu_serial(a, &layout_inner, &init, &f, &f_sum, &f_out)?;
-            out[idx_out] = acc;
+            out[idx_out] = MaybeUninit::new(acc);
             Ok(())
         })?;
+        let out = unsafe { transmute::<Vec<MaybeUninit<TS>>, Vec<TS>>(out) };
         Ok((out, layout_out))
     } else {
         // iterate layout_axes
@@ -268,15 +269,16 @@ where
 
         // prepare output
         let len_out = layout_out.size();
-        let mut out = unsafe { uninitialized_vec(len_out)? };
+        let mut out: Vec<MaybeUninit<TO>> = unsafe { uninitialized_vec(len_out)? };
 
         // actual evaluation
         izip!(iter_out_swapped, iter_rest_swapped).try_for_each(|(idx_out, idx_rest)| -> Result<()> {
             unsafe { layout_inner.set_offset(idx_rest) };
             let acc = reduce_all_cpu_serial(a, &layout_inner, &init, &f, &f_sum, &f_out)?;
-            out[idx_out] = acc;
+            out[idx_out] = MaybeUninit::new(acc);
             Ok(())
         })?;
+        let out = unsafe { transmute::<Vec<MaybeUninit<TO>>, Vec<TO>>(out) };
         Ok((out, layout_out))
     } else {
         // iterate layout_axes
@@ -455,15 +457,16 @@ where
 
     // prepare output
     let len_out = layout_out.size();
-    let mut out = vec![IxD::default(); len_out];
+    let mut out: Vec<MaybeUninit<IxD>> = unsafe { uninitialized_vec(len_out)? };
 
     // actual evaluation
     izip!(iter_out_swapped, iter_rest_swapped).try_for_each(|(idx_out, idx_rest)| -> Result<()> {
         unsafe { layout_inner.set_offset(idx_rest) };
         let acc = reduce_all_unraveled_arg_cpu_serial(a, &layout_inner, &f_comp, &f_eq)?;
-        out[idx_out] = acc;
+        out[idx_out] = MaybeUninit::new(acc);
         Ok(())
     })?;
+    let out = unsafe { transmute::<Vec<MaybeUninit<IxD>>, Vec<IxD>>(out) };
     Ok((out, layout_out))
 }
 
