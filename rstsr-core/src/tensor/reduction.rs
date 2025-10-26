@@ -842,10 +842,28 @@ mod test {
     }
 
     #[test]
-    fn test_allclose() {
+    fn test_allclose_cpu_serial() {
         use rstsr_dtype_traits::IsCloseArgsBuilder;
 
         let mut device = DeviceCpuSerial::default();
+        device.set_default_order(RowMajor);
+        let a = asarray((vec![1, 2, 3, 4], [2, 2].c(), &device));
+        let b = asarray((vec![1.0f32, 3.0, 2.0, 4.00001], [2, 2].f(), &device));
+        let result = allclose(&a, &b, None);
+        println!("Allclose result: {result}");
+        assert!(result);
+        let args = IsCloseArgsBuilder::default().atol(1e-8).rtol(1e-8).build().unwrap();
+        let result = allclose(&a, &b, args);
+        println!("Allclose result with tight args: {result}");
+        assert!(!result);
+    }
+
+    #[test]
+    #[cfg(feature = "faer")]
+    fn test_allclose_faer() {
+        use rstsr_dtype_traits::IsCloseArgsBuilder;
+
+        let mut device = DeviceFaer::default();
         device.set_default_order(RowMajor);
         let a = asarray((vec![1, 2, 3, 4], [2, 2].c(), &device));
         let b = asarray((vec![1.0f32, 3.0, 2.0, 4.00001], [2, 2].f(), &device));

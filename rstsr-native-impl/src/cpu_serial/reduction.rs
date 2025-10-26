@@ -313,7 +313,7 @@ where
 
 /* #endregion */
 
-/* #region binary_reduce */
+/* #region reduce_binary */
 
 pub fn reduce_all_binary_cpu_serial<TI1, TI2, TS, TO, D, I, F, FSum, FOut>(
     a: &[TI1],
