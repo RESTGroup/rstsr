@@ -311,31 +311,29 @@ where
 
 /* #region allclose */
 
-pub fn allclose_all_f<RA, RB, TA, TB, TE, B, D>(
-    tensor_a: &TensorAny<RA, TA, B, D>,
-    tensor_b: &TensorAny<RB, TB, B, D>,
+pub fn allclose_all_f<TA, TB, TE, B, D>(
+    tensor_a: impl TensorViewAPI<Type = TA, Backend = B, Dim = D>,
+    tensor_b: impl TensorViewAPI<Type = TB, Backend = B, Dim = D>,
     isclose_args: impl Into<IsCloseArgs<TE>>,
 ) -> Result<bool>
 where
-    RA: DataAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
-    RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
     D: DimAPI,
     B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, D>,
     TE: 'static,
 {
+    let tensor_a = tensor_a.view();
+    let tensor_b = tensor_b.view();
     let isclose_args = isclose_args.into();
     let device = tensor_a.device();
     device.allclose_all(tensor_a.raw(), tensor_a.layout(), tensor_b.raw(), tensor_b.layout(), &isclose_args)
 }
 
-pub fn allclose_all<RA, RB, TA, TB, TE, B, D>(
-    tensor_a: &TensorAny<RA, TA, B, D>,
-    tensor_b: &TensorAny<RB, TB, B, D>,
+pub fn allclose_all<TA, TB, TE, B, D>(
+    tensor_a: impl TensorViewAPI<Type = TA, Backend = B, Dim = D>,
+    tensor_b: impl TensorViewAPI<Type = TB, Backend = B, Dim = D>,
     isclose_args: impl Into<IsCloseArgs<TE>>,
 ) -> bool
 where
-    RA: DataAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
-    RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
     D: DimAPI,
     B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, D>,
     TE: 'static,
@@ -343,14 +341,12 @@ where
     allclose_all_f(tensor_a, tensor_b, isclose_args).unwrap()
 }
 
-pub fn allclose_f<RA, RB, TA, TB, TE, B, D>(
-    tensor_a: &TensorAny<RA, TA, B, D>,
-    tensor_b: &TensorAny<RB, TB, B, D>,
+pub fn allclose_f<TA, TB, TE, B, D>(
+    tensor_a: impl TensorViewAPI<Type = TA, Backend = B, Dim = D>,
+    tensor_b: impl TensorViewAPI<Type = TB, Backend = B, Dim = D>,
     isclose_args: impl Into<IsCloseArgs<TE>>,
 ) -> Result<bool>
 where
-    RA: DataAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
-    RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
     D: DimAPI,
     B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, D>,
     TE: 'static,
@@ -358,14 +354,12 @@ where
     allclose_all_f(tensor_a, tensor_b, isclose_args)
 }
 
-pub fn allclose<RA, RB, TA, TB, TE, B, D>(
-    tensor_a: &TensorAny<RA, TA, B, D>,
-    tensor_b: &TensorAny<RB, TB, B, D>,
+pub fn allclose<TA, TB, TE, B, D>(
+    tensor_a: impl TensorViewAPI<Type = TA, Backend = B, Dim = D>,
+    tensor_b: impl TensorViewAPI<Type = TB, Backend = B, Dim = D>,
     isclose_args: impl Into<IsCloseArgs<TE>>,
 ) -> bool
 where
-    RA: DataAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
-    RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
     D: DimAPI,
     B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, D>,
     TE: 'static,
