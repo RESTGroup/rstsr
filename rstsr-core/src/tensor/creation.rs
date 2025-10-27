@@ -1800,6 +1800,113 @@ where
 
 /* #endregion */
 
+/* #region macro tensor_from_nested */
+
+pub trait FromNestedArrayAPI<Arr> {
+    fn from_nested_array(arr: Arr) -> Self;
+}
+
+/// Implementation of this macro uses the same way of crate `ndarray`:
+/// <https://docs.rs/ndarray/latest/ndarray/macro.array.html>
+macro_rules! impl_from_nested_array {
+    ($arr_type:ty, $ix_type:tt, $($n:ident),+) => {
+        impl<T, $(const $n: usize),+> FromNestedArrayAPI<$arr_type> for Tensor<T, DeviceCpu, $ix_type>
+        where
+            T: Clone,
+        {
+            #[allow(clippy::missing_transmute_annotations)]
+            fn from_nested_array(arr: $arr_type) -> Self {
+                let shape: Layout<$ix_type> = [$($n),+].into();
+                let device = DeviceCpu::default();
+                let slc = unsafe {
+                    core::slice::from_raw_parts(arr.as_ptr() as *const T, shape.size())
+                };
+                let vec = slc.to_vec();
+                asarray((vec, shape, &device)).into_dim()
+            }
+        }
+    }
+}
+
+impl_from_nested_array!([T; N1], Ix1, N1);
+impl_from_nested_array!([[T; N2]; N1], Ix2, N1, N2);
+impl_from_nested_array!([[[T; N3]; N2]; N1], Ix3, N1, N2, N3);
+impl_from_nested_array!([[[[T; N4]; N3]; N2]; N1], Ix4, N1, N2, N3, N4);
+impl_from_nested_array!([[[[[T; N5]; N4]; N3]; N2]; N1], Ix5, N1, N2, N3, N4, N5);
+impl_from_nested_array!([[[[[[T; N6]; N5]; N4]; N3]; N2]; N1], Ix6, N1, N2, N3, N4, N5, N6);
+
+/// Create a tensor from a nested array literal.
+///
+/// # Examples
+///
+/// ```rust
+/// use rstsr::prelude::*;
+///
+/// let tsr = rt::tensor_from_nested![[1, 2, 3], [4, 5, 6]];
+/// println!("{tsr:?}");
+/// // [[ 1 2 3]
+/// //  [ 4 5 6]]
+/// // 2-Dim (dyn), contiguous: Cc
+///
+/// let tsr = rt::tensor_from_nested![[[1, 2], [3, 4]], [[5, 6], [7, 8]]];
+/// println!("{tsr:?}");
+/// // [[[ 1 2]
+/// //   [ 3 4]]
+/// //  [[ 5 6]
+/// //   [ 7 8]]]
+/// // 3-Dim (dyn), contiguous: Cc
+/// ```
+///
+/// # Notes on usage
+///
+/// - This macro is used for testing or prototyping purposes. For production code, it is recommended
+///   to use other methods to create tensors (e.g., [`asarray`]) to have better control and
+///   performance.
+/// - The macro supports up to 6 dimensions. For 7 or more dimensions, use other methods to create
+///   tensors.
+/// - The created tensor is on the [`DeviceCpu`] (depends on crate feature `faer_as_default`) and
+///   has dynamic dimension type [`IxD`].
+/// - It is adviced to use brackets `[]` to denote each dimension level, instead of parentheses
+///   `()`.
+///
+/// # See also
+///
+/// - [`ndarray::array`](https://docs.rs/ndarray/latest/ndarray/macro.array.html) from rust crate
+///   ndarray.
+#[macro_export]
+macro_rules! tensor_from_nested {
+    ($([$([$([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*) => {{
+        compile_error!("Tensor of 7 dimensions or more cannot be constructed with the tensor_from_nested! macro.");
+    }};
+    ($([$([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*) => {{
+        Tensor::<_, _, Ix6>::from_nested_array([$([$([$([$([$([$($x,)*],)*],)*],)*],)*],)*]).into_dyn()
+    }};
+    ($([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*) => {{
+        Tensor::<_, _, Ix5>::from_nested_array([$([$([$([$([$($x,)*],)*],)*],)*],)*]).into_dyn()
+    }};
+    ($([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*) => {{
+        Tensor::<_, _, Ix4>::from_nested_array([$([$([$([$($x,)*],)*],)*],)*]).into_dyn()
+    }};
+    ($([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*) => {{
+        Tensor::<_, _, Ix3>::from_nested_array([$([$([$($x,)*],)*],)*]).into_dyn()
+    }};
+    ($([$($x:expr),* $(,)*]),+ $(,)*) => {{
+        Tensor::<_, _, Ix2>::from_nested_array([$([$($x,)*],)*]).into_dyn()
+    }};
+    ($($x:expr),* $(,)*) => {{
+        Tensor::<_, _, Ix1>::from_nested_array([$($x,)*]).into_dyn()
+    }};
+}
+
+#[test]
+fn playground() {
+    use rstsr::prelude::*;
+    let tsr = rt::tensor_from_nested![[1, 2, 3], [4, 5, 6]];
+    println!("{tsr:?}");
+}
+
+/* #endregion */
+
 #[cfg(test)]
 mod test {
     use super::*;

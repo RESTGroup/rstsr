@@ -58,3 +58,5 @@ pub use crate::feature_rayon::device::*;
 pub use crate::device_faer::device::*;
 
 pub use crate::tensorbase::*;
+
+pub use crate::tensor_from_nested;

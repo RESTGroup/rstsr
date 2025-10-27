@@ -6,8 +6,8 @@ pub mod rstsr_traits {
     pub use crate::storage::device::{DeviceAPI, DeviceBaseAPI, DeviceRawAPI, DeviceStorageAPI};
     pub use crate::tensor::asarray::AsArrayAPI;
     pub use crate::tensor::creation::{
-        ArangeAPI, EmptyAPI, EmptyLikeAPI, EyeAPI, FullAPI, FullLikeAPI, LinspaceAPI, OnesAPI, OnesLikeAPI, TrilAPI,
-        TriuAPI, ZerosAPI, ZerosLikeAPI,
+        ArangeAPI, EmptyAPI, EmptyLikeAPI, EyeAPI, FromNestedArrayAPI, FullAPI, FullLikeAPI, LinspaceAPI, OnesAPI,
+        OnesLikeAPI, TrilAPI, TriuAPI, ZerosAPI, ZerosLikeAPI,
     };
     pub use crate::tensor::creation_from_tensor::{
         ConcatAPI, DiagAPI, HStackAPI, MeshgridAPI, StackAPI, UnstackAPI, VStackAPI,
@@ -132,6 +132,7 @@ pub mod rstsr_funcs {
 }
 
 pub mod rstsr_macros {
+    pub use crate::tensor_from_nested;
     pub use rstsr_common::prelude::rstsr_macros::*;
 }
 

@@ -23,6 +23,7 @@ derive_builder = { workspace = true }
 duplicate = { workspace = true }
 
 [dev-dependencies]
+rstsr = { path = "../rstsr", default-features = false }
 rand = { workspace = true }
 itertools = { workspace = true }
 approx = { workspace = true }
