@@ -388,8 +388,8 @@ where
 
 /* #region tensor prop for computation */
 
-pub trait TensorRefAPI {}
-impl<R, T, B, D> TensorRefAPI for &TensorAny<R, T, B, D>
+pub trait TensorRefAPI<'l> {}
+impl<'l, R, T, B, D> TensorRefAPI<'l> for &'l TensorAny<R, T, B, D>
 where
     D: DimAPI,
     R: DataAPI<Data = B::Raw>,
@@ -397,7 +397,7 @@ where
     Self: TensorViewAPI,
 {
 }
-impl<T, B, D> TensorRefAPI for TensorView<'_, T, B, D>
+impl<'l, T, B, D> TensorRefAPI<'l> for TensorView<'l, T, B, D>
 where
     D: DimAPI,
     B: DeviceAPI<T>,
@@ -405,8 +405,8 @@ where
 {
 }
 
-pub trait TensorRefMutAPI {}
-impl<R, T, B, D> TensorRefMutAPI for &mut TensorAny<R, T, B, D>
+pub trait TensorRefMutAPI<'l> {}
+impl<'l, R, T, B, D> TensorRefMutAPI<'l> for &mut TensorAny<R, T, B, D>
 where
     D: DimAPI,
     R: DataMutAPI<Data = B::Raw>,
@@ -414,7 +414,7 @@ where
     Self: TensorViewMutAPI,
 {
 }
-impl<T, B, D> TensorRefMutAPI for TensorMut<'_, T, B, D>
+impl<'l, T, B, D> TensorRefMutAPI<'l> for TensorMut<'l, T, B, D>
 where
     D: DimAPI,
     B: DeviceAPI<T>,
