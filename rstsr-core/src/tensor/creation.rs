@@ -1835,7 +1835,7 @@ impl_from_nested_array!([[[[T; N4]; N3]; N2]; N1], Ix4, N1, N2, N3, N4);
 impl_from_nested_array!([[[[[T; N5]; N4]; N3]; N2]; N1], Ix5, N1, N2, N3, N4, N5);
 impl_from_nested_array!([[[[[[T; N6]; N5]; N4]; N3]; N2]; N1], Ix6, N1, N2, N3, N4, N5, N6);
 
-/// Create a tensor from a nested array literal.
+/// Create a tensor from a nested array literal (for development purposes).
 ///
 /// # Examples
 ///

@@ -1,4 +1,4 @@
-# API Specification of RSTSR
+# API Specification of crate `rstsr-core`
 
 ## Notes on API Specification
 
@@ -32,7 +32,7 @@
 
 | Type | Identifier | Minimal Description |
 |--|--|--|
-| module | [tensorbase][crate::tensorbase] | Defining tensor structs. |
+| module | [tensorbase][rstsr_core::tensorbase] | Defining tensor structs. |
 | struct | [`TensorBase<S, D>`] | Basic struct of tensor (storage + layout). |
 | alias | [`TensorAny<R, T, B, D>`] | Basic struct of tensor (data with lifetime + device backend + layout). |
 | alias | [`Tensor<T, B, D>`] | Tensor that owns its raw data. |
@@ -55,10 +55,10 @@
 
 | Type | Identifier | Minimal Description |
 |--|--|--|
-| module | [storage::device][crate::storage::device] | Defining storage and device. |
+| module | [storage::device][rstsr_core::storage::device] | Defining storage and device. |
 | struct | [`DeviceCpuSerial`] | Basic backend that handles computations in single thread. |
 | struct | [`DeviceFaer`] | Backend that applies multi-threaded operations (by [rayon](https://github.com/rayon-rs/rayon/)) and efficient matmul (by [faer](https://github.com/sarah-quinones/faer-rs)). |
-| struct | [`DeviceCpuRayon`][crate::feature_rayon::DeviceCpuRayon] | Base backend for rayon paralleled devices (device for developer, not user). |
+| struct | [`DeviceCpuRayon`][rstsr_core::feature_rayon::DeviceCpuRayon] | Base backend for rayon paralleled devices (device for developer, not user). |
 | trait | [`DeviceAPI<T>`] | Main basic interface for device. |
 
 Device is designed to be able extended by other crates. The above devices [`DeviceCpuSerial`] and [`DeviceFaer`] are only special in that they are realized in rstsr-core. We hope that in future, more devices (backends) can be supported.
@@ -67,23 +67,23 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 
 | Type | Identifier | Minimal Description |
 |--|--|--|
-| module | [storage::device][crate::storage::device] | Defining storage and device. |
-| struct | [`Storage<R, T, B>`][crate::storage::device::Storage] | Storage of tensor (data with lifetime + device backend) |
+| module | [storage::device][rstsr_core::storage::device] | Defining storage and device. |
+| struct | [`Storage<R, T, B>`][rstsr_core::storage::device::Storage] | Storage of tensor (data with lifetime + device backend) |
 
 ### Tensor Ownership
 
 | Type | Identifier | Minimal Description |
 |--|--|--|
-| module | [storage::data][crate::storage::data] | Defining data representations (lifetime or the way raw data are stored). |
-| struct | [`DataOwned<C>`][crate::storage::data::DataOwned] | Struct wrapper for owned raw data. |
-| enum | [`DataRef<'l, C>`][crate::storage::data::DataRef] | Enum wrapper for reference of raw data (or manually-dropped data). |
-| enum | [`DataMut<'l, C>`][crate::storage::data::DataMut] | Enum wrapper for mutable reference of raw data (or manually-dropped data). |
-| enum | [`DataCow<'l, C>`][crate::storage::data::DataCow] | Enum wrapper for mutable reference of raw data (or manually-dropped data). |
-| struct | [`DataArc<C>`][crate::storage::data::DataArc] | Struct wrapper for atomic reference-counted raw data pointer. |
+| module | [storage::data][rstsr_core::storage::data] | Defining data representations (lifetime or the way raw data are stored). |
+| struct | [`DataOwned<C>`][rstsr_core::storage::data::DataOwned] | Struct wrapper for owned raw data. |
+| enum | [`DataRef<'l, C>`][rstsr_core::storage::data::DataRef] | Enum wrapper for reference of raw data (or manually-dropped data). |
+| enum | [`DataMut<'l, C>`][rstsr_core::storage::data::DataMut] | Enum wrapper for mutable reference of raw data (or manually-dropped data). |
+| enum | [`DataCow<'l, C>`][rstsr_core::storage::data::DataCow] | Enum wrapper for mutable reference of raw data (or manually-dropped data). |
+| struct | [`DataArc<C>`][rstsr_core::storage::data::DataArc] | Struct wrapper for atomic reference-counted raw data pointer. |
 | trait | [`DataAPI`] | Interface of immutable operations for data representations. |
 | trait | [`DataCloneAPI`] | Interface of underlying data cloning for data representations. |
 | trait | [`DataMutAPI`] | Interface of mutable operations for data representations. |
-| trait | [`DataIntoCowAPI<'l>`][DataIntoCowAPI] | Interface for generating [`DataCow<'l, C>`][crate::storage::data::DataCow]. |
+| trait | [`DataIntoCowAPI<'l>`][DataIntoCowAPI] | Interface for generating [`DataCow<'l, C>`][rstsr_core::storage::data::DataCow]. |
 | trait | [`DataForceMutAPI`] | Interface for generating mutable reference, ignoring lifetime and borrow checks. |
 
 ## Indexing
@@ -111,7 +111,7 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 
 | Type | Identifier | Minimal Description |
 |--|--|--|
-| module | [ownership_conversion][`crate::tensor::ownership_conversion`] | |
+| module | [ownership_conversion][`rstsr_core::tensor::ownership_conversion`] | |
 | assoc | [`view`][TensorAny::view] | Get a view of tensor. |
 | assoc | [`view_mut`][TensorAny::view_mut] | Get a mutable view of tensor. |
 | assoc | [`into_cow`][TensorAny::into_cow] | Convert current tensor into copy-on-write. |
@@ -125,8 +125,8 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 | assoc | [`as_ptr`][TensorAny::as_ptr] <br/> [`as_mut_ptr`][TensorAny::as_mut_ptr] | Returns pointer to the first element in tensor. |
 | fn | [`asarray`] | Convert input (scalar, `Vec<T>`, `&[T]`, tensor) to an array, optionally with shape/layout specified. |
 | assoc | [`TensorBase::into_raw_parts`] | Destruct tensor into storage and layout. |
-| assoc | [`Storage::into_raw_parts`][crate::storage::device::Storage::into_raw_parts] | Destruct storage into data (with lifetime) and device. |
-| assoc | [`DataOwned::into_raw`][crate::storage::data::DataOwned::into_raw] | Destruct owned data and get the raw data (`Vec<T>` for CPU devices). |
+| assoc | [`Storage::into_raw_parts`][rstsr_core::storage::device::Storage::into_raw_parts] | Destruct storage into data (with lifetime) and device. |
+| assoc | [`DataOwned::into_raw`][rstsr_core::storage::data::DataOwned::into_raw] | Destruct owned data and get the raw data (`Vec<T>` for CPU devices). |
 | assoc | [`TensorBase::raw`][TensorBase::raw] <br/> [`TensorBase::raw_mut`][TensorBase::raw_mut] | Get reference of raw data. |
 
 <!-- | assoc | [`into_owned_keep_layout`][TensorAny::into_owned_keep_layout] | Convert tensor into owned tensor ([`Tensor`]). Data is either moved or fully cloned. | -->
@@ -136,12 +136,12 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 
 | Type | Identifier | Minimal Description |
 |--|--|--|
-| module | [iterator_elem][crate::tensor::iterator_elem] | Tensor iterators that gives elements. |
+| module | [iterator_elem][rstsr_core::tensor::iterator_elem] | Tensor iterators that gives elements. |
 | assoc | [`iter`][TensorAny::iter] <br/> [`iter_mut`][TensorAny::iter_mut] | Iterate tensor by default ordering (c-prefer or f-prefer). |
 | assoc | [`iter_with_order`][TensorAny::iter_with_order] <br/> [`iter_mut_with_order`][TensorAny::iter_mut_with_order] | Iterate tensor with specified order. |
 | assoc | [`indexed_iter`][TensorAny::indexed_iter] <br/> [`indexed_iter_mut`][TensorAny::indexed_iter_mut] | Enumerate tensor by default ordering (c-prefer or f-prefer). |
 | assoc | [`indexed_iter_with_order`][TensorAny::indexed_iter_with_order] <br/> [`indexed_iter_mut_with_order`][TensorAny::indexed_iter_mut_with_order] | Enumerate tensor with specified order. |
-| module | [iterator_axes][crate::tensor::iterator_axes] | Axes iterators that gives smaller tensor views. |
+| module | [iterator_axes][rstsr_core::tensor::iterator_axes] | Axes iterators that gives smaller tensor views. |
 | assoc | [`axes_iter`][TensorAny::axes_iter] <br/> [`axes_iter_mut`][TensorAny::axes_iter_mut] | Iterate tensor by axes by default ordering (c-prefer or f-prefer). |
 | assoc | [`axes_iter_with_order`][TensorAny::axes_iter_with_order] <br/> [`axes_iter_mut_with_order`][TensorAny::axes_iter_mut_with_order] | Iterate tensor by axes with specified order. |
 | assoc | [`indexed_axes_iter`][TensorAny::indexed_axes_iter] <br/> [`indexed_axes_iter_mut`][TensorAny::indexed_axes_iter_mut] | Enumerate tensor by axes by default ordering (c-prefer or f-prefer). |
@@ -151,7 +151,7 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 
 | Type | Identifier | Minimal Description |
 |--|--|--|
-| module | [map_elementwise][crate::tensor::map_elementwise] | Elementwise mapping of tensor. |
+| module | [map_elementwise][rstsr_core::tensor::map_elementwise] | Elementwise mapping of tensor. |
 | assoc | [`map`][TensorAny::map] <br/> [`map_fnmut`][TensorAny::map_fnmut] | Call function by reference on each element to create a new tensor. |
 | assoc | [`mapv`][TensorAny::mapv] <br/> [`mapv_fnmut`][TensorAny::mapv_fnmut] | Call function by value on each element to create a new tensor. |
 | assoc | [`mapi`][TensorAny::mapi] <br/> [`mapi_fnmut`][TensorAny::mapi_fnmut] | Modify the tensor in place by calling function by mutable reference on each element. |
@@ -218,7 +218,7 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 | Type | Identifier | Minimal Description |
 |--|--|--|
 | fn | [`asarray`] | Convert input (scalar, `Vec<T>`, `&[T]`, tensor) to an array, optionally with shape/layout specified. |
-| module | [`crate::tensor::creation`] | Creation methods for tensor. |
+| module | [`rstsr_core::tensor::creation`] | Creation methods for tensor. |
 | fn | [`arange`] | Evenly spaced values within the half-open interval `[start, stop)` as one-dimensional array. |
 | fn | [`empty`] | Uninitialized tensor having a specified shape. |
 | fn | [`empty_like`] | Uninitialized tensor with the same shape as an input tensor. |
@@ -232,6 +232,7 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 | fn | [`zeros_like`] | New tensor filled with zeros and having the same shape as an input tensor. |
 | fn | [`tril`] | Returns the lower triangular part of a matrix (or a stack of matrices) x. |
 | fn | [`triu`] | Returns the upper triangular part of a matrix (or a stack of matrices) x. |
+| macro | [`tensor_from_nested`] | Create a tensor from a nested array literal (for development purposes). |
 
 ## Basic Operations
 
@@ -281,7 +282,7 @@ Trait function calls like associated methods, so we also do not recommend usage 
 
 ### Statistical functions
 
-[`max`]/[`max_axes`], [`mean`]/[`mean_axes`], [`min`]/[`min_axes`], [`prod`]/[`prod_axes`], [`std`]/[`std_axes`], [`sum`]/[`sum_axes`], [`var`]/[`var_axes`]
+[`max`]/[`max_axes`], [`mean`]/[`mean_axes`], [`min`]/[`min_axes`], [`prod`]/[`prod_axes`], [`std`](std())/[`std_axes`], [`sum`]/[`sum_axes`], [`var`]/[`var_axes`]
 
 ### Sorting, searching and counting functions
 

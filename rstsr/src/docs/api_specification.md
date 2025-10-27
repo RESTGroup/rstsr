@@ -1,0 +1,1 @@
+../../../rstsr-core/src/docs/api_specification.md
