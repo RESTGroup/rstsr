@@ -44,7 +44,7 @@ pub use crate::tensor::device_conversion::*;
 pub use crate::tensor::ext_conversion::*;
 pub use crate::tensor::iterator_axes::*;
 pub use crate::tensor::iterator_elem::*;
-pub use crate::tensor::manuplication::*;
+pub use crate::tensor::manuplication::exports::*;
 pub use crate::tensor::ownership_conversion::*;
 pub use crate::tensor::reduction::TensorSumBoolAPI;
 pub use crate::tensor::tensor_mutable::*;
