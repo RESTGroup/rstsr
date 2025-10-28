@@ -190,15 +190,16 @@ mod tests {
     #[rustfmt::skip]
     fn doc_broadcast_to() {
         use rstsr::prelude::*;
-        let mut device = DeviceCpuSerial::default();
-        device.set_default_order(RowMajor);
 
-        let a = rt::asarray((vec![1, 2, 3], &device));
+        let a = rt::tensor_from_nested!([1, 2, 3]);
         let b = a.to_broadcast(vec![2, 3]);
-        let expected = tensor_from_nested![
+        
+        let expected = rt::tensor_from_nested![
             [1, 2, 3],
             [1, 2, 3],
         ];
+        println!("b: {:?}", b);
+        println!("expected: {:?}", expected);
         assert!(rt::allclose(&b, &expected, None));
     }
 }

@@ -1802,27 +1802,27 @@ where
 
 /* #region macro tensor_from_nested */
 
-pub trait FromNestedArrayAPI<Arr> {
-    fn from_nested_array(arr: Arr) -> Self;
+pub trait FromNestedArrayAPI<Arr, B> {
+    fn from_nested_array(arr: Arr, device: &B) -> Self;
 }
 
 /// Implementation of this macro uses the same way of crate `ndarray`:
 /// <https://docs.rs/ndarray/latest/ndarray/macro.array.html>
 macro_rules! impl_from_nested_array {
     ($arr_type:ty, $ix_type:tt, $($n:ident),+) => {
-        impl<T, $(const $n: usize),+> FromNestedArrayAPI<$arr_type> for Tensor<T, DeviceCpu, $ix_type>
+        impl<T, B, $(const $n: usize),+> FromNestedArrayAPI<$arr_type, B> for Tensor<T, B, $ix_type>
         where
             T: Clone,
+            B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
         {
             #[allow(clippy::missing_transmute_annotations)]
-            fn from_nested_array(arr: $arr_type) -> Self {
-                let shape: Layout<$ix_type> = [$($n),+].into();
-                let device = DeviceCpu::default();
+            fn from_nested_array(arr: $arr_type, device: &B) -> Self {
+                let shape: Layout<$ix_type> = [$($n),+].c();
                 let slc = unsafe {
                     core::slice::from_raw_parts(arr.as_ptr() as *const T, shape.size())
                 };
                 let vec = slc.to_vec();
-                asarray((vec, shape, &device)).into_dim()
+                asarray((vec, shape, device)).into_dim()
             }
         }
     }
@@ -1857,11 +1857,22 @@ impl_from_nested_array!([[[[[[T; N6]; N5]; N4]; N3]; N2]; N1], Ix6, N1, N2, N3, 
 /// // 3-Dim (dyn), contiguous: Cc
 /// ```
 ///
+/// If you want to specify the device, you can do it like this:
+/// ```rust
+/// use rstsr::prelude::*;
+///
+/// let device = DeviceFaer::default(); // or other devices
+/// let tsr = rt::tensor_from_nested!(&device, [[1, 2, 3], [4, 5, 6]]);
+/// println!("{tsr:?}"); // you will get a tensor on DeviceFaer
+/// ```
+///
 /// # Notes on usage
 ///
 /// - This macro is used for testing or prototyping purposes. For production code, it is recommended
 ///   to use other methods to create tensors (e.g., [`asarray`]) to have better control and
 ///   performance.
+/// - This macro only gives row-major (C-contiguous) layout tensors, even if the device's default
+///   order is column-major.
 /// - The macro supports up to 6 dimensions. For 7 or more dimensions, use other methods to create
 ///   tensors.
 /// - The created tensor is on the [`DeviceCpu`] (depends on crate feature `faer_as_default`) and
@@ -1875,26 +1886,53 @@ impl_from_nested_array!([[[[[[T; N6]; N5]; N4]; N3]; N2]; N1], Ix6, N1, N2, N3, 
 ///   ndarray.
 #[macro_export]
 macro_rules! tensor_from_nested {
+    (&$device:expr, $([$([$([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*) => {{
+        compile_error!("Tensor of 7 dimensions or more cannot be constructed with the tensor_from_nested! macro.");
+    }};
+    (&$device:expr, $([$([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*) => {{
+        Tensor::<_, _, Ix6>::from_nested_array([$([$([$([$([$([$($x,)*],)*],)*],)*],)*],)*], &$device).into_dyn()
+    }};
+    (&$device:expr, $([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*) => {{
+        Tensor::<_, _, Ix5>::from_nested_array([$([$([$([$([$($x,)*],)*],)*],)*],)*], &$device).into_dyn()
+    }};
+    (&$device:expr, $([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*) => {{
+        Tensor::<_, _, Ix4>::from_nested_array([$([$([$([$($x,)*],)*],)*],)*], &$device).into_dyn()
+    }};
+    (&$device:expr, $([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*) => {{
+        Tensor::<_, _, Ix3>::from_nested_array([$([$([$($x,)*],)*],)*], &$device).into_dyn()
+    }};
+    (&$device:expr, $([$($x:expr),* $(,)*]),+ $(,)*) => {{
+        Tensor::<_, _, Ix2>::from_nested_array([$([$($x,)*],)*], &$device).into_dyn()
+    }};
+    (&$device:expr, $($x:expr),* $(,)*) => {{
+        Tensor::<_, _, Ix1>::from_nested_array([$($x,)*], &$device).into_dyn()
+    }};
     ($([$([$([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*) => {{
         compile_error!("Tensor of 7 dimensions or more cannot be constructed with the tensor_from_nested! macro.");
     }};
     ($([$([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*) => {{
-        Tensor::<_, _, Ix6>::from_nested_array([$([$([$([$([$([$($x,)*],)*],)*],)*],)*],)*]).into_dyn()
+        let device = DeviceCpu::default();
+        Tensor::<_, _, Ix6>::from_nested_array([$([$([$([$([$([$($x,)*],)*],)*],)*],)*],)*], &device).into_dyn()
     }};
     ($([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*) => {{
-        Tensor::<_, _, Ix5>::from_nested_array([$([$([$([$([$($x,)*],)*],)*],)*],)*]).into_dyn()
+        let device = DeviceCpu::default();
+        Tensor::<_, _, Ix5>::from_nested_array([$([$([$([$([$($x,)*],)*],)*],)*],)*], &device).into_dyn()
     }};
     ($([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*) => {{
-        Tensor::<_, _, Ix4>::from_nested_array([$([$([$([$($x,)*],)*],)*],)*]).into_dyn()
+        let device = DeviceCpu::default();
+        Tensor::<_, _, Ix4>::from_nested_array([$([$([$([$($x,)*],)*],)*],)*], &device).into_dyn()
     }};
     ($([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*) => {{
-        Tensor::<_, _, Ix3>::from_nested_array([$([$([$($x,)*],)*],)*]).into_dyn()
+        let device = DeviceCpu::default();
+        Tensor::<_, _, Ix3>::from_nested_array([$([$([$($x,)*],)*],)*], &device).into_dyn()
     }};
     ($([$($x:expr),* $(,)*]),+ $(,)*) => {{
-        Tensor::<_, _, Ix2>::from_nested_array([$([$($x,)*],)*]).into_dyn()
+        let device = DeviceCpu::default();
+        Tensor::<_, _, Ix2>::from_nested_array([$([$($x,)*],)*], &device).into_dyn()
     }};
     ($($x:expr),* $(,)*) => {{
-        Tensor::<_, _, Ix1>::from_nested_array([$($x,)*]).into_dyn()
+        let device = DeviceCpu::default();
+        Tensor::<_, _, Ix1>::from_nested_array([$($x,)*], &device).into_dyn()
     }};
 }
 
@@ -1902,6 +1940,11 @@ macro_rules! tensor_from_nested {
 fn playground() {
     use rstsr::prelude::*;
     let tsr = rt::tensor_from_nested![[1, 2, 3], [4, 5, 6]];
+    println!("{tsr:?}");
+
+    let mut device = DeviceCpuSerial::default();
+    device.set_default_order(ColMajor);
+    let tsr = rt::tensor_from_nested!(&device, [[1, 2, 3], [4, 5, 6]]);
     println!("{tsr:?}");
 }
 
