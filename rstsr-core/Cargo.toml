@@ -34,6 +34,7 @@ cpu-time = { workspace = true }
 [features]
 default = ["row_major", "aligned_alloc", "faer", "faer_as_default"]
 std = ["rstsr-common/std"]
+backtrace = ["std", "rstsr-common/backtrace"]
 rayon = ["dep:rayon", "rstsr-common/rayon", "rstsr-native-impl/rayon"]
 faer = ["rayon", "dep:faer", "dep:faer-ext"]
 faer_as_default = ["faer"]

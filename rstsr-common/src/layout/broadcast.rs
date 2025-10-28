@@ -89,7 +89,7 @@ where
     }
     // convert to the final shape
     let shape = TryInto::<D>::try_into(shape);
-    let shape = shape.map_err(|_| Error::InvalidLayout("Type cast error.".to_string()))?;
+    let shape = shape.map_err(|_| rstsr_error!(InvalidLayout, "Type cast error."))?;
 
     return Ok((shape, tp1, tp2));
 }
@@ -240,7 +240,7 @@ where
         }
     }
     let stride = stride.try_into();
-    let stride = stride.map_err(|_| Error::InvalidLayout("Type cast error.".to_string()))?;
+    let stride = stride.map_err(|_| rstsr_error!(InvalidLayout, "Type cast error."))?;
     unsafe { Ok(Layout::new_unchecked(shape.clone(), stride, layout.offset())) }
 }
 

@@ -148,10 +148,7 @@ where
 /* #region order transformation */
 
 /// Transform Lebedev quadrature order to degree.
-///
-/// This function does not return useful error message (as a const fn). Caller
-/// may handle the error with more information.
-pub const fn lebedev_order_to_degree(n: usize) -> Result<usize> {
+pub fn lebedev_order_to_degree(n: usize) -> Result<usize> {
     let order = match n {
         3 => 6,
         5 => 14,
@@ -188,17 +185,14 @@ pub const fn lebedev_order_to_degree(n: usize) -> Result<usize> {
         _ => 0,
     };
     if order == 0 {
-        Err(Error::InvalidValue(String::new()))
+        rstsr_raise!(InvalidValue)
     } else {
         Ok(order)
     }
 }
 
 /// Transform Lebedev quadrature order to degree.
-///
-/// This function does not return useful error message (as a const fn). Caller
-/// may handle the error with more information.
-pub const fn lebedev_degree_to_order(n: usize) -> Result<usize> {
+pub fn lebedev_degree_to_order(n: usize) -> Result<usize> {
     let order = match n {
         6 => 3,
         14 => 5,
@@ -235,7 +229,7 @@ pub const fn lebedev_degree_to_order(n: usize) -> Result<usize> {
         _ => 0,
     };
     if order == 0 {
-        Err(Error::InvalidValue(String::new()))
+        rstsr_raise!(InvalidValue)
     } else {
         Ok(order)
     }

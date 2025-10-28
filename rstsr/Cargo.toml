@@ -26,10 +26,11 @@ rstsr-tblis = { workspace = true, optional = true }
 [dev-dependencies]
 
 [features]
-default = ["rstsr-core/default", "faer"]
+default = ["std", "backtrace", "rstsr-core/default", "faer", "faer_as_default"]
 
 # rstsr-core features
 std = ["rstsr-core/std"]
+backtrace = ["rstsr-core/backtrace"]
 rayon = ["rstsr-core/rayon"]
 faer = ["rstsr-core/faer", "rstsr-linalg-traits?/faer", "rstsr-sci-traits?/faer", "rstsr-openblas?/faer", "rstsr-mkl?/faer", "rstsr-blis?/faer", "rstsr-aocl?/faer", "rstsr-kml?/faer"]
 faer_as_default = ["rstsr-core/faer_as_default", "faer"]

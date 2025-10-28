@@ -12,7 +12,7 @@ where
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
-    broadcast_arrays_f(tensors).unwrap()
+    broadcast_arrays_f(tensors).rstsr_unwrap()
 }
 
 pub fn broadcast_arrays_f<R, T, B>(tensors: Vec<TensorAny<R, T, B, IxD>>) -> Result<Vec<TensorAny<R, T, B, IxD>>>
@@ -99,7 +99,7 @@ where
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
-    into_broadcast_f(tensor.view(), shape).unwrap()
+    into_broadcast_f(tensor.view(), shape).rstsr_unwrap()
 }
 
 pub fn broadcast_to<R, T, B, D, D2>(tensor: &TensorAny<R, T, B, D>, shape: D2) -> TensorView<'_, T, B, D2>
@@ -109,7 +109,7 @@ where
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
-    into_broadcast_f(tensor.view(), shape).unwrap()
+    into_broadcast_f(tensor.view(), shape).rstsr_unwrap()
 }
 
 pub fn to_broadcast_f<R, T, B, D, D2>(tensor: &TensorAny<R, T, B, D>, shape: D2) -> Result<TensorView<'_, T, B, D2>>
@@ -129,7 +129,7 @@ where
     D: DimAPI + DimMaxAPI<D2, Max = D2>,
     D2: DimAPI,
 {
-    into_broadcast_f(tensor, shape).unwrap()
+    into_broadcast_f(tensor, shape).rstsr_unwrap()
 }
 
 impl<R, T, B, D> TensorAny<R, T, B, D>
@@ -194,10 +194,10 @@ mod tests {
         let a = rt::tensor_from_nested!([1, 2, 3]);
         let b = a.to_broadcast(vec![2, 3]);
         
-        let expected = rt::tensor_from_nested![
+        let expected = rt::tensor_from_nested![[
             [1, 2, 3],
             [1, 2, 3],
-        ];
+        ]];
         println!("b: {:?}", b);
         println!("expected: {:?}", expected);
         assert!(rt::allclose(&b, &expected, None));

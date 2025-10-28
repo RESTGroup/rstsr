@@ -39,7 +39,7 @@ macro_rules! trait_reduction {
             D: DimAPI,
             B: $OpReduceAPI<T, D>,
         {
-            $fn_all_f(tensor).unwrap()
+            $fn_all_f(tensor).rstsr_unwrap()
         }
 
         pub fn $fn_axes<T, B, D>(
@@ -50,7 +50,7 @@ macro_rules! trait_reduction {
             D: DimAPI,
             B: $OpReduceAPI<T, D> + DeviceCreationAnyAPI<B::TOut>,
         {
-            $fn_axes_f(tensor, axes).unwrap()
+            $fn_axes_f(tensor, axes).rstsr_unwrap()
         }
 
         pub fn $fn_f<T, B, D>(tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>) -> Result<B::TOut>
@@ -161,7 +161,7 @@ macro_rules! trait_reduction_arg {
             D: DimAPI,
             B: $OpReduceAPI<T, D>,
         {
-            $fn_all_f(tensor).unwrap()
+            $fn_all_f(tensor).rstsr_unwrap()
         }
 
         pub fn $fn_axes<T, B, D>(
@@ -172,7 +172,7 @@ macro_rules! trait_reduction_arg {
             D: DimAPI,
             B: $OpReduceAPI<T, D> + DeviceAPI<IxD>,
         {
-            $fn_axes_f(tensor, axes).unwrap()
+            $fn_axes_f(tensor, axes).rstsr_unwrap()
         }
 
         pub fn $fn_f<T, B, D>(tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>) -> Result<D>
@@ -258,17 +258,17 @@ where
 {
     fn sum_all_f(&self) -> Result<usize>;
     fn sum_all(&self) -> usize {
-        self.sum_all_f().unwrap()
+        self.sum_all_f().rstsr_unwrap()
     }
     fn sum_f(&self) -> Result<usize> {
         self.sum_all_f()
     }
     fn sum(&self) -> usize {
-        self.sum_f().unwrap()
+        self.sum_f().rstsr_unwrap()
     }
     fn sum_axes_f(&self, axes: impl TryInto<AxesIndex<isize>, Error = Error>) -> Result<Tensor<usize, B, IxD>>;
     fn sum_axes(&self, axes: impl TryInto<AxesIndex<isize>, Error = Error>) -> Tensor<usize, B, IxD> {
-        self.sum_axes_f(axes).unwrap()
+        self.sum_axes_f(axes).rstsr_unwrap()
     }
 }
 
@@ -329,7 +329,7 @@ where
     B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, D>,
     TE: 'static,
 {
-    allclose_all_f(tensor_a, tensor_b, isclose_args).unwrap()
+    allclose_all_f(tensor_a, tensor_b, isclose_args).rstsr_unwrap()
 }
 
 pub fn allclose_f<TA, TB, TE, B, D>(
@@ -355,7 +355,7 @@ where
     B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, D>,
     TE: 'static,
 {
-    allclose_f(tensor_a, tensor_b, isclose_args).unwrap()
+    allclose_f(tensor_a, tensor_b, isclose_args).rstsr_unwrap()
 }
 
 /* #endregion */

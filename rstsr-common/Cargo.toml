@@ -21,6 +21,7 @@ rstsr-core = { path = "../rstsr-core", default-features = false }
 
 [features]
 std = []
+backtrace = ["std"]
 rayon = ["dep:rayon"]
 
 # Row-major or Col-major will be contractidary features.

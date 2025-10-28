@@ -129,7 +129,7 @@ macro_rules! impl_try_from_axes_index {
                 fn try_from(value: Vec<$t2>) -> Result<Self> {
                     let value = value
                         .into_iter()
-                        .map(|v| v.try_into().map_err(|_| Error::TryFromIntError(String::new())))
+                        .map(|v| v.try_into().map_err(|_| rstsr_error!(TryFromIntError)))
                         .collect::<Result<Vec<$t1>>>()?;
                     Ok(AxesIndex::Vec(value))
                 }
