@@ -28,7 +28,7 @@ where
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
-    into_transpose_f(tensor.view(), axes).unwrap()
+    into_transpose_f(tensor.view(), axes).rstsr_unwrap()
 }
 
 pub fn transpose_f<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axes: I) -> Result<TensorView<'_, T, B, D>>
@@ -46,7 +46,7 @@ where
     D: DimAPI,
     I: TryInto<AxesIndex<isize>, Error = Error>,
 {
-    into_transpose_f(tensor, axes).unwrap()
+    into_transpose_f(tensor, axes).rstsr_unwrap()
 }
 
 pub use into_transpose as into_permute_dims;
@@ -222,7 +222,7 @@ where
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
-    into_swapaxes_f(tensor.view(), axis1, axis2).unwrap()
+    into_swapaxes_f(tensor.view(), axis1, axis2).rstsr_unwrap()
 }
 
 pub fn swapaxes_f<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axis1: I, axis2: I) -> Result<TensorView<'_, T, B, D>>
@@ -240,7 +240,7 @@ where
     D: DimAPI,
     I: TryInto<isize>,
 {
-    into_swapaxes_f(tensor, axis1, axis2).unwrap()
+    into_swapaxes_f(tensor, axis1, axis2).rstsr_unwrap()
 }
 
 impl<R, T, B, D> TensorAny<R, T, B, D>

@@ -49,7 +49,7 @@ where
     D2: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D>,
 {
-    change_layout_f(tensor.view(), layout).unwrap()
+    change_layout_f(tensor.view(), layout).rstsr_unwrap()
 }
 
 pub fn to_layout_f<R, T, D, B, D2>(
@@ -94,7 +94,7 @@ where
         + OpAssignAPI<T, D2>,
     <B as DeviceRawAPI<T>>::Raw: Clone + 'a,
 {
-    into_layout_f(tensor, layout).unwrap()
+    into_layout_f(tensor, layout).rstsr_unwrap()
 }
 
 pub fn change_layout<'a, R, T, B, D, D2>(tensor: TensorAny<R, T, B, D>, layout: Layout<D2>) -> TensorCow<'a, T, B, D2>
@@ -104,7 +104,7 @@ where
     D2: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D2, D>,
 {
-    change_layout_f(tensor, layout).unwrap()
+    change_layout_f(tensor, layout).rstsr_unwrap()
 }
 
 impl<'a, R, T, B, D> TensorAny<R, T, B, D>

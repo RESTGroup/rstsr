@@ -35,7 +35,7 @@ pub trait ArangeAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::arange_f(self).unwrap()
+        Self::arange_f(self).rstsr_unwrap()
     }
 }
 
@@ -163,7 +163,7 @@ pub trait EmptyAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::empty_f(self).unwrap()
+        Self::empty_f(self).rstsr_unwrap()
     }
 }
 
@@ -280,7 +280,7 @@ pub trait EmptyLikeAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::empty_like_f(self).unwrap()
+        Self::empty_like_f(self).rstsr_unwrap()
     }
 }
 
@@ -383,7 +383,7 @@ pub trait EyeAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::eye_f(self).unwrap()
+        Self::eye_f(self).rstsr_unwrap()
     }
 }
 
@@ -511,7 +511,7 @@ pub trait FullAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::full_f(self).unwrap()
+        Self::full_f(self).rstsr_unwrap()
     }
 }
 
@@ -621,7 +621,7 @@ pub trait FullLikeAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::full_like_f(self).unwrap()
+        Self::full_like_f(self).rstsr_unwrap()
     }
 }
 
@@ -739,7 +739,7 @@ pub trait LinspaceAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::linspace_f(self).unwrap()
+        Self::linspace_f(self).rstsr_unwrap()
     }
 }
 
@@ -834,7 +834,7 @@ pub trait OnesAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::ones_f(self).unwrap()
+        Self::ones_f(self).rstsr_unwrap()
     }
 }
 
@@ -943,7 +943,7 @@ pub trait OnesLikeAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::ones_like_f(self).unwrap()
+        Self::ones_like_f(self).rstsr_unwrap()
     }
 }
 
@@ -1066,7 +1066,7 @@ pub trait UninitAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::uninit_f(self).unwrap()
+        Self::uninit_f(self).rstsr_unwrap()
     }
 }
 
@@ -1186,7 +1186,7 @@ where
     D: DimAPI,
     B: DeviceAPI<T> + DeviceAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T>,
 {
-    unsafe { assume_init_f(tensor).unwrap() }
+    unsafe { assume_init_f(tensor).rstsr_unwrap() }
 }
 
 /* #endregion */
@@ -1202,7 +1202,7 @@ pub trait ZerosAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::zeros_f(self).unwrap()
+        Self::zeros_f(self).rstsr_unwrap()
     }
 }
 
@@ -1311,7 +1311,7 @@ pub trait ZerosLikeAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::zeros_like_f(self).unwrap()
+        Self::zeros_like_f(self).rstsr_unwrap()
     }
 }
 
@@ -1433,7 +1433,7 @@ pub trait TrilAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::tril_f(self).unwrap()
+        Self::tril_f(self).rstsr_unwrap()
     }
 }
 
@@ -1622,7 +1622,7 @@ pub trait TriuAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::triu_f(self).unwrap()
+        Self::triu_f(self).rstsr_unwrap()
     }
 }
 

@@ -39,7 +39,7 @@ where
     D: DimAPI,
     B: DeviceAPI<T> + DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
 {
-    change_shape_f(tensor, shape).unwrap()
+    change_shape_f(tensor, shape).rstsr_unwrap()
 }
 
 pub fn into_shape_f<'a, I, R, T, B, D>(tensor: TensorAny<R, T, B, D>, shape: I) -> Result<Tensor<T, B, IxD>>
@@ -71,7 +71,7 @@ where
         + OpAssignAPI<T, IxD>,
     <B as DeviceRawAPI<T>>::Raw: Clone + 'a,
 {
-    into_shape_f(tensor, shape).unwrap()
+    into_shape_f(tensor, shape).rstsr_unwrap()
 }
 
 pub fn to_shape_f<'a, I, R, T, B, D>(tensor: &'a TensorAny<R, T, B, D>, shape: I) -> Result<TensorCow<'a, T, B, IxD>>
@@ -91,7 +91,7 @@ where
     D: DimAPI,
     B: DeviceAPI<T> + DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
 {
-    to_shape_f(tensor, shape).unwrap()
+    to_shape_f(tensor, shape).rstsr_unwrap()
 }
 
 pub fn reshape_f<'a, I, R, T, B, D>(tensor: &'a TensorAny<R, T, B, D>, shape: I) -> Result<TensorCow<'a, T, B, IxD>>

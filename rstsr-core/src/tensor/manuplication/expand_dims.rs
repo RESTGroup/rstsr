@@ -37,7 +37,7 @@ where
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
-    into_expand_dims_f(tensor.view(), axes).unwrap()
+    into_expand_dims_f(tensor.view(), axes).rstsr_unwrap()
 }
 
 pub fn expand_dims_f<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axes: I) -> Result<TensorView<'_, T, B, IxD>>
@@ -55,7 +55,7 @@ where
     D: DimAPI,
     I: TryInto<AxesIndex<isize>, Error = Error>,
 {
-    into_expand_dims_f(tensor, axes).unwrap()
+    into_expand_dims_f(tensor, axes).rstsr_unwrap()
 }
 
 impl<R, T, B, D> TensorAny<R, T, B, D>

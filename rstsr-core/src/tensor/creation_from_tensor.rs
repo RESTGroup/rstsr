@@ -19,7 +19,7 @@ pub trait DiagAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::diag_f(self).unwrap()
+        Self::diag_f(self).rstsr_unwrap()
     }
 }
 
@@ -105,7 +105,7 @@ pub trait MeshgridAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::meshgrid_f(self).unwrap()
+        Self::meshgrid_f(self).rstsr_unwrap()
     }
 }
 
@@ -292,7 +292,7 @@ pub trait ConcatAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::concat_f(self).unwrap()
+        Self::concat_f(self).rstsr_unwrap()
     }
 }
 
@@ -465,7 +465,7 @@ pub trait HStackAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::hstack_f(self).unwrap()
+        Self::hstack_f(self).rstsr_unwrap()
     }
 }
 
@@ -533,7 +533,7 @@ pub trait VStackAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::vstack_f(self).unwrap()
+        Self::vstack_f(self).rstsr_unwrap()
     }
 }
 
@@ -597,7 +597,7 @@ pub trait StackAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::stack_f(self).unwrap()
+        Self::stack_f(self).rstsr_unwrap()
     }
 }
 
@@ -741,7 +741,7 @@ pub trait UnstackAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::unstack_f(self).unwrap()
+        Self::unstack_f(self).rstsr_unwrap()
     }
 }
 

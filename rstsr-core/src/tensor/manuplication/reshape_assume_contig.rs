@@ -44,7 +44,7 @@ where
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
-    into_shape_assume_contig_f(tensor.view(), shape).unwrap()
+    into_shape_assume_contig_f(tensor.view(), shape).rstsr_unwrap()
 }
 
 pub fn to_shape_assume_contig_f<R, T, B, D, D2>(
@@ -67,7 +67,7 @@ where
     D: DimAPI,
     D2: DimAPI,
 {
-    into_shape_assume_contig_f(tensor, shape).unwrap()
+    into_shape_assume_contig_f(tensor, shape).rstsr_unwrap()
 }
 
 pub use to_shape_assume_contig as reshape_assume_contig;

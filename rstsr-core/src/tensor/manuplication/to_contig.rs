@@ -49,7 +49,7 @@ where
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D, D>,
 {
-    change_contig_f(tensor, order).unwrap()
+    change_contig_f(tensor, order).rstsr_unwrap()
 }
 
 pub fn to_contig<R, T, B, D>(tensor: &TensorAny<R, T, B, D>, order: FlagOrder) -> TensorCow<'_, T, B, D>
@@ -58,7 +58,7 @@ where
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D, D>,
 {
-    to_contig_f(tensor, order).unwrap()
+    to_contig_f(tensor, order).rstsr_unwrap()
 }
 
 pub fn into_contig<'a, R, T, B, D>(tensor: TensorAny<R, T, B, D>, order: FlagOrder) -> Tensor<T, B, D>
@@ -73,7 +73,7 @@ where
         + OpAssignAPI<T, D>,
     <B as DeviceRawAPI<T>>::Raw: Clone + 'a,
 {
-    into_contig_f(tensor, order).unwrap()
+    into_contig_f(tensor, order).rstsr_unwrap()
 }
 
 impl<'a, R, T, B, D> TensorAny<R, T, B, D>
@@ -179,7 +179,7 @@ where
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D, D>,
 {
-    change_prefer_f(tensor, order).unwrap()
+    change_prefer_f(tensor, order).rstsr_unwrap()
 }
 
 pub fn to_prefer<R, T, B, D>(tensor: &TensorAny<R, T, B, D>, order: FlagOrder) -> TensorCow<'_, T, B, D>
@@ -188,7 +188,7 @@ where
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D, D>,
 {
-    to_prefer_f(tensor, order).unwrap()
+    to_prefer_f(tensor, order).rstsr_unwrap()
 }
 
 pub fn into_prefer<'a, R, T, B, D>(tensor: TensorAny<R, T, B, D>, order: FlagOrder) -> Tensor<T, B, D>
@@ -203,7 +203,7 @@ where
         + OpAssignAPI<T, D>,
     <B as DeviceRawAPI<T>>::Raw: Clone + 'a,
 {
-    into_prefer_f(tensor, order).unwrap()
+    into_prefer_f(tensor, order).rstsr_unwrap()
 }
 
 impl<'a, R, T, B, D> TensorAny<R, T, B, D>

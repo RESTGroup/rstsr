@@ -71,7 +71,7 @@ where
     }
 
     pub fn pack_tri(&self, uplo: FlagUpLo) -> Tensor<T, B, D::SmallerOne> {
-        self.pack_tri_f(uplo).unwrap()
+        self.pack_tri_f(uplo).rstsr_unwrap()
     }
 
     pub fn pack_tril_f(&self) -> Result<Tensor<T, B, D::SmallerOne>> {
@@ -79,7 +79,7 @@ where
     }
 
     pub fn pack_tril(&self) -> Tensor<T, B, D::SmallerOne> {
-        self.pack_tril_f().unwrap()
+        self.pack_tril_f().rstsr_unwrap()
     }
 
     pub fn pack_triu_f(&self) -> Result<Tensor<T, B, D::SmallerOne>> {
@@ -87,7 +87,7 @@ where
     }
 
     pub fn pack_triu(&self) -> Tensor<T, B, D::SmallerOne> {
-        self.pack_triu_f().unwrap()
+        self.pack_triu_f().rstsr_unwrap()
     }
 }
 
@@ -162,15 +162,15 @@ where
     }
 
     pub fn unpack_tri(&self, uplo: FlagUpLo, symm: FlagSymm) -> Tensor<T, B, D::LargerOne> {
-        self.unpack_tri_f(uplo, symm).unwrap()
+        self.unpack_tri_f(uplo, symm).rstsr_unwrap()
     }
 
     pub fn unpack_tril(&self, symm: FlagSymm) -> Tensor<T, B, D::LargerOne> {
-        self.unpack_tri_f(FlagUpLo::L, symm).unwrap()
+        self.unpack_tri_f(FlagUpLo::L, symm).rstsr_unwrap()
     }
 
     pub fn unpack_triu(&self, symm: FlagSymm) -> Tensor<T, B, D::LargerOne> {
-        self.unpack_tri_f(FlagUpLo::U, symm).unwrap()
+        self.unpack_tri_f(FlagUpLo::U, symm).rstsr_unwrap()
     }
 
     pub fn unpack_tril_f(&self, symm: FlagSymm) -> Result<Tensor<T, B, D::LargerOne>> {

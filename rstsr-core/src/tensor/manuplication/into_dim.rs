@@ -24,7 +24,7 @@ where
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
-    into_dim_f(tensor.view()).unwrap()
+    into_dim_f(tensor.view()).rstsr_unwrap()
 }
 
 pub fn to_dim_f<R, T, B, D, D2>(tensor: &TensorAny<R, T, B, D>) -> Result<TensorView<'_, T, B, D2>>
@@ -44,7 +44,7 @@ where
     D2: DimAPI,
     D: DimIntoAPI<D2>,
 {
-    into_dim_f(tensor).unwrap()
+    into_dim_f(tensor).rstsr_unwrap()
 }
 
 pub fn to_dyn<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> TensorView<'_, T, B, IxD>
@@ -53,14 +53,14 @@ where
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
-    into_dim_f(tensor.view()).unwrap()
+    into_dim_f(tensor.view()).rstsr_unwrap()
 }
 
 pub fn into_dyn<S, D>(tensor: TensorBase<S, D>) -> TensorBase<S, IxD>
 where
     D: DimAPI,
 {
-    into_dim_f(tensor).unwrap()
+    into_dim_f(tensor).rstsr_unwrap()
 }
 
 impl<R, T, B, D> TensorAny<R, T, B, D>

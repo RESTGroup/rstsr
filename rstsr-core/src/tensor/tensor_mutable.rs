@@ -158,6 +158,6 @@ where
         D: DimIntoAPI<D2>,
         D2: DimAPI,
     {
-        self.into_dim_f().unwrap()
+        self.into_dim_f().rstsr_unwrap()
     }
 }

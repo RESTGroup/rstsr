@@ -22,7 +22,7 @@ where
     D: DimAPI,
     I: TryInto<AxesIndex<Indexer>, Error = Error>,
 {
-    into_slice_f(tensor, index).unwrap()
+    into_slice_f(tensor, index).rstsr_unwrap()
 }
 
 pub fn slice_f<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, index: I) -> Result<TensorView<'_, T, B, IxD>>
@@ -42,7 +42,7 @@ where
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
-    slice_f(tensor, index).unwrap()
+    slice_f(tensor, index).rstsr_unwrap()
 }
 
 impl<R, T, B, D> TensorAny<R, T, B, D>
@@ -115,7 +115,7 @@ where
     R: DataMutAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
-    slice_mut_f(tensor, index).unwrap()
+    slice_mut_f(tensor, index).rstsr_unwrap()
 }
 
 impl<R, T, B, D> TensorAny<R, T, B, D>
@@ -221,7 +221,7 @@ where
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
 {
-    into_diagonal_f(tensor, diagonal_args).unwrap()
+    into_diagonal_f(tensor, diagonal_args).rstsr_unwrap()
 }
 
 pub fn diagonal_f<R, T, B, D>(
@@ -247,7 +247,7 @@ where
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
-    diagonal_f(tensor, diagonal_args).unwrap()
+    diagonal_f(tensor, diagonal_args).rstsr_unwrap()
 }
 
 impl<R, T, B, D> TensorAny<R, T, B, D>
@@ -300,7 +300,7 @@ where
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
 {
-    into_diagonal_mut_f(tensor, diagonal_args).unwrap()
+    into_diagonal_mut_f(tensor, diagonal_args).rstsr_unwrap()
 }
 
 pub fn diagonal_mut_f<R, T, B, D>(
@@ -326,7 +326,7 @@ where
     R: DataMutAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
-    diagonal_mut_f(tensor, diagonal_args).unwrap()
+    diagonal_mut_f(tensor, diagonal_args).rstsr_unwrap()
 }
 
 impl<R, T, B, D> TensorAny<R, T, B, D>

@@ -13,7 +13,7 @@ pub trait AsArrayAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::asarray_f(self).unwrap()
+        Self::asarray_f(self).rstsr_unwrap()
     }
 }
 
@@ -210,7 +210,7 @@ where
     T: Clone,
 {
     fn from(input: Vec<T>) -> Self {
-        asarray_f(input).unwrap()
+        asarray_f(input).rstsr_unwrap()
     }
 }
 

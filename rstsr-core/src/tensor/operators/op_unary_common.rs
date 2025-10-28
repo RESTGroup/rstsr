@@ -27,7 +27,7 @@ macro_rules! trait_unary {
             where
                 Self: Sized,
             {
-                self.$op_f().unwrap()
+                self.$op_f().rstsr_unwrap()
             }
         }
 

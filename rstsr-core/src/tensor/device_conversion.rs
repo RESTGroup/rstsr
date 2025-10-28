@@ -18,18 +18,18 @@ where
     where
         Self: Sized,
     {
-        self.change_device_f(device).unwrap()
+        self.change_device_f(device).rstsr_unwrap()
     }
 
     fn into_device(self, device: &BOut) -> TensorAny<DataOwned<BOut::Raw>, Self::Type, BOut, Self::Dim>
     where
         Self: Sized,
     {
-        self.into_device_f(device).unwrap()
+        self.into_device_f(device).rstsr_unwrap()
     }
 
     fn to_device(&'l self, device: &BOut) -> TensorAny<Self::ReprTo, Self::Type, BOut, Self::Dim> {
-        self.to_device_f(device).unwrap()
+        self.to_device_f(device).rstsr_unwrap()
     }
 }
 
@@ -76,17 +76,17 @@ where
     where
         Self: Sized,
     {
-        self.change_device_f(device).unwrap()
+        self.change_device_f(device).rstsr_unwrap()
     }
 
     fn into_device(self, device: &BOut) -> TensorAny<DataOwned<BOut::Raw>, Self::Type, BOut, Self::Dim>
     where
         Self: Sized,
     {
-        self.into_device_f(device).unwrap()
+        self.into_device_f(device).rstsr_unwrap()
     }
 
     fn to_device(&'l self, device: &BOut) -> TensorAny<Self::ReprTo, Self::Type, BOut, Self::Dim> {
-        self.to_device_f(device).unwrap()
+        self.to_device_f(device).rstsr_unwrap()
     }
 }

@@ -12,7 +12,7 @@ pub trait TensorOpAPI {
     where
         Self: Sized,
     {
-        Self::op_f(self).unwrap()
+        Self::op_f(self).rstsr_unwrap()
     }
 }
 

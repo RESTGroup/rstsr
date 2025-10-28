@@ -63,7 +63,7 @@ where
     B: DeviceAPI<T> + DeviceIndexSelectAPI<T, D> + DeviceCreationAnyAPI<T>,
     I: TryInto<AxesIndex<isize>, Error = Error>,
 {
-    index_select_f(tensor, axis, indices).unwrap()
+    index_select_f(tensor, axis, indices).rstsr_unwrap()
 }
 
 pub fn take_f<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, indices: I, axis: isize) -> Result<Tensor<T, B, D>>
@@ -168,7 +168,7 @@ where
     B: DeviceAPI<T> + DeviceIndexSelectAPI<T, D> + DeviceCreationAnyAPI<T>,
     I: TryInto<AxesIndex<bool>, Error = Error>,
 {
-    bool_select_f(tensor, axis, mask).unwrap()
+    bool_select_f(tensor, axis, mask).rstsr_unwrap()
 }
 
 impl<R, T, B, D> TensorAny<R, T, B, D>

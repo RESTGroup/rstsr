@@ -5,7 +5,7 @@ use crate::prelude_dev::*;
 pub trait TensorAssignAPI<TRB> {
     fn assign_f(a: &mut Self, b: TRB) -> Result<()>;
     fn assign(a: &mut Self, b: TRB) {
-        Self::assign_f(a, b).unwrap()
+        Self::assign_f(a, b).rstsr_unwrap()
     }
 }
 
@@ -90,7 +90,7 @@ where
 pub trait TensorFillAPI<T> {
     fn fill_f(a: &mut Self, b: T) -> Result<()>;
     fn fill(a: &mut Self, b: T) {
-        Self::fill_f(a, b).unwrap()
+        Self::fill_f(a, b).rstsr_unwrap()
     }
 }
 

@@ -94,7 +94,7 @@ where
     B: DeviceAPI<T> + DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
 {
     pub fn into_owned(self) -> Tensor<T, B, D> {
-        let (idx_min, idx_max) = self.layout().bounds_index().unwrap();
+        let (idx_min, idx_max) = self.layout().bounds_index().rstsr_unwrap();
         if idx_min == 0 && idx_max == self.storage().len() && idx_max == self.layout().size() {
             return self.into_owned_keep_layout();
         } else {
@@ -103,7 +103,7 @@ where
     }
 
     pub fn into_shared(self) -> TensorArc<T, B, D> {
-        let (idx_min, idx_max) = self.layout().bounds_index().unwrap();
+        let (idx_min, idx_max) = self.layout().bounds_index().rstsr_unwrap();
         if idx_min == 0 && idx_max == self.storage().len() && idx_max == self.layout().size() {
             return self.into_shared_keep_layout();
         } else {
@@ -187,7 +187,7 @@ where
     }
 
     pub fn to_vec(&self) -> Vec<T> {
-        self.to_raw_f().unwrap()
+        self.to_raw_f().rstsr_unwrap()
     }
 }
 
@@ -211,7 +211,7 @@ where
     }
 
     pub fn into_vec(self) -> Vec<T> {
-        self.into_vec_f().unwrap()
+        self.into_vec_f().rstsr_unwrap()
     }
 }
 
@@ -236,7 +236,7 @@ where
     }
 
     pub fn to_scalar(&self) -> T {
-        self.to_scalar_f().unwrap()
+        self.to_scalar_f().rstsr_unwrap()
     }
 }
 
