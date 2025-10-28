@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: unittest
-        run: cargo test -p rstsr-core --lib --release --no-default-features --features="std faer rayon col_major faer_as_default"
+        run: cargo test -p rstsr-core --lib --release --no-default-features --features="std backtrace faer rayon col_major faer_as_default"
   
   integration-tests:
     runs-on: ubuntu-latest
