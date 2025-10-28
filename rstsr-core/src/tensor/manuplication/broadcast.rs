@@ -4,9 +4,100 @@ use crate::prelude_dev::*;
 
 /// Broadcasts any number of arrays against each other.
 ///
+/// <div class="warning">
+///
+/// **Row/Column Major Notice**
+///
+/// This function behaves differently on default orders ([RowMajor] and [ColMajor]) of device.
+///
+/// </div>
+///
+/// # Parameters
+///
+/// - `tensors`: [`Vec<TensorAny<R, T, B, IxD>>`](TensorAny)
+///
+///   - The tensors to be broadcasted.
+///   - All tensors must be on the same device, and share the same ownerships.
+///   - This function takes ownership of the input tensors. If you want to obtain broadcasted views,
+///     you need to create a new vector of views first.
+///   - This function only accepts dynamic shape tensors ([`IxD`]).
+///
+/// # Returns
+///
+/// - [`Vec<TensorAny<R, T, B, IxD>>`](TensorAny)
+///
+///   - A vector of broadcasted tensors. Each tensor has the same shape after broadcasting.
+///   - The ownership of the underlying data is moved from the input tensors to the output tensors.
+///   - The tensors are typically not contiguous (with zero strides at the broadcasted axes).
+///     Writing values to broadcasted tensors is dangerous, but RSTSR will generally not panic on
+///     this behavior. Perform [`to_contig`] afterwards if requires owned contiguous tensors.
+///
+/// # Example
+///
+/// The following example demonstrates how to use `broadcast_arrays` to broadcast two tensors:
+///
+/// ```rust
+/// use rstsr::prelude::*;
+/// let mut device = DeviceCpu::default();
+/// device.set_default_order(RowMajor);
+///
+/// let a = rt::asarray((vec![1, 2, 3], &device)).into_shape([3]);
+/// let b = rt::asarray((vec![4, 5], &device)).into_shape([2, 1]);
+///
+/// let result = rt::broadcast_arrays(vec![a, b]);
+/// let expected_a = rt::tensor_from_nested![&device,
+///     [1, 2, 3],
+///     [1, 2, 3],
+/// ];
+/// let expected_b = rt::tensor_from_nested![&device,
+///     [4, 4, 4],
+///     [5, 5, 5],
+/// ];
+/// assert!(rt::allclose!(&result[0], &expected_a));
+/// assert!(rt::allclose!(&result[1], &expected_b));
+/// ```
+///
+/// Please note that the above code only works in [RowMajor].
+///
+/// For [ColMajor] order, the broadcasting will fail, because the broadcasting rules are applied
+/// differently, shapes are incompatible. You need to make the following changes to let [ColMajor]
+/// case work:
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// let mut device = DeviceCpu::default();
+/// device.set_default_order(ColMajor);
+/// // Note shape of `a` changed from [3] to [1, 3]
+/// let a = rt::asarray((vec![1, 2, 3], &device)).into_shape([1, 3]);
+/// let b = rt::asarray((vec![4, 5], &device)).into_shape([2, 1]);
+/// #
+/// # let result = rt::broadcast_arrays(vec![a, b]);
+/// # let expected_a = rt::tensor_from_nested![&device,
+/// #     [1, 2, 3],
+/// #     [1, 2, 3],
+/// # ];
+/// # let expected_b = rt::tensor_from_nested![&device,
+/// #     [4, 4, 4],
+/// #     [5, 5, 5],
+/// # ];
+/// # assert!(rt::allclose!(&result[0], &expected_a));
+/// # assert!(rt::allclose!(&result[1], &expected_b));
+/// ```
+///
 /// # See also
 ///
-/// [Python Array API standard: `broadcast_arrays`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.broadcast_arrays.html)
+/// ## Similar function from other crates/libraries
+///
+/// - Python Array API standard: [`broadcast_arrays`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.broadcast_arrays.html)
+/// - NumPy: [`numpy.broadcast_arrays`](https://numpy.org/doc/stable/reference/generated/numpy.broadcast_arrays.html)
+///
+/// ## Related functions in RSTSR
+///
+/// - [`to_broadcast`]: Broadcasts a single array to a specified shape.
+///
+/// ## Variants of this function
+///
+/// - [`broadcast_arrays_f`]: Fallible version, actual implementation.
 pub fn broadcast_arrays<R, T, B>(tensors: Vec<TensorAny<R, T, B, IxD>>) -> Vec<TensorAny<R, T, B, IxD>>
 where
     R: DataAPI<Data = B::Raw>,
@@ -15,6 +106,11 @@ where
     broadcast_arrays_f(tensors).rstsr_unwrap()
 }
 
+/// Broadcasts any number of arrays against each other.
+///
+/// # See also
+///
+/// Refer [`broadcast_arrays`] for detailed documentation.
 pub fn broadcast_arrays_f<R, T, B>(tensors: Vec<TensorAny<R, T, B, IxD>>) -> Result<Vec<TensorAny<R, T, B, IxD>>>
 where
     R: DataAPI<Data = B::Raw>,
@@ -93,9 +189,10 @@ where
 /// - [`TensorView<'_, T, B, D2>`]
 ///
 ///   - A readonly view on the original tensor with the given shape. It is typically not contiguous
-///     (perform [`to_contig`] afterwards if requires a contiguous owned tensor).
+///     (perform [`to_contig`] afterwards if you require contiguous owned tensors).
 ///   - Furthermore, more than one element of a broadcasted tensor may refer to a single memory
-///     location (zero strides at the broadcasted axes).
+///     location (zero strides at the broadcasted axes). Writing values to broadcasted tensors is
+///     dangerous, but RSTSR will generally not panic on this behavior.
 ///
 /// # Example
 ///
@@ -107,15 +204,13 @@ where
 /// let mut device = DeviceCpu::default();
 /// device.set_default_order(RowMajor);
 ///
-/// let a = rt::tensor_from_nested![
-///     &device,
+/// let a = rt::tensor_from_nested![&device,
 ///     1, 2, 3,
 /// ];
 ///
 /// // broadcast (3, ) -> (2, 3) in row-major:
 /// let result = a.to_broadcast(vec![2, 3]);
-/// let expected = rt::tensor_from_nested![
-///     &device,
+/// let expected = rt::tensor_from_nested![&device,
 ///     [1, 2, 3],
 ///     [1, 2, 3],
 /// ];
@@ -130,8 +225,7 @@ where
 /// let mut device = DeviceCpu::default();
 /// device.set_default_order(ColMajor);
 ///
-/// let a = rt::tensor_from_nested![
-///     &device,
+/// let a = rt::tensor_from_nested![&device,
 ///     1, 2, 3,
 /// ];
 /// // in col-major, broadcast (3, ) -> (2, 3) will fail:
@@ -140,8 +234,7 @@ where
 ///
 /// // broadcast (3, ) -> (3, 2) in col-major:
 /// let result = a.to_broadcast(vec![3, 2]);
-/// let expected = rt::tensor_from_nested![
-///     &device,
+/// let expected = rt::tensor_from_nested![&device,
 ///     [1, 1],
 ///     [2, 2],
 ///     [3, 3],
@@ -296,7 +389,7 @@ where
 ///
 /// ## Related functions in RSTSR
 ///
-/// - [`broadcast_arrays`]
+/// - [`broadcast_arrays`]: Broadcasts any number of arrays against each other.
 ///
 /// ## Variants of this function
 ///
@@ -485,15 +578,13 @@ mod tests {
         let mut device = DeviceCpu::default();
         device.set_default_order(RowMajor);
 
-        let a = rt::tensor_from_nested![
-            &device,
+        let a = rt::tensor_from_nested![&device,
             1, 2, 3,
         ];
 
         // broadcast (3, ) -> (2, 3) in row-major:
         let result = a.to_broadcast(vec![2, 3]);
-        let expected = rt::tensor_from_nested![
-            &device,
+        let expected = rt::tensor_from_nested![&device,
             [1, 2, 3],
             [1, 2, 3],
         ];
@@ -507,8 +598,7 @@ mod tests {
         let mut device = DeviceCpu::default();
         device.set_default_order(ColMajor);
 
-        let a = rt::tensor_from_nested![
-            &device,
+        let a = rt::tensor_from_nested![&device,
             1, 2, 3,
         ];
         // in col-major, broadcast (3, ) -> (2, 3) will fail:
@@ -517,8 +607,7 @@ mod tests {
 
         // broadcast (3, ) -> (3, 2) in col-major:
         let result = a.to_broadcast(vec![3, 2]);
-        let expected = rt::tensor_from_nested![
-            &device,
+        let expected = rt::tensor_from_nested![&device,
             [1, 1],
             [2, 2],
             [3, 3],
@@ -646,5 +735,51 @@ mod tests {
         let b = rt::arange((3, &device)).into_shape([1, 3]);
         let result = &a + &b;
         assert_eq!(result.shape(), &[5, 3, 15]);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn doc_broadcast_arrays_row_major() {
+        use rstsr::prelude::*;
+        let mut device = DeviceCpu::default();
+        device.set_default_order(RowMajor);
+
+        let a = rt::asarray((vec![1, 2, 3], &device)).into_shape([3]);
+        let b = rt::asarray((vec![4, 5], &device)).into_shape([2, 1]);
+
+        let result = rt::broadcast_arrays(vec![a, b]);
+        let expected_a = rt::tensor_from_nested![&device,
+            [1, 2, 3],
+            [1, 2, 3],
+        ];
+        let expected_b = rt::tensor_from_nested![&device,
+            [4, 4, 4],
+            [5, 5, 5],
+        ];
+        assert!(rt::allclose!(&result[0], &expected_a));
+        assert!(rt::allclose!(&result[1], &expected_b));
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn doc_broadcast_arrays_col_major() {
+        use rstsr::prelude::*;
+        let mut device = DeviceCpu::default();
+        device.set_default_order(ColMajor);
+
+        let a = rt::asarray((vec![1, 2, 3], &device)).into_shape([1, 3]);
+        let b = rt::asarray((vec![4, 5], &device)).into_shape([2, 1]);
+
+        let result = rt::broadcast_arrays(vec![a, b]);
+        let expected_a = rt::tensor_from_nested![&device,
+            [1, 2, 3],
+            [1, 2, 3],
+        ];
+        let expected_b = rt::tensor_from_nested![&device,
+            [4, 4, 4],
+            [5, 5, 5],
+        ];
+        assert!(rt::allclose!(&result[0], &expected_a));
+        assert!(rt::allclose!(&result[1], &expected_b));
     }
 }
