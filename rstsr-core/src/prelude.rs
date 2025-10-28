@@ -132,7 +132,7 @@ pub mod rstsr_funcs {
 }
 
 pub mod rstsr_macros {
-    pub use crate::tensor_from_nested;
+    pub use crate::{allclose, tensor_from_nested};
     pub use rstsr_common::prelude::rstsr_macros::*;
 }
 

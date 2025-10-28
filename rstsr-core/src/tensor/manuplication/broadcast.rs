@@ -63,6 +63,37 @@ where
 
 /// Broadcasts an array to a specified shape.
 ///
+/// <div class="warning">
+///
+/// **Row/Column Major Notice**
+///
+/// This function have different behaviors on default orders ([RowMajor] and [ColMajor]) of device.
+/// See the following examples.
+///
+/// </div>
+///
+/// # Parameters
+///
+/// - `tensor`: [`&TensorAny<R, T, B, D>`](TensorAny)
+///
+///   - The input tensor to be broadcasted.
+///
+/// - `shape`: impl [`DimAPI`]
+///
+///   - The shape of the desired output tensor after broadcasting.
+///   - Please note the difference of [`IxD`] (`Vec<usize>`) and [`Ix<N>`] (`[usize; N]`) behaves
+///     differently here. [`IxD`] will give dynamic shape tensor, while [`Ix<N>`] will give static
+///     shape tensor.
+///
+/// # Returns
+///
+/// - [`TensorView<'_, T, B, D2>`](TensorView)
+///
+///   - A readonly view on the original tensor with the given shape. It is typically not contiguous
+///     (perform [`to_contig`] afterwards if requires a contiguous owned tensor).
+///   - Furthermore, more than one element of a broadcasted tensor may refer to a single memory
+///     location (zero strides at the broadcasted axes).
+///
 /// # Example
 ///
 /// The following example demonstrates how to use `to_broadcast` to broadcast a 1-D tensor
@@ -73,25 +104,215 @@ where
 /// let mut device = DeviceCpu::default();
 /// device.set_default_order(RowMajor);
 ///
-/// let a = rt::asarray((vec![1, 2, 3], &device));
-/// let b = a.to_broadcast(vec![2, 3]);
-/// let expected = tensor_from_nested![
+/// let a = rt::tensor_from_nested![
+///     &device,
+///     1, 2, 3,
+/// ];
+///
+/// // broadcast (3, ) -> (2, 3) in row-major:
+/// let result = a.to_broadcast(vec![2, 3]);
+/// let expected = rt::tensor_from_nested![
+///     &device,
 ///     [1, 2, 3],
 ///     [1, 2, 3],
 /// ];
-/// assert!(rt::allclose(&b, &expected, None));
+/// assert!(rt::allclose!(&result, &expected));
 /// ```
 ///
-/// # See also (detailed broadcasting rules)
+/// Please note the above example is only working in RowMajor order. In ColMajor order, the
+/// broadcasting will be done along the other axis:
 ///
-/// - [Python Array API standard: Broadcasting rules](https://data-apis.org/array-api/latest/API_specification/broadcasting.html)
-/// - [NumPy: Broadcasting](https://numpy.org/doc/stable/user/basics.broadcasting.html)
+/// ```rust
+/// use rstsr::prelude::*;
+/// let mut device = DeviceCpu::default();
+/// device.set_default_order(ColMajor);
 ///
-/// # See also (similar function from other crates/libraries)
+/// let a = rt::tensor_from_nested![
+///     &device,
+///     1, 2, 3,
+/// ];
+/// // in col-major, broadcast (3, ) -> (2, 3) will fail:
+/// let result = a.to_broadcast_f(vec![2, 3]);
+/// assert!(result.is_err());
 ///
-/// - [Python Array API standard: `broadcast_to`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.broadcast_to.html)
-/// - [NumPy: `numpy.broadcast_to`](https://numpy.org/doc/stable/reference/generated/numpy.broadcast_to.html)
-/// - [ndarray: `ndarray::broadcast`](https://docs.rs/ndarray/latest/ndarray/struct.ArrayBase.html#method.broadcast)
+/// // broadcast (3, ) -> (3, 2) in col-major:
+/// let result = a.to_broadcast(vec![3, 2]);
+/// let expected = rt::tensor_from_nested![
+///     &device,
+///     [1, 1],
+///     [2, 2],
+///     [3, 3],
+/// ];
+/// assert!(rt::allclose!(&result, &expected));
+/// ```
+///
+/// # Usage as function
+///
+/// Can be used as usual function
+/// ```ignore
+/// rt::to_broadcast(&tensor, shape)
+/// ```
+/// or as associated method of [`TensorAny`]
+/// ```ignore
+/// tensor.to_broadcast(shape)
+/// ```
+///
+/// # Elaborated examples
+///
+/// ## Broadcasting behavior (in row-major)
+///
+/// This example does not directly call this function `to_broadcast`, but demonstrates the
+/// broadcasting behavior.
+///
+/// ```rust
+/// use rstsr::prelude::*;
+/// let mut device = DeviceCpu::default();
+/// device.set_default_order(RowMajor);
+///
+/// // A      (4d tensor):  8 x 1 x 6 x 1
+/// // B      (3d tensor):      7 x 1 x 5
+/// // ----------------------------------
+/// // Result (4d tensor):  8 x 7 x 6 x 5
+/// let a = rt::arange((48, &device)).into_shape([8, 1, 6, 1]);
+/// let b = rt::arange((35, &device)).into_shape([7, 1, 5]);
+/// let result = &a + &b;
+/// assert_eq!(result.shape(), &[8, 7, 6, 5]);
+///
+/// // A      (2d tensor):  5 x 4
+/// // B      (1d tensor):      1
+/// // --------------------------
+/// // Result (2d tensor):  5 x 4
+/// let a = rt::arange((20, &device)).into_shape([5, 4]);
+/// let b = rt::arange((1, &device)).into_shape([1]);
+/// let result = &a + &b;
+/// assert_eq!(result.shape(), &[5, 4]);
+///
+/// // A      (2d tensor):  5 x 4
+/// // B      (1d tensor):      4
+/// // --------------------------
+/// // Result (2d tensor):  5 x 4
+/// let a = rt::arange((20, &device)).into_shape([5, 4]);
+/// let b = rt::arange((4, &device)).into_shape([4]);
+/// let result = &a + &b;
+/// assert_eq!(result.shape(), &[5, 4]);
+///
+/// // A      (3d tensor):  15 x 3 x 5
+/// // B      (3d tensor):  15 x 1 x 5
+/// // -------------------------------
+/// // Result (3d tensor):  15 x 3 x 5
+/// let a = rt::arange((225, &device)).into_shape([15, 3, 5]);
+/// let b = rt::arange((75, &device)).into_shape([15, 1, 5]);
+/// let result = &a + &b;
+/// assert_eq!(result.shape(), &[15, 3, 5]);
+///
+/// // A      (3d tensor):  15 x 3 x 5
+/// // B      (2d tensor):       3 x 5
+/// // -------------------------------
+/// // Result (3d tensor):  15 x 3 x 5
+/// let a = rt::arange((225, &device)).into_shape([15, 3, 5]);
+/// let b = rt::arange((15, &device)).into_shape([3, 5]);
+/// let result = &a + &b;
+/// assert_eq!(result.shape(), &[15, 3, 5]);
+///
+/// // A      (3d tensor):  15 x 3 x 5
+/// // B      (2d tensor):       3 x 1
+/// // -------------------------------
+/// // Result (3d tensor):  15 x 3 x 5
+/// let a = rt::arange((225, &device)).into_shape([15, 3, 5]);
+/// let b = rt::arange((3, &device)).into_shape([3, 1]);
+/// let result = &a + &b;
+/// assert_eq!(result.shape(), &[15, 3, 5]);
+/// ```
+///
+/// ## Broadcasting behavior (in col-major)
+///
+/// This example does not directly call this function `to_broadcast`, but demonstrates the
+/// broadcasting behavior.
+///
+/// ```rust
+/// use rstsr::prelude::*;
+/// let mut device = DeviceCpu::default();
+/// device.set_default_order(ColMajor);
+///
+/// // A      (4d tensor):  1 x 6 x 1 x 8
+/// // B      (3d tensor):  5 x 1 x 7
+/// // ----------------------------------
+/// // Result (4d tensor):  5 x 6 x 7 x 8
+/// let a = rt::arange((48, &device)).into_shape([1, 6, 1, 8]);
+/// let b = rt::arange((35, &device)).into_shape([5, 1, 7]);
+/// let result = &a + &b;
+/// assert_eq!(result.shape(), &[5, 6, 7, 8]);
+///
+/// // A      (2d tensor):  4 x 5
+/// // B      (1d tensor):  1
+/// // --------------------------
+/// // Result (2d tensor):  4 x 5
+/// let a = rt::arange((20, &device)).into_shape([4, 5]);
+/// let b = rt::arange((1, &device)).into_shape([1]);
+/// let result = &a + &b;
+/// assert_eq!(result.shape(), &[4, 5]);
+///
+/// // A      (2d tensor):  4 x 5
+/// // B      (1d tensor):  4
+/// // --------------------------
+/// // Result (2d tensor):  4 x 5
+/// let a = rt::arange((20, &device)).into_shape([4, 5]);
+/// let b = rt::arange((4, &device)).into_shape([4]);
+/// let result = &a + &b;
+/// assert_eq!(result.shape(), &[4, 5]);
+///
+/// // A      (3d tensor):  5 x 3 x 15
+/// // B      (3d tensor):  5 x 1 x 15
+/// // -------------------------------
+/// // Result (3d tensor):  5 x 3 x 15
+/// let a = rt::arange((225, &device)).into_shape([5, 3, 15]);
+/// let b = rt::arange((75, &device)).into_shape([5, 1, 15]);
+/// let result = &a + &b;
+/// assert_eq!(result.shape(), &[5, 3, 15]);
+///
+/// // A      (3d tensor):  5 x 3 x 15
+/// // B      (2d tensor):  5 x 3
+/// // -------------------------------
+/// // Result (3d tensor):  5 x 3 x 15
+/// let a = rt::arange((225, &device)).into_shape([5, 3, 15]);
+/// let b = rt::arange((15, &device)).into_shape([5, 3]);
+/// let result = &a + &b;
+/// assert_eq!(result.shape(), &[5, 3, 15]);
+///
+/// // A      (3d tensor):  5 x 3 x 15
+/// // B      (2d tensor):  1 x 3
+/// // -------------------------------
+/// // Result (3d tensor):  5 x 3 x 15
+/// let a = rt::arange((225, &device)).into_shape([5, 3, 15]);
+/// let b = rt::arange((3, &device)).into_shape([1, 3]);
+/// let result = &a + &b;
+/// assert_eq!(result.shape(), &[5, 3, 15]);
+/// ```
+///
+/// # See also
+///
+/// ## Detailed broadcasting rules
+///
+/// - Python Array API standard: [Broadcasting rules](https://data-apis.org/array-api/latest/API_specification/broadcasting.html)
+/// - NumPy: [Broadcasting](https://numpy.org/doc/stable/user/basics.broadcasting.html)
+///
+/// ## Similar function from other crates/libraries
+///
+/// - Python Array API standard: [`broadcast_to`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.broadcast_to.html)
+/// - NumPy: [`numpy.broadcast_to`](https://numpy.org/doc/stable/reference/generated/numpy.broadcast_to.html)
+/// - ndarray: [`ndarray::broadcast`](https://docs.rs/ndarray/latest/ndarray/struct.ArrayBase.html#method.broadcast)
+///
+/// ## Related functions in RSTSR
+///
+/// - [`broadcast_arrays`]
+///
+/// ## Variants of this function
+///
+/// - [`to_broadcast`]: Standard version.
+/// - [`to_broadcast_f`]: Fallible version.
+/// - [`into_broadcast`]: Consuming version that takes ownership of the input tensor.
+/// - [`into_broadcast_f`]: Consuming and fallible version.
+/// - [`broadcast_to`]: Alias for `to_broadcast` (name of Python Array API standard).
 pub fn to_broadcast<R, T, B, D, D2>(tensor: &TensorAny<R, T, B, D>, shape: D2) -> TensorView<'_, T, B, D2>
 where
     D: DimAPI + DimMaxAPI<D2, Max = D2>,
@@ -190,16 +411,169 @@ mod tests {
     #[rustfmt::skip]
     fn doc_broadcast_to() {
         use rstsr::prelude::*;
+        let mut device = DeviceCpu::default();
+        device.set_default_order(RowMajor);
 
-        let a = rt::tensor_from_nested!([1, 2, 3]);
-        let b = a.to_broadcast(vec![2, 3]);
-        
-        let expected = rt::tensor_from_nested![[
+        let a = rt::tensor_from_nested![
+            &device,
+            1, 2, 3,
+        ];
+
+        // broadcast (3, ) -> (2, 3) in row-major:
+        let result = a.to_broadcast(vec![2, 3]);
+        let expected = rt::tensor_from_nested![
+            &device,
             [1, 2, 3],
             [1, 2, 3],
-        ]];
-        println!("b: {:?}", b);
-        println!("expected: {:?}", expected);
-        assert!(rt::allclose(&b, &expected, None));
+        ];
+        assert!(rt::allclose!(&result, &expected));
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn doc_broadcast_to_col_major() {
+        use rstsr::prelude::*;
+        let mut device = DeviceCpu::default();
+        device.set_default_order(ColMajor);
+
+        let a = rt::tensor_from_nested![
+            &device,
+            1, 2, 3,
+        ];
+        // in col-major, broadcast (3, ) -> (2, 3) will fail:
+        let result = a.to_broadcast_f(vec![2, 3]);
+        assert!(result.is_err());
+
+        // broadcast (3, ) -> (3, 2) in col-major:
+        let result = a.to_broadcast(vec![3, 2]);
+        let expected = rt::tensor_from_nested![
+            &device,
+            [1, 1],
+            [2, 2],
+            [3, 3],
+        ];
+        assert!(rt::allclose!(&result, &expected));
+    }
+
+    #[test]
+    fn doc_broadcast_to_elaborated_row_major() {
+        use rstsr::prelude::*;
+        let mut device = DeviceCpu::default();
+        device.set_default_order(RowMajor);
+
+        // A      (4d tensor):  8 x 1 x 6 x 1
+        // B      (3d tensor):      7 x 1 x 5
+        // ----------------------------------
+        // Result (4d tensor):  8 x 7 x 6 x 5
+        let a = rt::arange((48, &device)).into_shape([8, 1, 6, 1]);
+        let b = rt::arange((35, &device)).into_shape([7, 1, 5]);
+        let result = &a + &b;
+        assert_eq!(result.shape(), &[8, 7, 6, 5]);
+
+        // A      (2d tensor):  5 x 4
+        // B      (1d tensor):      1
+        // --------------------------
+        // Result (2d tensor):  5 x 4
+        let a = rt::arange((20, &device)).into_shape([5, 4]);
+        let b = rt::arange((1, &device)).into_shape([1]);
+        let result = &a + &b;
+        assert_eq!(result.shape(), &[5, 4]);
+
+        // A      (2d tensor):  5 x 4
+        // B      (1d tensor):      4
+        // --------------------------
+        // Result (2d tensor):  5 x 4
+        let a = rt::arange((20, &device)).into_shape([5, 4]);
+        let b = rt::arange((4, &device)).into_shape([4]);
+        let result = &a + &b;
+        assert_eq!(result.shape(), &[5, 4]);
+
+        // A      (3d tensor):  15 x 3 x 5
+        // B      (3d tensor):  15 x 1 x 5
+        // -------------------------------
+        // Result (3d tensor):  15 x 3 x 5
+        let a = rt::arange((225, &device)).into_shape([15, 3, 5]);
+        let b = rt::arange((75, &device)).into_shape([15, 1, 5]);
+        let result = &a + &b;
+        assert_eq!(result.shape(), &[15, 3, 5]);
+
+        // A      (3d tensor):  15 x 3 x 5
+        // B      (2d tensor):       3 x 5
+        // -------------------------------
+        // Result (3d tensor):  15 x 3 x 5
+        let a = rt::arange((225, &device)).into_shape([15, 3, 5]);
+        let b = rt::arange((15, &device)).into_shape([3, 5]);
+        let result = &a + &b;
+        assert_eq!(result.shape(), &[15, 3, 5]);
+
+        // A      (3d tensor):  15 x 3 x 5
+        // B      (2d tensor):       3 x 1
+        // -------------------------------
+        // Result (3d tensor):  15 x 3 x 5
+        let a = rt::arange((225, &device)).into_shape([15, 3, 5]);
+        let b = rt::arange((3, &device)).into_shape([3, 1]);
+        let result = &a + &b;
+        assert_eq!(result.shape(), &[15, 3, 5]);
+    }
+
+    #[test]
+    fn doc_broadcast_to_elaborated_col_major() {
+        use rstsr::prelude::*;
+        let mut device = DeviceCpu::default();
+        device.set_default_order(ColMajor);
+
+        // A      (4d tensor):  1 x 6 x 1 x 8
+        // B      (3d tensor):  5 x 1 x 7
+        // ----------------------------------
+        // Result (4d tensor):  5 x 6 x 7 x 8
+        let a = rt::arange((48, &device)).into_shape([1, 6, 1, 8]);
+        let b = rt::arange((35, &device)).into_shape([5, 1, 7]);
+        let result = &a + &b;
+        assert_eq!(result.shape(), &[5, 6, 7, 8]);
+
+        // A      (2d tensor):  4 x 5
+        // B      (1d tensor):  1
+        // --------------------------
+        // Result (2d tensor):  4 x 5
+        let a = rt::arange((20, &device)).into_shape([4, 5]);
+        let b = rt::arange((1, &device)).into_shape([1]);
+        let result = &a + &b;
+        assert_eq!(result.shape(), &[4, 5]);
+
+        // A      (2d tensor):  4 x 5
+        // B      (1d tensor):  4
+        // --------------------------
+        // Result (2d tensor):  4 x 5
+        let a = rt::arange((20, &device)).into_shape([4, 5]);
+        let b = rt::arange((4, &device)).into_shape([4]);
+        let result = &a + &b;
+        assert_eq!(result.shape(), &[4, 5]);
+
+        // A      (3d tensor):  5 x 3 x 15
+        // B      (3d tensor):  5 x 1 x 15
+        // -------------------------------
+        // Result (3d tensor):  5 x 3 x 15
+        let a = rt::arange((225, &device)).into_shape([5, 3, 15]);
+        let b = rt::arange((75, &device)).into_shape([5, 1, 15]);
+        let result = &a + &b;
+        assert_eq!(result.shape(), &[5, 3, 15]);
+
+        // A      (3d tensor):  5 x 3 x 15
+        // B      (2d tensor):  5 x 3
+        // -------------------------------
+        // Result (3d tensor):  5 x 3 x 15
+        let a = rt::arange((225, &device)).into_shape([5, 3, 15]);
+        let b = rt::arange((15, &device)).into_shape([5, 3]);
+        let result = &a + &b;
+        assert_eq!(result.shape(), &[5, 3, 15]);
+
+        // A      (3d tensor):  5 x 3 x 15
+        // B      (2d tensor):  1 x 3
+        // -------------------------------
+        // Result (3d tensor):  5 x 3 x 15
+        let a = rt::arange((225, &device)).into_shape([5, 3, 15]);
+        let b = rt::arange((3, &device)).into_shape([1, 3]);
+        let result = &a + &b;
+        assert_eq!(result.shape(), &[5, 3, 15]);
     }
 }

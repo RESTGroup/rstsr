@@ -373,6 +373,18 @@ where
     allclose_f(tensor_a, tensor_b, isclose_args).rstsr_unwrap()
 }
 
+#[macro_export]
+macro_rules! allclose {
+    ($tensor_a:expr, $tensor_b:expr, $isclose_args:expr) => {{
+        use rstsr::prelude::rstsr_funcs::allclose;
+        allclose($tensor_a, $tensor_b, $isclose_args)
+    }};
+    ($tensor_a:expr, $tensor_b:expr) => {{
+        use rstsr::prelude::rstsr_funcs::allclose;
+        allclose($tensor_a, $tensor_b, None)
+    }};
+}
+
 /* #endregion */
 
 #[cfg(test)]

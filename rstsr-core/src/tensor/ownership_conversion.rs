@@ -307,7 +307,22 @@ where
     type Dim = D;
 
     fn view(&self) -> TensorView<'_, T, B, D> {
-        (*self).view()
+        TensorAny::view(*self)
+    }
+}
+
+impl<R, T, B, D> TensorViewAPI for &mut TensorAny<R, T, B, D>
+where
+    D: DimAPI,
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
+{
+    type Type = T;
+    type Backend = B;
+    type Dim = D;
+
+    fn view(&self) -> TensorView<'_, T, B, D> {
+        TensorAny::view(*self)
     }
 }
 
@@ -388,7 +403,7 @@ where
 
 /* #region tensor prop for computation */
 
-pub trait TensorRefAPI<'l> {}
+pub trait TensorRefAPI<'l>: TensorViewAPI {}
 impl<'l, R, T, B, D> TensorRefAPI<'l> for &'l TensorAny<R, T, B, D>
 where
     D: DimAPI,
@@ -405,7 +420,7 @@ where
 {
 }
 
-pub trait TensorRefMutAPI<'l> {}
+pub trait TensorRefMutAPI<'l>: TensorViewAPI {}
 impl<'l, R, T, B, D> TensorRefMutAPI<'l> for &mut TensorAny<R, T, B, D>
 where
     D: DimAPI,
