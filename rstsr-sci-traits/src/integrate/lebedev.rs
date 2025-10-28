@@ -76,7 +76,7 @@ pub fn lebedev_rule<B>(n: usize, device: &B) -> LebedevQuad<B>
 where
     B: DeviceAPI<f64> + LebedevRuleAPI,
 {
-    device.lebedev_rule_f(n).unwrap()
+    device.lebedev_rule_f(n).rstsr_unwrap()
 }
 
 pub fn lebedev_rule_f<B>(n: usize, device: &B) -> Result<LebedevQuad<B>>
@@ -97,7 +97,7 @@ pub fn lebedev_rule_from_degree<B>(degree: usize, device: &B) -> LebedevQuad<B>
 where
     B: DeviceAPI<f64> + LebedevRuleAPI,
 {
-    lebedev_rule_from_degree_f(degree, device).unwrap()
+    lebedev_rule_from_degree_f(degree, device).rstsr_unwrap()
 }
 
 pub fn lebedev_rule_from_degree_f<B>(degree: usize, device: &B) -> Result<LebedevQuad<B>>
@@ -118,7 +118,7 @@ where
 
     /// Generate Lebedev quadrature rule.
     fn lebedev_rule(&self, n: usize) -> LebedevQuad<Self> {
-        self.lebedev_rule_f(n).unwrap()
+        self.lebedev_rule_f(n).rstsr_unwrap()
     }
 }
 
