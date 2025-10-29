@@ -45,14 +45,14 @@ use crate::prelude_dev::*;
 /// let b = rt::asarray((vec![4, 5], &device)).into_shape([2, 1]);
 ///
 /// let result = rt::broadcast_arrays(vec![a, b]);
-/// let expected_a = rt::tensor_from_nested![&device,
-///     [1, 2, 3],
-///     [1, 2, 3],
-/// ];
-/// let expected_b = rt::tensor_from_nested![&device,
-///     [4, 4, 4],
-///     [5, 5, 5],
-/// ];
+/// let expected_a = rt::tensor_from_nested!(
+///     [[1, 2, 3],
+///      [1, 2, 3]],
+///     &device);
+/// let expected_b = rt::tensor_from_nested!(
+///     [[4, 4, 4],
+///      [5, 5, 5]],
+///     &device);
 /// assert!(rt::allclose!(&result[0], &expected_a));
 /// assert!(rt::allclose!(&result[1], &expected_b));
 /// ```
@@ -72,14 +72,14 @@ use crate::prelude_dev::*;
 /// let b = rt::asarray((vec![4, 5], &device)).into_shape([2, 1]);
 /// #
 /// # let result = rt::broadcast_arrays(vec![a, b]);
-/// # let expected_a = rt::tensor_from_nested![&device,
-/// #     [1, 2, 3],
-/// #     [1, 2, 3],
-/// # ];
-/// # let expected_b = rt::tensor_from_nested![&device,
-/// #     [4, 4, 4],
-/// #     [5, 5, 5],
-/// # ];
+/// # let expected_a = rt::tensor_from_nested!(
+/// #     [[1, 2, 3],
+/// #      [1, 2, 3]],
+/// #     &device);
+/// # let expected_b = rt::tensor_from_nested!(
+/// #     [[4, 4, 4],
+/// #      [5, 5, 5]],
+/// #     &device);
 /// # assert!(rt::allclose!(&result[0], &expected_a));
 /// # assert!(rt::allclose!(&result[1], &expected_b));
 /// ```
@@ -204,16 +204,14 @@ where
 /// let mut device = DeviceCpu::default();
 /// device.set_default_order(RowMajor);
 ///
-/// let a = rt::tensor_from_nested![&device,
-///     1, 2, 3,
-/// ];
+/// let a = rt::tensor_from_nested!([1, 2, 3], &device);
 ///
 /// // broadcast (3, ) -> (2, 3) in row-major:
 /// let result = a.to_broadcast(vec![2, 3]);
-/// let expected = rt::tensor_from_nested![&device,
-///     [1, 2, 3],
-///     [1, 2, 3],
-/// ];
+/// let expected = rt::tensor_from_nested!(
+///     [[1, 2, 3],
+///      [1, 2, 3]],
+///     &device);
 /// assert!(rt::allclose!(&result, &expected));
 /// ```
 ///
@@ -225,20 +223,18 @@ where
 /// let mut device = DeviceCpu::default();
 /// device.set_default_order(ColMajor);
 ///
-/// let a = rt::tensor_from_nested![&device,
-///     1, 2, 3,
-/// ];
+/// let a = rt::tensor_from_nested!([1, 2, 3], &device);
 /// // in col-major, broadcast (3, ) -> (2, 3) will fail:
 /// let result = a.to_broadcast_f(vec![2, 3]);
 /// assert!(result.is_err());
 ///
 /// // broadcast (3, ) -> (3, 2) in col-major:
 /// let result = a.to_broadcast(vec![3, 2]);
-/// let expected = rt::tensor_from_nested![&device,
-///     [1, 1],
-///     [2, 2],
-///     [3, 3],
-/// ];
+/// let expected = rt::tensor_from_nested!(
+///     [[1, 1],
+///      [2, 2],
+///      [3, 3]],
+///     &device);
 /// assert!(rt::allclose!(&result, &expected));
 /// ```
 ///
@@ -577,16 +573,14 @@ mod tests {
         let mut device = DeviceCpu::default();
         device.set_default_order(RowMajor);
 
-        let a = rt::tensor_from_nested![&device,
-            1, 2, 3,
-        ];
+        let a = rt::tensor_from_nested!([1, 2, 3], &device);
 
         // broadcast (3, ) -> (2, 3) in row-major:
         let result = a.to_broadcast(vec![2, 3]);
-        let expected = rt::tensor_from_nested![&device,
-            [1, 2, 3],
-            [1, 2, 3],
-        ];
+        let expected = rt::tensor_from_nested!(
+            [[1, 2, 3],
+             [1, 2, 3]],
+            &device);
         assert!(rt::allclose!(&result, &expected));
     }
 
@@ -597,20 +591,18 @@ mod tests {
         let mut device = DeviceCpu::default();
         device.set_default_order(ColMajor);
 
-        let a = rt::tensor_from_nested![&device,
-            1, 2, 3,
-        ];
+        let a = rt::tensor_from_nested!([1, 2, 3], &device);
         // in col-major, broadcast (3, ) -> (2, 3) will fail:
         let result = a.to_broadcast_f(vec![2, 3]);
         assert!(result.is_err());
 
         // broadcast (3, ) -> (3, 2) in col-major:
         let result = a.to_broadcast(vec![3, 2]);
-        let expected = rt::tensor_from_nested![&device,
-            [1, 1],
-            [2, 2],
-            [3, 3],
-        ];
+        let expected = rt::tensor_from_nested!(
+            [[1, 1],
+             [2, 2],
+             [3, 3]],
+            &device);
         assert!(rt::allclose!(&result, &expected));
     }
 
@@ -747,14 +739,14 @@ mod tests {
         let b = rt::asarray((vec![4, 5], &device)).into_shape([2, 1]);
 
         let result = rt::broadcast_arrays(vec![a, b]);
-        let expected_a = rt::tensor_from_nested![&device,
-            [1, 2, 3],
-            [1, 2, 3],
-        ];
-        let expected_b = rt::tensor_from_nested![&device,
-            [4, 4, 4],
-            [5, 5, 5],
-        ];
+        let expected_a = rt::tensor_from_nested!(
+            [[1, 2, 3],
+             [1, 2, 3]],
+            &device);
+        let expected_b = rt::tensor_from_nested!(
+            [[4, 4, 4],
+             [5, 5, 5]],
+            &device);
         assert!(rt::allclose!(&result[0], &expected_a));
         assert!(rt::allclose!(&result[1], &expected_b));
     }
@@ -770,14 +762,14 @@ mod tests {
         let b = rt::asarray((vec![4, 5], &device)).into_shape([2, 1]);
 
         let result = rt::broadcast_arrays(vec![a, b]);
-        let expected_a = rt::tensor_from_nested![&device,
-            [1, 2, 3],
-            [1, 2, 3],
-        ];
-        let expected_b = rt::tensor_from_nested![&device,
-            [4, 4, 4],
-            [5, 5, 5],
-        ];
+        let expected_a = rt::tensor_from_nested!(
+            [[1, 2, 3],
+             [1, 2, 3]],
+            &device);
+        let expected_b = rt::tensor_from_nested!(
+            [[4, 4, 4],
+             [5, 5, 5]],
+            &device);
         assert!(rt::allclose!(&result[0], &expected_a));
         assert!(rt::allclose!(&result[1], &expected_b));
     }

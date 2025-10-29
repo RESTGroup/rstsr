@@ -232,7 +232,7 @@ mod tests {
         let b = a.expand_dims(2);
         assert_eq!(b.shape(), &[4, 9, 1, 8]);
         let b = a.expand_dims([1, 3]);
-        assert_eq!(b.shape(), &[4, 1, 9, 8, 1]);
+        assert_eq!(b.shape(), &[4, 1, 9, 1, 8]);
         let b = a.expand_dims([1, -1]);
         assert_eq!(b.shape(), &[4, 1, 9, 8, 1]);
         let b = a.expand_dims([-1, -4, 1, 0]);

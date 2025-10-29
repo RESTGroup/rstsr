@@ -1842,13 +1842,21 @@ impl_from_nested_array!([[[[[[T; N6]; N5]; N4]; N3]; N2]; N1], Ix6, N1, N2, N3, 
 /// ```rust
 /// use rstsr::prelude::*;
 ///
-/// let tsr = rt::tensor_from_nested![[1, 2, 3], [4, 5, 6]];
+/// let tsr = rt::tensor_from_nested!(
+///     [[1, 2, 3],
+///      [4, 5, 6]]
+/// );
 /// println!("{tsr:?}");
 /// // [[ 1 2 3]
 /// //  [ 4 5 6]]
 /// // 2-Dim (dyn), contiguous: Cc
 ///
-/// let tsr = rt::tensor_from_nested![[[1, 2], [3, 4]], [[5, 6], [7, 8]]];
+/// let tsr = rt::tensor_from_nested!(
+///     [[[1, 2],
+///       [3, 4]],
+///      [[5, 6],
+///       [7, 8]]]
+/// );
 /// println!("{tsr:?}");
 /// // [[[ 1 2]
 /// //   [ 3 4]]
@@ -1862,7 +1870,7 @@ impl_from_nested_array!([[[[[[T; N6]; N5]; N4]; N3]; N2]; N1], Ix6, N1, N2, N3, 
 /// use rstsr::prelude::*;
 ///
 /// let device = DeviceFaer::default(); // or other devices
-/// let tsr = rt::tensor_from_nested!(&device, [[1, 2, 3], [4, 5, 6]]);
+/// let tsr = rt::tensor_from_nested!([[1, 2, 3], [4, 5, 6]], &device);
 /// println!("{tsr:?}"); // you will get a tensor on DeviceFaer
 /// ```
 ///
@@ -1886,51 +1894,51 @@ impl_from_nested_array!([[[[[[T; N6]; N5]; N4]; N3]; N2]; N1], Ix6, N1, N2, N3, 
 ///   ndarray.
 #[macro_export]
 macro_rules! tensor_from_nested {
-    (&$device:expr, $([$([$([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*) => {{
+    ([$([$([$([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*], $device:expr) => {{
         compile_error!("Tensor of 7 dimensions or more cannot be constructed with the tensor_from_nested! macro.");
     }};
-    (&$device:expr, $([$([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*) => {{
-        Tensor::<_, _, Ix6>::from_nested_array([$([$([$([$([$([$($x,)*],)*],)*],)*],)*],)*], &$device).into_dyn()
+    ([$([$([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*], $device:expr) => {{
+        Tensor::<_, _, Ix6>::from_nested_array([$([$([$([$([$([$($x,)*],)*],)*],)*],)*],)*], $device).into_dyn()
     }};
-    (&$device:expr, $([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*) => {{
-        Tensor::<_, _, Ix5>::from_nested_array([$([$([$([$([$($x,)*],)*],)*],)*],)*], &$device).into_dyn()
+    ([$([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*], $device:expr) => {{
+        Tensor::<_, _, Ix5>::from_nested_array([$([$([$([$([$($x,)*],)*],)*],)*],)*], $device).into_dyn()
     }};
-    (&$device:expr, $([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*) => {{
-        Tensor::<_, _, Ix4>::from_nested_array([$([$([$([$($x,)*],)*],)*],)*], &$device).into_dyn()
+    ([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*], $device:expr) => {{
+        Tensor::<_, _, Ix4>::from_nested_array([$([$([$([$($x,)*],)*],)*],)*], $device).into_dyn()
     }};
-    (&$device:expr, $([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*) => {{
-        Tensor::<_, _, Ix3>::from_nested_array([$([$([$($x,)*],)*],)*], &$device).into_dyn()
+    ([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*], $device:expr) => {{
+        Tensor::<_, _, Ix3>::from_nested_array([$([$([$($x,)*],)*],)*], $device).into_dyn()
     }};
-    (&$device:expr, $([$($x:expr),* $(,)*]),+ $(,)*) => {{
-        Tensor::<_, _, Ix2>::from_nested_array([$([$($x,)*],)*], &$device).into_dyn()
+    ([$([$($x:expr),* $(,)*]),+ $(,)*], $device:expr) => {{
+        Tensor::<_, _, Ix2>::from_nested_array([$([$($x,)*],)*], $device).into_dyn()
     }};
-    (&$device:expr, $($x:expr),* $(,)*) => {{
-        Tensor::<_, _, Ix1>::from_nested_array([$($x,)*], &$device).into_dyn()
+    ([$($x:expr),* $(,)*], $device:expr) => {{
+        Tensor::<_, _, Ix1>::from_nested_array([$($x,)*], $device).into_dyn()
     }};
-    ($([$([$([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*) => {{
+    ([$([$([$([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]) => {{
         compile_error!("Tensor of 7 dimensions or more cannot be constructed with the tensor_from_nested! macro.");
     }};
-    ($([$([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*) => {{
+    ([$([$([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]) => {{
         let device = DeviceCpu::default();
         Tensor::<_, _, Ix6>::from_nested_array([$([$([$([$([$([$($x,)*],)*],)*],)*],)*],)*], &device).into_dyn()
     }};
-    ($([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*) => {{
+    ([$([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]) => {{
         let device = DeviceCpu::default();
         Tensor::<_, _, Ix5>::from_nested_array([$([$([$([$([$($x,)*],)*],)*],)*],)*], &device).into_dyn()
     }};
-    ($([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*) => {{
+    ([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]) => {{
         let device = DeviceCpu::default();
         Tensor::<_, _, Ix4>::from_nested_array([$([$([$([$($x,)*],)*],)*],)*], &device).into_dyn()
     }};
-    ($([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*) => {{
+    ([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]) => {{
         let device = DeviceCpu::default();
         Tensor::<_, _, Ix3>::from_nested_array([$([$([$($x,)*],)*],)*], &device).into_dyn()
     }};
-    ($([$($x:expr),* $(,)*]),+ $(,)*) => {{
+    ([$([$($x:expr),* $(,)*]),+ $(,)*]) => {{
         let device = DeviceCpu::default();
         Tensor::<_, _, Ix2>::from_nested_array([$([$($x,)*],)*], &device).into_dyn()
     }};
-    ($($x:expr),* $(,)*) => {{
+    ([$($x:expr),* $(,)*]) => {{
         let device = DeviceCpu::default();
         Tensor::<_, _, Ix1>::from_nested_array([$($x,)*], &device).into_dyn()
     }};
@@ -1939,12 +1947,12 @@ macro_rules! tensor_from_nested {
 #[test]
 fn playground() {
     use rstsr::prelude::*;
-    let tsr = rt::tensor_from_nested![[1, 2, 3], [4, 5, 6]];
+    let tsr = rt::tensor_from_nested!([[1, 2, 3], [4, 5, 6]]);
     println!("{tsr:?}");
 
     let mut device = DeviceCpuSerial::default();
     device.set_default_order(ColMajor);
-    let tsr = rt::tensor_from_nested!(&device, [[1, 2, 3], [4, 5, 6]]);
+    let tsr = rt::tensor_from_nested!([[1, 2, 3], [4, 5, 6]], &device);
     println!("{tsr:?}");
 }
 

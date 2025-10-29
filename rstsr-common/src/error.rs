@@ -67,6 +67,7 @@ pub trait RSTSRResultAPI<T> {
 }
 
 impl<T> RSTSRResultAPI<T> for Result<T> {
+    #[allow(unused_variables)]
     fn rstsr_unwrap(self) -> T {
         match self {
             Ok(v) => v,

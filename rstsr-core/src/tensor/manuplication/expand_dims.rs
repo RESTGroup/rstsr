@@ -65,7 +65,7 @@ where
 /// # let x = rt::asarray(vec![1, 2]);
 /// // [1, 2] -> [[1, 2]]
 /// let y = x.expand_dims(0);
-/// let y_expected = rt::tensor_from_nested![[1, 2]];
+/// let y_expected = rt::tensor_from_nested!([[1, 2]]);
 /// assert!(rt::allclose(&y, &y_expected, None));
 /// assert_eq!(y.shape(), &[1, 2]);
 /// assert_eq!(x.i(None).shape(), &[1, 2]);
@@ -79,7 +79,7 @@ where
 /// # let x = rt::asarray(vec![1, 2]);
 /// // [1, 2] -> [[1], [2]]
 /// let y = x.expand_dims(-1);
-/// let y_expected = rt::tensor_from_nested![[1], [2]];
+/// let y_expected = rt::tensor_from_nested!([[1], [2]]);
 /// assert!(rt::allclose(&y, &y_expected, None));
 /// assert_eq!(y.shape(), &[2, 1]);
 /// assert_eq!(x.i((Ellipsis, None)).shape(), &[2, 1]);
@@ -93,7 +93,7 @@ where
 /// // Expand dims at axes 0 and 1
 /// // [1, 2] -> [[[1, 2]]]
 /// let y = x.expand_dims([0, 1]);
-/// let y_expected = rt::tensor_from_nested![[[1, 2]]];
+/// let y_expected = rt::tensor_from_nested!([[[1, 2]]]);
 /// assert!(rt::allclose(&y, &y_expected, None));
 /// assert_eq!(y.shape(), &[1, 1, 2]);
 /// assert_eq!(x.i((None, None)).shape(), &[1, 1, 2]);
@@ -107,7 +107,7 @@ where
 /// // Expand dims at axes 0 and 2
 /// // [1, 2] -> [[[1], [2]]]
 /// let y = x.expand_dims([0, 2]);
-/// let y_expected = rt::tensor_from_nested![[[1], [2]]];
+/// let y_expected = rt::tensor_from_nested!([[[1], [2]]]);
 /// assert!(rt::allclose(&y, &y_expected, None));
 /// assert_eq!(y.shape(), &[1, 2, 1]);
 /// assert_eq!(x.i((None, Ellipsis, None)).shape(), &[1, 2, 1]);
@@ -264,7 +264,7 @@ mod tests {
         // Expand dims at axis 0
         // [1, 2] -> [[1, 2]]
         let y = x.expand_dims(0);
-        let y_expected = rt::tensor_from_nested![[1, 2]];
+        let y_expected = rt::tensor_from_nested!([[1, 2]]);
         assert!(rt::allclose(&y, &y_expected, None));
         assert_eq!(y.shape(), &[1, 2]);
         assert_eq!(x.i(None).shape(), &[1, 2]);
@@ -272,7 +272,7 @@ mod tests {
         // Expand dims at axis -1 (last axis)
         // [1, 2] -> [[1], [2]]
         let y = x.expand_dims(-1);
-        let y_expected = rt::tensor_from_nested![[1], [2]];
+        let y_expected = rt::tensor_from_nested!([[1], [2]]);
         assert!(rt::allclose(&y, &y_expected, None));
         assert_eq!(y.shape(), &[2, 1]);
         assert_eq!(x.i((Ellipsis, None)).shape(), &[2, 1]);
@@ -280,7 +280,7 @@ mod tests {
         // Expand dims at axes 0 and 1
         // [1, 2] -> [[[1, 2]]]
         let y = x.expand_dims([0, 1]);
-        let y_expected = rt::tensor_from_nested![[[1, 2]]];
+        let y_expected = rt::tensor_from_nested!([[[1, 2]]]);
         assert!(rt::allclose(&y, &y_expected, None));
         assert_eq!(y.shape(), &[1, 1, 2]);
         assert_eq!(x.i((None, None)).shape(), &[1, 1, 2]);
@@ -288,7 +288,7 @@ mod tests {
         // Expand dims at axes 0 and 2
         // [1, 2] -> [[[1], [2]]]
         let y = x.expand_dims([0, 2]);
-        let y_expected = rt::tensor_from_nested![[[1], [2]]];
+        let y_expected = rt::tensor_from_nested!([[[1], [2]]]);
         assert!(rt::allclose(&y, &y_expected, None));
         assert_eq!(y.shape(), &[1, 2, 1]);
         assert_eq!(x.i((None, Ellipsis, None)).shape(), &[1, 2, 1]);
