@@ -17,8 +17,15 @@ where
     let ndim: isize = TryInto::<isize>::try_into(tensor.ndim())?;
     let (storage, layout) = tensor.into_raw_parts();
     let mut layout = layout.into_dim::<IxD>()?;
-    let axes_iter = axes.try_into()?.as_ref().iter().map(|&v| if v < 0 { v + ndim + 1 } else { v }).sorted();
-    for axis in axes_iter {
+    let axes = axes.try_into()?;
+    let len_axes = axes.as_ref().len();
+    let axes =
+        axes.as_ref().iter().map(|&v| if v < 0 { v + ndim + len_axes as isize } else { v }).sorted().collect_vec();
+    // does not allow duplicate axes
+    if axes.iter().duplicates().count() > 0 {
+        rstsr_raise!(InvalidLayout, "duplicate axes are not allowed in expand_dims")?;
+    }
+    for axis in axes {
         layout = layout.dim_insert(axis)?;
     }
     unsafe { Ok(TensorBase::new_unchecked(storage, layout)) }
