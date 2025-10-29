@@ -110,7 +110,7 @@ where
 ///
 /// # See also
 ///
-/// Refer [`broadcast_arrays`] for detailed documentation.
+/// Refer to [`broadcast_arrays`] for detailed documentation.
 pub fn broadcast_arrays_f<R, T, B>(tensors: Vec<TensorAny<R, T, B, IxD>>) -> Result<Vec<TensorAny<R, T, B, IxD>>>
 where
     R: DataAPI<Data = B::Raw>,
@@ -145,7 +145,7 @@ where
 ///
 /// # See also
 ///
-/// Refer [`to_broadcast`] and [`into_broadcast`] for detailed documentation.
+/// Refer to [`to_broadcast`] and [`into_broadcast`] for detailed documentation.
 pub fn into_broadcast_f<R, T, B, D, D2>(tensor: TensorAny<R, T, B, D>, shape: D2) -> Result<TensorAny<R, T, B, D2>>
 where
     R: DataAPI<Data = B::Raw>,
@@ -419,7 +419,7 @@ where
 ///
 /// # See also
 ///
-/// Refer [`to_broadcast`] or [`into_broadcast`] for detailed documentation.
+/// Refer to [`to_broadcast`] or [`into_broadcast`] for detailed documentation.
 pub fn broadcast_to<R, T, B, D, D2>(tensor: &TensorAny<R, T, B, D>, shape: D2) -> TensorView<'_, T, B, D2>
 where
     D: DimAPI + DimMaxAPI<D2, Max = D2>,
@@ -434,7 +434,7 @@ where
 ///
 /// # See also
 ///
-/// Refer [`to_broadcast`] or [`into_broadcast`] for detailed documentation.
+/// Refer to [`to_broadcast`] or [`into_broadcast`] for detailed documentation.
 pub fn to_broadcast_f<R, T, B, D, D2>(tensor: &TensorAny<R, T, B, D>, shape: D2) -> Result<TensorView<'_, T, B, D2>>
 where
     D: DimAPI + DimMaxAPI<D2, Max = D2>,
@@ -473,17 +473,16 @@ where
 ///
 /// - [`TensorAny<R, T, B, D2>`]
 ///
-///   - Ownership of the result is the same to the input tensor. Only layout (instead of underlying
-///     data) is changed. The ownership of the underlying data is moved from the input tensor to the
-///     output tensor.
 ///   - The tensor with the given shape. It is typically not contiguous (perform [`to_contig`]
 ///     afterwards if requires a contiguous owned tensor).
 ///   - Furthermore, more than one element of a broadcasted tensor may refer to a single memory
 ///     location (zero strides at the broadcasted axes).
+///   - Ownership of the returned tensor is transferred from the input tensor. Only the layout is
+///     modified; the underlying data remains unchanged.
 ///
 /// # See also
 ///
-/// Refer [`to_broadcast`] for more detailed documentation.
+/// Refer to [`to_broadcast`] for more detailed documentation.
 pub fn into_broadcast<R, T, B, D, D2>(tensor: TensorAny<R, T, B, D>, shape: D2) -> TensorAny<R, T, B, D2>
 where
     R: DataAPI<Data = B::Raw>,
@@ -504,7 +503,7 @@ where
     ///
     /// # See also
     ///
-    /// Refer [`to_broadcast`] or [`into_broadcast`] for detailed documentation.
+    /// Refer to [`to_broadcast`] or [`into_broadcast`] for detailed documentation.
     pub fn to_broadcast<D2>(&self, shape: D2) -> TensorView<'_, T, B, D2>
     where
         D2: DimAPI,
@@ -517,7 +516,7 @@ where
     ///
     /// # See also
     ///
-    /// Refer [`to_broadcast`] or [`into_broadcast`] for detailed documentation.
+    /// Refer to [`to_broadcast`] or [`into_broadcast`] for detailed documentation.
     pub fn broadcast_to<D2>(&self, shape: D2) -> TensorView<'_, T, B, D2>
     where
         D2: DimAPI,
@@ -530,7 +529,7 @@ where
     ///
     /// # See also
     ///
-    /// Refer [`to_broadcast`] or [`into_broadcast`] for detailed documentation.
+    /// Refer to [`to_broadcast`] or [`into_broadcast`] for detailed documentation.
     pub fn to_broadcast_f<D2>(&self, shape: D2) -> Result<TensorView<'_, T, B, D2>>
     where
         D2: DimAPI,
@@ -543,7 +542,7 @@ where
     ///
     /// # See also
     ///
-    /// Refer [`to_broadcast`] or [`into_broadcast`] for detailed documentation.
+    /// Refer to [`to_broadcast`] or [`into_broadcast`] for detailed documentation.
     pub fn into_broadcast<D2>(self, shape: D2) -> TensorAny<R, T, B, D2>
     where
         D2: DimAPI,
@@ -556,7 +555,7 @@ where
     ///
     /// # See also
     ///
-    /// Refer [`to_broadcast`] or [`into_broadcast`] for detailed documentation.
+    /// Refer to [`to_broadcast`] or [`into_broadcast`] for detailed documentation.
     pub fn into_broadcast_f<D2>(self, shape: D2) -> Result<TensorAny<R, T, B, D2>>
     where
         D2: DimAPI,
