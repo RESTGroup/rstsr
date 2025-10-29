@@ -12,6 +12,7 @@ pub mod rstsr_traits {
     pub use crate::tensor::creation_from_tensor::{
         ConcatAPI, DiagAPI, HStackAPI, MeshgridAPI, StackAPI, UnstackAPI, VStackAPI,
     };
+    pub use crate::tensor::device_conversion::{TensorChangeFromDevice, TensorDeviceChangeAPI};
     pub use crate::tensor::operators::op_binary_common::{
         TensorATan2API, TensorCopySignAPI, TensorEqualAPI, TensorFloorDivideAPI, TensorGreaterAPI,
         TensorGreaterEqualAPI, TensorHypotAPI, TensorLessAPI, TensorLessEqualAPI, TensorLogAddExpAPI, TensorMaximumAPI,

@@ -8,7 +8,7 @@ use crate::prelude_dev::*;
 ///
 /// **Row/Column Major Notice**
 ///
-/// This function behaves differently on default orders ([RowMajor] and [ColMajor]) of device.
+/// This function behaves differently on default orders ([`RowMajor`] and [`ColMajor`]) of device.
 ///
 /// </div>
 ///
@@ -32,7 +32,7 @@ use crate::prelude_dev::*;
 ///     Writing values to broadcasted tensors is dangerous, but RSTSR will generally not panic on
 ///     this behavior. Perform [`to_contig`] afterwards if requires owned contiguous tensors.
 ///
-/// # Example
+/// # Examples
 ///
 /// The following example demonstrates how to use `broadcast_arrays` to broadcast two tensors:
 ///
@@ -168,7 +168,7 @@ where
 ///
 /// **Row/Column Major Notice**
 ///
-/// This function behaves differently on default orders ([RowMajor] and [ColMajor]) of device.
+/// This function behaves differently on default orders ([`RowMajor`] and [`ColMajor`]) of device.
 ///
 /// </div>
 ///
@@ -194,7 +194,7 @@ where
 ///     location (zero strides at the broadcasted axes). Writing values to broadcasted tensors is
 ///     dangerous, but RSTSR will generally not panic on this behavior.
 ///
-/// # Example
+/// # Examples
 ///
 /// The following example demonstrates how to use `to_broadcast` to broadcast a 1-D tensor
 /// (3-element vector) to a 2-D tensor (2x3 matrix) by repeating the original data along a new axis.
@@ -394,13 +394,13 @@ where
 /// - [`into_broadcast`]: Consuming version that takes ownership of the input tensor.
 /// - [`into_broadcast_f`]: Consuming and fallible version, actual implementation.
 /// - [`broadcast_to`]: Alias for `to_broadcast` (name of Python Array API standard).
-/// - Associated methods on [`Tensor`]:
+/// - Associated methods on [`TensorAny`]:
 ///
-///   - [`Tensor::to_broadcast`]
-///   - [`Tensor::to_broadcast_f`]
-///   - [`Tensor::into_broadcast`]
-///   - [`Tensor::into_broadcast_f`]
-///   - [`Tensor::broadcast_to`]
+///   - [`TensorAny::to_broadcast`]
+///   - [`TensorAny::to_broadcast_f`]
+///   - [`TensorAny::into_broadcast`]
+///   - [`TensorAny::into_broadcast_f`]
+///   - [`TensorAny::broadcast_to`]
 pub fn to_broadcast<R, T, B, D, D2>(tensor: &TensorAny<R, T, B, D>, shape: D2) -> TensorView<'_, T, B, D2>
 where
     D: DimAPI + DimMaxAPI<D2, Max = D2>,
@@ -447,7 +447,7 @@ where
 ///
 /// **Row/Column Major Notice**
 ///
-/// This function behaves differently on default orders ([RowMajor] and [ColMajor]) of device.
+/// This function behaves differently on default orders ([`RowMajor`] and [`ColMajor`]) of device.
 ///
 /// </div>
 ///
@@ -456,7 +456,7 @@ where
 /// - `tensor`: [`TensorAny<R, T, B, D>`]
 ///
 ///   - The input tensor to be broadcasted.
-///   - Please note this function takes ownership of the input tensor.
+///   - Ownership of input tensor is taken.
 ///
 /// - `shape`: impl [`DimAPI`]
 ///
