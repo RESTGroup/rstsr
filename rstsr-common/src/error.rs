@@ -1,12 +1,14 @@
 #[cfg(feature = "std")]
 extern crate std;
 
+extern crate alloc;
+
 use crate::prelude_dev::*;
+use alloc::collections::TryReserveError;
+use core::alloc::LayoutError;
 use core::convert::Infallible;
 use core::num::TryFromIntError;
 use derive_builder::UninitializedFieldError;
-use std::alloc::LayoutError;
-use std::collections::TryReserveError;
 
 #[non_exhaustive]
 #[derive(Debug)]

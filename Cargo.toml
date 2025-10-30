@@ -55,11 +55,11 @@ rstsr-blis-ffi = { version = "0.2", default-features = false, features = ["lapac
 rstsr-aocl-ffi = { version = "0.2", default-features = false, features = ["blis", "lapack"] }
 rstsr-kml-ffi = { version = "0.2", default-features = false, features = ["kblas", "lapack"] }
 # basic dependencies
-num = { version = "0.4" }
+num = { version = "0.4", default-features = false, features = ["alloc", "libm"] }
 itertools = { version = "0.13", default-features = false, features = ["use_alloc"] }
-half = { version = "2.4", features = ["num-traits"] }
+half = { version = "2.7", default-features = false, features = ["alloc", "num-traits"] }
 libm = { version = "0.2" }
-derive_builder = { version = "0.20" }
+derive_builder = { version = "0.20", default-features = false, features = ["alloc"] }
 duplicate = { version = "2.0" }
 # optional dependencies
 rayon = { version = ">=1.10" }
