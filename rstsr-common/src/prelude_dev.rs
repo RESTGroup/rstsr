@@ -19,7 +19,7 @@ pub use crate::alloc_vec::*;
 pub use crate::axis_index::*;
 pub use crate::error::{rstsr_backtrace, Error, RSTSRError, RSTSRResultAPI, Result};
 pub use crate::flags::*;
-pub use crate::layout::*;
+pub use crate::layout::exports::*;
 pub use crate::util::*;
 
 #[cfg(feature = "rayon")]

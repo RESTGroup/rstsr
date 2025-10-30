@@ -198,6 +198,8 @@ where
 ///   - Furthermore, more than one element of a broadcasted tensor may refer to a single memory
 ///     location (zero strides at the broadcasted axes). Writing values to broadcasted tensors is
 ///     dangerous, but RSTSR will generally not panic on this behavior.
+///   - If you want to convert the tensor itself (taking the ownership instead of returning view),
+///     use [`into_broadcast`] instead.
 ///
 /// # Examples
 ///

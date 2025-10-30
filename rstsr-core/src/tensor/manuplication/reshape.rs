@@ -6,7 +6,7 @@ use crate::prelude_dev::*;
 ///
 /// # See also
 ///
-/// Refer to [`reshape`](reshape()), [`into_shape`] and [`change_shape`] for more details and
+/// Refer to [`reshape`], [`into_shape`] and [`change_shape`] for more details and
 /// examples.
 pub fn change_shape_f<'a, I, R, T, B, D>(tensor: TensorAny<R, T, B, D>, shape: I) -> Result<TensorCow<'a, T, B, IxD>>
 where
@@ -41,7 +41,7 @@ where
 /// Reshapes the given tensor to the specified shape.
 ///
 /// This function is not intended to be used by usual users. Please consider using
-/// [`reshape`](reshape()) (take reference of tensor) or [`into_shape`] (take ownership of tensor)
+/// [`reshape`] (take reference of tensor) or [`into_shape`] (take ownership of tensor)
 /// instead.
 ///
 /// <div class="warning">
@@ -72,20 +72,20 @@ where
 ///   - The reshaped tensor.
 ///   - This function will try to avoid data cloning if possible.
 ///
-///     - If shape-compatible, depending on whether the input tensor is owned or other cases, either
-///       a view or owned tensor will be returned.
-///     - If shape-not-compatible, an owned tensor will be returned, cloning the data.
+///     - If layout-compatible, depending on whether the input tensor is owned or other cases,
+///       either a view or owned tensor will be returned.
+///     - If layout-not-compatible, an owned tensor will be returned, cloning the data.
 ///     - Cow (Clone-on-Write) semantics is used for representing either view or owned tensor.
 ///
-/// This function is different to [`reshape`](reshape()), in that it takes ownership of the input
+/// This function is different to [`reshape`], in that it takes ownership of the input
 /// tensor.
 ///
 /// This function is also different to [`into_shape`], in that it may return a view, if the input
-/// tensor also have the ownership of tensor view, and the shape is compatible.
+/// tensor also have the ownership of tensor view, and the layout is compatible.
 ///
 /// # See also
 ///
-/// Refer to [`reshape`](reshape()) for more details and examples.
+/// Refer to [`reshape`] for more details and examples.
 pub fn change_shape<'a, I, R, T, B, D>(tensor: TensorAny<R, T, B, D>, shape: I) -> TensorCow<'a, T, B, IxD>
 where
     I: TryInto<AxesIndex<isize>, Error = Error>,
@@ -100,7 +100,7 @@ where
 ///
 /// # See also
 ///
-/// Refer to [`reshape`](reshape()), [`into_shape`] and [`change_shape`] for more details and
+/// Refer to [`reshape`], [`into_shape`] and [`change_shape`] for more details and
 /// examples.
 pub fn into_shape_f<'a, I, R, T, B, D>(tensor: TensorAny<R, T, B, D>, shape: I) -> Result<Tensor<T, B, IxD>>
 where
@@ -148,12 +148,12 @@ where
 ///   - The reshaped tensor.
 ///   - This function will try to avoid data cloning if possible, but with strict conditions:
 ///
-///     - Shape-compatible after reshaping;
+///     - Layout-compatible after reshaping;
 ///     - Input tensor owns the underlying data (i.e., not a view);
 ///     - The input tensor is compact in memory (i.e., the underlying data does not have redundant
 ///       elements; size of tensor exactly matches the length of underlying data).
 ///
-/// This function is different to [`change_shape`](change_shape()) and [`reshape`](reshape()), in
+/// This function is different to [`change_shape`](change_shape()) and [`reshape`], in
 /// that it takes ownership of the input tensor, and always returns an owned tensor.
 ///
 /// # Examples
@@ -213,12 +213,12 @@ where
 /// let a_ptr = a.raw().as_ptr();
 /// let b = a.into_shape([4, 54]);
 /// let b_ptr = b.raw().as_ptr();
-/// assert_ne!(a_ptr, b_ptr); // shape compatible, but input tensor is not compact (216 < 288)
+/// assert_ne!(a_ptr, b_ptr); // layout-compatible, but input tensor is not compact (216 < 288)
 /// ```
 ///
 /// # See also
 ///
-/// Refer to [`reshape`](reshape()) for more details and examples.
+/// Refer to [`reshape`] for more details and examples.
 pub fn into_shape<'a, I, R, T, B, D>(tensor: TensorAny<R, T, B, D>, shape: I) -> Tensor<T, B, IxD>
 where
     I: TryInto<AxesIndex<isize>, Error = Error>,
@@ -239,7 +239,7 @@ where
 ///
 /// # See also
 ///
-/// Refer to [`reshape`](reshape()), [`into_shape`] and [`change_shape`] for more details and
+/// Refer to [`reshape`], [`into_shape`] and [`change_shape`] for more details and
 /// examples.
 pub fn to_shape_f<'a, I, R, T, B, D>(tensor: &'a TensorAny<R, T, B, D>, shape: I) -> Result<TensorCow<'a, T, B, IxD>>
 where
@@ -255,7 +255,7 @@ where
 ///
 /// # See also
 ///
-/// Refer to [`reshape`](reshape()), [`into_shape`] and [`change_shape`] for more details and
+/// Refer to [`reshape`], [`into_shape`] and [`change_shape`] for more details and
 /// examples.
 pub fn to_shape<'a, I, R, T, B, D>(tensor: &'a TensorAny<R, T, B, D>, shape: I) -> TensorCow<'a, T, B, IxD>
 where
@@ -271,7 +271,7 @@ where
 ///
 /// # See also
 ///
-/// Refer to [`reshape`](reshape()), [`into_shape`] and [`change_shape`] for more details and
+/// Refer to [`reshape`], [`into_shape`] and [`change_shape`] for more details and
 /// examples.
 pub fn reshape_f<'a, I, R, T, B, D>(tensor: &'a TensorAny<R, T, B, D>, shape: I) -> Result<TensorCow<'a, T, B, IxD>>
 where
@@ -312,7 +312,7 @@ where
 ///   - The reshaped tensor.
 ///   - This function will try to avoid data cloning if possible.
 ///
-///     - If shape-compatible, a view will be returned.
+///     - If layout-compatible, a view will be returned.
 ///     - If shape-not-compatible, an owned tensor will be returned, cloning the data.
 ///     - Cow (Clone-on-Write) semantics is used for representing either view or owned tensor.
 ///
@@ -346,6 +346,23 @@ where
 ///     &device);
 /// assert!(rt::allclose(&a_reshaped, &a_expected, None));
 /// ```
+///
+/// # Ownership Semantics between [`reshape`], [`into_shape`] and [`change_shape`]
+///
+/// [`into_shape`] and [`change_shape`] take ownership of the input tensor. They are important
+/// variants to this function [`reshape`].
+///
+/// | Function | Input Ownership | Output Ownership | Cloning Condition |
+/// |--|--|--|--|
+/// | [`reshape`] | Borrowed <br> [`&TensorAny`](TensorAny) | View <br> [`TensorCow`] with [`DataCow::Ref`] | not cloned (layout-compatible) |
+/// | | | Owned <br> [`TensorCow`] with [`DataCow::Owned`] | cloned (layout-not-compatible) |
+/// | [`into_shape`] | Owned <br> [`Tensor`] | Owned <br> [`Tensor`] | not cloned (layout-compatible, input tensor owns data, input tensor is compact) |
+/// | | | Owned <br> [`Tensor`] | cloned (otherwise) |
+/// | | Otherwise <br> [`TensorAny`] | Owned <br> [`Tensor`] | cloned (always) |
+/// | [`change_shape`] | Owned <br> [`Tensor`] | Owned <br> [`TensorCow`] with [`DataCow::Owned`] | not cloned (layout-compatible, input tensor owns data, input tensor is compact) |
+/// | | | Owned <br> [`TensorCow`] with [`DataCow::Owned`] | cloned (otherwise) |
+/// | | Otherwise <br> [`TensorAny`] | View <br> [`TensorCow`] with [`DataCow::Ref`] | not cloned (layout-compatible) |
+/// | | | Owned <br> [`TensorCow`] with [`DataCow::Owned`] | cloned (layout-not-compatible) |
 ///
 /// # Tips on common compilation errors
 ///
@@ -577,10 +594,10 @@ where
 ///
 /// ## Variants of this function
 ///
-/// - [`reshape`](reshape()) / [`reshape_f`]: Taking reference and returning Cow.
+/// - [`reshape`] / [`reshape_f`]: Taking reference and returning Cow.
 /// - [`into_shape`] / [`into_shape_f`]: Taking ownership and returning owned tensor.
 /// - [`change_shape`] / [`change_shape_f`]: Taking ownership and returning Cow.
-/// - [`to_shape`] / [`to_shape_f`]: Alias to [`reshape`](reshape()) / [`reshape_f`].
+/// - [`to_shape`] / [`to_shape_f`]: Alias to [`reshape`] / [`reshape_f`].
 /// - Associated methods on [`TensorAny`]:
 ///
 ///   - [`TensorAny::reshape`] / [`TensorAny::reshape_f`]
@@ -601,7 +618,7 @@ where
 ///
 /// # See also
 ///
-/// Refer to [`reshape`](reshape()), [`into_shape`] and [`change_shape`] for more details and
+/// Refer to [`reshape`], [`into_shape`] and [`change_shape`] for more details and
 /// examples.
 impl<'a, R, T, B, D> TensorAny<R, T, B, D>
 where
@@ -614,7 +631,7 @@ where
     ///
     /// # See also
     ///
-    /// Refer to [`reshape`](reshape()), [`into_shape`] and [`change_shape`] for more details and
+    /// Refer to [`reshape`], [`into_shape`] and [`change_shape`] for more details and
     /// examples.
     pub fn change_shape_f<I>(self, shape: I) -> Result<TensorCow<'a, T, B, IxD>>
     where
@@ -627,7 +644,7 @@ where
     ///
     /// # See also
     ///
-    /// Refer to [`reshape`](reshape()), [`into_shape`] and [`change_shape`] for more details and
+    /// Refer to [`reshape`], [`into_shape`] and [`change_shape`] for more details and
     /// examples.
     pub fn change_shape<I>(self, shape: I) -> TensorCow<'a, T, B, IxD>
     where
@@ -640,7 +657,7 @@ where
     ///
     /// # See also
     ///
-    /// Refer to [`reshape`](reshape()), [`into_shape`] and [`change_shape`] for more details and
+    /// Refer to [`reshape`], [`into_shape`] and [`change_shape`] for more details and
     /// examples.
     pub fn into_shape_f<I>(self, shape: I) -> Result<Tensor<T, B, IxD>>
     where
@@ -655,7 +672,7 @@ where
     ///
     /// # See also
     ///
-    /// Refer to [`reshape`](reshape()), [`into_shape`] and [`change_shape`] for more details and
+    /// Refer to [`reshape`], [`into_shape`] and [`change_shape`] for more details and
     /// examples.
     pub fn into_shape<I>(self, shape: I) -> Tensor<T, B, IxD>
     where
@@ -670,7 +687,7 @@ where
     ///
     /// # See also
     ///
-    /// Refer to [`reshape`](reshape()), [`into_shape`] and [`change_shape`] for more details and
+    /// Refer to [`reshape`], [`into_shape`] and [`change_shape`] for more details and
     /// examples.
     pub fn to_shape_f<I>(&'a self, shape: I) -> Result<TensorCow<'a, T, B, IxD>>
     where
@@ -683,7 +700,7 @@ where
     ///
     /// # See also
     ///
-    /// Refer to [`reshape`](reshape()), [`into_shape`] and [`change_shape`] for more details and
+    /// Refer to [`reshape`], [`into_shape`] and [`change_shape`] for more details and
     /// examples.
     pub fn to_shape<I>(&'a self, shape: I) -> TensorCow<'a, T, B, IxD>
     where
@@ -696,7 +713,7 @@ where
     ///
     /// # See also
     ///
-    /// Refer to [`reshape`](reshape()), [`into_shape`] and [`change_shape`] for more details and
+    /// Refer to [`reshape`], [`into_shape`] and [`change_shape`] for more details and
     /// examples.
     pub fn reshape_f<I>(&'a self, shape: I) -> Result<TensorCow<'a, T, B, IxD>>
     where
@@ -709,7 +726,7 @@ where
     ///
     /// # See also
     ///
-    /// Refer to [`reshape`](reshape()), [`into_shape`] and [`change_shape`] for more details and
+    /// Refer to [`reshape`], [`into_shape`] and [`change_shape`] for more details and
     /// examples.
     pub fn reshape<I>(&'a self, shape: I) -> TensorCow<'a, T, B, IxD>
     where
@@ -864,6 +881,6 @@ mod tests {
         let a_ptr = a.raw().as_ptr();
         let b = a.into_shape([4, 54]);
         let b_ptr = b.raw().as_ptr();
-        assert_ne!(a_ptr, b_ptr); // shape compatible, but input tensor is not compact (216 < 288)
+        assert_ne!(a_ptr, b_ptr); // layout-compatible, but input tensor is not compact (216 < 288)
     }
 }

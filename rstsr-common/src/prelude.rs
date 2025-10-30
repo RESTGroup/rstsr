@@ -1,5 +1,5 @@
 pub mod rstsr_traits {
-    pub use crate::layout::{
+    pub use crate::layout::exports::{
         DimAPI, DimBaseAPI, DimBroadcastableAPI, DimDevAPI, DimIntoAPI, DimLargerOneAPI, DimLayoutContigAPI, DimMaxAPI,
         DimShapeAPI, DimSmallerOneAPI, DimStrideAPI,
     };
@@ -13,8 +13,8 @@ pub mod rstsr_structs {
         FlagDiag, FlagOrder, FlagSide, FlagSymm, FlagTrans, FlagUpLo, TensorCopyPolicy, TensorDiag, TensorIterOrder,
         TensorOrder, TensorSide, TensorSymm, TensorTrans, TensorUpLo,
     };
+    pub use crate::layout::exports::{Ix, Ix1, Ix2, Ix3, Ix4, Ix5, Ix6, Ix7, Ix8, Ix9, IxD, IxDyn, Layout};
     pub use crate::layout::indexer::{Ellipsis, NewAxis};
-    pub use crate::layout::{Ix, Ix1, Ix2, Ix3, Ix4, Ix5, Ix6, Ix7, Ix8, Ix9, IxD, IxDyn, Layout};
 }
 
 pub mod rstsr_macros {

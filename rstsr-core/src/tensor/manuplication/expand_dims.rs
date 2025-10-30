@@ -46,6 +46,8 @@ where
 /// - [`TensorView<'_, T, B, IxD>`](TensorView)
 ///
 ///   - A view of the input tensor with the new axis (or axes) inserted.
+///   - If you want to convert the tensor itself (taking the ownership instead of returning view),
+///     use [`into_expand_dims`] instead.
 ///
 /// # Panics
 ///
@@ -126,8 +128,8 @@ where
 ///
 /// ## Related functions in RSTSR
 ///
-/// - [`i`](TensorAny::i) or [`slice`](slice()): Basic indexing and slicing of tensors, without
-///   modification of the underlying data.
+/// - [`i`](TensorAny::i) or [`slice`](slice()): Basic indexing and slicing of tensors, without modification
+///   of the underlying data.
 /// - [`squeeze`]: Removes singleton dimensions (axes) from `x`.
 ///
 /// ## Variants of this function

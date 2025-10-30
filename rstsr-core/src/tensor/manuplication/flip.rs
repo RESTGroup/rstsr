@@ -48,6 +48,8 @@ where
 ///   - A view of the input tensor with the entries along the specified axes reversed.
 ///   - The shape of the array is preserved, but the elements are reordered.
 ///   - The underlying data is not copied; only the layout of the view is modified.
+///   - If you want to convert the tensor itself (taking the ownership instead of returning view),
+///     use [`into_flip`] instead.
 ///
 /// # Examples
 ///
@@ -146,6 +148,7 @@ where
 ///
 /// ## Variants of this function
 ///
+/// - [`flip`]: Borrowing version.
 /// - [`flip_f`]: Fallible version.
 /// - [`into_flip`]: Consuming version.
 /// - [`into_flip_f`]: Consuming and fallible version, actual implementation.
