@@ -50,6 +50,7 @@ where
 /// # Panics
 ///
 /// - If `axis` is greater than the number of axes in the original tensor.
+/// - If expaneded axis has duplicated values.
 ///
 /// # Examples
 ///
