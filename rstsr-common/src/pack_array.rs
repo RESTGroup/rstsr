@@ -1,7 +1,7 @@
 //! Cast `Vec<T>` to/from `Vec<[T; N]>` (or its reference) without copying.
 
 use crate::prelude_dev::*;
-use std::mem::ManuallyDrop;
+use core::mem::ManuallyDrop;
 
 pub trait PackableArrayAPI<T, const N: usize> {
     type Array;

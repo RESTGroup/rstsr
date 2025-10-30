@@ -1,3 +1,4 @@
+#![cfg_attr(not(test), no_std)]
 #![allow(unknown_lints)]
 #![allow(clippy::needless_return)]
 // Resolution to something like `tensor.slice_mut() += scalar`.

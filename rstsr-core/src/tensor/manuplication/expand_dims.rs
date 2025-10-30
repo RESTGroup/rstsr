@@ -14,17 +14,12 @@ where
     I: TryInto<AxesIndex<isize>, Error = Error>,
 {
     // convert axis to negative indexes and sort
-    let ndim: isize = TryInto::<isize>::try_into(tensor.ndim())?;
+    let ndim = tensor.ndim();
     let (storage, layout) = tensor.into_raw_parts();
     let mut layout = layout.into_dim::<IxD>()?;
     let axes = axes.try_into()?;
     let len_axes = axes.as_ref().len();
-    let axes =
-        axes.as_ref().iter().map(|&v| if v < 0 { v + ndim + len_axes as isize } else { v }).sorted().collect_vec();
-    // does not allow duplicate axes
-    if axes.iter().duplicates().count() > 0 {
-        rstsr_raise!(InvalidLayout, "duplicate axes are not allowed in expand_dims")?;
-    }
+    let axes = normalize_axes_index(axes, ndim + len_axes, false)?;
     for axis in axes {
         layout = layout.dim_insert(axis)?;
     }

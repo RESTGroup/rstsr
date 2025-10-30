@@ -8,16 +8,12 @@ where
     I: TryInto<AxesIndex<isize>, Error = Error>,
 {
     let (storage, mut layout) = tensor.into_raw_parts();
-    let axes = axes.try_into()?;
-    match axes {
-        AxesIndex::Val(axis) => {
-            layout = layout.dim_narrow(axis, slice!(None, None, -1))?;
-        },
-        AxesIndex::Vec(axes) => {
-            for &axis in axes.iter() {
-                layout = layout.dim_narrow(axis, slice!(None, None, -1))?;
-            }
-        },
+    let mut axes = normalize_axes_index(axes.try_into()?, layout.ndim(), false)?;
+    if axes.is_empty() {
+        axes = (0..layout.ndim() as isize).collect();
+    }
+    for axis in axes {
+        layout = layout.dim_narrow(axis, slice!(None, None, -1))?;
     }
     unsafe { Ok(TensorBase::new_unchecked(storage, layout)) }
 }
@@ -105,3 +101,36 @@ where
 }
 
 /* #endregion */
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn doc_flip() {
+        use rstsr::prelude::*;
+
+        let mut device = DeviceCpu::default();
+        device.set_default_order(RowMajor);
+
+        let a = rt::arange((8, &device)).into_shape([2, 2, 2]);
+        let a_expected = rt::tensor_from_nested!([[[0, 1], [2, 3]], [[4, 5], [6, 7]]], &device);
+        assert!(rt::allclose(&a, &a_expected, None));
+
+        let b = a.flip(0);
+        let b_expected = rt::tensor_from_nested!([[[4, 5], [6, 7]], [[0, 1], [2, 3]]], &device);
+        assert!(rt::allclose(&b, &b_expected, None));
+        let b_sliced = a.i(slice!(None, None, -1));
+        assert!(rt::allclose(&b_sliced, &b_expected, None));
+
+        let b = a.flip(1);
+        let b_expected = rt::tensor_from_nested!([[[2, 3], [0, 1]], [[6, 7], [4, 5]]], &device);
+        assert!(rt::allclose(&b, &b_expected, None));
+
+        let b = a.flip([0, -1]);
+        let b_expected = rt::tensor_from_nested!([[[5, 4], [7, 6]], [[1, 0], [3, 2]]], &device);
+        assert!(rt::allclose(&b, &b_expected, None));
+
+        let b = a.flip(None);
+        let b_expected = rt::tensor_from_nested!([[[7, 6], [5, 4]], [[3, 2], [1, 0]]], &device);
+        assert!(rt::allclose(&b, &b_expected, None));
+    }
+}

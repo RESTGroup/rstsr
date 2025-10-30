@@ -84,6 +84,11 @@ use crate::prelude_dev::*;
 /// # assert!(rt::allclose!(&result[1], &expected_b));
 /// ```
 ///
+/// # Panics
+///
+/// - Incompatible shapes to be broadcasted.
+/// - Tensors are on different devices.
+///
 /// # See also
 ///
 /// ## Similar function from other crates/libraries
@@ -237,6 +242,10 @@ where
 ///     &device);
 /// assert!(rt::allclose!(&result, &expected));
 /// ```
+///
+/// # Panics
+///
+/// - Incompatible shapes to be broadcasted.
 ///
 /// # Elaborated examples
 ///

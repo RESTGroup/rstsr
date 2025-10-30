@@ -15,7 +15,7 @@ impl<T> AsRef<[T]> for AxesIndex<T> {
     }
 }
 
-/* #region AxisIndex self-type from */
+/* #region AxesIndex self-type from */
 
 impl<T> From<T> for AxesIndex<T> {
     fn from(value: T) -> Self {
@@ -84,7 +84,8 @@ where
     }
 }
 
-impl TryFrom<()> for AxesIndex<usize> {
+#[duplicate_item(T; [usize]; [isize])]
+impl TryFrom<()> for AxesIndex<T> {
     type Error = Error;
 
     fn try_from(_: ()) -> Result<Self> {
@@ -92,17 +93,21 @@ impl TryFrom<()> for AxesIndex<usize> {
     }
 }
 
-impl TryFrom<()> for AxesIndex<isize> {
+#[duplicate_item(T; [usize]; [isize])]
+impl TryFrom<Option<T>> for AxesIndex<T> {
     type Error = Error;
 
-    fn try_from(_: ()) -> Result<Self> {
-        Ok(AxesIndex::Vec(vec![]))
+    fn try_from(value: Option<T>) -> Result<Self> {
+        match value {
+            Some(v) => Ok(AxesIndex::Val(v)),
+            None => Ok(AxesIndex::Vec(vec![])),
+        }
     }
 }
 
-/* #endregion AxisIndex self-type from */
+/* #endregion AxesIndex self-type from */
 
-/* #region AxisIndex other-type from */
+/* #region AxesIndex other-type from */
 
 macro_rules! impl_try_from_axes_index {
     ($t1:ty, $($t2:ty),*) => {
@@ -173,9 +178,9 @@ macro_rules! impl_try_from_axes_index {
 impl_try_from_axes_index!(usize, isize, u32, u64, i32, i64);
 impl_try_from_axes_index!(isize, usize, u32, u64, i32, i64);
 
-/* #endregion AxisIndex other-type from */
+/* #endregion AxesIndex other-type from */
 
-/* #region AxisIndex tuple-type from */
+/* #region AxesIndex tuple-type from */
 
 // it seems that this directly implementing arbitary AxesIndex<T> will cause
 // conflicting implementation so make a macro for this task
@@ -372,4 +377,45 @@ macro_rules! impl_from_tuple_to_axes_index {
 impl_from_tuple_to_axes_index!(isize);
 impl_from_tuple_to_axes_index!(usize);
 
-/* #endregion AxisIndex tuple-type from */
+/* #endregion AxesIndex tuple-type from */
+
+/* #region utilities for AxesIndex */
+
+/// Normalize axes argument into a tuple of non-negative integer axes.
+pub fn normalize_axes_index(axes: AxesIndex<isize>, ndim: usize, allow_duplicate: bool) -> Result<Vec<isize>> {
+    // generate the normalized axes vector
+    let vec = match axes {
+        AxesIndex::Val(axis) => {
+            let axis = if axis < 0 { (ndim as isize) + axis } else { axis };
+            if axis < 0 || axis >= ndim as isize {
+                rstsr_raise!(InvalidValue, "Axis index {axis} is out of bounds for tensor with {ndim} dimensions.")?;
+            }
+            vec![axis]
+        },
+        AxesIndex::Vec(axes) => {
+            let mut normalized_axes = Vec::with_capacity(axes.len());
+            for &axis in axes.iter() {
+                let norm_axis = if axis < 0 { (ndim as isize) + axis } else { axis };
+                if norm_axis < 0 || norm_axis >= ndim as isize {
+                    rstsr_raise!(
+                        InvalidValue,
+                        "Axis index {axis} is out of bounds for tensor with {ndim} dimensions."
+                    )?;
+                }
+                normalized_axes.push(norm_axis);
+            }
+            normalized_axes.sort();
+            normalized_axes
+        },
+    };
+    if !allow_duplicate {
+        for i in 1..vec.len() {
+            if vec[i] == vec[i - 1] {
+                rstsr_raise!(InvalidValue, "Duplicate axis index {} found in axes argument.", vec[i])?;
+            }
+        }
+    }
+    Ok(vec)
+}
+
+/* #endregion */
