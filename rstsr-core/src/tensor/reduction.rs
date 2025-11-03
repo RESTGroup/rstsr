@@ -39,7 +39,7 @@ macro_rules! trait_reduction {
             D: DimAPI,
             B: $OpReduceAPI<T, D>,
         {
-            $fn_all_f(tensor).unwrap()
+            $fn_all_f(tensor).rstsr_unwrap()
         }
 
         pub fn $fn_axes<T, B, D>(
@@ -50,7 +50,7 @@ macro_rules! trait_reduction {
             D: DimAPI,
             B: $OpReduceAPI<T, D> + DeviceCreationAnyAPI<B::TOut>,
         {
-            $fn_axes_f(tensor, axes).unwrap()
+            $fn_axes_f(tensor, axes).rstsr_unwrap()
         }
 
         pub fn $fn_f<T, B, D>(tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>) -> Result<B::TOut>
@@ -161,7 +161,7 @@ macro_rules! trait_reduction_arg {
             D: DimAPI,
             B: $OpReduceAPI<T, D>,
         {
-            $fn_all_f(tensor).unwrap()
+            $fn_all_f(tensor).rstsr_unwrap()
         }
 
         pub fn $fn_axes<T, B, D>(
@@ -172,7 +172,7 @@ macro_rules! trait_reduction_arg {
             D: DimAPI,
             B: $OpReduceAPI<T, D> + DeviceAPI<IxD>,
         {
-            $fn_axes_f(tensor, axes).unwrap()
+            $fn_axes_f(tensor, axes).rstsr_unwrap()
         }
 
         pub fn $fn_f<T, B, D>(tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>) -> Result<D>
@@ -258,17 +258,17 @@ where
 {
     fn sum_all_f(&self) -> Result<usize>;
     fn sum_all(&self) -> usize {
-        self.sum_all_f().unwrap()
+        self.sum_all_f().rstsr_unwrap()
     }
     fn sum_f(&self) -> Result<usize> {
         self.sum_all_f()
     }
     fn sum(&self) -> usize {
-        self.sum_f().unwrap()
+        self.sum_f().rstsr_unwrap()
     }
     fn sum_axes_f(&self, axes: impl TryInto<AxesIndex<isize>, Error = Error>) -> Result<Tensor<usize, B, IxD>>;
     fn sum_axes(&self, axes: impl TryInto<AxesIndex<isize>, Error = Error>) -> Tensor<usize, B, IxD> {
-        self.sum_axes_f(axes).unwrap()
+        self.sum_axes_f(axes).rstsr_unwrap()
     }
 }
 
@@ -302,60 +302,87 @@ where
 
 /* #region allclose */
 
-pub fn allclose_all_f<TA, TB, TE, B, D>(
-    tensor_a: impl TensorViewAPI<Type = TA, Backend = B, Dim = D>,
-    tensor_b: impl TensorViewAPI<Type = TB, Backend = B, Dim = D>,
+pub fn allclose_all_f<TA, TB, TE, B, DA, DB>(
+    tensor_a: impl TensorViewAPI<Type = TA, Backend = B, Dim = DA>,
+    tensor_b: impl TensorViewAPI<Type = TB, Backend = B, Dim = DB>,
     isclose_args: impl Into<IsCloseArgs<TE>>,
 ) -> Result<bool>
 where
-    D: DimAPI,
-    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, D>,
+    DA: DimAPI,
+    DB: DimAPI,
+    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, IxD>,
     TE: 'static,
 {
     let tensor_a = tensor_a.view();
     let tensor_b = tensor_b.view();
     let isclose_args = isclose_args.into();
     let device = tensor_a.device();
-    device.allclose_all(tensor_a.raw(), tensor_a.layout(), tensor_b.raw(), tensor_b.layout(), &isclose_args)
+
+    // check device
+    rstsr_assert!(tensor_a.device().same_device(tensor_b.device()), DeviceMismatch)?;
+
+    // check and broadcast layout
+
+    let la = tensor_a.layout().to_dim::<IxD>()?;
+    let lb = tensor_b.layout().to_dim::<IxD>()?;
+    let default_order = device.default_order();
+    let (la_b, lb_b) = broadcast_layout(&la, &lb, default_order)?;
+
+    device.allclose_all(tensor_a.raw(), &la_b, tensor_b.raw(), &lb_b, &isclose_args)
 }
 
-pub fn allclose_all<TA, TB, TE, B, D>(
-    tensor_a: impl TensorViewAPI<Type = TA, Backend = B, Dim = D>,
-    tensor_b: impl TensorViewAPI<Type = TB, Backend = B, Dim = D>,
+pub fn allclose_all<TA, TB, TE, B, DA, DB>(
+    tensor_a: impl TensorViewAPI<Type = TA, Backend = B, Dim = DA>,
+    tensor_b: impl TensorViewAPI<Type = TB, Backend = B, Dim = DB>,
     isclose_args: impl Into<IsCloseArgs<TE>>,
 ) -> bool
 where
-    D: DimAPI,
-    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, D>,
+    DA: DimAPI,
+    DB: DimAPI,
+    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, IxD>,
     TE: 'static,
 {
-    allclose_all_f(tensor_a, tensor_b, isclose_args).unwrap()
+    allclose_all_f(tensor_a, tensor_b, isclose_args).rstsr_unwrap()
 }
 
-pub fn allclose_f<TA, TB, TE, B, D>(
-    tensor_a: impl TensorViewAPI<Type = TA, Backend = B, Dim = D>,
-    tensor_b: impl TensorViewAPI<Type = TB, Backend = B, Dim = D>,
+pub fn allclose_f<TA, TB, TE, B, DA, DB>(
+    tensor_a: impl TensorViewAPI<Type = TA, Backend = B, Dim = DA>,
+    tensor_b: impl TensorViewAPI<Type = TB, Backend = B, Dim = DB>,
     isclose_args: impl Into<IsCloseArgs<TE>>,
 ) -> Result<bool>
 where
-    D: DimAPI,
-    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, D>,
+    DA: DimAPI,
+    DB: DimAPI,
+    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, IxD>,
     TE: 'static,
 {
     allclose_all_f(tensor_a, tensor_b, isclose_args)
 }
 
-pub fn allclose<TA, TB, TE, B, D>(
-    tensor_a: impl TensorViewAPI<Type = TA, Backend = B, Dim = D>,
-    tensor_b: impl TensorViewAPI<Type = TB, Backend = B, Dim = D>,
+pub fn allclose<TA, TB, TE, B, DA, DB>(
+    tensor_a: impl TensorViewAPI<Type = TA, Backend = B, Dim = DA>,
+    tensor_b: impl TensorViewAPI<Type = TB, Backend = B, Dim = DB>,
     isclose_args: impl Into<IsCloseArgs<TE>>,
 ) -> bool
 where
-    D: DimAPI,
-    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, D>,
+    DA: DimAPI,
+    DB: DimAPI,
+    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, IxD>,
     TE: 'static,
 {
-    allclose_f(tensor_a, tensor_b, isclose_args).unwrap()
+    allclose_f(tensor_a, tensor_b, isclose_args).rstsr_unwrap()
+}
+
+#[macro_export]
+macro_rules! allclose {
+    ($tensor_a:expr, $tensor_b:expr, $isclose_args:expr) => {{
+        use rstsr::prelude::rstsr_funcs::allclose;
+        allclose($tensor_a, $tensor_b, $isclose_args)
+    }};
+    ($tensor_a:expr, $tensor_b:expr) => {{
+        use rstsr::prelude::rstsr_funcs::allclose;
+        allclose($tensor_a, $tensor_b, None)
+    }};
 }
 
 /* #endregion */

@@ -9,7 +9,7 @@ pub trait DimShapeAPI: DimBaseAPI {
     /// For multi-dimension tensor with a dimension that have zero length, it
     /// contains zero elements.
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```
     /// use rstsr_core::prelude_dev::*;
@@ -24,7 +24,7 @@ pub trait DimShapeAPI: DimBaseAPI {
 
     /// Stride for a f-contiguous tensor using this shape.
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```
     /// use rstsr_core::prelude_dev::*;
@@ -36,7 +36,7 @@ pub trait DimShapeAPI: DimBaseAPI {
 
     /// Stride for a c-contiguous tensor using this shape.
     ///
-    /// # Example
+    /// # Examples
     ///
     /// ```
     /// use rstsr_core::prelude_dev::*;

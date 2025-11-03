@@ -23,7 +23,7 @@ pub trait TensorOpAPI<TrB> {
     where
         Self: Sized,
     {
-        Self::op_f(a, b).unwrap()
+        Self::op_f(a, b).rstsr_unwrap()
     }
 }
 
@@ -654,7 +654,7 @@ where
     TA: Op<TB, Output = TC>,
     B: DeviceOpAPI<TA, TB, TC, DC>,
 {
-    op_f(a, b, c).unwrap()
+    op_f(a, b, c).rstsr_unwrap()
 }
 
 /* #endregion */
@@ -696,7 +696,7 @@ macro_rules! impl_arithmetic_scalar_lhs {
         {
             type Output = Tensor<T, B, D>;
             fn $op(self, rhs: &TensorAny<R, T, B, D>) -> Self::Output {
-                $TensorOpAPI::$op_f(self, rhs).unwrap()
+                $TensorOpAPI::$op_f(self, rhs).rstsr_unwrap()
             }
         }
 
@@ -731,7 +731,7 @@ macro_rules! impl_arithmetic_scalar_lhs {
         {
             type Output = Tensor<T, B, D>;
             fn $op(self, rhs: TensorView<'_, T, B, D>) -> Self::Output {
-                $TensorOpAPI::$op_f(self, rhs).unwrap()
+                $TensorOpAPI::$op_f(self, rhs).rstsr_unwrap()
             }
         }
 
@@ -763,7 +763,7 @@ macro_rules! impl_arithmetic_scalar_lhs {
         {
             type Output = Tensor<T, B, D>;
             fn $op(self, rhs: Tensor<T, B, D>) -> Self::Output {
-                $TensorOpAPI::$op_f(self, rhs).unwrap()
+                $TensorOpAPI::$op_f(self, rhs).rstsr_unwrap()
             }
         }
 
@@ -802,7 +802,7 @@ macro_rules! impl_arithmetic_scalar_lhs {
         {
             type Output = Tensor<T, B, D>;
             fn $op(self, rhs: TensorCow<'_, T, B, D>) -> Self::Output {
-                $TensorOpAPI::$op_f(self, rhs).unwrap()
+                $TensorOpAPI::$op_f(self, rhs).rstsr_unwrap()
             }
         }
     };

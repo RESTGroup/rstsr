@@ -69,7 +69,7 @@ where
     }
 
     pub fn iter_with_order(&self, order: TensorIterOrder) -> IterVecView<'a, T, D> {
-        self.iter_with_order_f(order).unwrap()
+        self.iter_with_order_f(order).rstsr_unwrap()
     }
 
     pub fn iter_f(&self) -> Result<IterVecView<'a, T, D>> {
@@ -82,7 +82,7 @@ where
     }
 
     pub fn iter(&self) -> IterVecView<'a, T, D> {
-        self.iter_f().unwrap()
+        self.iter_f().rstsr_unwrap()
     }
 }
 
@@ -160,7 +160,7 @@ where
     }
 
     pub fn iter_mut_with_order(&'a mut self, order: TensorIterOrder) -> IterVecMut<'a, T, D> {
-        self.iter_mut_with_order_f(order).unwrap()
+        self.iter_mut_with_order_f(order).rstsr_unwrap()
     }
 
     pub fn iter_mut_f(&'a mut self) -> Result<IterVecMut<'a, T, D>> {
@@ -173,7 +173,7 @@ where
     }
 
     pub fn iter_mut(&'a mut self) -> IterVecMut<'a, T, D> {
-        self.iter_mut_f().unwrap()
+        self.iter_mut_f().rstsr_unwrap()
     }
 }
 
@@ -261,7 +261,7 @@ where
     }
 
     pub fn indexed_iter_with_order(&self, order: TensorIterOrder) -> IndexedIterVecView<'a, T, D> {
-        self.indexed_iter_with_order_f(order).unwrap()
+        self.indexed_iter_with_order_f(order).rstsr_unwrap()
     }
 
     pub fn indexed_iter_f(&self) -> Result<IndexedIterVecView<'a, T, D>> {
@@ -274,7 +274,7 @@ where
     }
 
     pub fn indexed_iter(&self) -> IndexedIterVecView<'a, T, D> {
-        self.indexed_iter_f().unwrap()
+        self.indexed_iter_f().rstsr_unwrap()
     }
 }
 
@@ -366,7 +366,7 @@ where
     }
 
     pub fn indexed_iter_mut_with_order(&'a mut self, order: TensorIterOrder) -> IndexedIterVecMut<'a, T, D> {
-        self.indexed_iter_mut_with_order_f(order).unwrap()
+        self.indexed_iter_mut_with_order_f(order).rstsr_unwrap()
     }
 
     pub fn indexed_iter_mut_f(&'a mut self) -> Result<IndexedIterVecMut<'a, T, D>> {
@@ -379,7 +379,7 @@ where
     }
 
     pub fn indexed_iter_mut(&'a mut self) -> IndexedIterVecMut<'a, T, D> {
-        self.indexed_iter_mut_f().unwrap()
+        self.indexed_iter_mut_f().rstsr_unwrap()
     }
 }
 

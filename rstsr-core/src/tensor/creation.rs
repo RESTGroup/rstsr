@@ -35,7 +35,7 @@ pub trait ArangeAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::arange_f(self).unwrap()
+        Self::arange_f(self).rstsr_unwrap()
     }
 }
 
@@ -163,7 +163,7 @@ pub trait EmptyAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::empty_f(self).unwrap()
+        Self::empty_f(self).rstsr_unwrap()
     }
 }
 
@@ -280,7 +280,7 @@ pub trait EmptyLikeAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::empty_like_f(self).unwrap()
+        Self::empty_like_f(self).rstsr_unwrap()
     }
 }
 
@@ -383,7 +383,7 @@ pub trait EyeAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::eye_f(self).unwrap()
+        Self::eye_f(self).rstsr_unwrap()
     }
 }
 
@@ -511,7 +511,7 @@ pub trait FullAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::full_f(self).unwrap()
+        Self::full_f(self).rstsr_unwrap()
     }
 }
 
@@ -621,7 +621,7 @@ pub trait FullLikeAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::full_like_f(self).unwrap()
+        Self::full_like_f(self).rstsr_unwrap()
     }
 }
 
@@ -739,7 +739,7 @@ pub trait LinspaceAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::linspace_f(self).unwrap()
+        Self::linspace_f(self).rstsr_unwrap()
     }
 }
 
@@ -834,7 +834,7 @@ pub trait OnesAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::ones_f(self).unwrap()
+        Self::ones_f(self).rstsr_unwrap()
     }
 }
 
@@ -943,7 +943,7 @@ pub trait OnesLikeAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::ones_like_f(self).unwrap()
+        Self::ones_like_f(self).rstsr_unwrap()
     }
 }
 
@@ -1066,7 +1066,7 @@ pub trait UninitAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::uninit_f(self).unwrap()
+        Self::uninit_f(self).rstsr_unwrap()
     }
 }
 
@@ -1186,7 +1186,7 @@ where
     D: DimAPI,
     B: DeviceAPI<T> + DeviceAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T>,
 {
-    unsafe { assume_init_f(tensor).unwrap() }
+    unsafe { assume_init_f(tensor).rstsr_unwrap() }
 }
 
 /* #endregion */
@@ -1202,7 +1202,7 @@ pub trait ZerosAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::zeros_f(self).unwrap()
+        Self::zeros_f(self).rstsr_unwrap()
     }
 }
 
@@ -1311,7 +1311,7 @@ pub trait ZerosLikeAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::zeros_like_f(self).unwrap()
+        Self::zeros_like_f(self).rstsr_unwrap()
     }
 }
 
@@ -1433,7 +1433,7 @@ pub trait TrilAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::tril_f(self).unwrap()
+        Self::tril_f(self).rstsr_unwrap()
     }
 }
 
@@ -1622,7 +1622,7 @@ pub trait TriuAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::triu_f(self).unwrap()
+        Self::triu_f(self).rstsr_unwrap()
     }
 }
 
@@ -1796,6 +1796,164 @@ where
     fn triu_f(self) -> Result<Self::Out> {
         triu_f((self.view(), 0))
     }
+}
+
+/* #endregion */
+
+/* #region macro tensor_from_nested */
+
+pub trait FromNestedArrayAPI<Arr, B> {
+    fn from_nested_array(arr: Arr, device: &B) -> Self;
+}
+
+/// Implementation of this macro uses the same way of crate `ndarray`:
+/// <https://docs.rs/ndarray/latest/ndarray/macro.array.html>
+macro_rules! impl_from_nested_array {
+    ($arr_type:ty, $ix_type:tt, $($n:ident),+) => {
+        impl<T, B, $(const $n: usize),+> FromNestedArrayAPI<$arr_type, B> for Tensor<T, B, $ix_type>
+        where
+            T: Clone,
+            B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
+        {
+            #[allow(clippy::missing_transmute_annotations)]
+            fn from_nested_array(arr: $arr_type, device: &B) -> Self {
+                let shape: Layout<$ix_type> = [$($n),+].c();
+                let slc = unsafe {
+                    core::slice::from_raw_parts(arr.as_ptr() as *const T, shape.size())
+                };
+                let vec = slc.to_vec();
+                asarray((vec, shape, device)).into_dim()
+            }
+        }
+    }
+}
+
+impl_from_nested_array!([T; N1], Ix1, N1);
+impl_from_nested_array!([[T; N2]; N1], Ix2, N1, N2);
+impl_from_nested_array!([[[T; N3]; N2]; N1], Ix3, N1, N2, N3);
+impl_from_nested_array!([[[[T; N4]; N3]; N2]; N1], Ix4, N1, N2, N3, N4);
+impl_from_nested_array!([[[[[T; N5]; N4]; N3]; N2]; N1], Ix5, N1, N2, N3, N4, N5);
+impl_from_nested_array!([[[[[[T; N6]; N5]; N4]; N3]; N2]; N1], Ix6, N1, N2, N3, N4, N5, N6);
+
+/// Create a tensor from a nested array literal (for development purposes).
+///
+/// # Examples
+///
+/// ```rust
+/// use rstsr::prelude::*;
+///
+/// let tsr = rt::tensor_from_nested!(
+///     [[1, 2, 3],
+///      [4, 5, 6]]
+/// );
+/// println!("{tsr:?}");
+/// // [[ 1 2 3]
+/// //  [ 4 5 6]]
+/// // 2-Dim (dyn), contiguous: Cc
+///
+/// let tsr = rt::tensor_from_nested!(
+///     [[[1, 2],
+///       [3, 4]],
+///      [[5, 6],
+///       [7, 8]]]
+/// );
+/// println!("{tsr:?}");
+/// // [[[ 1 2]
+/// //   [ 3 4]]
+/// //  [[ 5 6]
+/// //   [ 7 8]]]
+/// // 3-Dim (dyn), contiguous: Cc
+/// ```
+///
+/// If you want to specify the device, you can do it like this:
+/// ```rust
+/// use rstsr::prelude::*;
+///
+/// let device = DeviceFaer::default(); // or other devices
+/// let tsr = rt::tensor_from_nested!([[1, 2, 3], [4, 5, 6]], &device);
+/// println!("{tsr:?}"); // you will get a tensor on DeviceFaer
+/// ```
+///
+/// # Notes on usage
+///
+/// - This macro is used for testing or prototyping purposes. For production code, it is recommended
+///   to use other methods to create tensors (e.g., [`asarray`]) to have better control and
+///   performance.
+/// - This macro only gives row-major (C-contiguous) layout tensors, even if the device's default
+///   order is column-major.
+/// - The macro supports up to 6 dimensions. For 7 or more dimensions, use other methods to create
+///   tensors.
+/// - The created tensor is on the [`DeviceCpu`] (depends on crate feature `faer_as_default`) and
+///   has dynamic dimension type [`IxD`].
+/// - It is adviced to use brackets `[]` to denote each dimension level, instead of parentheses
+///   `()`.
+///
+/// # See also
+///
+/// - [`ndarray::array`](https://docs.rs/ndarray/latest/ndarray/macro.array.html) from rust crate
+///   ndarray.
+#[macro_export]
+macro_rules! tensor_from_nested {
+    ([$([$([$([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*], $device:expr) => {{
+        compile_error!("Tensor of 7 dimensions or more cannot be constructed with the tensor_from_nested! macro.");
+    }};
+    ([$([$([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*], $device:expr) => {{
+        Tensor::<_, _, Ix6>::from_nested_array([$([$([$([$([$([$($x,)*],)*],)*],)*],)*],)*], $device).into_dyn()
+    }};
+    ([$([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*], $device:expr) => {{
+        Tensor::<_, _, Ix5>::from_nested_array([$([$([$([$([$($x,)*],)*],)*],)*],)*], $device).into_dyn()
+    }};
+    ([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*], $device:expr) => {{
+        Tensor::<_, _, Ix4>::from_nested_array([$([$([$([$($x,)*],)*],)*],)*], $device).into_dyn()
+    }};
+    ([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*], $device:expr) => {{
+        Tensor::<_, _, Ix3>::from_nested_array([$([$([$($x,)*],)*],)*], $device).into_dyn()
+    }};
+    ([$([$($x:expr),* $(,)*]),+ $(,)*], $device:expr) => {{
+        Tensor::<_, _, Ix2>::from_nested_array([$([$($x,)*],)*], $device).into_dyn()
+    }};
+    ([$($x:expr),* $(,)*], $device:expr) => {{
+        Tensor::<_, _, Ix1>::from_nested_array([$($x,)*], $device).into_dyn()
+    }};
+    ([$([$([$([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]) => {{
+        compile_error!("Tensor of 7 dimensions or more cannot be constructed with the tensor_from_nested! macro.");
+    }};
+    ([$([$([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]) => {{
+        let device = DeviceCpu::default();
+        Tensor::<_, _, Ix6>::from_nested_array([$([$([$([$([$([$($x,)*],)*],)*],)*],)*],)*], &device).into_dyn()
+    }};
+    ([$([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]) => {{
+        let device = DeviceCpu::default();
+        Tensor::<_, _, Ix5>::from_nested_array([$([$([$([$([$($x,)*],)*],)*],)*],)*], &device).into_dyn()
+    }};
+    ([$([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]),+ $(,)*]) => {{
+        let device = DeviceCpu::default();
+        Tensor::<_, _, Ix4>::from_nested_array([$([$([$([$($x,)*],)*],)*],)*], &device).into_dyn()
+    }};
+    ([$([$([$($x:expr),* $(,)*]),+ $(,)*]),+ $(,)*]) => {{
+        let device = DeviceCpu::default();
+        Tensor::<_, _, Ix3>::from_nested_array([$([$([$($x,)*],)*],)*], &device).into_dyn()
+    }};
+    ([$([$($x:expr),* $(,)*]),+ $(,)*]) => {{
+        let device = DeviceCpu::default();
+        Tensor::<_, _, Ix2>::from_nested_array([$([$($x,)*],)*], &device).into_dyn()
+    }};
+    ([$($x:expr),* $(,)*]) => {{
+        let device = DeviceCpu::default();
+        Tensor::<_, _, Ix1>::from_nested_array([$($x,)*], &device).into_dyn()
+    }};
+}
+
+#[test]
+fn playground() {
+    use rstsr::prelude::*;
+    let tsr = rt::tensor_from_nested!([[1, 2, 3], [4, 5, 6]]);
+    println!("{tsr:?}");
+
+    let mut device = DeviceCpuSerial::default();
+    device.set_default_order(ColMajor);
+    let tsr = rt::tensor_from_nested!([[1, 2, 3], [4, 5, 6]], &device);
+    println!("{tsr:?}");
 }
 
 /* #endregion */

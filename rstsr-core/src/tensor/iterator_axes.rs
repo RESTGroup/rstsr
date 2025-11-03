@@ -140,14 +140,14 @@ where
     where
         I: TryInto<AxesIndex<isize>, Error = Error>,
     {
-        self.axes_iter_with_order_f(axes, order).unwrap()
+        self.axes_iter_with_order_f(axes, order).rstsr_unwrap()
     }
 
     pub fn axes_iter<I>(&self, axes: I) -> IterAxesView<'a, T, B>
     where
         I: TryInto<AxesIndex<isize>, Error = Error>,
     {
-        self.axes_iter_f(axes).unwrap()
+        self.axes_iter_f(axes).rstsr_unwrap()
     }
 }
 
@@ -290,14 +290,14 @@ where
     where
         I: TryInto<AxesIndex<isize>, Error = Error>,
     {
-        self.axes_iter_mut_with_order_f(axes, order).unwrap()
+        self.axes_iter_mut_with_order_f(axes, order).rstsr_unwrap()
     }
 
     pub fn axes_iter_mut<I>(&'a mut self, axes: I) -> IterAxesMut<'a, T, B>
     where
         I: TryInto<AxesIndex<isize>, Error = Error>,
     {
-        self.axes_iter_mut_f(axes).unwrap()
+        self.axes_iter_mut_f(axes).rstsr_unwrap()
     }
 }
 
@@ -397,7 +397,7 @@ where
         // this function only accepts c/f iter order currently
         match order {
             C | F => (),
-            _ => rstsr_invalid!(order, "This function only accepts TensorIterOrder::C|F.",).unwrap(),
+            _ => rstsr_invalid!(order, "This function only accepts TensorIterOrder::C|F.",)?,
         };
         // convert axis to negative indexes and sort
         let ndim: isize = TryInto::<isize>::try_into(self.ndim())?;
@@ -463,14 +463,14 @@ where
     where
         I: TryInto<AxesIndex<isize>, Error = Error>,
     {
-        self.indexed_axes_iter_with_order_f(axes, order).unwrap()
+        self.indexed_axes_iter_with_order_f(axes, order).rstsr_unwrap()
     }
 
     pub fn indexed_axes_iter<I>(&self, axes: I) -> IndexedIterAxesView<'a, T, B>
     where
         I: TryInto<AxesIndex<isize>, Error = Error>,
     {
-        self.indexed_axes_iter_f(axes).unwrap()
+        self.indexed_axes_iter_f(axes).rstsr_unwrap()
     }
 }
 
@@ -634,14 +634,14 @@ where
     where
         I: TryInto<AxesIndex<isize>, Error = Error>,
     {
-        self.indexed_axes_iter_mut_with_order_f(axes, order).unwrap()
+        self.indexed_axes_iter_mut_with_order_f(axes, order).rstsr_unwrap()
     }
 
     pub fn indexed_axes_iter_mut<I>(&'a mut self, axes: I) -> IndexedIterAxesMut<'a, T, B>
     where
         I: TryInto<AxesIndex<isize>, Error = Error>,
     {
-        self.indexed_axes_iter_mut_f(axes).unwrap()
+        self.indexed_axes_iter_mut_f(axes).rstsr_unwrap()
     }
 }
 

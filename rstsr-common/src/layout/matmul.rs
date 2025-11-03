@@ -4,7 +4,7 @@ Layout manuplication for matmul and other linalg operations
 
 # Rules for matmul
 
-We refer [Python array API](https://data-apis.org/array-api/2024.12/specification/generated/array_api.matmul.html) for more information.
+We Refer to [Python array API](https://data-apis.org/array-api/2024.12/specification/generated/array_api.matmul.html) for more information.
 
 Please note that the following rule only applies to row-major.
 

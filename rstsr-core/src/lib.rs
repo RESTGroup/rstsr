@@ -67,4 +67,5 @@ pub mod api_specification {
     use crate::prelude::*;
     use rt::*;
     extern crate alloc;
+    use crate as rstsr_core;
 }

@@ -129,7 +129,7 @@ where
     }
 
     pub fn new(storage: Storage<R, T, B>, layout: Layout<D>) -> Self {
-        Self::new_f(storage, layout).unwrap()
+        Self::new_f(storage, layout).rstsr_unwrap()
     }
 
     pub fn device(&self) -> &B {
@@ -225,7 +225,7 @@ where
         let data = match data {
             DataReference::Ref(data) => data,
             DataReference::Mut(_) => {
-                rstsr_raise!(RuntimeError, "cannot convert to TensorView if data is mutable").unwrap()
+                rstsr_raise!(RuntimeError, "cannot convert to TensorView if data is mutable").rstsr_unwrap()
             },
         };
         let storage = Storage::new(data, device);
@@ -244,7 +244,7 @@ where
         let data = match data {
             DataReference::Mut(data) => data,
             DataReference::Ref(_) => {
-                rstsr_raise!(RuntimeError, "cannot convert to TensorMut if data is immutable").unwrap()
+                rstsr_raise!(RuntimeError, "cannot convert to TensorMut if data is immutable").rstsr_unwrap()
             },
         };
         let storage = Storage::new(data, device);

@@ -6,12 +6,13 @@ pub mod rstsr_traits {
     pub use crate::storage::device::{DeviceAPI, DeviceBaseAPI, DeviceRawAPI, DeviceStorageAPI};
     pub use crate::tensor::asarray::AsArrayAPI;
     pub use crate::tensor::creation::{
-        ArangeAPI, EmptyAPI, EmptyLikeAPI, EyeAPI, FullAPI, FullLikeAPI, LinspaceAPI, OnesAPI, OnesLikeAPI, TrilAPI,
-        TriuAPI, ZerosAPI, ZerosLikeAPI,
+        ArangeAPI, EmptyAPI, EmptyLikeAPI, EyeAPI, FromNestedArrayAPI, FullAPI, FullLikeAPI, LinspaceAPI, OnesAPI,
+        OnesLikeAPI, TrilAPI, TriuAPI, ZerosAPI, ZerosLikeAPI,
     };
     pub use crate::tensor::creation_from_tensor::{
         ConcatAPI, DiagAPI, HStackAPI, MeshgridAPI, StackAPI, UnstackAPI, VStackAPI,
     };
+    pub use crate::tensor::device_conversion::{TensorChangeFromDevice, TensorDeviceChangeAPI};
     pub use crate::tensor::operators::op_binary_common::{
         TensorATan2API, TensorCopySignAPI, TensorEqualAPI, TensorFloorDivideAPI, TensorGreaterAPI,
         TensorGreaterEqualAPI, TensorHypotAPI, TensorLessAPI, TensorLessEqualAPI, TensorLogAddExpAPI, TensorMaximumAPI,
@@ -62,7 +63,7 @@ pub mod rstsr_funcs {
         diagonal, diagonal_f, diagonal_mut, diagonal_mut_f, into_diagonal, into_diagonal_f, into_diagonal_mut,
         into_diagonal_mut_f, into_slice, into_slice_f, slice, slice_f, slice_mut, slice_mut_f,
     };
-    pub use crate::tensor::manuplication::{
+    pub use crate::tensor::manuplication::exports::{
         broadcast_arrays, broadcast_arrays_f, change_contig, change_contig_f, change_layout, change_layout_f,
         change_shape, change_shape_f, expand_dims, expand_dims_f, flip, flip_f, into_broadcast, into_broadcast_f,
         into_contig, into_contig_f, into_dim, into_dim_f, into_dyn, into_expand_dims, into_expand_dims_f, into_flip,
@@ -132,6 +133,7 @@ pub mod rstsr_funcs {
 }
 
 pub mod rstsr_macros {
+    pub use crate::{allclose, tensor_from_nested};
     pub use rstsr_common::prelude::rstsr_macros::*;
 }
 

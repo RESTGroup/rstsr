@@ -1,8 +1,6 @@
 use derive_builder::Builder;
-use duplicate::duplicate_item;
 use rstsr_blas_traits::prelude::BlasFloat;
-use rstsr_common::error::{Error, Result};
-use rstsr_core::prelude::*;
+use rstsr_core::prelude_dev::*;
 
 /* #region trait and fn definitions */
 
@@ -28,7 +26,7 @@ pub trait LinalgAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::func_f(self).unwrap()
+        Self::func_f(self).rstsr_unwrap()
     }
 }
 

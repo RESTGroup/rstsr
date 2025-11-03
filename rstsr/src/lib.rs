@@ -2,6 +2,18 @@
 #![doc = include_str!("../readme.md")]
 pub mod prelude;
 
+#[allow(unused_imports)]
+use crate as rstsr;
+
+pub mod api_specification {
+    #![doc = include_str!("docs/api_specification.md")]
+    #![allow(unused_imports)]
+
+    use crate::prelude::*;
+    use rt::*;
+    extern crate alloc;
+}
+
 #[test]
 fn test() {
     use crate::prelude::*;

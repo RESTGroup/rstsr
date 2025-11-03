@@ -36,7 +36,7 @@ where
             f,
             "{}-Dim{}, contiguous: {}\nshape: {:?}, stride: {:?}, offset: {}",
             self.ndim(),
-            if D::const_ndim().is_none() { " (dyn)" } else { "" },
+            if self.shape().const_ndim().is_none() { " (dyn)" } else { "" },
             contig,
             shape,
             stride,

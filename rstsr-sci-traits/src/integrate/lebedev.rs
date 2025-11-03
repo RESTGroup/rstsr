@@ -76,7 +76,7 @@ pub fn lebedev_rule<B>(n: usize, device: &B) -> LebedevQuad<B>
 where
     B: DeviceAPI<f64> + LebedevRuleAPI,
 {
-    device.lebedev_rule_f(n).unwrap()
+    device.lebedev_rule_f(n).rstsr_unwrap()
 }
 
 pub fn lebedev_rule_f<B>(n: usize, device: &B) -> Result<LebedevQuad<B>>
@@ -97,7 +97,7 @@ pub fn lebedev_rule_from_degree<B>(degree: usize, device: &B) -> LebedevQuad<B>
 where
     B: DeviceAPI<f64> + LebedevRuleAPI,
 {
-    lebedev_rule_from_degree_f(degree, device).unwrap()
+    lebedev_rule_from_degree_f(degree, device).rstsr_unwrap()
 }
 
 pub fn lebedev_rule_from_degree_f<B>(degree: usize, device: &B) -> Result<LebedevQuad<B>>
@@ -118,7 +118,7 @@ where
 
     /// Generate Lebedev quadrature rule.
     fn lebedev_rule(&self, n: usize) -> LebedevQuad<Self> {
-        self.lebedev_rule_f(n).unwrap()
+        self.lebedev_rule_f(n).rstsr_unwrap()
     }
 }
 
@@ -148,10 +148,7 @@ where
 /* #region order transformation */
 
 /// Transform Lebedev quadrature order to degree.
-///
-/// This function does not return useful error message (as a const fn). Caller
-/// may handle the error with more information.
-pub const fn lebedev_order_to_degree(n: usize) -> Result<usize> {
+pub fn lebedev_order_to_degree(n: usize) -> Result<usize> {
     let order = match n {
         3 => 6,
         5 => 14,
@@ -188,17 +185,14 @@ pub const fn lebedev_order_to_degree(n: usize) -> Result<usize> {
         _ => 0,
     };
     if order == 0 {
-        Err(Error::InvalidValue(String::new()))
+        rstsr_raise!(InvalidValue)
     } else {
         Ok(order)
     }
 }
 
 /// Transform Lebedev quadrature order to degree.
-///
-/// This function does not return useful error message (as a const fn). Caller
-/// may handle the error with more information.
-pub const fn lebedev_degree_to_order(n: usize) -> Result<usize> {
+pub fn lebedev_degree_to_order(n: usize) -> Result<usize> {
     let order = match n {
         6 => 3,
         14 => 5,
@@ -235,7 +229,7 @@ pub const fn lebedev_degree_to_order(n: usize) -> Result<usize> {
         _ => 0,
     };
     if order == 0 {
-        Err(Error::InvalidValue(String::new()))
+        rstsr_raise!(InvalidValue)
     } else {
         Ok(order)
     }

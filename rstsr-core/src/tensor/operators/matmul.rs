@@ -109,7 +109,7 @@ pub fn matmul_with_output<RA, RB, RC, TA, TB, TC, DA, DB, DC, B>(
     TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + One,
     B: DeviceMatMulAPI<TA, TB, TC, DA, DB, DC>,
 {
-    op_mutc_refa_refb_matmul(c, a, b, TC::one(), TC::zero()).unwrap()
+    op_mutc_refa_refb_matmul(c, a, b, TC::one(), TC::zero()).rstsr_unwrap()
 }
 
 pub fn matmul_from_f<RA, RB, RC, TA, TB, TC, DA, DB, DC, B>(
@@ -156,7 +156,7 @@ pub fn matmul_from<RA, RB, RC, TA, TB, TC, DA, DB, DC, B>(
     TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + One,
     B: DeviceMatMulAPI<TA, TB, TC, DA, DB, DC>,
 {
-    op_mutc_refa_refb_matmul(c, a, b, alpha, beta).unwrap()
+    op_mutc_refa_refb_matmul(c, a, b, alpha, beta).rstsr_unwrap()
 }
 
 pub fn matmul_f<RA, RB, TA, TB, TC, DA, DB, DC, B>(
@@ -202,7 +202,7 @@ where
     LayoutMatMulConfig<DA, DB>: LayoutMatMulAPI<DA, DB, DC = DC>,
     B: DeviceMatMulAPI<TA, TB, TC, DA, DB, DC>,
 {
-    op_refa_refb_matmul(a, b, TC::one()).unwrap()
+    op_refa_refb_matmul(a, b, TC::one()).rstsr_unwrap()
 }
 
 /* #endregion */
@@ -228,7 +228,7 @@ where
 {
     type Output = Tensor<TC, B, DC>;
     fn rem(self, rhs: &TensorAny<RB, TB, B, DB>) -> Self::Output {
-        op_refa_refb_matmul(self, rhs, TC::one()).unwrap()
+        op_refa_refb_matmul(self, rhs, TC::one()).rstsr_unwrap()
     }
 }
 
@@ -251,7 +251,7 @@ where
 {
     type Output = Tensor<TC, B, DC>;
     fn rem(self, rhs: &TensorAny<RB, TB, B, DB>) -> Self::Output {
-        op_refa_refb_matmul(&self, rhs, TC::one()).unwrap()
+        op_refa_refb_matmul(&self, rhs, TC::one()).rstsr_unwrap()
     }
 }
 
@@ -274,7 +274,7 @@ where
 {
     type Output = Tensor<TC, B, DC>;
     fn rem(self, rhs: TensorAny<RB, TB, B, DB>) -> Self::Output {
-        op_refa_refb_matmul(self, &rhs, TC::one()).unwrap()
+        op_refa_refb_matmul(self, &rhs, TC::one()).rstsr_unwrap()
     }
 }
 
@@ -297,7 +297,7 @@ where
 {
     type Output = Tensor<TC, B, DC>;
     fn rem(self, rhs: TensorAny<RB, TB, B, DB>) -> Self::Output {
-        op_refa_refb_matmul(&self, &rhs, TC::one()).unwrap()
+        op_refa_refb_matmul(&self, &rhs, TC::one()).rstsr_unwrap()
     }
 }
 
@@ -347,7 +347,7 @@ where
         LayoutMatMulConfig<D, DB>: LayoutMatMulAPI<D, DB, DC = DC>,
         B: DeviceMatMulAPI<T, TB, TC, D, DB, DC>,
     {
-        op_refa_refb_matmul(self, rhs, TC::one()).unwrap()
+        op_refa_refb_matmul(self, rhs, TC::one()).rstsr_unwrap()
     }
 
     pub fn matmul_with_output_f<RB, RC, TB, TC, DB, DC>(
@@ -388,7 +388,7 @@ where
         B: DeviceAPI<TB> + DeviceAPI<TC>,
         B: DeviceMatMulAPI<T, TB, TC, D, DB, DC>,
     {
-        op_mutc_refa_refb_matmul(c, self, rhs, TC::one(), TC::zero()).unwrap()
+        op_mutc_refa_refb_matmul(c, self, rhs, TC::one(), TC::zero()).rstsr_unwrap()
     }
 
     pub fn matmul_from_f<RA, RB, TA, TB, DA, DB>(
@@ -435,7 +435,7 @@ where
         B: DeviceAPI<TA> + DeviceAPI<TB>,
         B: DeviceMatMulAPI<TA, TB, T, DA, DB, D>,
     {
-        op_mutc_refa_refb_matmul(self, a, b, alpha, beta).unwrap()
+        op_mutc_refa_refb_matmul(self, a, b, alpha, beta).rstsr_unwrap()
     }
 }
 

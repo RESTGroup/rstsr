@@ -42,9 +42,10 @@ pub use crate::tensor::creation::*;
 pub use crate::tensor::creation_from_tensor::*;
 pub use crate::tensor::device_conversion::*;
 pub use crate::tensor::ext_conversion::*;
+pub use crate::tensor::indexing::*;
 pub use crate::tensor::iterator_axes::*;
 pub use crate::tensor::iterator_elem::*;
-pub use crate::tensor::manuplication::*;
+pub use crate::tensor::manuplication::exports::*;
 pub use crate::tensor::ownership_conversion::*;
 pub use crate::tensor::reduction::TensorSumBoolAPI;
 pub use crate::tensor::tensor_mutable::*;
@@ -58,3 +59,5 @@ pub use crate::feature_rayon::device::*;
 pub use crate::device_faer::device::*;
 
 pub use crate::tensorbase::*;
+
+pub use crate::tensor_from_nested;

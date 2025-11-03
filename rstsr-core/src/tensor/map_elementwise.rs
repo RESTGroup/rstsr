@@ -37,7 +37,7 @@ where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
         B: DeviceOp_MutA_RefB_API<TOut, T, D, dyn FnMut(&mut MaybeUninit<TOut>, &T) + 'f>,
     {
-        self.map_fnmut_f(f).unwrap()
+        self.map_fnmut_f(f).rstsr_unwrap()
     }
 
     /// Call `f` by value on each element and create a new tensor with the new
@@ -59,7 +59,7 @@ where
         T: Clone,
         B: DeviceOp_MutA_RefB_API<TOut, T, D, dyn FnMut(&mut MaybeUninit<TOut>, &T) + 'f>,
     {
-        self.map_fnmut_f(move |x| f(x.clone())).unwrap()
+        self.map_fnmut_f(move |x| f(x.clone())).rstsr_unwrap()
     }
 
     /// Modify the tensor in place by calling `f` by mutable reference on each
@@ -88,7 +88,7 @@ where
         R: DataMutAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
         B: DeviceOp_MutA_API<T, D, dyn FnMut(&mut MaybeUninit<T>) + 'f>,
     {
-        self.mapi_fnmut_f(f).unwrap()
+        self.mapi_fnmut_f(f).rstsr_unwrap()
     }
 
     /// Modify the tensor in place by calling `f` by value on each
@@ -110,7 +110,7 @@ where
         T: Clone,
         B: DeviceOp_MutA_API<T, D, dyn FnMut(&mut MaybeUninit<T>) + 'f>,
     {
-        self.mapvi_fnmut_f(f).unwrap()
+        self.mapvi_fnmut_f(f).rstsr_unwrap()
     }
 }
 
@@ -179,7 +179,7 @@ where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
         B: DeviceOp_MutC_RefA_RefB_API<T, T2, TOut, DOut, dyn FnMut(&mut MaybeUninit<TOut>, &T, &T2) + 'f>,
     {
-        self.mapb_fnmut_f(other, f).unwrap()
+        self.mapb_fnmut_f(other, f).rstsr_unwrap()
     }
 
     pub fn mapvb_fnmut_f<'f, R2, T2, D2, DOut, TOut>(
@@ -215,7 +215,7 @@ where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
         B: DeviceOp_MutC_RefA_RefB_API<T, T2, TOut, DOut, dyn FnMut(&mut MaybeUninit<TOut>, &T, &T2) + 'f>,
     {
-        self.mapb_fnmut_f(other, move |x, y| f(x.clone(), y.clone())).unwrap()
+        self.mapb_fnmut_f(other, move |x, y| f(x.clone(), y.clone())).rstsr_unwrap()
     }
 }
 
@@ -257,7 +257,7 @@ where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
         B: DeviceOp_MutA_RefB_API<TOut, T, D, dyn Fn(&mut MaybeUninit<TOut>, &T) + Send + Sync + 'f>,
     {
-        self.map_f(f).unwrap()
+        self.map_f(f).rstsr_unwrap()
     }
 
     /// Call `f` by value on each element and create a new tensor with the new
@@ -279,7 +279,7 @@ where
         T: Clone,
         B: DeviceOp_MutA_RefB_API<TOut, T, D, dyn Fn(&mut MaybeUninit<TOut>, &T) + Send + Sync + 'f>,
     {
-        self.map_f(move |x| f(x.clone())).unwrap()
+        self.map_f(move |x| f(x.clone())).rstsr_unwrap()
     }
 
     /// Modify the tensor in place by calling `f` by mutable reference on each
@@ -308,7 +308,7 @@ where
         R: DataMutAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
         B: DeviceOp_MutA_API<T, D, dyn Fn(&mut MaybeUninit<T>) + Send + Sync + 'f>,
     {
-        self.mapi_f(f).unwrap()
+        self.mapi_f(f).rstsr_unwrap()
     }
 
     /// Modify the tensor in place by calling `f` by value on each
@@ -330,7 +330,7 @@ where
         T: Clone,
         B: DeviceOp_MutA_API<T, D, dyn Fn(&mut MaybeUninit<T>) + Send + Sync + 'f>,
     {
-        self.mapvi_f(f).unwrap()
+        self.mapvi_f(f).rstsr_unwrap()
     }
 }
 
@@ -399,7 +399,7 @@ where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
         B: DeviceOp_MutC_RefA_RefB_API<T, T2, TOut, DOut, dyn Fn(&mut MaybeUninit<TOut>, &T, &T2) + Send + Sync + 'f>,
     {
-        self.mapb_f(other, f).unwrap()
+        self.mapb_f(other, f).rstsr_unwrap()
     }
 
     pub fn mapvb_f<'f, R2, T2, D2, DOut, TOut>(
@@ -435,7 +435,7 @@ where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
         B: DeviceOp_MutC_RefA_RefB_API<T, T2, TOut, DOut, dyn Fn(&mut MaybeUninit<TOut>, &T, &T2) + Send + Sync + 'f>,
     {
-        self.mapb_f(other, move |x, y| f(x.clone(), y.clone())).unwrap()
+        self.mapb_f(other, move |x, y| f(x.clone(), y.clone())).rstsr_unwrap()
     }
 }
 

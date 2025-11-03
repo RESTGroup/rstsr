@@ -8,7 +8,7 @@ pub trait CDistAPI<Inp> {
     where
         Self: Sized,
     {
-        Self::cdist_f(self).unwrap()
+        Self::cdist_f(self).rstsr_unwrap()
     }
 }
 

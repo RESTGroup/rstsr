@@ -35,7 +35,7 @@ pub trait TensorOpAPI<TRB> {
     where
         Self: Sized,
     {
-        self.op_f(b).unwrap()
+        self.op_f(b).rstsr_unwrap()
     }
 }
 

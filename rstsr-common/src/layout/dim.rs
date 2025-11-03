@@ -47,7 +47,7 @@ pub trait DimBaseAPI:
     fn ndim(&self) -> usize;
 
     /// Dynamic or static dimension
-    fn const_ndim() -> Option<usize>;
+    fn const_ndim(&self) -> Option<usize>;
 
     /// New shape
     fn new_shape(&self) -> Self;
@@ -65,7 +65,7 @@ impl<const N: usize> DimBaseAPI for Ix<N> {
     }
 
     #[inline]
-    fn const_ndim() -> Option<usize> {
+    fn const_ndim(&self) -> Option<usize> {
         Some(N)
     }
 
@@ -89,7 +89,7 @@ impl DimBaseAPI for IxD {
     }
 
     #[inline]
-    fn const_ndim() -> Option<usize> {
+    fn const_ndim(&self) -> Option<usize> {
         None
     }
 

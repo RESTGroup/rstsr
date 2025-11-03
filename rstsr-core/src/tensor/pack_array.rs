@@ -171,7 +171,7 @@ where
         R: PackableArrayAPI<T, N> + PackArrayAPI<T>,
         ArrayData: DataAPI<Data = <B as DeviceRawAPI<ArrayType>>::Raw>,
     {
-        self.into_pack_array_f::<N>(axis).unwrap()
+        self.into_pack_array_f::<N>(axis).rstsr_unwrap()
     }
 }
 
@@ -212,7 +212,7 @@ where
         stride.insert(axis, 1);
         offset *= N;
         let layout = unsafe { Layout::new_unchecked(shape, stride, offset) };
-        let layout = layout.into_dim().unwrap();
+        let layout = layout.into_dim().rstsr_unwrap();
         let tensor = unsafe { TensorAny::new_unchecked(storage, layout) };
         Ok(tensor)
     }
@@ -224,7 +224,7 @@ where
         ROut: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
         B: DeviceAPI<T>,
     {
-        self.into_unpack_array_f(axis).unwrap()
+        self.into_unpack_array_f(axis).rstsr_unwrap()
     }
 }
 
