@@ -54,3 +54,7 @@ tblis = ["dep:rstsr-tblis"]
 # BLAS configurations
 dynamic_loading = ["rstsr-openblas?/dynamic_loading", "rstsr-mkl?/dynamic_loading", "rstsr-blis?/dynamic_loading", "rstsr-aocl?/dynamic_loading", "rstsr-kml?/dynamic_loading"]
 ilp64 = ["rstsr-openblas?/ilp64", "rstsr-mkl?/ilp64", "rstsr-blis?/ilp64", "rstsr-aocl?/ilp64", "rstsr-kml?/ilp64"]
+
+[package.metadata.docs.rs]
+features = ["default", "openblas", "linalg", "sci", "tblis"]
+rustdoc-args = ["--cfg", "docsrs", "--document-private-items", "--html-in-header", "katex-header.html"]

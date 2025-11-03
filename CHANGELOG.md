@@ -1,5 +1,37 @@
 # Changelog
 
+## v0.6.0 -- 2025-11-03
+
+Refactor:
+
+- rstsr-core: Split `tensor/manuplication.rs` into a module with folder. (RESTGroup/rstsr#67)
+
+API breaking changes:
+
+- rstsr-core: Supporting type-promotion for assign. (RESTGroup/rstsr#65)
+- rstsr-dtype-traits: Split previous dtype trait `PromotionAPI` to two parts `DTypePromoteAPI` and `DTypeCastAPI`. (RESTGroup/rstsr#66)
+- Refactor of some dtype-related traits and impl. (RESTGroup/rstsr#66)
+- rstsr-core: Add lifetime annotation to `TensorRefAPI` / `TensorRefMutAPI` (these two traits are currently not applied to any implementations). (RESTGroup/rstsr#67)
+- rstsr-common: Added traceback in error-handling, which changed the fundamental data structure of `Error` of RSTSR. (RESTGroup/rstsr#67)
+- rstsr-common: `DimBaseAPI::const_ndims` is method (with `&self` as argument) now. (RESTGroup/rstsr#67)
+
+Enhancements:
+
+- rstsr-dtype-traits: add function `isclose`. (RESTGroup/rstsr#66)
+- rstsr-core: add function `allclose`. (RESTGroup/rstsr#66)
+- rstsr-core: simplifies some trait bounds for obtaining view of tensor. (RESTGroup/rstsr#66)
+- rstsr-core: Add macro `tensor_from_nested!` (similar to `ndarray::array!`). (RESTGroup/rstsr#67)
+- rstsr-common: Added `rstsr_unwrap` to print unwrap with traceback. Added cargo feature `traceback` in many crates for printing traceback info of place of panic. (RESTGroup/rstsr#67)
+- rstsr-common: Added `normalize_axes_index` for development (similar to `numpy.normalize_axis_tuple`). (RESTGroup/rstsr#67)
+- rstsr-common: Added `Option<i/usize>` to `AxesIndex` trait implementation. (RESTGroup/rstsr#67)
+- Some API documents updated. (RESTGroup/rstsr#67)
+
+Fixes:
+
+- Fixes some possible memory-safety problems of `uninitialized_vec` in reduce implementations in rstsr-native-impl. (RESTGroup/rstsr#66)
+- Fix `no_std`. (RESTGroup/rstsr#67)
+- Fixed `rt::expand_dims` and `rt::flip` in multiple axes cases (accordance to NumPy). (RESTGroup/rstsr#67)
+
 ## v0.6.0-alpha.1 -- 2025-09-30
 
 This is not a completed version. May have other API breaking changes before v0.6.0 release.
