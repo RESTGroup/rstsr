@@ -34,18 +34,39 @@ pub enum RSTSRError {
     Miscellaneous(String),
 }
 
+#[cfg(feature = "backtrace")]
+#[derive(Debug)]
+pub struct RSTSRBacktrace(pub std::backtrace::Backtrace);
+#[cfg(not(feature = "backtrace"))]
+#[derive(Debug)]
+pub struct RSTSRBacktrace;
+
+#[cfg(feature = "backtrace")]
+impl core::fmt::Display for RSTSRBacktrace {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "{:}", self.0)
+    }
+}
+
+#[cfg(not(feature = "backtrace"))]
+impl core::fmt::Display for RSTSRBacktrace {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "Backtrace feature in RSTSR is disabled.")
+    }
+}
+
 #[derive(Debug)]
 pub struct Error {
     pub inner: RSTSRError,
-    pub backtrace: Option<String>,
+    pub backtrace: Option<RSTSRBacktrace>,
 }
 
-pub fn rstsr_backtrace() -> Option<String> {
+pub fn rstsr_backtrace() -> Option<RSTSRBacktrace> {
     #[cfg(feature = "backtrace")]
     {
         extern crate std;
         let bt = std::backtrace::Backtrace::capture();
-        Some(format!("{:}", bt))
+        Some(RSTSRBacktrace(bt))
     }
     #[cfg(not(feature = "backtrace"))]
     {
@@ -81,8 +102,12 @@ impl<T> RSTSRResultAPI<T> for Result<T> {
                     if let Some(backtrace) = backtrace {
                         std::eprintln!("\n====== RSTSR Backtrace ======\n{:}", backtrace);
                     }
+                    panic!("RSTSR Error: {:?}", inner)
                 }
-                panic!("RSTSR Error: {:?}", inner)
+                #[cfg(not(feature = "backtrace"))]
+                {
+                    panic!("RSTSR Error (backtrace disabled): {:?}", inner)
+                }
             },
         }
     }
