@@ -128,8 +128,8 @@ where
 ///
 /// ## Related functions in RSTSR
 ///
-/// - [`i`](TensorAny::i) or [`slice`](slice()): Basic indexing and slicing of tensors, without modification
-///   of the underlying data.
+/// - [`i`](TensorAny::i) or [`slice`](slice()): Basic indexing and slicing of tensors, without
+///   modification of the underlying data.
 /// - [`squeeze`]: Removes singleton dimensions (axes) from `x`.
 ///
 /// ## Variants of this function
