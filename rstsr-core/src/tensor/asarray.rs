@@ -4,6 +4,10 @@ use crate::prelude_dev::*;
 use core::mem::ManuallyDrop;
 use num::complex::{Complex32, Complex64};
 
+/// Trait for function [`asarray`] impl: converting the input to an array.
+///
+/// This trait can be implemented for different backends. For usual CPU backends, we refer to
+/// function [`asarray`] for API documentation details.
 pub trait AsArrayAPI<Inp> {
     type Out;
 
@@ -19,12 +23,215 @@ pub trait AsArrayAPI<Inp> {
 
 /// Convert the input to an array.
 ///
-/// This function takes kinds of input and converts them to an array. Please
-/// refer to trait implementations of [`AsArrayAPI`].
+/// **This function is overloaded.**
 ///
-/// # See also
+/// <div class="warning">
 ///
-/// [Python array API: `asarray`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.asarray.html)
+/// **Row/Column Major Notice**
+///
+/// When passing shape into this function, the layout of output tensor will be different on default
+/// orders ([`RowMajor`] and [`ColMajor`]) of device.
+///
+/// </div>
+///
+/// Note that this function always returns a dynamic-dimensional ([`IxD`]) tensor. To convert it
+/// into a fixed-dimensional tensor, you can use [`.into_dim::<D>()`](Tensor::into_dim) method on
+/// the output tensor without explicit data copy.
+///
+/// # Overloads Table
+///
+/// ## Output owned tensor [`Tensor`]
+///
+/// Input vector [`Vec<T>`] as raw data:
+///
+/// - `asarray((input: Vec<T>, layout: Layout<D>, device: &B)) -> Tensor<T, B, IxD>`
+/// - `asarray((input: Vec<T>, shape: D, device: &B)) -> Tensor<T, B, IxD>`
+/// - `asarray((input: Vec<T>, device: &B)) -> Tensor<T, B, IxD>`
+/// - `asarray((input: Vec<T>, layout: Layout<D>)) -> Tensor<T, DeviceCpu, IxD>`
+/// - `asarray((input: Vec<T>, shape: D)) -> Tensor<T, DeviceCpu, IxD>`
+/// - `asarray(input: Vec<T>) -> Tensor<T, DeviceCpu, IxD>`
+///
+/// Input scalar `T` as raw data:
+///
+/// - `asarray((input: T, device: &B)) -> Tensor<T, B, IxD>`
+/// - `asarray(input: T) -> Tensor<T, DeviceCpu, IxD>`
+///
+/// Input tensor as raw data and change its layout:
+///
+/// - `asarray(input: &TensorAny<R, T, B, D>) -> Tensor<T, B, D>`
+/// - `asarray((input: &TensorAny<R, T, B, D>, order: TensorIterOrder)) -> Tensor<T, B, D>`
+/// - `asarray(input: Tensor<T, B, D>) -> Tensor<T, B, D>`
+/// - `asarray((input: Tensor<T, B, D>, order: TensorIterOrder)) -> Tensor<T, B, D>`
+///
+/// ## Output tensor view [`TensorView`]
+///
+/// - `asarray((input: &[T], layout: Layout<D>, device: &B)) -> TensorView<'a, T, B, IxD>`
+/// - `asarray((input: &[T], shape: D, device: &B)) -> TensorView<'a, T, B, IxD>`
+/// - `asarray((input: &[T], device: &B)) -> TensorView<'a, T, B, IxD>`
+/// - `asarray((input: &[T], layout: Layout<D>)) -> TensorView<'a, T, DeviceCpu, IxD>`
+/// - `asarray(input: &[T]) -> TensorView<'a, T, DeviceCpu, IxD>`
+///
+/// Also, overloads for `&Vec<T>` that behave the same as `&[T]`.
+///
+/// ## Output mutable tensor view [`TensorMut`]
+///
+/// All overloads for `&[T]` and `&Vec<T>` above also have mutable versions for `&mut [T]` and `&mut
+/// Vec<T>`, which output [`TensorMut<'a, T, B, IxD>`] and [`TensorMut<'a, T, DeviceCpu, IxD>`],
+/// respectively.
+///
+/// # Examples
+///
+/// ## Vector as input
+///
+/// The most usual usage is to convert a vector into a tensor. You can also specify the shape /
+/// layout and device.
+///
+/// **The following example assumes that the device's default order is row-major**. The input shape
+/// `[2, 3]` corresponds to a row-major layout `[2, 3].c()`.
+///
+/// ```rust
+/// use rstsr::prelude::*;
+/// let mut device = DeviceCpu::default();
+/// device.set_default_order(RowMajor);
+///
+/// // vector as input, row-major layout by default
+/// let input = vec![1, 2, 3, 4, 5, 6];
+/// let a = rt::asarray((input, [2, 3], &device));
+/// println!("{a:?}");
+/// // [[1, 2, 3],
+/// //  [4, 5, 6]]
+/// // 2-Dim (dyn), contiguous: Cc, shape: [2, 3], stride: [3, 1], offset: 0
+/// # let expected = rt::tensor_from_nested!([[1, 2, 3], [4, 5, 6]], &device);
+/// # assert!(rt::allclose(&a, &expected, None));
+/// ```
+///
+/// If you want to use column-major layout, you can specify the layout explicitly. But be cautious
+/// that **row-major and column-major layouts will lead to different arrangements of data**.
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// // vector as input, column-major layout
+/// let input = vec![1, 2, 3, 4, 5, 6];
+/// let a = rt::asarray((input, [2, 3].f(), &device));
+/// println!("{a:?}");
+/// // [[ 1 3 5]
+/// //  [ 2 4 6]]
+/// // 2-Dim (dyn), contiguous: Ff, shape: [2, 3], stride: [1, 2], offset: 0
+/// # let expected = rt::tensor_from_nested!([[1, 3, 5], [2, 4, 6]], &device);
+/// # assert!(rt::allclose(&a, &expected, None));
+/// ```
+///
+/// Also, **if the device's default order is column-major**, the shape input (`[2, 3]`) will also
+/// lead to a column-major layout (`[2, 3].f()`):
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// // vector as input, column layout by default
+/// device.set_default_order(ColMajor);
+/// let input = vec![1, 2, 3, 4, 5, 6];
+/// let a = rt::asarray((input, [2, 3], &device));
+/// println!("{a:?}");
+/// // [[ 1 3 5]
+/// //  [ 2 4 6]]
+/// // 2-Dim (dyn), contiguous: Ff, shape: [2, 3], stride: [1, 2], offset: 0
+/// # let expected = rt::tensor_from_nested!([[1, 3, 5], [2, 4, 6]], &device);
+/// # assert!(rt::allclose(&a, &expected, None));
+/// ```
+///
+/// Finally, you can omit the device argument to use the default CPU device, and omit the
+/// layout/shape to get an 1-D tensor:
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let input = vec![1, 2, 3, 4, 5, 6];
+/// let a = rt::asarray(input);;
+/// println!("{a:?}");
+/// // [ 1 2 3 4 5 6]
+/// // 1-Dim (dyn), contiguous: Cc, shape: [6], stride: [1], offset: 0
+/// # let expected = rt::tensor_from_nested!([1, 2, 3, 4, 5, 6]);
+/// # assert!(rt::allclose(&a, &expected, None));
+/// ```
+///
+/// ## `&[T]` or `&mut [T]` as input
+///
+/// You can also convert a slice into a tensor view. Please note, `asarray` accepts `&[T]` and
+/// `&Vec<T>`, but do not accept other slice-like types such as `&[T; N]`. You may need to convert
+/// them by `.as_ref()` first.
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// // Slice &[T] as input
+/// let input = &[1, 2, 3, 4, 5, 6];
+/// let a = rt::asarray((input.as_ref(), [2, 3].c(), &device));
+/// println!("{a:?}");
+/// // [[ 1 2 3]
+/// //  [ 4 5 6]]
+/// # let expected = rt::tensor_from_nested!([[1, 2, 3], [4, 5, 6]], &device);
+/// # assert!(rt::allclose(&a, &expected, None));
+/// ```
+///
+/// Also, mutable slices `&mut [T]` and `&mut Vec<T>` are supported. You can modify the original
+/// data via the output tensor mutable view.
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// // Slice &mut [T] as input
+/// let mut input = vec![1, 2, 3, 4, 5, 6];
+/// let mut a = rt::asarray((&mut input, [2, 3].c(), &device));
+/// // change `input` via tensor view `a`
+/// a[[0, 0]] = 10;
+/// println!("{a:2?}");
+/// // [[ 10  2  3]
+/// //  [  4  5  6]]
+/// # let expected = rt::tensor_from_nested!([[10, 2, 3], [4, 5, 6]], &device);
+/// # assert!(rt::allclose(&a, &expected, None));
+/// println!("{input:?}");
+/// // [10, 2, 3, 4, 5, 6]
+/// # assert_eq!(input, vec![10, 2, 3, 4, 5, 6]);
+/// ```
+///
+/// You can also specify a sub-view via layout:
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let input = (0..30).collect::<Vec<i32>>();
+/// let layout = Layout::new([3, 2], [2, 7], 5).unwrap();
+/// let a = rt::asarray((&input, layout, &device));
+/// println!("{a:2?}");
+/// // [[  5 12]
+/// //  [  7 14]
+/// //  [  9 16]]
+/// # let expected = rt::tensor_from_nested!([[5, 12], [7, 14], [9, 16]], &device);
+/// # assert!(rt::allclose(&a, &expected, None));
+/// ```
+///
+/// Finally, you can also omit the device argument to use the default CPU device.
+///
+/// ## Scalar as input
+///
+/// You can also convert a scalar into a tensor with zero dimensions.
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let a = rt::asarray((42, &device));
+/// println!("{a:?}");
+/// // 42
+/// // 0-Dim (dyn), contiguous: CcFf, shape: [], stride: [], offset: 0
+/// ```
 pub fn asarray<Args, Inp>(param: Args) -> Args::Out
 where
     Args: AsArrayAPI<Inp>,
@@ -228,18 +435,6 @@ where
 
     fn asarray_f(self) -> Result<Self::Out> {
         let (input, layout, device) = self;
-        rstsr_assert_eq!(
-            layout.bounds_index()?,
-            (0, layout.size()),
-            InvalidLayout,
-            "This constructor assumes compact memory layout."
-        )?;
-        rstsr_assert_eq!(
-            layout.size(),
-            input.len(),
-            InvalidLayout,
-            "This constructor assumes that the layout size is equal to the input size."
-        )?;
         let ptr = input.as_ptr();
         let len = input.len();
         let raw = unsafe {
@@ -408,18 +603,6 @@ where
 
     fn asarray_f(self) -> Result<Self::Out> {
         let (input, layout, device) = self;
-        rstsr_assert_eq!(
-            layout.bounds_index()?,
-            (0, layout.size()),
-            InvalidLayout,
-            "This constructor assumes compact memory layout."
-        )?;
-        rstsr_assert_eq!(
-            layout.size(),
-            input.len(),
-            InvalidLayout,
-            "This constructor assumes that the layout size is equal to the input size."
-        )?;
         let ptr = input.as_ptr();
         let len = input.len();
         let raw = unsafe {
@@ -642,5 +825,93 @@ mod tests {
         println!("{tensor:?}");
         let tensor = asarray_f((Complex64::new(0., 1.), &DeviceCpuSerial::default())).unwrap();
         println!("{tensor:?}");
+    }
+
+    #[test]
+    fn doc_asarray() {
+        use rstsr::prelude::*;
+        let mut device = DeviceCpu::default();
+        device.set_default_order(RowMajor);
+
+        // vector as input, row-major layout by default
+        let input = vec![1, 2, 3, 4, 5, 6];
+        let a = rt::asarray((input, [2, 3], &device));
+        println!("{a:?}");
+        // [[ 1 2 3]
+        //  [ 4 5 6]]
+        // 2-Dim (dyn), contiguous: Cc, shape: [2, 3], stride: [3, 1], offset: 0
+        let expected = rt::tensor_from_nested!([[1, 2, 3], [4, 5, 6]], &device);
+        assert!(rt::allclose(&a, &expected, None));
+
+        // vector as input, column-major layout
+        let input = vec![1, 2, 3, 4, 5, 6];
+        let a = rt::asarray((input, [2, 3].f(), &device));
+        println!("{a:?}");
+        // [[ 1 3 5]
+        //  [ 2 4 6]]
+        // 2-Dim (dyn), contiguous: Ff, shape: [2, 3], stride: [1, 2], offset: 0
+        let expected = rt::tensor_from_nested!([[1, 3, 5], [2, 4, 6]], &device);
+        assert!(rt::allclose(&a, &expected, None));
+
+        // vector as input, column layout by default
+        device.set_default_order(ColMajor);
+        let input = vec![1, 2, 3, 4, 5, 6];
+        let a = rt::asarray((input, [2, 3], &device));
+        println!("{a:?}");
+        // [[ 1 3 5]
+        //  [ 2 4 6]]
+        // 2-Dim (dyn), contiguous: Ff, shape: [2, 3], stride: [1, 2], offset: 0
+        let expected = rt::tensor_from_nested!([[1, 3, 5], [2, 4, 6]], &device);
+        assert!(rt::allclose(&a, &expected, None));
+
+        // 1-D vector, default CPU device
+        let input = vec![1, 2, 3, 4, 5, 6];
+        let a = rt::asarray(input);
+        println!("{a:?}");
+        // [ 1 2 3 4 5 6]
+        // 1-Dim (dyn), contiguous: Cc, shape: [6], stride: [1], offset: 0
+        let expected = rt::tensor_from_nested!([1, 2, 3, 4, 5, 6]);
+        assert!(rt::allclose(&a, &expected, None));
+
+        // Slice &[T] as input
+        device.set_default_order(RowMajor);
+        let input = &[1, 2, 3, 4, 5, 6];
+        let a = rt::asarray((input.as_ref(), [2, 3].c(), &device));
+        println!("{a:?}");
+        // [[ 1 2 3]
+        //  [ 4 5 6]]
+        let expected = rt::tensor_from_nested!([[1, 2, 3], [4, 5, 6]], &device);
+        assert!(rt::allclose(&a, &expected, None));
+
+        // Slice &mut [T] as input
+        let mut input = vec![1, 2, 3, 4, 5, 6];
+        let mut a = rt::asarray((&mut input, [2, 3].c(), &device));
+        // change `input` via tensor view `a`
+        a[[0, 0]] = 10;
+        println!("{a:2?}");
+        // [[10 2 3]
+        //  [ 4 5 6]]
+        let expected = rt::tensor_from_nested!([[10, 2, 3], [4, 5, 6]], &device);
+        assert!(rt::allclose(&a, &expected, None));
+        println!("{input:?}");
+        // [10, 2, 3, 4, 5, 6]
+        assert_eq!(input, vec![10, 2, 3, 4, 5, 6]);
+
+        // Sub-view from &Vec<T>
+        let input = (0..30).collect::<Vec<i32>>();
+        let layout = Layout::new([3, 2], [2, 7], 5).unwrap();
+        let a = rt::asarray((&input, layout, &device));
+        println!("{a:2?}");
+        // [[  5 12]
+        //  [  7 14]
+        //  [  9 16]]
+        let expected = rt::tensor_from_nested!([[5, 12], [7, 14], [9, 16]], &device);
+        assert!(rt::allclose(&a, &expected, None));
+
+        // Scalar as input
+        let a = rt::asarray((42, &device));
+        println!("{a:?}");
+        // 42
+        // 0-Dim (dyn), contiguous: CcFf, shape: [], stride: [], offset: 0
     }
 }

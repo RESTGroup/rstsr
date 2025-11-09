@@ -13,7 +13,7 @@ use derive_builder::Builder;
 ///
 /// # See also
 ///
-/// [`isclose`]
+/// [`isclose`](isclose())
 #[derive(Builder, Clone, PartialEq, Eq, Debug)]
 pub struct IsCloseArgs<TE: 'static> {
     /// Relative tolerance. For type [f64], the default is `1.0e-5`.
