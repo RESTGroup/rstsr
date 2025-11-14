@@ -335,7 +335,7 @@ where
         let mut storage_c = device.uninit_impl(layout_c.size())?;
         device.assign_uninit(storage_c.raw_mut(), &layout_c, input.raw(), layout_a)?;
         let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
-        let tensor = unsafe { Tensor::new_unchecked(storage_c, layout_c) };
+        let tensor = Tensor::new_f(storage_c, layout_c)?;
         return Ok(tensor);
     }
 }
@@ -374,7 +374,7 @@ where
             let mut storage_c = device.uninit_impl(layout_c.size())?;
             device.assign_uninit(storage_c.raw_mut(), &layout_c, storage_a.raw(), layout_a)?;
             let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
-            let tensor = unsafe { Tensor::new_unchecked(storage_c, layout_c) };
+            let tensor = Tensor::new_f(storage_c, layout_c)?;
             return Ok(tensor);
         }
     }
@@ -434,7 +434,7 @@ where
         let (input, device) = self;
         let layout = vec![input.len()].c();
         let storage = device.outof_cpu_vec(input)?;
-        let tensor = unsafe { Tensor::new_unchecked(storage, layout) };
+        let tensor = Tensor::new_f(storage, layout)?;
         return Ok(tensor);
     }
 }
@@ -461,7 +461,7 @@ where
             "This constructor assumes that the layout size is equal to the input size."
         )?;
         let storage = device.outof_cpu_vec(input)?;
-        let tensor = unsafe { Tensor::new_unchecked(storage, layout.into_dim()?) };
+        let tensor = Tensor::new_f(storage, layout.into_dim()?)?;
         return Ok(tensor);
     }
 }
@@ -541,7 +541,7 @@ where
         let device = device.clone();
         let data = DataRef::from_manually_drop(ManuallyDrop::new(raw));
         let storage = Storage::new(data, device);
-        let tensor = unsafe { TensorView::new_unchecked(storage, layout.into_dim()?) };
+        let tensor = TensorView::new_f(storage, layout.into_dim()?)?;
         return Ok(tensor);
     }
 }
@@ -585,7 +585,7 @@ where
         };
         let data = DataRef::from_manually_drop(ManuallyDrop::new(raw));
         let storage = Storage::new(data, device);
-        let tensor = unsafe { TensorView::new_unchecked(storage, layout) };
+        let tensor = TensorView::new_f(storage, layout)?;
         return Ok(tensor);
     }
 }
@@ -709,7 +709,7 @@ where
         let device = device.clone();
         let data = DataMut::from_manually_drop(ManuallyDrop::new(raw));
         let storage = Storage::new(data, device);
-        let tensor = unsafe { TensorMut::new_unchecked(storage, layout.into_dim()?) };
+        let tensor = TensorMut::new_f(storage, layout.into_dim()?)?;
         return Ok(tensor);
     }
 }
@@ -753,7 +753,7 @@ where
         };
         let data = DataMut::from_manually_drop(ManuallyDrop::new(raw));
         let storage = Storage::new(data, device);
-        let tensor = unsafe { TensorMut::new_unchecked(storage, layout.into_dim()?) };
+        let tensor = TensorMut::new_f(storage, layout.into_dim()?)?;
         return Ok(tensor);
     }
 }
