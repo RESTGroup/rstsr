@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.6.1 -- 2025-11-15
+## v0.6.2 -- 2025-11-15
 
 MSRV specified to 1.82.0, written to Cargo.toml.
 
