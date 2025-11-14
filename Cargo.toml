@@ -20,6 +20,7 @@ members = [
 [workspace.package]
 version = "0.6.0"
 edition = "2021"
+rust-version = "1.82.0"
 description = "An n-Dimension Rust Tensor Toolkit"
 repository = "https://github.com/RESTGroup/rstsr"
 keywords = ["tensor", "array", "blas", "multidimensional", "scientific"]

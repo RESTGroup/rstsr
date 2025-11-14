@@ -2,6 +2,7 @@
 name = "rstsr-linalg-traits"
 version.workspace = true
 edition.workspace = true
+rust-edition.workspace = true
 description.workspace = true
 repository.workspace = true
 keywords.workspace = true
