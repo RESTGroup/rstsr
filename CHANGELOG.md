@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.6.2 -- 2025-11-15
+
+MSRV specified to 1.82.0, written to Cargo.toml.
+
+Functionality changes:
+
+- rstsr-core: `asarray` will not panic when layout is not compact if pass `&[T]` or `&mut [T]` to give view/mut-view tensor. However, pass `Vec<T>` to give owned tensor will still panic if layout is not compact.
+
 ## v0.6.0 -- 2025-11-03
 
 Refactor:

@@ -19,8 +19,9 @@ members = [
 ]
 
 [workspace.package]
-version = "0.6.0"
+version = "0.6.2"
 edition = "2021"
+rust-version = "1.82.0"
 description = "An n-Dimension Rust Tensor Toolkit"
 repository = "https://github.com/RESTGroup/rstsr"
 keywords = ["tensor", "array", "blas", "multidimensional", "scientific"]
@@ -28,25 +29,25 @@ categories = ["science"]
 license = "Apache-2.0"
 
 [workspace.dependencies]
-rstsr = { path = "./rstsr", default-features = false, version = "0.6.0" }
-rstsr-core = { path = "./rstsr-core", default-features = false, version = "0.6.0" }
+rstsr = { path = "./rstsr", default-features = false, version = "0.6.2" }
+rstsr-core = { path = "./rstsr-core", default-features = false, version = "0.6.2" }
 # members (without core)
-rstsr-common = { path = "./rstsr-common", default-features = false, version = "0.6.0" }
-rstsr-dtype-traits = { path = "./rstsr-dtype-traits", default-features = false, version = "0.6.0" }
-rstsr-native-impl = { path = "./rstsr-native-impl", default-features = false, version = "0.6.0" }
+rstsr-common = { path = "./rstsr-common", default-features = false, version = "0.6.2" }
+rstsr-dtype-traits = { path = "./rstsr-dtype-traits", default-features = false, version = "0.6.2" }
+rstsr-native-impl = { path = "./rstsr-native-impl", default-features = false, version = "0.6.2" }
 # members (traits and core-extensions)
-rstsr-blas-traits = { path = "./rstsr-blas-traits", default-features = false, version = "0.6.0" }
-rstsr-linalg-traits = { path = "./rstsr-linalg-traits", default-features = false, version = "0.6.0" }
-rstsr-sci-traits = { path = "./rstsr-sci-traits", default-features = false, version = "0.6.0" }
+rstsr-blas-traits = { path = "./rstsr-blas-traits", default-features = false, version = "0.6.2" }
+rstsr-linalg-traits = { path = "./rstsr-linalg-traits", default-features = false, version = "0.6.2" }
+rstsr-sci-traits = { path = "./rstsr-sci-traits", default-features = false, version = "0.6.2" }
 # members (device)
-rstsr-openblas = { path = "./crates-device/rstsr-openblas", default-features = false, version = "0.6.0" }
-rstsr-accelerate = { path = "./crates-device/rstsr-accelerate", default-features = false, version = "0.6.0" }
-rstsr-mkl = { path = "./crates-device/rstsr-mkl", default-features = false, version = "0.6.0" }
-rstsr-blis = { path = "./crates-device/rstsr-blis", default-features = false, version = "0.6.0" }
-rstsr-aocl = { path = "./crates-device/rstsr-aocl", default-features = false, version = "0.6.0" }
-rstsr-kml = { path = "./crates-device/rstsr-kml", default-features = false, version = "0.6.0" }
+rstsr-openblas = { path = "./crates-device/rstsr-openblas", default-features = false, version = "0.6.2" }
+rstsr-accelerate = { path = "./crates-device/rstsr-accelerate", default-features = false, version = "0.6.2" }
+rstsr-mkl = { path = "./crates-device/rstsr-mkl", default-features = false, version = "0.6.2" }
+rstsr-blis = { path = "./crates-device/rstsr-blis", default-features = false, version = "0.6.2" }
+rstsr-aocl = { path = "./crates-device/rstsr-aocl", default-features = false, version = "0.6.2" }
+rstsr-kml = { path = "./crates-device/rstsr-kml", default-features = false, version = "0.6.2" }
 # members (plugin)
-rstsr-tblis = { path = "./crates-plugin/rstsr-tblis", default-features = false, version = "0.6.0" }
+rstsr-tblis = { path = "./crates-plugin/rstsr-tblis", default-features = false, version = "0.6.2" }
 # develop dependencies that should not publish
 rstsr-test-manifest = { path = "./rstsr-test-manifest", default-features = false }
 # ffi dependencies

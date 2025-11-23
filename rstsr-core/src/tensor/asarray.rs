@@ -58,10 +58,12 @@ pub trait AsArrayAPI<Inp> {
 ///
 /// Input tensor as raw data and change its layout:
 ///
-/// - `asarray(input: &TensorAny<R, T, B, D>) -> Tensor<T, B, D>`
 /// - `asarray((input: &TensorAny<R, T, B, D>, order: TensorIterOrder)) -> Tensor<T, B, D>`
-/// - `asarray(input: Tensor<T, B, D>) -> Tensor<T, B, D>`
+/// - `asarray((input: TensorView<'_, T, B, D>, order: TensorIterOrder)) -> Tensor<T, B, D>`
 /// - `asarray((input: Tensor<T, B, D>, order: TensorIterOrder)) -> Tensor<T, B, D>`
+/// - `asarray(input: &TensorAny<R, T, B, D>) -> Tensor<T, B, D>`
+/// - `asarray(input: TensorView<'_, T, B, D>) -> Tensor<T, B, D>`
+/// - `asarray(input: Tensor<T, B, D>) -> Tensor<T, B, D>`
 ///
 /// ## Output tensor view [`TensorView`]
 ///
@@ -69,6 +71,7 @@ pub trait AsArrayAPI<Inp> {
 /// - `asarray((input: &[T], shape: D, device: &B)) -> TensorView<'a, T, B, IxD>`
 /// - `asarray((input: &[T], device: &B)) -> TensorView<'a, T, B, IxD>`
 /// - `asarray((input: &[T], layout: Layout<D>)) -> TensorView<'a, T, DeviceCpu, IxD>`
+/// - `asarray((input: &[T], shape: D)) -> TensorView<'a, T, DeviceCpu, IxD>`
 /// - `asarray(input: &[T]) -> TensorView<'a, T, DeviceCpu, IxD>`
 ///
 /// Also, overloads for `&Vec<T>` that behave the same as `&[T]`.
@@ -232,6 +235,68 @@ pub trait AsArrayAPI<Inp> {
 /// // 42
 /// // 0-Dim (dyn), contiguous: CcFf, shape: [], stride: [], offset: 0
 /// ```
+///
+/// ## Tensor or its view as input
+///
+/// You can convert a tensor or its view into a new tensor with specified iteration order (layout).
+///
+/// This is similar to the optional argument `order` in NumPy's `np.asarray` function. The converted
+/// tensor behaves exactly the same to the input tensor, but may have different memory layout.
+///
+/// To specify the order, you may pass [`TensorIterOrder`] along with the input tensor:
+/// - [`TensorIterOrder::K`] for keeping the original layout as much as possible;
+/// - [`TensorIterOrder::C`] for row-major layout;
+/// - [`TensorIterOrder::F`] for column-major layout.
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// // Generate a strided, non-row-or-col-prefer tensor view
+/// let a_raw = rt::arange((96, &device)).into_shape([4, 6, 4]);
+/// let a = a_raw.i((..2, slice!(2, 6, 2), 2..)).into_transpose([1, 0, 2]);
+/// println!("{a:2?}");
+/// // [[[10, 11], [34, 35]], [[18, 19], [42, 43]]]
+/// // shape: [2, 2, 2], stride: [8, 24, 1], offset: 10
+/// # let expected = rt::tensor_from_nested!([[[10, 11], [34, 35]], [[18, 19], [42, 43]]], &device);
+/// # assert!(rt::allclose(&a, &expected, None));
+///
+/// // shrink useful memory space, with preserved layout
+/// let b = rt::asarray((&a, TensorIterOrder::K));
+/// println!("{b:2?}");
+/// // shape: [2, 2, 2], stride: [2, 4, 1], offset: 0
+/// # assert!(rt::allclose(&b, &expected, None));
+/// # assert_eq!(b.stride(), &[2, 4, 1]);
+///
+/// // convert to row-major layout
+/// let b = rt::asarray((&a, TensorIterOrder::C));
+/// println!("{b:2?}");
+/// // shape: [2, 2, 2], stride: [4, 2, 1], offset: 0
+/// # assert!(rt::allclose(&b, &expected, None));
+/// # assert_eq!(b.stride(), &[4, 2, 1]);
+///
+/// // convert to column-major layout
+/// let b = rt::asarray((&a, TensorIterOrder::F));
+/// println!("{b:2?}");
+/// // shape: [2, 2, 2], stride: [1, 2, 4], offset: 0
+/// # assert!(rt::allclose(&b, &expected, None));
+/// # assert_eq!(b.stride(), &[1, 2, 4]);
+/// ```
+///
+/// # See also
+///
+/// ## Similar function from other crates/libraries
+///
+/// - [`numpy.asarray`](https://numpy.org/doc/stable/reference/generated/numpy.asarray.html)
+///
+/// ## Related functions in RSTSR
+///
+/// - [`tensor_from_nested`]: Create a tensor from nested array-like data (for debug usage, only).
+/// - [`Tensor::new`] or [`Tensor::new_unchecked`]: Create a tensor from storage and layout.
+///
+/// ## Variants of this function
+///
+/// - [`asarray_f`]: Fallible version of this function.
 pub fn asarray<Args, Inp>(param: Args) -> Args::Out
 where
     Args: AsArrayAPI<Inp>,
@@ -239,6 +304,11 @@ where
     return AsArrayAPI::asarray(param);
 }
 
+/// Convert the input to an array.
+///
+/// # See also
+///
+/// Refer to [`asarray`] for more details and examples.
 pub fn asarray_f<Args, Inp>(param: Args) -> Result<Args::Out>
 where
     Args: AsArrayAPI<Inp>,
@@ -265,7 +335,7 @@ where
         let mut storage_c = device.uninit_impl(layout_c.size())?;
         device.assign_uninit(storage_c.raw_mut(), &layout_c, input.raw(), layout_a)?;
         let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
-        let tensor = unsafe { Tensor::new_unchecked(storage_c, layout_c) };
+        let tensor = Tensor::new_f(storage_c, layout_c)?;
         return Ok(tensor);
     }
 }
@@ -304,13 +374,40 @@ where
             let mut storage_c = device.uninit_impl(layout_c.size())?;
             device.assign_uninit(storage_c.raw_mut(), &layout_c, storage_a.raw(), layout_a)?;
             let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
-            let tensor = unsafe { Tensor::new_unchecked(storage_c, layout_c) };
+            let tensor = Tensor::new_f(storage_c, layout_c)?;
             return Ok(tensor);
         }
     }
 }
 
 impl<T, B, D> AsArrayAPI<()> for Tensor<T, B, D>
+where
+    T: Clone,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
+{
+    type Out = Tensor<T, B, D>;
+
+    fn asarray_f(self) -> Result<Self::Out> {
+        asarray_f((self, TensorIterOrder::default()))
+    }
+}
+
+impl<T, B, D> AsArrayAPI<()> for (TensorView<'_, T, B, D>, TensorIterOrder)
+where
+    T: Clone,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
+{
+    type Out = Tensor<T, B, D>;
+
+    fn asarray_f(self) -> Result<Self::Out> {
+        let (input, order) = self;
+        asarray_f((&input, order))
+    }
+}
+
+impl<T, B, D> AsArrayAPI<()> for TensorView<'_, T, B, D>
 where
     T: Clone,
     D: DimAPI,
@@ -337,7 +434,7 @@ where
         let (input, device) = self;
         let layout = vec![input.len()].c();
         let storage = device.outof_cpu_vec(input)?;
-        let tensor = unsafe { Tensor::new_unchecked(storage, layout) };
+        let tensor = Tensor::new_f(storage, layout)?;
         return Ok(tensor);
     }
 }
@@ -364,7 +461,7 @@ where
             "This constructor assumes that the layout size is equal to the input size."
         )?;
         let storage = device.outof_cpu_vec(input)?;
-        let tensor = unsafe { Tensor::new_unchecked(storage, layout.into_dim()?) };
+        let tensor = Tensor::new_f(storage, layout.into_dim()?)?;
         return Ok(tensor);
     }
 }
@@ -444,7 +541,7 @@ where
         let device = device.clone();
         let data = DataRef::from_manually_drop(ManuallyDrop::new(raw));
         let storage = Storage::new(data, device);
-        let tensor = unsafe { TensorView::new_unchecked(storage, layout.into_dim()?) };
+        let tensor = TensorView::new_f(storage, layout.into_dim()?)?;
         return Ok(tensor);
     }
 }
@@ -488,7 +585,7 @@ where
         };
         let data = DataRef::from_manually_drop(ManuallyDrop::new(raw));
         let storage = Storage::new(data, device);
-        let tensor = unsafe { TensorView::new_unchecked(storage, layout) };
+        let tensor = TensorView::new_f(storage, layout)?;
         return Ok(tensor);
     }
 }
@@ -612,7 +709,7 @@ where
         let device = device.clone();
         let data = DataMut::from_manually_drop(ManuallyDrop::new(raw));
         let storage = Storage::new(data, device);
-        let tensor = unsafe { TensorMut::new_unchecked(storage, layout.into_dim()?) };
+        let tensor = TensorMut::new_f(storage, layout.into_dim()?)?;
         return Ok(tensor);
     }
 }
@@ -656,7 +753,7 @@ where
         };
         let data = DataMut::from_manually_drop(ManuallyDrop::new(raw));
         let storage = Storage::new(data, device);
-        let tensor = unsafe { TensorMut::new_unchecked(storage, layout.into_dim()?) };
+        let tensor = TensorMut::new_f(storage, layout.into_dim()?)?;
         return Ok(tensor);
     }
 }
@@ -913,5 +1010,36 @@ mod tests {
         println!("{a:?}");
         // 42
         // 0-Dim (dyn), contiguous: CcFf, shape: [], stride: [], offset: 0
+    }
+
+    #[test]
+    fn doc_asarray_from_tensor() {
+        use rstsr::prelude::*;
+        let mut device = DeviceCpu::default();
+        device.set_default_order(RowMajor);
+
+        // Generate a strided, non-row-or-col-prefer tensor view
+        let a_raw = rt::arange((96, &device)).into_shape([4, 6, 4]);
+        let a = a_raw.i((..2, slice!(2, 6, 2), 2..)).into_transpose([1, 0, 2]);
+        println!("{a:2?}");
+        // [[[10, 11], [34, 35]], [[18, 19], [42, 43]]]
+        // shape: [2, 2, 2], stride: [8, 24, 1], offset: 10
+        let expected = rt::tensor_from_nested!([[[10, 11], [34, 35]], [[18, 19], [42, 43]]], &device);
+        assert!(rt::allclose(&a, &expected, None));
+        let b = rt::asarray((&a, TensorIterOrder::K));
+        println!("{b:2?}");
+        // shape: [2, 2, 2], stride: [2, 4, 1], offset: 0
+        assert!(rt::allclose(&b, &expected, None));
+        assert_eq!(b.stride(), &[2, 4, 1]);
+        let b = rt::asarray((&a, TensorIterOrder::C));
+        println!("{b:2?}");
+        // shape: [2, 2, 2], stride: [4, 2, 1], offset: 0
+        assert!(rt::allclose(&b, &expected, None));
+        assert_eq!(b.stride(), &[4, 2, 1]);
+        let b = rt::asarray((&a, TensorIterOrder::F));
+        println!("{b:2?}");
+        // shape: [2, 2, 2], stride: [1, 2, 4], offset: 0
+        assert!(rt::allclose(&b, &expected, None));
+        assert_eq!(b.stride(), &[1, 2, 4]);
     }
 }
