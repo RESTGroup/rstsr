@@ -10,6 +10,7 @@ members = [
     "rstsr-native-impl",
     "rstsr-sci-traits",
     "crates-device/rstsr-openblas",
+    "crates-device/rstsr-accelerate",
     "crates-device/rstsr-mkl",
     "crates-device/rstsr-blis",
     "crates-device/rstsr-aocl",
@@ -40,6 +41,7 @@ rstsr-linalg-traits = { path = "./rstsr-linalg-traits", default-features = false
 rstsr-sci-traits = { path = "./rstsr-sci-traits", default-features = false, version = "0.6.2" }
 # members (device)
 rstsr-openblas = { path = "./crates-device/rstsr-openblas", default-features = false, version = "0.6.2" }
+rstsr-accelerate = { path = "./crates-device/rstsr-accelerate", default-features = false, version = "0.6.2" }
 rstsr-mkl = { path = "./crates-device/rstsr-mkl", default-features = false, version = "0.6.2" }
 rstsr-blis = { path = "./crates-device/rstsr-blis", default-features = false, version = "0.6.2" }
 rstsr-aocl = { path = "./crates-device/rstsr-aocl", default-features = false, version = "0.6.2" }
@@ -51,6 +53,7 @@ rstsr-test-manifest = { path = "./rstsr-test-manifest", default-features = false
 # ffi dependencies
 rstsr-cblas-base = { version = "0.1" }
 rstsr-openblas-ffi = { version = "0.5", default-features = false, features = ["blas", "cblas", "lapack"] }
+rstsr-lapack-ffi = { version = "0.5", default-features = false, features = ["blas", "cblas", "lapack"] }
 rstsr-mkl-ffi = { version = "0.2", default-features = false, features = ["blas", "cblas", "lapack"] }
 rstsr-blis-ffi = { version = "0.2", default-features = false, features = ["lapack"] }
 rstsr-aocl-ffi = { version = "0.2", default-features = false, features = ["blis", "lapack"] }

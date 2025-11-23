@@ -1,0 +1,763 @@
+use crate::prelude_dev::*;
+use core::ops::{Add, Mul};
+use num::complex::ComplexFloat;
+use num::{FromPrimitive, One, Zero};
+use rstsr_dtype_traits::ExtReal;
+
+impl<T, D> OpSumAPI<T, D> for DeviceRayonAutoImpl
+where
+    T: Clone + Send + Sync + Zero + Add<Output = T>,
+    D: DimAPI,
+{
+    type TOut = T;
+
+    fn sum_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T> {
+        let pool = self.get_current_pool();
+
+        let f_init = T::zero;
+        let f = |acc, x| acc + x;
+        let f_sum = |acc1, acc2| acc1 + acc2;
+        let f_out = |acc| acc;
+
+        reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
+    }
+
+    fn sum_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<T>>, T, Self>, Layout<IxD>)> {
+        let pool = self.get_current_pool();
+
+        let f_init = T::zero;
+        let f = |acc, x| acc + x;
+        let f_sum = |acc1, acc2| acc1 + acc2;
+        let f_out = |acc| acc;
+
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, D> OpMinAPI<T, D> for DeviceRayonAutoImpl
+where
+    T: ExtReal + Send + Sync,
+    D: DimAPI,
+{
+    type TOut = T;
+
+    fn min_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T> {
+        if la.size() == 0 {
+            rstsr_raise!(InvalidValue, "zero-size array is not supported for min")?;
+        }
+
+        let pool = self.get_current_pool();
+
+        let f_init = T::ext_max_value;
+        let f = |acc: T, x: T| acc.ext_min(x);
+        let f_sum = |acc1: T, acc2: T| acc1.ext_min(acc2);
+        let f_out = |acc| acc;
+
+        reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
+    }
+
+    fn min_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<T>>, T, Self>, Layout<IxD>)> {
+        if la.size() == 0 {
+            rstsr_raise!(InvalidValue, "zero-size array is not supported for min")?;
+        }
+
+        let pool = self.get_current_pool();
+
+        let f_init = T::ext_max_value;
+        let f = |acc: T, x: T| acc.ext_min(x);
+        let f_sum = |acc1: T, acc2: T| acc1.ext_min(acc2);
+        let f_out = |acc| acc;
+
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, D> OpMaxAPI<T, D> for DeviceRayonAutoImpl
+where
+    T: ExtReal + Send + Sync,
+    D: DimAPI,
+{
+    type TOut = T;
+
+    fn max_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T> {
+        if la.size() == 0 {
+            rstsr_raise!(InvalidValue, "zero-size array is not supported for max")?;
+        }
+
+        let pool = self.get_current_pool();
+
+        let f_init = T::ext_min_value;
+        let f = |acc: T, x: T| acc.ext_max(x);
+        let f_sum = |acc1: T, acc2: T| acc1.ext_max(acc2);
+        let f_out = |acc| acc;
+
+        reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
+    }
+
+    fn max_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<T>>, T, Self>, Layout<IxD>)> {
+        if la.size() == 0 {
+            rstsr_raise!(InvalidValue, "zero-size array is not supported for max")?;
+        }
+
+        let pool = self.get_current_pool();
+
+        let f_init = T::ext_min_value;
+        let f = |acc: T, x: T| acc.ext_max(x);
+        let f_sum = |acc1: T, acc2: T| acc1.ext_max(acc2);
+        let f_out = |acc| acc;
+
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, D> OpProdAPI<T, D> for DeviceRayonAutoImpl
+where
+    T: Clone + Send + Sync + One + Mul<Output = T>,
+    D: DimAPI,
+{
+    type TOut = T;
+
+    fn prod_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T> {
+        let pool = self.get_current_pool();
+
+        let f_init = T::one;
+        let f = |acc, x| acc * x;
+        let f_sum = |acc1, acc2| acc1 * acc2;
+        let f_out = |acc| acc;
+
+        reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
+    }
+
+    fn prod_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<T>>, T, Self>, Layout<IxD>)> {
+        let pool = self.get_current_pool();
+
+        let f_init = T::one;
+        let f = |acc, x| acc * x;
+        let f_sum = |acc1, acc2| acc1 * acc2;
+        let f_out = |acc| acc;
+
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, D> OpMeanAPI<T, D> for DeviceRayonAutoImpl
+where
+    T: Clone + Send + Sync + ComplexFloat + FromPrimitive,
+    D: DimAPI,
+{
+    type TOut = T;
+
+    fn mean_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T> {
+        let pool = self.get_current_pool();
+
+        let size = la.size();
+        let f_init = T::zero;
+        let f = |acc, x| acc + x;
+        let f_sum = |acc, x| acc + x;
+        let f_out = |acc| acc / T::from_usize(size).unwrap();
+
+        let sum = reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)?;
+        Ok(sum)
+    }
+
+    fn mean_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<T>>, T, Self>, Layout<IxD>)> {
+        let pool = self.get_current_pool();
+
+        let (layout_axes, _) = la.dim_split_axes(axes)?;
+        let size = layout_axes.size();
+        let f_init = T::zero;
+        let f = |acc, x| acc + x;
+        let f_sum = |acc, x| acc + x;
+        let f_out = |acc| acc / T::from_usize(size).unwrap();
+
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, D> OpVarAPI<T, D> for DeviceRayonAutoImpl
+where
+    T: Clone + Send + Sync + ComplexFloat + FromPrimitive,
+    T::Real: Clone + Send + Sync + ComplexFloat + FromPrimitive,
+    D: DimAPI,
+{
+    type TOut = T::Real;
+
+    fn var_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T::Real> {
+        let pool = self.get_current_pool();
+
+        let size = la.size();
+
+        let f_init = || (T::zero(), T::Real::zero());
+        let f = |(acc_1, acc_2): (T, T::Real), x: T| (acc_1 + x, acc_2 + (x * x.conj()).re());
+        let f_sum = |(acc_1, acc_2): (T, T::Real), (x_1, x_2)| (acc_1 + x_1, acc_2 + x_2);
+        let f_out = |(acc_1, acc_2): (T, T::Real)| {
+            let size_1 = T::from_usize(size).unwrap();
+            let size_2 = T::Real::from_usize(size).unwrap();
+            let mean = acc_1 / size_1;
+            acc_2 / size_2 - (mean * mean.conj()).re()
+        };
+
+        let result = reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)?;
+        Ok(result)
+    }
+
+    fn var_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<T::Real>>, T::Real, Self>, Layout<IxD>)> {
+        let pool = self.get_current_pool();
+
+        let (layout_axes, _) = la.dim_split_axes(axes)?;
+        let size = layout_axes.size();
+
+        let f_init = || (T::zero(), T::Real::zero());
+        let f = |(acc_1, acc_2): (T, T::Real), x: T| (acc_1 + x, acc_2 + (x * x.conj()).re());
+        let f_sum = |(acc_1, acc_2): (T, T::Real), (x_1, x_2)| (acc_1 + x_1, acc_2 + x_2);
+        let f_out = |(acc_1, acc_2): (T, T::Real)| {
+            let size_1 = T::from_usize(size).unwrap();
+            let size_2 = T::Real::from_usize(size).unwrap();
+            let mean = acc_1 / size_1;
+            acc_2 / size_2 - (mean * mean.conj()).re()
+        };
+
+        let (out, layout_out) = reduce_axes_difftype_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, D> OpStdAPI<T, D> for DeviceRayonAutoImpl
+where
+    T: Clone + Send + Sync + ComplexFloat + FromPrimitive,
+    T::Real: Clone + Send + Sync + ComplexFloat + FromPrimitive,
+    D: DimAPI,
+{
+    type TOut = T::Real;
+
+    fn std_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T::Real> {
+        let pool = self.get_current_pool();
+
+        let size = la.size();
+
+        let f_init = || (T::zero(), T::Real::zero());
+        let f = |(acc_1, acc_2): (T, T::Real), x: T| (acc_1 + x, acc_2 + (x * x.conj()).re());
+        let f_sum = |(acc_1, acc_2): (T, T::Real), (x_1, x_2)| (acc_1 + x_1, acc_2 + x_2);
+        let f_out = |(acc_1, acc_2): (T, T::Real)| {
+            let size_1 = T::from_usize(size).unwrap();
+            let size_2 = T::Real::from_usize(size).unwrap();
+            let mean = acc_1 / size_1;
+            let var = acc_2 / size_2 - (mean * mean.conj()).re();
+            var.sqrt()
+        };
+
+        let result = reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)?;
+        Ok(result)
+    }
+
+    fn std_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<T::Real>>, T::Real, Self>, Layout<IxD>)> {
+        let pool = self.get_current_pool();
+
+        let (layout_axes, _) = la.dim_split_axes(axes)?;
+        let size = layout_axes.size();
+
+        let f_init = || (T::zero(), T::Real::zero());
+        let f = |(acc_1, acc_2): (T, T::Real), x: T| (acc_1 + x, acc_2 + (x * x.conj()).re());
+        let f_sum = |(acc_1, acc_2): (T, T::Real), (x_1, x_2)| (acc_1 + x_1, acc_2 + x_2);
+        let f_out = |(acc_1, acc_2): (T, T::Real)| {
+            let size_1 = T::from_usize(size).unwrap();
+            let size_2 = T::Real::from_usize(size).unwrap();
+            let mean = acc_1 / size_1;
+            let var = acc_2 / size_2 - (mean * mean.conj()).re();
+            var.sqrt()
+        };
+
+        let (out, layout_out) = reduce_axes_difftype_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, D> OpL2NormAPI<T, D> for DeviceRayonAutoImpl
+where
+    T: Clone + Send + Sync + ComplexFloat + FromPrimitive,
+    T::Real: Clone + Send + Sync + ComplexFloat + FromPrimitive,
+    D: DimAPI,
+{
+    type TOut = T::Real;
+
+    fn l2_norm_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<T::Real> {
+        let pool = self.get_current_pool();
+
+        let f_init = || T::Real::zero();
+        let f = |acc: T::Real, x: T| acc + (x * x.conj()).re();
+        let f_sum = |acc: T::Real, x: T::Real| acc + x;
+        let f_out = |acc: T::Real| acc.sqrt();
+
+        let result = reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)?;
+        Ok(result)
+    }
+
+    fn l2_norm_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<T::Real>>, T::Real, Self>, Layout<IxD>)> {
+        let pool = self.get_current_pool();
+
+        let f_init = || T::Real::zero();
+        let f = |acc: T::Real, x: T| acc + (x * x.conj()).re();
+        let f_sum = |acc: T::Real, x: T::Real| acc + x;
+        let f_out = |acc: T::Real| acc.sqrt();
+
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, D> OpArgMinAPI<T, D> for DeviceRayonAutoImpl
+where
+    T: Clone + PartialOrd + Send + Sync,
+    D: DimAPI,
+{
+    type TOut = usize;
+
+    fn argmin_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<usize>>, Self::TOut, Self>, Layout<IxD>)> {
+        let pool = self.get_current_pool();
+
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y < x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let (out, layout_out) = reduce_axes_arg_cpu_rayon(a, la, axes, f_comp, f_eq, RowMajor, pool)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+
+    fn argmin_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<Self::TOut> {
+        let pool = self.get_current_pool();
+
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y < x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let result = reduce_all_arg_cpu_rayon(a, la, f_comp, f_eq, RowMajor, pool)?;
+        Ok(result)
+    }
+}
+
+impl<T, D> OpArgMaxAPI<T, D> for DeviceRayonAutoImpl
+where
+    T: Clone + PartialOrd + Send + Sync,
+    D: DimAPI,
+{
+    type TOut = usize;
+
+    fn argmax_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<usize>>, Self::TOut, Self>, Layout<IxD>)> {
+        let pool = self.get_current_pool();
+
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y > x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let (out, layout_out) = reduce_axes_arg_cpu_rayon(a, la, axes, f_comp, f_eq, RowMajor, pool)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+
+    fn argmax_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<Self::TOut> {
+        let pool = self.get_current_pool();
+
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y > x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let result = reduce_all_arg_cpu_rayon(a, la, f_comp, f_eq, RowMajor, pool)?;
+        Ok(result)
+    }
+}
+
+impl<D> OpAllAPI<bool, D> for DeviceRayonAutoImpl
+where
+    D: DimAPI,
+{
+    type TOut = bool;
+
+    fn all_all(&self, a: &Vec<bool>, la: &Layout<D>) -> Result<bool> {
+        let pool = self.get_current_pool();
+
+        let f_init = || true;
+        let f = |acc, x| acc && x;
+        let f_sum = |acc1, acc2| acc1 && acc2;
+        let f_out = |acc| acc;
+
+        reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
+    }
+
+    fn all_axes(
+        &self,
+        a: &Vec<bool>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<bool>>, bool, Self>, Layout<IxD>)> {
+        let pool = self.get_current_pool();
+
+        let f_init = || true;
+        let f = |acc, x| acc && x;
+        let f_sum = |acc1, acc2| acc1 && acc2;
+        let f_out = |acc| acc;
+
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<D> OpAnyAPI<bool, D> for DeviceRayonAutoImpl
+where
+    D: DimAPI,
+{
+    type TOut = bool;
+
+    fn any_all(&self, a: &Vec<bool>, la: &Layout<D>) -> Result<bool> {
+        let pool = self.get_current_pool();
+
+        let f_init = || false;
+        let f = |acc, x| acc || x;
+        let f_sum = |acc1, acc2| acc1 || acc2;
+        let f_out = |acc| acc;
+
+        reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
+    }
+
+    fn any_axes(
+        &self,
+        a: &Vec<bool>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<bool>>, bool, Self>, Layout<IxD>)> {
+        let pool = self.get_current_pool();
+
+        let f_init = || false;
+        let f = |acc, x| acc || x;
+        let f_sum = |acc1, acc2| acc1 || acc2;
+        let f_out = |acc| acc;
+
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, D> OpCountNonZeroAPI<T, D> for DeviceRayonAutoImpl
+where
+    T: Clone + PartialEq + Zero + Send + Sync,
+    D: DimAPI,
+{
+    type TOut = usize;
+
+    fn count_nonzero_all(&self, a: &Vec<T>, la: &Layout<D>) -> Result<usize> {
+        let pool = self.get_current_pool();
+
+        let f_init = || 0;
+        let f = |acc, x| if x != T::zero() { acc + 1 } else { acc };
+        let f_sum = |acc1, acc2| acc1 + acc2;
+        let f_out = |acc| acc;
+
+        reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
+    }
+
+    fn count_nonzero_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<usize>>, usize, Self>, Layout<IxD>)> {
+        let pool = self.get_current_pool();
+
+        let f_init = || 0;
+        let f = |acc, x| if x != T::zero() { acc + 1 } else { acc };
+        let f_sum = |acc1, acc2| acc1 + acc2;
+        let f_out = |acc| acc;
+
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, D> OpUnraveledArgMinAPI<T, D> for DeviceRayonAutoImpl
+where
+    T: Clone + PartialOrd + Send + Sync,
+    D: DimAPI,
+{
+    fn unraveled_argmin_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<IxD>>, IxD, Self>, Layout<IxD>)> {
+        let pool = self.get_current_pool();
+
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y < x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let (out, layout_out) = reduce_axes_unraveled_arg_cpu_rayon(a, la, axes, f_comp, f_eq, pool)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+
+    fn unraveled_argmin_all(&self, a: &<Self as DeviceRawAPI<T>>::Raw, la: &Layout<D>) -> Result<D> {
+        let pool = self.get_current_pool();
+
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y < x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let result = reduce_all_unraveled_arg_cpu_rayon(a, la, f_comp, f_eq, pool)?;
+        Ok(result)
+    }
+}
+
+impl<T, D> OpUnraveledArgMaxAPI<T, D> for DeviceRayonAutoImpl
+where
+    T: Clone + PartialOrd + Send + Sync,
+    D: DimAPI,
+{
+    fn unraveled_argmax_axes(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<IxD>>, IxD, Self>, Layout<IxD>)> {
+        let pool = self.get_current_pool();
+
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y > x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let (out, layout_out) = reduce_axes_unraveled_arg_cpu_rayon(a, la, axes, f_comp, f_eq, pool)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+
+    fn unraveled_argmax_all(&self, a: &<Self as DeviceRawAPI<T>>::Raw, la: &Layout<D>) -> Result<D> {
+        let pool = self.get_current_pool();
+
+        let f_comp = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y > x)
+            } else {
+                Some(true)
+            }
+        };
+        let f_eq = |x: Option<T>, y: T| -> Option<bool> {
+            if let Some(x) = x {
+                Some(y == x)
+            } else {
+                Some(false)
+            }
+        };
+        let result = reduce_all_unraveled_arg_cpu_rayon(a, la, f_comp, f_eq, pool)?;
+        Ok(result)
+    }
+}
+
+impl<D> OpSumBoolAPI<D> for DeviceRayonAutoImpl
+where
+    D: DimAPI,
+{
+    fn sum_all(&self, a: &Vec<bool>, la: &Layout<D>) -> Result<usize> {
+        let pool = self.get_current_pool();
+
+        let f_init = || 0;
+        let f = |acc, x| match x {
+            true => acc + 1,
+            false => acc,
+        };
+        let f_sum = |acc1, acc2| acc1 + acc2;
+        let f_out = |acc| acc;
+
+        reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
+    }
+
+    fn sum_axes(
+        &self,
+        a: &Vec<bool>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<usize>>, usize, Self>, Layout<IxD>)> {
+        let pool = self.get_current_pool();
+
+        let f_init = || 0;
+        let f = |acc, x| match x {
+            true => acc + 1,
+            false => acc,
+        };
+        let f_sum = |acc1, acc2| acc1 + acc2;
+        let f_out = |acc| acc;
+
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<TA, TB, TE, D> OpAllCloseAPI<TA, TB, TE, D> for DeviceRayonAutoImpl
+where
+    TA: Clone + Send + Sync + DTypePromoteAPI<TB>,
+    TB: Clone + Send + Sync,
+    <TA as DTypePromoteAPI<TB>>::Res: ExtNum<AbsOut: DTypeCastAPI<TE>>,
+    TE: ExtFloat + Add<TE, Output = TE> + Mul<TE, Output = TE> + PartialOrd + Clone + Send + Sync,
+    D: DimAPI,
+{
+    fn allclose_all(
+        &self,
+        a: &<Self as DeviceRawAPI<TA>>::Raw,
+        la: &Layout<D>,
+        b: &<Self as DeviceRawAPI<TB>>::Raw,
+        lb: &Layout<D>,
+        isclose_args: &IsCloseArgs<TE>,
+    ) -> Result<bool> {
+        use rstsr_dtype_traits::isclose;
+
+        let pool = self.get_current_pool();
+
+        if la.size() == 0 || lb.size() == 0 {
+            rstsr_raise!(InvalidValue, "zero-size array is not supported for allclose")?;
+        }
+
+        let f_init = || true;
+        let f = |acc: bool, (a_elem, b_elem): (TA, TB)| {
+            let result = isclose(&a_elem, &b_elem, isclose_args);
+            acc && result
+        };
+        let f_sum = |acc1: bool, acc2: bool| acc1 && acc2;
+        let f_out = |acc: bool| acc;
+
+        reduce_all_binary_cpu_rayon(a, la, b, lb, f_init, f, f_sum, f_out, pool)
+    }
+
+    fn allclose_axes(
+        &self,
+        _a: &<Self as DeviceRawAPI<TA>>::Raw,
+        _la: &Layout<D>,
+        _b: &<Self as DeviceRawAPI<TB>>::Raw,
+        _lb: &Layout<D>,
+        _axes: &[isize],
+        _isclose_args: &IsCloseArgs<TE>,
+    ) -> Result<(Storage<DataOwned<<Self as DeviceRawAPI<bool>>::Raw>, bool, Self>, Layout<IxD>)> {
+        unimplemented!("This function (`allclose_axes`) is not planned to be implemented yet.");
+    }
+}
