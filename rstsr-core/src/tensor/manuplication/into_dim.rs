@@ -86,7 +86,7 @@ where
 ///
 /// - The shape of the tensor is not compatible with the target dimension type.
 ///
-/// ```rust
+/// ```rust,should_panic
 /// use rstsr::prelude::*;
 /// let a = rt::arange(6).into_shape([2, 3]); // shape: (2, 3), IxD
 /// let b = a.to_dim::<Ix3>(); // shape: (2, 3), Ix3, panics

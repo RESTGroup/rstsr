@@ -58,10 +58,6 @@ aligned_alloc = ["rstsr-common/aligned_alloc"]
 # And more importantly, this feature will hugely increase compile time.
 dispatch_dim_layout_iter = ["rstsr-common/dispatch_dim_layout_iter"]
 
-[[bench]]
-name = "main"
-harness = false
-
 [package.metadata.docs.rs]
 features = ["default"]
 rustdoc-args = ["--cfg", "docsrs", "--document-private-items", "--html-in-header", "katex-header.html"]

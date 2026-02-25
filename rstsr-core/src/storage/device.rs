@@ -62,6 +62,10 @@ where
         &self.device
     }
 
+    pub fn device_mut(&mut self) -> &mut B {
+        &mut self.device
+    }
+
     pub fn data(&self) -> &R {
         &self.data
     }
