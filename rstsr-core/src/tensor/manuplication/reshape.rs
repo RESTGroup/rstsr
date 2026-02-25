@@ -340,6 +340,7 @@ where
 /// # device.set_default_order(RowMajor);
 /// #
 /// // in this case, unspecified axes length is inferred as 6 / 3 = 2
+/// let a = rt::arange((6, &device));
 /// let a_reshaped = a.reshape([3, -1]);
 /// let a_expected = rt::tensor_from_nested!(
 ///     [[0, 1], [2, 3], [4, 5]],
@@ -368,11 +369,12 @@ where
 ///
 /// You may encounter ownership problem when you try to assign a reshaped tensor like this:
 ///
-/// ```rust,should_panic
+/// ```rust,compile_fail
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
 /// # device.set_default_order(RowMajor);
 /// let a = rt::arange((6, &device)).reshape([2, 3]);
+/// println!("a: {:?}", a);
 /// ```
 ///
 /// The compiler may give an error like:
