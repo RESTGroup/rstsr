@@ -1,7 +1,39 @@
+use crate::tests_utils::*;
 use rstsr::prelude::*;
 
 use super::CATEGORY;
 use crate::TESTCFG;
+
+mod numpy_reshape {
+    use super::*;
+    static FUNC: &str = "numpy_reshape";
+
+    #[test]
+    fn multiarray_methods_reshape() {
+        // NumPy v2.4.2, _core/tests/test_multiarray.py, TestMethods::test_reshape
+        crate::specify_test!("multiarray_methods_reshape");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+        let arr = rt::tensor_from_nested!([[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]], &device);
+
+        let tgt = rt::tensor_from_nested!([[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12]], &device);
+        assert_equal(arr.reshape([2, 6]), &tgt, None);
+
+        let tgt = rt::tensor_from_nested!([[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]], &device);
+        assert_equal(arr.reshape([3, 4]), &tgt, None);
+
+        let tgt = rt::tensor_from_nested!([[1, 10, 8, 6], [4, 2, 11, 9], [7, 5, 3, 12]], &device);
+        let mut arr_col = arr.to_owned();
+        arr_col.device_mut().set_default_order(ColMajor);
+        let mut arr_col = arr_col.into_shape([3, 4]).into_owned();
+        arr_col.device_mut().set_default_order(RowMajor);
+        assert_equal(arr_col, &tgt, None);
+
+        let tgt = rt::tensor_from_nested!([[1, 4, 7, 10], [2, 5, 8, 11], [3, 6, 9, 12]], &device);
+        assert_equal(arr.t().reshape([3, 4]), &tgt, None);
+    }
+}
 
 #[cfg(test)]
 mod docs_reshape {
@@ -9,7 +41,6 @@ mod docs_reshape {
     static FUNC: &str = "docs_reshape";
 
     #[test]
-    #[rustfmt::skip]
     fn quick_start() {
         crate::specify_test!("quick_start");
 
@@ -18,16 +49,12 @@ mod docs_reshape {
 
         let a = rt::arange((6, &device));
         let a_reshaped = a.reshape([2, 3]);
-        let a_expected = rt::tensor_from_nested!(
-            [[0, 1, 2], [3, 4, 5]],
-            &device);
+        let a_expected = rt::tensor_from_nested!([[0, 1, 2], [3, 4, 5]], &device);
         assert!(rt::allclose(&a_reshaped, &a_expected, None));
 
         // in this case, unspecified axes length is inferred as 6 / 3 = 2
         let a_reshaped = a.reshape([3, -1]);
-        let a_expected = rt::tensor_from_nested!(
-            [[0, 1], [2, 3], [4, 5]],
-            &device);
+        let a_expected = rt::tensor_from_nested!([[0, 1], [2, 3], [4, 5]], &device);
         assert!(rt::allclose(&a_reshaped, &a_expected, None));
     }
 

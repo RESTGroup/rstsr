@@ -1,5 +1,9 @@
 //! Utilities of tests.
 
+pub mod equality;
+
+pub use equality::*;
+
 /// Test configuration.
 pub struct TestCfg<B> {
     /// Device instance (commonly used) to run the test on.

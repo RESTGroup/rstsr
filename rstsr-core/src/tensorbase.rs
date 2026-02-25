@@ -136,6 +136,10 @@ where
         self.storage().device()
     }
 
+    pub fn device_mut(&mut self) -> &mut B {
+        self.storage_mut().device_mut()
+    }
+
     pub fn data(&self) -> &R {
         self.storage().data()
     }
