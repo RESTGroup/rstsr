@@ -126,8 +126,7 @@ where
     let order = order.unwrap_or(tensor.device().default_order());
 
     // rust 2021 does not allow chain if let
-    // only copy = Some(false) or None, we may not clone data if layout is compatible
-    if copy.unwrap_or(false) {
+    if copy.is_none() || copy == Some(false) {
         if let Some(layout_new) = layout_reshapeable(&tensor.layout().to_dim()?, &shape_new, order)? {
             // shape does not need to be changed
             let (storage, _) = tensor.into_raw_parts();

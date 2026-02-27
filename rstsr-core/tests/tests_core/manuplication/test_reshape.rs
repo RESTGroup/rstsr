@@ -4,6 +4,7 @@ use rstsr::prelude::*;
 use super::CATEGORY;
 use crate::TESTCFG;
 
+#[cfg(test)]
 mod numpy_reshape {
     use super::*;
     static FUNC: &str = "numpy_reshape";
@@ -59,11 +60,9 @@ mod numpy_reshape {
         // a = np.ones(1)
         // a = as_strided(a, shape=(5,), strides=(0,))
         // assert_(a.reshape(5, 1).strides[0] == 0)
-
-        // current implementation fails to adhere NumPy's behavior on zero-stride tensors.
-        // let layout = unsafe { Layout::new_unchecked([5], [0], 0) };
-        // let a = rt::asarray((vec![1], layout, &device));
-        // assert!(a.reshape([5, 1]).stride()[0] == 0);
+        let layout = unsafe { Layout::new_unchecked([5], [0], 0) };
+        let a = rt::asarray((vec![1], layout, &device));
+        assert!(a.reshape([5, 1]).stride()[0] == 0);
     }
 }
 
