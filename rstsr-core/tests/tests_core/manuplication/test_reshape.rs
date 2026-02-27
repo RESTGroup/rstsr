@@ -308,6 +308,59 @@ mod docs_reshape {
     }
 
     #[test]
+    fn reshape_with_args() {
+        crate::specify_test!("reshape_with_args");
+
+        let mut device = TESTCFG.device.clone();
+
+        // Row-major reshape
+        // a: [[0, 1, 2], [3, 4, 5]]
+        // b: [[0, 1], [2, 3], [4, 5]]
+        // iterated sequence: [0, 1, 2, 3, 4, 5]
+        let a = rt::tensor_from_nested!([[0, 1, 2], [3, 4, 5]], &device);
+        let a_row = rt::tensor_from_nested!([[0, 1], [2, 3], [4, 5]], &device);
+        assert!(rt::allclose(a.reshape_with_args([3, 2], RowMajor), &a_row, None));
+
+        // Column-major reshape
+        // a: [[0, 1, 2], [3, 4, 5]]
+        // b: [[0, 4], [3, 2], [1, 5]]
+        // iterated sequence: [0, 3, 1, 4, 2, 5]
+        let a = rt::tensor_from_nested!([[0, 1, 2], [3, 4, 5]], &device);
+        let a_col = rt::tensor_from_nested!([[0, 4], [3, 2], [1, 5]], &device);
+        assert!(rt::allclose(a.reshape_with_args([3, 2], ColMajor), &a_col, None));
+
+        device.set_default_order(RowMajor);
+
+        // some strided tensor
+        // shape: (4, 6, 9), stride: (72, 9, 1), not c-contiguous
+        // contiguous situation: (4, [6, 9]), or say the last two dimensions are contiguous
+        let a = rt::arange((288, &device)).into_shape([4, 8, 9]).into_slice((.., 0..6, ..));
+        assert_eq!(a.shape(), &[4, 6, 9]);
+        assert_eq!(a.stride(), &[72, 9, 1]);
+        assert!(!a.c_contig());
+
+        // reshape that does not require clone (outputs tensor view)
+
+        // split a single dimension into multiple dimensions
+        assert!(a.reshape_with_args_f([2, 2, 6, 9], false).is_ok()); // (4, 6, 9) -> ([2, 2], 6, 9)
+        assert!(a.reshape_with_args_f([4, 3, 2, 9], false).is_ok()); // (4, 6, 9) -> (4, [3, 2], 9)
+        assert!(a.reshape_with_args_f([4, 2, 3, 3, 3], false).is_ok()); // (4, 6, 9) -> (4, [2, 3], [3, 3])
+
+        // merge contiguous dimensions into a single dimension
+        assert!(a.reshape_with_args_f([4, 54], false).is_ok()); // (4, 6, 9) -> (4, 6 * 9)
+
+        // merge contiguous dimensions and then split
+        assert!(a.reshape_with_args_f([4, 3, 6, 3], false).is_ok()); // (4, [6, 9]) -> (4, [3, 6, 3])
+
+        // reshape that requires clone (outputs owned tensor)
+
+        // merge non-contiguous dimensions
+        assert!(a.reshape_with_args_f([24, 9], false).is_err()); // (4, 6, 9) -> (4 * 6, 9)
+        assert!(a.reshape_with_args_f([-1], false).is_err()); // (4, 6, 9) -> (4 * 6 * 9)
+        assert!(a.reshape_with_args_f([12, 2, 9], false).is_err()); // (4, 6, 9) -> (4 * [3, 2], 9)
+    }
+
+    #[test]
     fn into_shape() {
         crate::specify_test!("into_shape");
 
