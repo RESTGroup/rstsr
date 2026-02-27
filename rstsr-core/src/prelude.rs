@@ -74,9 +74,9 @@ pub mod rstsr_funcs {
         into_shape_f, into_shape_with_args, into_shape_with_args_f, into_squeeze, into_squeeze_f, into_swapaxes,
         into_swapaxes_f, into_transpose, into_transpose_f, permute_dims, permute_dims_f, reshape,
         reshape_assume_contig, reshape_assume_contig_f, reshape_f, reshape_with_args, reshape_with_args_f,
-        reverse_axes, squeeze, squeeze_f, swapaxes, swapaxes_f, to_broadcast, to_broadcast_f, to_contig, to_contig_f,
-        to_dim, to_dim_f, to_dyn, to_layout, to_layout_f, to_shape, to_shape_assume_contig, to_shape_assume_contig_f,
-        to_shape_f, to_shape_with_args, to_shape_with_args_f, transpose, transpose_f,
+        reshapeable_without_copy, reverse_axes, squeeze, squeeze_f, swapaxes, swapaxes_f, to_broadcast, to_broadcast_f,
+        to_contig, to_contig_f, to_dim, to_dim_f, to_dyn, to_layout, to_layout_f, to_shape, to_shape_assume_contig,
+        to_shape_assume_contig_f, to_shape_f, to_shape_with_args, to_shape_with_args_f, transpose, transpose_f,
     };
 
     // binary arithmetics
