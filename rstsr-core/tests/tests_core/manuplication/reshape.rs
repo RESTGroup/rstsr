@@ -24,11 +24,7 @@ mod numpy_reshape {
         assert_equal(arr.reshape([3, 4]), &tgt, None);
 
         let tgt = rt::tensor_from_nested!([[1, 10, 8, 6], [4, 2, 11, 9], [7, 5, 3, 12]], &device);
-        let mut arr_col = arr.to_owned();
-        arr_col.device_mut().set_default_order(ColMajor);
-        let mut arr_col = arr_col.into_shape([3, 4]).into_owned();
-        arr_col.device_mut().set_default_order(RowMajor);
-        assert_equal(arr_col, &tgt, None);
+        assert_equal(arr.reshape_with_args([3, 4], ColMajor), &tgt, None);
 
         let tgt = rt::tensor_from_nested!([[1, 4, 7, 10], [2, 5, 8, 11], [3, 6, 9, 12]], &device);
         assert_equal(arr.t().reshape([3, 4]), &tgt, None);
