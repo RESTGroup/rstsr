@@ -9,9 +9,9 @@ mod numpy_reshape {
     static FUNC: &str = "numpy_reshape";
 
     #[test]
-    fn multiarray_methods_reshape() {
+    fn multiarray() {
         // NumPy v2.4.2, _core/tests/test_multiarray.py, TestMethods::test_reshape
-        crate::specify_test!("multiarray_methods_reshape");
+        crate::specify_test!("multiarray_reshape");
 
         let mut device = TESTCFG.device.clone();
         device.set_default_order(RowMajor);
@@ -28,6 +28,42 @@ mod numpy_reshape {
 
         let tgt = rt::tensor_from_nested!([[1, 4, 7, 10], [2, 5, 8, 11], [3, 6, 9, 12]], &device);
         assert_equal(arr.t().reshape([3, 4]), &tgt, None);
+    }
+
+    #[test]
+    fn regression() {
+        // NumPy v2.4.2, _core/tests/test_regression.py, TestRegression::test_reshape*
+        crate::specify_test!("regression_reshape");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // CASE test_reshape_order
+
+        // a = np.arange(6).reshape(2, 3, order='F')
+        // assert_equal(a, [[0, 2, 4], [1, 3, 5]])
+        let a = rt::arange((6, &device)).into_shape_with_args([2, 3], ColMajor);
+        let tgt = rt::tensor_from_nested!([[0, 2, 4], [1, 3, 5]], &device);
+        assert_equal(&a, &tgt, None);
+
+        // a = np.array([[1, 2], [3, 4], [5, 6], [7, 8]])
+        // b = a[:, 1]
+        // assert_equal(b.reshape(2, 2, order='F'), [[2, 6], [4, 8]])
+        let a = rt::tensor_from_nested!([[1, 2], [3, 4], [5, 6], [7, 8]], &device);
+        let b = a.i((.., 1));
+        let tgt = rt::tensor_from_nested!([[2, 6], [4, 8]], &device);
+        assert_equal(b.reshape_with_args([2, 2], ColMajor), &tgt, None);
+
+        // CASE test_reshape_zero_strides
+
+        // a = np.ones(1)
+        // a = as_strided(a, shape=(5,), strides=(0,))
+        // assert_(a.reshape(5, 1).strides[0] == 0)
+
+        // current implementation fails to adhere NumPy's behavior on zero-stride tensors.
+        // let layout = unsafe { Layout::new_unchecked([5], [0], 0) };
+        // let a = rt::asarray((vec![1], layout, &device));
+        // assert!(a.reshape([5, 1]).stride()[0] == 0);
     }
 }
 

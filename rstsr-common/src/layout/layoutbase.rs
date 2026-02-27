@@ -280,11 +280,13 @@ where
     /// Special cases
     /// - if length of tensor is zero, then strides will always be correct.
     /// - if certain dimension is one, then check for this stride will be ignored.
+    /// - if stride has zero value, `skip_zero` parameter will determine whether this function will
+    ///   raise error or not.
     ///
     /// # TODO
     ///
     /// Correctness of this function is not fully ensured.
-    pub fn check_strides(&self) -> Result<()> {
+    pub fn check_strides(&self, skip_zero: bool) -> Result<()> {
         let shape = self.shape.as_ref();
         let stride = self.stride.as_ref();
         rstsr_assert_eq!(shape.len(), stride.len(), InvalidLayout)?;
@@ -305,12 +307,14 @@ where
         let mut elem_cum = 0;
         for i in 0..indices.len() {
             // following function also checks that stride could not be zero
-            rstsr_pattern!(
-                elem_cum,
-                0..stride_sorted[i],
-                InvalidLayout,
-                "Either stride be zero, or stride too small that elements in tensor can be overlapped."
-            )?;
+            if elem_cum != 0 && !skip_zero {
+                rstsr_pattern!(
+                    elem_cum,
+                    0..stride_sorted[i],
+                    InvalidLayout,
+                    "Either stride be zero, or stride too small that elements in tensor can be overlapped."
+                )?;
+            }
             elem_cum += (shape_sorted[i] - 1) * stride_sorted[i];
         }
         return Ok(());
@@ -395,7 +399,7 @@ where
     {
         let layout = unsafe { Layout::new_unchecked(shape, stride, offset) };
         layout.bounds_index()?;
-        layout.check_strides()?;
+        layout.check_strides(true)?;
         return Ok(layout);
     }
 

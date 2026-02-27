@@ -102,6 +102,14 @@ where
 /* #region reshape_with_args */
 
 /// Reshapes the given tensor to the specified shape.
+///
+/// # See also
+///
+/// Refer to [`reshape_with_args`] for more details and examples.
+///
+/// # Developer Note
+///
+/// This function implements the core logic of reshaping.
 pub fn change_shape_with_args_f<'a, R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
     shape: impl TryInto<AxesIndex<isize>, Error = Error>,
