@@ -158,10 +158,9 @@ fn quick_check(shape_out: &Vec<usize>, layout_in: &Layout<IxD>, order: FlagOrder
     rstsr_assert_eq!(size_in, size_out, InvalidValue, "Size mismatch between input tensor and output tensor.",)?;
 
     // if size is zero or one, return immediately
-    // currently, we use broadcast way to handle this case
-    // strides will be set to zeros, which should not affect computation
+    // currently, we set stride to 1 to handle this case, and should not affect computation
     if size_in == 0 || size_in == 1 {
-        let strides = vec![0; shape_out.len()];
+        let strides = vec![1; shape_out.len()];
         return Ok(Some(Layout::<IxD>::new(shape_out.clone(), strides, layout_in.offset())?));
     }
 

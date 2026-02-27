@@ -36,6 +36,13 @@ impl From<(TensorOrder, bool)> for ReshapeArgs {
     }
 }
 
+impl From<(TensorOrder, Option<bool>)> for ReshapeArgs {
+    fn from(args: (TensorOrder, Option<bool>)) -> Self {
+        let (order, copy) = args;
+        Self { order: Some(order), copy }
+    }
+}
+
 impl From<Option<bool>> for ReshapeArgs {
     fn from(copy: Option<bool>) -> Self {
         Self { order: None, copy }
