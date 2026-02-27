@@ -1,13 +1,159 @@
 use crate::prelude_dev::*;
 
-/* #region reshape */
+/* #region reshape args */
+
+/// Reshape arguments.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct ReshapeArgs {
+    /// The indexing order for **reading**. This also affects the order for writing.
+    /// By default, the device's default order is used.
+    pub order: Option<TensorOrder>,
+
+    /// Whether to clone data when the new shape is not compatible with the original shape.
+    ///
+    /// - True: the tensor will always be copied, with order specified.
+    /// - False: panic if the new shape is not compatible with the original shape.
+    /// - None: the tensor will be copied only if necessary.
+    pub copy: Option<bool>,
+}
+
+impl From<TensorOrder> for ReshapeArgs {
+    fn from(order: TensorOrder) -> Self {
+        Self { order: Some(order), copy: None }
+    }
+}
+
+impl From<bool> for ReshapeArgs {
+    fn from(copy: bool) -> Self {
+        Self { order: None, copy: Some(copy) }
+    }
+}
+
+impl From<(TensorOrder, bool)> for ReshapeArgs {
+    fn from(args: (TensorOrder, bool)) -> Self {
+        let (order, copy) = args;
+        Self { order: Some(order), copy: Some(copy) }
+    }
+}
+
+/* #endregion */
+
+/* #region reshapeable */
+
+/// Check if this tensor can be reshaped to a new shape without explicitly copying underlying data.
+///
+/// Please note this function returns `Result` instead of boolean.
+///
+/// - If shape not match, this function will raise error.
+/// - If shape match but data need to be copied, return `Ok(None)`.
+/// - If everything is fine, return `Ok(Some(layout_out))`.
+///
+/// For order, row-major and col-major behaves differently.
+///
+/// # See also
+///
+/// - [`reshape`]: the actual function for tensor reshaping.
+/// - [`layout_reshapeable`]: The underlying function for checking layout compatibility for
+///   reshaping, input by shape instead of tensor.
+pub fn reshapeable_without_copy<R, T, B, D>(
+    tensor: &TensorAny<R, T, B, D>,
+    shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+    order: Option<TensorOrder>,
+) -> Result<Option<Layout<IxD>>>
+where
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+    D: DimAPI,
+    B: DeviceAPI<T>,
+{
+    let shape = reshape_substitute_negatives(shape.try_into()?.as_ref(), tensor.size())?;
+    let order = order.unwrap_or_else(|| tensor.device().default_order());
+    layout_reshapeable(&tensor.layout().to_dim()?, &shape, order)
+}
+
+impl<R, T, B, D> TensorAny<R, T, B, D>
+where
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+    D: DimAPI,
+    B: DeviceAPI<T>,
+{
+    /// Check if this tensor can be reshaped to a new shape without explicitly copying underlying
+    /// data.
+    ///
+    /// # See also
+    ///
+    /// Refer to [`reshapeable_without_copy`] for more details.
+    pub fn reshapeable_without_copy(
+        &self,
+        shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+        order: Option<TensorOrder>,
+    ) -> Result<Option<Layout<IxD>>> {
+        reshapeable_without_copy(self, shape, order)
+    }
+}
+
+/* #endregion */
+
+/* #region reshape_with_args */
 
 /// Reshapes the given tensor to the specified shape.
 ///
 /// # See also
 ///
-/// Refer to [`reshape`], [`into_shape`] and [`change_shape`] for more details and
-/// examples.
+/// Refer to [`reshape`], [`into_shape`] and [`change_shape`] for more details and examples.
+pub fn change_shape_with_args_f<'a, I, R, T, B, D>(
+    tensor: TensorAny<R, T, B, D>,
+    shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+    args: impl Into<ReshapeArgs>,
+) -> Result<TensorCow<'a, T, B, IxD>>
+where
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
+{
+    // own shape, this is cheap operation
+    let shape_new = reshape_substitute_negatives(shape.try_into()?.as_ref(), tensor.size())?;
+    let default_order = tensor.device().default_order();
+    let (reshape_order, copy) = {
+        let ReshapeArgs { order, copy } = args.into();
+        (order.unwrap_or(default_order), copy)
+    };
+    // rust 2021 does not allow chain if let
+    // only copy = Some(false) or None, we may not clone data if layout is compatible
+    if copy.unwrap_or(false) {
+        if let Some(layout_new) = layout_reshapeable(&tensor.layout().to_dim()?, &shape_new, reshape_order)? {
+            // shape does not need to be changed
+            let (storage, _) = tensor.into_raw_parts();
+            let layout = layout_new.into_dim::<IxD>()?;
+            return unsafe { Ok(TensorBase::new_unchecked(storage, layout).into_cow()) };
+        }
+    }
+    if copy == Some(false) {
+        rstsr_raise!(
+            InvalidValue,
+            "copy is set to false in reshape, but layout {:?} is not compatible with shape {shape_new:?} and order {reshape_order:?}",
+            tensor.layout(),
+        )?
+    }
+    // clone underlying data by assign_arbitary
+    let (storage, layout) = tensor.into_raw_parts();
+    let device = storage.device();
+    let layout_new = match default_order {
+        RowMajor => shape_new.new_c_contig(None),
+        ColMajor => shape_new.new_f_contig(None),
+    };
+    let mut storage_new = device.uninit_impl(layout_new.size())?;
+    device.assign_arbitary_uninit(storage_new.raw_mut(), &layout_new, storage.raw(), &layout)?;
+    let storage_new = unsafe { B::assume_init_impl(storage_new)? };
+    return unsafe { Ok(TensorBase::new_unchecked(storage_new, layout_new).into_cow()) };
+}
+
+/* #endregion */
+
+/// Reshapes the given tensor to the specified shape.
+///
+/// # See also
+///
+/// Refer to [`reshape`], [`into_shape`] and [`change_shape`] for more details and examples.
 pub fn change_shape_f<'a, I, R, T, B, D>(tensor: TensorAny<R, T, B, D>, shape: I) -> Result<TensorCow<'a, T, B, IxD>>
 where
     I: TryInto<AxesIndex<isize>, Error = Error>,
@@ -737,5 +883,3 @@ where
         self.view().change_shape(shape)
     }
 }
-
-/* #endregion */
