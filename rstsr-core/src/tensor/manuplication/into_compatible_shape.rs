@@ -1,6 +1,108 @@
 use crate::prelude_dev::*;
 
-/* #region reshape_assume_contig */
+/* #region into_compatible_shape */
+
+pub fn into_compatible_shape_f<R, T, B, D>(
+    tensor: TensorAny<R, T, B, D>,
+    shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+    order: impl Into<Option<FlagOrder>>,
+) -> Result<TensorAny<R, T, B, IxD>>
+where
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
+    D: DimAPI,
+{
+    let shape_new = reshape_substitute_negatives(shape.try_into()?.as_ref(), tensor.size())?;
+    let order = order.into().unwrap_or(tensor.device().default_order());
+    if let Some(layout_new) = layout_reshapeable(&tensor.layout().to_dim()?, &shape_new, order)? {
+        let (storage, _) = tensor.into_raw_parts();
+        unsafe { Ok(TensorBase::new_unchecked(storage, layout_new)) }
+    } else {
+        rstsr_raise!(InvalidLayout, "Cannot reshape {:?} to {shape_new:?} with order {order:?}.", tensor.layout())?
+    }
+}
+
+pub fn into_compatible_shape<R, T, B, D>(
+    tensor: TensorAny<R, T, B, D>,
+    shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+    order: impl Into<Option<FlagOrder>>,
+) -> TensorAny<R, T, B, IxD>
+where
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
+    D: DimAPI,
+{
+    into_compatible_shape_f(tensor, shape, order).rstsr_unwrap()
+}
+
+pub fn to_compatible_shape_f<R, T, B, D>(
+    tensor: &TensorAny<R, T, B, D>,
+    shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+    order: impl Into<Option<FlagOrder>>,
+) -> Result<TensorView<'_, T, B, IxD>>
+where
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
+    D: DimAPI,
+{
+    into_compatible_shape_f(tensor.view(), shape, order)
+}
+
+pub fn to_compatible_shape<R, T, B, D>(
+    tensor: &TensorAny<R, T, B, D>,
+    shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+    order: impl Into<Option<FlagOrder>>,
+) -> TensorView<'_, T, B, IxD>
+where
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
+    D: DimAPI,
+{
+    to_compatible_shape_f(tensor, shape, order).rstsr_unwrap()
+}
+
+impl<R, T, B, D> TensorAny<R, T, B, D>
+where
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
+    D: DimAPI,
+{
+    pub fn into_compatible_shape_f(
+        self,
+        shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+        order: impl Into<Option<FlagOrder>>,
+    ) -> Result<TensorAny<R, T, B, IxD>> {
+        into_compatible_shape_f(self, shape, order)
+    }
+
+    pub fn into_compatible_shape(
+        self,
+        shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+        order: impl Into<Option<FlagOrder>>,
+    ) -> TensorAny<R, T, B, IxD> {
+        into_compatible_shape(self, shape, order)
+    }
+
+    pub fn to_compatible_shape_f(
+        &self,
+        shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+        order: impl Into<Option<FlagOrder>>,
+    ) -> Result<TensorView<'_, T, B, IxD>> {
+        to_compatible_shape_f(self, shape, order)
+    }
+
+    pub fn to_compatible_shape(
+        &self,
+        shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+        order: impl Into<Option<FlagOrder>>,
+    ) -> TensorView<'_, T, B, IxD> {
+        to_compatible_shape(self, shape, order)
+    }
+}
+
+/* #endregion */
+
+/* #region reshape_assume_contig (deprecated) */
 
 pub fn into_shape_assume_contig_f<R, T, B, D, D2>(
     tensor: TensorAny<R, T, B, D>,
