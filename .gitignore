@@ -9,6 +9,7 @@ tarpaulin-report.html
 book
 *.npy
 repomix-output*
+.claude/
 
 # bindgen
 blas_bindgen.h
