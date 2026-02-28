@@ -2,6 +2,11 @@ use crate::prelude_dev::*;
 
 /* #region into_compatible_shape */
 
+/// Reshapes the given tensor to the specified shape if the layout is compatible.
+///
+/// # See also
+///
+/// Refer to [`into_compatible_shape`] for more details and examples.
 pub fn into_compatible_shape_f<R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
     shape: impl TryInto<AxesIndex<isize>, Error = Error>,
@@ -22,6 +27,90 @@ where
     }
 }
 
+/// Reshapes the given tensor to the specified shape if the layout is compatible.
+///
+/// This function takes ownership of the input tensor. If the layout is not compatible,
+/// this function will panic.
+///
+/// <div class="warning">
+///
+/// **Row/Column Major Notice**
+///
+/// This function behaves differently on default orders ([`RowMajor`] and [`ColMajor`]) of device.
+///
+/// </div>
+///
+/// # Parameters
+///
+/// - `tensor`: [`TensorAny<R, T, B, D>`]
+///
+///   - The input tensor to be reshaped.
+///   - Ownership of input tensor is taken.
+///
+/// - `shape`: TryInto [`AxesIndex<isize>`]
+///
+///   - The new shape of the tensor.
+///   - Can be a single integer, or a list/tuple of integers.
+///   - Negative values are supported and indicate counting dimensions from the back.
+///   - Overloads:
+///
+///     - integer: 1-D shape with a single dimension.
+///     - vector/array/tuple of integers: N-D shape with N dimensions. For tuples,
+///       mixed-signed/unsigned integers are supported.
+///
+/// - `order`: Into [`Option<FlagOrder>`]
+///
+///   - The indexing order for reading and writing the tensor.
+///   - [`RowMajor`] and [`ColMajor`] are supported.
+///   - By default, the device's default order is used.
+///
+/// # Returns
+///
+/// - [`TensorAny<R, T, B, IxD>`]
+///
+///   - The reshaped tensor.
+///
+/// # Panics
+///
+/// Panics if the tensor cannot be reshaped to the specified shape with the given order
+/// without copying data.
+///
+/// # Examples
+///
+/// Reshape a tensor when the layout is compatible:
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// // shape: (4, 6), stride: (6, 1), c-contiguous
+/// let a = rt::arange((24, &device)).into_shape([4, 6]);
+/// // Split a dimension: (4, 6) -> (2, 2, 6) - layout compatible
+/// let b = a.into_compatible_shape([2, 2, 6], RowMajor);
+/// assert_eq!(b.shape(), &[2, 2, 6]);
+/// ```
+///
+/// Reshape a tensor when the layout is not compatible will panic (or use the falling variant
+/// `into_compatible_shape_f` to handle the error):
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// // shape: (4, 6, 9), stride: (72, 9, 1), not c-contiguous
+/// let a = rt::arange((288, &device)).into_shape([4, 8, 9]).into_slice((.., 0..6, ..));
+/// // layout compatible
+/// assert!(a.to_compatible_shape_f([4, 6 * 9], RowMajor).is_ok());
+/// // layout incompatible
+/// assert!(a.to_compatible_shape_f([4 * 6, 9], RowMajor).is_err());
+/// ```
+///
+/// # See also
+///
+/// - [`into_compatible_shape_f`]: Falling variant that returns a Result.
+/// - [`to_compatible_shape`]: Takes reference and returns a view.
+/// - [`reshape`]: Reshapes a tensor, copying data if necessary.
+/// - [`reshapeable_without_copy`]: Check if reshape can be done without copying data.
 pub fn into_compatible_shape<R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
     shape: impl TryInto<AxesIndex<isize>, Error = Error>,
@@ -35,6 +124,11 @@ where
     into_compatible_shape_f(tensor, shape, order).rstsr_unwrap()
 }
 
+/// Returns a view of the tensor with the specified shape if the layout is compatible.
+///
+/// # See also
+///
+/// Refer to [`into_compatible_shape`] for more details and examples.
 pub fn to_compatible_shape_f<R, T, B, D>(
     tensor: &TensorAny<R, T, B, D>,
     shape: impl TryInto<AxesIndex<isize>, Error = Error>,
@@ -48,6 +142,50 @@ where
     into_compatible_shape_f(tensor.view(), shape, order)
 }
 
+/// Returns a view of the tensor with the specified shape if the layout is compatible.
+///
+/// This function takes a reference to the input tensor. If the layout is not compatible,
+/// this function will panic.
+///
+/// # Parameters
+///
+/// - `tensor`: [`&TensorAny<R, T, B, D>`](TensorAny)
+///
+///   - The input tensor.
+///
+/// - `shape`: TryInto [`AxesIndex<isize>`]
+///
+///   - The new shape of the tensor.
+///   - Can be a single integer, or a list/tuple of integers.
+///   - Negative values are supported and indicate counting dimensions from the back.
+///   - Overloads:
+///
+///     - integer: 1-D shape with a single dimension.
+///     - vector/array/tuple of integers: N-D shape with N dimensions. For tuples,
+///       mixed-signed/unsigned integers are supported.
+///
+/// - `order`: Into [`Option<FlagOrder>`]
+///
+///   - The indexing order for reading and writing the tensor.
+///   - [`RowMajor`] and [`ColMajor`] are supported.
+///   - By default, the device's default order is used.
+///
+/// # Returns
+///
+/// - [`TensorView<'_, T, B, IxD>`]
+///
+///   - A view of the tensor with the new shape.
+///
+/// # Panics
+///
+/// Panics if the tensor cannot be reshaped to the specified shape with the given order
+/// without copying data.
+///
+/// # See also
+///
+/// - [`to_compatible_shape_f`]: Falling variant that returns a Result.
+/// - [`into_compatible_shape`]: Takes ownership and returns an owned tensor.
+/// - [`reshape`]: Reshapes a tensor, copying data if necessary.
 pub fn to_compatible_shape<R, T, B, D>(
     tensor: &TensorAny<R, T, B, D>,
     shape: impl TryInto<AxesIndex<isize>, Error = Error>,
@@ -67,6 +205,11 @@ where
     B: DeviceAPI<T>,
     D: DimAPI,
 {
+    /// Reshapes the given tensor to the specified shape if the layout is compatible.
+    ///
+    /// # See also
+    ///
+    /// Refer to [`into_compatible_shape`] for more details and examples.
     pub fn into_compatible_shape_f(
         self,
         shape: impl TryInto<AxesIndex<isize>, Error = Error>,
@@ -75,6 +218,11 @@ where
         into_compatible_shape_f(self, shape, order)
     }
 
+    /// Reshapes the given tensor to the specified shape if the layout is compatible.
+    ///
+    /// # See also
+    ///
+    /// Refer to [`into_compatible_shape`] for more details and examples.
     pub fn into_compatible_shape(
         self,
         shape: impl TryInto<AxesIndex<isize>, Error = Error>,
@@ -83,6 +231,11 @@ where
         into_compatible_shape(self, shape, order)
     }
 
+    /// Returns a view of the tensor with the specified shape if the layout is compatible.
+    ///
+    /// # See also
+    ///
+    /// Refer to [`to_compatible_shape`] for more details.
     pub fn to_compatible_shape_f(
         &self,
         shape: impl TryInto<AxesIndex<isize>, Error = Error>,
@@ -91,6 +244,11 @@ where
         to_compatible_shape_f(self, shape, order)
     }
 
+    /// Returns a view of the tensor with the specified shape if the layout is compatible.
+    ///
+    /// # See also
+    ///
+    /// Refer to [`to_compatible_shape`] for more details.
     pub fn to_compatible_shape(
         &self,
         shape: impl TryInto<AxesIndex<isize>, Error = Error>,
