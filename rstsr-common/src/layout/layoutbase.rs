@@ -280,11 +280,13 @@ where
     /// Special cases
     /// - if length of tensor is zero, then strides will always be correct.
     /// - if certain dimension is one, then check for this stride will be ignored.
+    /// - if stride has zero value, `skip_zero` parameter will determine whether this function will
+    ///   raise error or not.
     ///
     /// # TODO
     ///
     /// Correctness of this function is not fully ensured.
-    pub fn check_strides(&self) -> Result<()> {
+    pub fn check_strides(&self, skip_zero: bool) -> Result<()> {
         let shape = self.shape.as_ref();
         let stride = self.stride.as_ref();
         rstsr_assert_eq!(shape.len(), stride.len(), InvalidLayout)?;
@@ -304,6 +306,10 @@ where
         // elem_cum: cumulative number count of elements in tensor for small strides
         let mut elem_cum = 0;
         for i in 0..indices.len() {
+            // if stride is zero, then skip check for this axis
+            if stride_sorted[i] == 0 && skip_zero {
+                continue;
+            }
             // following function also checks that stride could not be zero
             rstsr_pattern!(
                 elem_cum,
@@ -311,6 +317,7 @@ where
                 InvalidLayout,
                 "Either stride be zero, or stride too small that elements in tensor can be overlapped."
             )?;
+
             elem_cum += (shape_sorted[i] - 1) * stride_sorted[i];
         }
         return Ok(());
@@ -395,7 +402,7 @@ where
     {
         let layout = unsafe { Layout::new_unchecked(shape, stride, offset) };
         layout.bounds_index()?;
-        layout.check_strides()?;
+        layout.check_strides(true)?;
         return Ok(layout);
     }
 
@@ -722,16 +729,16 @@ mod test {
         let stride = [3, -300, 15];
         let layout = Layout::new(shape, stride, 0);
         assert!(layout.is_err());
-        // unsuccessful layout new (zero stride for non-0/1 shape)
-        let shape = [3, 2, 6];
-        let stride = [3, -300, 0];
-        let layout = Layout::new(shape, stride, 1000);
-        assert!(layout.is_err());
         // unsuccessful layout new (stride too small)
         let shape = [3, 2, 6];
         let stride = [3, 4, 7];
         let layout = Layout::new(shape, stride, 1000);
         assert!(layout.is_err());
+        // successful layout new (zero stride for non-0/1 shape)
+        let shape = [3, 2, 6];
+        let stride = [3, -300, 0];
+        let layout = Layout::new(shape, stride, 1000);
+        assert!(layout.is_ok());
         // successful layout new (zero dim)
         let shape = [];
         let stride = [];

@@ -448,18 +448,6 @@ where
 
     fn asarray_f(self) -> Result<Self::Out> {
         let (input, layout, device) = self;
-        rstsr_assert_eq!(
-            layout.bounds_index()?,
-            (0, layout.size()),
-            InvalidLayout,
-            "This constructor assumes compact memory layout."
-        )?;
-        rstsr_assert_eq!(
-            layout.size(),
-            input.len(),
-            InvalidLayout,
-            "This constructor assumes that the layout size is equal to the input size."
-        )?;
         let storage = device.outof_cpu_vec(input)?;
         let tensor = Tensor::new_f(storage, layout.into_dim()?)?;
         return Ok(tensor);

@@ -119,7 +119,7 @@ where
 {
     pub fn new_f(storage: Storage<R, T, B>, layout: Layout<D>) -> Result<Self> {
         // check stride sanity
-        layout.check_strides()?;
+        layout.check_strides(true)?;
 
         // check pointer exceed
         let len_data = storage.len();
