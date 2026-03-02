@@ -306,15 +306,18 @@ where
         // elem_cum: cumulative number count of elements in tensor for small strides
         let mut elem_cum = 0;
         for i in 0..indices.len() {
-            // following function also checks that stride could not be zero
-            if elem_cum != 0 && !skip_zero {
-                rstsr_pattern!(
-                    elem_cum,
-                    0..stride_sorted[i],
-                    InvalidLayout,
-                    "Either stride be zero, or stride too small that elements in tensor can be overlapped."
-                )?;
+            // if stride is zero, then skip check for this axis
+            if stride_sorted[i] == 0 && skip_zero {
+                continue;
             }
+            // following function also checks that stride could not be zero
+            rstsr_pattern!(
+                elem_cum,
+                0..stride_sorted[i],
+                InvalidLayout,
+                "Either stride be zero, or stride too small that elements in tensor can be overlapped."
+            )?;
+
             elem_cum += (shape_sorted[i] - 1) * stride_sorted[i];
         }
         return Ok(());
@@ -726,16 +729,16 @@ mod test {
         let stride = [3, -300, 15];
         let layout = Layout::new(shape, stride, 0);
         assert!(layout.is_err());
-        // unsuccessful layout new (zero stride for non-0/1 shape)
-        let shape = [3, 2, 6];
-        let stride = [3, -300, 0];
-        let layout = Layout::new(shape, stride, 1000);
-        assert!(layout.is_err());
         // unsuccessful layout new (stride too small)
         let shape = [3, 2, 6];
         let stride = [3, 4, 7];
         let layout = Layout::new(shape, stride, 1000);
         assert!(layout.is_err());
+        // successful layout new (zero stride for non-0/1 shape)
+        let shape = [3, 2, 6];
+        let stride = [3, -300, 0];
+        let layout = Layout::new(shape, stride, 1000);
+        assert!(layout.is_ok());
         // successful layout new (zero dim)
         let shape = [];
         let stride = [];
