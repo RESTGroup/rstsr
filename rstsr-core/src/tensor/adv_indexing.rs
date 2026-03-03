@@ -13,7 +13,7 @@ where
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
     B: DeviceAPI<T> + DeviceIndexSelectAPI<T, D> + DeviceCreationAnyAPI<T>,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
 {
     // TODO: output layout control (TensorIterOrder::K or default layout)
     let device = tensor.device().clone();
@@ -24,7 +24,7 @@ where
     rstsr_pattern!(axis, 0..ndim as isize, InvalidLayout, "Invalid axis that exceeds ndim.")?;
     let axis = axis as usize;
     let nshape: usize = tensor_layout.shape()[axis];
-    let indices = indices.try_into()?;
+    let indices = indices.try_into().map_err(Into::into)?;
     let indices = indices
         .as_ref()
         .iter()
@@ -61,7 +61,7 @@ where
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
     B: DeviceAPI<T> + DeviceIndexSelectAPI<T, D> + DeviceCreationAnyAPI<T>,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
 {
     index_select_f(tensor, axis, indices).rstsr_unwrap()
 }
@@ -72,7 +72,7 @@ where
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
     B: DeviceAPI<T> + DeviceIndexSelectAPI<T, D> + DeviceCreationAnyAPI<T>,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
 {
     index_select_f(tensor, axis, indices)
 }
@@ -88,7 +88,7 @@ where
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
     B: DeviceAPI<T> + DeviceIndexSelectAPI<T, D> + DeviceCreationAnyAPI<T>,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
 {
     index_select(tensor, axis, indices)
 }
@@ -102,7 +102,7 @@ where
 {
     pub fn index_select_f<I>(&self, axis: isize, indices: I) -> Result<Tensor<T, B, D>>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         index_select_f(self, axis, indices)
     }
@@ -115,14 +115,14 @@ where
     /// This function should be similar to PyTorch's [`torch.index_select`](https://docs.pytorch.org/docs/stable/generated/torch.index_select.html).
     pub fn index_select<I>(&self, axis: isize, indices: I) -> Tensor<T, B, D>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         index_select(self, axis, indices)
     }
 
     pub fn take_f<I>(&self, indices: I, axis: isize) -> Result<Tensor<T, B, D>>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         take_f(self, indices, axis)
     }
@@ -134,7 +134,7 @@ where
     /// [Python Array API standard: take](https://data-apis.org/array-api/latest/API_specification/generated/array_api.take.html#array_api.take)
     pub fn take<I>(&self, indices: I, axis: isize) -> Tensor<T, B, D>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         take(self, indices, axis)
     }
@@ -150,11 +150,17 @@ where
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
     B: DeviceAPI<T> + DeviceIndexSelectAPI<T, D> + DeviceCreationAnyAPI<T>,
-    I: TryInto<AxesIndex<bool>, Error = Error>,
+    I: TryInto<AxesIndex<bool>, Error: Into<Error>>,
 {
     // transform bool to index
-    let indices =
-        mask.try_into()?.as_ref().iter().enumerate().filter_map(|(i, &m)| m.then_some(i)).collect::<Vec<usize>>();
+    let indices = mask
+        .try_into()
+        .map_err(Into::into)?
+        .as_ref()
+        .iter()
+        .enumerate()
+        .filter_map(|(i, &m)| m.then_some(i))
+        .collect::<Vec<usize>>();
     index_select_f(tensor, axis, indices)
 }
 
@@ -166,7 +172,7 @@ where
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
     B: DeviceAPI<T> + DeviceIndexSelectAPI<T, D> + DeviceCreationAnyAPI<T>,
-    I: TryInto<AxesIndex<bool>, Error = Error>,
+    I: TryInto<AxesIndex<bool>, Error: Into<Error>>,
 {
     bool_select_f(tensor, axis, mask).rstsr_unwrap()
 }
@@ -180,7 +186,7 @@ where
 {
     pub fn bool_select_f<I>(&self, axis: isize, indices: I) -> Result<Tensor<T, B, D>>
     where
-        I: TryInto<AxesIndex<bool>, Error = Error>,
+        I: TryInto<AxesIndex<bool>, Error: Into<Error>>,
     {
         bool_select_f(self, axis, indices)
     }
@@ -189,7 +195,7 @@ where
     /// `axis` using the boolean entries in `mask`.
     pub fn bool_select<I>(&self, axis: isize, indices: I) -> Tensor<T, B, D>
     where
-        I: TryInto<AxesIndex<bool>, Error = Error>,
+        I: TryInto<AxesIndex<bool>, Error: Into<Error>>,
     {
         bool_select(self, axis, indices)
     }

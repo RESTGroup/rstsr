@@ -13,13 +13,13 @@ macro_rules! trait_reduction {
 
         pub fn $fn_axes_f<T, B, D>(
             tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
-            axes: impl TryInto<AxesIndex<isize>, Error = Error>,
+            axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
         ) -> Result<Tensor<B::TOut, B, IxD>>
         where
             D: DimAPI,
             B: $OpReduceAPI<T, D> + DeviceCreationAnyAPI<B::TOut>,
         {
-            let axes = axes.try_into()?;
+            let axes = axes.try_into().map_err(Into::into)?;
             let tensor = tensor.view();
 
             // special case for summing all axes
@@ -44,7 +44,7 @@ macro_rules! trait_reduction {
 
         pub fn $fn_axes<T, B, D>(
             tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
-            axes: impl TryInto<AxesIndex<isize>, Error = Error>,
+            axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
         ) -> Tensor<B::TOut, B, IxD>
         where
             D: DimAPI,
@@ -85,7 +85,7 @@ macro_rules! trait_reduction {
 
             pub fn $fn_axes_f(
                 &self,
-                axes: impl TryInto<AxesIndex<isize>, Error = Error>,
+                axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
             ) -> Result<Tensor<B::TOut, B, IxD>>
             where
                 B: DeviceCreationAnyAPI<B::TOut>,
@@ -93,7 +93,7 @@ macro_rules! trait_reduction {
                 $fn_axes_f(self, axes)
             }
 
-            pub fn $fn_axes(&self, axes: impl TryInto<AxesIndex<isize>, Error = Error>) -> Tensor<B::TOut, B, IxD>
+            pub fn $fn_axes(&self, axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> Tensor<B::TOut, B, IxD>
             where
                 B: DeviceCreationAnyAPI<B::TOut>,
             {
@@ -143,13 +143,13 @@ macro_rules! trait_reduction_arg {
 
         pub fn $fn_axes_f<T, B, D>(
             tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
-            axes: impl TryInto<AxesIndex<isize>, Error = Error>,
+            axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
         ) -> Result<Tensor<IxD, B, IxD>>
         where
             D: DimAPI,
             B: $OpReduceAPI<T, D> + DeviceAPI<IxD>,
         {
-            let axes = axes.try_into()?;
+            let axes = axes.try_into().map_err(Into::into)?;
             let tensor = tensor.view();
 
             let (storage, layout) = tensor.device().$fn_axes(tensor.raw(), tensor.layout(), axes.as_ref())?;
@@ -166,7 +166,7 @@ macro_rules! trait_reduction_arg {
 
         pub fn $fn_axes<T, B, D>(
             tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
-            axes: impl TryInto<AxesIndex<isize>, Error = Error>,
+            axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
         ) -> Tensor<IxD, B, IxD>
         where
             D: DimAPI,
@@ -205,14 +205,17 @@ macro_rules! trait_reduction_arg {
                 $fn_all(self)
             }
 
-            pub fn $fn_axes_f(&self, axes: impl TryInto<AxesIndex<isize>, Error = Error>) -> Result<Tensor<IxD, B, IxD>>
+            pub fn $fn_axes_f(
+                &self,
+                axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
+            ) -> Result<Tensor<IxD, B, IxD>>
             where
                 B: DeviceAPI<IxD>,
             {
                 $fn_axes_f(self, axes)
             }
 
-            pub fn $fn_axes(&self, axes: impl TryInto<AxesIndex<isize>, Error = Error>) -> Tensor<IxD, B, IxD>
+            pub fn $fn_axes(&self, axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> Tensor<IxD, B, IxD>
             where
                 B: DeviceAPI<IxD>,
             {
@@ -266,8 +269,8 @@ where
     fn sum(&self) -> usize {
         self.sum_f().rstsr_unwrap()
     }
-    fn sum_axes_f(&self, axes: impl TryInto<AxesIndex<isize>, Error = Error>) -> Result<Tensor<usize, B, IxD>>;
-    fn sum_axes(&self, axes: impl TryInto<AxesIndex<isize>, Error = Error>) -> Tensor<usize, B, IxD> {
+    fn sum_axes_f(&self, axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> Result<Tensor<usize, B, IxD>>;
+    fn sum_axes(&self, axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> Tensor<usize, B, IxD> {
         self.sum_axes_f(axes).rstsr_unwrap()
     }
 }
@@ -282,8 +285,8 @@ where
         self.device().sum_all(self.raw(), self.layout())
     }
 
-    fn sum_axes_f(&self, axes: impl TryInto<AxesIndex<isize>, Error = Error>) -> Result<Tensor<usize, B, IxD>> {
-        let axes = axes.try_into()?;
+    fn sum_axes_f(&self, axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> Result<Tensor<usize, B, IxD>> {
+        let axes = axes.try_into().map_err(Into::into)?;
 
         // special case for summing all axes
         if axes.as_ref().is_empty() {

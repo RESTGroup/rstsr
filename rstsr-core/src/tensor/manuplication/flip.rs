@@ -10,10 +10,10 @@ use crate::prelude_dev::*;
 pub fn into_flip_f<I, S, D>(tensor: TensorBase<S, D>, axes: I) -> Result<TensorBase<S, D>>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
 {
     let (storage, mut layout) = tensor.into_raw_parts();
-    let mut axes = normalize_axes_index(axes.try_into()?, layout.ndim(), false)?;
+    let mut axes = normalize_axes_index(axes.try_into().map_err(Into::into)?, layout.ndim(), false)?;
     if axes.is_empty() {
         axes = (0..layout.ndim() as isize).collect();
     }
@@ -161,7 +161,7 @@ where
 pub fn flip<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axes: I) -> TensorView<'_, T, B, D>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
@@ -176,7 +176,7 @@ where
 pub fn flip_f<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axes: I) -> Result<TensorView<'_, T, B, D>>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
@@ -191,7 +191,7 @@ where
 pub fn into_flip<I, S, D>(tensor: TensorBase<S, D>, axes: I) -> TensorBase<S, D>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
 {
     into_flip_f(tensor, axes).rstsr_unwrap()
 }
@@ -209,14 +209,14 @@ where
     /// Refer to [`flip`] for more detailed documentation.
     pub fn flip<I>(&self, axis: I) -> TensorView<'_, T, B, D>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         flip(self, axis)
     }
 
     pub fn flip_f<I>(&self, axis: I) -> Result<TensorView<'_, T, B, D>>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         flip_f(self, axis)
     }
@@ -228,7 +228,7 @@ where
     /// Refer to [`flip`] for more detailed documentation.
     pub fn into_flip<I>(self, axis: I) -> TensorAny<R, T, B, D>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         into_flip(self, axis)
     }
@@ -240,7 +240,7 @@ where
     /// Refer to [`flip`] for more detailed documentation.
     pub fn into_flip_f<I>(self, axis: I) -> Result<TensorAny<R, T, B, D>>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         into_flip_f(self, axis)
     }

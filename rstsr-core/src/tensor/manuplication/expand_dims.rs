@@ -11,13 +11,13 @@ use crate::prelude_dev::*;
 pub fn into_expand_dims_f<I, S, D>(tensor: TensorBase<S, D>, axes: I) -> Result<TensorBase<S, IxD>>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
 {
     // convert axis to negative indexes and sort
     let ndim = tensor.ndim();
     let (storage, layout) = tensor.into_raw_parts();
     let mut layout = layout.into_dim::<IxD>()?;
-    let axes = axes.try_into()?;
+    let axes = axes.try_into().map_err(Into::into)?;
     let len_axes = axes.as_ref().len();
     let axes = normalize_axes_index(axes, ndim + len_axes, false)?;
     for axis in axes {
@@ -140,7 +140,7 @@ where
 pub fn expand_dims<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axes: I) -> TensorView<'_, T, B, IxD>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
@@ -156,7 +156,7 @@ where
 pub fn expand_dims_f<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axes: I) -> Result<TensorView<'_, T, B, IxD>>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
@@ -193,7 +193,7 @@ where
 pub fn into_expand_dims<I, S, D>(tensor: TensorBase<S, D>, axes: I) -> TensorBase<S, IxD>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
 {
     into_expand_dims_f(tensor, axes).rstsr_unwrap()
 }
@@ -212,7 +212,7 @@ where
     /// Refer to [`expand_dims`] and [`into_expand_dims`] for more detailed documentation.
     pub fn expand_dims<I>(&self, axes: I) -> TensorView<'_, T, B, IxD>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         into_expand_dims(self.view(), axes)
     }
@@ -225,7 +225,7 @@ where
     /// Refer to [`expand_dims`] and [`into_expand_dims`] for more detailed documentation.
     pub fn expand_dims_f<I>(&self, axes: I) -> Result<TensorView<'_, T, B, IxD>>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         into_expand_dims_f(self.view(), axes)
     }
@@ -238,7 +238,7 @@ where
     /// Refer to [`expand_dims`] and [`into_expand_dims`] for more detailed documentation.
     pub fn into_expand_dims<I>(self, axes: I) -> TensorAny<R, T, B, IxD>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         into_expand_dims(self, axes)
     }
@@ -251,7 +251,7 @@ where
     /// Refer to [`expand_dims`] and [`into_expand_dims`] for more detailed documentation.
     pub fn into_expand_dims_f<I>(self, axes: I) -> Result<TensorAny<R, T, B, IxD>>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         into_expand_dims_f(self, axes)
     }

@@ -70,7 +70,7 @@ impl From<Option<bool>> for ReshapeArgs {
 ///   reshaping, input by shape instead of tensor.
 pub fn reshapeable_without_copy<R, T, B, D>(
     tensor: &TensorAny<R, T, B, D>,
-    shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+    shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
     order: Option<TensorOrder>,
 ) -> Result<Option<Layout<IxD>>>
 where
@@ -78,7 +78,7 @@ where
     D: DimAPI,
     B: DeviceAPI<T>,
 {
-    let shape = reshape_substitute_negatives(shape.try_into()?.as_ref(), tensor.size())?;
+    let shape = reshape_substitute_negatives(shape.try_into().map_err(Into::into)?.as_ref(), tensor.size())?;
     let order = order.unwrap_or_else(|| tensor.device().default_order());
     layout_reshapeable(&tensor.layout().to_dim()?, &shape, order)
 }
@@ -97,7 +97,7 @@ where
     /// Refer to [`reshapeable_without_copy`] for more details.
     pub fn reshapeable_without_copy(
         &self,
-        shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+        shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
         order: Option<TensorOrder>,
     ) -> Result<Option<Layout<IxD>>> {
         reshapeable_without_copy(self, shape, order)
@@ -119,7 +119,7 @@ where
 /// This function implements the core logic of reshaping.
 pub fn change_shape_with_args_f<'a, R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
-    shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+    shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
     args: impl Into<ReshapeArgs>,
 ) -> Result<TensorCow<'a, T, B, IxD>>
 where
@@ -128,7 +128,7 @@ where
     B: DeviceAPI<T> + DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
 {
     // own shape, this is cheap operation
-    let shape_new = reshape_substitute_negatives(shape.try_into()?.as_ref(), tensor.size())?;
+    let shape_new = reshape_substitute_negatives(shape.try_into().map_err(Into::into)?.as_ref(), tensor.size())?;
     let ReshapeArgs { order, copy } = args.into();
     let order = order.unwrap_or(tensor.device().default_order());
 
@@ -178,7 +178,7 @@ where
 /// Refer to [`reshape_with_args`] for more details and examples.
 pub fn change_shape_with_args<'a, R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
-    shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+    shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
     args: impl Into<ReshapeArgs>,
 ) -> TensorCow<'a, T, B, IxD>
 where
@@ -196,7 +196,7 @@ where
 /// Refer to [`reshape_with_args`] for more details and examples.
 pub fn into_shape_with_args_f<'a, R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
-    shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+    shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
     args: impl Into<ReshapeArgs>,
 ) -> Result<Tensor<T, B, IxD>>
 where
@@ -220,7 +220,7 @@ where
 /// Refer to [`reshape_with_args`] for more details and examples.
 pub fn into_shape_with_args<'a, R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
-    shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+    shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
     args: impl Into<ReshapeArgs>,
 ) -> Tensor<T, B, IxD>
 where
@@ -244,7 +244,7 @@ where
 /// Refer to [`reshape_with_args`] for more details and examples.
 pub fn reshape_with_args_f<'a, R, T, B, D>(
     tensor: &'a TensorAny<R, T, B, D>,
-    shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+    shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
     args: impl Into<ReshapeArgs>,
 ) -> Result<TensorCow<'a, T, B, IxD>>
 where
@@ -432,7 +432,7 @@ where
 ///   - [`Tensor::to_shape_with_args`] / [`Tensor::to_shape_with_args_f`]
 pub fn reshape_with_args<'a, R, T, B, D>(
     tensor: &'a TensorAny<R, T, B, D>,
-    shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+    shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
     args: impl Into<ReshapeArgs>,
 ) -> TensorCow<'a, T, B, IxD>
 where
@@ -460,7 +460,7 @@ where
     /// Refer to [`reshape_with_args`] for more details and examples.
     pub fn change_shape_with_args_f(
         self,
-        shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+        shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
         args: impl Into<ReshapeArgs>,
     ) -> Result<TensorCow<'a, T, B, IxD>> {
         change_shape_with_args_f(self, shape, args)
@@ -473,7 +473,7 @@ where
     /// Refer to [`reshape_with_args`] for more details and examples.
     pub fn change_shape_with_args(
         self,
-        shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+        shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
         args: impl Into<ReshapeArgs>,
     ) -> TensorCow<'a, T, B, IxD> {
         change_shape_with_args(self, shape, args)
@@ -486,7 +486,7 @@ where
     /// Refer to [`reshape_with_args`] for more details and examples.
     pub fn into_shape_with_args_f(
         self,
-        shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+        shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
         args: impl Into<ReshapeArgs>,
     ) -> Result<Tensor<T, B, IxD>>
     where
@@ -503,7 +503,7 @@ where
     /// Refer to [`reshape_with_args`] for more details and examples.
     pub fn into_shape_with_args(
         self,
-        shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+        shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
         args: impl Into<ReshapeArgs>,
     ) -> Tensor<T, B, IxD>
     where
@@ -520,7 +520,7 @@ where
     /// Refer to [`reshape_with_args`] for more details and examples.
     pub fn reshape_with_args(
         &'a self,
-        shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+        shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
         args: impl Into<ReshapeArgs>,
     ) -> TensorCow<'a, T, B, IxD> {
         reshape_with_args(self, shape, args)
@@ -533,7 +533,7 @@ where
     /// Refer to [`reshape_with_args`] for more details and examples.
     pub fn reshape_with_args_f(
         &'a self,
-        shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+        shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
         args: impl Into<ReshapeArgs>,
     ) -> Result<TensorCow<'a, T, B, IxD>> {
         reshape_with_args_f(self, shape, args)
@@ -546,7 +546,7 @@ where
     /// Refer to [`reshape_with_args`] for more details and examples.
     pub fn to_shape_with_args(
         &'a self,
-        shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+        shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
         args: impl Into<ReshapeArgs>,
     ) -> TensorCow<'a, T, B, IxD> {
         to_shape_with_args(self, shape, args)
@@ -559,7 +559,7 @@ where
     /// Refer to [`reshape_with_args`] for more details and examples.
     pub fn to_shape_with_args_f(
         &'a self,
-        shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+        shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
         args: impl Into<ReshapeArgs>,
     ) -> Result<TensorCow<'a, T, B, IxD>> {
         to_shape_with_args_f(self, shape, args)
@@ -578,7 +578,7 @@ where
 /// details and examples.
 pub fn change_shape_f<'a, R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
-    shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+    shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
 ) -> Result<TensorCow<'a, T, B, IxD>>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
@@ -638,7 +638,7 @@ where
 /// Refer to [`reshape`] for more details and examples.
 pub fn change_shape<'a, R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
-    shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+    shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
 ) -> TensorCow<'a, T, B, IxD>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
@@ -656,7 +656,7 @@ where
 /// details and examples.
 pub fn into_shape_f<'a, R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
-    shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+    shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
 ) -> Result<Tensor<T, B, IxD>>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
@@ -779,7 +779,7 @@ where
 /// Refer to [`reshape`] for more details and examples.
 pub fn into_shape<'a, R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
-    shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+    shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
 ) -> Tensor<T, B, IxD>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
@@ -803,7 +803,7 @@ where
 /// details and examples.
 pub fn reshape_f<'a, R, T, B, D>(
     tensor: &'a TensorAny<R, T, B, D>,
-    shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+    shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
 ) -> Result<TensorCow<'a, T, B, IxD>>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
@@ -1111,7 +1111,7 @@ where
 ///   - [`TensorAny::to_shape`] / [`TensorAny::to_shape_f`]
 pub fn reshape<'a, R, T, B, D>(
     tensor: &'a TensorAny<R, T, B, D>,
-    shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+    shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
 ) -> TensorCow<'a, T, B, IxD>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
@@ -1145,7 +1145,7 @@ where
     /// details and examples.
     pub fn change_shape_f(
         self,
-        shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+        shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
     ) -> Result<TensorCow<'a, T, B, IxD>> {
         change_shape_f(self, shape)
     }
@@ -1156,7 +1156,7 @@ where
     ///
     /// Refer to [`reshape`], [`into_shape`], [`change_shape`] and [`reshape_with_args`] for more
     /// details and examples.
-    pub fn change_shape(self, shape: impl TryInto<AxesIndex<isize>, Error = Error>) -> TensorCow<'a, T, B, IxD> {
+    pub fn change_shape(self, shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> TensorCow<'a, T, B, IxD> {
         change_shape(self, shape)
     }
 
@@ -1166,7 +1166,7 @@ where
     ///
     /// Refer to [`reshape`], [`into_shape`], [`change_shape`] and [`reshape_with_args`] for more
     /// details and examples.
-    pub fn into_shape_f(self, shape: impl TryInto<AxesIndex<isize>, Error = Error>) -> Result<Tensor<T, B, IxD>>
+    pub fn into_shape_f(self, shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> Result<Tensor<T, B, IxD>>
     where
         <B as DeviceRawAPI<T>>::Raw: Clone + 'a,
         B: OpAssignAPI<T, IxD>,
@@ -1180,7 +1180,7 @@ where
     ///
     /// Refer to [`reshape`], [`into_shape`], [`change_shape`] and [`reshape_with_args`] for more
     /// details and examples.
-    pub fn into_shape(self, shape: impl TryInto<AxesIndex<isize>, Error = Error>) -> Tensor<T, B, IxD>
+    pub fn into_shape(self, shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> Tensor<T, B, IxD>
     where
         <B as DeviceRawAPI<T>>::Raw: Clone + 'a,
         B: OpAssignAPI<T, IxD>,
@@ -1196,7 +1196,7 @@ where
     /// details and examples.
     pub fn to_shape_f(
         &'a self,
-        shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+        shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
     ) -> Result<TensorCow<'a, T, B, IxD>> {
         to_shape_f(self, shape)
     }
@@ -1207,7 +1207,7 @@ where
     ///
     /// Refer to [`reshape`], [`into_shape`], [`change_shape`] and [`reshape_with_args`] for more
     /// details and examples.
-    pub fn to_shape(&'a self, shape: impl TryInto<AxesIndex<isize>, Error = Error>) -> TensorCow<'a, T, B, IxD> {
+    pub fn to_shape(&'a self, shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> TensorCow<'a, T, B, IxD> {
         to_shape(self, shape)
     }
 
@@ -1219,7 +1219,7 @@ where
     /// details and examples.
     pub fn reshape_f(
         &'a self,
-        shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+        shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
     ) -> Result<TensorCow<'a, T, B, IxD>> {
         reshape_f(self, shape)
     }
@@ -1230,7 +1230,7 @@ where
     ///
     /// Refer to [`reshape`], [`into_shape`], [`change_shape`] and [`reshape_with_args`] for more
     /// details and examples.
-    pub fn reshape(&'a self, shape: impl TryInto<AxesIndex<isize>, Error = Error>) -> TensorCow<'a, T, B, IxD> {
+    pub fn reshape(&'a self, shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> TensorCow<'a, T, B, IxD> {
         reshape(self, shape)
     }
 }

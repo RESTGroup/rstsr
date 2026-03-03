@@ -9,7 +9,7 @@ use crate::prelude_dev::*;
 /// Refer to [`into_compatible_shape`] for more details and examples.
 pub fn into_compatible_shape_f<R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
-    shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+    shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
     order: impl Into<Option<FlagOrder>>,
 ) -> Result<TensorAny<R, T, B, IxD>>
 where
@@ -17,7 +17,7 @@ where
     B: DeviceAPI<T>,
     D: DimAPI,
 {
-    let shape_new = reshape_substitute_negatives(shape.try_into()?.as_ref(), tensor.size())?;
+    let shape_new = reshape_substitute_negatives(shape.try_into().map_err(Into::into)?.as_ref(), tensor.size())?;
     let order = order.into().unwrap_or(tensor.device().default_order());
     if let Some(layout_new) = layout_reshapeable(&tensor.layout().to_dim()?, &shape_new, order)? {
         let (storage, _) = tensor.into_raw_parts();
@@ -113,7 +113,7 @@ where
 /// - [`reshapeable_without_copy`]: Check if reshape can be done without copying data.
 pub fn into_compatible_shape<R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
-    shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+    shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
     order: impl Into<Option<FlagOrder>>,
 ) -> TensorAny<R, T, B, IxD>
 where
@@ -131,7 +131,7 @@ where
 /// Refer to [`into_compatible_shape`] for more details and examples.
 pub fn to_compatible_shape_f<R, T, B, D>(
     tensor: &TensorAny<R, T, B, D>,
-    shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+    shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
     order: impl Into<Option<FlagOrder>>,
 ) -> Result<TensorView<'_, T, B, IxD>>
 where
@@ -188,7 +188,7 @@ where
 /// - [`reshape`]: Reshapes a tensor, copying data if necessary.
 pub fn to_compatible_shape<R, T, B, D>(
     tensor: &TensorAny<R, T, B, D>,
-    shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+    shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
     order: impl Into<Option<FlagOrder>>,
 ) -> TensorView<'_, T, B, IxD>
 where
@@ -212,7 +212,7 @@ where
     /// Refer to [`into_compatible_shape`] for more details and examples.
     pub fn into_compatible_shape_f(
         self,
-        shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+        shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
         order: impl Into<Option<FlagOrder>>,
     ) -> Result<TensorAny<R, T, B, IxD>> {
         into_compatible_shape_f(self, shape, order)
@@ -225,7 +225,7 @@ where
     /// Refer to [`into_compatible_shape`] for more details and examples.
     pub fn into_compatible_shape(
         self,
-        shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+        shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
         order: impl Into<Option<FlagOrder>>,
     ) -> TensorAny<R, T, B, IxD> {
         into_compatible_shape(self, shape, order)
@@ -238,7 +238,7 @@ where
     /// Refer to [`to_compatible_shape`] for more details.
     pub fn to_compatible_shape_f(
         &self,
-        shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+        shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
         order: impl Into<Option<FlagOrder>>,
     ) -> Result<TensorView<'_, T, B, IxD>> {
         to_compatible_shape_f(self, shape, order)
@@ -251,7 +251,7 @@ where
     /// Refer to [`to_compatible_shape`] for more details.
     pub fn to_compatible_shape(
         &self,
-        shape: impl TryInto<AxesIndex<isize>, Error = Error>,
+        shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
         order: impl Into<Option<FlagOrder>>,
     ) -> TensorView<'_, T, B, IxD> {
         to_compatible_shape(self, shape, order)

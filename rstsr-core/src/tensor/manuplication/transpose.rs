@@ -5,9 +5,9 @@ use crate::prelude_dev::*;
 pub fn into_transpose_f<I, S, D>(tensor: TensorBase<S, D>, axes: I) -> Result<TensorBase<S, D>>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
 {
-    let axes = axes.try_into()?;
+    let axes = axes.try_into().map_err(Into::into)?;
     if axes.as_ref().is_empty() {
         return Ok(into_reverse_axes(tensor));
     }
@@ -24,7 +24,7 @@ where
 pub fn transpose<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axes: I) -> TensorView<'_, T, B, D>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
@@ -34,7 +34,7 @@ where
 pub fn transpose_f<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axes: I) -> Result<TensorView<'_, T, B, D>>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
@@ -44,7 +44,7 @@ where
 pub fn into_transpose<I, S, D>(tensor: TensorBase<S, D>, axes: I) -> TensorBase<S, D>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
+    I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
 {
     into_transpose_f(tensor, axes).rstsr_unwrap()
 }
@@ -67,14 +67,14 @@ where
     /// [`transpose`]
     pub fn transpose<I>(&self, axes: I) -> TensorView<'_, T, B, D>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         transpose(self, axes)
     }
 
     pub fn transpose_f<I>(&self, axes: I) -> Result<TensorView<'_, T, B, D>>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         transpose_f(self, axes)
     }
@@ -86,14 +86,14 @@ where
     /// [`transpose`]
     pub fn into_transpose<I>(self, axes: I) -> TensorAny<R, T, B, D>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         into_transpose(self, axes)
     }
 
     pub fn into_transpose_f<I>(self, axes: I) -> Result<TensorAny<R, T, B, D>>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         into_transpose_f(self, axes)
     }
@@ -105,14 +105,14 @@ where
     /// [`transpose`]
     pub fn permute_dims<I>(&self, axes: I) -> TensorView<'_, T, B, D>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         transpose(self, axes)
     }
 
     pub fn permute_dims_f<I>(&self, axes: I) -> Result<TensorView<'_, T, B, D>>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         transpose_f(self, axes)
     }
@@ -124,14 +124,14 @@ where
     /// [`transpose`]
     pub fn into_permute_dims<I>(self, axes: I) -> TensorAny<R, T, B, D>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         into_transpose(self, axes)
     }
 
     pub fn into_permute_dims_f<I>(self, axes: I) -> Result<TensorAny<R, T, B, D>>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         into_transpose_f(self, axes)
     }
