@@ -120,13 +120,13 @@ where
 /// assert_eq!(x.i((None, Ellipsis, None)).shape(), &[1, 2, 1]);
 /// ```
 ///
+/// ## Notes of accordance
+///
+/// - Array-API: `expand_dims(x, /, axis)` ([`expand_dims` in Array-API](https://data-apis.org/array-api/latest/API_specification/generated/array_api.expand_dims.html))
+/// - NumPy: `expand_dims(a, axis)` ([`numpy.expand_dims`](https://numpy.org/doc/stable/reference/generated/numpy.expand_dims.html))
+/// - RSTSR: `rt::expand_dims(tensor, axes)`
+///
 /// # See also
-///
-/// ## Similar functions from other crates/libraries
-///
-/// - Python Array API standard: [`expand_dims`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.expand_dims.html)
-/// - NumPy: [`numpy.expand_dims`](https://numpy.org/doc/stable/reference/generated/numpy.expand_dims.html)
-/// - PyTorch: [`torch.unsqueeze`](https://pytorch.org/docs/stable/generated/torch.unsqueeze.html)
 ///
 /// ## Related functions in RSTSR
 ///
