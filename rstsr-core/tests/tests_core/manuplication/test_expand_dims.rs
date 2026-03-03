@@ -10,7 +10,7 @@ mod numpy_expand_dims {
 
     #[test]
     fn test_functionality() {
-        // NumPy v2.4.2, lib/tests/test_shape_base.py, TestExpandDims::test_functionality
+        // NumPy v2.4.2, lib/tests/test_shape_base.py, TestExpandDims::test_functionality (line 310)
         crate::specify_test!("test_functionality");
 
         let mut device = TESTCFG.device.clone();
@@ -35,7 +35,7 @@ mod numpy_expand_dims {
 
     #[test]
     fn test_axis_tuple() {
-        // NumPy v2.4.2, lib/tests/test_shape_base.py, TestExpandDims::test_axis_tuple
+        // NumPy v2.4.2, lib/tests/test_shape_base.py, TestExpandDims::test_axis_tuple (line 318)
         crate::specify_test!("test_axis_tuple");
 
         let mut device = TESTCFG.device.clone();
@@ -62,7 +62,7 @@ mod numpy_expand_dims {
 
     #[test]
     fn test_axis_out_of_range() {
-        // NumPy v2.4.2, lib/tests/test_shape_base.py, TestExpandDims::test_axis_out_of_range
+        // NumPy v2.4.2, lib/tests/test_shape_base.py, TestExpandDims::test_axis_out_of_range (line 325)
         crate::specify_test!("test_axis_out_of_range");
 
         let mut device = TESTCFG.device.clone();
@@ -89,7 +89,7 @@ mod numpy_expand_dims {
 
     #[test]
     fn test_repeated_axis() {
-        // NumPy v2.4.2, lib/tests/test_shape_base.py, TestExpandDims::test_repeated_axis
+        // NumPy v2.4.2, lib/tests/test_shape_base.py, TestExpandDims::test_repeated_axis (line 335)
         crate::specify_test!("test_repeated_axis");
 
         let mut device = TESTCFG.device.clone();
