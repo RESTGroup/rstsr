@@ -17,6 +17,7 @@ rstsr-linalg-traits = { workspace = true, optional = true }
 rstsr-sci-traits = { workspace = true, optional = true }
 # device dependencies
 rstsr-openblas = { workspace = true, optional = true }
+rstsr-accelerate = { workspace = true, optional = true }
 rstsr-mkl = { workspace = true, optional = true }
 rstsr-blis = { workspace = true, optional = true }
 rstsr-aocl = { workspace = true, optional = true }
@@ -33,7 +34,7 @@ default = ["std", "backtrace", "rstsr-core/default", "faer", "faer_as_default"]
 std = ["rstsr-core/std"]
 backtrace = ["rstsr-core/backtrace"]
 rayon = ["rstsr-core/rayon"]
-faer = ["rstsr-core/faer", "rstsr-linalg-traits?/faer", "rstsr-sci-traits?/faer", "rstsr-openblas?/faer", "rstsr-mkl?/faer", "rstsr-blis?/faer", "rstsr-aocl?/faer", "rstsr-kml?/faer"]
+faer = ["rstsr-core/faer", "rstsr-linalg-traits?/faer", "rstsr-sci-traits?/faer", "rstsr-openblas?/faer", "rstsr-accelerate?/faer", "rstsr-mkl?/faer", "rstsr-blis?/faer", "rstsr-aocl?/faer", "rstsr-kml?/faer"]
 faer_as_default = ["rstsr-core/faer_as_default", "faer"]
 row_major = ["rstsr-core/row_major"]
 col_major = ["rstsr-core/col_major"]
@@ -42,19 +43,20 @@ dispatch_dim_layout_iter = ["rstsr-core/dispatch_dim_layout_iter"]
 
 # rstsr BLAS device features
 openblas = ["dep:rstsr-openblas"]
+accelerate = ["dep:rstsr-accelerate"]
 mkl = ["dep:rstsr-mkl"]
 blis = ["dep:rstsr-blis"]
 aocl = ["dep:rstsr-aocl"]
 kml = ["dep:rstsr-kml"]
 
 # dependencies specification
-linalg = ["dep:rstsr-linalg-traits", "rstsr-openblas?/linalg", "rstsr-mkl?/linalg", "rstsr-blis?/linalg", "rstsr-aocl?/linalg", "rstsr-kml?/linalg"]
-sci = ["dep:rstsr-sci-traits", "rstsr-openblas?/sci", "rstsr-mkl?/sci", "rstsr-blis?/sci", "rstsr-aocl?/sci", "rstsr-kml?/sci"]
+linalg = ["dep:rstsr-linalg-traits", "rstsr-openblas?/linalg", "rstsr-accelerate?/linalg", "rstsr-mkl?/linalg", "rstsr-blis?/linalg", "rstsr-aocl?/linalg", "rstsr-kml?/linalg"]
+sci = ["dep:rstsr-sci-traits", "rstsr-openblas?/sci", "rstsr-accelerate?/sci", "rstsr-mkl?/sci", "rstsr-blis?/sci", "rstsr-aocl?/sci", "rstsr-kml?/sci"]
 tblis = ["dep:rstsr-tblis"]
 
 # BLAS configurations
-dynamic_loading = ["rstsr-openblas?/dynamic_loading", "rstsr-mkl?/dynamic_loading", "rstsr-blis?/dynamic_loading", "rstsr-aocl?/dynamic_loading", "rstsr-kml?/dynamic_loading"]
-ilp64 = ["rstsr-openblas?/ilp64", "rstsr-mkl?/ilp64", "rstsr-blis?/ilp64", "rstsr-aocl?/ilp64", "rstsr-kml?/ilp64"]
+dynamic_loading = ["rstsr-openblas?/dynamic_loading", "rstsr-accelerate?/dynamic_loading", "rstsr-mkl?/dynamic_loading", "rstsr-blis?/dynamic_loading", "rstsr-aocl?/dynamic_loading", "rstsr-kml?/dynamic_loading"]
+ilp64 = ["rstsr-openblas?/ilp64", "rstsr-accelerate?/ilp64", "rstsr-mkl?/ilp64", "rstsr-blis?/ilp64", "rstsr-aocl?/ilp64", "rstsr-kml?/ilp64"]
 
 [package.metadata.docs.rs]
 features = ["default", "openblas", "linalg", "sci", "tblis"]
