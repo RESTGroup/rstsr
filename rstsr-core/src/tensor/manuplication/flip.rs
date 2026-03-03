@@ -7,10 +7,12 @@ use crate::prelude_dev::*;
 /// # See also
 ///
 /// Refer to [`flip`] for more detailed documentation.
-pub fn into_flip_f<I, S, D>(tensor: TensorBase<S, D>, axes: I) -> Result<TensorBase<S, D>>
+pub fn into_flip_f<S, D>(
+    tensor: TensorBase<S, D>,
+    axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
+) -> Result<TensorBase<S, D>>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
 {
     let (storage, mut layout) = tensor.into_raw_parts();
     let mut axes = normalize_axes_index(axes.try_into().map_err(Into::into)?, layout.ndim(), false)?;
@@ -134,12 +136,17 @@ where
 /// - If some index in `axes` is greater than the number of axes in the original tensor.
 /// - If `axes` has duplicated values.
 ///
+/// # Notes of accordance
+///
+/// - Array-API: `flip(x, /, *, axis=None)` ([`flip`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.flip.html))
+/// - NumPy: `flip(m, axis=None)` ([`numpy.flip`](https://numpy.org/doc/stable/reference/generated/numpy.flip.html))
+/// - RSTSR: `rt::flip(tensor, axes)`
+///
+/// Please note that RSTSR and NumPy differ in behavior when passing an empty tuple for `axes`:
+/// - RSTSR: `a.flip(())` flips all axes (same as `a.flip(None)`)
+/// - NumPy: `np.flip(a, ())` flips no axes (returns a view without flipping)
+///
 /// # See also
-///
-/// ## Similar function from other crates/libraries
-///
-/// - Python Array API standard: [`flip`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.flip.html)
-/// - NumPy: [`numpy.flip`](https://numpy.org/doc/stable/reference/generated/numpy.flip.html)
 ///
 /// ## Related functions in RSTSR
 ///
@@ -158,10 +165,12 @@ where
 ///   - [`TensorAny::flip_f`]
 ///   - [`TensorAny::into_flip`]
 ///   - [`TensorAny::into_flip_f`]
-pub fn flip<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axes: I) -> TensorView<'_, T, B, D>
+pub fn flip<R, T, B, D>(
+    tensor: &TensorAny<R, T, B, D>,
+    axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
+) -> TensorView<'_, T, B, D>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
@@ -173,10 +182,12 @@ where
 /// # See also
 ///
 /// Refer to [`flip`] for more detailed documentation.
-pub fn flip_f<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axes: I) -> Result<TensorView<'_, T, B, D>>
+pub fn flip_f<R, T, B, D>(
+    tensor: &TensorAny<R, T, B, D>,
+    axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
+) -> Result<TensorView<'_, T, B, D>>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
@@ -188,10 +199,12 @@ where
 /// # See also
 ///
 /// Refer to [`flip`] for more detailed documentation.
-pub fn into_flip<I, S, D>(tensor: TensorBase<S, D>, axes: I) -> TensorBase<S, D>
+pub fn into_flip<S, D>(
+    tensor: TensorBase<S, D>,
+    axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
+) -> TensorBase<S, D>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
 {
     into_flip_f(tensor, axes).rstsr_unwrap()
 }
@@ -207,17 +220,11 @@ where
     /// # See also
     ///
     /// Refer to [`flip`] for more detailed documentation.
-    pub fn flip<I>(&self, axis: I) -> TensorView<'_, T, B, D>
-    where
-        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
-    {
+    pub fn flip(&self, axis: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> TensorView<'_, T, B, D> {
         flip(self, axis)
     }
 
-    pub fn flip_f<I>(&self, axis: I) -> Result<TensorView<'_, T, B, D>>
-    where
-        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
-    {
+    pub fn flip_f(&self, axis: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> Result<TensorView<'_, T, B, D>> {
         flip_f(self, axis)
     }
 
@@ -226,10 +233,7 @@ where
     /// # See also
     ///
     /// Refer to [`flip`] for more detailed documentation.
-    pub fn into_flip<I>(self, axis: I) -> TensorAny<R, T, B, D>
-    where
-        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
-    {
+    pub fn into_flip(self, axis: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> TensorAny<R, T, B, D> {
         into_flip(self, axis)
     }
 
@@ -238,45 +242,12 @@ where
     /// # See also
     ///
     /// Refer to [`flip`] for more detailed documentation.
-    pub fn into_flip_f<I>(self, axis: I) -> Result<TensorAny<R, T, B, D>>
-    where
-        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
-    {
+    pub fn into_flip_f(
+        self,
+        axis: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
+    ) -> Result<TensorAny<R, T, B, D>> {
         into_flip_f(self, axis)
     }
 }
 
 /* #endregion */
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn doc_flip() {
-        use rstsr::prelude::*;
-
-        let mut device = DeviceCpu::default();
-        device.set_default_order(RowMajor);
-
-        let a = rt::arange((8, &device)).into_shape([2, 2, 2]);
-        let a_expected = rt::tensor_from_nested!([[[0, 1], [2, 3]], [[4, 5], [6, 7]]], &device);
-        assert!(rt::allclose(&a, &a_expected, None));
-
-        let b = a.flip(0);
-        let b_expected = rt::tensor_from_nested!([[[4, 5], [6, 7]], [[0, 1], [2, 3]]], &device);
-        assert!(rt::allclose(&b, &b_expected, None));
-        let b_sliced = a.i(slice!(None, None, -1));
-        assert!(rt::allclose(&b_sliced, &b_expected, None));
-
-        let b = a.flip(1);
-        let b_expected = rt::tensor_from_nested!([[[2, 3], [0, 1]], [[6, 7], [4, 5]]], &device);
-        assert!(rt::allclose(&b, &b_expected, None));
-
-        let b = a.flip([0, -1]);
-        let b_expected = rt::tensor_from_nested!([[[5, 4], [7, 6]], [[1, 0], [3, 2]]], &device);
-        assert!(rt::allclose(&b, &b_expected, None));
-
-        let b = a.flip(None);
-        let b_expected = rt::tensor_from_nested!([[[7, 6], [5, 4]], [[3, 2], [1, 0]]], &device);
-        assert!(rt::allclose(&b, &b_expected, None));
-    }
-}

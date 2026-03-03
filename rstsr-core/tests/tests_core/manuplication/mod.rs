@@ -1,4 +1,5 @@
 pub mod test_expand_dims;
+pub mod test_flip;
 pub mod test_into_compatible_shape;
 pub mod test_reshape;
 
