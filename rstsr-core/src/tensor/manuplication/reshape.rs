@@ -906,7 +906,7 @@ where
 ///
 /// You may encounter ownership problem when you try to assign a reshaped tensor like this:
 ///
-/// ```rust,compile_fail
+/// ```compile_fail
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
 /// # device.set_default_order(RowMajor);
