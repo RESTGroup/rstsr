@@ -15,10 +15,11 @@ where
     D: DimAPI,
 {
     let (storage, mut layout) = tensor.into_raw_parts();
-    let mut axes = normalize_axes_index(axes.try_into().map_err(Into::into)?, layout.ndim(), false)?;
-    if axes.is_empty() {
-        axes = (0..layout.ndim() as isize).collect();
-    }
+    let axes = axes.try_into().map_err(Into::into)?;
+    let axes = match axes {
+        AxesIndex::None => (0..layout.ndim() as isize).collect(),
+        _ => normalize_axes_index(axes, layout.ndim(), false)?,
+    };
     for axis in axes {
         layout = layout.dim_narrow(axis, slice!(None, None, -1))?;
     }
@@ -40,7 +41,9 @@ where
 ///   - Axis or axes along which to flip over.
 ///   - If `axes` is a single integer, flipping is performed along that axis.
 ///   - If `axes` is a tuple/list of integers, flipping is performed on all specified axes.
-///   - If `axes` is empty, the function will flip over all axes.
+///   - If `axes` is `None`, the function will flip over all axes.
+///   - If `axes` is an empty tuple `()`, no axes are flipped (returns a view of the original
+///     tensor).
 ///   - Negative values are supported and indicate counting dimensions from the back.
 ///
 /// # Returns
@@ -118,7 +121,7 @@ where
 ///
 /// ## Flipping all axes
 ///
-/// You can specify `None` or empty tuple `()` to flip all axes:
+/// You can specify `None` to flip all axes:
 ///
 /// ```rust
 /// # use rstsr::prelude::*;
@@ -129,6 +132,20 @@ where
 /// let b = a.flip(None);
 /// let b_expected = rt::tensor_from_nested!([[[7, 6], [5, 4]], [[3, 2], [1, 0]]], &device);
 /// assert!(rt::allclose(&b, &b_expected, None));
+/// ```
+///
+/// ## No flipping (empty axes)
+///
+/// You can specify an empty tuple `()` to flip no axes (returns a view of the original tensor):
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// #
+/// # let a = rt::arange((8, &device)).into_shape([2, 2, 2]);
+/// let b = a.flip(());
+/// assert!(rt::allclose(&b, &a, None));
 /// ```
 ///
 /// # Panics
@@ -142,9 +159,9 @@ where
 /// - NumPy: `flip(m, axis=None)` ([`numpy.flip`](https://numpy.org/doc/stable/reference/generated/numpy.flip.html))
 /// - RSTSR: `rt::flip(tensor, axes)`
 ///
-/// Please note that RSTSR and NumPy differ in behavior when passing an empty tuple for `axes`:
-/// - RSTSR: `a.flip(())` flips all axes (same as `a.flip(None)`)
-/// - NumPy: `np.flip(a, ())` flips no axes (returns a view without flipping)
+/// RSTSR's behavior matches NumPy and Array-API:
+/// - `a.flip(None)` flips all axes
+/// - `a.flip(())` flips no axes (returns a view of the original tensor)
 ///
 /// # See also
 ///

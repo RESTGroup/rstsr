@@ -164,10 +164,7 @@ mod numpy_flip {
         let a = rt::tensor_from_nested!([[[0, 1], [2, 3]], [[4, 5], [6, 7]]], &device);
 
         // assert_equal(np.flip(a, axis=()), a)
-        // Note: In NumPy, axis=() means no axes to flip, so the result equals the original array.
-        // In RSTSR, empty tuple () is treated the same as None (flip all axes).
-        // This behavioral difference is due to RSTSR's implementation choice.
-        // assert_equal(a.flip(()), &a, None);  // Not applicable for RSTSR
+        assert_equal(a.flip(()), &a, None);
 
         // b = np.array([[[5, 4], [7, 6]], [[1, 0], [3, 2]]])
         let b = rt::tensor_from_nested!([[[5, 4], [7, 6]], [[1, 0], [3, 2]]], &device);
@@ -238,8 +235,12 @@ mod docs_flip {
         let b_expected = rt::tensor_from_nested!([[[7, 6], [5, 4]], [[3, 2], [1, 0]]], &device);
         assert!(rt::allclose(&b, &b_expected, None));
 
-        // Flipping all axes with empty tuple
+        // No fliping any axis with empty tuple
         let b = a.flip(());
+        assert!(rt::allclose(&b, &a, None));
+
+        // Flipping all axes with empty tuple
+        let b = a.flip(None);
         assert!(rt::allclose(&b, &b_expected, None));
     }
 }
