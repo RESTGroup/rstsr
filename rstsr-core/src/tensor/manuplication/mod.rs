@@ -220,6 +220,7 @@ mod tests {
     use crate::prelude_dev::*;
 
     #[test]
+    #[allow(deprecated)]
     fn test_to_shape_assume_contig() {
         let a = linspace((2.5, 3.2, 16));
         let b = a.to_shape_assume_contig_f([4, 4]).unwrap();
@@ -293,6 +294,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn test_broadcast_to() {
         #[cfg(not(feature = "col_major"))]
         {

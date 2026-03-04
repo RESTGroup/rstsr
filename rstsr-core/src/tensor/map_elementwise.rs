@@ -473,7 +473,7 @@ mod tests_fnmut {
             // a = np.arange(1, 7).reshape(2, 3)
             // b = np.arange(1, 4)
             // (2 * a + 3 * b).reshape(-1)
-            let a = linspace((1., 6., 6, &device)).into_shape_assume_contig([2, 3]);
+            let a = linspace((1., 6., 6, &device)).into_shape([2, 3]);
             let b = linspace((1., 3., 3, &device));
             let c = a.mapvb_fnmut(&b, f);
             assert_eq!(i, 6);
@@ -485,7 +485,7 @@ mod tests_fnmut {
             // a = reshape(range(1, 6), (3, 2))
             // b = reshape(range(1, 3), 3)
             // 2 * a .+ 3 * b
-            let a = linspace((1., 6., 6, &device)).into_shape_assume_contig([3, 2]);
+            let a = linspace((1., 6., 6, &device)).into_shape([3, 2]);
             let b = linspace((1., 3., 3, &device));
             let c = a.mapvb_fnmut(&b, f);
             assert_eq!(i, 6);
@@ -516,7 +516,7 @@ mod tests_sync {
             // a = np.arange(1, 7).reshape(2, 3)
             // b = np.arange(1, 4)
             // (2 * a + 3 * b).reshape(-1)
-            let a = linspace((1., 6., 6)).into_shape_assume_contig([2, 3]);
+            let a = linspace((1., 6., 6)).into_shape([2, 3]);
             let b = linspace((1., 3., 3));
             let c = a.mapvb(&b, f);
             assert!(allclose_f64(&c.raw().into(), &vec![5., 10., 15., 11., 16., 21.].into()));
@@ -526,7 +526,7 @@ mod tests_sync {
             // a = reshape(range(1, 6), (3, 2))
             // b = reshape(range(1, 3), 3)
             // 2 * a .+ 3 * b
-            let a = linspace((1., 6., 6)).into_shape_assume_contig([3, 2]);
+            let a = linspace((1., 6., 6)).into_shape([3, 2]);
             let b = linspace((1., 3., 3));
             let c = a.mapvb(&b, f);
             assert!(allclose_f64(&c.raw().into(), &vec![5., 10., 15., 11., 16., 21.].into()));

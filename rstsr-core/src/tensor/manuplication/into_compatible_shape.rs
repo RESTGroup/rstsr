@@ -262,6 +262,25 @@ where
 
 /* #region reshape_assume_contig (deprecated) */
 
+/// Assuming contiguous array, reshapes an array without changing its data (falling variant).
+///
+/// # Deprecated
+///
+/// This function is deprecated since version 0.6.2. Use [`into_compatible_shape_f`] instead
+/// which provides the same functionality with a more consistent API.
+///
+/// # Migration Guide
+///
+/// ```ignore
+/// // Before
+/// let result = into_shape_assume_contig_f(tensor, shape)?;
+///
+/// // After
+/// let result = into_compatible_shape_f(tensor, shape, RowMajor)?;
+/// // or use the device's default order
+/// let result = into_compatible_shape_f(tensor, shape, tensor.device().default_order())?;
+/// ```
+#[deprecated(since = "0.6.2", note = "Use `into_compatible_shape_f` instead with explicit order argument")]
 pub fn into_shape_assume_contig_f<R, T, B, D, D2>(
     tensor: TensorAny<R, T, B, D>,
     shape: D2,
@@ -292,11 +311,30 @@ where
 /// Assuming contiguous array, reshapes an array without changing its data.
 ///
 /// This function may return c-contiguous or f-contiguous array depending on
-/// crate feature `f_prefer`.
+/// crate feature `col_major`.
+///
+/// # Deprecated
+///
+/// This function is deprecated since version 0.6.2. Use [`to_compatible_shape`] instead
+/// which provides the same functionality with a more consistent API.
+///
+/// # Migration Guide
+///
+/// ```ignore
+/// // Before
+/// let view = to_shape_assume_contig(&tensor, shape);
+///
+/// // After
+/// let view = to_compatible_shape(&tensor, shape, RowMajor);
+/// // or use the device's default order
+/// let view = to_compatible_shape(&tensor, shape, tensor.device().default_order());
+/// ```
 ///
 /// # See also
 ///
 /// [Python array API standard: `reshape`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.reshape.html)
+#[deprecated(since = "0.6.2", note = "Use `to_compatible_shape` instead with explicit order argument")]
+#[allow(deprecated)]
 pub fn to_shape_assume_contig<R, T, B, D, D2>(tensor: &TensorAny<R, T, B, D>, shape: D2) -> TensorView<'_, T, B, D2>
 where
     D: DimAPI,
@@ -307,6 +345,26 @@ where
     into_shape_assume_contig_f(tensor.view(), shape).rstsr_unwrap()
 }
 
+/// Assuming contiguous array, reshapes an array without changing its data (falling variant).
+///
+/// # Deprecated
+///
+/// This function is deprecated since version 0.6.2. Use [`to_compatible_shape_f`] instead
+/// which provides the same functionality with a more consistent API.
+///
+/// # Migration Guide
+///
+/// ```ignore
+/// // Before
+/// let result = to_shape_assume_contig_f(&tensor, shape)?;
+///
+/// // After
+/// let result = to_compatible_shape_f(&tensor, shape, RowMajor)?;
+/// // or use the device's default order
+/// let result = to_compatible_shape_f(&tensor, shape, tensor.device().default_order())?;
+/// ```
+#[deprecated(since = "0.6.2", note = "Use `to_compatible_shape_f` instead with explicit order argument")]
+#[allow(deprecated)]
 pub fn to_shape_assume_contig_f<R, T, B, D, D2>(
     tensor: &TensorAny<R, T, B, D>,
     shape: D2,
@@ -320,6 +378,26 @@ where
     into_shape_assume_contig_f(tensor.view(), shape)
 }
 
+/// Assuming contiguous array, reshapes an array without changing its data.
+///
+/// # Deprecated
+///
+/// This function is deprecated since version 0.6.2. Use [`into_compatible_shape`] instead
+/// which provides the same functionality with a more consistent API.
+///
+/// # Migration Guide
+///
+/// ```ignore
+/// // Before
+/// let result = into_shape_assume_contig(tensor, shape);
+///
+/// // After
+/// let result = into_compatible_shape(tensor, shape, RowMajor);
+/// // or use the device's default order
+/// let result = into_compatible_shape(tensor, shape, tensor.device().default_order());
+/// ```
+#[deprecated(since = "0.6.2", note = "Use `into_compatible_shape` instead with explicit order argument")]
+#[allow(deprecated)]
 pub fn into_shape_assume_contig<R, T, B, D, D2>(tensor: TensorAny<R, T, B, D>, shape: D2) -> TensorAny<R, T, B, D2>
 where
     R: DataAPI<Data = B::Raw>,
@@ -330,7 +408,11 @@ where
     into_shape_assume_contig_f(tensor, shape).rstsr_unwrap()
 }
 
+#[deprecated(since = "0.6.2", note = "Use `to_compatible_shape` instead with explicit order argument")]
+#[allow(deprecated)]
 pub use to_shape_assume_contig as reshape_assume_contig;
+#[deprecated(since = "0.6.2", note = "Use `to_compatible_shape_f` instead with explicit order argument")]
+#[allow(deprecated)]
 pub use to_shape_assume_contig_f as reshape_assume_contig_f;
 
 impl<R, T, B, D> TensorAny<R, T, B, D>
@@ -341,9 +423,24 @@ where
 {
     /// Assuming contiguous array, reshapes an array without changing its data.
     ///
-    /// # See also
+    /// # Deprecated
     ///
-    /// [`reshape_assume_contig`]
+    /// This method is deprecated since version 0.6.2. Use [`to_compatible_shape`] instead
+    /// which provides the same functionality with a more consistent API.
+    ///
+    /// # Migration Guide
+    ///
+    /// ```ignore
+    /// // Before
+    /// let view = tensor.reshape_assume_contig(shape);
+    ///
+    /// // After
+    /// let view = tensor.to_compatible_shape(shape, RowMajor);
+    /// // or use the device's default order
+    /// let view = tensor.to_compatible_shape(shape, tensor.device().default_order());
+    /// ```
+    #[deprecated(since = "0.6.2", note = "Use `to_compatible_shape` instead with explicit order argument")]
+    #[allow(deprecated)]
     pub fn reshape_assume_contig<D2>(&self, shape: D2) -> TensorView<'_, T, B, D2>
     where
         D2: DimAPI,
@@ -351,6 +448,26 @@ where
         into_shape_assume_contig(self.view(), shape)
     }
 
+    /// Assuming contiguous array, reshapes an array without changing its data (falling variant).
+    ///
+    /// # Deprecated
+    ///
+    /// This method is deprecated since version 0.6.2. Use [`to_compatible_shape_f`] instead
+    /// which provides the same functionality with a more consistent API.
+    ///
+    /// # Migration Guide
+    ///
+    /// ```ignore
+    /// // Before
+    /// let result = tensor.reshape_assume_contig_f(shape)?;
+    ///
+    /// // After
+    /// let result = tensor.to_compatible_shape_f(shape, RowMajor)?;
+    /// // or use the device's default order
+    /// let result = tensor.to_compatible_shape_f(shape, tensor.device().default_order())?;
+    /// ```
+    #[deprecated(since = "0.6.2", note = "Use `to_compatible_shape_f` instead with explicit order argument")]
+    #[allow(deprecated)]
     pub fn reshape_assume_contig_f<D2>(&self, shape: D2) -> Result<TensorView<'_, T, B, D2>>
     where
         D2: DimAPI,
@@ -358,6 +475,26 @@ where
         into_shape_assume_contig_f(self.view(), shape)
     }
 
+    /// Assuming contiguous array, reshapes an array without changing its data.
+    ///
+    /// # Deprecated
+    ///
+    /// This method is deprecated since version 0.6.2. Use [`to_compatible_shape`] instead
+    /// which provides the same functionality with a more consistent API.
+    ///
+    /// # Migration Guide
+    ///
+    /// ```ignore
+    /// // Before
+    /// let view = tensor.to_shape_assume_contig(shape);
+    ///
+    /// // After
+    /// let view = tensor.to_compatible_shape(shape, RowMajor);
+    /// // or use the device's default order
+    /// let view = tensor.to_compatible_shape(shape, tensor.device().default_order());
+    /// ```
+    #[deprecated(since = "0.6.2", note = "Use `to_compatible_shape` instead with explicit order argument")]
+    #[allow(deprecated)]
     pub fn to_shape_assume_contig<D2>(&self, shape: D2) -> TensorView<'_, T, B, D2>
     where
         D2: DimAPI,
@@ -365,6 +502,26 @@ where
         into_shape_assume_contig(self.view(), shape)
     }
 
+    /// Assuming contiguous array, reshapes an array without changing its data (falling variant).
+    ///
+    /// # Deprecated
+    ///
+    /// This method is deprecated since version 0.6.2. Use [`to_compatible_shape_f`] instead
+    /// which provides the same functionality with a more consistent API.
+    ///
+    /// # Migration Guide
+    ///
+    /// ```ignore
+    /// // Before
+    /// let result = tensor.to_shape_assume_contig_f(shape)?;
+    ///
+    /// // After
+    /// let result = tensor.to_compatible_shape_f(shape, RowMajor)?;
+    /// // or use the device's default order
+    /// let result = tensor.to_compatible_shape_f(shape, tensor.device().default_order())?;
+    /// ```
+    #[deprecated(since = "0.6.2", note = "Use `to_compatible_shape_f` instead with explicit order argument")]
+    #[allow(deprecated)]
     pub fn to_shape_assume_contig_f<D2>(&self, shape: D2) -> Result<TensorView<'_, T, B, D2>>
     where
         D2: DimAPI,
@@ -372,6 +529,26 @@ where
         into_shape_assume_contig_f(self.view(), shape)
     }
 
+    /// Assuming contiguous array, reshapes an array without changing its data.
+    ///
+    /// # Deprecated
+    ///
+    /// This method is deprecated since version 0.6.2. Use [`into_compatible_shape`] instead
+    /// which provides the same functionality with a more consistent API.
+    ///
+    /// # Migration Guide
+    ///
+    /// ```ignore
+    /// // Before
+    /// let result = tensor.into_shape(shape);
+    ///
+    /// // After
+    /// let result = tensor.into_compatible_shape(shape, RowMajor);
+    /// // or use the device's default order
+    /// let result = tensor.into_compatible_shape(shape, tensor.device().default_order());
+    /// ```
+    #[deprecated(since = "0.6.2", note = "Use `into_compatible_shape` instead with explicit order argument")]
+    #[allow(deprecated)]
     pub fn into_shape_assume_contig<D2>(self, shape: D2) -> TensorAny<R, T, B, D2>
     where
         D2: DimAPI,
@@ -379,6 +556,26 @@ where
         into_shape_assume_contig(self, shape)
     }
 
+    /// Assuming contiguous array, reshapes an array without changing its data (falling variant).
+    ///
+    /// # Deprecated
+    ///
+    /// This method is deprecated since version 0.6.2. Use [`into_compatible_shape_f`] instead
+    /// which provides the same functionality with a more consistent API.
+    ///
+    /// # Migration Guide
+    ///
+    /// ```ignore
+    /// // Before
+    /// let result = tensor.into_shape_assume_contig_f(shape)?;
+    ///
+    /// // After
+    /// let result = tensor.into_compatible_shape_f(shape, RowMajor)?;
+    /// // or use the device's default order
+    /// let result = tensor.into_compatible_shape_f(shape, tensor.device().default_order())?;
+    /// ```
+    #[deprecated(since = "0.6.2", note = "Use `into_compatible_shape_f` instead with explicit order argument")]
+    #[allow(deprecated)]
     pub fn into_shape_assume_contig_f<D2>(self, shape: D2) -> Result<TensorAny<R, T, B, D2>>
     where
         D2: DimAPI,
