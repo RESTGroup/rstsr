@@ -5,6 +5,7 @@ pub mod test_into_compatible_shape;
 pub mod test_into_dim;
 pub mod test_reshape;
 pub mod test_squeeze;
+pub mod test_to_contig;
 pub mod test_transpose;
 
 pub static CATEGORY: &str = "manuplication";

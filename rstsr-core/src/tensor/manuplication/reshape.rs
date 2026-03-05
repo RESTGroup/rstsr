@@ -237,7 +237,8 @@ where
     into_shape_with_args_f(tensor, shape, args).rstsr_unwrap()
 }
 
-/// Reshapes the given tensor to the specified shape.
+/// Reshapes the given tensor to the specified shape, with argument specifying the order and whether
+/// to copy data.
 ///
 /// # See also
 ///
@@ -513,7 +514,8 @@ where
         into_shape_with_args(self, shape, args)
     }
 
-    /// Reshapes the given tensor to the specified shape.
+    /// Reshapes the given tensor to the specified shape, with argument specifying the order and
+    /// whether to copy data.
     ///
     /// # See also
     ///
@@ -526,7 +528,8 @@ where
         reshape_with_args(self, shape, args)
     }
 
-    /// Reshapes the given tensor to the specified shape.
+    /// Reshapes the given tensor to the specified shape, with argument specifying the order and
+    /// whether to copy data.
     ///
     /// # See also
     ///
