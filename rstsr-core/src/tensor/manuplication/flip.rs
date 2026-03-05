@@ -34,7 +34,9 @@ where
 ///
 /// - `tensor`: [`&TensorAny<R, T, B, D>`](TensorAny)
 ///
-///   - The input tensor to be flipped.
+///   - The input tensor.
+///   - Note on variant [`into_flip`]: This takes ownership [`Tensor<R, T, B, D>`] of input tensor,
+///     and will not perform change to underlying data, only layout changes.
 ///
 /// - `axes`: TryInto [`AxesIndex<isize>`]
 ///
@@ -60,48 +62,54 @@ where
 ///
 /// ## Flipping along a single axis
 ///
-/// Flipping the first (0) axis:
-///
-/// ```rust
-/// use rstsr::prelude::*;
-/// let mut device = DeviceCpu::default();
-/// device.set_default_order(RowMajor);
-///
-/// let a = rt::arange((8, &device)).into_shape([2, 2, 2]);
-/// let b = a.flip(0);
-/// let b_expected = rt::tensor_from_nested!([[[4, 5], [6, 7]], [[0, 1], [2, 3]]], &device);
-/// assert!(rt::allclose(&b, &b_expected, None));
-/// # let b_sliced = a.i(slice!(None, None, -1));
-/// # assert!(rt::allclose(&b_sliced, &b_expected, None));
-/// ```
-///
-/// The flipping is equivalent to slicing with a step of -1 along the specified axis:
-///
+/// Given a 3D tensor of shape (2, 2, 2):
 ///
 /// ```rust
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
 /// # device.set_default_order(RowMajor);
-/// #
+/// let a = rt::arange((8, &device)).into_shape([2, 2, 2]);
+/// println!("{a}");
+/// // [[[ 0 1]
+/// //   [ 2 3]]
+/// //
+/// //  [[ 4 5]
+/// //   [ 6 7]]]
+/// ```
+///
+/// Flipping the first (0) axis (which is equilvant to slicing with step -1 along that axis):
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
 /// # let a = rt::arange((8, &device)).into_shape([2, 2, 2]);
-/// # let b = a.flip(0);
-/// # let b_expected = rt::tensor_from_nested!([[[4, 5], [6, 7]], [[0, 1], [2, 3]]], &device);
-/// # assert!(rt::allclose(&b, &b_expected, None));
-/// let b_sliced = a.i(slice!(None, None, -1));
-/// assert!(rt::allclose(&b_sliced, &b_expected, None));
+/// let b = a.flip(0);
+/// assert!(rt::allclose(a.i(slice!(None, None, -1)), &b, None));
+/// println!("{:}", a.flip(0));
+/// // [[[ 4 5]
+/// //   [ 6 7]]
+/// //
+/// //  [[ 0 1]
+/// //   [ 2 3]]]
 /// ```
 ///
 /// Flipping the second (1) axis:
 ///
+///
 /// ```rust
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
 /// # device.set_default_order(RowMajor);
-/// #
 /// # let a = rt::arange((8, &device)).into_shape([2, 2, 2]);
 /// let b = a.flip(1);
-/// let b_expected = rt::tensor_from_nested!([[[2, 3], [0, 1]], [[6, 7], [4, 5]]], &device);
-/// assert!(rt::allclose(&b, &b_expected, None));
+/// assert!(rt::allclose(a.i((.., slice!(None, None, -1))), &b, None));
+/// println!("{:}", a.flip(1));
+/// // [[[ 2 3]
+/// //   [ 0 1]]
+/// //
+/// //  [[ 6 7]
+/// //   [ 4 5]]]
 /// ```
 ///
 /// ## Flipping along multiple axes
@@ -112,40 +120,48 @@ where
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
 /// # device.set_default_order(RowMajor);
-/// #
 /// # let a = rt::arange((8, &device)).into_shape([2, 2, 2]);
 /// let b = a.flip([0, -1]);
-/// let b_expected = rt::tensor_from_nested!([[[5, 4], [7, 6]], [[1, 0], [3, 2]]], &device);
-/// assert!(rt::allclose(&b, &b_expected, None));
+/// println!("{b}");
+/// // [[[ 5 4]
+/// //   [ 7 6]]
+/// //
+/// //  [[ 1 0]
+/// //   [ 3 2]]]
 /// ```
 ///
 /// ## Flipping all axes
 ///
 /// You can specify `None` to flip all axes:
-///
 /// ```rust
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
 /// # device.set_default_order(RowMajor);
-/// #
 /// # let a = rt::arange((8, &device)).into_shape([2, 2, 2]);
 /// let b = a.flip(None);
-/// let b_expected = rt::tensor_from_nested!([[[7, 6], [5, 4]], [[3, 2], [1, 0]]], &device);
-/// assert!(rt::allclose(&b, &b_expected, None));
+/// println!("{b}");
+/// // [[[ 7 6]
+/// //   [ 5 4]]
+/// //
+/// //  [[ 3 2]
+/// //   [ 1 0]]]
 /// ```
 ///
 /// ## No flipping (empty axes)
 ///
 /// You can specify an empty tuple `()` to flip no axes (returns a view of the original tensor):
-///
 /// ```rust
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
 /// # device.set_default_order(RowMajor);
-/// #
 /// # let a = rt::arange((8, &device)).into_shape([2, 2, 2]);
 /// let b = a.flip(());
-/// assert!(rt::allclose(&b, &a, None));
+/// println!("{b}");
+/// // [[[ 0 1]
+/// //   [ 2 3]]
+/// //
+/// //  [[ 4 5]
+/// //   [ 6 7]]]
 /// ```
 ///
 /// # Panics
