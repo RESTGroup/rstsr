@@ -108,15 +108,12 @@ where
 
 /* #region reshape_with_args */
 
-/// Reshapes the given tensor to the specified shape.
+/// Reshapes the given tensor to the specified shape, with argument specifying the order and whether
+/// to copy data.
 ///
 /// # See also
 ///
 /// Refer to [`reshape_with_args`] for more details and examples.
-///
-/// # Developer Note
-///
-/// This function implements the core logic of reshaping.
 pub fn change_shape_with_args_f<'a, R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
     shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -171,7 +168,8 @@ where
     return unsafe { Ok(TensorBase::new_unchecked(storage_new, layout_new).into_cow()) };
 }
 
-/// Reshapes the given tensor to the specified shape.
+/// Reshapes the given tensor to the specified shape, with argument specifying the order and whether
+/// to copy data.
 ///
 /// # See also
 ///
@@ -189,7 +187,8 @@ where
     change_shape_with_args_f(tensor, shape, args).rstsr_unwrap()
 }
 
-/// Reshapes the given tensor to the specified shape.
+/// Reshapes the given tensor to the specified shape, with argument specifying the order and whether
+/// to copy data.
 ///
 /// # See also
 ///
@@ -213,7 +212,8 @@ where
     change_shape_with_args_f(tensor, shape, args).map(|v| v.into_owned())
 }
 
-/// Reshapes the given tensor to the specified shape.
+/// Reshapes the given tensor to the specified shape, with argument specifying the order and whether
+/// to copy data.
 ///
 /// # See also
 ///
@@ -319,28 +319,34 @@ where
 ///
 /// ```rust
 /// # use rstsr::prelude::*;
-/// # let device = DeviceCpu::default();
-/// // Row-major reshape
-/// // a: [[0, 1, 2], [3, 4, 5]]
-/// // b: [[0, 1], [2, 3], [4, 5]]
-/// // iterated sequence: [0, 1, 2, 3, 4, 5]
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
 /// let a = rt::tensor_from_nested!([[0, 1, 2], [3, 4, 5]], &device);
+/// println!("{a}");
+/// // [[ 0 1 2]
+/// //  [ 3 4 5]]
 /// let a_row = rt::tensor_from_nested!([[0, 1], [2, 3], [4, 5]], &device);
-/// assert!(rt::allclose(a.reshape_with_args([3, 2], RowMajor), &a_row, None));
+/// println!("{a_row}");
+/// // [[ 0 1]
+/// //  [ 2 3]
+/// //  [ 4 5]]
 /// ```
 ///
 /// And here is an example of col-major reshape.
 ///
 /// ```rust
 /// # use rstsr::prelude::*;
-/// # let device = DeviceCpu::default();
-/// // Column-major reshape
-/// // a: [[0, 1, 2], [3, 4, 5]]
-/// // b: [[0, 4], [3, 2], [1, 5]]
-/// // iterated sequence: [0, 3, 1, 4, 2, 5]
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
 /// let a = rt::tensor_from_nested!([[0, 1, 2], [3, 4, 5]], &device);
+/// println!("{a}");
+/// // [[ 0 1 2]
+/// //  [ 3 4 5]]
 /// let a_col = rt::tensor_from_nested!([[0, 4], [3, 2], [1, 5]], &device);
-/// assert!(rt::allclose(a.reshape_with_args([3, 2], ColMajor), &a_col, None));
+/// println!("{a_col}");
+/// // [[ 0 4]
+/// //  [ 3 2]
+/// //  [ 1 5]]
 /// ```
 ///
 /// The following example shows that if `copy = false`, then an error will be raised when the new
@@ -349,7 +355,7 @@ where
 /// ```rust
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
-/// device.set_default_order(RowMajor);
+/// # device.set_default_order(RowMajor);
 /// // shape: (4, 6, 9), stride: (72, 9, 1), not c-contiguous
 /// // contiguous situation: (4, [6, 9]), or say the last two dimensions are contiguous
 /// let a = rt::arange((288, &device)).into_shape([4, 8, 9]).into_slice((.., 0..6, ..));
@@ -454,7 +460,8 @@ where
     B: DeviceAPI<T> + DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, D>,
     T: Clone,
 {
-    /// Reshapes the given tensor to the specified shape.
+    /// Reshapes the given tensor to the specified shape, with argument specifying the order and
+    /// whether to copy data.
     ///
     /// # See also
     ///
@@ -467,7 +474,8 @@ where
         change_shape_with_args_f(self, shape, args)
     }
 
-    /// Reshapes the given tensor to the specified shape.
+    /// Reshapes the given tensor to the specified shape, with argument specifying the order and
+    /// whether to copy data.
     ///
     /// # See also
     ///
@@ -480,7 +488,8 @@ where
         change_shape_with_args(self, shape, args)
     }
 
-    /// Reshapes the given tensor to the specified shape.
+    /// Reshapes the given tensor to the specified shape, with argument specifying the order and
+    /// whether to copy data.
     ///
     /// # See also
     ///
@@ -497,7 +506,8 @@ where
         into_shape_with_args_f(self, shape, args)
     }
 
-    /// Reshapes the given tensor to the specified shape.
+    /// Reshapes the given tensor to the specified shape, with argument specifying the order and
+    /// whether to copy data.
     ///
     /// # See also
     ///
@@ -542,7 +552,8 @@ where
         reshape_with_args_f(self, shape, args)
     }
 
-    /// Reshapes the given tensor to the specified shape.
+    /// Reshapes the given tensor to the specified shape, with argument specifying the order and
+    /// whether to copy data.
     ///
     /// # See also
     ///
@@ -555,7 +566,8 @@ where
         to_shape_with_args(self, shape, args)
     }
 
-    /// Reshapes the given tensor to the specified shape.
+    /// Reshapes the given tensor to the specified shape, with argument specifying the order and
+    /// whether to copy data.
     ///
     /// # See also
     ///
@@ -860,16 +872,14 @@ where
 ///
 /// In row-major order, to reshape a vector of (6, ) to a matrix of (2, 3):
 /// ```rust
-/// use rstsr::prelude::*;
-/// let mut device = DeviceCpu::default();
-/// device.set_default_order(RowMajor);
-///
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
 /// let a = rt::arange((6, &device));
-/// let a_reshaped = a.reshape([2, 3]);
-/// let a_expected = rt::tensor_from_nested!(
-///     [[0, 1, 2], [3, 4, 5]],
-///     &device);
-/// assert!(rt::allclose(&a_reshaped, &a_expected, None));
+/// let result = a.reshape([2, 3]);
+/// println!("{result}");
+/// // [[ 0 1 2]
+/// //  [ 3 4 5]]
 /// ```
 ///
 /// You can also use negative dimension, where -1 means "infer this dimension":
@@ -878,14 +888,13 @@ where
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
 /// # device.set_default_order(RowMajor);
-/// #
 /// // in this case, unspecified axes length is inferred as 6 / 3 = 2
 /// let a = rt::arange((6, &device));
-/// let a_reshaped = a.reshape([3, -1]);
-/// let a_expected = rt::tensor_from_nested!(
-///     [[0, 1], [2, 3], [4, 5]],
-///     &device);
-/// assert!(rt::allclose(&a_reshaped, &a_expected, None));
+/// let result = a.reshape([3, -1]);
+/// println!("{result}");
+/// // [[ 0 1]
+/// //  [ 2 3]
+/// //  [ 4 5]]
 /// ```
 ///
 /// # Ownership Semantics between [`reshape`], [`into_shape`] and [`change_shape`]
@@ -988,14 +997,23 @@ where
 /// // a: [[0, 1, 2], [3, 4, 5]]
 /// // b: [[0, 1], [2, 3], [4, 5]]
 /// // iterated sequence: [0, 1, 2, 3, 4, 5]
+///
 /// let a = rt::tensor_from_nested!([[0, 1, 2], [3, 4, 5]], &device);
+/// println!("{a}");
+/// // [[ 0 1 2]
+/// //  [ 3 4 5]]
 /// let b = a.reshape([3, 2]);
-/// let b_expected = rt::tensor_from_nested!([[0, 1], [2, 3], [4, 5]], &device);
-/// assert!(rt::allclose(&b, &b_expected, None));
+/// println!("{b}");
+/// // [[ 0 1]
+/// //  [ 2 3]
+/// //  [ 4 5]]
+///
 /// let a_vec = a.iter().cloned().collect::<Vec<_>>();
+/// println!("{a_vec:?}");
+/// // [0, 1, 2, 3, 4, 5]
 /// let b_vec = b.iter().cloned().collect::<Vec<_>>();
-/// assert_eq!(a_vec, b_vec); // iterated sequence is the same
-/// assert_eq!(a_vec, vec![0, 1, 2, 3, 4, 5]);
+/// println!("{b_vec:?}");
+/// // [0, 1, 2, 3, 4, 5]
 /// ```
 ///
 /// In the column-major order, reshape the same matrix of (2, 3) to (3, 2) will yield a different
@@ -1009,14 +1027,23 @@ where
 /// // a: [[0, 1, 2], [3, 4, 5]]
 /// // b: [[0, 4], [3, 2], [1, 5]]
 /// // iterated sequence: [0, 3, 1, 4, 2, 5]
+///
 /// let a = rt::tensor_from_nested!([[0, 1, 2], [3, 4, 5]], &device);
+/// println!("{a}");
+/// // [[ 0 1 2]
+/// //  [ 3 4 5]]
 /// let b = a.reshape([3, 2]);
-/// let b_expected = rt::tensor_from_nested!([[0, 4], [3, 2], [1, 5]], &device);
-/// assert!(rt::allclose(&b, &b_expected, None));
+/// println!("{b}");
+/// // [[ 0 4]
+/// //  [ 3 2]
+/// //  [ 1 5]]
+///
 /// let a_vec = a.iter().cloned().collect::<Vec<_>>();
+/// println!("{a_vec:?}");
+/// // [0, 3, 1, 4, 2, 5]
 /// let b_vec = b.iter().cloned().collect::<Vec<_>>();
-/// assert_eq!(a_vec, b_vec); // iterated sequence is the same
-/// assert_eq!(a_vec, vec![0, 3, 1, 4, 2, 5]);
+/// println!("{b_vec:?}");
+/// // [0, 3, 1, 4, 2, 5]
 /// ```
 ///
 /// You can also use function [`reshape_with_args`]`(shape, order)` to specify the order for reading
@@ -1038,12 +1065,11 @@ where
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
 /// # device.set_default_order(RowMajor);
-/// // shape: (4, 6, 9), stride: (72, 9, 1), not c-contiguous
 /// // contiguous situation: (4, [6, 9]), or say the last two dimensions are contiguous
 /// let a = rt::arange((288, &device)).into_shape([4, 8, 9]).into_slice((.., 0..6, ..));
-/// assert_eq!(a.shape(), &[4, 6, 9]);
-/// assert_eq!(a.stride(), &[72, 9, 1]);
-/// assert!(!a.c_contig());
+/// println!("{:?}", a.layout());
+/// // 3-Dim (dyn), contiguous: c
+/// // shape: [4, 6, 9], stride: [72, 9, 1], offset: 0
 /// ```
 ///
 /// Those cases will not require data cloning (returns a view, or [`DataCow::Ref`] internally):
@@ -1076,6 +1102,26 @@ where
 /// assert!(a.reshape([24, 9]).is_owned()); // (4, 6, 9) -> (4 * 6, 9)
 /// assert!(a.reshape(-1).is_owned()); // (4, 6, 9) -> (4 * 6 * 9)
 /// assert!(a.reshape([12, 2, 9]).is_owned()); // (4, 6, 9) -> (4 * [3, 2], 9)
+/// ```
+///
+/// Please note that default order of device (row-major or column-major) matters. For the same
+/// tensor slicing, if the device is column major, then behavior of merging contiguous dimensions
+/// can be different:
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(ColMajor);
+/// // contiguous situation: ([4, 6], 9), or say the first two dimensions are contiguous
+/// // this is different to  (4, [6, 9]) in row major case
+/// let a = rt::arange((288, &device)).into_shape([4, 8, 9]).into_slice((.., 0..6, ..));
+/// println!("{:?}", a.layout());
+/// // 3-Dim (dyn), contiguous: f
+/// // shape: [4, 6, 9], stride: [1, 4, 32], offset: 0
+///
+/// // merge dimensions into a single dimension, col-major will be different to row-major case
+/// assert!(a.reshape([4, 54]).is_owned()); // (4, 6, 9) -> (4, 6 * 9)
+/// assert!(!a.reshape([24, 9]).is_owned()); // ([4, 6], 9) -> (4 * 6, 9)
 /// ```
 ///
 /// You can also use function [`reshape_with_args`]`(shape, copy)` to specify whether to copy data

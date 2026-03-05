@@ -37,51 +37,51 @@ use crate::prelude_dev::*;
 /// The following example demonstrates how to use `broadcast_arrays` to broadcast two tensors:
 ///
 /// ```rust
-/// use rstsr::prelude::*;
-/// let mut device = DeviceCpu::default();
-/// device.set_default_order(RowMajor);
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
 ///
 /// let a = rt::asarray((vec![1, 2, 3], &device)).into_shape([3]);
+/// println!("{a}");
+/// // [ 1 2 3]
 /// let b = rt::asarray((vec![4, 5], &device)).into_shape([2, 1]);
+/// println!("{b}");
+/// // [[ 4]
+/// //  [ 5]]
 ///
 /// let result = rt::broadcast_arrays(vec![a, b]);
-/// let expected_a = rt::tensor_from_nested!(
-///     [[1, 2, 3],
-///      [1, 2, 3]],
-///     &device);
-/// let expected_b = rt::tensor_from_nested!(
-///     [[4, 4, 4],
-///      [5, 5, 5]],
-///     &device);
-/// assert!(rt::allclose!(&result[0], &expected_a));
-/// assert!(rt::allclose!(&result[1], &expected_b));
+/// println!("broadcasted a:\n{:}", result[0]);
+/// // [[ 1 2 3]
+/// //  [ 1 2 3]]
+/// println!("broadcasted b:\n{:}", result[1]);
+/// // [[ 4 4 4]
+/// //  [ 5 5 5]]
 /// ```
 ///
 /// Please note that the above code only works in [RowMajor].
 ///
 /// For [ColMajor] order, the broadcasting will fail, because the broadcasting rules are applied
-/// differently, shapes are incompatible. You need to make the following changes to let [ColMajor]
-/// case work:
+/// differently, shapes are incompatible (for col-major, broadcast comparison starts from left
+/// instead of row-major's right):
+///
+/// ```rust,panic
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// device.set_default_order(ColMajor);
+/// let a = rt::asarray((vec![1, 2, 3], &device)).into_shape([3]);
+/// let b = rt::asarray((vec![4, 5], &device)).into_shape([2, 1]);
+/// let result = rt::broadcast_arrays_f(vec![a, b]);
+/// ```
+///
+/// You need to make the following changes to let [ColMajor] case work:
 ///
 /// ```rust
 /// # use rstsr::prelude::*;
-/// let mut device = DeviceCpu::default();
+/// # let mut device = DeviceCpu::default();
 /// device.set_default_order(ColMajor);
-/// // Note shape of `a` changed from [3] to [1, 3]
 /// let a = rt::asarray((vec![1, 2, 3], &device)).into_shape([1, 3]);
 /// let b = rt::asarray((vec![4, 5], &device)).into_shape([2, 1]);
-/// #
-/// # let result = rt::broadcast_arrays(vec![a, b]);
-/// # let expected_a = rt::tensor_from_nested!(
-/// #     [[1, 2, 3],
-/// #      [1, 2, 3]],
-/// #     &device);
-/// # let expected_b = rt::tensor_from_nested!(
-/// #     [[4, 4, 4],
-/// #      [5, 5, 5]],
-/// #     &device);
-/// # assert!(rt::allclose!(&result[0], &expected_a));
-/// # assert!(rt::allclose!(&result[1], &expected_b));
+/// let result = rt::broadcast_arrays_f(vec![a, b]);
 /// ```
 ///
 /// # Panics
@@ -191,6 +191,8 @@ where
 /// - `tensor`: [`&TensorAny<R, T, B, D>`](TensorAny)
 ///
 ///   - The input tensor to be broadcasted.
+///   - Note on variant [`into_broadcast`]: This takes ownership [`Tensor<R, T, B, D>`] of input
+///     tensor, and will not perform change to underlying data, only layout changes.
 ///
 /// - `shape`: impl [`DimAPI`]
 ///
@@ -218,23 +220,22 @@ where
 /// (3-element vector) to a 2-D tensor (2x3 matrix) by repeating the original data along a new axis.
 ///
 /// ```rust
-/// use rstsr::prelude::*;
-/// let mut device = DeviceCpu::default();
-/// device.set_default_order(RowMajor);
-///
-/// let a = rt::tensor_from_nested!([1, 2, 3], &device);
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
 ///
 /// // broadcast (3, ) -> (2, 3) in row-major:
+/// let a = rt::tensor_from_nested!([1, 2, 3], &device);
 /// let result = a.to_broadcast(vec![2, 3]);
-/// let expected = rt::tensor_from_nested!(
-///     [[1, 2, 3],
-///      [1, 2, 3]],
-///     &device);
-/// assert!(rt::allclose!(&result, &expected));
+/// println!("{result}");
+/// // [[ 1 2 3]
+/// //  [ 1 2 3]]
 /// ```
 ///
 /// Please note the above example is only working in RowMajor order. In ColMajor order, the
 /// broadcasting will be done along the other axis:
+///
+///
 ///
 /// ```rust
 /// use rstsr::prelude::*;
@@ -248,12 +249,10 @@ where
 ///
 /// // broadcast (3, ) -> (3, 2) in col-major:
 /// let result = a.to_broadcast(vec![3, 2]);
-/// let expected = rt::tensor_from_nested!(
-///     [[1, 1],
-///      [2, 2],
-///      [3, 3]],
-///     &device);
-/// assert!(rt::allclose!(&result, &expected));
+/// println!("{result}");
+/// // [[ 1 1]
+/// //  [ 2 2]
+/// //  [ 3 3]]
 /// ```
 ///
 /// # Panics
@@ -480,7 +479,7 @@ where
 ///
 /// # See also
 ///
-/// Refer to [`to_broadcast`] or [`into_broadcast`] for detailed documentation.
+/// Refer to [`to_broadcast`] for detailed documentation.
 pub fn to_broadcast_f<R, T, B, D, D2>(tensor: &TensorAny<R, T, B, D>, shape: D2) -> Result<TensorView<'_, T, B, D2>>
 where
     D: DimAPI + DimMaxAPI<D2, Max = D2>,
@@ -493,42 +492,9 @@ where
 
 /// Broadcasts an array to a specified shape.
 ///
-/// <div class="warning">
-///
-/// **Row/Column Major Notice**
-///
-/// This function behaves differently on default orders ([`RowMajor`] and [`ColMajor`]) of device.
-///
-/// </div>
-///
-/// # Parameters
-///
-/// - `tensor`: [`TensorAny<R, T, B, D>`]
-///
-///   - The input tensor to be broadcasted.
-///   - Ownership of input tensor is taken.
-///
-/// - `shape`: impl [`DimAPI`]
-///
-///   - The shape of the desired output tensor after broadcasting.
-///   - Please note [`IxD`] (`Vec<usize>`) and [`Ix<N>`] (`[usize; N]`) behaves differently here.
-///     [`IxD`] will give dynamic shape tensor, while [`Ix<N>`] will give static shape tensor.
-///
-///
-/// # Returns
-///
-/// - [`TensorAny<R, T, B, D2>`]
-///
-///   - The tensor with the given shape. It is typically not contiguous (perform [`to_contig`]
-///     afterwards if requires a contiguous owned tensor).
-///   - Furthermore, more than one element of a broadcasted tensor may refer to a single memory
-///     location (zero strides at the broadcasted axes).
-///   - Ownership of the returned tensor is transferred from the input tensor. Only the layout is
-///     modified; the underlying data remains unchanged.
-///
 /// # See also
 ///
-/// Refer to [`to_broadcast`] for more detailed documentation.
+/// Refer to [`to_broadcast`] for detailed documentation.
 pub fn into_broadcast<R, T, B, D, D2>(tensor: TensorAny<R, T, B, D>, shape: D2) -> TensorAny<R, T, B, D2>
 where
     R: DataAPI<Data = B::Raw>,
@@ -554,7 +520,7 @@ where
     ///
     /// # See also
     ///
-    /// Refer to [`to_broadcast`] or [`into_broadcast`] for detailed documentation.
+    /// Refer to [`to_broadcast`] for detailed documentation.
     pub fn to_broadcast<D2>(&self, shape: D2) -> TensorView<'_, T, B, D2>
     where
         D2: DimAPI,
@@ -567,7 +533,7 @@ where
     ///
     /// # See also
     ///
-    /// Refer to [`to_broadcast`] or [`into_broadcast`] for detailed documentation.
+    /// Refer to [`to_broadcast`] for detailed documentation.
     pub fn broadcast_to<D2>(&self, shape: D2) -> TensorView<'_, T, B, D2>
     where
         D2: DimAPI,
@@ -580,7 +546,7 @@ where
     ///
     /// # See also
     ///
-    /// Refer to [`to_broadcast`] or [`into_broadcast`] for detailed documentation.
+    /// Refer to [`to_broadcast`] for detailed documentation.
     pub fn to_broadcast_f<D2>(&self, shape: D2) -> Result<TensorView<'_, T, B, D2>>
     where
         D2: DimAPI,
@@ -593,7 +559,7 @@ where
     ///
     /// # See also
     ///
-    /// Refer to [`to_broadcast`] or [`into_broadcast`] for detailed documentation.
+    /// Refer to [`to_broadcast`] for detailed documentation.
     pub fn into_broadcast<D2>(self, shape: D2) -> TensorAny<R, T, B, D2>
     where
         D2: DimAPI,
@@ -606,7 +572,7 @@ where
     ///
     /// # See also
     ///
-    /// Refer to [`to_broadcast`] or [`into_broadcast`] for detailed documentation.
+    /// Refer to [`to_broadcast`] for detailed documentation.
     pub fn into_broadcast_f<D2>(self, shape: D2) -> Result<TensorAny<R, T, B, D2>>
     where
         D2: DimAPI,

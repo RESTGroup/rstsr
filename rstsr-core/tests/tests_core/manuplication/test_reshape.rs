@@ -209,14 +209,22 @@ mod docs_reshape {
         device.set_default_order(RowMajor);
 
         let a = rt::arange((6, &device));
-        let a_reshaped = a.reshape([2, 3]);
-        let a_expected = rt::tensor_from_nested!([[0, 1, 2], [3, 4, 5]], &device);
-        assert!(rt::allclose(&a_reshaped, &a_expected, None));
+        let result = a.reshape([2, 3]);
+        println!("{result}");
+        // [[ 0 1 2]
+        //  [ 3 4 5]]
+        let target = rt::tensor_from_nested!([[0, 1, 2], [3, 4, 5]], &device);
+        assert!(rt::allclose(&result, &target, None));
 
         // in this case, unspecified axes length is inferred as 6 / 3 = 2
-        let a_reshaped = a.reshape([3, -1]);
-        let a_expected = rt::tensor_from_nested!([[0, 1], [2, 3], [4, 5]], &device);
-        assert!(rt::allclose(&a_reshaped, &a_expected, None));
+        let a = rt::arange((6, &device));
+        let result = a.reshape([3, -1]);
+        println!("{result}");
+        // [[ 0 1]
+        //  [ 2 3]
+        //  [ 4 5]]
+        let target = rt::tensor_from_nested!([[0, 1], [2, 3], [4, 5]], &device);
+        assert!(rt::allclose(&result, &target, None));
     }
 
     #[test]
@@ -246,12 +254,25 @@ mod docs_reshape {
         // a: [[0, 1, 2], [3, 4, 5]]
         // b: [[0, 1], [2, 3], [4, 5]]
         // iterated sequence: [0, 1, 2, 3, 4, 5]
+
         let a = rt::tensor_from_nested!([[0, 1, 2], [3, 4, 5]], &device);
+        println!("{a}");
+        // [[ 0 1 2]
+        //  [ 3 4 5]]
         let b = a.reshape([3, 2]);
+        println!("{b}");
+        // [[ 0 1]
+        //  [ 2 3]
+        //  [ 4 5]]
         let b_expected = rt::tensor_from_nested!([[0, 1], [2, 3], [4, 5]], &device);
         assert!(rt::allclose(&b, &b_expected, None));
+
         let a_vec = a.iter().cloned().collect::<Vec<_>>();
+        println!("{a_vec:?}");
+        // [0, 1, 2, 3, 4, 5]
         let b_vec = b.iter().cloned().collect::<Vec<_>>();
+        println!("{b_vec:?}");
+        // [0, 1, 2, 3, 4, 5]
         assert_eq!(a_vec, b_vec); // iterated sequence is the same
         assert_eq!(a_vec, vec![0, 1, 2, 3, 4, 5]);
 
@@ -261,12 +282,25 @@ mod docs_reshape {
         // a: [[0, 1, 2], [3, 4, 5]]
         // b: [[0, 4], [3, 2], [1, 5]]
         // iterated sequence: [0, 3, 1, 4, 2, 5]
+
         let a = rt::tensor_from_nested!([[0, 1, 2], [3, 4, 5]], &device);
+        println!("{a}");
+        // [[ 0 1 2]
+        //  [ 3 4 5]]
         let b = a.reshape([3, 2]);
+        println!("{b}");
+        // [[ 0 4]
+        //  [ 3 2]
+        //  [ 1 5]]
         let b_expected = rt::tensor_from_nested!([[0, 4], [3, 2], [1, 5]], &device);
         assert!(rt::allclose(&b, &b_expected, None));
+
         let a_vec = a.iter().cloned().collect::<Vec<_>>();
+        println!("{a_vec:?}");
+        // [0, 3, 1, 4, 2, 5]
         let b_vec = b.iter().cloned().collect::<Vec<_>>();
+        println!("{b_vec:?}");
+        // [0, 3, 1, 4, 2, 5]
         assert_eq!(a_vec, b_vec); // iterated sequence is the same
         assert_eq!(a_vec, vec![0, 3, 1, 4, 2, 5]);
     }
@@ -279,9 +313,11 @@ mod docs_reshape {
         device.set_default_order(RowMajor);
 
         // some strided tensor
-        // shape: (4, 6, 9), stride: (72, 9, 1), not c-contiguous
         // contiguous situation: (4, [6, 9]), or say the last two dimensions are contiguous
         let a = rt::arange((288, &device)).into_shape([4, 8, 9]).into_slice((.., 0..6, ..));
+        println!("{:?}", a.layout());
+        // 3-Dim (dyn), contiguous: c
+        // shape: [4, 6, 9], stride: [72, 9, 1], offset: 0
         assert_eq!(a.shape(), &[4, 6, 9]);
         assert_eq!(a.stride(), &[72, 9, 1]);
         assert!(!a.c_contig());
@@ -308,25 +344,55 @@ mod docs_reshape {
     }
 
     #[test]
+    fn elaborated_clone_occasion_col() {
+        crate::specify_test!("elaborated_clone_occasion_col");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(ColMajor);
+
+        // some strided tensor
+        // contiguous situation: ([4, 6], 9), or say the first two dimensions are contiguous
+        // this is different to  (4, [6, 9]) in row major case
+        let a = rt::arange((288, &device)).into_shape([4, 8, 9]).into_slice((.., 0..6, ..));
+        println!("{:?}", a.layout());
+        // 3-Dim (dyn), contiguous: f
+        // shape: [4, 6, 9], stride: [1, 4, 32], offset: 0
+
+        // merge contiguous dimensions into a single dimension
+        assert!(a.reshape([4, 54]).is_owned()); // (4, 6, 9) -> (4, 6 * 9)
+        assert!(!a.reshape([24, 9]).is_owned()); // ([4, 6], 9) -> (4 * 6, 9)
+    }
+
+    #[test]
     fn reshape_with_args() {
         crate::specify_test!("reshape_with_args");
 
         let mut device = TESTCFG.device.clone();
 
         // Row-major reshape
-        // a: [[0, 1, 2], [3, 4, 5]]
-        // b: [[0, 1], [2, 3], [4, 5]]
         // iterated sequence: [0, 1, 2, 3, 4, 5]
         let a = rt::tensor_from_nested!([[0, 1, 2], [3, 4, 5]], &device);
+        println!("{a}");
+        // [[ 0 1 2]
+        //  [ 3 4 5]]
         let a_row = rt::tensor_from_nested!([[0, 1], [2, 3], [4, 5]], &device);
+        println!("{a_row}");
+        // [[ 0 1]
+        //  [ 2 3]
+        //  [ 4 5]]
         assert!(rt::allclose(a.reshape_with_args([3, 2], RowMajor), &a_row, None));
 
         // Column-major reshape
-        // a: [[0, 1, 2], [3, 4, 5]]
-        // b: [[0, 4], [3, 2], [1, 5]]
         // iterated sequence: [0, 3, 1, 4, 2, 5]
         let a = rt::tensor_from_nested!([[0, 1, 2], [3, 4, 5]], &device);
+        println!("{a}");
+        // [[ 0 1 2]
+        //  [ 3 4 5]]
         let a_col = rt::tensor_from_nested!([[0, 4], [3, 2], [1, 5]], &device);
+        println!("{a_col}");
+        // [[ 0 4]
+        //  [ 3 2]
+        //  [ 1 5]]
         assert!(rt::allclose(a.reshape_with_args([3, 2], ColMajor), &a_col, None));
 
         device.set_default_order(RowMajor);

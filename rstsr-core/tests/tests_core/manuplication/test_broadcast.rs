@@ -193,6 +193,9 @@ mod docs_broadcast {
 
         // broadcast (3, ) -> (2, 3) in row-major:
         let result = a.to_broadcast(vec![2, 3]);
+        println!("{result}");
+        // [[ 1 2 3]
+        //  [ 1 2 3]]
         let expected = rt::tensor_from_nested!(
             [[1, 2, 3],
              [1, 2, 3]],
@@ -215,6 +218,10 @@ mod docs_broadcast {
 
         // broadcast (3, ) -> (3, 2) in col-major:
         let result = a.to_broadcast(vec![3, 2]);
+        println!("{result}");
+        // [[ 1 1]
+        //  [ 2 2]
+        //  [ 3 3]]
         let expected = rt::tensor_from_nested!(
             [[1, 1],
              [2, 2],
@@ -356,9 +363,20 @@ mod docs_broadcast {
         device.set_default_order(RowMajor);
 
         let a = rt::asarray((vec![1, 2, 3], &device)).into_shape([3]);
+        println!("{a}");
+        // [ 1 2 3]
         let b = rt::asarray((vec![4, 5], &device)).into_shape([2, 1]);
+        println!("{b}");
+        // [[ 4]
+        //  [ 5]]
 
         let result = rt::broadcast_arrays(vec![a, b]);
+        println!("broadcasted a:\n{:}", result[0]);
+        // [[ 1 2 3]
+        //  [ 1 2 3]]
+        println!("broadcasted b:\n{:}", result[1]);
+        // [[ 4 4 4]
+        //  [ 5 5 5]]
         let expected_a = rt::tensor_from_nested!(
             [[1, 2, 3],
              [1, 2, 3]],

@@ -36,6 +36,8 @@ where
 /// - `tensor`: [`&TensorAny<R, T, B, D>`](TensorAny)
 ///
 ///   - The input tensor.
+///   - Note on variant [`into_expand_dims`]: This takes ownership [`Tensor<R, T, B, D>`] of input
+///     tensor, and will not perform change to underlying data, only layout changes.
 ///
 /// - `axes`: TryInto [`AxesIndex<isize>`]
 ///
@@ -69,13 +71,15 @@ where
 ///
 /// ```rust
 /// # use rstsr::prelude::*;
-/// # let x = rt::asarray(vec![1, 2]);
-/// // [1, 2] -> [[1, 2]]
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let x = rt::arange((2, &device));
 /// let y = x.expand_dims(0);
-/// let y_expected = rt::tensor_from_nested!([[1, 2]]);
-/// assert!(rt::allclose(&y, &y_expected, None));
-/// assert_eq!(y.shape(), &[1, 2]);
-/// assert_eq!(x.i(None).shape(), &[1, 2]);
+/// println!("{y}");
+/// // [[ 0 1]]
+/// println!("y shape: {:?}", y.shape());
+/// // y shape: [1, 2]
+/// assert_eq!(x.i(None).shape(), y.shape());
 /// ```
 ///
 /// Expand dims at axis -1 (last axis), which is equilvalent to `x.i((Ellipsis, None))`, or in this
@@ -83,12 +87,17 @@ where
 ///
 /// ```rust
 /// # use rstsr::prelude::*;
-/// # let x = rt::asarray(vec![1, 2]);
-/// // [1, 2] -> [[1], [2]]
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// // expand dims at axis -1 (last axis)
+/// let x = rt::arange((2, &device));
 /// let y = x.expand_dims(-1);
-/// let y_expected = rt::tensor_from_nested!([[1], [2]]);
-/// assert!(rt::allclose(&y, &y_expected, None));
-/// assert_eq!(y.shape(), &[2, 1]);
+/// println!("{y}");
+/// // [[ 0]
+/// //  [ 1]]
+/// println!("y shape: {:?}", y.shape());
+/// // y shape: [2, 1]
+/// let y_expected = rt::tensor_from_nested!([[0], [1]]);
 /// assert_eq!(x.i((Ellipsis, None)).shape(), &[2, 1]);
 /// ```
 ///
@@ -96,13 +105,15 @@ where
 ///
 /// ```rust
 /// # use rstsr::prelude::*;
-/// # let x = rt::asarray(vec![1, 2]);
-/// // Expand dims at axes 0 and 1
-/// // [1, 2] -> [[[1, 2]]]
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let x = rt::arange((2, &device));
 /// let y = x.expand_dims([0, 1]);
-/// let y_expected = rt::tensor_from_nested!([[[1, 2]]]);
-/// assert!(rt::allclose(&y, &y_expected, None));
-/// assert_eq!(y.shape(), &[1, 1, 2]);
+/// println!("{y}");
+/// // [[[ 0 1]]]
+/// println!("y shape: {:?}", y.shape());
+/// // y shape: [1, 1, 2]
+/// let y_expected = rt::tensor_from_nested!([[[0, 1]]], &device);
 /// assert_eq!(x.i((None, None)).shape(), &[1, 1, 2]);
 /// ```
 ///
@@ -110,13 +121,16 @@ where
 ///
 /// ```rust
 /// # use rstsr::prelude::*;
-/// # let x = rt::asarray(vec![1, 2]);
-/// // Expand dims at axes 0 and 2
-/// // [1, 2] -> [[[1], [2]]]
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let x = rt::arange((2, &device));
 /// let y = x.expand_dims([0, 2]);
-/// let y_expected = rt::tensor_from_nested!([[[1], [2]]]);
-/// assert!(rt::allclose(&y, &y_expected, None));
-/// assert_eq!(y.shape(), &[1, 2, 1]);
+/// println!("{y}");
+/// // [[[ 0]]
+/// //  [[ 1]]]
+/// println!("y shape: {:?}", y.shape());
+/// // y shape: [1, 2, 1]
+/// let y_expected = rt::tensor_from_nested!([[[0], [1]]], &device);
 /// assert_eq!(x.i((None, Ellipsis, None)).shape(), &[1, 2, 1]);
 /// ```
 ///
@@ -185,6 +199,11 @@ where
     into_expand_dims_f(tensor, axes).rstsr_unwrap()
 }
 
+pub use expand_dims as unsqueeze;
+pub use expand_dims_f as unsqueeze_f;
+pub use into_expand_dims as into_unsqueeze;
+pub use into_expand_dims_f as into_unsqueeze_f;
+
 impl<R, T, B, D> TensorAny<R, T, B, D>
 where
     R: DataAPI<Data = B::Raw>,
@@ -235,6 +254,52 @@ where
         axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
     ) -> Result<TensorAny<R, T, B, IxD>> {
         into_expand_dims_f(self, axes)
+    }
+
+    /// Expands the shape of an array by inserting a new axis (dimension) of size one at the
+    /// position specified by `axis`.
+    ///
+    /// # See also
+    ///
+    /// Refer to [`expand_dims`] for more detailed documentation.
+    pub fn unsqueeze(&self, axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> TensorView<'_, T, B, IxD> {
+        self.expand_dims(axes)
+    }
+
+    /// Expands the shape of an array by inserting a new axis (dimension) of size one at the
+    /// position specified by `axis`.
+    ///
+    /// # See also
+    ///
+    /// Refer to [`expand_dims`] for more detailed documentation.
+    pub fn unsqueeze_f(
+        &self,
+        axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
+    ) -> Result<TensorView<'_, T, B, IxD>> {
+        self.expand_dims_f(axes)
+    }
+
+    /// Expands the shape of an array by inserting a new axis (dimension) of size one at the
+    /// position specified by `axis`.
+    ///
+    /// # See also
+    ///
+    /// Refer to [`expand_dims`] for more detailed documentation.
+    pub fn into_unsqueeze(self, axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> TensorAny<R, T, B, IxD> {
+        self.into_expand_dims(axes)
+    }
+
+    /// Expands the shape of an array by inserting a new axis (dimension) of size one at the
+    /// position specified by `axis`.
+    ///
+    /// # See also
+    ///
+    /// Refer to [`expand_dims`] for more detailed documentation.
+    pub fn into_unsqueeze_f(
+        self,
+        axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
+    ) -> Result<TensorAny<R, T, B, IxD>> {
+        self.into_expand_dims_f(axes)
     }
 }
 
