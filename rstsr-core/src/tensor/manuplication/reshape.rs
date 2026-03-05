@@ -391,7 +391,7 @@ where
 /// assert!(a.reshape_with_args_f([12, 2, 9], false).is_err()); // (4, 6, 9) -> (4 * [3, 2], 9)
 /// ```
 ///
-/// # Notes of accordance
+/// # Notes of API accordance
 ///
 /// - Array-API: `reshape(x, /, shape, *, copy=None)` ([`reshape`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.reshape.html))
 /// - NumPy: `reshape(a, /, shape, order='C', *, copy=False)` ([`numpy.reshape`](https://numpy.org/doc/stable/reference/generated/numpy.reshape.html)):
@@ -941,7 +941,7 @@ where
 /// let a = rt::arange((6, &device)).into_shape([2, 3]);
 /// ```
 ///
-/// # Notes of accordance
+/// # Notes of API accordance
 ///
 /// - Array-API: `reshape(x, /, shape, *, copy=None)` ([`reshape`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.reshape.html))
 /// - NumPy: `reshape(a, /, shape, order='C', *, copy=False)` ([`numpy.reshape`](https://numpy.org/doc/stable/reference/generated/numpy.reshape.html)):

@@ -89,13 +89,13 @@ use crate::prelude_dev::*;
 /// - Incompatible shapes to be broadcasted.
 /// - Tensors are on different devices.
 ///
-/// # See also
-///
-/// ## Notes of accordance
+/// # Notes of API accordance
 ///
 /// - Array-API: `broadcast_arrays(*arrays)` ([`broadcast_arrays`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.broadcast_arrays.html))
 /// - NumPy: `numpy.broadcast_arrays(*args, subok=False)` ([`numpy.broadcast_arrays`](https://numpy.org/doc/stable/reference/generated/numpy.broadcast_arrays.html))
 /// - RSTSR: `rt::broadcast_arrays(tensors)`
+///
+/// # See also
 ///
 /// ## Related functions in RSTSR
 ///
@@ -436,17 +436,17 @@ where
 ///
 /// # See also
 ///
-/// ## Detailed broadcasting rules
-///
-/// - Array-API: [Broadcasting rules](https://data-apis.org/array-api/latest/API_specification/broadcasting.html)
-/// - NumPy: [Broadcasting](https://numpy.org/doc/stable/user/basics.broadcasting.html)
-///
-/// ## Notes of accordance
+/// # Notes of API accordance
 ///
 /// - Array-API: `broadcast_to(x, /, shape)` ([`broadcast_to`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.broadcast_to.html))
 /// - NumPy: `numpy.broadcast_to(array, shape, subok=False)` ([`numpy.broadcast_to`](https://numpy.org/doc/stable/reference/generated/numpy.broadcast_to.html))
 /// - ndarray: [`ArrayBase::broadcast`](https://docs.rs/ndarray/latest/ndarray/struct.ArrayBase.html#method.broadcast)
 /// - RSTSR: `rt::to_broadcast(tensor, shape)` or `rt::broadcast_to(tensor, shape)`
+///
+/// ## Detailed broadcasting rules
+///
+/// - Array-API: [Broadcasting rules](https://data-apis.org/array-api/latest/API_specification/broadcasting.html)
+/// - NumPy: [Broadcasting](https://numpy.org/doc/stable/user/basics.broadcasting.html)
 ///
 /// ## Related functions in RSTSR
 ///

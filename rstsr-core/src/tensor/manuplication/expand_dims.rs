@@ -120,7 +120,7 @@ where
 /// assert_eq!(x.i((None, Ellipsis, None)).shape(), &[1, 2, 1]);
 /// ```
 ///
-/// ## Notes of accordance
+/// ## Notes of API accordance
 ///
 /// - Array-API: `expand_dims(x, /, axis)` ([`expand_dims` in Array-API](https://data-apis.org/array-api/latest/API_specification/generated/array_api.expand_dims.html))
 /// - NumPy: `expand_dims(a, axis)` ([`numpy.expand_dims`](https://numpy.org/doc/stable/reference/generated/numpy.expand_dims.html))

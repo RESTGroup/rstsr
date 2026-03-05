@@ -186,7 +186,7 @@ where
 /// assert_eq!(b.shape(), &[1, 3, 1, 4, 1]);
 /// ```
 ///
-/// # Notes of accordance
+/// # Notes of API accordance
 ///
 /// - Array-API: `squeeze(x, /, axis)` ([`squeeze`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.squeeze.html))
 /// - NumPy: `squeeze(a, axis=None)` ([`numpy.squeeze`](https://numpy.org/doc/stable/reference/generated/numpy.squeeze.html))

@@ -153,7 +153,7 @@ where
 /// - If some index in `axes` is greater than the number of axes in the original tensor.
 /// - If `axes` has duplicated values.
 ///
-/// # Notes of accordance
+/// # Notes of API accordance
 ///
 /// - Array-API: `flip(x, /, *, axis=None)` ([`flip`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.flip.html))
 /// - NumPy: `flip(m, axis=None)` ([`numpy.flip`](https://numpy.org/doc/stable/reference/generated/numpy.flip.html))
