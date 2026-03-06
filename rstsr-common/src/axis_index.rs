@@ -2,6 +2,7 @@ use crate::prelude_dev::*;
 
 /// Enum for Axes indexing
 pub enum AxesIndex<T> {
+    None,
     Val(T),
     Vec(Vec<T>),
 }
@@ -11,6 +12,7 @@ impl<T> AsRef<[T]> for AxesIndex<T> {
         match self {
             AxesIndex::Val(v) => core::slice::from_ref(v),
             AxesIndex::Vec(v) => v.as_slice(),
+            AxesIndex::None => panic!("AxesIndex::None cannot be converted to a slice. This is developer's error; if encountered, please report it to github issue."),
         }
     }
 }
@@ -32,64 +34,52 @@ where
     }
 }
 
-impl<T> TryFrom<Vec<T>> for AxesIndex<T> {
-    type Error = Error;
-
-    fn try_from(value: Vec<T>) -> Result<Self> {
-        Ok(AxesIndex::Vec(value))
+impl<T> From<Vec<T>> for AxesIndex<T> {
+    fn from(value: Vec<T>) -> Self {
+        AxesIndex::Vec(value)
     }
 }
 
-impl<T, const N: usize> TryFrom<[T; N]> for AxesIndex<T>
+impl<T, const N: usize> From<[T; N]> for AxesIndex<T>
 where
     T: Clone,
 {
-    type Error = Error;
-
-    fn try_from(value: [T; N]) -> Result<Self> {
-        Ok(AxesIndex::Vec(value.to_vec()))
+    fn from(value: [T; N]) -> Self {
+        AxesIndex::Vec(value.to_vec())
     }
 }
 
-impl<T> TryFrom<&Vec<T>> for AxesIndex<T>
+impl<T> From<&Vec<T>> for AxesIndex<T>
 where
     T: Clone,
 {
-    type Error = Error;
-
-    fn try_from(value: &Vec<T>) -> Result<Self> {
-        Ok(AxesIndex::Vec(value.clone()))
+    fn from(value: &Vec<T>) -> Self {
+        AxesIndex::Vec(value.clone())
     }
 }
 
-impl<T> TryFrom<&[T]> for AxesIndex<T>
+impl<T> From<&[T]> for AxesIndex<T>
 where
     T: Clone,
 {
-    type Error = Error;
-
-    fn try_from(value: &[T]) -> Result<Self> {
-        Ok(AxesIndex::Vec(value.to_vec()))
+    fn from(value: &[T]) -> Self {
+        AxesIndex::Vec(value.to_vec())
     }
 }
 
-impl<T, const N: usize> TryFrom<&[T; N]> for AxesIndex<T>
+impl<T, const N: usize> From<&[T; N]> for AxesIndex<T>
 where
     T: Clone,
 {
-    type Error = Error;
-
-    fn try_from(value: &[T; N]) -> Result<Self> {
-        Ok(AxesIndex::Vec(value.to_vec()))
+    fn from(value: &[T; N]) -> Self {
+        AxesIndex::Vec(value.to_vec())
     }
 }
 
 #[duplicate_item(T; [usize]; [isize])]
-impl TryFrom<()> for AxesIndex<T> {
-    type Error = Error;
-
-    fn try_from(_: ()) -> Result<Self> {
-        Ok(AxesIndex::Vec(vec![]))
+impl From<()> for AxesIndex<T> {
+    fn from(_: ()) -> Self {
+        AxesIndex::Vec(vec![])
     }
 }
 
@@ -100,7 +90,7 @@ impl TryFrom<Option<T>> for AxesIndex<T> {
     fn try_from(value: Option<T>) -> Result<Self> {
         match value {
             Some(v) => Ok(AxesIndex::Val(v)),
-            None => Ok(AxesIndex::Vec(vec![])),
+            None => Ok(AxesIndex::None),
         }
     }
 }
@@ -385,6 +375,7 @@ impl_from_tuple_to_axes_index!(usize);
 pub fn normalize_axes_index(axes: AxesIndex<isize>, ndim: usize, allow_duplicate: bool) -> Result<Vec<isize>> {
     // generate the normalized axes vector
     let vec = match axes {
+        AxesIndex::None => rstsr_raise!(InvalidValue, "Axes argument cannot be None for this operation.")?,
         AxesIndex::Val(axis) => {
             let axis = if axis < 0 { (ndim as isize) + axis } else { axis };
             if axis < 0 || axis >= ndim as isize {

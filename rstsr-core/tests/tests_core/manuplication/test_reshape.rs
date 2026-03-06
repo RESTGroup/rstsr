@@ -11,7 +11,7 @@ mod numpy_reshape {
 
     #[test]
     fn multiarray() {
-        // NumPy v2.4.2, _core/tests/test_multiarray.py, TestMethods::test_reshape
+        // NumPy v2.4.2, _core/tests/test_multiarray.py, TestMethods::test_reshape (line 2167)
         crate::specify_test!("multiarray_reshape");
 
         let mut device = TESTCFG.device.clone();
@@ -49,7 +49,7 @@ mod numpy_reshape {
         let mut device = TESTCFG.device.clone();
         device.set_default_order(RowMajor);
 
-        // CASE test_reshape_order
+        // CASE test_reshape_order (line 635)
 
         // a = np.arange(6).reshape(2, 3, order='F')
         // assert_equal(a, [[0, 2, 4], [1, 3, 5]])
@@ -65,7 +65,7 @@ mod numpy_reshape {
         let tgt = rt::tensor_from_nested!([[2, 6], [4, 8]], &device);
         assert_equal(b.reshape_with_args([2, 2], ColMajor), &tgt, None);
 
-        // CASE test_reshape_zero_strides
+        // CASE test_reshape_zero_strides (line 643)
 
         // a = np.ones(1)
         // a = as_strided(a, shape=(5,), strides=(0,))
@@ -74,14 +74,14 @@ mod numpy_reshape {
         let a = rt::asarray((vec![1], layout, &device));
         assert!(a.reshape([5, 1]).stride()[0] == 0);
 
-        // CASE test_reshape_zero_size
+        // CASE test_reshape_zero_size (line 649)
 
         // a = np.ones((0, 2))
         // a.shape = (-1, 2)
         let a: Tensor<i32, _> = rt::ones(([0, 2], &device));
         let _a_reshaped = a.reshape([-1, 2]);
 
-        // CASE test_reshape_trailing_ones_strides
+        // CASE test_reshape_trailing_ones_strides (line 654)
 
         // a = np.zeros(12, dtype=np.int32)[::2]  # not contiguous
         // strides_c = (16, 8, 8, 8)
@@ -97,7 +97,7 @@ mod numpy_reshape {
         let a: Tensor<i32, _> = rt::asarray((0, &device));
         assert_eq!(a.reshape([1, 1]).stride(), &[1, 1]);
 
-        // CASE test_reshape_size_overflow
+        // CASE test_reshape_size_overflow (line 2278)
         // please note in this case, panic occurs on rust-side, not from RSTSR (i.e., not coverable)
 
         // a = np.ones(20)[::2]
@@ -124,12 +124,12 @@ mod numpy_reshape {
 
     #[test]
     fn numeric() {
-        // NumPy v2.4.2, _core/tests/test_numeric.py, TestNonarrayArgs
+        // NumPy v2.4.2, _core/tests/test_numeric.py, TestNonarrayArgs::test_reshape*
 
         let mut device = TESTCFG.device.clone();
         device.set_default_order(RowMajor);
 
-        // CASE test_reshape
+        // CASE test_reshape (line 178)
 
         // arr = [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]]
         // tgt = [[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12]]
@@ -138,7 +138,7 @@ mod numpy_reshape {
         let tgt = rt::tensor_from_nested!([[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12]], &device);
         assert_equal(arr.reshape([2, 6]), &tgt, None);
 
-        // CASE test_reshape_shape_arg
+        // CASE test_reshape_shape_arg (line 183)
 
         // arr = np.arange(12)
         // shape = (3, 4)
@@ -155,7 +155,7 @@ mod numpy_reshape {
         assert_equal(arr.reshape_with_args(shape, RowMajor), &expected, None);
         assert_equal(arr.reshape_with_args(shape, ReshapeArgs { order: Some(RowMajor), copy: None }), &expected, None);
 
-        // CASE test_reshape_copy_arg
+        // CASE test_reshape_copy_arg (line 201)
 
         // arr = np.arange(24).reshape(2, 3, 4)
         // arr_f_ord = np.array(arr, order="F")
@@ -209,14 +209,22 @@ mod docs_reshape {
         device.set_default_order(RowMajor);
 
         let a = rt::arange((6, &device));
-        let a_reshaped = a.reshape([2, 3]);
-        let a_expected = rt::tensor_from_nested!([[0, 1, 2], [3, 4, 5]], &device);
-        assert!(rt::allclose(&a_reshaped, &a_expected, None));
+        let result = a.reshape([2, 3]);
+        println!("{result}");
+        // [[ 0 1 2]
+        //  [ 3 4 5]]
+        let target = rt::tensor_from_nested!([[0, 1, 2], [3, 4, 5]], &device);
+        assert!(rt::allclose(&result, &target, None));
 
         // in this case, unspecified axes length is inferred as 6 / 3 = 2
-        let a_reshaped = a.reshape([3, -1]);
-        let a_expected = rt::tensor_from_nested!([[0, 1], [2, 3], [4, 5]], &device);
-        assert!(rt::allclose(&a_reshaped, &a_expected, None));
+        let a = rt::arange((6, &device));
+        let result = a.reshape([3, -1]);
+        println!("{result}");
+        // [[ 0 1]
+        //  [ 2 3]
+        //  [ 4 5]]
+        let target = rt::tensor_from_nested!([[0, 1], [2, 3], [4, 5]], &device);
+        assert!(rt::allclose(&result, &target, None));
     }
 
     #[test]
@@ -246,12 +254,25 @@ mod docs_reshape {
         // a: [[0, 1, 2], [3, 4, 5]]
         // b: [[0, 1], [2, 3], [4, 5]]
         // iterated sequence: [0, 1, 2, 3, 4, 5]
+
         let a = rt::tensor_from_nested!([[0, 1, 2], [3, 4, 5]], &device);
+        println!("{a}");
+        // [[ 0 1 2]
+        //  [ 3 4 5]]
         let b = a.reshape([3, 2]);
+        println!("{b}");
+        // [[ 0 1]
+        //  [ 2 3]
+        //  [ 4 5]]
         let b_expected = rt::tensor_from_nested!([[0, 1], [2, 3], [4, 5]], &device);
         assert!(rt::allclose(&b, &b_expected, None));
+
         let a_vec = a.iter().cloned().collect::<Vec<_>>();
+        println!("{a_vec:?}");
+        // [0, 1, 2, 3, 4, 5]
         let b_vec = b.iter().cloned().collect::<Vec<_>>();
+        println!("{b_vec:?}");
+        // [0, 1, 2, 3, 4, 5]
         assert_eq!(a_vec, b_vec); // iterated sequence is the same
         assert_eq!(a_vec, vec![0, 1, 2, 3, 4, 5]);
 
@@ -261,12 +282,25 @@ mod docs_reshape {
         // a: [[0, 1, 2], [3, 4, 5]]
         // b: [[0, 4], [3, 2], [1, 5]]
         // iterated sequence: [0, 3, 1, 4, 2, 5]
+
         let a = rt::tensor_from_nested!([[0, 1, 2], [3, 4, 5]], &device);
+        println!("{a}");
+        // [[ 0 1 2]
+        //  [ 3 4 5]]
         let b = a.reshape([3, 2]);
+        println!("{b}");
+        // [[ 0 4]
+        //  [ 3 2]
+        //  [ 1 5]]
         let b_expected = rt::tensor_from_nested!([[0, 4], [3, 2], [1, 5]], &device);
         assert!(rt::allclose(&b, &b_expected, None));
+
         let a_vec = a.iter().cloned().collect::<Vec<_>>();
+        println!("{a_vec:?}");
+        // [0, 3, 1, 4, 2, 5]
         let b_vec = b.iter().cloned().collect::<Vec<_>>();
+        println!("{b_vec:?}");
+        // [0, 3, 1, 4, 2, 5]
         assert_eq!(a_vec, b_vec); // iterated sequence is the same
         assert_eq!(a_vec, vec![0, 3, 1, 4, 2, 5]);
     }
@@ -279,9 +313,11 @@ mod docs_reshape {
         device.set_default_order(RowMajor);
 
         // some strided tensor
-        // shape: (4, 6, 9), stride: (72, 9, 1), not c-contiguous
         // contiguous situation: (4, [6, 9]), or say the last two dimensions are contiguous
         let a = rt::arange((288, &device)).into_shape([4, 8, 9]).into_slice((.., 0..6, ..));
+        println!("{:?}", a.layout());
+        // 3-Dim (dyn), contiguous: c
+        // shape: [4, 6, 9], stride: [72, 9, 1], offset: 0
         assert_eq!(a.shape(), &[4, 6, 9]);
         assert_eq!(a.stride(), &[72, 9, 1]);
         assert!(!a.c_contig());
@@ -308,25 +344,55 @@ mod docs_reshape {
     }
 
     #[test]
+    fn elaborated_clone_occasion_col() {
+        crate::specify_test!("elaborated_clone_occasion_col");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(ColMajor);
+
+        // some strided tensor
+        // contiguous situation: ([4, 6], 9), or say the first two dimensions are contiguous
+        // this is different to  (4, [6, 9]) in row major case
+        let a = rt::arange((288, &device)).into_shape([4, 8, 9]).into_slice((.., 0..6, ..));
+        println!("{:?}", a.layout());
+        // 3-Dim (dyn), contiguous: f
+        // shape: [4, 6, 9], stride: [1, 4, 32], offset: 0
+
+        // merge contiguous dimensions into a single dimension
+        assert!(a.reshape([4, 54]).is_owned()); // (4, 6, 9) -> (4, 6 * 9)
+        assert!(!a.reshape([24, 9]).is_owned()); // ([4, 6], 9) -> (4 * 6, 9)
+    }
+
+    #[test]
     fn reshape_with_args() {
         crate::specify_test!("reshape_with_args");
 
         let mut device = TESTCFG.device.clone();
 
         // Row-major reshape
-        // a: [[0, 1, 2], [3, 4, 5]]
-        // b: [[0, 1], [2, 3], [4, 5]]
         // iterated sequence: [0, 1, 2, 3, 4, 5]
         let a = rt::tensor_from_nested!([[0, 1, 2], [3, 4, 5]], &device);
+        println!("{a}");
+        // [[ 0 1 2]
+        //  [ 3 4 5]]
         let a_row = rt::tensor_from_nested!([[0, 1], [2, 3], [4, 5]], &device);
+        println!("{a_row}");
+        // [[ 0 1]
+        //  [ 2 3]
+        //  [ 4 5]]
         assert!(rt::allclose(a.reshape_with_args([3, 2], RowMajor), &a_row, None));
 
         // Column-major reshape
-        // a: [[0, 1, 2], [3, 4, 5]]
-        // b: [[0, 4], [3, 2], [1, 5]]
         // iterated sequence: [0, 3, 1, 4, 2, 5]
         let a = rt::tensor_from_nested!([[0, 1, 2], [3, 4, 5]], &device);
+        println!("{a}");
+        // [[ 0 1 2]
+        //  [ 3 4 5]]
         let a_col = rt::tensor_from_nested!([[0, 4], [3, 2], [1, 5]], &device);
+        println!("{a_col}");
+        // [[ 0 4]
+        //  [ 3 2]
+        //  [ 1 5]]
         assert!(rt::allclose(a.reshape_with_args([3, 2], ColMajor), &a_col, None));
 
         device.set_default_order(RowMajor);

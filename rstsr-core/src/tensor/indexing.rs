@@ -9,10 +9,10 @@ use crate::prelude_dev::*;
 pub fn into_slice_f<S, D, I>(tensor: TensorBase<S, D>, index: I) -> Result<TensorBase<S, IxD>>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<Indexer>, Error = Error>,
+    I: TryInto<AxesIndex<Indexer>, Error: Into<Error>>,
 {
     let (data, layout) = tensor.into_raw_parts();
-    let index = index.try_into()?;
+    let index = index.try_into().map_err(Into::into)?;
     let layout = layout.dim_slice(index.as_ref())?;
     return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
 }
@@ -20,7 +20,7 @@ where
 pub fn into_slice<S, D, I>(tensor: TensorBase<S, D>, index: I) -> TensorBase<S, IxD>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<Indexer>, Error = Error>,
+    I: TryInto<AxesIndex<Indexer>, Error: Into<Error>>,
 {
     into_slice_f(tensor, index).rstsr_unwrap()
 }
@@ -28,7 +28,7 @@ where
 pub fn slice_f<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, index: I) -> Result<TensorView<'_, T, B, IxD>>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<Indexer>, Error = Error>,
+    I: TryInto<AxesIndex<Indexer>, Error: Into<Error>>,
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
@@ -38,7 +38,7 @@ where
 pub fn slice<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, index: I) -> TensorView<'_, T, B, IxD>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<Indexer>, Error = Error>,
+    I: TryInto<AxesIndex<Indexer>, Error: Into<Error>>,
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
@@ -53,42 +53,42 @@ where
 {
     pub fn into_slice_f<I>(self, index: I) -> Result<TensorAny<R, T, B, IxD>>
     where
-        I: TryInto<AxesIndex<Indexer>, Error = Error>,
+        I: TryInto<AxesIndex<Indexer>, Error: Into<Error>>,
     {
         into_slice_f(self, index)
     }
 
     pub fn into_slice<I>(self, index: I) -> TensorAny<R, T, B, IxD>
     where
-        I: TryInto<AxesIndex<Indexer>, Error = Error>,
+        I: TryInto<AxesIndex<Indexer>, Error: Into<Error>>,
     {
         into_slice(self, index)
     }
 
     pub fn slice_f<I>(&self, index: I) -> Result<TensorView<'_, T, B, IxD>>
     where
-        I: TryInto<AxesIndex<Indexer>, Error = Error>,
+        I: TryInto<AxesIndex<Indexer>, Error: Into<Error>>,
     {
         slice_f(self, index)
     }
 
     pub fn slice<I>(&self, index: I) -> TensorView<'_, T, B, IxD>
     where
-        I: TryInto<AxesIndex<Indexer>, Error = Error>,
+        I: TryInto<AxesIndex<Indexer>, Error: Into<Error>>,
     {
         slice(self, index)
     }
 
     pub fn i_f<I>(&self, index: I) -> Result<TensorView<'_, T, B, IxD>>
     where
-        I: TryInto<AxesIndex<Indexer>, Error = Error>,
+        I: TryInto<AxesIndex<Indexer>, Error: Into<Error>>,
     {
         slice_f(self, index)
     }
 
     pub fn i<I>(&self, index: I) -> TensorView<'_, T, B, IxD>
     where
-        I: TryInto<AxesIndex<Indexer>, Error = Error>,
+        I: TryInto<AxesIndex<Indexer>, Error: Into<Error>>,
     {
         slice(self, index)
     }
@@ -101,7 +101,7 @@ where
 pub fn slice_mut_f<R, T, B, D, I>(tensor: &mut TensorAny<R, T, B, D>, index: I) -> Result<TensorMut<'_, T, B, IxD>>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<Indexer>, Error = Error>,
+    I: TryInto<AxesIndex<Indexer>, Error: Into<Error>>,
     R: DataMutAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
@@ -111,7 +111,7 @@ where
 pub fn slice_mut<R, T, B, D, I>(tensor: &mut TensorAny<R, T, B, D>, index: I) -> TensorMut<'_, T, B, IxD>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<Indexer>, Error = Error>,
+    I: TryInto<AxesIndex<Indexer>, Error: Into<Error>>,
     R: DataMutAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
@@ -126,28 +126,28 @@ where
 {
     pub fn slice_mut_f<I>(&mut self, index: I) -> Result<TensorMut<'_, T, B, IxD>>
     where
-        I: TryInto<AxesIndex<Indexer>, Error = Error>,
+        I: TryInto<AxesIndex<Indexer>, Error: Into<Error>>,
     {
         slice_mut_f(self, index)
     }
 
     pub fn slice_mut<I>(&mut self, index: I) -> TensorMut<'_, T, B, IxD>
     where
-        I: TryInto<AxesIndex<Indexer>, Error = Error>,
+        I: TryInto<AxesIndex<Indexer>, Error: Into<Error>>,
     {
         slice_mut(self, index)
     }
 
     pub fn i_mut_f<I>(&mut self, index: I) -> Result<TensorMut<'_, T, B, IxD>>
     where
-        I: TryInto<AxesIndex<Indexer>, Error = Error>,
+        I: TryInto<AxesIndex<Indexer>, Error: Into<Error>>,
     {
         slice_mut_f(self, index)
     }
 
     pub fn i_mut<I>(&mut self, index: I) -> TensorMut<'_, T, B, IxD>
     where
-        I: TryInto<AxesIndex<Indexer>, Error = Error>,
+        I: TryInto<AxesIndex<Indexer>, Error: Into<Error>>,
     {
         slice_mut(self, index)
     }

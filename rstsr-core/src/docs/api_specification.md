@@ -195,7 +195,7 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 | assoc/fn | [`swapaxes`] | Interchange two axes of an array. |
 | assoc/fn | [`squeeze`] | Removes singleton dimensions (axes) from `x`. |
 | assoc/fn | [`to_dim`] <br/> [`to_dyn`] | Convert layout to the other dimension. |
-| assoc/fn | [`reshape_assume_contig`] | Assuming contiguous array, reshapes an array without changing its data. |
+| assoc/fn | [`reshape_with_args`] | Reshapes the given tensor to the specified shape, with argument specifying the order and whether to copy data. |
 
 ### Storage-dependent manuplication
 
@@ -203,6 +203,8 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 |--|--|--|
 | assoc/fn | [`reshape`] <br/> [`into_shape`] <br/> [`change_shape`] | Reshapes an array without changing its data. |
 | assoc/fn | [`to_layout`] <br/> [`into_layout`] <br/> [`change_layout`] | Convert tensor to the other layout. |
+| assoc/fn | [`to_contig`] <br/> [`into_contig`] <br/> [`change_contig`] | Convert tensor to contiguous layout (C or F order). |
+| assoc/fn | [`to_prefer`] <br/> [`into_prefer`] <br/> [`change_prefer`] | Convert tensor to preferred layout only if not already contiguous. |
 
 ### Storage-creation manuplication
 

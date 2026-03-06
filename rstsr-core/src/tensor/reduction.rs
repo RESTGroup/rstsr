@@ -13,25 +13,27 @@ macro_rules! trait_reduction {
 
         pub fn $fn_axes_f<T, B, D>(
             tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
-            axes: impl TryInto<AxesIndex<isize>, Error = Error>,
+            axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
         ) -> Result<Tensor<B::TOut, B, IxD>>
         where
             D: DimAPI,
             B: $OpReduceAPI<T, D> + DeviceCreationAnyAPI<B::TOut>,
         {
-            let axes = axes.try_into()?;
+            let axes = axes.try_into().map_err(Into::into)?;
             let tensor = tensor.view();
 
-            // special case for summing all axes
-            if axes.as_ref().is_empty() {
-                let sum = tensor.device().$fn_all(tensor.raw(), tensor.layout())?;
-                let storage = tensor.device().outof_cpu_vec(vec![sum])?;
-                let layout = Layout::new(vec![], vec![], 0)?;
-                return Tensor::new_f(storage, layout);
+            match axes {
+                AxesIndex::None => {
+                    let sum = tensor.device().$fn_all(tensor.raw(), tensor.layout())?;
+                    let storage = tensor.device().outof_cpu_vec(vec![sum])?;
+                    let layout = Layout::new(vec![], vec![], 0)?;
+                    Tensor::new_f(storage, layout)
+                },
+                _ => {
+                    let (storage, layout) = tensor.device().$fn_axes(tensor.raw(), tensor.layout(), axes.as_ref())?;
+                    Tensor::new_f(storage, layout)
+                },
             }
-
-            let (storage, layout) = tensor.device().$fn_axes(tensor.raw(), tensor.layout(), axes.as_ref())?;
-            Tensor::new_f(storage, layout)
         }
 
         pub fn $fn_all<T, B, D>(tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>) -> B::TOut
@@ -44,7 +46,7 @@ macro_rules! trait_reduction {
 
         pub fn $fn_axes<T, B, D>(
             tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
-            axes: impl TryInto<AxesIndex<isize>, Error = Error>,
+            axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
         ) -> Tensor<B::TOut, B, IxD>
         where
             D: DimAPI,
@@ -85,7 +87,7 @@ macro_rules! trait_reduction {
 
             pub fn $fn_axes_f(
                 &self,
-                axes: impl TryInto<AxesIndex<isize>, Error = Error>,
+                axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
             ) -> Result<Tensor<B::TOut, B, IxD>>
             where
                 B: DeviceCreationAnyAPI<B::TOut>,
@@ -93,7 +95,7 @@ macro_rules! trait_reduction {
                 $fn_axes_f(self, axes)
             }
 
-            pub fn $fn_axes(&self, axes: impl TryInto<AxesIndex<isize>, Error = Error>) -> Tensor<B::TOut, B, IxD>
+            pub fn $fn_axes(&self, axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> Tensor<B::TOut, B, IxD>
             where
                 B: DeviceCreationAnyAPI<B::TOut>,
             {
@@ -143,17 +145,28 @@ macro_rules! trait_reduction_arg {
 
         pub fn $fn_axes_f<T, B, D>(
             tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
-            axes: impl TryInto<AxesIndex<isize>, Error = Error>,
+            axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
         ) -> Result<Tensor<IxD, B, IxD>>
         where
             D: DimAPI,
-            B: $OpReduceAPI<T, D> + DeviceAPI<IxD>,
+            B: $OpReduceAPI<T, D> + DeviceAPI<IxD> + DeviceCreationAnyAPI<IxD>,
         {
-            let axes = axes.try_into()?;
+            let axes = axes.try_into().map_err(Into::into)?;
             let tensor = tensor.view();
 
-            let (storage, layout) = tensor.device().$fn_axes(tensor.raw(), tensor.layout(), axes.as_ref())?;
-            Tensor::new_f(storage, layout)
+            match axes {
+                AxesIndex::None => {
+                    // special case for reducing all axes
+                    let arg = tensor.device().$fn_all(tensor.raw(), tensor.layout())?;
+                    let storage = tensor.device().outof_cpu_vec(vec![arg.into()])?;
+                    let layout = Layout::new(vec![], vec![], 0)?;
+                    Tensor::new_f(storage, layout)
+                },
+                _ => {
+                    let (storage, layout) = tensor.device().$fn_axes(tensor.raw(), tensor.layout(), axes.as_ref())?;
+                    Tensor::new_f(storage, layout)
+                },
+            }
         }
 
         pub fn $fn_all<T, B, D>(tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>) -> D
@@ -166,11 +179,11 @@ macro_rules! trait_reduction_arg {
 
         pub fn $fn_axes<T, B, D>(
             tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
-            axes: impl TryInto<AxesIndex<isize>, Error = Error>,
+            axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
         ) -> Tensor<IxD, B, IxD>
         where
             D: DimAPI,
-            B: $OpReduceAPI<T, D> + DeviceAPI<IxD>,
+            B: $OpReduceAPI<T, D> + DeviceAPI<IxD> + DeviceCreationAnyAPI<IxD>,
         {
             $fn_axes_f(tensor, axes).rstsr_unwrap()
         }
@@ -205,16 +218,19 @@ macro_rules! trait_reduction_arg {
                 $fn_all(self)
             }
 
-            pub fn $fn_axes_f(&self, axes: impl TryInto<AxesIndex<isize>, Error = Error>) -> Result<Tensor<IxD, B, IxD>>
+            pub fn $fn_axes_f(
+                &self,
+                axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
+            ) -> Result<Tensor<IxD, B, IxD>>
             where
-                B: DeviceAPI<IxD>,
+                B: DeviceAPI<IxD> + DeviceCreationAnyAPI<IxD>,
             {
                 $fn_axes_f(self, axes)
             }
 
-            pub fn $fn_axes(&self, axes: impl TryInto<AxesIndex<isize>, Error = Error>) -> Tensor<IxD, B, IxD>
+            pub fn $fn_axes(&self, axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> Tensor<IxD, B, IxD>
             where
-                B: DeviceAPI<IxD>,
+                B: DeviceAPI<IxD> + DeviceCreationAnyAPI<IxD>,
             {
                 $fn_axes(self, axes)
             }
@@ -266,8 +282,8 @@ where
     fn sum(&self) -> usize {
         self.sum_f().rstsr_unwrap()
     }
-    fn sum_axes_f(&self, axes: impl TryInto<AxesIndex<isize>, Error = Error>) -> Result<Tensor<usize, B, IxD>>;
-    fn sum_axes(&self, axes: impl TryInto<AxesIndex<isize>, Error = Error>) -> Tensor<usize, B, IxD> {
+    fn sum_axes_f(&self, axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> Result<Tensor<usize, B, IxD>>;
+    fn sum_axes(&self, axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> Tensor<usize, B, IxD> {
         self.sum_axes_f(axes).rstsr_unwrap()
     }
 }
@@ -282,19 +298,22 @@ where
         self.device().sum_all(self.raw(), self.layout())
     }
 
-    fn sum_axes_f(&self, axes: impl TryInto<AxesIndex<isize>, Error = Error>) -> Result<Tensor<usize, B, IxD>> {
-        let axes = axes.try_into()?;
+    fn sum_axes_f(&self, axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> Result<Tensor<usize, B, IxD>> {
+        let axes = axes.try_into().map_err(Into::into)?;
 
-        // special case for summing all axes
-        if axes.as_ref().is_empty() {
-            let sum = self.device().sum_all(self.raw(), self.layout())?;
-            let storage = self.device().outof_cpu_vec(vec![sum])?;
-            let layout = Layout::new(vec![], vec![], 0)?;
-            return Tensor::new_f(storage, layout);
+        match axes {
+            AxesIndex::None => {
+                // special case for summing all axes
+                let sum = self.device().sum_all(self.raw(), self.layout())?;
+                let storage = self.device().outof_cpu_vec(vec![sum])?;
+                let layout = Layout::new(vec![], vec![], 0)?;
+                Tensor::new_f(storage, layout)
+            },
+            _ => {
+                let (storage, layout) = self.device().sum_axes(self.raw(), self.layout(), axes.as_ref())?;
+                Tensor::new_f(storage, layout)
+            },
         }
-
-        let (storage, layout) = self.device().sum_axes(self.raw(), self.layout(), axes.as_ref())?;
-        Tensor::new_f(storage, layout)
     }
 }
 
@@ -408,7 +427,7 @@ mod test {
         let s = a.sum_all();
         assert_eq!(s, 446586);
 
-        let s = a.sum_axes(());
+        let s = a.sum_axes(None);
         println!("{s:?}");
         assert_eq!(s.to_scalar(), 446586);
 
@@ -424,7 +443,7 @@ mod test {
         let s = a.sum_all();
         assert_eq!(s, 446586);
 
-        let s = a.sum_axes(());
+        let s = a.sum_axes(None);
         println!("{s:?}");
         assert_eq!(s.to_scalar(), 446586);
     }
@@ -446,7 +465,7 @@ mod test {
         let s = a.sum_all();
         assert_eq!(s, 403662);
 
-        let s = a.sum_axes(());
+        let s = a.sum_axes(None);
         println!("{s:?}");
         assert_eq!(s.to_scalar(), 403662);
 
@@ -460,7 +479,7 @@ mod test {
         let s = a.sum_all();
         assert_eq!(s, 403662);
 
-        let s = a.sum_axes(());
+        let s = a.sum_axes(None);
         println!("{s:?}");
         assert_eq!(s.to_scalar(), 403662);
     }

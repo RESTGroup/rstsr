@@ -79,12 +79,17 @@ where
 {
     pub fn axes_iter_with_order_f<I>(&self, axes: I, order: TensorIterOrder) -> Result<IterAxesView<'a, T, B>>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         // convert axis to negative indexes and sort
         let ndim: isize = TryInto::<isize>::try_into(self.ndim())?;
-        let axes: Vec<isize> =
-            axes.try_into()?.as_ref().iter().map(|&v| if v >= 0 { v } else { v + ndim }).collect::<Vec<isize>>();
+        let axes: Vec<isize> = axes
+            .try_into()
+            .map_err(Into::into)?
+            .as_ref()
+            .iter()
+            .map(|&v| if v >= 0 { v } else { v + ndim })
+            .collect::<Vec<isize>>();
         let mut axes_check = axes.clone();
         axes_check.sort();
         // check no two axis are the same, and no negative index too small
@@ -131,21 +136,21 @@ where
 
     pub fn axes_iter_f<I>(&self, axes: I) -> Result<IterAxesView<'a, T, B>>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         self.axes_iter_with_order_f(axes, TensorIterOrder::default())
     }
 
     pub fn axes_iter_with_order<I>(&self, axes: I, order: TensorIterOrder) -> IterAxesView<'a, T, B>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         self.axes_iter_with_order_f(axes, order).rstsr_unwrap()
     }
 
     pub fn axes_iter<I>(&self, axes: I) -> IterAxesView<'a, T, B>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         self.axes_iter_f(axes).rstsr_unwrap()
     }
@@ -229,12 +234,17 @@ where
 {
     pub fn axes_iter_mut_with_order_f<I>(&'a mut self, axes: I, order: TensorIterOrder) -> Result<IterAxesMut<'a, T, B>>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         // convert axis to negative indexes and sort
         let ndim: isize = TryInto::<isize>::try_into(self.ndim())?;
-        let axes: Vec<isize> =
-            axes.try_into()?.as_ref().iter().map(|&v| if v >= 0 { v } else { v + ndim }).collect::<Vec<isize>>();
+        let axes: Vec<isize> = axes
+            .try_into()
+            .map_err(Into::into)?
+            .as_ref()
+            .iter()
+            .map(|&v| if v >= 0 { v } else { v + ndim })
+            .collect::<Vec<isize>>();
         let mut axes_check = axes.clone();
         axes_check.sort();
         // check no two axis are the same, and no negative index too small
@@ -281,21 +291,21 @@ where
 
     pub fn axes_iter_mut_f<I>(&'a mut self, axes: I) -> Result<IterAxesMut<'a, T, B>>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         self.axes_iter_mut_with_order_f(axes, TensorIterOrder::default())
     }
 
     pub fn axes_iter_mut_with_order<I>(&'a mut self, axes: I, order: TensorIterOrder) -> IterAxesMut<'a, T, B>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         self.axes_iter_mut_with_order_f(axes, order).rstsr_unwrap()
     }
 
     pub fn axes_iter_mut<I>(&'a mut self, axes: I) -> IterAxesMut<'a, T, B>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         self.axes_iter_mut_f(axes).rstsr_unwrap()
     }
@@ -391,7 +401,7 @@ where
         order: TensorIterOrder,
     ) -> Result<IndexedIterAxesView<'a, T, B>>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         use TensorIterOrder::*;
         // this function only accepts c/f iter order currently
@@ -401,8 +411,13 @@ where
         };
         // convert axis to negative indexes and sort
         let ndim: isize = TryInto::<isize>::try_into(self.ndim())?;
-        let axes: Vec<isize> =
-            axes.try_into()?.as_ref().iter().map(|&v| if v >= 0 { v } else { v + ndim }).collect::<Vec<isize>>();
+        let axes: Vec<isize> = axes
+            .try_into()
+            .map_err(Into::into)?
+            .as_ref()
+            .iter()
+            .map(|&v| if v >= 0 { v } else { v + ndim })
+            .collect::<Vec<isize>>();
         let mut axes_check = axes.clone();
         axes_check.sort();
         // check no two axis are the same, and no negative index too small
@@ -449,7 +464,7 @@ where
 
     pub fn indexed_axes_iter_f<I>(&self, axes: I) -> Result<IndexedIterAxesView<'a, T, B>>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         let default_order = self.device().default_order();
         let order = match default_order {
@@ -461,14 +476,14 @@ where
 
     pub fn indexed_axes_iter_with_order<I>(&self, axes: I, order: TensorIterOrder) -> IndexedIterAxesView<'a, T, B>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         self.indexed_axes_iter_with_order_f(axes, order).rstsr_unwrap()
     }
 
     pub fn indexed_axes_iter<I>(&self, axes: I) -> IndexedIterAxesView<'a, T, B>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         self.indexed_axes_iter_f(axes).rstsr_unwrap()
     }
@@ -564,12 +579,17 @@ where
         order: TensorIterOrder,
     ) -> Result<IndexedIterAxesMut<'a, T, B>>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         // convert axis to negative indexes and sort
         let ndim: isize = TryInto::<isize>::try_into(self.ndim())?;
-        let axes: Vec<isize> =
-            axes.try_into()?.as_ref().iter().map(|&v| if v >= 0 { v } else { v + ndim }).collect::<Vec<isize>>();
+        let axes: Vec<isize> = axes
+            .try_into()
+            .map_err(Into::into)?
+            .as_ref()
+            .iter()
+            .map(|&v| if v >= 0 { v } else { v + ndim })
+            .collect::<Vec<isize>>();
         let mut axes_check = axes.clone();
         axes_check.sort();
         // check no two axis are the same, and no negative index too small
@@ -616,7 +636,7 @@ where
 
     pub fn indexed_axes_iter_mut_f<I>(&'a mut self, axes: I) -> Result<IndexedIterAxesMut<'a, T, B>>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         let default_order = self.device().default_order();
         let order = match default_order {
@@ -632,14 +652,14 @@ where
         order: TensorIterOrder,
     ) -> IndexedIterAxesMut<'a, T, B>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         self.indexed_axes_iter_mut_with_order_f(axes, order).rstsr_unwrap()
     }
 
     pub fn indexed_axes_iter_mut<I>(&'a mut self, axes: I) -> IndexedIterAxesMut<'a, T, B>
     where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
+        I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
     {
         self.indexed_axes_iter_mut_f(axes).rstsr_unwrap()
     }

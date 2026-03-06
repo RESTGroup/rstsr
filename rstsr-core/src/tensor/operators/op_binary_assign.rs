@@ -196,7 +196,7 @@ mod test {
             // broadcast
             // [2, 3] + [3]
             let c = linspace((1.0, 6.0, 6));
-            let mut c = c.into_shape_assume_contig([2, 3]);
+            let mut c = c.into_shape([2, 3]);
             let b = linspace((2.0, 6.0, 3));
             *&mut c.view_mut() += &b;
             let c_ref = vec![3., 6., 9., 6., 9., 12.].into();
@@ -212,7 +212,7 @@ mod test {
             // broadcast
             // [3, 2] + [3]
             let c = linspace((1.0, 6.0, 6));
-            let mut c = c.into_shape_assume_contig([3, 2]);
+            let mut c = c.into_shape([3, 2]);
             let b = linspace((2.0, 6.0, 3));
             *&mut c.view_mut() += &b;
             let c_ref = vec![3., 6., 9., 6., 9., 12.];
@@ -239,7 +239,7 @@ mod test {
             // broadcast
             // [2, 3] + [3]
             let c = linspace((1.0, 6.0, 6));
-            let mut c = c.into_shape_assume_contig([2, 3]);
+            let mut c = c.into_shape([2, 3]);
             let b = linspace((2.0, 6.0, 3));
             // let mut c_mut = c.view_mut();
             // c_mut += &b;
@@ -252,7 +252,7 @@ mod test {
             // broadcast
             // [3, 2] + [3]
             let c = linspace((1.0, 6.0, 6));
-            let mut c = c.into_shape_assume_contig([3, 2]);
+            let mut c = c.into_shape([3, 2]);
             let b = linspace((2.0, 6.0, 3));
             // let mut c_mut = c.view_mut();
             // c_mut += &b;
