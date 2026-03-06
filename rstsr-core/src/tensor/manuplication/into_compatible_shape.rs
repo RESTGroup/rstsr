@@ -40,6 +40,15 @@ where
 ///
 /// </div>
 ///
+/// <div class="warning">
+///
+/// **Different Signature Convention to [`reshape`]**
+///
+/// This function does not change the underlying data, only manuplicating the layout. So this
+/// function returns exactly the same ownership of tensor, instead of owned tensor.
+///
+/// </div>
+///
 /// # Parameters
 ///
 /// - `tensor`: [`TensorAny<R, T, B, D>`]
@@ -147,11 +156,22 @@ where
 /// This function takes a reference to the input tensor. If the layout is not compatible,
 /// this function will panic.
 ///
+/// <div class="warning">
+///
+/// **Different Signature Convention to [`reshape`]**
+///
+/// This function does not change the underlying data, only manuplicating the layout. So this
+/// function returns a view instead of copy-on-write tensor.
+///
+/// </div>
+///
 /// # Parameters
 ///
 /// - `tensor`: [`&TensorAny<R, T, B, D>`](TensorAny)
 ///
 ///   - The input tensor.
+///   - Note on variant [`into_compatible_shape`]: This takes ownership [`Tensor<R, T, B, D>`] of
+///     input tensor, and will not perform change to underlying data, only layout changes.
 ///
 /// - `shape`: TryInto [`AxesIndex<isize>`]
 ///
@@ -183,9 +203,22 @@ where
 ///
 /// # See also
 ///
-/// - [`to_compatible_shape_f`]: Falling variant that returns a Result.
-/// - [`into_compatible_shape`]: Takes ownership and returns an owned tensor.
-/// - [`reshape`]: Reshapes a tensor, copying data if necessary.
+/// ## Related functions in RSTSR
+///
+/// - [`reshape`]: Reshapes a tensor, copying data if necessary (returning copy-on-write tensor).
+///
+/// ## Related functions in other crates/libraries
+///
+/// - ndarray: [`into_shape_with_order`](https://docs.rs/ndarray/latest/ndarray/struct.ArrayBase.html#method.into_shape_with_order)
+///
+/// ## Variants of this function
+///
+/// - [`to_compatible_shape`] / [`to_compatible_shape_f`]: Returning a view.
+/// - [`into_compatible_shape`] / [`into_compatible_shape_f`]: Consuming version.
+/// - Associated methods on [`TensorAny`]:
+///  
+///   - [`TensorAny::to_compatible_shape`] / [`TensorAny::to_compatible_shape_f`]
+///   - [`TensorAny::into_compatible_shape`] / [`TensorAny::into_compatible_shape_f`]
 pub fn to_compatible_shape<R, T, B, D>(
     tensor: &TensorAny<R, T, B, D>,
     shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,

@@ -101,20 +101,16 @@ where
 ///
 /// ## Variants of this function
 ///
-/// - [`to_dim`]: Borrowing version.
-/// - [`to_dim_f`]: Fallible borrowing version.
-/// - [`into_dim`]: Consuming version.
-/// - [`into_dim_f`]: Consuming and fallible version, actual implementation.
-/// - [`to_dyn`]: Convert to dynamic dimension, borrowing version (infallible by definition).
+/// - [`to_dim`] / [`to_dim_f`]: Returning a view.
+/// - [`into_dim`] / [`into_dim_f`]: Consuming version.
+/// - [`to_dyn`]: Convert to dynamic dimension, returning a view (infallable by definition).
 /// - [`into_dyn`]: Convert to dynamic dimension, consuming version (infallible by definition).
 /// - Associated methods on [`TensorAny`]:
 ///
-///   - [`to_dim`]
-///   - [`to_dim_f`]
-///   - [`into_dim`]
-///   - [`into_dim_f`]
-///   - [`to_dyn`]
-///   - [`into_dyn`]
+///   - [`TensorAny::to_dim`] / [`TensorAny::to_dim_f`]
+///   - [`TensorAny::into_dim`] / [`TensorAny::into_dim_f`]
+///   - [`TensorAny::to_dyn`]
+///   - [`TensorAny::into_dyn`]
 pub fn to_dim<R, T, B, D, D2>(tensor: &TensorAny<R, T, B, D>) -> TensorView<'_, T, B, D2>
 where
     D: DimAPI,

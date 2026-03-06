@@ -72,6 +72,8 @@ where
 /// - `tensor`: [`&TensorAny<R, T, B, D>`](TensorAny)
 ///
 ///   - The input tensor.
+///   - Note on variant [`into_squeeze`]: This takes ownership [`Tensor<R, T, B, D>`] of input
+///     tensor, and will not perform change to underlying data, only layout changes.
 ///
 /// - `axes`: TryInto [`AxesIndex<isize>`]
 ///
@@ -204,15 +206,12 @@ where
 ///
 /// ## Variants of this function
 ///
-/// - [`squeeze_f`]: Failable version.
-/// - [`into_squeeze`]: Consuming version.
-/// - [`into_squeeze_f`]: Consuming and fallible version, actual implementation.
+/// - [`squeeze`] / [`squeeze_f`]: Returning a view.
+/// - [`into_squeeze`] / [`into_squeeze_f`]: Consuming version.
 /// - Associated methods on [`TensorAny`]:
 ///
-///   - [`TensorAny::squeeze`]
-///   - [`TensorAny::squeeze_f`]
-///   - [`TensorAny::into_squeeze`]
-///   - [`TensorAny::into_squeeze_f`]
+///   - [`TensorAny::squeeze`] / [`TensorAny::squeeze_f`]
+///   - [`TensorAny::into_squeeze`] / [`TensorAny::into_squeeze_f`]
 pub fn squeeze<R, T, B, D>(
     tensor: &TensorAny<R, T, B, D>,
     axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,

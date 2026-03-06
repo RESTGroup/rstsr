@@ -134,7 +134,7 @@ where
 /// assert_eq!(x.i((None, Ellipsis, None)).shape(), &[1, 2, 1]);
 /// ```
 ///
-/// ## Notes of API accordance
+/// # Notes of API accordance
 ///
 /// - Array-API: `expand_dims(x, /, axis)` ([`expand_dims` in Array-API](https://data-apis.org/array-api/latest/API_specification/generated/array_api.expand_dims.html))
 /// - NumPy: `expand_dims(a, axis)` ([`numpy.expand_dims`](https://numpy.org/doc/stable/reference/generated/numpy.expand_dims.html))
@@ -150,9 +150,18 @@ where
 ///
 /// ## Variants of this function
 ///
-/// - [`expand_dims_f`]: Failable version.
-/// - [`into_expand_dims`]: Consuming version.
-/// - [`into_expand_dims_f`]: Failable and consuming version, actual implementation.
+/// - [expand_dims] / [`expand_dims_f`]: Returning a view.
+/// - [`into_expand_dims`] / [`into_expand_dims_f`]: Consuming version.
+/// - [`unsqueeze`] / [`unsqueeze_f`]: Alias of [`expand_dims`] / [`expand_dims_f`].
+/// - [`into_unsqueeze`] / [`into_unsqueeze_f`]: Alias of [`into_expand_dims`] /
+///   [`into_expand_dims_f`].
+///
+/// - Associated methods on [`TensorAny`]:
+///
+///   - [`TensorAny::expand_dims`] / [`TensorAny::expand_dims_f`]
+///   - [`TensorAny::into_expand_dims`] / [`TensorAny::into_expand_dims_f`]
+///   - [`TensorAny::unsqueeze`] / [`TensorAny::unsqueeze_f`]
+///   - [`TensorAny::into_unsqueeze`] / [`TensorAny::into_unsqueeze_f`]
 pub fn expand_dims<R, T, B, D>(
     tensor: &TensorAny<R, T, B, D>,
     axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
