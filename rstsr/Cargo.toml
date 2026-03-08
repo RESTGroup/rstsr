@@ -13,8 +13,11 @@ readme = "readme.md"
 [dependencies]
 rstsr-core = { workspace = true }
 rstsr-common = { workspace = true }
+rstsr-dtype-traits = { workspace = true }
 rstsr-linalg-traits = { workspace = true, optional = true }
 rstsr-sci-traits = { workspace = true, optional = true }
+# API document dependencies
+num = { workspace = true }
 # device dependencies
 rstsr-openblas = { workspace = true, optional = true }
 rstsr-mkl = { workspace = true, optional = true }

@@ -172,7 +172,7 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 | Type | Identifier | Minimal Description |
 |--|--|--|
 | flags | [flags][rstsr_common::flags] | Flags for tensor. |
-| enum | [`FlagOrder`] | The order of tensor. |
+| enum | [`FlagOrder`] | The order of tensor ([`RowMajor`], [`ColMajor`]). |
 | enum | [`FlagDiag`] | Unit-diagonal of matrix. |
 | enum | [`FlagSide`] | Side of matrix operation. |
 | enum | [`FlagTrans`] | Transposition of matrix operation. |
@@ -196,6 +196,7 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 | assoc/fn | [`squeeze`] | Removes singleton dimensions (axes) from `x`. |
 | assoc/fn | [`to_dim`] <br/> [`to_dyn`] | Convert layout to the other dimension. |
 | assoc/fn | [`reshape_with_args`] | Reshapes the given tensor to the specified shape, with argument specifying the order and whether to copy data. |
+| assoc/fn | [`to_compatible_shape`] | Reshapes the given tensor to the specified shape if the layout is compatible. |
 
 ### Storage-dependent manuplication
 
@@ -260,7 +261,7 @@ Trait function calls like associated methods, so we also do not recommend usage 
 ### Matrix Multiply
 
 Matrix multiply is implemented in many ways. The most useful way is function [`matmul`][`matmul()`] and operator `%`.
-- functions [`matmul`][`matmul()`] and [`matmul_with_output`];
+- functions [`matmul`][`matmul()`], [`matmul_from`] and [`matmul_with_output`];
 - associated methods [`TensorBase::matmul`], [`TensorBase::matmul_from`];
 - operator `%`.
 

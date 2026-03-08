@@ -14,6 +14,20 @@ pub mod api_specification {
     extern crate alloc;
 }
 
+pub mod array_api_standard {
+    #![doc = include_str!("docs/array_api_standard.md")]
+    #![doc = include_str!("docs/array_api_standard_extension.md")]
+    #![allow(unused_imports)]
+
+    use crate::prelude::*;
+    use core::ops::*;
+    use num::complex::ComplexFloat;
+    use num::{pow::Pow, Complex, Float, Integer, Num, Signed};
+    use rstsr_core::prelude_dev::Indexer;
+    use rstsr_dtype_traits::*;
+    use rt::*;
+}
+
 #[test]
 fn test() {
     use crate::prelude::*;

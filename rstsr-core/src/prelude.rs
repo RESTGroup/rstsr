@@ -84,8 +84,9 @@ pub mod rstsr_funcs {
     // binary arithmetics
     pub use crate::tensor::operators::{
         add, add_f, add_with_output, add_with_output_f, div, div_f, div_with_output, div_with_output_f, matmul::matmul,
-        matmul_f, matmul_with_output, matmul_with_output_f, mul, mul_f, mul_with_output, mul_with_output_f, rem, rem_f,
-        rem_with_output, rem_with_output_f, sub, sub_f, sub_with_output, sub_with_output_f,
+        matmul_f, matmul_from, matmul_from_f, matmul_with_output, matmul_with_output_f, mul, mul_f, mul_with_output,
+        mul_with_output_f, rem, rem_f, rem_with_output, rem_with_output_f, sub, sub_f, sub_with_output,
+        sub_with_output_f,
     };
     // binary arithmetics with assignment
     pub use crate::tensor::operators::{
