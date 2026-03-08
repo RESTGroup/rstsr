@@ -207,7 +207,7 @@ The reference implementation (as in [`DeviceCpuSerial`] and [`DeviceFaer`]), fol
 |-|-|-|-|
 | Y | [`broadcast_arrays`] | [`broadcast_arrays`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.broadcast_arrays.html) | Broadcasts one or more arrays against one another. |
 | Y | [`to_broadcast`] | [`broadcast_to`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.broadcast_to.html) | Broadcasts an array to a specified shape. |
-|   |                  | [`broadcast_shapes`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.broadcast_shapes.html) | Broadcasts one or more shapes against one another. |
+| Y | [`broadcast_shapes`] | [`broadcast_shapes`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.broadcast_shapes.html) | Broadcasts one or more shapes against one another. |
 | Y | [`concat`](concat()) | [`concat`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.concat.html) | Joins a sequence of arrays along an existing axis. |
 | Y | [`expand_dims`] | [`expand_dims`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.expand_dims.html) | Expands the shape of an array by inserting a new axis of size one at the position (or positions) specified by `axis`. |
 | Y | [`flip`] | [`flip`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.flip.html) | Reverses the order of elements in an array along the given axis. |

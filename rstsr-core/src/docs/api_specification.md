@@ -187,6 +187,7 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 | Type | Identifier | Minimal Description |
 |--|--|--|
 | fn | [`broadcast_arrays`] | Broadcasts any number of arrays against each other. |
+| fn | [`broadcast_shapes`] | Broadcasts shapes against each other and returns the resulting shape. |
 | assoc/fn | [`to_broadcast`] | Broadcasts an array to a specified shape. |
 | assoc/fn | [`expand_dims`] | Expands the shape of an array by inserting a new axis (dimension) of size one at the position specified by `axis`. |
 | assoc/fn | [`flip`] | Reverses the order of elements in an array along the given axis. |

@@ -1,5 +1,129 @@
 use crate::prelude_dev::*;
 
+/* #region broadcast_shapes */
+
+/// Broadcasts shapes against each other and returns the resulting shape.
+///
+/// This function computes the shape that results from broadcasting the given
+/// shapes against one another according to the standard broadcasting rules.
+/// It does not require actual tensor data, only the shapes.
+///
+/// <div class="warning">
+///
+/// **Row/Column Major Notice**
+///
+/// This function behaves differently on default orders ([`RowMajor`] and [`ColMajor`]) of device.
+///
+/// </div>
+///
+/// # Parameters
+///
+/// - `shapes`: A slice of shapes, where each shape is [`IxD`] (`Vec<usize>`).
+/// - `order`: The memory order ([`RowMajor`] or [`ColMajor`]) that determines how broadcasting
+///   rules are applied.
+///
+/// # Returns
+///
+/// - `IxD`: The resulting shape after broadcasting all input shapes together.
+///
+/// # Examples
+///
+/// Broadcast two shapes in row-major order:
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+///
+/// // A      (4d array):  8 x 1 x 6 x 1
+/// // B      (3d array):      7 x 1 x 5
+/// // ---------------------------------
+/// // Result (4d array):  8 x 7 x 6 x 5
+/// let shape1 = vec![8, 1, 6, 1];
+/// let shape2 = vec![7, 1, 5];
+/// let result = rt::broadcast_shapes(&[shape1, shape2], RowMajor);
+/// println!("{:?}", result);
+/// // [8, 7, 6, 5]
+/// assert_eq!(result, vec![8, 7, 6, 5]);
+/// ```
+///
+/// In col-major order, the broadcasting is applied from the left instead of right:
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+///
+/// // A      (4d array):  1 x 6 x 1 x 8
+/// // B      (3d array):  5 x 1 x 7
+/// // ---------------------------------
+/// // Result (4d array):  5 x 6 x 7 x 8
+/// let shape1 = vec![1, 6, 1, 8];
+/// let shape2 = vec![5, 1, 7];
+/// let result = rt::broadcast_shapes(&[shape1, shape2], ColMajor);
+/// println!("{:?}", result);
+/// // [5, 6, 7, 8]
+/// assert_eq!(result, vec![5, 6, 7, 8]);
+/// ```
+///
+/// Broadcast multiple shapes:
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+///
+/// // Three shapes: (1,), (3, 1), (3, 4) -> (3, 4)
+/// let shapes = vec![vec![1], vec![3, 1], vec![3, 4]];
+/// let result = rt::broadcast_shapes(&shapes, RowMajor);
+/// println!("{:?}", result);
+/// // [3, 4]
+/// assert_eq!(result, vec![3, 4]);
+/// ```
+///
+/// # Panics
+///
+/// - If the shapes cannot be broadcast together (incompatible dimensions).
+///
+/// # Notes of API accordance
+///
+/// - Array-API: `broadcast_shapes(*shapes)` ([`broadcast_shapes`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.broadcast_shapes.html))
+/// - NumPy: `numpy.broadcast_shapes(*shapes)` ([`numpy.broadcast_shapes`](https://numpy.org/doc/stable/reference/generated/numpy.broadcast_shapes.html))
+/// - RSTSR: `rt::broadcast_shapes(shapes, order)`
+///
+/// # See also
+///
+/// ## Variants of this function
+///
+/// - [`broadcast_shapes_f`]: Fallible version, actual implementation.
+///
+/// ## Related functions in RSTSR
+///
+/// - [`broadcast_arrays`]: Broadcasts any number of arrays against each other.
+/// - [`broadcast_to`]: Broadcasts an array to a specified shape.
+pub fn broadcast_shapes(shapes: &[IxD], order: FlagOrder) -> IxD {
+    broadcast_shapes_f(shapes, order).rstsr_unwrap()
+}
+
+/// Broadcasts shapes against each other and returns the resulting shape.
+///
+/// # See also
+///
+/// Refer to [`broadcast_shapes`] for detailed documentation.
+pub fn broadcast_shapes_f(shapes: &[IxD], order: FlagOrder) -> Result<IxD> {
+    // fast return if empty or single shape
+    if shapes.is_empty() {
+        return Ok(vec![]);
+    }
+    if shapes.len() == 1 {
+        return Ok(shapes[0].clone());
+    }
+
+    // iteratively broadcast all shapes
+    let mut result = shapes[0].clone();
+    for shape in shapes.iter().skip(1) {
+        let (new_result, _, _) = broadcast_shape(shape, &result, order)?;
+        result = new_result;
+    }
+    Ok(result)
+}
+
+/* #endregion */
+
 /* #region broadcast_arrays */
 
 /// Broadcasts any number of arrays against each other.
