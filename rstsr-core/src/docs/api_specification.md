@@ -211,6 +211,8 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 
 ### Storage-creation manuplication
 
+| Type | Identifier | Minimal Description |
+|--|--|--|
 | fn | [`concat`](concat()) |  Join a sequence of arrays along an existing axis. |
 | fn | [`stack`] | Joins a sequence of arrays along a new axis. |
 | fn | [`hstack`] | Stack tensors in sequence horizontally (column-wise). |
