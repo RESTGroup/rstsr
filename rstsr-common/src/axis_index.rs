@@ -372,38 +372,48 @@ impl_from_tuple_to_axes_index!(usize);
 /* #region utilities for AxesIndex */
 
 /// Normalize axes argument into a tuple of non-negative integer axes.
-pub fn normalize_axes_index(axes: AxesIndex<isize>, ndim: usize, allow_duplicate: bool) -> Result<Vec<isize>> {
+pub fn normalize_axes_index(
+    axes: AxesIndex<isize>,
+    ndim: usize,
+    allow_duplicate: bool,
+    sort: bool,
+) -> Result<Vec<isize>> {
     // generate the normalized axes vector
     let vec = match axes {
         AxesIndex::None => rstsr_raise!(InvalidValue, "Axes argument cannot be None for this operation.")?,
         AxesIndex::Val(axis) => {
             let axis = if axis < 0 { (ndim as isize) + axis } else { axis };
-            if axis < 0 || axis >= ndim as isize {
-                rstsr_raise!(InvalidValue, "Axis index {axis} is out of bounds for tensor with {ndim} dimensions.")?;
-            }
+            rstsr_pattern!(
+                axis,
+                0..(ndim as isize),
+                InvalidValue,
+                "Axis index {axis} is out of bounds for tensor with {ndim} dimensions."
+            )?;
             vec![axis]
         },
         AxesIndex::Vec(axes) => {
             let mut normalized_axes = Vec::with_capacity(axes.len());
             for &axis in axes.iter() {
                 let norm_axis = if axis < 0 { (ndim as isize) + axis } else { axis };
-                if norm_axis < 0 || norm_axis >= ndim as isize {
-                    rstsr_raise!(
-                        InvalidValue,
-                        "Axis index {axis} is out of bounds for tensor with {ndim} dimensions."
-                    )?;
-                }
+                rstsr_pattern!(
+                    norm_axis,
+                    0..(ndim as isize),
+                    InvalidValue,
+                    "Axis index {axis} is out of bounds for tensor with {ndim} dimensions."
+                )?;
                 normalized_axes.push(norm_axis);
             }
-            normalized_axes.sort();
+            if sort {
+                normalized_axes.sort();
+            }
             normalized_axes
         },
     };
     if !allow_duplicate {
-        for i in 1..vec.len() {
-            if vec[i] == vec[i - 1] {
-                rstsr_raise!(InvalidValue, "Duplicate axis index {} found in axes argument.", vec[i])?;
-            }
+        let vec_sorted = if sort { vec.clone() } else { vec.iter().copied().sorted().collect() };
+        // check for duplicates in sorted vector
+        if vec_sorted.windows(2).any(|w| w[0] == w[1]) {
+            rstsr_raise!(InvalidValue, "Duplicate axes are not allowed.")?;
         }
     }
     Ok(vec)

@@ -21,7 +21,7 @@ where
     let mut layout = layout.into_dim::<IxD>()?;
     let axes = axes.try_into().map_err(Into::into)?;
     let len_axes = axes.as_ref().len();
-    let axes = normalize_axes_index(axes, ndim + len_axes, false)?;
+    let axes = normalize_axes_index(axes, ndim + len_axes, false, true)?;
     for axis in axes {
         layout = layout.dim_insert(axis)?;
     }

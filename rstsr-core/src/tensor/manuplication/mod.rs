@@ -5,6 +5,7 @@ pub mod expand_dims;
 pub mod flip;
 pub mod into_compatible_shape;
 pub mod into_dim;
+pub mod moveaxis;
 pub mod reshape;
 pub mod squeeze;
 pub mod to_contig;
@@ -19,6 +20,7 @@ pub mod exports {
     pub use flip::*;
     pub use into_compatible_shape::*;
     pub use into_dim::*;
+    pub use moveaxis::*;
     pub use reshape::*;
     pub use squeeze::*;
     pub use to_contig::*;

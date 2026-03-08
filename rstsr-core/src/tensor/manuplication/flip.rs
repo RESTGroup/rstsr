@@ -18,7 +18,7 @@ where
     let axes = axes.try_into().map_err(Into::into)?;
     let axes = match axes {
         AxesIndex::None => (0..layout.ndim() as isize).collect(),
-        _ => normalize_axes_index(axes, layout.ndim(), false)?,
+        _ => normalize_axes_index(axes, layout.ndim(), false, true)?,
     };
     for axis in axes {
         layout = layout.dim_narrow(axis, slice!(None, None, -1))?;

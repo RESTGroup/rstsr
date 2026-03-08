@@ -452,20 +452,10 @@ where
             InvalidLayout,
             "number of elements in axes should be the same to number of dimensions."
         )?;
-        // no elements in axes can be the same
-        let mut permut_used = vec![false; n];
-        for &p in axes {
-            let p = if p < 0 { p + n as isize } else { p };
-            rstsr_pattern!(p, 0..n as isize, InvalidLayout)?;
-            let p = p as usize;
-            permut_used[p] = true;
-        }
-        rstsr_assert!(
-            permut_used.iter().all(|&b| b),
-            InvalidLayout,
-            "axes should contain all elements from 0 to n-1."
-        )?;
-        let axes = axes.iter().map(|&p| if p < 0 { p + n as isize } else { p } as usize).collect::<Vec<_>>();
+        // normalize axes; since we have checked number of elements, and not allowed duplicate, so no other
+        // check is needed for axes
+        let axes = normalize_axes_index(axes.into(), n, false, false)?;
+        let axes = axes.into_iter().map(|a| a as usize).collect::<Vec<usize>>();
 
         let shape_old = self.shape();
         let stride_old = self.stride();

@@ -211,7 +211,7 @@ The reference implementation (as in [`DeviceCpuSerial`] and [`DeviceFaer`]), fol
 | Y | [`concat`](concat()) | [`concat`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.concat.html) | Joins a sequence of arrays along an existing axis. |
 | Y | [`expand_dims`] | [`expand_dims`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.expand_dims.html) | Expands the shape of an array by inserting a new axis of size one at the position (or positions) specified by `axis`. |
 | Y | [`flip`] | [`flip`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.flip.html) | Reverses the order of elements in an array along the given axis. |
-| | | [`moveaxis`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.moveaxis.html) | Moves array axes (dimensions) to new positions, while leaving other axes in their original positions. |
+| Y | [`moveaxis`] | [`moveaxis`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.moveaxis.html) | Moves array axes (dimensions) to new positions, while leaving other axes in their original positions. |
 | Y | [`transpose`], [`permute_dims`] | [`permute_dims`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.permute_dims.html) | Permutes the axes (dimensions) of an array `x`. |
 | | | [`repeat`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.repeat.html) | Repeats each element of an array a specified number of times on a per-element basis. |
 | P | [`reshape`], [`reshape_with_args`] | [`reshape`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.reshape.html) | Reshapes an array without changing its data. |
