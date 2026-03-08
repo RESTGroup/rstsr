@@ -4,7 +4,7 @@ use crate::prelude_dev::*;
 
 /// Convert tensor to contiguous layout.
 ///
-/// # See Also
+/// # See also
 ///
 /// Refer to [`to_contig`] for more detailed documentation.
 pub fn change_contig_f<'a, R, T, B, D>(
@@ -59,7 +59,7 @@ where
 /// // shape: [3, 2], stride: [2, 1], offset: 0
 /// ```
 ///
-/// # See Also
+/// # See also
 ///
 /// ## Similar functions in RSTSR
 ///
@@ -91,7 +91,7 @@ where
 
 /// Fallible version of [`to_contig`].
 ///
-/// # See Also
+/// # See also
 ///
 /// - [`to_contig`]: Infallible version
 pub fn to_contig_f<R, T, B, D>(tensor: &TensorAny<R, T, B, D>, order: FlagOrder) -> Result<TensorCow<'_, T, B, D>>
@@ -105,7 +105,7 @@ where
 
 /// Convert tensor to contiguous layout.
 ///
-/// # See Also
+/// # See also
 ///
 /// Refer to [`to_contig`] for more detailed documentation.
 pub fn into_contig_f<'a, R, T, B, D>(tensor: TensorAny<R, T, B, D>, order: FlagOrder) -> Result<Tensor<T, B, D>>
@@ -128,7 +128,7 @@ where
 /// This is the consuming version of [`to_contig`] that returns copy-on-write tensor. For the
 /// ownership semantics, refer to the documentation of [`reshape`].
 ///
-/// # See Also
+/// # See also
 ///
 /// Refer to [`to_contig`] for more detailed documentation.
 pub fn change_contig<'a, R, T, B, D>(tensor: TensorAny<R, T, B, D>, order: FlagOrder) -> TensorCow<'a, T, B, D>
@@ -145,7 +145,7 @@ where
 /// This is the consuming version of [`to_contig`] that returns owned tensor. For the ownership
 /// semantics, refer to the documentation of [`reshape`].
 ///
-/// # See Also
+/// # See also
 ///
 /// Refer to [`to_contig`] for more detailed documentation.
 pub fn into_contig<'a, R, T, B, D>(tensor: TensorAny<R, T, B, D>, order: FlagOrder) -> Tensor<T, B, D>
@@ -172,7 +172,7 @@ where
 {
     /// Convert tensor to contiguous layout.
     ///
-    /// # See Also
+    /// # See also
     ///
     /// Refer to [`to_contig`] for more detailed documentation.
     pub fn to_contig(&self, order: FlagOrder) -> TensorCow<'_, T, B, D>
@@ -184,7 +184,7 @@ where
 
     /// Convert tensor to contiguous layout.
     ///
-    /// # See Also
+    /// # See also
     ///
     /// Refer to [`to_contig`] for more detailed documentation.
     pub fn to_contig_f(&self, order: FlagOrder) -> Result<TensorCow<'_, T, B, D>>
@@ -196,7 +196,7 @@ where
 
     /// Convert tensor to contiguous layout.
     ///
-    /// # See Also
+    /// # See also
     ///
     /// Refer to [`to_contig`] for more detailed documentation.
     pub fn into_contig_f(self, order: FlagOrder) -> Result<Tensor<T, B, D>>
@@ -209,7 +209,7 @@ where
 
     /// Convert tensor to contiguous layout.
     ///
-    /// # See Also
+    /// # See also
     ///
     /// Refer to [`to_contig`] for more detailed documentation.
     pub fn into_contig(self, order: FlagOrder) -> Tensor<T, B, D>
@@ -222,7 +222,7 @@ where
 
     /// Convert tensor to contiguous layout.
     ///
-    /// # See Also
+    /// # See also
     ///
     /// Refer to [`to_contig`] for more detailed documentation.
     pub fn change_contig_f(self, order: FlagOrder) -> Result<TensorCow<'a, T, B, D>>
@@ -234,7 +234,7 @@ where
 
     /// Convert tensor to contiguous layout.
     ///
-    /// # See Also
+    /// # See also
     ///
     /// Refer to [`to_contig`] for more detailed documentation.
     pub fn change_contig(self, order: FlagOrder) -> TensorCow<'a, T, B, D>
@@ -251,7 +251,7 @@ where
 
 /// Convert tensor to preferred layout if not already contiguous.
 ///
-/// # See Also
+/// # See also
 ///
 /// Refer to [`to_prefer`] for more detailed documentation.
 pub fn change_prefer_f<'a, R, T, B, D>(
@@ -303,7 +303,7 @@ where
 /// assert!(result.is_owned());
 /// ```
 ///
-/// # See Also
+/// # See also
 ///
 /// ## Similar functions in RSTSR
 ///
@@ -335,7 +335,7 @@ where
 
 /// Convert tensor to preferred layout if not already contiguous.
 ///
-/// # See Also
+/// # See also
 ///
 /// Refer to [`to_prefer`] for more detailed documentation.
 pub fn to_prefer_f<R, T, B, D>(tensor: &TensorAny<R, T, B, D>, order: FlagOrder) -> Result<TensorCow<'_, T, B, D>>
@@ -349,7 +349,7 @@ where
 
 /// Convert tensor to preferred layout if not already contiguous.
 ///
-/// # See Also
+/// # See also
 ///
 /// Refer to [`to_prefer`] for more detailed documentation.
 pub fn into_prefer_f<'a, R, T, B, D>(tensor: TensorAny<R, T, B, D>, order: FlagOrder) -> Result<Tensor<T, B, D>>
@@ -372,7 +372,7 @@ where
 /// This is the consuming version of [`to_prefer`] that returns a view or owned tensor. For the
 /// ownership semantics, refer to the documentation of [`reshape`].
 ///
-/// # See Also
+/// # See also
 ///
 /// Refer to [`to_prefer`] for more detailed documentation.
 pub fn change_prefer<'a, R, T, B, D>(tensor: TensorAny<R, T, B, D>, order: FlagOrder) -> TensorCow<'a, T, B, D>
@@ -389,7 +389,7 @@ where
 /// This is the consuming version of [`to_prefer`] that returns owned tensor. For the ownership
 /// semantics, refer to the documentation of [`reshape`].
 ///
-/// # See Also
+/// # See also
 ///
 /// Refer to [`to_prefer`] for more detailed documentation.
 pub fn into_prefer<'a, R, T, B, D>(tensor: TensorAny<R, T, B, D>, order: FlagOrder) -> Tensor<T, B, D>
@@ -416,7 +416,7 @@ where
 {
     /// Convert tensor to preferred layout if not already contiguous.
     ///
-    /// # See Also
+    /// # See also
     ///
     /// Refer to [`to_prefer`] for more detailed documentation.
     pub fn to_prefer(&self, order: FlagOrder) -> TensorCow<'_, T, B, D>
@@ -428,7 +428,7 @@ where
 
     /// Convert tensor to preferred layout if not already contiguous.
     ///
-    /// # See Also
+    /// # See also
     ///
     /// Refer to [`to_prefer`] for more detailed documentation.
     pub fn to_prefer_f(&self, order: FlagOrder) -> Result<TensorCow<'_, T, B, D>>
@@ -440,7 +440,7 @@ where
 
     /// Convert tensor to preferred layout if not already contiguous.
     ///
-    /// # See Also
+    /// # See also
     ///
     /// Refer to [`to_prefer`] for more detailed documentation.
     pub fn into_prefer_f(self, order: FlagOrder) -> Result<Tensor<T, B, D>>
@@ -453,7 +453,7 @@ where
 
     /// Convert tensor to preferred layout if not already contiguous.
     ///
-    /// # See Also
+    /// # See also
     ///
     /// Refer to [`to_prefer`] for more detailed documentation.
     pub fn into_prefer(self, order: FlagOrder) -> Tensor<T, B, D>
@@ -466,7 +466,7 @@ where
 
     /// Convert tensor to preferred layout if not already contiguous.
     ///
-    /// # See Also
+    /// # See also
     ///
     /// Refer to [`to_prefer`] for more detailed documentation.
     pub fn change_prefer_f(self, order: FlagOrder) -> Result<TensorCow<'a, T, B, D>>
@@ -478,7 +478,7 @@ where
 
     /// Convert tensor to preferred layout if not already contiguous.
     ///
-    /// # See Also
+    /// # See also
     ///
     /// Refer to [`to_prefer`] for more detailed documentation.
     pub fn change_prefer(self, order: FlagOrder) -> TensorCow<'a, T, B, D>
