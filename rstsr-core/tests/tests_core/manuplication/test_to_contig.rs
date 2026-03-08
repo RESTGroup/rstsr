@@ -19,71 +19,22 @@ mod docs_to_contig {
         // Example: Convert non-contiguous tensor to contiguous
         let a = rt::arange((12, &device)).into_shape([3, 4]);
         let sliced = a.i((.., slice!(None, None, 2))); // Every other column
-        println!("Original sliced shape: {:?}", sliced.shape());
-        println!("Original sliced stride: {:?}", sliced.stride());
-        // [3, 2]
-        // [4, 2]
+        println!("layout of sliced tensor: {:?}", sliced.layout());
+        // 2-Dim (dyn), contiguous: Custom
+        // shape: [3, 2], stride: [4, 2], offset: 0
         assert_eq!(sliced.shape(), &[3, 2]);
         assert_eq!(sliced.stride(), &[4, 2]);
 
         // Convert to C-contiguous
         let contig = sliced.to_contig(RowMajor);
+        println!("Contiguous layout: {:?}", contig.layout());
+        // 2-Dim (dyn), contiguous: Cc
+        // shape: [3, 2], stride: [2, 1], offset: 0
         println!("Contiguous shape: {:?}", contig.shape());
         println!("Contiguous stride: {:?}", contig.stride());
-        // [3, 2]
-        // [2, 1]
         assert_eq!(contig.shape(), &[3, 2]);
         assert_eq!(contig.stride(), &[2, 1]);
         assert!(contig.c_contig());
-    }
-
-    #[test]
-    fn test_doc_transposed() {
-        // Example: Convert transposed tensor back to contiguous
-        crate::specify_test!("test_doc_transposed");
-
-        let mut device = TESTCFG.device.clone();
-        device.set_default_order(RowMajor);
-
-        // Create a transposed tensor (non-contiguous)
-        let a = rt::tensor_from_nested!([[1, 2, 3], [4, 5, 6]], &device);
-        let transposed = a.t(); // transpose creates non-contiguous view
-
-        // Check contiguity
-        assert!(!transposed.c_contig());
-
-        // Convert to C-contiguous
-        let contig = rt::to_contig(&transposed, RowMajor);
-        assert!(contig.c_contig());
-        println!("{}", contig);
-        // [[ 1 4]
-        //  [ 2 5]
-        //  [ 3 6]]
-        let target = rt::tensor_from_nested!([[1, 4], [2, 5], [3, 6]], &device);
-        assert!(rt::allclose(&contig, &target, None));
-    }
-
-    #[test]
-    fn test_doc_into_contig() {
-        // Example: into_contig returns owned tensor
-        crate::specify_test!("test_doc_into_contig");
-
-        let mut device = TESTCFG.device.clone();
-        device.set_default_order(RowMajor);
-
-        // Create a non-contiguous tensor
-        let a = rt::arange((6, &device)).into_shape([2, 3]);
-        let sliced = a.i((.., slice!(None, None, 2))); // shape [2, 2], stride [3, 2]
-
-        // Convert to owned F-contiguous tensor
-        let contig = sliced.into_contig(ColMajor);
-        assert!(contig.f_contig());
-        println!("Shape: {:?}", contig.shape());
-        println!("Stride: {:?}", contig.stride());
-        // Shape: [2, 2]
-        // Stride: [1, 2]
-        assert_eq!(contig.shape(), &[2, 2]);
-        assert_eq!(contig.stride(), &[1, 2]);
     }
 
     #[test]

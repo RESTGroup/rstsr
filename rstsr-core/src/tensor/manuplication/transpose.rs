@@ -121,10 +121,22 @@ where
 ///
 /// # See also
 ///
+/// ## Related functions in RSTSR
+///
 /// - [`permute_dims`] - Alias for this function
 /// - [`reverse_axes`] - Reverse all axes order
 /// - [`swapaxes`] - Swap two specific axes
-/// - [`TensorAny::t`] - Shorthand for 2D transpose as associated method
+///
+/// ## Variants of this function
+///
+/// - [`transpose`] / [`transpose_f`]: Returning a view.
+/// - [`into_transpose`] / [`into_transpose_f`]: Consuming version.
+///
+/// - Associated methods on `TensorAny`:
+///
+///   - [`TensorAny::transpose`] / [`TensorAny::transpose_f`]
+///   - [`TensorAny::into_transpose`] / [`TensorAny::into_transpose_f`]
+///   - [`TensorAny::t`] as shorthand for [`reverse_axes`]
 pub fn transpose<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axes: I) -> TensorView<'_, T, B, D>
 where
     D: DimAPI,
@@ -245,6 +257,11 @@ where
 
 /* #region reverse_axes */
 
+/// Reverse the order of the axes (dimensions) of an array.
+///
+/// # See also
+///
+/// Refer to [`reverse_axes`] for details and examples.
 pub fn into_reverse_axes<S, D>(tensor: TensorBase<S, D>) -> TensorBase<S, D>
 where
     D: DimAPI,
@@ -288,8 +305,8 @@ where
 /// let a = rt::tensor_from_nested!([[1, 2], [3, 4]], &device);
 /// let result = a.reverse_axes();
 /// println!("{result}");
-/// // [[ 1  3]
-/// //  [ 2  4]]
+/// // [[ 1 3]
+/// //  [ 2 4]]
 /// ```
 ///
 /// For a 1-D array, this returns an unchanged view:
@@ -301,7 +318,7 @@ where
 /// let a = rt::tensor_from_nested!([1, 2, 3, 4], &device);
 /// let result = a.reverse_axes();
 /// println!("{result}");
-/// // [ 1  2  3  4]
+/// // [ 1 2 3 4]
 /// ```
 ///
 /// For higher-dimensional arrays, the axis order is reversed:
@@ -337,10 +354,24 @@ where
 ///
 /// # See also
 ///
+/// ## Related functions in RSTSR
+///
 /// - [`transpose`] - General axis permutation
 /// - [`swapaxes`] - Swap two specific axes
-/// - [`TensorAny::t()`] - Shorthand for transpose
-/// - [NumPy documentation: `transpose`](https://numpy.org/doc/stable/reference/generated/numpy.transpose.html)
+/// - [`TensorAny::t()`] - Shorthand for reverse axes
+///
+/// ## Variants of this function
+///
+/// Note that this function is by definition infallible, so no fallible version is provided.
+///
+/// - [`reverse_axes`]: Returning a view.
+/// - [`into_reverse_axes`]: Consuming version.
+///
+/// - Associated methods on `TensorAny`:
+///
+///   - [`TensorAny::reverse_axes`]
+///   - [`TensorAny::into_reverse_axes`]
+///   - [`TensorAny::t`] as shorthand for reverse axes
 pub fn reverse_axes<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> TensorView<'_, T, B, D>
 where
     D: DimAPI,
@@ -360,7 +391,7 @@ where
     ///
     /// # See also
     ///
-    /// [`reverse_axes`]
+    /// Refer to [`reverse_axes`] for details and examples.
     pub fn reverse_axes(&self) -> TensorView<'_, T, B, D> {
         into_reverse_axes(self.view())
     }
@@ -369,7 +400,7 @@ where
     ///
     /// # See also
     ///
-    /// [`reverse_axes`]
+    /// Refer to [`reverse_axes`] for details and examples.
     pub fn into_reverse_axes(self) -> TensorAny<R, T, B, D> {
         into_reverse_axes(self)
     }
@@ -378,7 +409,7 @@ where
     ///
     /// # See also
     ///
-    /// [`reverse_axes`]
+    /// Refer to [`reverse_axes`] for details and examples.
     pub fn t(&self) -> TensorView<'_, T, B, D> {
         into_reverse_axes(self.view())
     }
@@ -388,6 +419,11 @@ where
 
 /* #region swapaxes */
 
+/// Interchange two axes of an array.
+///
+/// # See also
+///
+/// Refer to [`swapaxes`] for details and examples.
 pub fn into_swapaxes_f<I, S, D>(tensor: TensorBase<S, D>, axis1: I, axis2: I) -> Result<TensorBase<S, D>>
 where
     D: DimAPI,
@@ -453,10 +489,10 @@ where
 /// let x = rt::tensor_from_nested!([[[0, 1], [2, 3]], [[4, 5], [6, 7]]], &device);
 /// let result = x.swapaxes(0, 2);
 /// println!("{result}");
-/// // [[[ 0  4]
-/// //   [ 2  6]]
-/// //  [[ 1  5]
-/// //   [ 3  7]]]
+/// // [[[ 0 4]
+/// //   [ 2 6]]
+/// //  [[ 1 5]
+/// //   [ 3 7]]]
 /// ```
 ///
 /// Using negative indices to swap axes:
@@ -478,9 +514,20 @@ where
 ///
 /// # See also
 ///
+/// ## Related functions in RSTSR
+///
 /// - [`transpose`] - General axis permutation
 /// - [`reverse_axes`] - Reverse all axes order
-/// - [NumPy documentation: `swapaxes`](https://numpy.org/doc/stable/reference/generated/numpy.swapaxes.html)
+///
+/// ## Variants of this function
+///
+/// - [`swapaxes`] / [`swapaxes_f`]: Returning a view.
+/// - [`into_swapaxes`] / [`into_swapaxes_f`]: Consuming version.
+///
+/// - Associated methods on `TensorAny`:
+///
+///   - [`TensorAny::swapaxes`] / [`TensorAny::swapaxes_f`]
+///   - [`TensorAny::into_swapaxes`] / [`TensorAny::into_swapaxes_f`]
 pub fn swapaxes<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axis1: I, axis2: I) -> TensorView<'_, T, B, D>
 where
     D: DimAPI,
@@ -491,6 +538,11 @@ where
     into_swapaxes_f(tensor.view(), axis1, axis2).rstsr_unwrap()
 }
 
+/// Interchange two axes of an array.
+///
+/// # See also
+///
+/// Refer to [`swapaxes`] for details and examples.
 pub fn swapaxes_f<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axis1: I, axis2: I) -> Result<TensorView<'_, T, B, D>>
 where
     D: DimAPI,
@@ -501,6 +553,11 @@ where
     into_swapaxes_f(tensor.view(), axis1, axis2)
 }
 
+/// Interchange two axes of an array.
+///
+/// # See also
+///
+/// Refer to [`swapaxes`] for details and examples.
 pub fn into_swapaxes<I, S, D>(tensor: TensorBase<S, D>, axis1: I, axis2: I) -> TensorBase<S, D>
 where
     D: DimAPI,
@@ -519,7 +576,7 @@ where
     ///
     /// # See also
     ///
-    /// [`swapaxes`]
+    /// Refer to [`swapaxes`] for details and examples.
     pub fn swapaxes<I>(&self, axis1: I, axis2: I) -> TensorView<'_, T, B, D>
     where
         I: TryInto<isize>,
@@ -527,6 +584,11 @@ where
         swapaxes(self, axis1, axis2)
     }
 
+    /// Interchange two axes of an array.
+    ///
+    /// # See also
+    ///
+    /// Refer to [`swapaxes`] for details and examples.
     pub fn swapaxes_f<I>(&self, axis1: I, axis2: I) -> Result<TensorView<'_, T, B, D>>
     where
         I: TryInto<isize>,
@@ -538,7 +600,7 @@ where
     ///
     /// # See also
     ///
-    /// [`swapaxes`]
+    /// Refer to [`swapaxes`] for details and examples.
     pub fn into_swapaxes<I>(self, axis1: I, axis2: I) -> TensorAny<R, T, B, D>
     where
         I: TryInto<isize>,
@@ -546,6 +608,11 @@ where
         into_swapaxes(self, axis1, axis2)
     }
 
+    /// Interchange two axes of an array.
+    ///
+    /// # See also
+    ///
+    /// Refer to [`swapaxes`] for details and examples.
     pub fn into_swapaxes_f<I>(self, axis1: I, axis2: I) -> Result<TensorAny<R, T, B, D>>
     where
         I: TryInto<isize>,

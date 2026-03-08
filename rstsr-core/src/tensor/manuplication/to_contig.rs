@@ -45,20 +45,18 @@ where
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
 /// # device.set_default_order(RowMajor);
-/// // Create a transposed tensor (non-contiguous)
-/// let a = rt::tensor_from_nested!([[1, 2, 3], [4, 5, 6]], &device);
-/// let transposed = a.t(); // transpose creates non-contiguous view
-///
-/// // Check contiguity
-/// assert!(!transposed.c_contig());
+/// // Create a non-contiguous tensor to contiguous
+/// let a = rt::arange((12, &device)).into_shape([3, 4]);
+/// let sliced = a.i((.., slice!(None, None, 2))); // Every other column
+/// println!("layout of sliced tensor: {:?}", sliced.layout());
+/// // 2-Dim (dyn), contiguous: Custom
+/// // shape: [3, 2], stride: [4, 2], offset: 0
 ///
 /// // Convert to C-contiguous
-/// let contig = rt::to_contig(&transposed, RowMajor);
-/// assert!(contig.c_contig());
-/// println!("{}", contig);
-/// // [[ 1 4]
-/// //  [ 2 5]
-/// //  [ 3 6]]
+/// let contig = sliced.to_contig(RowMajor);
+/// println!("Contiguous layout: {:?}", contig.layout());
+/// // 2-Dim (dyn), contiguous: Cc
+/// // shape: [3, 2], stride: [2, 1], offset: 0
 /// ```
 ///
 /// # See Also
@@ -127,50 +125,12 @@ where
 
 /// Convert tensor to contiguous layout.
 ///
-/// This function ensures that the returned tensor has data stored in contiguous
-/// memory with the specified order (row-major/C or column-major/F). If the input
-/// tensor is already contiguous with the requested order, no data copy occurs and
-/// a view is returned. Otherwise, data is copied to a new contiguous layout.
-///
-/// # Arguments
-///
-/// - `tensor`: The input tensor to make contiguous. This function takes ownership of the tensor.
-/// - `order`: The memory layout order. Use [`RowMajor`] (or [`C`]) for C-contiguous (row-major)
-///   layout, or [`ColMajor`] (or [`F`]) for F-contiguous (column-major) layout.
-///
-/// # Returns
-///
-/// A [`TensorCow`] containing either a view (if no copy was needed) or an owned
-/// tensor (if data was copied).
-///
-/// # Examples
-///
-/// ```rust
-/// # use rstsr::prelude::*;
-/// # let mut device = DeviceCpu::default();
-/// # device.set_default_order(RowMajor);
-/// // Create a non-contiguous tensor by slicing
-/// let a = rt::arange((12, &device)).into_shape([3, 4]);
-/// let sliced = a.i((.., ..;2)); // Every other column
-/// println!("Original sliced shape: {:?}", sliced.shape());
-/// println!("Original sliced stride: {:?}", sliced.stride());
-/// // [3, 2]
-/// // [4, 2]
-///
-/// // Convert to C-contiguous
-/// let contig = sliced.change_contig(RowMajor);
-/// println!("Contiguous shape: {:?}", contig.shape());
-/// println!("Contiguous stride: {:?}", contig.stride());
-/// // [3, 2]
-/// // [2, 1]
-/// ```
+/// This is the consuming version of [`to_contig`] that returns copy-on-write tensor. For the
+/// ownership semantics, refer to the documentation of [`reshape`].
 ///
 /// # See Also
 ///
-/// - [`to_contig`]: Non-consuming version that takes a reference
-/// - [`into_contig`]: Returns an owned tensor directly
-/// - [`change_prefer`]: Only converts if not already in preferred layout
-/// - [`to_layout`]: Convert to a specific layout
+/// Refer to [`to_contig`] for more detailed documentation.
 pub fn change_contig<'a, R, T, B, D>(tensor: TensorAny<R, T, B, D>, order: FlagOrder) -> TensorCow<'a, T, B, D>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
@@ -182,43 +142,12 @@ where
 
 /// Convert tensor to contiguous layout.
 ///
-/// This is similar to [`change_contig`], but always returns an owned [`Tensor`].
-/// If the input tensor is already contiguous with the requested order, the data
-/// may be moved without copying. Otherwise, data is copied to a new contiguous layout.
-///
-/// # Arguments
-///
-/// - `tensor`: The input tensor to make contiguous. This function takes ownership.
-/// - `order`: The memory layout order ([`RowMajor`] or [`ColMajor`]).
-///
-/// # Returns
-///
-/// An owned [`Tensor`] with contiguous layout.
-///
-/// # Examples
-///
-/// ```rust
-/// # use rstsr::prelude::*;
-/// # let mut device = DeviceCpu::default();
-/// # device.set_default_order(RowMajor);
-/// // Create a non-contiguous tensor
-/// let a = rt::arange((6, &device)).into_shape([2, 3]);
-/// let sliced = a.i((.., ..;2)); // shape [2, 2], stride [3, 2]
-///
-/// // Convert to owned F-contiguous tensor
-/// let contig = sliced.into_contig(ColMajor);
-/// assert!(contig.f_contig());
-/// println!("Shape: {:?}", contig.shape());
-/// println!("Stride: {:?}", contig.stride());
-/// // Shape: [2, 2]
-/// // Stride: [1, 2]
-/// ```
+/// This is the consuming version of [`to_contig`] that returns owned tensor. For the ownership
+/// semantics, refer to the documentation of [`reshape`].
 ///
 /// # See Also
 ///
-/// - [`to_contig`]: Non-consuming version returning [`TensorCow`]
-/// - [`change_contig`]: Consuming version returning [`TensorCow`]
-/// - [`into_prefer`]: Only converts if not already in preferred layout
+/// Refer to [`to_contig`] for more detailed documentation.
 pub fn into_contig<'a, R, T, B, D>(tensor: TensorAny<R, T, B, D>, order: FlagOrder) -> Tensor<T, B, D>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
@@ -438,46 +367,14 @@ where
     change_prefer_f(tensor, order).map(|v| v.into_owned())
 }
 
-/// Convert tensor to preferred layout if not already contiguous, consuming the tensor.
+/// Convert tensor to preferred layout if not already contiguous.
 ///
-/// This function checks if the tensor is already contiguous with the specified order.
-/// If it is, the tensor is returned as a view without copying data. If not, the data
-/// is copied to a new contiguous layout. This is useful for avoiding unnecessary copies
-/// when the tensor may or may not already be in the desired layout.
-///
-/// # Arguments
-///
-/// - `tensor`: The input tensor. This function takes ownership.
-/// - `order`: The memory layout order ([`RowMajor`] or [`ColMajor`]).
-///
-/// # Returns
-///
-/// A [`TensorCow`] containing either a view (if already contiguous) or an owned tensor
-/// (if data was copied).
-///
-/// # Examples
-///
-/// ```rust
-/// # use rstsr::prelude::*;
-/// # let mut device = DeviceCpu::default();
-/// # device.set_default_order(RowMajor);
-/// // Already C-contiguous tensor - no copy
-/// let a = rt::arange((6, &device)).into_shape([2, 3]);
-/// let result = a.change_prefer(RowMajor);
-/// assert!(!result.is_owned()); // View returned, no copy
-///
-/// // Non-contiguous tensor - requires copy
-/// let a = rt::arange((6, &device)).into_shape([2, 3]);
-/// let transposed = a.t();
-/// let result = transposed.change_prefer(RowMajor);
-/// assert!(result.is_owned()); // Owned tensor returned, data copied
-/// ```
+/// This is the consuming version of [`to_prefer`] that returns a view or owned tensor. For the
+/// ownership semantics, refer to the documentation of [`reshape`].
 ///
 /// # See Also
 ///
-/// - [`to_prefer`]: Non-consuming version
-/// - [`into_prefer`]: Returns an owned tensor directly
-/// - [`change_contig`]: Always converts to contiguous layout
+/// Refer to [`to_prefer`] for more detailed documentation.
 pub fn change_prefer<'a, R, T, B, D>(tensor: TensorAny<R, T, B, D>, order: FlagOrder) -> TensorCow<'a, T, B, D>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
@@ -487,25 +384,14 @@ where
     change_prefer_f(tensor, order).rstsr_unwrap()
 }
 
-/// Convert tensor to preferred layout if not already contiguous, returning an owned tensor.
+/// Convert tensor to preferred layout if not already contiguous.
 ///
-/// This is similar to [`change_prefer`], but always returns an owned [`Tensor`].
-///
-/// # Arguments
-///
-/// - `tensor`: The input tensor. This function takes ownership.
-/// - `order`: The memory layout order ([`RowMajor`] or [`ColMajor`]).
-///
-/// # Returns
-///
-/// An owned [`Tensor`] with contiguous layout.
+/// This is the consuming version of [`to_prefer`] that returns owned tensor. For the ownership
+/// semantics, refer to the documentation of [`reshape`].
 ///
 /// # See Also
 ///
-/// - [`into_prefer`]: Infallible version
-/// - [`to_prefer`]: Non-consuming version returning [`TensorCow`]
-/// - [`change_prefer`]: Consuming version returning [`TensorCow`]
-/// - [`into_contig`]: Always converts to contiguous layout
+/// Refer to [`to_prefer`] for more detailed documentation.
 pub fn into_prefer<'a, R, T, B, D>(tensor: TensorAny<R, T, B, D>, order: FlagOrder) -> Tensor<T, B, D>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
