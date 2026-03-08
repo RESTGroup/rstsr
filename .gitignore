@@ -10,6 +10,7 @@ book
 *.npy
 repomix-output*
 .claude
+*.local*
 
 # bindgen
 blas_bindgen.h
