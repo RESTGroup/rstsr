@@ -1,0 +1,1 @@
+../../../rstsr-core/src/docs/array_api_standard.md

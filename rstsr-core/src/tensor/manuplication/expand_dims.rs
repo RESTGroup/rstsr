@@ -2,38 +2,42 @@ use crate::prelude_dev::*;
 
 /* #region expand_dims */
 
-/// Expands the shape of an array by inserting a new axis (dimension) of size
-/// one at the position specified by `axis`.
+/// Expands the shape of an array by inserting a new axis (dimension) of size one at the position
+/// specified by `axis`.
 ///
 /// # See also
 ///
-/// Refer to [`expand_dims`] and [`into_expand_dims`] for more detailed documentation.
-pub fn into_expand_dims_f<I, S, D>(tensor: TensorBase<S, D>, axes: I) -> Result<TensorBase<S, IxD>>
+/// Refer to [`expand_dims`] for more detailed documentation.
+pub fn into_expand_dims_f<S, D>(
+    tensor: TensorBase<S, D>,
+    axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
+) -> Result<TensorBase<S, IxD>>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
 {
     // convert axis to negative indexes and sort
     let ndim = tensor.ndim();
     let (storage, layout) = tensor.into_raw_parts();
     let mut layout = layout.into_dim::<IxD>()?;
-    let axes = axes.try_into()?;
+    let axes = axes.try_into().map_err(Into::into)?;
     let len_axes = axes.as_ref().len();
-    let axes = normalize_axes_index(axes, ndim + len_axes, false)?;
+    let axes = normalize_axes_index(axes, ndim + len_axes, false, true)?;
     for axis in axes {
         layout = layout.dim_insert(axis)?;
     }
     unsafe { Ok(TensorBase::new_unchecked(storage, layout)) }
 }
 
-/// Expands the shape of an array by inserting a new axis (dimension) of size
-/// one at the position specified by `axis`.
+/// Expands the shape of an array by inserting a new axis (dimension) of size one at the position
+/// specified by `axis`.
 ///
 /// # Parameters
 ///
 /// - `tensor`: [`&TensorAny<R, T, B, D>`](TensorAny)
 ///
 ///   - The input tensor.
+///   - Note on variant [`into_expand_dims`]: This takes ownership [`Tensor<R, T, B, D>`] of input
+///     tensor, and will not perform change to underlying data, only layout changes.
 ///
 /// - `axes`: TryInto [`AxesIndex<isize>`]
 ///
@@ -67,13 +71,15 @@ where
 ///
 /// ```rust
 /// # use rstsr::prelude::*;
-/// # let x = rt::asarray(vec![1, 2]);
-/// // [1, 2] -> [[1, 2]]
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let x = rt::arange((2, &device));
 /// let y = x.expand_dims(0);
-/// let y_expected = rt::tensor_from_nested!([[1, 2]]);
-/// assert!(rt::allclose(&y, &y_expected, None));
-/// assert_eq!(y.shape(), &[1, 2]);
-/// assert_eq!(x.i(None).shape(), &[1, 2]);
+/// println!("{y}");
+/// // [[ 0 1]]
+/// println!("y shape: {:?}", y.shape());
+/// // y shape: [1, 2]
+/// assert_eq!(x.i(None).shape(), y.shape());
 /// ```
 ///
 /// Expand dims at axis -1 (last axis), which is equilvalent to `x.i((Ellipsis, None))`, or in this
@@ -81,12 +87,17 @@ where
 ///
 /// ```rust
 /// # use rstsr::prelude::*;
-/// # let x = rt::asarray(vec![1, 2]);
-/// // [1, 2] -> [[1], [2]]
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// // expand dims at axis -1 (last axis)
+/// let x = rt::arange((2, &device));
 /// let y = x.expand_dims(-1);
-/// let y_expected = rt::tensor_from_nested!([[1], [2]]);
-/// assert!(rt::allclose(&y, &y_expected, None));
-/// assert_eq!(y.shape(), &[2, 1]);
+/// println!("{y}");
+/// // [[ 0]
+/// //  [ 1]]
+/// println!("y shape: {:?}", y.shape());
+/// // y shape: [2, 1]
+/// let y_expected = rt::tensor_from_nested!([[0], [1]]);
 /// assert_eq!(x.i((Ellipsis, None)).shape(), &[2, 1]);
 /// ```
 ///
@@ -94,13 +105,15 @@ where
 ///
 /// ```rust
 /// # use rstsr::prelude::*;
-/// # let x = rt::asarray(vec![1, 2]);
-/// // Expand dims at axes 0 and 1
-/// // [1, 2] -> [[[1, 2]]]
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let x = rt::arange((2, &device));
 /// let y = x.expand_dims([0, 1]);
-/// let y_expected = rt::tensor_from_nested!([[[1, 2]]]);
-/// assert!(rt::allclose(&y, &y_expected, None));
-/// assert_eq!(y.shape(), &[1, 1, 2]);
+/// println!("{y}");
+/// // [[[ 0 1]]]
+/// println!("y shape: {:?}", y.shape());
+/// // y shape: [1, 1, 2]
+/// let y_expected = rt::tensor_from_nested!([[[0, 1]]], &device);
 /// assert_eq!(x.i((None, None)).shape(), &[1, 1, 2]);
 /// ```
 ///
@@ -108,23 +121,26 @@ where
 ///
 /// ```rust
 /// # use rstsr::prelude::*;
-/// # let x = rt::asarray(vec![1, 2]);
-/// // Expand dims at axes 0 and 2
-/// // [1, 2] -> [[[1], [2]]]
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let x = rt::arange((2, &device));
 /// let y = x.expand_dims([0, 2]);
-/// let y_expected = rt::tensor_from_nested!([[[1], [2]]]);
-/// assert!(rt::allclose(&y, &y_expected, None));
-/// assert_eq!(y.shape(), &[1, 2, 1]);
+/// println!("{y}");
+/// // [[[ 0]]
+/// //  [[ 1]]]
+/// println!("y shape: {:?}", y.shape());
+/// // y shape: [1, 2, 1]
+/// let y_expected = rt::tensor_from_nested!([[[0], [1]]], &device);
 /// assert_eq!(x.i((None, Ellipsis, None)).shape(), &[1, 2, 1]);
 /// ```
 ///
+/// # Notes of API accordance
+///
+/// - Array-API: `expand_dims(x, /, axis)` ([`expand_dims` in Array-API](https://data-apis.org/array-api/latest/API_specification/generated/array_api.expand_dims.html))
+/// - NumPy: `expand_dims(a, axis)` ([`numpy.expand_dims`](https://numpy.org/doc/stable/reference/generated/numpy.expand_dims.html))
+/// - RSTSR: `rt::expand_dims(tensor, axes)`
+///
 /// # See also
-///
-/// ## Similar functions from other crates/libraries
-///
-/// - Python Array API standard: [`expand_dims`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.expand_dims.html)
-/// - NumPy: [`numpy.expand_dims`](https://numpy.org/doc/stable/reference/generated/numpy.expand_dims.html)
-/// - PyTorch: [`torch.unsqueeze`](https://pytorch.org/docs/stable/generated/torch.unsqueeze.html)
 ///
 /// ## Related functions in RSTSR
 ///
@@ -134,69 +150,68 @@ where
 ///
 /// ## Variants of this function
 ///
-/// - [`expand_dims_f`]: Failable version.
-/// - [`into_expand_dims`]: Consuming version.
-/// - [`into_expand_dims_f`]: Failable and consuming version, actual implementation.
-pub fn expand_dims<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axes: I) -> TensorView<'_, T, B, IxD>
+/// - [expand_dims] / [`expand_dims_f`]: Returning a view.
+/// - [`into_expand_dims`] / [`into_expand_dims_f`]: Consuming version.
+/// - [`unsqueeze`] / [`unsqueeze_f`]: Alias of [`expand_dims`] / [`expand_dims_f`].
+/// - [`into_unsqueeze`] / [`into_unsqueeze_f`]: Alias of [`into_expand_dims`] /
+///   [`into_expand_dims_f`].
+///
+/// - Associated methods on [`TensorAny`]:
+///
+///   - [`TensorAny::expand_dims`] / [`TensorAny::expand_dims_f`]
+///   - [`TensorAny::into_expand_dims`] / [`TensorAny::into_expand_dims_f`]
+///   - [`TensorAny::unsqueeze`] / [`TensorAny::unsqueeze_f`]
+///   - [`TensorAny::into_unsqueeze`] / [`TensorAny::into_unsqueeze_f`]
+pub fn expand_dims<R, T, B, D>(
+    tensor: &TensorAny<R, T, B, D>,
+    axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
+) -> TensorView<'_, T, B, IxD>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
     into_expand_dims_f(tensor.view(), axes).rstsr_unwrap()
 }
 
-/// Expands the shape of an array by inserting a new axis (dimension) of size
-/// one at the position specified by `axis`.
+/// Expands the shape of an array by inserting a new axis (dimension) of size one at the position
+/// specified by `axis`.
 ///
 /// # See also
 ///
-/// Refer to [`expand_dims`] and [`into_expand_dims`] for more detailed documentation.
-pub fn expand_dims_f<I, R, T, B, D>(tensor: &TensorAny<R, T, B, D>, axes: I) -> Result<TensorView<'_, T, B, IxD>>
+/// Refer to [`expand_dims`] for more detailed documentation.
+pub fn expand_dims_f<R, T, B, D>(
+    tensor: &TensorAny<R, T, B, D>,
+    axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
+) -> Result<TensorView<'_, T, B, IxD>>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
     R: DataAPI<Data = B::Raw>,
     B: DeviceAPI<T>,
 {
     into_expand_dims_f(tensor.view(), axes)
 }
 
-/// Expands the shape of an array by inserting a new axis (dimension) of size
-/// one at the position specified by `axis`.
-///
-/// # Parameters
-///
-/// - `tensor`: [`TensorBase<S, D>`]
-///
-///   - The input tensor.
-///   - Please note that this function takes ownership of the input tensor.
-///
-/// - `axes`: TryInto [`AxesIndex<isize>`]
-///
-///   - Position in the expanded axes where the new axis (or axes) is placed.
-///   - Can be a single integer, or a list/tuple of integers.
-///   - Negative values are supported and indicate counting dimensions from the back.
-///
-/// # Returns
-///
-/// - [`TensorBase<S, IxD>`]
-///
-///   - The tensor with the new axis (or axes) inserted.
-///   - Ownership of the returned tensor is transferred from the input tensor. Only the layout is
-///     modified; the underlying data remains unchanged.
+/// Expands the shape of an array by inserting a new axis (dimension) of size one at the position
+/// specified by `axis`.
 ///
 /// # See also
 ///
 /// Refer to [`expand_dims`] for more detailed documentation.
-pub fn into_expand_dims<I, S, D>(tensor: TensorBase<S, D>, axes: I) -> TensorBase<S, IxD>
+pub fn into_expand_dims<S, D>(
+    tensor: TensorBase<S, D>,
+    axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
+) -> TensorBase<S, IxD>
 where
     D: DimAPI,
-    I: TryInto<AxesIndex<isize>, Error = Error>,
 {
     into_expand_dims_f(tensor, axes).rstsr_unwrap()
 }
+
+pub use expand_dims as unsqueeze;
+pub use expand_dims_f as unsqueeze_f;
+pub use into_expand_dims as into_unsqueeze;
+pub use into_expand_dims_f as into_unsqueeze_f;
 
 impl<R, T, B, D> TensorAny<R, T, B, D>
 where
@@ -204,98 +219,97 @@ where
     B: DeviceAPI<T>,
     D: DimAPI,
 {
-    /// Expands the shape of an array by inserting a new axis (dimension) of size
-    /// one at the position specified by `axis`.
+    /// Expands the shape of an array by inserting a new axis (dimension) of size one at the
+    /// position specified by `axis`.
     ///
     /// # See also
     ///
-    /// Refer to [`expand_dims`] and [`into_expand_dims`] for more detailed documentation.
-    pub fn expand_dims<I>(&self, axes: I) -> TensorView<'_, T, B, IxD>
-    where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
-    {
+    /// Refer to [`expand_dims`] for more detailed documentation.
+    pub fn expand_dims(&self, axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> TensorView<'_, T, B, IxD> {
         into_expand_dims(self.view(), axes)
     }
 
-    /// Expands the shape of an array by inserting a new axis (dimension) of size
-    /// one at the position specified by `axis`.
+    /// Expands the shape of an array by inserting a new axis (dimension) of size one at the
+    /// position specified by `axis`.
     ///
     /// # See also
     ///
-    /// Refer to [`expand_dims`] and [`into_expand_dims`] for more detailed documentation.
-    pub fn expand_dims_f<I>(&self, axes: I) -> Result<TensorView<'_, T, B, IxD>>
-    where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
-    {
+    /// Refer to [`expand_dims`] for more detailed documentation.
+    pub fn expand_dims_f(
+        &self,
+        axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
+    ) -> Result<TensorView<'_, T, B, IxD>> {
         into_expand_dims_f(self.view(), axes)
     }
 
-    /// Expands the shape of an array by inserting a new axis (dimension) of size
-    /// one at the position specified by `axis`.
+    /// Expands the shape of an array by inserting a new axis (dimension) of size one at the
+    /// position specified by `axis`.
     ///
     /// # See also
     ///
-    /// Refer to [`expand_dims`] and [`into_expand_dims`] for more detailed documentation.
-    pub fn into_expand_dims<I>(self, axes: I) -> TensorAny<R, T, B, IxD>
-    where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
-    {
+    /// Refer to [`expand_dims`] for more detailed documentation.
+    pub fn into_expand_dims(self, axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> TensorAny<R, T, B, IxD> {
         into_expand_dims(self, axes)
     }
 
-    /// Expands the shape of an array by inserting a new axis (dimension) of size
-    /// one at the position specified by `axis`.
+    /// Expands the shape of an array by inserting a new axis (dimension) of size one at the
+    /// position specified by `axis`.
     ///
     /// # See also
     ///
-    /// Refer to [`expand_dims`] and [`into_expand_dims`] for more detailed documentation.
-    pub fn into_expand_dims_f<I>(self, axes: I) -> Result<TensorAny<R, T, B, IxD>>
-    where
-        I: TryInto<AxesIndex<isize>, Error = Error>,
-    {
+    /// Refer to [`expand_dims`] for more detailed documentation.
+    pub fn into_expand_dims_f(
+        self,
+        axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
+    ) -> Result<TensorAny<R, T, B, IxD>> {
         into_expand_dims_f(self, axes)
+    }
+
+    /// Expands the shape of an array by inserting a new axis (dimension) of size one at the
+    /// position specified by `axis`.
+    ///
+    /// # See also
+    ///
+    /// Refer to [`expand_dims`] for more detailed documentation.
+    pub fn unsqueeze(&self, axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> TensorView<'_, T, B, IxD> {
+        self.expand_dims(axes)
+    }
+
+    /// Expands the shape of an array by inserting a new axis (dimension) of size one at the
+    /// position specified by `axis`.
+    ///
+    /// # See also
+    ///
+    /// Refer to [`expand_dims`] for more detailed documentation.
+    pub fn unsqueeze_f(
+        &self,
+        axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
+    ) -> Result<TensorView<'_, T, B, IxD>> {
+        self.expand_dims_f(axes)
+    }
+
+    /// Expands the shape of an array by inserting a new axis (dimension) of size one at the
+    /// position specified by `axis`.
+    ///
+    /// # See also
+    ///
+    /// Refer to [`expand_dims`] for more detailed documentation.
+    pub fn into_unsqueeze(self, axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> TensorAny<R, T, B, IxD> {
+        self.into_expand_dims(axes)
+    }
+
+    /// Expands the shape of an array by inserting a new axis (dimension) of size one at the
+    /// position specified by `axis`.
+    ///
+    /// # See also
+    ///
+    /// Refer to [`expand_dims`] for more detailed documentation.
+    pub fn into_unsqueeze_f(
+        self,
+        axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
+    ) -> Result<TensorAny<R, T, B, IxD>> {
+        self.into_expand_dims_f(axes)
     }
 }
 
 /* #endregion */
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn doc_expand_dims() {
-        use rstsr::prelude::*;
-        let x = rt::asarray(vec![1, 2]);
-
-        // Expand dims at axis 0
-        // [1, 2] -> [[1, 2]]
-        let y = x.expand_dims(0);
-        let y_expected = rt::tensor_from_nested!([[1, 2]]);
-        assert!(rt::allclose(&y, &y_expected, None));
-        assert_eq!(y.shape(), &[1, 2]);
-        assert_eq!(x.i(None).shape(), &[1, 2]);
-
-        // Expand dims at axis -1 (last axis)
-        // [1, 2] -> [[1], [2]]
-        let y = x.expand_dims(-1);
-        let y_expected = rt::tensor_from_nested!([[1], [2]]);
-        assert!(rt::allclose(&y, &y_expected, None));
-        assert_eq!(y.shape(), &[2, 1]);
-        assert_eq!(x.i((Ellipsis, None)).shape(), &[2, 1]);
-
-        // Expand dims at axes 0 and 1
-        // [1, 2] -> [[[1, 2]]]
-        let y = x.expand_dims([0, 1]);
-        let y_expected = rt::tensor_from_nested!([[[1, 2]]]);
-        assert!(rt::allclose(&y, &y_expected, None));
-        assert_eq!(y.shape(), &[1, 1, 2]);
-        assert_eq!(x.i((None, None)).shape(), &[1, 1, 2]);
-
-        // Expand dims at axes 0 and 2
-        // [1, 2] -> [[[1], [2]]]
-        let y = x.expand_dims([0, 2]);
-        let y_expected = rt::tensor_from_nested!([[[1], [2]]]);
-        assert!(rt::allclose(&y, &y_expected, None));
-        assert_eq!(y.shape(), &[1, 2, 1]);
-        assert_eq!(x.i((None, Ellipsis, None)).shape(), &[1, 2, 1]);
-    }
-}

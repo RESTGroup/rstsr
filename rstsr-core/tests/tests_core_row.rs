@@ -1,12 +1,14 @@
 mod tests_core;
 mod tests_utils;
 
-use rstsr::prelude::*;
-use std::sync::LazyLock;
-use tests_utils::TestCfg;
+pub use rstsr::prelude::*;
+pub use std::sync::LazyLock;
+pub use tests_utils::TestCfg;
 
-pub static TESTCFG: LazyLock<TestCfg<DeviceCpuSerial>> = LazyLock::new(|| {
-    let mut device = DeviceCpuSerial::default();
+pub use DeviceCpuSerial as DeviceType;
+
+pub static TESTCFG: LazyLock<TestCfg<DeviceType>> = LazyLock::new(|| {
+    let mut device = DeviceType::default();
     device.set_default_order(RowMajor);
     TestCfg::init(device, vec![], None)
 });

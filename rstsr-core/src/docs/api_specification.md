@@ -172,7 +172,7 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 | Type | Identifier | Minimal Description |
 |--|--|--|
 | flags | [flags][rstsr_common::flags] | Flags for tensor. |
-| enum | [`FlagOrder`] | The order of tensor. |
+| enum | [`FlagOrder`] | The order of tensor ([`RowMajor`], [`ColMajor`]). |
 | enum | [`FlagDiag`] | Unit-diagonal of matrix. |
 | enum | [`FlagSide`] | Side of matrix operation. |
 | enum | [`FlagTrans`] | Transposition of matrix operation. |
@@ -187,15 +187,18 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 | Type | Identifier | Minimal Description |
 |--|--|--|
 | fn | [`broadcast_arrays`] | Broadcasts any number of arrays against each other. |
+| fn | [`broadcast_shapes`] | Broadcasts shapes against each other and returns the resulting shape. |
 | assoc/fn | [`to_broadcast`] | Broadcasts an array to a specified shape. |
 | assoc/fn | [`expand_dims`] | Expands the shape of an array by inserting a new axis (dimension) of size one at the position specified by `axis`. |
 | assoc/fn | [`flip`] | Reverses the order of elements in an array along the given axis. |
+| assoc/fn | [`moveaxis`] | Moves array axes (dimensions) to new positions, while leaving other axes in their original positions. |
 | assoc/fn | [`permute_dims`] <br/> [`transpose`] | Permutes the axes (dimensions) of an array `x`. |
+| assoc/fn | [`reshape_with_args`] | Reshapes the given tensor to the specified shape, with argument specifying the order and whether to copy data. |
 | assoc/fn | [`reverse_axes`] | Reverse the order of elements in an array along the given axis. |
 | assoc/fn | [`swapaxes`] | Interchange two axes of an array. |
 | assoc/fn | [`squeeze`] | Removes singleton dimensions (axes) from `x`. |
+| assoc/fn | [`to_compatible_shape`] | Reshapes the given tensor to the specified shape if the layout is compatible. |
 | assoc/fn | [`to_dim`] <br/> [`to_dyn`] | Convert layout to the other dimension. |
-| assoc/fn | [`reshape_assume_contig`] | Assuming contiguous array, reshapes an array without changing its data. |
 
 ### Storage-dependent manuplication
 
@@ -203,6 +206,8 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 |--|--|--|
 | assoc/fn | [`reshape`] <br/> [`into_shape`] <br/> [`change_shape`] | Reshapes an array without changing its data. |
 | assoc/fn | [`to_layout`] <br/> [`into_layout`] <br/> [`change_layout`] | Convert tensor to the other layout. |
+| assoc/fn | [`to_contig`] <br/> [`into_contig`] <br/> [`change_contig`] | Convert tensor to contiguous layout (C or F order). |
+| assoc/fn | [`to_prefer`] <br/> [`into_prefer`] <br/> [`change_prefer`] | Convert tensor to preferred layout only if not already contiguous. |
 
 ### Storage-creation manuplication
 
@@ -258,7 +263,7 @@ Trait function calls like associated methods, so we also do not recommend usage 
 ### Matrix Multiply
 
 Matrix multiply is implemented in many ways. The most useful way is function [`matmul`][`matmul()`] and operator `%`.
-- functions [`matmul`][`matmul()`] and [`matmul_with_output`];
+- functions [`matmul`][`matmul()`], [`matmul_from`] and [`matmul_with_output`];
 - associated methods [`TensorBase::matmul`], [`TensorBase::matmul_from`];
 - operator `%`.
 

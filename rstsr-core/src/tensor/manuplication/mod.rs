@@ -5,6 +5,7 @@ pub mod expand_dims;
 pub mod flip;
 pub mod into_compatible_shape;
 pub mod into_dim;
+pub mod moveaxis;
 pub mod reshape;
 pub mod squeeze;
 pub mod to_contig;
@@ -19,6 +20,7 @@ pub mod exports {
     pub use flip::*;
     pub use into_compatible_shape::*;
     pub use into_dim::*;
+    pub use moveaxis::*;
     pub use reshape::*;
     pub use squeeze::*;
     pub use to_contig::*;
@@ -220,6 +222,7 @@ mod tests {
     use crate::prelude_dev::*;
 
     #[test]
+    #[allow(deprecated)]
     fn test_to_shape_assume_contig() {
         let a = linspace((2.5, 3.2, 16));
         let b = a.to_shape_assume_contig_f([4, 4]).unwrap();
@@ -293,6 +296,7 @@ mod tests {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn test_broadcast_to() {
         #[cfg(not(feature = "col_major"))]
         {

@@ -4,6 +4,8 @@ pub mod equality;
 
 pub use equality::*;
 
+pub use crate::*;
+
 /// Test configuration.
 pub struct TestCfg<B> {
     /// Device instance (commonly used) to run the test on.

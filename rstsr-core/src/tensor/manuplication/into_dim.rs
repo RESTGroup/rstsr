@@ -101,20 +101,16 @@ where
 ///
 /// ## Variants of this function
 ///
-/// - [`to_dim`]: Borrowing version.
-/// - [`to_dim_f`]: Fallible borrowing version.
-/// - [`into_dim`]: Consuming version.
-/// - [`into_dim_f`]: Consuming and fallible version, actual implementation.
-/// - [`to_dyn`]: Convert to dynamic dimension, borrowing version (infallible by definition).
+/// - [`to_dim`] / [`to_dim_f`]: Returning a view.
+/// - [`into_dim`] / [`into_dim_f`]: Consuming version.
+/// - [`to_dyn`]: Convert to dynamic dimension, returning a view (infallable by definition).
 /// - [`into_dyn`]: Convert to dynamic dimension, consuming version (infallible by definition).
 /// - Associated methods on [`TensorAny`]:
 ///
-///   - [`to_dim`]
-///   - [`to_dim_f`]
-///   - [`into_dim`]
-///   - [`into_dim_f`]
-///   - [`to_dyn`]
-///   - [`into_dyn`]
+///   - [`TensorAny::to_dim`] / [`TensorAny::to_dim_f`]
+///   - [`TensorAny::into_dim`] / [`TensorAny::into_dim_f`]
+///   - [`TensorAny::to_dyn`]
+///   - [`TensorAny::into_dyn`]
 pub fn to_dim<R, T, B, D, D2>(tensor: &TensorAny<R, T, B, D>) -> TensorView<'_, T, B, D2>
 where
     D: DimAPI,
@@ -260,39 +256,3 @@ where
 }
 
 /* #endregion */
-
-#[cfg(test)]
-mod tests {
-
-    #[test]
-    fn doc_to_dim() {
-        use rstsr::prelude::*;
-
-        let a = rt::arange(6).into_shape([2, 3]); // shape: (2, 3), IxD
-
-        // you can debug print tensor or it's layout to verify this
-        println!("a: {:?}", a);
-        // you can also call `const_ndim` to verify the dimension type
-        // `None` here indicates dynamic dimension
-        assert_eq!(a.shape().const_ndim(), None);
-
-        let b = a.to_dim::<Ix2>(); // shape: (2, 3), Ix2
-        println!("b: {:?}", b);
-        assert_eq!(b.shape().const_ndim(), Some(2));
-
-        // use `.to_dim::<IxD>()` or `.to_dyn()` to convert back to dynamic dimension
-        let c = b.to_dyn(); // shape: (2, 3), IxD
-        println!("c: {:?}", c);
-        assert_eq!(c.shape().const_ndim(), None);
-    }
-
-    #[test]
-    #[should_panic]
-    fn doc_to_dim_panic() {
-        use rstsr::prelude::*;
-
-        let a = rt::arange(6).into_shape([2, 3]); // shape: (2, 3), IxD
-        let b = a.to_dim::<Ix3>(); // shape: (2, 3), Ix3, panics
-        println!("b: {:?}", b);
-    }
-}

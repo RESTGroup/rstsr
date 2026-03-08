@@ -66,25 +66,28 @@ pub mod rstsr_funcs {
         into_diagonal_mut_f, into_slice, into_slice_f, slice, slice_f, slice_mut, slice_mut_f,
     };
     pub use crate::tensor::manuplication::exports::{
-        broadcast_arrays, broadcast_arrays_f, change_contig, change_contig_f, change_layout, change_layout_f,
-        change_shape, change_shape_f, change_shape_with_args, change_shape_with_args_f, expand_dims, expand_dims_f,
-        flip, flip_f, into_broadcast, into_broadcast_f, into_compatible_shape, into_compatible_shape_f, into_contig,
-        into_contig_f, into_dim, into_dim_f, into_dyn, into_expand_dims, into_expand_dims_f, into_flip, into_flip_f,
-        into_layout, into_layout_f, into_permute_dims, into_permute_dims_f, into_reverse_axes, into_shape,
-        into_shape_assume_contig, into_shape_assume_contig_f, into_shape_f, into_shape_with_args,
-        into_shape_with_args_f, into_squeeze, into_squeeze_f, into_swapaxes, into_swapaxes_f, into_transpose,
-        into_transpose_f, permute_dims, permute_dims_f, reshape, reshape_assume_contig, reshape_assume_contig_f,
-        reshape_f, reshape_with_args, reshape_with_args_f, reshapeable_without_copy, reverse_axes, squeeze, squeeze_f,
-        swapaxes, swapaxes_f, to_broadcast, to_broadcast_f, to_compatible_shape, to_compatible_shape_f, to_contig,
-        to_contig_f, to_dim, to_dim_f, to_dyn, to_layout, to_layout_f, to_shape, to_shape_assume_contig,
-        to_shape_assume_contig_f, to_shape_f, to_shape_with_args, to_shape_with_args_f, transpose, transpose_f,
+        broadcast_arrays, broadcast_arrays_f, broadcast_into, broadcast_into_f, broadcast_shapes, broadcast_shapes_f,
+        broadcast_to, broadcast_to_f, change_contig, change_contig_f, change_layout, change_layout_f, change_prefer,
+        change_prefer_f, change_shape, change_shape_f, change_shape_with_args, change_shape_with_args_f, expand_dims,
+        expand_dims_f, flip, flip_f, into_broadcast, into_broadcast_f, into_compatible_shape, into_compatible_shape_f,
+        into_contig, into_contig_f, into_dim, into_dim_f, into_dyn, into_expand_dims, into_expand_dims_f, into_flip,
+        into_flip_f, into_layout, into_layout_f, into_moveaxis, into_moveaxis_f, into_permute_dims,
+        into_permute_dims_f, into_prefer, into_prefer_f, into_reverse_axes, into_shape, into_shape_f,
+        into_shape_with_args, into_shape_with_args_f, into_squeeze, into_squeeze_f, into_swapaxes, into_swapaxes_f,
+        into_transpose, into_transpose_f, into_unsqueeze, into_unsqueeze_f, moveaxis, moveaxis_f, permute_dims,
+        permute_dims_f, reshape, reshape_f, reshape_with_args, reshape_with_args_f, reshapeable_without_copy,
+        reverse_axes, squeeze, squeeze_f, swapaxes, swapaxes_f, to_broadcast, to_broadcast_f, to_compatible_shape,
+        to_compatible_shape_f, to_contig, to_contig_f, to_dim, to_dim_f, to_dyn, to_layout, to_layout_f, to_prefer,
+        to_prefer_f, to_shape, to_shape_f, to_shape_with_args, to_shape_with_args_f, transpose, transpose_f, unsqueeze,
+        unsqueeze_f,
     };
 
     // binary arithmetics
     pub use crate::tensor::operators::{
         add, add_f, add_with_output, add_with_output_f, div, div_f, div_with_output, div_with_output_f, matmul::matmul,
-        matmul_f, matmul_with_output, matmul_with_output_f, mul, mul_f, mul_with_output, mul_with_output_f, rem, rem_f,
-        rem_with_output, rem_with_output_f, sub, sub_f, sub_with_output, sub_with_output_f,
+        matmul_f, matmul_from, matmul_from_f, matmul_with_output, matmul_with_output_f, mul, mul_f, mul_with_output,
+        mul_with_output_f, rem, rem_f, rem_with_output, rem_with_output_f, sub, sub_f, sub_with_output,
+        sub_with_output_f,
     };
     // binary arithmetics with assignment
     pub use crate::tensor::operators::{
