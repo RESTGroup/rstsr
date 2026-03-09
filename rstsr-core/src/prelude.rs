@@ -84,10 +84,9 @@ pub mod rstsr_funcs {
 
     // binary arithmetics
     pub use crate::tensor::operators::{
-        add, add_f, add_with_output, add_with_output_f, div, div_f, div_with_output, div_with_output_f, matmul::matmul,
-        matmul_f, matmul_from, matmul_from_f, matmul_with_output, matmul_with_output_f, mul, mul_f, mul_with_output,
-        mul_with_output_f, rem, rem_f, rem_with_output, rem_with_output_f, sub, sub_f, sub_with_output,
-        sub_with_output_f,
+        add, add_f, add_with_output, add_with_output_f, div, div_f, div_with_output, div_with_output_f, mul, mul_f,
+        mul_with_output, mul_with_output_f, rem, rem_f, rem_with_output, rem_with_output_f, sub, sub_f,
+        sub_with_output, sub_with_output_f,
     };
     // binary arithmetics with assignment
     pub use crate::tensor::operators::{
@@ -137,6 +136,10 @@ pub mod rstsr_funcs {
         unraveled_argmax_axes, unraveled_argmax_axes_f, unraveled_argmax_f, unraveled_argmin, unraveled_argmin_all,
         unraveled_argmin_all_f, unraveled_argmin_axes, unraveled_argmin_axes_f, unraveled_argmin_f, var, var_all,
         var_all_f, var_axes, var_axes_f, var_f,
+    };
+    // linalg (array-api's basic linalg operations, not the rstsr-linalg-traits)
+    pub use crate::tensor::linalg::exports::{
+        matmul, matmul_f, matmul_from, matmul_from_f, matmul_with_output, matmul_with_output_f,
     };
 }
 

@@ -8,6 +8,7 @@ pub mod ext_conversion;
 pub mod indexing;
 pub mod iterator_axes;
 pub mod iterator_elem;
+pub mod linalg;
 pub mod manuplication;
 pub mod map_elementwise;
 pub mod operators;
