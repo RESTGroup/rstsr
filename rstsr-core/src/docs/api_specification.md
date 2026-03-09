@@ -192,7 +192,7 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 | assoc/fn | [`expand_dims`] | Expands the shape of an array by inserting a new axis (dimension) of size one at the position specified by `axis`. |
 | assoc/fn | [`flip`] | Reverses the order of elements in an array along the given axis. |
 | assoc/fn | [`moveaxis`] | Moves array axes (dimensions) to new positions, while leaving other axes in their original positions. |
-| assoc/fn | [`permute_dims`] <br/> [`transpose`] | Permutes the axes (dimensions) of an array `x`. |
+| assoc/fn | [`permute_dims`] <br/> [`transpose`] <br/> [`matrix_transpose`] | Permutes the axes (dimensions) of an array `x`. |
 | assoc/fn | [`reshape_with_args`] | Reshapes the given tensor to the specified shape, with argument specifying the order and whether to copy data. |
 | assoc/fn | [`reverse_axes`] | Reverse the order of elements in an array along the given axis. |
 | assoc/fn | [`swapaxes`] | Interchange two axes of an array. |
