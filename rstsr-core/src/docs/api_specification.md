@@ -277,6 +277,12 @@ Trait function calls like associated methods, so we also do not recommend usage 
 
 </div>
 
+### Tensor Contraction
+
+| Type | Identifier | Minimal Description |
+|--|--|--|
+| assoc/fn | [`vecdot`] | Computes the (vector) dot product of two arrays. |
+
 ## Common Functions
 
 ### Unary functions
