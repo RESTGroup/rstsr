@@ -49,6 +49,7 @@ pub use crate::tensor::manuplication::exports::*;
 pub use crate::tensor::ownership_conversion::*;
 pub use crate::tensor::reduction::TensorSumBoolAPI;
 pub use crate::tensor::tensor_mutable::*;
+pub use crate::tensor::tensor_view_list::*;
 
 pub use crate::prelude::rstsr_traits::*;
 

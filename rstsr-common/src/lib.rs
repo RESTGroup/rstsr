@@ -18,6 +18,7 @@ pub mod flags;
 pub mod format_layout;
 pub mod layout;
 pub mod pack_array;
+pub mod tensordot_to_einsum;
 pub mod util;
 
 #[cfg(feature = "rayon")]

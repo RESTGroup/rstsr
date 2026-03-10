@@ -198,7 +198,7 @@ The reference implementation (as in [`DeviceCpuSerial`] and [`DeviceFaer`]), fol
 |-|-|-|-|
 | Y | [`matmul`][matmul()] | [`matmul`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.matmul.html) | Computes the matrix product. |
 | Y | [`matrix_transpose`] <br> [`swapaxes`]`(-1, -2)` | [`matrix_transpose`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.matrix_transpose.html) | Transposes a matrix (or a stack of matrices) x. |
-| | | [`tensordot`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.tensordot.html) | Returns a tensor contraction of x1 and x2 over specific axes. |
+| P | [`rt::tblis::einsum`](https://docs.rs/rstsr-tblis/latest/rstsr_tblis/einsum_impl/fn.einsum.html)<br>[`rt::tblis::tensordot`](https://docs.rs/rstsr-tblis/latest/rstsr_tblis/einsum_impl/fn.tensordot.html) | [`tensordot`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.tensordot.html) | Returns a tensor contraction of x1 and x2 over specific axes. |
 | | | [`vecdot`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.vecdot.html) | Computes the (vector) dot product of two arrays. |
 
 ## Manipulation Functions
