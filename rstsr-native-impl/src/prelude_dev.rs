@@ -19,6 +19,7 @@ mod cpu_rayon {
     pub use crate::cpu_rayon::op_with_func::*;
     pub use crate::cpu_rayon::reduction::*;
     pub use crate::cpu_rayon::transpose::*;
+    pub use crate::cpu_rayon::vecdot::*;
 }
 #[cfg(feature = "rayon")]
 pub use cpu_rayon::*;
