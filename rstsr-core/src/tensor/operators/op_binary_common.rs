@@ -246,8 +246,8 @@ mod func_binary {
     func_binary!(hypot         , hypot_f           , TensorHypotAPI            , DeviceHypotAPI            ,);
     func_binary!(log_add_exp   , log_add_exp_f     , TensorLogAddExpAPI        , DeviceLogAddExpAPI        ,);
     func_binary!(pow           , pow_f             , TensorPowAPI              , DevicePowAPI              ,);
-    func_binary!(maximum       , maximum_f         , TensorMaximumAPI          , DeviceMaximumAPI          , max, max_f);
-    func_binary!(minimum       , minimum_f         , TensorMinimumAPI          , DeviceMinimumAPI          , min, min_f);
+    func_binary!(maximum       , maximum_f         , TensorMaximumAPI          , DeviceMaximumAPI          ,);
+    func_binary!(minimum       , minimum_f         , TensorMinimumAPI          , DeviceMinimumAPI          ,);
     func_binary!(equal         , equal_f           , TensorEqualAPI            , DeviceEqualAPI            , eq, eq_f, equal_than      , equal_than_f      );
     func_binary!(less          , less_f            , TensorLessAPI             , DeviceLessAPI             , lt, lt_f, less_than       , less_than_f       );
     func_binary!(greater       , greater_f         , TensorGreaterAPI          , DeviceGreaterAPI          , gt, gt_f, greater_than    , greater_than_f    );

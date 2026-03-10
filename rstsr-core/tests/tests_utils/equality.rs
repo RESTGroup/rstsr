@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
 use rstsr::prelude::*;
-use rstsr_core::storage::OpAllCloseAPI;
+use rstsr_core::prelude_dev::OpAllCloseAPI;
 use rstsr_dtype_traits::IsCloseArgs;
 
 /// Raises an AssertionError if two objects are not equal.

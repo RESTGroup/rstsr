@@ -5,16 +5,23 @@ pub mod conversion;
 pub mod creation;
 pub mod data;
 pub mod device;
+pub mod linalg;
 pub mod matmul;
 pub mod operators;
 pub mod reduction;
 
-pub use adv_indexing::*;
-pub use assignment::*;
-pub use combined_trait::*;
-pub use conversion::*;
-pub use creation::*;
-pub use data::*;
-pub use device::*;
-pub use matmul::*;
-pub use reduction::*;
+pub mod exports {
+    use super::*;
+
+    pub use adv_indexing::*;
+    pub use assignment::*;
+    pub use combined_trait::*;
+    pub use conversion::*;
+    pub use creation::*;
+    pub use data::*;
+    pub use device::*;
+    pub use linalg::*;
+    pub use matmul::*;
+    pub use operators::*;
+    pub use reduction::*;
+}
