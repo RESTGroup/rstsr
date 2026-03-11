@@ -92,9 +92,7 @@ where
     /// Check if this tensor can be reshaped to a new shape without explicitly copying underlying
     /// data.
     ///
-    /// # See also
-    ///
-    /// Refer to [`reshapeable_without_copy`] for more details.
+    /// See also [`reshapeable_without_copy`].
     pub fn reshapeable_without_copy(
         &self,
         shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -111,9 +109,7 @@ where
 /// Reshapes the given tensor to the specified shape, with argument specifying the order and whether
 /// to copy data.
 ///
-/// # See also
-///
-/// Refer to [`reshape_with_args`] for more details and examples.
+/// See also [`reshape_with_args`].
 pub fn change_shape_with_args_f<'a, R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
     shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -171,9 +167,7 @@ where
 /// Reshapes the given tensor to the specified shape, with argument specifying the order and whether
 /// to copy data.
 ///
-/// # See also
-///
-/// Refer to [`reshape_with_args`] for more details and examples.
+/// See also [`reshape_with_args`].
 pub fn change_shape_with_args<'a, R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
     shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -190,9 +184,7 @@ where
 /// Reshapes the given tensor to the specified shape, with argument specifying the order and whether
 /// to copy data.
 ///
-/// # See also
-///
-/// Refer to [`reshape_with_args`] for more details and examples.
+/// See also [`reshape_with_args`].
 pub fn into_shape_with_args_f<'a, R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
     shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -215,9 +207,7 @@ where
 /// Reshapes the given tensor to the specified shape, with argument specifying the order and whether
 /// to copy data.
 ///
-/// # See also
-///
-/// Refer to [`reshape_with_args`] for more details and examples.
+/// See also [`reshape_with_args`].
 pub fn into_shape_with_args<'a, R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
     shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -240,9 +230,7 @@ where
 /// Reshapes the given tensor to the specified shape, with argument specifying the order and whether
 /// to copy data.
 ///
-/// # See also
-///
-/// Refer to [`reshape_with_args`] for more details and examples.
+/// See also [`reshape_with_args`].
 pub fn reshape_with_args_f<'a, R, T, B, D>(
     tensor: &'a TensorAny<R, T, B, D>,
     shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -371,7 +359,7 @@ where
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
 /// # device.set_default_order(RowMajor);
-/// # let a = rt::arange((288, &device)).into_shape([4, 8, 9]).into_slice((.., 0..6, ..));
+/// let a = rt::arange((288, &device)).into_shape([4, 8, 9]).into_slice((.., 0..6, ..));
 /// // split a single dimension into multiple dimensions
 /// assert!(a.reshape_with_args_f([2, 2, 6, 9], false).is_ok()); // (4, 6, 9) -> ([2, 2], 6, 9)
 /// assert!(a.reshape_with_args_f([4, 3, 2, 9], false).is_ok()); // (4, 6, 9) -> (4, [3, 2], 9)
@@ -391,7 +379,7 @@ where
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
 /// # device.set_default_order(RowMajor);
-/// # let a = rt::arange((288, &device)).into_shape([4, 8, 9]).into_slice((.., 0..6, ..));
+/// let a = rt::arange((288, &device)).into_shape([4, 8, 9]).into_slice((.., 0..6, ..));
 /// // merge non-contiguous dimensions
 /// assert!(a.reshape_with_args_f([24, 9], false).is_err()); // (4, 6, 9) -> (4 * 6, 9)
 /// assert!(a.reshape_with_args_f([-1], false).is_err()); // (4, 6, 9) -> (4 * 6 * 9)
@@ -463,9 +451,7 @@ where
     /// Reshapes the given tensor to the specified shape, with argument specifying the order and
     /// whether to copy data.
     ///
-    /// # See also
-    ///
-    /// Refer to [`reshape_with_args`] for more details and examples.
+    /// # See also [`reshape_with_args`].
     pub fn change_shape_with_args_f(
         self,
         shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -477,9 +463,7 @@ where
     /// Reshapes the given tensor to the specified shape, with argument specifying the order and
     /// whether to copy data.
     ///
-    /// # See also
-    ///
-    /// Refer to [`reshape_with_args`] for more details and examples.
+    /// # See also [`reshape_with_args`].
     pub fn change_shape_with_args(
         self,
         shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -491,9 +475,7 @@ where
     /// Reshapes the given tensor to the specified shape, with argument specifying the order and
     /// whether to copy data.
     ///
-    /// # See also
-    ///
-    /// Refer to [`reshape_with_args`] for more details and examples.
+    /// # See also [`reshape_with_args`].
     pub fn into_shape_with_args_f(
         self,
         shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -509,9 +491,7 @@ where
     /// Reshapes the given tensor to the specified shape, with argument specifying the order and
     /// whether to copy data.
     ///
-    /// # See also
-    ///
-    /// Refer to [`reshape_with_args`] for more details and examples.
+    /// # See also [`reshape_with_args`].
     pub fn into_shape_with_args(
         self,
         shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -527,9 +507,7 @@ where
     /// Reshapes the given tensor to the specified shape, with argument specifying the order and
     /// whether to copy data.
     ///
-    /// # See also
-    ///
-    /// Refer to [`reshape_with_args`] for more details and examples.
+    /// # See also [`reshape_with_args`].
     pub fn reshape_with_args(
         &'a self,
         shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -541,9 +519,7 @@ where
     /// Reshapes the given tensor to the specified shape, with argument specifying the order and
     /// whether to copy data.
     ///
-    /// # See also
-    ///
-    /// Refer to [`reshape_with_args`] for more details and examples.
+    /// # See also [`reshape_with_args`].
     pub fn reshape_with_args_f(
         &'a self,
         shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -555,9 +531,7 @@ where
     /// Reshapes the given tensor to the specified shape, with argument specifying the order and
     /// whether to copy data.
     ///
-    /// # See also
-    ///
-    /// Refer to [`reshape_with_args`] for more details and examples.
+    /// # See also [`reshape_with_args`].
     pub fn to_shape_with_args(
         &'a self,
         shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -569,9 +543,7 @@ where
     /// Reshapes the given tensor to the specified shape, with argument specifying the order and
     /// whether to copy data.
     ///
-    /// # See also
-    ///
-    /// Refer to [`reshape_with_args`] for more details and examples.
+    /// # See also [`reshape_with_args`].
     pub fn to_shape_with_args_f(
         &'a self,
         shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -587,10 +559,7 @@ where
 
 /// Reshapes the given tensor to the specified shape.
 ///
-/// # See also
-///
-/// Refer to [`reshape`], [`into_shape`], [`change_shape`] and [`reshape_with_args`] for more
-/// details and examples.
+/// # See also [`reshape`], [`into_shape`], [`change_shape`] and [`reshape_with_args`].
 pub fn change_shape_f<'a, R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
     shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -665,10 +634,7 @@ where
 
 /// Reshapes the given tensor to the specified shape.
 ///
-/// # See also
-///
-/// Refer to [`reshape`], [`into_shape`], [`change_shape`] and [`reshape_with_args`] for more
-/// details and examples.
+/// # See also [`reshape`], [`into_shape`], [`change_shape`] and [`reshape_with_args`].
 pub fn into_shape_f<'a, R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
     shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -812,10 +778,7 @@ where
 
 /// Reshapes the given tensor to the specified shape.
 ///
-/// # See also
-///
-/// Refer to [`reshape`], [`into_shape`], [`change_shape`] and [`reshape_with_args`] for more
-/// details and examples.
+/// # See also [`reshape`], [`into_shape`], [`change_shape`] and [`reshape_with_args`].
 pub fn reshape_f<'a, R, T, B, D>(
     tensor: &'a TensorAny<R, T, B, D>,
     shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -977,7 +940,7 @@ where
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
 /// # device.set_default_order(ColMajor);
-/// # let a = rt::tensor_from_nested!([[0, 1, 2], [3, 4, 5]], &device);
+/// let a = rt::tensor_from_nested!([[0, 1, 2], [3, 4, 5]], &device);
 /// # let b = a.reshape([3, 2]);
 /// // note iteration order of associated method `iter` depends on `device.default_order()`
 ///
@@ -1078,7 +1041,7 @@ where
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
 /// # device.set_default_order(RowMajor);
-/// # let a = rt::arange((288, &device)).into_shape([4, 8, 9]).into_slice((.., 0..6, ..));
+/// let a = rt::arange((288, &device)).into_shape([4, 8, 9]).into_slice((.., 0..6, ..));
 /// // split a single dimension into multiple dimensions
 /// assert!(!a.reshape([2, 2, 6, 9]).is_owned()); // (4, 6, 9) -> ([2, 2], 6, 9)
 /// assert!(!a.reshape([4, 3, 2, 9]).is_owned()); // (4, 6, 9) -> (4, [3, 2], 9)
@@ -1098,7 +1061,7 @@ where
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
 /// # device.set_default_order(RowMajor);
-/// # let a = rt::arange((288, &device)).into_shape([4, 8, 9]).into_slice((.., 0..6, ..));
+/// let a = rt::arange((288, &device)).into_shape([4, 8, 9]).into_slice((.., 0..6, ..));
 /// assert!(a.reshape([24, 9]).is_owned()); // (4, 6, 9) -> (4 * 6, 9)
 /// assert!(a.reshape(-1).is_owned()); // (4, 6, 9) -> (4 * 6 * 9)
 /// assert!(a.reshape([12, 2, 9]).is_owned()); // (4, 6, 9) -> (4 * [3, 2], 9)
@@ -1175,10 +1138,7 @@ pub use reshape_f as to_shape_f;
 
 /// Reshapes the given tensor to the specified shape.
 ///
-/// # See also
-///
-/// Refer to [`reshape`], [`into_shape`], [`change_shape`] and [`reshape_with_args`] for more
-/// details and examples.
+/// # See also [`reshape`], [`into_shape`], [`change_shape`] and [`reshape_with_args`].
 impl<'a, R, T, B, D> TensorAny<R, T, B, D>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
@@ -1188,10 +1148,7 @@ where
 {
     /// Reshapes the given tensor to the specified shape.
     ///
-    /// # See also
-    ///
-    /// Refer to [`reshape`], [`into_shape`], [`change_shape`] and [`reshape_with_args`] for more
-    /// details and examples.
+    /// # See also [`reshape`], [`into_shape`], [`change_shape`] and [`reshape_with_args`].
     pub fn change_shape_f(
         self,
         shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -1201,20 +1158,14 @@ where
 
     /// Reshapes the given tensor to the specified shape.
     ///
-    /// # See also
-    ///
-    /// Refer to [`reshape`], [`into_shape`], [`change_shape`] and [`reshape_with_args`] for more
-    /// details and examples.
+    /// # See also [`reshape`], [`into_shape`], [`change_shape`] and [`reshape_with_args`].
     pub fn change_shape(self, shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> TensorCow<'a, T, B, IxD> {
         change_shape(self, shape)
     }
 
     /// Reshapes the given tensor to the specified shape.
     ///
-    /// # See also
-    ///
-    /// Refer to [`reshape`], [`into_shape`], [`change_shape`] and [`reshape_with_args`] for more
-    /// details and examples.
+    /// # See also [`reshape`], [`into_shape`], [`change_shape`] and [`reshape_with_args`].
     pub fn into_shape_f(self, shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> Result<Tensor<T, B, IxD>>
     where
         <B as DeviceRawAPI<T>>::Raw: Clone + 'a,
@@ -1225,10 +1176,7 @@ where
 
     /// Reshapes the given tensor to the specified shape.
     ///
-    /// # See also
-    ///
-    /// Refer to [`reshape`], [`into_shape`], [`change_shape`] and [`reshape_with_args`] for more
-    /// details and examples.
+    /// # See also [`reshape`], [`into_shape`], [`change_shape`] and [`reshape_with_args`].
     pub fn into_shape(self, shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> Tensor<T, B, IxD>
     where
         <B as DeviceRawAPI<T>>::Raw: Clone + 'a,
@@ -1239,10 +1187,7 @@ where
 
     /// Reshapes the given tensor to the specified shape.
     ///
-    /// # See also
-    ///
-    /// Refer to [`reshape`], [`into_shape`], [`change_shape`] and [`reshape_with_args`] for more
-    /// details and examples.
+    /// # See also [`reshape`], [`into_shape`], [`change_shape`] and [`reshape_with_args`].
     pub fn to_shape_f(
         &'a self,
         shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -1252,20 +1197,14 @@ where
 
     /// Reshapes the given tensor to the specified shape.
     ///
-    /// # See also
-    ///
-    /// Refer to [`reshape`], [`into_shape`], [`change_shape`] and [`reshape_with_args`] for more
-    /// details and examples.
+    /// # See also [`reshape`], [`into_shape`], [`change_shape`] and [`reshape_with_args`].
     pub fn to_shape(&'a self, shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> TensorCow<'a, T, B, IxD> {
         to_shape(self, shape)
     }
 
     /// Reshapes the given tensor to the specified shape.
     ///
-    /// # See also
-    ///
-    /// Refer to [`reshape`], [`into_shape`], [`change_shape`] and [`reshape_with_args`] for more
-    /// details and examples.
+    /// # See also [`reshape`], [`into_shape`], [`change_shape`] and [`reshape_with_args`].
     pub fn reshape_f(
         &'a self,
         shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -1275,10 +1214,7 @@ where
 
     /// Reshapes the given tensor to the specified shape.
     ///
-    /// # See also
-    ///
-    /// Refer to [`reshape`], [`into_shape`], [`change_shape`] and [`reshape_with_args`] for more
-    /// details and examples.
+    /// # See also [`reshape`], [`into_shape`], [`change_shape`] and [`reshape_with_args`].
     pub fn reshape(&'a self, shape: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> TensorCow<'a, T, B, IxD> {
         reshape(self, shape)
     }

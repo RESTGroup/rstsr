@@ -4,9 +4,7 @@ use crate::prelude_dev::*;
 
 /// Transposes a matrix (or a stack of matrices).
 ///
-/// # See also
-///
-/// Refer to [`matrix_transpose`] for details and examples.
+/// See also [`matrix_transpose`].
 pub fn into_matrix_transpose_f<S, D>(tensor: TensorBase<S, D>) -> Result<TensorBase<S, D>>
 where
     D: DimAPI,
@@ -105,9 +103,7 @@ where
 
 /// Transposes a matrix (or a stack of matrices).
 ///
-/// # See also
-///
-/// Refer to [`matrix_transpose`] for details and examples.
+/// See also [`matrix_transpose`].
 pub fn matrix_transpose_f<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> Result<TensorView<'_, T, B, D>>
 where
     D: DimAPI,
@@ -119,9 +115,7 @@ where
 
 /// Transposes a matrix (or a stack of matrices).
 ///
-/// # See also
-///
-/// Refer to [`matrix_transpose`] for details and examples.
+/// See also [`matrix_transpose`].
 pub fn into_matrix_transpose<S, D>(tensor: TensorBase<S, D>) -> TensorBase<S, D>
 where
     D: DimAPI,
@@ -137,36 +131,28 @@ where
 {
     /// Transposes a matrix (or a stack of matrices).
     ///
-    /// # See also
-    ///
-    /// Refer to [`matrix_transpose`] for details and examples.
+    /// See also [`matrix_transpose`].
     pub fn matrix_transpose(&self) -> TensorView<'_, T, B, D> {
         matrix_transpose(self)
     }
 
     /// Transposes a matrix (or a stack of matrices).
     ///
-    /// # See also
-    ///
-    /// Refer to [`matrix_transpose`] for details and examples.
+    /// See also [`matrix_transpose`].
     pub fn matrix_transpose_f(&self) -> Result<TensorView<'_, T, B, D>> {
         matrix_transpose_f(self)
     }
 
     /// Transposes a matrix (or a stack of matrices).
     ///
-    /// # See also
-    ///
-    /// Refer to [`matrix_transpose`] for details and examples.
+    /// See also [`matrix_transpose`].
     pub fn into_matrix_transpose(self) -> TensorAny<R, T, B, D> {
         into_matrix_transpose(self)
     }
 
     /// Transposes a matrix (or a stack of matrices).
     ///
-    /// # See also
-    ///
-    /// Refer to [`matrix_transpose`] for details and examples.
+    /// See also [`matrix_transpose`].
     pub fn into_matrix_transpose_f(self) -> Result<TensorAny<R, T, B, D>> {
         into_matrix_transpose_f(self)
     }

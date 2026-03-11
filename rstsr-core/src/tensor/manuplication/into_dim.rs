@@ -1,12 +1,8 @@
 use crate::prelude_dev::*;
 
-/* #region into_dim */
-
 /// Convert layout to the other dimension.
 ///
-/// # See also
-///
-/// Refer to [`into_dim`] for more detailed documentation.
+/// See also [`to_dim`].
 pub fn into_dim_f<S, D, D2>(tensor: TensorBase<S, D>) -> Result<TensorBase<S, D2>>
 where
     D: DimAPI + DimIntoAPI<D2>,
@@ -19,8 +15,8 @@ where
 
 /// Convert layout to the other dimension.
 ///
-/// This function is intended to be used as associated method [`TensorAny::into_dim`]. We just
-/// provide the API document here.
+/// This function converts the dimensionality of a tensor's layout to a target dimension type.
+/// No data is copied; only the layout representation is modified.
 ///
 /// # Parameters
 ///
@@ -124,9 +120,7 @@ where
 
 /// Convert layout to the other dimension.
 ///
-/// # See also
-///
-/// Refer to [`into_dim`] for more detailed documentation.
+/// See also [`to_dim`].
 pub fn to_dim_f<R, T, B, D, D2>(tensor: &TensorAny<R, T, B, D>) -> Result<TensorView<'_, T, B, D2>>
 where
     D: DimAPI,
@@ -140,9 +134,7 @@ where
 
 /// Convert layout to the other dimension.
 ///
-/// # See also
-///
-/// Refer to [`into_dim`] for more detailed documentation.
+/// See also [`to_dim`].
 pub fn into_dim<S, D, D2>(tensor: TensorBase<S, D>) -> TensorBase<S, D2>
 where
     D: DimAPI,
@@ -154,9 +146,7 @@ where
 
 /// Convert layout to the dynamic dimension [`IxD`].
 ///
-/// # See also
-///
-/// Refer to [`into_dim`] for more detailed documentation.
+/// See also [`to_dim`].
 pub fn to_dyn<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> TensorView<'_, T, B, IxD>
 where
     D: DimAPI,
@@ -168,9 +158,7 @@ where
 
 /// Convert layout to the dynamic dimension [`IxD`].
 ///
-/// # See also
-///
-/// Refer to [`into_dim`] for more detailed documentation.
+/// See also [`to_dim`].
 pub fn into_dyn<S, D>(tensor: TensorBase<S, D>) -> TensorBase<S, IxD>
 where
     D: DimAPI,
@@ -186,9 +174,7 @@ where
 {
     /// Convert layout to the other dimension.
     ///
-    /// # See also
-    ///
-    /// Refer to [`into_dim`] for more detailed documentation.
+    /// See also [`to_dim`].
     pub fn to_dim<D2>(&self) -> TensorView<'_, T, B, D2>
     where
         D2: DimAPI,
@@ -199,9 +185,7 @@ where
 
     /// Convert layout to the other dimension.
     ///
-    /// # See also
-    ///
-    /// Refer to [`into_dim`] for more detailed documentation.
+    /// See also [`to_dim`].
     pub fn to_dim_f<D2>(&self) -> Result<TensorView<'_, T, B, D2>>
     where
         D2: DimAPI,
@@ -212,9 +196,7 @@ where
 
     /// Convert layout to the other dimension.
     ///
-    /// # See also
-    ///
-    /// Refer to [`into_dim`] for more detailed documentation.
+    /// See also [`to_dim`].
     pub fn into_dim<D2>(self) -> TensorAny<R, T, B, D2>
     where
         D2: DimAPI,
@@ -225,9 +207,7 @@ where
 
     /// Convert layout to the other dimension.
     ///
-    /// # See also
-    ///
-    /// Refer to [`into_dim`] for more detailed documentation.
+    /// See also [`to_dim`].
     pub fn into_dim_f<D2>(self) -> Result<TensorAny<R, T, B, D2>>
     where
         D2: DimAPI,
@@ -238,21 +218,15 @@ where
 
     /// Convert layout to the dynamic dimension [`IxD`].
     ///
-    /// # See also
-    ///
-    /// Refer to [`into_dim`] for more detailed documentation.
+    /// See also [`to_dim`].
     pub fn to_dyn(&self) -> TensorView<'_, T, B, IxD> {
         to_dyn(self)
     }
 
     /// Convert layout to the dynamic dimension [`IxD`].
     ///
-    /// # See also
-    ///
-    /// Refer to [`into_dim`] for more detailed documentation.
+    /// See also [`to_dim`].
     pub fn into_dyn(self) -> TensorAny<R, T, B, IxD> {
         into_dyn(self)
     }
 }
-
-/* #endregion */

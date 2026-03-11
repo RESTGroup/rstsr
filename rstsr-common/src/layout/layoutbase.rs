@@ -225,10 +225,6 @@ where
     ///
     /// This function does not optimized for performance. Negative index
     /// allowed.
-    ///
-    /// # Panics
-    ///
-    /// - Index greater than shape
     pub fn index(&self, index: &[isize]) -> usize {
         self.index_f(index).unwrap()
     }

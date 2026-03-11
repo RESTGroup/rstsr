@@ -2,6 +2,8 @@
 description: Core function API documentation and testing guide.
 ---
 
+Refer to skill `cargo-inst` for compilation instructions.
+
 ## Must Know
 
 - **Note it is possible that RSTSR not correctly, or behaves differently, to NumPy. If that happens, report to the maintainer. You must not cheat by changing the test target to make the test pass.** (dev note: this happened once by qwen3.5-plus).
@@ -17,6 +19,7 @@ description: Core function API documentation and testing guide.
   2.2. If found, get inspiration from their docstring, and write doc test code by guidelines defined in this file.
   2.3. If not found, write doc test code by yourself.
 3. Create API documentation to *core function* (instead of *variant functions*), step by step.
+  The following guidelines are for *core functions* only.
   3.1. Give a title. If NumPy/SciPy/array-api has the same function, directly use the same title.
   3.2. Write explanation and description if necessary.
   3.3. If the behavior of row/col-major is different, add warning message.
@@ -24,6 +27,7 @@ description: Core function API documentation and testing guide.
   3.5. Add `Examples` section. This **must follow doc test code**.
   3.6. Add `Notes of API accordance` section.
   3.7. Add `See Also` section, first refer to relavent functions if necessary, then variants of functions, then variants of associated functions.
+  3.8 Add `Panics` section if necessary, only in.
 
 Examples of API document (in docstring) should be tested, but they should first be tested in integration test (in folder `tests`).
 
@@ -148,11 +152,20 @@ Examples of API document (in docstring) should be tested, but they should first 
     - Except `reshape`, only fully document core functions, and use minimized documentation for variant functions.
     - The minimized documentation style is, for example,
       ```rust
-      /// Permutes the axes (dimensions) of an array `x`.
+      /// Permutes the axes (dimensions) of an array.
       ///
       /// See also [`transpose`].
       ```
+      or exactly,
+      ```rust
+      /// <title of core_func>
+      ///
+      /// See also [`<core_func>`].
+      ```
       The variant functions should have the same title as the core function.
+
+  The following guidelines are for *core functions* only.
+
   3.1. Give a title. If NumPy/SciPy/array-api has the same function, directly use the same title.
     - First find NumPy/SciPy's title. If not, find array-api. Then if not, write on your own.
   3.2. Write explanation and description if necessary.
@@ -178,6 +191,24 @@ Examples of API document (in docstring) should be tested, but they should first 
       ///   - Note on variant [`into_<func>`]: This takes ownership [`Tensor<R, T, B, D>`] of input tensor, and will not perform change to underlying data, only layout changes.
       ///   <empty line>
       ```
+    - Some parameters may have overloads. If you feel this is not a trivial overloading, you can also add notes for this. For example of `reshape_with_args`, the note is
+      ```rust
+      /// - `args`: Into [`ReshapeArgs`]
+      ///
+      ///   - `order`: <......>
+      ///   - `copy`: <......>
+      ///     - True: <...>
+      ///     - False: <...>
+      ///     - None (default): <...>
+      ///   
+      ///   - Overloads:
+      ///
+      ///     - copy: [`bool`]
+      ///     - copy: [`Option<bool>`] (None means default behavior)
+      ///     - order: [`TensorOrder`]
+      ///     - (order: [`TensorOrder`], copy: [`bool`])
+      ///     - (order: [`TensorOrder`], copy: [`Option<bool>`])
+      ```
   3.5. Add `Examples` section. This **must follow doc test code**.
     - Each example code should be summarized by a simple description before code block.
     - You should **directly copy** part of the code `mod test_<func>` in integration test file `test_<func>.rs` to example code block.
@@ -187,8 +218,24 @@ Examples of API document (in docstring) should be tested, but they should first 
       /// # let mut device = DeviceCpu::default();
       /// # device.set_default_order(RowMajor);
       ```
+      No new-line after the last line.
       In a few cases, if you need to show behavior of col-major, then you should remove the `#` at the third line, and change the order to `ColMajor`.
     - You can ignore the assertion code (mainly for testing the correctness of example), and the definition of target variable related to that assertion. However, if the assertion is very important for understanding the function, you may also leave the assertion code.
+    - A full example is
+      ```rust
+      /// # use rstsr::prelude::*;
+      /// # let mut device = DeviceCpu::default();
+      /// # device.set_default_order(RowMajor);
+      // 3-D array: swapping axes 0 and 2
+      let x = rt::tensor_from_nested!([[[0, 1], [2, 3]], [[4, 5], [6, 7]]], &device);
+      let result = x.swapaxes(0, 2);
+      println!("{result}");
+      // [[[ 0 4]
+      //   [ 2 6]]
+      //
+      //  [[ 1 5]
+      //   [ 3 7]]]
+      ```
   3.6. Add `Notes of API accordance` section.
     - You should refer to array-api first, then NumPy/SciPy, then RSTSR function itself. For example of `reshape_with_args`:
       ```rust
@@ -201,6 +248,8 @@ Examples of API document (in docstring) should be tested, but they should first 
   3.7. Add `See Also` section, first refer to relavent functions if necessary, then variants of functions, then variants of associated functions.
     - Example of this can be, for `transpose`:
       ```rust
+      /// # See also
+      /// <empty line>
       /// ## Related functions in RSTSR
       /// <empty line>
       /// - [`permute_dims`] - Alias for this function
@@ -218,3 +267,21 @@ Examples of API document (in docstring) should be tested, but they should first 
       ///   - [`TensorAny::into_transpose`] / [`TensorAny::into_transpose_f`]
       ///   - [`TensorAny::t`] as shorthand for [`reverse_axes`]
       ```
+  3.8 Add `Panics` section if necessary.
+    - You can gracefully add 
+      ```rust
+      /// For a fallible version, use [`<func>_f`].
+      ```
+
+- A special case is that, if the function in integration test should fail but uses error propragation:
+  ```rust
+  <in test_func.rs>
+  let result = rt::broadcast_arrays_f(vec![a, b]);  <this function should return error, but not panic>
+  assert!(result.is_err());                         <this tests if the result is error>
+  ```
+  Then in API document, you can add `Panics` section like
+  ```rust,should_panic
+  let result = rt::broadcast_arrays(vec![a, b]);
+  ```
+  Please note that without `_f` suffix, the function should panic instead of returning error.
+- Alias functions (declared by `pub use <func> as <alias>;`) do not need API docstring.

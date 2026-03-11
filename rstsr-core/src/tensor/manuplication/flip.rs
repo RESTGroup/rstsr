@@ -1,12 +1,8 @@
 use crate::prelude_dev::*;
 
-/* #region flip */
-
 /// Reverses the order of elements in an array along the given axis.
 ///
-/// # See also
-///
-/// Refer to [`flip`] for more detailed documentation.
+/// See also [`flip`].
 pub fn into_flip_f<S, D>(
     tensor: TensorBase<S, D>,
     axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -62,8 +58,6 @@ where
 ///
 /// ## Flipping along a single axis
 ///
-/// Given a 3D tensor of shape (2, 2, 2):
-///
 /// ```rust
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
@@ -77,39 +71,38 @@ where
 /// //   [ 6 7]]]
 /// ```
 ///
-/// Flipping the first (0) axis (which is equilvant to slicing with step -1 along that axis):
+/// Flipping the first (0) axis (which is equivalent to slicing with step -1 along that axis):
 ///
 /// ```rust
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
 /// # device.set_default_order(RowMajor);
-/// # let a = rt::arange((8, &device)).into_shape([2, 2, 2]);
+/// let a = rt::arange((8, &device)).into_shape([2, 2, 2]);
 /// let b = a.flip(0);
-/// assert!(rt::allclose(a.i(slice!(None, None, -1)), &b, None));
-/// println!("{:}", a.flip(0));
+/// println!("{b}");
 /// // [[[ 4 5]
 /// //   [ 6 7]]
 /// //
 /// //  [[ 0 1]
 /// //   [ 2 3]]]
+/// assert!(rt::allclose(a.i(slice!(None, None, -1)), &b, None));
 /// ```
 ///
 /// Flipping the second (1) axis:
-///
 ///
 /// ```rust
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
 /// # device.set_default_order(RowMajor);
-/// # let a = rt::arange((8, &device)).into_shape([2, 2, 2]);
+/// let a = rt::arange((8, &device)).into_shape([2, 2, 2]);
 /// let b = a.flip(1);
-/// assert!(rt::allclose(a.i((.., slice!(None, None, -1))), &b, None));
-/// println!("{:}", a.flip(1));
+/// println!("{b}");
 /// // [[[ 2 3]
 /// //   [ 0 1]]
 /// //
 /// //  [[ 6 7]
 /// //   [ 4 5]]]
+/// assert!(rt::allclose(a.i((.., slice!(None, None, -1))), &b, None));
 /// ```
 ///
 /// ## Flipping along multiple axes
@@ -120,7 +113,7 @@ where
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
 /// # device.set_default_order(RowMajor);
-/// # let a = rt::arange((8, &device)).into_shape([2, 2, 2]);
+/// let a = rt::arange((8, &device)).into_shape([2, 2, 2]);
 /// let b = a.flip([0, -1]);
 /// println!("{b}");
 /// // [[[ 5 4]
@@ -133,11 +126,12 @@ where
 /// ## Flipping all axes
 ///
 /// You can specify `None` to flip all axes:
+///
 /// ```rust
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
 /// # device.set_default_order(RowMajor);
-/// # let a = rt::arange((8, &device)).into_shape([2, 2, 2]);
+/// let a = rt::arange((8, &device)).into_shape([2, 2, 2]);
 /// let b = a.flip(None);
 /// println!("{b}");
 /// // [[[ 7 6]
@@ -150,11 +144,12 @@ where
 /// ## No flipping (empty axes)
 ///
 /// You can specify an empty tuple `()` to flip no axes (returns a view of the original tensor):
+///
 /// ```rust
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
 /// # device.set_default_order(RowMajor);
-/// # let a = rt::arange((8, &device)).into_shape([2, 2, 2]);
+/// let a = rt::arange((8, &device)).into_shape([2, 2, 2]);
 /// let b = a.flip(());
 /// println!("{b}");
 /// // [[[ 0 1]
@@ -168,6 +163,8 @@ where
 ///
 /// - If some index in `axes` is greater than the number of axes in the original tensor.
 /// - If `axes` has duplicated values.
+///
+/// For a fallible version, use [`flip_f`].
 ///
 /// # Notes of API accordance
 ///
@@ -212,9 +209,7 @@ where
 
 /// Reverses the order of elements in an array along the given axis.
 ///
-/// # See also
-///
-/// Refer to [`flip`] for more detailed documentation.
+/// See also [`flip`].
 pub fn flip_f<R, T, B, D>(
     tensor: &TensorAny<R, T, B, D>,
     axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -229,9 +224,7 @@ where
 
 /// Reverses the order of elements in an array along the given axis.
 ///
-/// # See also
-///
-/// Refer to [`flip`] for more detailed documentation.
+/// See also [`flip`].
 pub fn into_flip<S, D>(
     tensor: TensorBase<S, D>,
     axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -250,31 +243,28 @@ where
 {
     /// Reverses the order of elements in an array along the given axis.
     ///
-    /// # See also
-    ///
-    /// Refer to [`flip`] for more detailed documentation.
+    /// See also [`flip`].
     pub fn flip(&self, axis: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> TensorView<'_, T, B, D> {
         flip(self, axis)
     }
 
+    /// Reverses the order of elements in an array along the given axis.
+    ///
+    /// See also [`flip`].
     pub fn flip_f(&self, axis: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> Result<TensorView<'_, T, B, D>> {
         flip_f(self, axis)
     }
 
     /// Reverses the order of elements in an array along the given axis.
     ///
-    /// # See also
-    ///
-    /// Refer to [`flip`] for more detailed documentation.
+    /// See also [`flip`].
     pub fn into_flip(self, axis: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> TensorAny<R, T, B, D> {
         into_flip(self, axis)
     }
 
     /// Reverses the order of elements in an array along the given axis.
     ///
-    /// # See also
-    ///
-    /// Refer to [`flip`] for more detailed documentation.
+    /// See also [`flip`].
     pub fn into_flip_f(
         self,
         axis: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -282,5 +272,3 @@ where
         into_flip_f(self, axis)
     }
 }
-
-/* #endregion */

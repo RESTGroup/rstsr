@@ -46,11 +46,6 @@ impl From<isize> for TensorDotAxes {
 /// * `axes` – a pair of vectors specifying which axes to sum over. The first vector contains axes
 ///   of the first tensor, the second vector contains corresponding axes of the second tensor.
 ///
-/// # Panics
-/// Panics if the two axis vectors have different lengths,
-/// if any axis index is out of bounds for its tensor,
-/// or if more than 52 unique labels are needed.
-///
 /// # Example
 /// ```
 /// let s = tensordot_to_einsum_str(2, 2, (vec![1], vec![0]));

@@ -4,9 +4,7 @@ use crate::prelude_dev::*;
 
 /// Convert tensor to a specified layout.
 ///
-/// # See also
-///
-/// Refer to [`to_layout`] for more detailed documentation.
+/// See also [`to_layout`].
 pub fn change_layout_f<'a, R, T, B, D, D2>(
     tensor: TensorAny<R, T, B, D>,
     layout: Layout<D2>,
@@ -139,11 +137,9 @@ where
     change_layout_f(tensor.view(), layout).rstsr_unwrap()
 }
 
-/// Fallible version of [`to_layout`].
+/// Convert tensor to a specified layout.
 ///
-/// # See also
-///
-/// - [`to_layout`]: Infallible version
+/// See also [`to_layout`].
 pub fn to_layout_f<R, T, D, B, D2>(
     tensor: &TensorAny<R, T, B, D>,
     layout: Layout<D2>,
@@ -159,9 +155,7 @@ where
 
 /// Convert tensor to a specified layout.
 ///
-/// # See also
-///
-/// Refer to [`to_layout`] for more detailed documentation.
+/// See also [`to_layout`].
 pub fn into_layout_f<'a, R, T, B, D, D2>(tensor: TensorAny<R, T, B, D>, layout: Layout<D2>) -> Result<Tensor<T, B, D2>>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
@@ -180,12 +174,7 @@ where
 
 /// Convert tensor to a specified layout.
 ///
-/// This is the consuming version of [`to_layout`] that returns owned tensor. For the ownership
-/// semantics, refer to the documentation of [`reshape`].
-///
-/// # See also
-///
-/// Refer to [`to_layout`] for more detailed documentation.
+/// See also [`to_layout`].
 pub fn into_layout<'a, R, T, B, D, D2>(tensor: TensorAny<R, T, B, D>, layout: Layout<D2>) -> Tensor<T, B, D2>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
@@ -204,12 +193,7 @@ where
 
 /// Convert tensor to a specified layout.
 ///
-/// This is the consuming version of [`to_layout`] that returns a view or owned tensor. For the
-/// ownership semantics, refer to the documentation of [`reshape`].
-///
-/// # See also
-///
-/// Refer to [`to_layout`] for more detailed documentation.
+/// See also [`to_layout`].
 pub fn change_layout<'a, R, T, B, D, D2>(tensor: TensorAny<R, T, B, D>, layout: Layout<D2>) -> TensorCow<'a, T, B, D2>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
@@ -229,9 +213,7 @@ where
 {
     /// Convert tensor to a specified layout.
     ///
-    /// # See also
-    ///
-    /// Refer to [`to_layout`] for more detailed documentation.
+    /// See also [`to_layout`].
     pub fn to_layout<D2>(&self, layout: Layout<D2>) -> TensorCow<'_, T, B, D2>
     where
         D2: DimAPI,
@@ -242,9 +224,7 @@ where
 
     /// Convert tensor to a specified layout.
     ///
-    /// # See also
-    ///
-    /// Refer to [`to_layout`] for more detailed documentation.
+    /// See also [`to_layout`].
     pub fn to_layout_f<D2>(&self, layout: Layout<D2>) -> Result<TensorCow<'_, T, B, D2>>
     where
         D2: DimAPI,
@@ -255,9 +235,7 @@ where
 
     /// Convert tensor to a specified layout.
     ///
-    /// # See also
-    ///
-    /// Refer to [`to_layout`] for more detailed documentation.
+    /// See also [`to_layout`].
     pub fn into_layout_f<D2>(self, layout: Layout<D2>) -> Result<Tensor<T, B, D2>>
     where
         D2: DimAPI,
@@ -269,9 +247,7 @@ where
 
     /// Convert tensor to a specified layout.
     ///
-    /// # See also
-    ///
-    /// Refer to [`to_layout`] for more detailed documentation.
+    /// See also [`to_layout`].
     pub fn into_layout<D2>(self, layout: Layout<D2>) -> Tensor<T, B, D2>
     where
         D2: DimAPI,
@@ -283,9 +259,7 @@ where
 
     /// Convert tensor to a specified layout.
     ///
-    /// # See also
-    ///
-    /// Refer to [`to_layout`] for more detailed documentation.
+    /// See also [`to_layout`].
     pub fn change_layout_f<D2>(self, layout: Layout<D2>) -> Result<TensorCow<'a, T, B, D2>>
     where
         D2: DimAPI,
@@ -296,9 +270,7 @@ where
 
     /// Convert tensor to a specified layout.
     ///
-    /// # See also
-    ///
-    /// Refer to [`to_layout`] for more detailed documentation.
+    /// See also [`to_layout`].
     pub fn change_layout<D2>(self, layout: Layout<D2>) -> TensorCow<'a, T, B, D2>
     where
         D2: DimAPI,
