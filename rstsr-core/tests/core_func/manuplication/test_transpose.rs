@@ -214,10 +214,11 @@ mod doc_swapaxes {
         let x = rt::tensor_from_nested!([[[0, 1], [2, 3]], [[4, 5], [6, 7]]], &device);
         let result = x.swapaxes(0, 2);
         println!("{result}");
-        // [[[ 0  4]
-        //   [ 2  6]]
-        //  [[ 1  5]
-        //   [ 3  7]]]
+        // [[[ 0 4]
+        //   [ 2 6]]
+        //
+        //  [[ 1 5]
+        //   [ 3 7]]]
         let target = rt::tensor_from_nested!([[[0, 4], [2, 6]], [[1, 5], [3, 7]]], &device);
         assert!(rt::allclose(&result, &target, None));
 

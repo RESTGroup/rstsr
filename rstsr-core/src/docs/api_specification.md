@@ -283,6 +283,8 @@ Trait function calls like associated methods, so we also do not recommend usage 
 |--|--|--|
 | assoc/fn | [`vecdot`] | Computes the (vector) dot product of two arrays. |
 
+Note we leave einsum and vectordot not implemented. For those functions, currently, we recommend users to use [`rt::tblis::einsum`](https://docs.rs/rstsr-tblis/latest/rstsr_tblis/einsum_impl/fn.einsum.html) and [`rt::tblis::vecdot`](https://docs.rs/rstsr-tblis/latest/rstsr_tblis/tensordot_impl/fn.tensordot.html), enabled in main crate `rstsr` with feature `tblis`.
+
 ## Common Functions
 
 ### Unary functions
