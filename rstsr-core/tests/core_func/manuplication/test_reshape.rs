@@ -118,7 +118,7 @@ mod numpy_reshape {
             vec![2, 7, 7, 43826197]
         };
         // assert_raises(ValueError, a.reshape, new_shape)
-        let panics = std::panic::catch_unwind(|| a.reshape_f(new_shape));
+        let panics = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| a.reshape_f(new_shape)));
         assert!(panics.is_err());
     }
 
