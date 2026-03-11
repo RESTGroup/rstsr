@@ -1,4 +1,4 @@
-use crate::tests_utils::*;
+use crate::test_utils::*;
 use rstsr::prelude::*;
 
 use super::CATEGORY;

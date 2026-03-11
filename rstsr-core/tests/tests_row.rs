@@ -1,9 +1,9 @@
-mod tests_core;
-mod tests_utils;
+mod core_func;
+mod test_utils;
 
 pub use rstsr::prelude::*;
 pub use std::sync::LazyLock;
-pub use tests_utils::TestCfg;
+pub use test_utils::TestCfg;
 
 pub use DeviceCpuSerial as DeviceType;
 
