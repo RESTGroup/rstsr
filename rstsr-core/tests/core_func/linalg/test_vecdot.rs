@@ -29,7 +29,7 @@ mod numpy_vecdot {
 
         // actual2 = np.vecdot(arr1.T, arr2.T, axis=-2)
         // assert_array_equal(actual2, expected)
-        let actual2 = rt::vecdot(&arr1.t(), &arr2.t(), -2);
+        let actual2 = rt::vecdot(arr1.t(), arr2.t(), -2);
         assert_equal(&actual2, &expected, None);
     }
 
