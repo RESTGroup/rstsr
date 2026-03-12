@@ -9,34 +9,34 @@ use rstsr_dtype_traits::{DTypeIntoFloatAPI, ExtNum};
 /* #region same type */
 
 #[duplicate_item(
-     DeviceOpAPI           NumTrait       func_inner;
-    [DeviceAcosAPI      ] [ComplexFloat] [b.acos()  ];
-    [DeviceAcoshAPI     ] [ComplexFloat] [b.acosh() ];
-    [DeviceAsinAPI      ] [ComplexFloat] [b.asin()  ];
-    [DeviceAsinhAPI     ] [ComplexFloat] [b.asinh() ];
-    [DeviceAtanAPI      ] [ComplexFloat] [b.atan()  ];
-    [DeviceAtanhAPI     ] [ComplexFloat] [b.atanh() ];
-    [DeviceCeilAPI      ] [Float       ] [b.ceil()  ];
-    [DeviceConjAPI      ] [ComplexFloat] [b.conj()  ];
-    [DeviceCosAPI       ] [ComplexFloat] [b.cos()   ];
-    [DeviceCoshAPI      ] [ComplexFloat] [b.cosh()  ];
-    [DeviceExpAPI       ] [ComplexFloat] [b.exp()   ];
-    [DeviceExpm1API     ] [Float       ] [b.exp_m1()];
-    [DeviceFloorAPI     ] [Float       ] [b.floor() ];
-    [DeviceInvAPI       ] [ComplexFloat] [b.recip() ];
-    [DeviceLogAPI       ] [ComplexFloat] [b.ln()    ];
-    [DeviceLog2API      ] [ComplexFloat] [b.log2()  ];
-    [DeviceLog10API     ] [ComplexFloat] [b.log10() ];
-    [DeviceReciprocalAPI] [ComplexFloat] [b.recip() ];
-    [DeviceRoundAPI     ] [Float       ] [b.round() ];
-    [DeviceSinAPI       ] [ComplexFloat] [b.sin()   ];
-    [DeviceSinhAPI      ] [ComplexFloat] [b.sinh()  ];
-    [DeviceSqrtAPI      ] [ComplexFloat] [b.sqrt()  ];
-    [DeviceTanAPI       ] [ComplexFloat] [b.tan()   ];
-    [DeviceTanhAPI      ] [ComplexFloat] [b.tanh()  ];
-    [DeviceTruncAPI     ] [Float       ] [b.trunc() ];
+     OpAPI             NumTrait       func_inner;
+    [OpAcosAPI      ] [ComplexFloat] [b.acos()  ];
+    [OpAcoshAPI     ] [ComplexFloat] [b.acosh() ];
+    [OpAsinAPI      ] [ComplexFloat] [b.asin()  ];
+    [OpAsinhAPI     ] [ComplexFloat] [b.asinh() ];
+    [OpAtanAPI      ] [ComplexFloat] [b.atan()  ];
+    [OpAtanhAPI     ] [ComplexFloat] [b.atanh() ];
+    [OpCeilAPI      ] [Float       ] [b.ceil()  ];
+    [OpConjAPI      ] [ComplexFloat] [b.conj()  ];
+    [OpCosAPI       ] [ComplexFloat] [b.cos()   ];
+    [OpCoshAPI      ] [ComplexFloat] [b.cosh()  ];
+    [OpExpAPI       ] [ComplexFloat] [b.exp()   ];
+    [OpExpm1API     ] [Float       ] [b.exp_m1()];
+    [OpFloorAPI     ] [Float       ] [b.floor() ];
+    [OpInvAPI       ] [ComplexFloat] [b.recip() ];
+    [OpLogAPI       ] [ComplexFloat] [b.ln()    ];
+    [OpLog2API      ] [ComplexFloat] [b.log2()  ];
+    [OpLog10API     ] [ComplexFloat] [b.log10() ];
+    [OpReciprocalAPI] [ComplexFloat] [b.recip() ];
+    [OpRoundAPI     ] [Float       ] [b.round() ];
+    [OpSinAPI       ] [ComplexFloat] [b.sin()   ];
+    [OpSinhAPI      ] [ComplexFloat] [b.sinh()  ];
+    [OpSqrtAPI      ] [ComplexFloat] [b.sqrt()  ];
+    [OpTanAPI       ] [ComplexFloat] [b.tan()   ];
+    [OpTanhAPI      ] [ComplexFloat] [b.tanh()  ];
+    [OpTruncAPI     ] [Float       ] [b.trunc() ];
 )]
-impl<T, D> DeviceOpAPI<T, D> for DeviceCpuSerial
+impl<T, D> OpAPI<T, D> for DeviceCpuSerial
 where
     T: Clone + DTypeIntoFloatAPI<FloatType: NumTrait>,
     D: DimAPI,
@@ -66,7 +66,7 @@ where
     }
 }
 
-impl<T, D> DeviceSquareAPI<T, D> for DeviceCpuSerial
+impl<T, D> OpSquareAPI<T, D> for DeviceCpuSerial
 where
     T: Clone + Mul<Output = T>,
     D: DimAPI,
@@ -94,13 +94,13 @@ where
 /* #region boolean output */
 
 #[duplicate_item(
-     DeviceOpAPI         NumTrait       func                         ;
-    [DeviceSignBitAPI ] [Signed      ] [|a, b| { a.write(b.is_positive()); } ];
-    [DeviceIsFiniteAPI] [ComplexFloat] [|a, b| { a.write(b.is_finite()  ); } ];
-    [DeviceIsInfAPI   ] [ComplexFloat] [|a, b| { a.write(b.is_infinite()); } ];
-    [DeviceIsNanAPI   ] [ComplexFloat] [|a, b| { a.write(b.is_nan()     ); } ];
+     OpAPI           NumTrait       func                         ;
+    [OpSignBitAPI ] [Signed      ] [|a, b| { a.write(b.is_positive()); } ];
+    [OpIsFiniteAPI] [ComplexFloat] [|a, b| { a.write(b.is_finite()  ); } ];
+    [OpIsInfAPI   ] [ComplexFloat] [|a, b| { a.write(b.is_infinite()); } ];
+    [OpIsNanAPI   ] [ComplexFloat] [|a, b| { a.write(b.is_nan()     ); } ];
 )]
-impl<T, D> DeviceOpAPI<T, D> for DeviceCpuSerial
+impl<T, D> OpAPI<T, D> for DeviceCpuSerial
 where
     T: Clone + NumTrait,
     D: DimAPI,
@@ -121,7 +121,7 @@ where
 
 /* #region complex specific implementation */
 
-impl<T, D> DeviceAbsAPI<T, D> for DeviceCpuSerial
+impl<T, D> OpAbsAPI<T, D> for DeviceCpuSerial
 where
     T: ExtNum,
     D: DimAPI,
@@ -154,7 +154,7 @@ where
     }
 }
 
-impl<T, D> DeviceImagAPI<T, D> for DeviceCpuSerial
+impl<T, D> OpImagAPI<T, D> for DeviceCpuSerial
 where
     T: ExtNum,
     D: DimAPI,
@@ -185,7 +185,7 @@ where
     }
 }
 
-impl<T, D> DeviceRealAPI<T, D> for DeviceCpuSerial
+impl<T, D> OpRealAPI<T, D> for DeviceCpuSerial
 where
     T: ExtNum,
     D: DimAPI,
@@ -214,7 +214,7 @@ where
     }
 }
 
-impl<T, D> DeviceSignAPI<T, D> for DeviceCpuSerial
+impl<T, D> OpSignAPI<T, D> for DeviceCpuSerial
 where
     T: Clone + ComplexFloat + Div<T::Real, Output = T>,
     D: DimAPI,

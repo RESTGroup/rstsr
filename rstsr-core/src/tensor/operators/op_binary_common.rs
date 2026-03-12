@@ -11,7 +11,7 @@ Exception functions:
 /* #region tensor traits */
 
 #[duplicate_item(
-    op              op_f              TensorOpAPI           ;
+    op              op_f              TensorOpAPI             ;
    [atan2        ] [atan2_f        ] [TensorATan2API       ];
    [copysign     ] [copysign_f     ] [TensorCopySignAPI    ];
    [equal        ] [equal_f        ] [TensorEqualAPI       ];
@@ -40,22 +40,22 @@ pub trait TensorOpAPI<TRB> {
 }
 
 #[duplicate_item(
-    op_f              TensorOpAPI             DeviceOpAPI           ;
-   [atan2_f        ] [TensorATan2API       ] [DeviceATan2API       ];
-   [copysign_f     ] [TensorCopySignAPI    ] [DeviceCopySignAPI    ];
-   [equal_f        ] [TensorEqualAPI       ] [DeviceEqualAPI       ];
-   [floor_divide_f ] [TensorFloorDivideAPI ] [DeviceFloorDivideAPI ];
-   [greater_f      ] [TensorGreaterAPI     ] [DeviceGreaterAPI     ];
-   [greater_equal_f] [TensorGreaterEqualAPI] [DeviceGreaterEqualAPI];
-   [hypot_f        ] [TensorHypotAPI       ] [DeviceHypotAPI       ];
-   [less_f         ] [TensorLessAPI        ] [DeviceLessAPI        ];
-   [less_equal_f   ] [TensorLessEqualAPI   ] [DeviceLessEqualAPI   ];
-   [log_add_exp_f  ] [TensorLogAddExpAPI   ] [DeviceLogAddExpAPI   ];
-   [maximum_f      ] [TensorMaximumAPI     ] [DeviceMaximumAPI     ];
-   [minimum_f      ] [TensorMinimumAPI     ] [DeviceMinimumAPI     ];
-   [not_equal_f    ] [TensorNotEqualAPI    ] [DeviceNotEqualAPI    ];
-   [pow_f          ] [TensorPowAPI         ] [DevicePowAPI         ];
-   [nextafter_f    ] [TensorNextAfterAPI   ] [DeviceNextAfterAPI   ];
+    op_f              TensorOpAPI               OpAPI             ;
+   [atan2_f        ] [TensorATan2API       ] [OpATan2API       ];
+   [copysign_f     ] [TensorCopySignAPI    ] [OpCopySignAPI    ];
+   [equal_f        ] [TensorEqualAPI       ] [OpEqualAPI       ];
+   [floor_divide_f ] [TensorFloorDivideAPI ] [OpFloorDivideAPI ];
+   [greater_f      ] [TensorGreaterAPI     ] [OpGreaterAPI     ];
+   [greater_equal_f] [TensorGreaterEqualAPI] [OpGreaterEqualAPI];
+   [hypot_f        ] [TensorHypotAPI       ] [OpHypotAPI       ];
+   [less_f         ] [TensorLessAPI        ] [OpLessAPI        ];
+   [less_equal_f   ] [TensorLessEqualAPI   ] [OpLessEqualAPI   ];
+   [log_add_exp_f  ] [TensorLogAddExpAPI   ] [OpLogAddExpAPI   ];
+   [maximum_f      ] [TensorMaximumAPI     ] [OpMaximumAPI     ];
+   [minimum_f      ] [TensorMinimumAPI     ] [OpMinimumAPI     ];
+   [not_equal_f    ] [TensorNotEqualAPI    ] [OpNotEqualAPI    ];
+   [pow_f          ] [TensorPowAPI         ] [OpPowAPI         ];
+   [nextafter_f    ] [TensorNextAfterAPI   ] [OpNextAfterAPI   ];
 )]
 mod impl_trait_binary {
     use super::*;
@@ -67,7 +67,7 @@ mod impl_trait_binary {
         DA: DimAPI + DimMaxAPI<DB>,
         DB: DimAPI,
         DA::Max: DimAPI,
-        B: DeviceOpAPI<TA, TB, DA::Max>,
+        B: OpAPI<TA, TB, DA::Max>,
         B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<B::TOut> + DeviceCreationAnyAPI<B::TOut>,
     {
         type Output = Tensor<B::TOut, B, DA::Max>;
@@ -112,7 +112,7 @@ mod impl_trait_binary {
         DA: DimAPI + DimMaxAPI<DB>,
         DB: DimAPI,
         DA::Max: DimAPI,
-        B: DeviceOpAPI<TA, TB, DA::Max>,
+        B: OpAPI<TA, TB, DA::Max>,
         B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<B::TOut> + DeviceCreationAnyAPI<B::TOut>,
     {
         type Output = Tensor<B::TOut, B, DA::Max>;
@@ -126,7 +126,7 @@ mod impl_trait_binary {
     where
         RA: DataAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
         DA: DimAPI,
-        B: DeviceOpAPI<TA, TB, DA>,
+        B: OpAPI<TA, TB, DA>,
         B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<B::TOut> + DeviceCreationAnyAPI<B::TOut>,
         TB: num::Num,
     {
@@ -149,7 +149,7 @@ mod impl_trait_binary {
     impl<TA, DA, TB, B> TensorOpAPI<TB> for TensorView<'_, TA, B, DA>
     where
         DA: DimAPI,
-        B: DeviceOpAPI<TA, TB, DA>,
+        B: OpAPI<TA, TB, DA>,
         B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<B::TOut> + DeviceCreationAnyAPI<B::TOut>,
         TB: num::Num,
     {
@@ -164,7 +164,7 @@ mod impl_trait_binary {
     where
         RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
         DB: DimAPI,
-        B: DeviceOpAPI<TA, TB, DB>,
+        B: OpAPI<TA, TB, DB>,
         B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<B::TOut> + DeviceCreationAnyAPI<B::TOut>,
         TA: num::Num,
     {
@@ -187,7 +187,7 @@ mod impl_trait_binary {
     impl<TA, DB, TB, B> TensorOpAPI<TensorView<'_, TB, B, DB>> for TA
     where
         DB: DimAPI,
-        B: DeviceOpAPI<TA, TB, DB>,
+        B: OpAPI<TA, TB, DB>,
         B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<B::TOut> + DeviceCreationAnyAPI<B::TOut>,
         TA: num::Num,
     {
@@ -204,7 +204,7 @@ mod impl_trait_binary {
 /* #region function impl */
 
 macro_rules! func_binary {
-    ($op: ident, $op_f: ident, $TensorOpAPI: ident, $DeviceOpAPI: ident, $($op2: ident, $op2_f: ident),*) => {
+    ($op: ident, $op_f: ident, $TensorOpAPI: ident, $OpAPI: ident, $($op2: ident, $op2_f: ident),*) => {
         pub fn $op_f<TRA, TRB>(a: TRA, b: TRB) -> Result<TRA::Output>
         where
             TRA: $TensorOpAPI<TRB>,

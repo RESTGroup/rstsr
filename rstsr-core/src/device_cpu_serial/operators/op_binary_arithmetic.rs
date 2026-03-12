@@ -2,19 +2,19 @@ use crate::prelude_dev::*;
 use core::mem::transmute;
 
 #[duplicate_item(
-     DeviceOpAPI             Op             func                    ;
-    [DeviceAddAssignAPI   ] [AddAssign   ] [|a, b| unsafe { *a.assume_init_mut() +=  b.clone() }];
-    [DeviceSubAssignAPI   ] [SubAssign   ] [|a, b| unsafe { *a.assume_init_mut() -=  b.clone() }];
-    [DeviceMulAssignAPI   ] [MulAssign   ] [|a, b| unsafe { *a.assume_init_mut() *=  b.clone() }];
-    [DeviceDivAssignAPI   ] [DivAssign   ] [|a, b| unsafe { *a.assume_init_mut() /=  b.clone() }];
-    [DeviceRemAssignAPI   ] [RemAssign   ] [|a, b| unsafe { *a.assume_init_mut() %=  b.clone() }];
-    [DeviceBitOrAssignAPI ] [BitOrAssign ] [|a, b| unsafe { *a.assume_init_mut() |=  b.clone() }];
-    [DeviceBitAndAssignAPI] [BitAndAssign] [|a, b| unsafe { *a.assume_init_mut() &=  b.clone() }];
-    [DeviceBitXorAssignAPI] [BitXorAssign] [|a, b| unsafe { *a.assume_init_mut() ^=  b.clone() }];
-    [DeviceShlAssignAPI   ] [ShlAssign   ] [|a, b| unsafe { *a.assume_init_mut() <<= b.clone() }];
-    [DeviceShrAssignAPI   ] [ShrAssign   ] [|a, b| unsafe { *a.assume_init_mut() >>= b.clone() }];
+     OpAPI               Op             func                    ;
+    [OpAddAssignAPI   ] [AddAssign   ] [|a, b| unsafe { *a.assume_init_mut() +=  b.clone() }];
+    [OpSubAssignAPI   ] [SubAssign   ] [|a, b| unsafe { *a.assume_init_mut() -=  b.clone() }];
+    [OpMulAssignAPI   ] [MulAssign   ] [|a, b| unsafe { *a.assume_init_mut() *=  b.clone() }];
+    [OpDivAssignAPI   ] [DivAssign   ] [|a, b| unsafe { *a.assume_init_mut() /=  b.clone() }];
+    [OpRemAssignAPI   ] [RemAssign   ] [|a, b| unsafe { *a.assume_init_mut() %=  b.clone() }];
+    [OpBitOrAssignAPI ] [BitOrAssign ] [|a, b| unsafe { *a.assume_init_mut() |=  b.clone() }];
+    [OpBitAndAssignAPI] [BitAndAssign] [|a, b| unsafe { *a.assume_init_mut() &=  b.clone() }];
+    [OpBitXorAssignAPI] [BitXorAssign] [|a, b| unsafe { *a.assume_init_mut() ^=  b.clone() }];
+    [OpShlAssignAPI   ] [ShlAssign   ] [|a, b| unsafe { *a.assume_init_mut() <<= b.clone() }];
+    [OpShrAssignAPI   ] [ShrAssign   ] [|a, b| unsafe { *a.assume_init_mut() >>= b.clone() }];
 )]
-impl<TA, TB, D> DeviceOpAPI<TA, TB, D> for DeviceCpuSerial
+impl<TA, TB, D> OpAPI<TA, TB, D> for DeviceCpuSerial
 where
     TA: Clone + Op<TB>,
     TB: Clone,
@@ -32,19 +32,19 @@ where
 }
 
 #[duplicate_item(
-     DeviceOpAPI               Op       func                               ;
-    [DeviceLConsumeAddAPI   ] [Add   ] [|a, b| unsafe { a.write(a.assume_init_read() +  b.clone()); }];
-    [DeviceLConsumeSubAPI   ] [Sub   ] [|a, b| unsafe { a.write(a.assume_init_read() -  b.clone()); }];
-    [DeviceLConsumeMulAPI   ] [Mul   ] [|a, b| unsafe { a.write(a.assume_init_read() *  b.clone()); }];
-    [DeviceLConsumeDivAPI   ] [Div   ] [|a, b| unsafe { a.write(a.assume_init_read() /  b.clone()); }];
-    [DeviceLConsumeRemAPI   ] [Rem   ] [|a, b| unsafe { a.write(a.assume_init_read() %  b.clone()); }];
-    [DeviceLConsumeBitOrAPI ] [BitOr ] [|a, b| unsafe { a.write(a.assume_init_read() |  b.clone()); }];
-    [DeviceLConsumeBitAndAPI] [BitAnd] [|a, b| unsafe { a.write(a.assume_init_read() &  b.clone()); }];
-    [DeviceLConsumeBitXorAPI] [BitXor] [|a, b| unsafe { a.write(a.assume_init_read() ^  b.clone()); }];
-    [DeviceLConsumeShlAPI   ] [Shl   ] [|a, b| unsafe { a.write(a.assume_init_read() << b.clone()); }];
-    [DeviceLConsumeShrAPI   ] [Shr   ] [|a, b| unsafe { a.write(a.assume_init_read() >> b.clone()); }];
+     OpAPI                 Op       func                               ;
+    [OpLConsumeAddAPI   ] [Add   ] [|a, b| unsafe { a.write(a.assume_init_read() +  b.clone()); }];
+    [OpLConsumeSubAPI   ] [Sub   ] [|a, b| unsafe { a.write(a.assume_init_read() -  b.clone()); }];
+    [OpLConsumeMulAPI   ] [Mul   ] [|a, b| unsafe { a.write(a.assume_init_read() *  b.clone()); }];
+    [OpLConsumeDivAPI   ] [Div   ] [|a, b| unsafe { a.write(a.assume_init_read() /  b.clone()); }];
+    [OpLConsumeRemAPI   ] [Rem   ] [|a, b| unsafe { a.write(a.assume_init_read() %  b.clone()); }];
+    [OpLConsumeBitOrAPI ] [BitOr ] [|a, b| unsafe { a.write(a.assume_init_read() |  b.clone()); }];
+    [OpLConsumeBitAndAPI] [BitAnd] [|a, b| unsafe { a.write(a.assume_init_read() &  b.clone()); }];
+    [OpLConsumeBitXorAPI] [BitXor] [|a, b| unsafe { a.write(a.assume_init_read() ^  b.clone()); }];
+    [OpLConsumeShlAPI   ] [Shl   ] [|a, b| unsafe { a.write(a.assume_init_read() << b.clone()); }];
+    [OpLConsumeShrAPI   ] [Shr   ] [|a, b| unsafe { a.write(a.assume_init_read() >> b.clone()); }];
 )]
-impl<TA, TB, D> DeviceOpAPI<TA, TB, D> for DeviceCpuSerial
+impl<TA, TB, D> OpAPI<TA, TB, D> for DeviceCpuSerial
 where
     TA: Clone + Op<TB, Output = TA>,
     TB: Clone,
@@ -62,19 +62,19 @@ where
 }
 
 #[duplicate_item(
-     DeviceOpAPI               Op       func                               ;
-    [DeviceRConsumeAddAPI   ] [Add   ] [|a, b| unsafe { a.write(b.clone() +  a.assume_init_read()); }];
-    [DeviceRConsumeSubAPI   ] [Sub   ] [|a, b| unsafe { a.write(b.clone() -  a.assume_init_read()); }];
-    [DeviceRConsumeMulAPI   ] [Mul   ] [|a, b| unsafe { a.write(b.clone() *  a.assume_init_read()); }];
-    [DeviceRConsumeDivAPI   ] [Div   ] [|a, b| unsafe { a.write(b.clone() /  a.assume_init_read()); }];
-    [DeviceRConsumeRemAPI   ] [Rem   ] [|a, b| unsafe { a.write(b.clone() %  a.assume_init_read()); }];
-    [DeviceRConsumeBitOrAPI ] [BitOr ] [|a, b| unsafe { a.write(b.clone() |  a.assume_init_read()); }];
-    [DeviceRConsumeBitAndAPI] [BitAnd] [|a, b| unsafe { a.write(b.clone() &  a.assume_init_read()); }];
-    [DeviceRConsumeBitXorAPI] [BitXor] [|a, b| unsafe { a.write(b.clone() ^  a.assume_init_read()); }];
-    [DeviceRConsumeShlAPI   ] [Shl   ] [|a, b| unsafe { a.write(b.clone() << a.assume_init_read()); }];
-    [DeviceRConsumeShrAPI   ] [Shr   ] [|a, b| unsafe { a.write(b.clone() >> a.assume_init_read()); }];
+     OpAPI                 Op       func                               ;
+    [OpRConsumeAddAPI   ] [Add   ] [|a, b| unsafe { a.write(b.clone() +  a.assume_init_read()); }];
+    [OpRConsumeSubAPI   ] [Sub   ] [|a, b| unsafe { a.write(b.clone() -  a.assume_init_read()); }];
+    [OpRConsumeMulAPI   ] [Mul   ] [|a, b| unsafe { a.write(b.clone() *  a.assume_init_read()); }];
+    [OpRConsumeDivAPI   ] [Div   ] [|a, b| unsafe { a.write(b.clone() /  a.assume_init_read()); }];
+    [OpRConsumeRemAPI   ] [Rem   ] [|a, b| unsafe { a.write(b.clone() %  a.assume_init_read()); }];
+    [OpRConsumeBitOrAPI ] [BitOr ] [|a, b| unsafe { a.write(b.clone() |  a.assume_init_read()); }];
+    [OpRConsumeBitAndAPI] [BitAnd] [|a, b| unsafe { a.write(b.clone() &  a.assume_init_read()); }];
+    [OpRConsumeBitXorAPI] [BitXor] [|a, b| unsafe { a.write(b.clone() ^  a.assume_init_read()); }];
+    [OpRConsumeShlAPI   ] [Shl   ] [|a, b| unsafe { a.write(b.clone() << a.assume_init_read()); }];
+    [OpRConsumeShrAPI   ] [Shr   ] [|a, b| unsafe { a.write(b.clone() >> a.assume_init_read()); }];
 )]
-impl<TA, TB, D> DeviceOpAPI<TA, TB, D> for DeviceCpuSerial
+impl<TA, TB, D> OpAPI<TA, TB, D> for DeviceCpuSerial
 where
     TA: Clone + Op<TB, Output = TB>,
     TB: Clone,
@@ -92,11 +92,11 @@ where
 }
 
 #[duplicate_item(
-     DeviceOpAPI    Op    func                              func_inplace        ;
-    [DeviceNegAPI] [Neg] [|a, b| { a.write(-b.clone()); }] [|a| unsafe { a.write(-a.assume_init_read()); }];
-    [DeviceNotAPI] [Not] [|a, b| { a.write(!b.clone()); }] [|a| unsafe { a.write(!a.assume_init_read()); }];
+     OpAPI      Op    func                              func_inplace        ;
+    [OpNegAPI] [Neg] [|a, b| { a.write(-b.clone()); }] [|a| unsafe { a.write(-a.assume_init_read()); }];
+    [OpNotAPI] [Not] [|a, b| { a.write(!b.clone()); }] [|a| unsafe { a.write(!a.assume_init_read()); }];
 )]
-impl<TA, TB, D> DeviceOpAPI<TA, TB, D> for DeviceCpuSerial
+impl<TA, TB, D> OpAPI<TA, TB, D> for DeviceCpuSerial
 where
     TA: Clone + Op<Output = TA>,
     TB: Clone + Op<Output = TA>,

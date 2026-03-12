@@ -67,10 +67,10 @@ pub fn flip_trans<T, B>(
 where
     T: Clone,
     B: DeviceAPI<T>
-        + DeviceConjAPI<T, Ix2, TOut = T>
         + DeviceCreationAnyAPI<T>
         + OpAssignArbitaryAPI<T, Ix2, Ix2>
-        + OpAssignAPI<T, Ix2>,
+        + OpAssignAPI<T, Ix2>
+        + OpConjAPI<T, Ix2, TOut = T>,
 {
     // row-major
     if (order == FlagOrder::C && view.c_prefer()) || (order == FlagOrder::F && view.f_prefer()) {

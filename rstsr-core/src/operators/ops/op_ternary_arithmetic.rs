@@ -1,19 +1,19 @@
 use crate::prelude_dev::*;
 
 #[duplicate_item(
-     DeviceOpAPI       Op     ;
-    [DeviceAddAPI   ] [Add   ];
-    [DeviceSubAPI   ] [Sub   ];
-    [DeviceMulAPI   ] [Mul   ];
-    [DeviceDivAPI   ] [Div   ];
-    [DeviceRemAPI   ] [Rem   ];
-    [DeviceBitOrAPI ] [BitOr ];
-    [DeviceBitAndAPI] [BitAnd];
-    [DeviceBitXorAPI] [BitXor];
-    [DeviceShlAPI   ] [Shl   ];
-    [DeviceShrAPI   ] [Shr   ];
+     OpAPI         Op     ;
+    [OpAddAPI   ] [Add   ];
+    [OpSubAPI   ] [Sub   ];
+    [OpMulAPI   ] [Mul   ];
+    [OpDivAPI   ] [Div   ];
+    [OpRemAPI   ] [Rem   ];
+    [OpBitOrAPI ] [BitOr ];
+    [OpBitAndAPI] [BitAnd];
+    [OpBitXorAPI] [BitXor];
+    [OpShlAPI   ] [Shl   ];
+    [OpShrAPI   ] [Shr   ];
 )]
-pub trait DeviceOpAPI<TA, TB, TC, D>
+pub trait OpAPI<TA, TB, TC, D>
 where
     D: DimAPI,
     Self: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<MaybeUninit<TC>>,

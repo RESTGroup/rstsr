@@ -96,42 +96,42 @@ pub use trait_unary::*;
 /* #region impl tensor unary common */
 
 #[duplicate_item(
-    op_f           TensorOpAPI           DeviceOpAPI         ;
-   [acos_f      ] [TensorAcosAPI      ] [DeviceAcosAPI      ];
-   [acosh_f     ] [TensorAcoshAPI     ] [DeviceAcoshAPI     ];
-   [asin_f      ] [TensorAsinAPI      ] [DeviceAsinAPI      ];
-   [asinh_f     ] [TensorAsinhAPI     ] [DeviceAsinhAPI     ];
-   [atan_f      ] [TensorAtanAPI      ] [DeviceAtanAPI      ];
-   [atanh_f     ] [TensorAtanhAPI     ] [DeviceAtanhAPI     ];
-   [ceil_f      ] [TensorCeilAPI      ] [DeviceCeilAPI      ];
-   [conj_f      ] [TensorConjAPI      ] [DeviceConjAPI      ];
-   [cos_f       ] [TensorCosAPI       ] [DeviceCosAPI       ];
-   [cosh_f      ] [TensorCoshAPI      ] [DeviceCoshAPI      ];
-   [exp_f       ] [TensorExpAPI       ] [DeviceExpAPI       ];
-   [expm1_f     ] [TensorExpm1API     ] [DeviceExpm1API     ];
-   [floor_f     ] [TensorFloorAPI     ] [DeviceFloorAPI     ];
-   [inv_f       ] [TensorInvAPI       ] [DeviceInvAPI       ];
-   [is_finite_f ] [TensorIsFiniteAPI  ] [DeviceIsFiniteAPI  ];
-   [is_inf_f    ] [TensorIsInfAPI     ] [DeviceIsInfAPI     ];
-   [is_nan_f    ] [TensorIsNanAPI     ] [DeviceIsNanAPI     ];
-   [log_f       ] [TensorLogAPI       ] [DeviceLogAPI       ];
-   [log1p_f     ] [TensorLog1pAPI     ] [DeviceLog1pAPI     ];
-   [log2_f      ] [TensorLog2API      ] [DeviceLog2API      ];
-   [log10_f     ] [TensorLog10API     ] [DeviceLog10API     ];
-   [reciprocal_f] [TensorReciprocalAPI] [DeviceReciprocalAPI];
-   [round_f     ] [TensorRoundAPI     ] [DeviceRoundAPI     ];
-   [signbit_f   ] [TensorSignBitAPI   ] [DeviceSignBitAPI   ];
-   [sin_f       ] [TensorSinAPI       ] [DeviceSinAPI       ];
-   [sinh_f      ] [TensorSinhAPI      ] [DeviceSinhAPI      ];
-   [square_f    ] [TensorSquareAPI    ] [DeviceSquareAPI    ];
-   [sqrt_f      ] [TensorSqrtAPI      ] [DeviceSqrtAPI      ];
-   [tan_f       ] [TensorTanAPI       ] [DeviceTanAPI       ];
-   [tanh_f      ] [TensorTanhAPI      ] [DeviceTanhAPI      ];
-   [trunc_f     ] [TensorTruncAPI     ] [DeviceTruncAPI     ];
-   [abs_f       ] [TensorAbsAPI       ] [DeviceAbsAPI       ];
-   [imag_f      ] [TensorImagAPI      ] [DeviceImagAPI      ];
-   [real_f      ] [TensorRealAPI      ] [DeviceRealAPI      ];
-   [sign_f      ] [TensorSignAPI      ] [DeviceSignAPI      ];
+    op_f           TensorOpAPI             OpAPI           ;
+   [acos_f      ] [TensorAcosAPI      ] [OpAcosAPI      ];
+   [acosh_f     ] [TensorAcoshAPI     ] [OpAcoshAPI     ];
+   [asin_f      ] [TensorAsinAPI      ] [OpAsinAPI      ];
+   [asinh_f     ] [TensorAsinhAPI     ] [OpAsinhAPI     ];
+   [atan_f      ] [TensorAtanAPI      ] [OpAtanAPI      ];
+   [atanh_f     ] [TensorAtanhAPI     ] [OpAtanhAPI     ];
+   [ceil_f      ] [TensorCeilAPI      ] [OpCeilAPI      ];
+   [conj_f      ] [TensorConjAPI      ] [OpConjAPI      ];
+   [cos_f       ] [TensorCosAPI       ] [OpCosAPI       ];
+   [cosh_f      ] [TensorCoshAPI      ] [OpCoshAPI      ];
+   [exp_f       ] [TensorExpAPI       ] [OpExpAPI       ];
+   [expm1_f     ] [TensorExpm1API     ] [OpExpm1API     ];
+   [floor_f     ] [TensorFloorAPI     ] [OpFloorAPI     ];
+   [inv_f       ] [TensorInvAPI       ] [OpInvAPI       ];
+   [is_finite_f ] [TensorIsFiniteAPI  ] [OpIsFiniteAPI  ];
+   [is_inf_f    ] [TensorIsInfAPI     ] [OpIsInfAPI     ];
+   [is_nan_f    ] [TensorIsNanAPI     ] [OpIsNanAPI     ];
+   [log_f       ] [TensorLogAPI       ] [OpLogAPI       ];
+   [log1p_f     ] [TensorLog1pAPI     ] [OpLog1pAPI     ];
+   [log2_f      ] [TensorLog2API      ] [OpLog2API      ];
+   [log10_f     ] [TensorLog10API     ] [OpLog10API     ];
+   [reciprocal_f] [TensorReciprocalAPI] [OpReciprocalAPI];
+   [round_f     ] [TensorRoundAPI     ] [OpRoundAPI     ];
+   [signbit_f   ] [TensorSignBitAPI   ] [OpSignBitAPI   ];
+   [sin_f       ] [TensorSinAPI       ] [OpSinAPI       ];
+   [sinh_f      ] [TensorSinhAPI      ] [OpSinhAPI      ];
+   [square_f    ] [TensorSquareAPI    ] [OpSquareAPI    ];
+   [sqrt_f      ] [TensorSqrtAPI      ] [OpSqrtAPI      ];
+   [tan_f       ] [TensorTanAPI       ] [OpTanAPI       ];
+   [tanh_f      ] [TensorTanhAPI      ] [OpTanhAPI      ];
+   [trunc_f     ] [TensorTruncAPI     ] [OpTruncAPI     ];
+   [abs_f       ] [TensorAbsAPI       ] [OpAbsAPI       ];
+   [imag_f      ] [TensorImagAPI      ] [OpImagAPI      ];
+   [real_f      ] [TensorRealAPI      ] [OpRealAPI      ];
+   [sign_f      ] [TensorSignAPI      ] [OpSignAPI      ];
 )]
 mod impl_tensor_unary_common {
     use super::*;
@@ -142,7 +142,7 @@ mod impl_tensor_unary_common {
         D: DimAPI,
         R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
         B: DeviceAPI<T> + DeviceAPI<B::TOut>,
-        B: DeviceOpAPI<T, D> + DeviceCreationAnyAPI<B::TOut>,
+        B: OpAPI<T, D> + DeviceCreationAnyAPI<B::TOut>,
     {
         type Output = Tensor<B::TOut, B, D>;
         fn op_f(self) -> Result<Self::Output> {
@@ -163,7 +163,7 @@ mod impl_tensor_unary_common {
     where
         D: DimAPI,
         B: DeviceAPI<T> + DeviceAPI<B::TOut>,
-        B: DeviceOpAPI<T, D> + DeviceCreationAnyAPI<B::TOut>,
+        B: OpAPI<T, D> + DeviceCreationAnyAPI<B::TOut>,
     {
         type Output = Tensor<B::TOut, B, D>;
         fn op_f(self) -> Result<Self::Output> {
@@ -176,7 +176,7 @@ mod impl_tensor_unary_common {
     where
         D: DimAPI,
         B: DeviceAPI<T>,
-        B: DeviceOpAPI<T, D, TOut = T> + DeviceCreationAnyAPI<T>,
+        B: OpAPI<T, D, TOut = T> + DeviceCreationAnyAPI<T>,
     {
         type Output = Tensor<T, B, D>;
         fn op_f(mut self) -> Result<Self::Output> {

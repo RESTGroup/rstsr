@@ -16,7 +16,7 @@ where
     pub fn map_fnmut_f<'f, TOut>(&self, mut f: impl FnMut(&T) -> TOut + 'f) -> Result<Tensor<TOut, B, D>>
     where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
-        B: DeviceOp_MutA_RefB_API<TOut, T, D, dyn FnMut(&mut MaybeUninit<TOut>, &T) + 'f>,
+        B: Op_MutA_RefB_API<TOut, T, D, dyn FnMut(&mut MaybeUninit<TOut>, &T) + 'f>,
     {
         let la = self.layout();
         let lc = layout_for_array_copy(la, TensorIterOrder::default())?;
@@ -35,7 +35,7 @@ where
     pub fn map_fnmut<'f, TOut>(&self, f: impl FnMut(&T) -> TOut + 'f) -> Tensor<TOut, B, D>
     where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
-        B: DeviceOp_MutA_RefB_API<TOut, T, D, dyn FnMut(&mut MaybeUninit<TOut>, &T) + 'f>,
+        B: Op_MutA_RefB_API<TOut, T, D, dyn FnMut(&mut MaybeUninit<TOut>, &T) + 'f>,
     {
         self.map_fnmut_f(f).rstsr_unwrap()
     }
@@ -46,7 +46,7 @@ where
     where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
         T: Clone,
-        B: DeviceOp_MutA_RefB_API<TOut, T, D, dyn FnMut(&mut MaybeUninit<TOut>, &T) + 'f>,
+        B: Op_MutA_RefB_API<TOut, T, D, dyn FnMut(&mut MaybeUninit<TOut>, &T) + 'f>,
     {
         self.map_fnmut_f(move |x| f(x.clone()))
     }
@@ -57,7 +57,7 @@ where
     where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
         T: Clone,
-        B: DeviceOp_MutA_RefB_API<TOut, T, D, dyn FnMut(&mut MaybeUninit<TOut>, &T) + 'f>,
+        B: Op_MutA_RefB_API<TOut, T, D, dyn FnMut(&mut MaybeUninit<TOut>, &T) + 'f>,
     {
         self.map_fnmut_f(move |x| f(x.clone())).rstsr_unwrap()
     }
@@ -67,7 +67,7 @@ where
     pub fn mapi_fnmut_f<'f>(&mut self, mut f: impl FnMut(&mut T) + 'f) -> Result<()>
     where
         R: DataMutAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
-        B: DeviceOp_MutA_API<T, D, dyn FnMut(&mut MaybeUninit<T>) + 'f>,
+        B: Op_MutA_API<T, D, dyn FnMut(&mut MaybeUninit<T>) + 'f>,
     {
         let (la, _) = greedy_layout(self.layout(), false);
         let device = self.device().clone();
@@ -86,7 +86,7 @@ where
     pub fn mapi_fnmut<'f>(&mut self, f: impl FnMut(&mut T) + 'f)
     where
         R: DataMutAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
-        B: DeviceOp_MutA_API<T, D, dyn FnMut(&mut MaybeUninit<T>) + 'f>,
+        B: Op_MutA_API<T, D, dyn FnMut(&mut MaybeUninit<T>) + 'f>,
     {
         self.mapi_fnmut_f(f).rstsr_unwrap()
     }
@@ -97,7 +97,7 @@ where
     where
         R: DataMutAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
         T: Clone,
-        B: DeviceOp_MutA_API<T, D, dyn FnMut(&mut MaybeUninit<T>) + 'f>,
+        B: Op_MutA_API<T, D, dyn FnMut(&mut MaybeUninit<T>) + 'f>,
     {
         self.mapi_fnmut_f(move |x| *x = f(x.clone()))
     }
@@ -108,7 +108,7 @@ where
     where
         R: DataMutAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
         T: Clone,
-        B: DeviceOp_MutA_API<T, D, dyn FnMut(&mut MaybeUninit<T>) + 'f>,
+        B: Op_MutA_API<T, D, dyn FnMut(&mut MaybeUninit<T>) + 'f>,
     {
         self.mapvi_fnmut_f(f).rstsr_unwrap()
     }
@@ -134,7 +134,7 @@ where
         DOut: DimAPI,
         D: DimMaxAPI<D2, Max = DOut>,
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
-        B: DeviceOp_MutC_RefA_RefB_API<T, T2, TOut, DOut, dyn FnMut(&mut MaybeUninit<TOut>, &T, &T2) + 'f>,
+        B: Op_MutC_RefA_RefB_API<T, T2, TOut, DOut, dyn FnMut(&mut MaybeUninit<TOut>, &T, &T2) + 'f>,
     {
         // get tensor views
         let a = self.view();
@@ -177,7 +177,7 @@ where
         DOut: DimAPI,
         D: DimMaxAPI<D2, Max = DOut>,
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
-        B: DeviceOp_MutC_RefA_RefB_API<T, T2, TOut, DOut, dyn FnMut(&mut MaybeUninit<TOut>, &T, &T2) + 'f>,
+        B: Op_MutC_RefA_RefB_API<T, T2, TOut, DOut, dyn FnMut(&mut MaybeUninit<TOut>, &T, &T2) + 'f>,
     {
         self.mapb_fnmut_f(other, f).rstsr_unwrap()
     }
@@ -195,7 +195,7 @@ where
         T: Clone,
         T2: Clone,
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
-        B: DeviceOp_MutC_RefA_RefB_API<T, T2, TOut, DOut, dyn FnMut(&mut MaybeUninit<TOut>, &T, &T2) + 'f>,
+        B: Op_MutC_RefA_RefB_API<T, T2, TOut, DOut, dyn FnMut(&mut MaybeUninit<TOut>, &T, &T2) + 'f>,
     {
         self.mapb_fnmut_f(other, move |x, y| f(x.clone(), y.clone()))
     }
@@ -213,7 +213,7 @@ where
         T: Clone,
         T2: Clone,
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
-        B: DeviceOp_MutC_RefA_RefB_API<T, T2, TOut, DOut, dyn FnMut(&mut MaybeUninit<TOut>, &T, &T2) + 'f>,
+        B: Op_MutC_RefA_RefB_API<T, T2, TOut, DOut, dyn FnMut(&mut MaybeUninit<TOut>, &T, &T2) + 'f>,
     {
         self.mapb_fnmut_f(other, move |x, y| f(x.clone(), y.clone())).rstsr_unwrap()
     }
@@ -236,7 +236,7 @@ where
     pub fn map_f<'f, TOut>(&self, f: impl Fn(&T) -> TOut + Send + Sync + 'f) -> Result<Tensor<TOut, B, D>>
     where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
-        B: DeviceOp_MutA_RefB_API<TOut, T, D, dyn Fn(&mut MaybeUninit<TOut>, &T) + Send + Sync + 'f>,
+        B: Op_MutA_RefB_API<TOut, T, D, dyn Fn(&mut MaybeUninit<TOut>, &T) + Send + Sync + 'f>,
     {
         let la = self.layout();
         let lc = layout_for_array_copy(la, TensorIterOrder::default())?;
@@ -255,7 +255,7 @@ where
     pub fn map<'f, TOut>(&self, f: impl Fn(&T) -> TOut + Send + Sync + 'f) -> Tensor<TOut, B, D>
     where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
-        B: DeviceOp_MutA_RefB_API<TOut, T, D, dyn Fn(&mut MaybeUninit<TOut>, &T) + Send + Sync + 'f>,
+        B: Op_MutA_RefB_API<TOut, T, D, dyn Fn(&mut MaybeUninit<TOut>, &T) + Send + Sync + 'f>,
     {
         self.map_f(f).rstsr_unwrap()
     }
@@ -266,7 +266,7 @@ where
     where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
         T: Clone,
-        B: DeviceOp_MutA_RefB_API<TOut, T, D, dyn Fn(&mut MaybeUninit<TOut>, &T) + Send + Sync + 'f>,
+        B: Op_MutA_RefB_API<TOut, T, D, dyn Fn(&mut MaybeUninit<TOut>, &T) + Send + Sync + 'f>,
     {
         self.map_f(move |x| f(x.clone()))
     }
@@ -277,7 +277,7 @@ where
     where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
         T: Clone,
-        B: DeviceOp_MutA_RefB_API<TOut, T, D, dyn Fn(&mut MaybeUninit<TOut>, &T) + Send + Sync + 'f>,
+        B: Op_MutA_RefB_API<TOut, T, D, dyn Fn(&mut MaybeUninit<TOut>, &T) + Send + Sync + 'f>,
     {
         self.map_f(move |x| f(x.clone())).rstsr_unwrap()
     }
@@ -287,7 +287,7 @@ where
     pub fn mapi_f<'f>(&mut self, f: impl Fn(&mut T) + Send + Sync + 'f) -> Result<()>
     where
         R: DataMutAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
-        B: DeviceOp_MutA_API<T, D, dyn Fn(&mut MaybeUninit<T>) + Send + Sync + 'f>,
+        B: Op_MutA_API<T, D, dyn Fn(&mut MaybeUninit<T>) + Send + Sync + 'f>,
     {
         let (la, _) = greedy_layout(self.layout(), false);
         let device = self.device().clone();
@@ -306,7 +306,7 @@ where
     pub fn mapi<'f>(&mut self, f: impl Fn(&mut T) + Send + Sync + 'f)
     where
         R: DataMutAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
-        B: DeviceOp_MutA_API<T, D, dyn Fn(&mut MaybeUninit<T>) + Send + Sync + 'f>,
+        B: Op_MutA_API<T, D, dyn Fn(&mut MaybeUninit<T>) + Send + Sync + 'f>,
     {
         self.mapi_f(f).rstsr_unwrap()
     }
@@ -317,7 +317,7 @@ where
     where
         R: DataMutAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
         T: Clone,
-        B: DeviceOp_MutA_API<T, D, dyn Fn(&mut MaybeUninit<T>) + Send + Sync + 'f>,
+        B: Op_MutA_API<T, D, dyn Fn(&mut MaybeUninit<T>) + Send + Sync + 'f>,
     {
         self.mapi_f(move |x| *x = f(x.clone()))
     }
@@ -328,7 +328,7 @@ where
     where
         R: DataMutAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
         T: Clone,
-        B: DeviceOp_MutA_API<T, D, dyn Fn(&mut MaybeUninit<T>) + Send + Sync + 'f>,
+        B: Op_MutA_API<T, D, dyn Fn(&mut MaybeUninit<T>) + Send + Sync + 'f>,
     {
         self.mapvi_f(f).rstsr_unwrap()
     }
@@ -354,7 +354,7 @@ where
         DOut: DimAPI,
         D: DimMaxAPI<D2, Max = DOut>,
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
-        B: DeviceOp_MutC_RefA_RefB_API<T, T2, TOut, DOut, dyn Fn(&mut MaybeUninit<TOut>, &T, &T2) + Send + Sync + 'f>,
+        B: Op_MutC_RefA_RefB_API<T, T2, TOut, DOut, dyn Fn(&mut MaybeUninit<TOut>, &T, &T2) + Send + Sync + 'f>,
     {
         // get tensor views
         let a = self.view();
@@ -397,7 +397,7 @@ where
         DOut: DimAPI,
         D: DimMaxAPI<D2, Max = DOut>,
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
-        B: DeviceOp_MutC_RefA_RefB_API<T, T2, TOut, DOut, dyn Fn(&mut MaybeUninit<TOut>, &T, &T2) + Send + Sync + 'f>,
+        B: Op_MutC_RefA_RefB_API<T, T2, TOut, DOut, dyn Fn(&mut MaybeUninit<TOut>, &T, &T2) + Send + Sync + 'f>,
     {
         self.mapb_f(other, f).rstsr_unwrap()
     }
@@ -415,7 +415,7 @@ where
         T: Clone,
         T2: Clone,
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
-        B: DeviceOp_MutC_RefA_RefB_API<T, T2, TOut, DOut, dyn Fn(&mut MaybeUninit<TOut>, &T, &T2) + Send + Sync + 'f>,
+        B: Op_MutC_RefA_RefB_API<T, T2, TOut, DOut, dyn Fn(&mut MaybeUninit<TOut>, &T, &T2) + Send + Sync + 'f>,
     {
         self.mapb_f(other, move |x, y| f(x.clone(), y.clone()))
     }
@@ -433,7 +433,7 @@ where
         T: Clone,
         T2: Clone,
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
-        B: DeviceOp_MutC_RefA_RefB_API<T, T2, TOut, DOut, dyn Fn(&mut MaybeUninit<TOut>, &T, &T2) + Send + Sync + 'f>,
+        B: Op_MutC_RefA_RefB_API<T, T2, TOut, DOut, dyn Fn(&mut MaybeUninit<TOut>, &T, &T2) + Send + Sync + 'f>,
     {
         self.mapb_f(other, move |x, y| f(x.clone(), y.clone())).rstsr_unwrap()
     }

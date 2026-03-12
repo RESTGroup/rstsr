@@ -1,6 +1,6 @@
 use crate::prelude_dev::*;
 
-pub trait DeviceOpPackTriAPI<T>
+pub trait OpPackTriAPI<T>
 where
     Self: DeviceAPI<T> + DeviceRawAPI<MaybeUninit<T>>,
 {
@@ -14,7 +14,7 @@ where
     ) -> Result<()>;
 }
 
-pub trait DeviceOpUnpackTriAPI<T>
+pub trait OpUnpackTriAPI<T>
 where
     Self: DeviceAPI<T> + DeviceRawAPI<MaybeUninit<T>>,
 {

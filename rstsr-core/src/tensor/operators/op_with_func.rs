@@ -21,7 +21,7 @@ where
     // broadcast constraints
     DC: DimMaxAPI<DA, Max = DC> + DimMaxAPI<DB, Max = DC>,
     // operation constraints
-    B: DeviceOp_MutC_RefA_RefB_API<TA, TB, TC, DC, F>,
+    B: Op_MutC_RefA_RefB_API<TA, TB, TC, DC, F>,
     F: FnMut(&mut MaybeUninit<TC>, &TA, &TB),
 {
     rstsr_assert!(c.device().same_device(a.device()), DeviceMismatch)?;
@@ -60,7 +60,7 @@ where
     // broadcast constraints
     DA: DimMaxAPI<DB, Max = DC>,
     // operation constraints
-    B: DeviceOp_MutC_RefA_RefB_API<TA, TB, TC, DC, F>,
+    B: Op_MutC_RefA_RefB_API<TA, TB, TC, DC, F>,
     B: DeviceCreationAnyAPI<TC>,
     F: FnMut(&mut MaybeUninit<TC>, &TA, &TB),
 {
@@ -105,7 +105,7 @@ where
     // broadcast constraints
     DA: DimMaxAPI<DB, Max = DA>,
     // operation constraints
-    B: DeviceOp_MutA_RefB_API<TA, TB, DA, F>,
+    B: Op_MutA_RefB_API<TA, TB, DA, F>,
     F: FnMut(&mut MaybeUninit<TA>, &TB),
 {
     rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch)?;
@@ -129,7 +129,7 @@ where
     R: DataMutAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     D: DimAPI,
     B: DeviceAPI<T>,
-    B: DeviceOp_MutA_API<T, D, F>,
+    B: Op_MutA_API<T, D, F>,
     F: FnMut(&mut MaybeUninit<T>),
 {
     let la = a.layout().clone();

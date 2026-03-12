@@ -1,19 +1,19 @@
 use crate::prelude_dev::*;
 
 #[duplicate_item(
-     DeviceOpAPI             Op           ;
-    [DeviceAddAssignAPI   ] [AddAssign   ];
-    [DeviceSubAssignAPI   ] [SubAssign   ];
-    [DeviceMulAssignAPI   ] [MulAssign   ];
-    [DeviceDivAssignAPI   ] [DivAssign   ];
-    [DeviceRemAssignAPI   ] [RemAssign   ];
-    [DeviceBitOrAssignAPI ] [BitOrAssign ];
-    [DeviceBitAndAssignAPI] [BitAndAssign];
-    [DeviceBitXorAssignAPI] [BitXorAssign];
-    [DeviceShlAssignAPI   ] [ShlAssign   ];
-    [DeviceShrAssignAPI   ] [ShrAssign   ];
+     OpAPI               Op           ;
+    [OpAddAssignAPI   ] [AddAssign   ];
+    [OpSubAssignAPI   ] [SubAssign   ];
+    [OpMulAssignAPI   ] [MulAssign   ];
+    [OpDivAssignAPI   ] [DivAssign   ];
+    [OpRemAssignAPI   ] [RemAssign   ];
+    [OpBitOrAssignAPI ] [BitOrAssign ];
+    [OpBitAndAssignAPI] [BitAndAssign];
+    [OpBitXorAssignAPI] [BitXorAssign];
+    [OpShlAssignAPI   ] [ShlAssign   ];
+    [OpShrAssignAPI   ] [ShrAssign   ];
 )]
-pub trait DeviceOpAPI<TA, TB, D>
+pub trait OpAPI<TA, TB, D>
 where
     D: DimAPI,
     Self: DeviceAPI<TA> + DeviceAPI<TB>,
@@ -30,19 +30,19 @@ where
 }
 
 #[duplicate_item(
-     DeviceOpAPI               Op     ;
-    [DeviceLConsumeAddAPI   ] [Add   ];
-    [DeviceLConsumeSubAPI   ] [Sub   ];
-    [DeviceLConsumeMulAPI   ] [Mul   ];
-    [DeviceLConsumeDivAPI   ] [Div   ];
-    [DeviceLConsumeRemAPI   ] [Rem   ];
-    [DeviceLConsumeBitOrAPI ] [BitOr ];
-    [DeviceLConsumeBitAndAPI] [BitAnd];
-    [DeviceLConsumeBitXorAPI] [BitXor];
-    [DeviceLConsumeShlAPI   ] [Shl   ];
-    [DeviceLConsumeShrAPI   ] [Shr   ];
+     OpAPI                 Op     ;
+    [OpLConsumeAddAPI   ] [Add   ];
+    [OpLConsumeSubAPI   ] [Sub   ];
+    [OpLConsumeMulAPI   ] [Mul   ];
+    [OpLConsumeDivAPI   ] [Div   ];
+    [OpLConsumeRemAPI   ] [Rem   ];
+    [OpLConsumeBitOrAPI ] [BitOr ];
+    [OpLConsumeBitAndAPI] [BitAnd];
+    [OpLConsumeBitXorAPI] [BitXor];
+    [OpLConsumeShlAPI   ] [Shl   ];
+    [OpLConsumeShrAPI   ] [Shr   ];
 )]
-pub trait DeviceOpAPI<TA, TB, D>
+pub trait OpAPI<TA, TB, D>
 where
     D: DimAPI,
     Self: DeviceAPI<TA> + DeviceAPI<TB>,
@@ -59,19 +59,19 @@ where
 }
 
 #[duplicate_item(
-     DeviceOpAPI               Op     ;
-    [DeviceRConsumeAddAPI   ] [Add   ];
-    [DeviceRConsumeSubAPI   ] [Sub   ];
-    [DeviceRConsumeMulAPI   ] [Mul   ];
-    [DeviceRConsumeDivAPI   ] [Div   ];
-    [DeviceRConsumeRemAPI   ] [Rem   ];
-    [DeviceRConsumeBitOrAPI ] [BitOr ];
-    [DeviceRConsumeBitAndAPI] [BitAnd];
-    [DeviceRConsumeBitXorAPI] [BitXor];
-    [DeviceRConsumeShlAPI   ] [Shl   ];
-    [DeviceRConsumeShrAPI   ] [Shr   ];
+     OpAPI                 Op     ;
+    [OpRConsumeAddAPI   ] [Add   ];
+    [OpRConsumeSubAPI   ] [Sub   ];
+    [OpRConsumeMulAPI   ] [Mul   ];
+    [OpRConsumeDivAPI   ] [Div   ];
+    [OpRConsumeRemAPI   ] [Rem   ];
+    [OpRConsumeBitOrAPI ] [BitOr ];
+    [OpRConsumeBitAndAPI] [BitAnd];
+    [OpRConsumeBitXorAPI] [BitXor];
+    [OpRConsumeShlAPI   ] [Shl   ];
+    [OpRConsumeShrAPI   ] [Shr   ];
 )]
-pub trait DeviceOpAPI<TA, TB, D>
+pub trait OpAPI<TA, TB, D>
 where
     D: DimAPI,
     Self: DeviceAPI<TA> + DeviceAPI<TB>,
@@ -88,11 +88,11 @@ where
 }
 
 #[duplicate_item(
-     DeviceOpAPI    Op  ;
-    [DeviceNegAPI] [Neg];
-    [DeviceNotAPI] [Not];
+     OpAPI      Op  ;
+    [OpNegAPI] [Neg];
+    [OpNotAPI] [Not];
 )]
-pub trait DeviceOpAPI<TA, TB, D>
+pub trait OpAPI<TA, TB, D>
 where
     D: DimAPI,
     Self: DeviceAPI<MaybeUninit<TA>> + DeviceAPI<TA> + DeviceAPI<TB>,

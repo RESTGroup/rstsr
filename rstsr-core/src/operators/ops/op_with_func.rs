@@ -4,7 +4,7 @@ use crate::prelude_dev::*;
 
 #[allow(non_camel_case_types)]
 #[allow(clippy::too_many_arguments)]
-pub trait DeviceOp_MutC_RefA_RefB_API<TA, TB, TC, D, F>
+pub trait Op_MutC_RefA_RefB_API<TA, TB, TC, D, F>
 where
     D: DimAPI,
     F: FnMut(&mut MaybeUninit<TC>, &TA, &TB) + ?Sized,
@@ -23,7 +23,7 @@ where
 }
 
 #[allow(non_camel_case_types)]
-pub trait DeviceOp_MutC_RefA_NumB_API<TA, TB, TC, D, F>
+pub trait Op_MutC_RefA_NumB_API<TA, TB, TC, D, F>
 where
     D: DimAPI,
     F: FnMut(&mut MaybeUninit<TC>, &TA, &TB) + ?Sized,
@@ -41,7 +41,7 @@ where
 }
 
 #[allow(non_camel_case_types)]
-pub trait DeviceOp_MutC_NumA_RefB_API<TA, TB, TC, D, F>
+pub trait Op_MutC_NumA_RefB_API<TA, TB, TC, D, F>
 where
     D: DimAPI,
     F: FnMut(&mut MaybeUninit<TC>, &TA, &TB) + ?Sized,
@@ -59,7 +59,7 @@ where
 }
 
 #[allow(non_camel_case_types)]
-pub trait DeviceOp_MutA_RefB_API<TA, TB, D, F>
+pub trait Op_MutA_RefB_API<TA, TB, D, F>
 where
     D: DimAPI,
     F: FnMut(&mut MaybeUninit<TA>, &TB) + ?Sized,
@@ -76,7 +76,7 @@ where
 }
 
 #[allow(non_camel_case_types)]
-pub trait DeviceOp_MutA_NumB_API<TA, TB, D, F>
+pub trait Op_MutA_NumB_API<TA, TB, D, F>
 where
     D: DimAPI,
     F: FnMut(&mut MaybeUninit<TA>, &TB) + ?Sized,
@@ -92,7 +92,7 @@ where
 }
 
 #[allow(non_camel_case_types)]
-pub trait DeviceOp_MutA_API<T, D, F>
+pub trait Op_MutA_API<T, D, F>
 where
     D: DimAPI,
     F: FnMut(&mut MaybeUninit<T>) + ?Sized,

@@ -1,44 +1,44 @@
 use crate::prelude_dev::*;
 
 #[duplicate_item(
-    DeviceOpAPI         ;
-   [DeviceAcosAPI      ];
-   [DeviceAcoshAPI     ];
-   [DeviceAsinAPI      ];
-   [DeviceAsinhAPI     ];
-   [DeviceAtanAPI      ];
-   [DeviceAtanhAPI     ];
-   [DeviceCeilAPI      ];
-   [DeviceConjAPI      ];
-   [DeviceCosAPI       ];
-   [DeviceCoshAPI      ];
-   [DeviceExpAPI       ];
-   [DeviceExpm1API     ];
-   [DeviceFloorAPI     ];
-   [DeviceInvAPI       ];
-   [DeviceIsFiniteAPI  ];
-   [DeviceIsInfAPI     ];
-   [DeviceIsNanAPI     ];
-   [DeviceLogAPI       ];
-   [DeviceLog1pAPI     ];
-   [DeviceLog2API      ];
-   [DeviceLog10API     ];
-   [DeviceReciprocalAPI];
-   [DeviceRoundAPI     ];
-   [DeviceSignBitAPI   ];
-   [DeviceSinAPI       ];
-   [DeviceSinhAPI      ];
-   [DeviceSquareAPI    ];
-   [DeviceSqrtAPI      ];
-   [DeviceTanAPI       ];
-   [DeviceTanhAPI      ];
-   [DeviceTruncAPI     ];
-   [DeviceAbsAPI       ];
-   [DeviceImagAPI      ];
-   [DeviceRealAPI      ];
-   [DeviceSignAPI      ];
+    OpAPI           ;
+   [OpAcosAPI      ];
+   [OpAcoshAPI     ];
+   [OpAsinAPI      ];
+   [OpAsinhAPI     ];
+   [OpAtanAPI      ];
+   [OpAtanhAPI     ];
+   [OpCeilAPI      ];
+   [OpConjAPI      ];
+   [OpCosAPI       ];
+   [OpCoshAPI      ];
+   [OpExpAPI       ];
+   [OpExpm1API     ];
+   [OpFloorAPI     ];
+   [OpInvAPI       ];
+   [OpIsFiniteAPI  ];
+   [OpIsInfAPI     ];
+   [OpIsNanAPI     ];
+   [OpLogAPI       ];
+   [OpLog1pAPI     ];
+   [OpLog2API      ];
+   [OpLog10API     ];
+   [OpReciprocalAPI];
+   [OpRoundAPI     ];
+   [OpSignBitAPI   ];
+   [OpSinAPI       ];
+   [OpSinhAPI      ];
+   [OpSquareAPI    ];
+   [OpSqrtAPI      ];
+   [OpTanAPI       ];
+   [OpTanhAPI      ];
+   [OpTruncAPI     ];
+   [OpAbsAPI       ];
+   [OpImagAPI      ];
+   [OpRealAPI      ];
+   [OpSignAPI      ];
 )]
-pub trait DeviceOpAPI<T, D>
+pub trait OpAPI<T, D>
 where
     D: DimAPI,
     Self: DeviceAPI<T> + DeviceAPI<MaybeUninit<Self::TOut>>,

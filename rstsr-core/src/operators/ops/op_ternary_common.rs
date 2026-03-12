@@ -1,24 +1,24 @@
 use crate::prelude_dev::*;
 
 #[duplicate_item(
-    DeviceOpAPI           ;
-   [DeviceATan2API       ];
-   [DeviceCopySignAPI    ];
-   [DeviceEqualAPI       ];
-   [DeviceFloorDivideAPI ];
-   [DeviceGreaterAPI     ];
-   [DeviceGreaterEqualAPI];
-   [DeviceHypotAPI       ];
-   [DeviceLessAPI        ];
-   [DeviceLessEqualAPI   ];
-   [DeviceLogAddExpAPI   ];
-   [DeviceMaximumAPI     ];
-   [DeviceMinimumAPI     ];
-   [DeviceNotEqualAPI    ];
-   [DevicePowAPI         ];
-   [DeviceNextAfterAPI   ];
+    OpAPI             ;
+   [OpATan2API       ];
+   [OpCopySignAPI    ];
+   [OpEqualAPI       ];
+   [OpFloorDivideAPI ];
+   [OpGreaterAPI     ];
+   [OpGreaterEqualAPI];
+   [OpHypotAPI       ];
+   [OpLessAPI        ];
+   [OpLessEqualAPI   ];
+   [OpLogAddExpAPI   ];
+   [OpMaximumAPI     ];
+   [OpMinimumAPI     ];
+   [OpNotEqualAPI    ];
+   [OpPowAPI         ];
+   [OpNextAfterAPI   ];
 )]
-pub trait DeviceOpAPI<TA, TB, D>
+pub trait OpAPI<TA, TB, D>
 where
     D: DimAPI,
     Self: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<MaybeUninit<Self::TOut>>,
@@ -64,7 +64,7 @@ where
 
 use rstsr_dtype_traits::IsCloseArgs;
 
-pub trait DeviceIsCloseAPI<TA, TB, D, TE>
+pub trait OpIsCloseAPI<TA, TB, D, TE>
 where
     D: DimAPI,
     Self: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<MaybeUninit<bool>>,

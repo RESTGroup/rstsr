@@ -5,14 +5,14 @@ use rstsr_dtype_traits::{DTypeIntoFloatAPI, DTypePromoteAPI, ExtFloat, ExtReal};
 
 // output with special promotion
 #[duplicate_item(
-     DeviceOpAPI             TraitT           func_inner;
-    [DeviceATan2API       ] [Float         ] [Float::atan2(a, b)            ];
-    [DeviceCopySignAPI    ] [Float         ] [Float::copysign(a, b)         ];
-    [DeviceHypotAPI       ] [Float         ] [Float::hypot(a, b)            ];
-    [DeviceNextAfterAPI   ] [ExtFloat      ] [ExtFloat::ext_nextafter(a, b) ];
-    [DeviceLogAddExpAPI   ] [ComplexFloat  ] [(a.exp() + b.exp()).ln()      ];
+     OpAPI               TraitT           func_inner;
+    [OpATan2API       ] [Float         ] [Float::atan2(a, b)            ];
+    [OpCopySignAPI    ] [Float         ] [Float::copysign(a, b)         ];
+    [OpHypotAPI       ] [Float         ] [Float::hypot(a, b)            ];
+    [OpNextAfterAPI   ] [ExtFloat      ] [ExtFloat::ext_nextafter(a, b) ];
+    [OpLogAddExpAPI   ] [ComplexFloat  ] [(a.exp() + b.exp()).ln()      ];
 )]
-impl<TA, TB, D> DeviceOpAPI<TA, TB, D> for DeviceCpuSerial
+impl<TA, TB, D> OpAPI<TA, TB, D> for DeviceCpuSerial
 where
     TA: Clone + DTypePromoteAPI<TB, Res: DTypeIntoFloatAPI<FloatType: TraitT>>,
     TB: Clone,
@@ -72,17 +72,17 @@ where
 
 // general promotion
 #[duplicate_item(
-     DeviceOpAPI             TO        TraitT           func_inner;
-    [DeviceMaximumAPI     ] [TA::Res] [ExtReal       ] [ExtReal::ext_max(a, b)         ];
-    [DeviceMinimumAPI     ] [TA::Res] [ExtReal       ] [ExtReal::ext_min(a, b)         ];
-    [DeviceFloorDivideAPI ] [TA::Res] [ExtReal       ] [ExtReal::ext_floor_divide(a, b)];
-    [DeviceEqualAPI       ] [bool   ] [PartialEq     ] [a == b                         ];
-    [DeviceGreaterAPI     ] [bool   ] [PartialOrd    ] [a > b                          ];
-    [DeviceGreaterEqualAPI] [bool   ] [PartialOrd    ] [a >= b                         ];
-    [DeviceLessAPI        ] [bool   ] [PartialOrd    ] [a < b                          ];
-    [DeviceLessEqualAPI   ] [bool   ] [PartialOrd    ] [a <= b                         ];
+     OpAPI               TO        TraitT           func_inner;
+    [OpMaximumAPI     ] [TA::Res] [ExtReal       ] [ExtReal::ext_max(a, b)         ];
+    [OpMinimumAPI     ] [TA::Res] [ExtReal       ] [ExtReal::ext_min(a, b)         ];
+    [OpFloorDivideAPI ] [TA::Res] [ExtReal       ] [ExtReal::ext_floor_divide(a, b)];
+    [OpEqualAPI       ] [bool   ] [PartialEq     ] [a == b                         ];
+    [OpGreaterAPI     ] [bool   ] [PartialOrd    ] [a > b                          ];
+    [OpGreaterEqualAPI] [bool   ] [PartialOrd    ] [a >= b                         ];
+    [OpLessAPI        ] [bool   ] [PartialOrd    ] [a < b                          ];
+    [OpLessEqualAPI   ] [bool   ] [PartialOrd    ] [a <= b                         ];
 )]
-impl<TA, TB, D> DeviceOpAPI<TA, TB, D> for DeviceCpuSerial
+impl<TA, TB, D> OpAPI<TA, TB, D> for DeviceCpuSerial
 where
     TA: Clone + DTypePromoteAPI<TB, Res: TraitT>,
     TB: Clone,
@@ -138,7 +138,7 @@ where
 }
 
 // Special case for pow
-impl<TA, TB, D> DevicePowAPI<TA, TB, D> for DeviceCpuSerial
+impl<TA, TB, D> OpPowAPI<TA, TB, D> for DeviceCpuSerial
 where
     TA: Clone,
     TB: Clone,
@@ -192,7 +192,7 @@ where
 // Special case for isclose
 use rstsr_dtype_traits::*;
 
-impl<TA, TB, D, TE> DeviceIsCloseAPI<TA, TB, D, TE> for DeviceCpuSerial
+impl<TA, TB, D, TE> OpIsCloseAPI<TA, TB, D, TE> for DeviceCpuSerial
 where
     TA: Clone + DTypePromoteAPI<TB>,
     TB: Clone,

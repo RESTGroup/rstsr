@@ -1,7 +1,7 @@
 use crate::prelude_dev::*;
 
 #[duplicate_item(
-    op              op_f              TensorOpAPI           ;
+    op              op_f              TensorOpAPI             ;
    [add_assign   ] [add_assign_f   ] [TensorAddAssignAPI   ];
    [sub_assign   ] [sub_assign_f   ] [TensorSubAssignAPI   ];
    [mul_assign   ] [mul_assign_f   ] [TensorMulAssignAPI   ];
@@ -24,7 +24,7 @@ pub trait TensorOpAPI<TRB> {
 }
 
 #[duplicate_item(
-    op              op_f              TensorOpAPI           ;
+    op              op_f              TensorOpAPI             ;
    [add_assign   ] [add_assign_f   ] [TensorAddAssignAPI   ];
    [sub_assign   ] [sub_assign_f   ] [TensorSubAssignAPI   ];
    [mul_assign   ] [mul_assign_f   ] [TensorMulAssignAPI   ];
@@ -44,7 +44,7 @@ where
 }
 
 #[duplicate_item(
-    op              op_f              TensorOpAPI           ;
+    op              op_f              TensorOpAPI             ;
    [add_assign   ] [add_assign_f   ] [TensorAddAssignAPI   ];
    [sub_assign   ] [sub_assign_f   ] [TensorSubAssignAPI   ];
    [mul_assign   ] [mul_assign_f   ] [TensorMulAssignAPI   ];
@@ -64,7 +64,7 @@ where
 }
 
 #[duplicate_item(
-    op              TensorOpAPI             Op           ;
+    op              TensorOpAPI               Op           ;
    [add_assign   ] [TensorAddAssignAPI   ] [AddAssign   ];
    [sub_assign   ] [TensorSubAssignAPI   ] [SubAssign   ];
    [mul_assign   ] [TensorMulAssignAPI   ] [MulAssign   ];
@@ -89,17 +89,17 @@ where
 }
 
 #[duplicate_item(
-    op_f              TensorOpAPI             Op             DeviceOpAPI           ;
-   [add_assign_f   ] [TensorAddAssignAPI   ] [AddAssign   ] [DeviceAddAssignAPI   ];
-   [sub_assign_f   ] [TensorSubAssignAPI   ] [SubAssign   ] [DeviceSubAssignAPI   ];
-   [mul_assign_f   ] [TensorMulAssignAPI   ] [MulAssign   ] [DeviceMulAssignAPI   ];
-   [div_assign_f   ] [TensorDivAssignAPI   ] [DivAssign   ] [DeviceDivAssignAPI   ];
-   [rem_assign_f   ] [TensorRemAssignAPI   ] [RemAssign   ] [DeviceRemAssignAPI   ];
-   [bitor_assign_f ] [TensorBitOrAssignAPI ] [BitOrAssign ] [DeviceBitOrAssignAPI ];
-   [bitand_assign_f] [TensorBitAndAssignAPI] [BitAndAssign] [DeviceBitAndAssignAPI];
-   [bitxor_assign_f] [TensorBitXorAssignAPI] [BitXorAssign] [DeviceBitXorAssignAPI];
-   [shl_assign_f   ] [TensorShlAssignAPI   ] [ShlAssign   ] [DeviceShlAssignAPI   ];
-   [shr_assign_f   ] [TensorShrAssignAPI   ] [ShrAssign   ] [DeviceShrAssignAPI   ];
+    op_f              TensorOpAPI               Op             OpAPI             ;
+   [add_assign_f   ] [TensorAddAssignAPI   ] [AddAssign   ] [OpAddAssignAPI   ];
+   [sub_assign_f   ] [TensorSubAssignAPI   ] [SubAssign   ] [OpSubAssignAPI   ];
+   [mul_assign_f   ] [TensorMulAssignAPI   ] [MulAssign   ] [OpMulAssignAPI   ];
+   [div_assign_f   ] [TensorDivAssignAPI   ] [DivAssign   ] [OpDivAssignAPI   ];
+   [rem_assign_f   ] [TensorRemAssignAPI   ] [RemAssign   ] [OpRemAssignAPI   ];
+   [bitor_assign_f ] [TensorBitOrAssignAPI ] [BitOrAssign ] [OpBitOrAssignAPI ];
+   [bitand_assign_f] [TensorBitAndAssignAPI] [BitAndAssign] [OpBitAndAssignAPI];
+   [bitxor_assign_f] [TensorBitXorAssignAPI] [BitXorAssign] [OpBitXorAssignAPI];
+   [shl_assign_f   ] [TensorShlAssignAPI   ] [ShlAssign   ] [OpShlAssignAPI   ];
+   [shr_assign_f   ] [TensorShrAssignAPI   ] [ShrAssign   ] [OpShrAssignAPI   ];
 )]
 mod impl_binary_assign {
     use super::*;
@@ -116,7 +116,7 @@ mod impl_binary_assign {
         B: DeviceAPI<TA> + DeviceAPI<TB>,
         // operation constraints
         TA: Op<TB>,
-        B: DeviceOpAPI<TA, TB, DA>,
+        B: OpAPI<TA, TB, DA>,
     {
         fn op_f(a: Self, b: &TensorAny<RB, TB, B, DB>) -> Result<()> {
             rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch)?;
@@ -146,7 +146,7 @@ mod impl_binary_assign {
         DA: DimMaxAPI<DB, Max = DA>,
         // operation constraints
         TA: Op<TB>,
-        B: DeviceOpAPI<TA, TB, DA>,
+        B: OpAPI<TA, TB, DA>,
     {
         fn op_f(a: Self, b: TensorAny<RB, TB, B, DB>) -> Result<()> {
             TensorOpAPI::op_f(a, &b)
@@ -163,7 +163,7 @@ mod impl_binary_assign {
         B: DeviceAPI<TA>,
         // operation constraints
         TA: Op<TB>,
-        B: DeviceOpAPI<TA, TB, D>,
+        B: OpAPI<TA, TB, D>,
         // this constraint prohibits confliting impl to TensorBase<RB, D>
         TB: num::Num,
     {

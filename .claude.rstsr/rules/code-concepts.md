@@ -20,7 +20,7 @@
 
 ## Code Style
 
-- **Trait-based**: Operations are always defined as traits, and device backends implement these traits. For example `DeviceAddAPI`, `DeviceSinAPI`, `DeviceChangeAPI`.
+- **Trait-based**: Operations are always defined as traits, and device backends implement these traits. For example `OpAddAPI`, `OpSinAPI`, `DeviceChangeAPI`.
 - **Naming Convention**: (usually, may have exceptions)
   - traits add `API` suffix
   - device traits add `Device` prefix

@@ -1,7 +1,7 @@
 use crate::prelude_dev::*;
 
 #[duplicate_item(
-    op    op_f    TensorOpAPI  ;
+    op    op_f    TensorOpAPI    ;
    [neg] [neg_f] [TensorNegAPI];
    [not] [not_f] [TensorNotAPI];
 )]
@@ -17,7 +17,7 @@ pub trait TensorOpAPI {
 }
 
 #[duplicate_item(
-    op    op_f    TensorOpAPI  ;
+    op    op_f    TensorOpAPI    ;
    [neg] [neg_f] [TensorNegAPI];
    [not] [not_f] [TensorNotAPI];
 )]
@@ -29,7 +29,7 @@ where
 }
 
 #[duplicate_item(
-    op    op_f    TensorOpAPI  ;
+    op    op_f    TensorOpAPI    ;
    [neg] [neg_f] [TensorNegAPI];
    [not] [not_f] [TensorNotAPI];
 )]
@@ -41,7 +41,7 @@ where
 }
 
 #[duplicate_item(
-    op    op_f    TensorOpAPI  ;
+    op    op_f    TensorOpAPI    ;
    [neg] [neg_f] [TensorNegAPI];
    [not] [not_f] [TensorNotAPI];
 )]
@@ -65,7 +65,7 @@ where
 }
 
 #[duplicate_item(
-    op    Op    TensorOpAPI  ;
+    op    Op    TensorOpAPI    ;
    [neg] [Neg] [TensorNegAPI];
    [not] [Not] [TensorNotAPI];
 )]
@@ -100,9 +100,9 @@ mod impl_unary_core_ops {
 }
 
 #[duplicate_item(
-    op_f    Op    TensorOpAPI    DeviceOpAPI  ;
-   [neg_f] [Neg] [TensorNegAPI] [DeviceNegAPI];
-   [not_f] [Not] [TensorNotAPI] [DeviceNotAPI];
+    op_f    Op    TensorOpAPI      OpAPI    ;
+   [neg_f] [Neg] [TensorNegAPI] [OpNegAPI];
+   [not_f] [Not] [TensorNotAPI] [OpNotAPI];
 )]
 mod impl_unary {
     use super::*;
@@ -114,7 +114,7 @@ mod impl_unary {
         R: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
         B: DeviceAPI<T>,
         TB: Op<Output = T>,
-        B: DeviceOpAPI<T, TB, D> + DeviceCreationAnyAPI<T>,
+        B: OpAPI<T, TB, D> + DeviceCreationAnyAPI<T>,
     {
         type Output = Tensor<T, B, D>;
         fn op_f(self) -> Result<Self::Output> {
@@ -136,7 +136,7 @@ mod impl_unary {
         D: DimAPI,
         B: DeviceAPI<T>,
         TB: Op<Output = T>,
-        B: DeviceOpAPI<T, TB, D> + DeviceCreationAnyAPI<T>,
+        B: OpAPI<T, TB, D> + DeviceCreationAnyAPI<T>,
     {
         type Output = Tensor<T, B, D>;
         fn op_f(self) -> Result<Self::Output> {
@@ -150,7 +150,7 @@ mod impl_unary {
         D: DimAPI,
         B: DeviceAPI<T>,
         T: Op<Output = T>,
-        B: DeviceOpAPI<T, T, D> + DeviceCreationAnyAPI<T>,
+        B: OpAPI<T, T, D> + DeviceCreationAnyAPI<T>,
     {
         type Output = Tensor<T, B, D>;
         fn op_f(mut self) -> Result<Self::Output> {

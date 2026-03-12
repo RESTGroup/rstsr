@@ -1,7 +1,7 @@
 use crate::prelude_dev::*;
 use num::complex::ComplexFloat;
 
-impl<T> DeviceOpPackTriAPI<T> for DeviceRayonAutoImpl
+impl<T> OpPackTriAPI<T> for DeviceRayonAutoImpl
 where
     T: Clone + Send + Sync,
 {
@@ -27,7 +27,7 @@ where
     }
 }
 
-impl<T> DeviceOpUnpackTriAPI<T> for DeviceRayonAutoImpl
+impl<T> OpUnpackTriAPI<T> for DeviceRayonAutoImpl
 where
     T: ComplexFloat + Send + Sync,
 {
