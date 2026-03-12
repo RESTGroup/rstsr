@@ -15,7 +15,6 @@ use crate::prelude_dev::*;
 )]
 pub trait DeviceOpAPI<TA, TB, TC, D>
 where
-    TA: Op<TB, Output = TC>,
     D: DimAPI,
     Self: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<MaybeUninit<TC>>,
 {

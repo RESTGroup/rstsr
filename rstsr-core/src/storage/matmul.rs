@@ -2,8 +2,6 @@
 
 #![allow(clippy::too_many_arguments)]
 
-use core::ops::{Add, Mul};
-
 use crate::prelude_dev::*;
 
 pub trait DeviceMatMulAPI<TA, TB, TC, DA, DB, DC>
@@ -11,8 +9,6 @@ where
     DA: DimAPI,
     DB: DimAPI,
     DC: DimAPI,
-    TA: Mul<TB, Output = TC>,
-    TC: Mul<TC, Output = TC> + Add<TC, Output = TC>,
     Self: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<TC>,
 {
     fn matmul(
@@ -30,8 +26,6 @@ where
 
 pub trait DeviceGEMMAPI<TA, TB, TC>
 where
-    TA: Mul<TB, Output = TC>,
-    TC: Mul<TC, Output = TC> + Add<TC, Output = TC>,
     Self: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<TC>,
 {
     fn gemm(
@@ -49,8 +43,6 @@ where
 
 pub trait DeviceSYMMAPI<TA, TB, TC>
 where
-    TA: Mul<TB, Output = TC>,
-    TC: Mul<TC, Output = TC> + Add<TC, Output = TC>,
     Self: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<TC>,
 {
     fn symm(
@@ -70,8 +62,6 @@ where
 
 pub trait DeviceSYRKAPI<TA, TC>
 where
-    TA: Mul<TA, Output = TC>,
-    TC: Mul<TC, Output = TC> + Add<TC, Output = TC>,
     Self: DeviceAPI<TA> + DeviceAPI<TC>,
 {
     fn syrk(
@@ -88,8 +78,6 @@ where
 
 pub trait DeviceHERKAPI<TA, TC>
 where
-    TA: Mul<TA, Output = TC>,
-    TC: Mul<TC, Output = TC> + Add<TC, Output = TC>,
     Self: DeviceAPI<TA> + DeviceAPI<TC>,
 {
     fn herk(
@@ -106,8 +94,6 @@ where
 
 pub trait DeviceGEMVAPI<TA, TB, TC>
 where
-    TA: Mul<TB, Output = TC>,
-    TC: Mul<TC, Output = TC> + Add<TC, Output = TC>,
     Self: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<TC>,
 {
     fn gemv(
@@ -137,8 +123,6 @@ where
 
 pub trait DeviceInnerDotAPI<TA, TB, TC>
 where
-    TA: Mul<TB, Output = TC>,
-    TC: Mul<TC, Output = TC> + Add<TC, Output = TC>,
     Self: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<TC>,
 {
     fn inner_dot(

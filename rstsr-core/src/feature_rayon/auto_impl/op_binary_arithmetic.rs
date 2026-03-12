@@ -98,21 +98,15 @@ where
 )]
 impl<TA, TB, D> DeviceOpAPI<TA, TB, D> for DeviceRayonAutoImpl
 where
-    TA: Clone + Send + Sync,
-    TB: Clone + Send + Sync,
+    TA: Clone + Send + Sync + Op<Output = TA>,
+    TB: Clone + Send + Sync + Op<Output = TA>,
     D: DimAPI,
 {
-    fn op_muta_refb(&self, a: &mut Vec<MaybeUninit<TA>>, la: &Layout<D>, b: &Vec<TB>, lb: &Layout<D>) -> Result<()>
-    where
-        TB: Op<Output = TA>,
-    {
+    fn op_muta_refb(&self, a: &mut Vec<MaybeUninit<TA>>, la: &Layout<D>, b: &Vec<TB>, lb: &Layout<D>) -> Result<()> {
         self.op_muta_refb_func(a, la, b, lb, &mut func)
     }
 
-    fn op_muta(&self, a: &mut Vec<TA>, la: &Layout<D>) -> Result<()>
-    where
-        TA: Op<Output = TA>,
-    {
+    fn op_muta(&self, a: &mut Vec<TA>, la: &Layout<D>) -> Result<()> {
         let a = unsafe { transmute::<&mut Vec<TA>, &mut Vec<MaybeUninit<TA>>>(a) };
         self.op_muta_func(a, la, &mut func_inplace)
     }

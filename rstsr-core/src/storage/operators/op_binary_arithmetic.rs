@@ -15,7 +15,6 @@ use crate::prelude_dev::*;
 )]
 pub trait DeviceOpAPI<TA, TB, D>
 where
-    TA: Op<TB>,
     D: DimAPI,
     Self: DeviceAPI<TA> + DeviceAPI<TB>,
 {
@@ -45,7 +44,6 @@ where
 )]
 pub trait DeviceOpAPI<TA, TB, D>
 where
-    TA: Op<TB, Output = TA>,
     D: DimAPI,
     Self: DeviceAPI<TA> + DeviceAPI<TB>,
 {
@@ -75,7 +73,6 @@ where
 )]
 pub trait DeviceOpAPI<TA, TB, D>
 where
-    TA: Op<TB, Output = TB>,
     D: DimAPI,
     Self: DeviceAPI<TA> + DeviceAPI<TB>,
 {
@@ -106,11 +103,7 @@ where
         la: &Layout<D>,
         b: &<Self as DeviceRawAPI<TB>>::Raw,
         lb: &Layout<D>,
-    ) -> Result<()>
-    where
-        TB: Op<Output = TA>;
+    ) -> Result<()>;
 
-    fn op_muta(&self, a: &mut <Self as DeviceRawAPI<TA>>::Raw, la: &Layout<D>) -> Result<()>
-    where
-        TA: Op<Output = TA>;
+    fn op_muta(&self, a: &mut <Self as DeviceRawAPI<TA>>::Raw, la: &Layout<D>) -> Result<()>;
 }

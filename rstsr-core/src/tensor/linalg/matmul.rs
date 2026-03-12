@@ -305,9 +305,6 @@ where
 
 /* #region matmul tensor trait */
 
-// this trait is to make a.matmul(b) be possible
-// however, a.rem(b) works the same to a.matmul(b), not rem(a, b)
-
 impl<R, T, B, D> TensorAny<R, T, B, D>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
