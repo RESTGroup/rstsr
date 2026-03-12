@@ -172,9 +172,9 @@ where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     T: Clone,
     D: DimAPI,
-    B: DeviceAPI<T, Raw = Vec<T>> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, Ix1>,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, Ix1>,
 {
-    pub fn to_raw_f(&self) -> Result<Vec<T>> {
+    pub fn to_raw_f(&self) -> Result<<B as DeviceRawAPI<T>>::Raw> {
         rstsr_assert_eq!(self.ndim(), 1, InvalidLayout, "to_vec currently only support 1-D tensor")?;
         let device = self.device();
         let layout = self.layout().to_dim::<Ix1>()?;
@@ -186,7 +186,7 @@ where
         Ok(data.into_raw())
     }
 
-    pub fn to_vec(&self) -> Vec<T> {
+    pub fn to_vec(&self) -> <B as DeviceRawAPI<T>>::Raw {
         self.to_raw_f().rstsr_unwrap()
     }
 }
@@ -195,9 +195,9 @@ impl<T, B, D> Tensor<T, B, D>
 where
     T: Clone,
     D: DimAPI,
-    B: DeviceAPI<T, Raw = Vec<T>> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, Ix1>,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, Ix1>,
 {
-    pub fn into_vec_f(self) -> Result<Vec<T>> {
+    pub fn into_raw_f(self) -> Result<<B as DeviceRawAPI<T>>::Raw> {
         rstsr_assert_eq!(self.ndim(), 1, InvalidLayout, "to_vec currently only support 1-D tensor")?;
         let layout = self.layout();
         let (idx_min, idx_max) = layout.bounds_index()?;
@@ -207,6 +207,32 @@ where
             return Ok(data.into_raw());
         } else {
             return self.to_raw_f();
+        }
+    }
+
+    pub fn into_raw(self) -> <B as DeviceRawAPI<T>>::Raw {
+        self.into_raw_f().rstsr_unwrap()
+    }
+}
+
+impl<T, B, D> Tensor<T, B, D>
+where
+    T: Clone,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, Ix1>,
+    <B as DeviceRawAPI<T>>::Raw: Clone,
+{
+    pub fn into_vec_f(self) -> Result<Vec<T>> {
+        rstsr_assert_eq!(self.ndim(), 1, InvalidLayout, "to_vec currently only support 1-D tensor")?;
+        let layout = self.layout();
+        let (idx_min, idx_max) = layout.bounds_index()?;
+        if idx_min == 0 && idx_max == self.storage().len() && idx_max == layout.size() && layout.stride()[0] > 0 {
+            let (storage, _) = self.into_raw_parts();
+            storage.into_cpu_vec()
+        } else {
+            let data = self.to_raw_f()?;
+            let storage = Storage::new(DataOwned::from(data), self.device().clone());
+            storage.into_cpu_vec()
         }
     }
 

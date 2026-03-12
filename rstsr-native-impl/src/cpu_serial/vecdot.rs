@@ -51,8 +51,8 @@ where
     )?;
 
     // get iterator over lc, and chopped la and lb
-    let la_chop = la.to_dim::<IxD>()?.dim_select(axis, 0)?;
-    let lb_chop = lb.to_dim::<IxD>()?.dim_select(axis, 0)?;
+    let la_chop = la.to_dim::<IxD>()?.dim_chop(axis)?;
+    let lb_chop = lb.to_dim::<IxD>()?.dim_chop(axis)?;
     let lc = lc.to_dim::<IxD>()?;
     // broadcast layouts for computation
     let (lc_b, la_chop) = broadcast_layout_to_first(&lc, &la_chop, order)?;
