@@ -6,6 +6,52 @@ use num::{One, Zero};
 
 /* #region matmul by function */
 
+pub fn matmul<RA, RB, TA, TB, TC, DA, DB, DC, B>(
+    a: &TensorAny<RA, TA, B, DA>,
+    b: &TensorAny<RB, TB, B, DB>,
+) -> Tensor<TC, B, DC>
+where
+    // storage
+    RA: DataAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
+    RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
+    // dimension
+    DA: DimAPI,
+    DB: DimAPI,
+    DC: DimAPI,
+    // operation specific
+    TA: Mul<TB, Output = TC>,
+    TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + One,
+    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<TC>,
+    B: DeviceCreationAnyAPI<TC>,
+    LayoutMatMulConfig<DA, DB>: LayoutMatMulAPI<DA, DB, DC = DC>,
+    B: DeviceMatMulAPI<TA, TB, TC, DA, DB, DC>,
+{
+    op_refa_refb_matmul(a, b, TC::one()).rstsr_unwrap()
+}
+
+pub fn matmul_from<RA, RB, RC, TA, TB, TC, DA, DB, DC, B>(
+    c: &mut TensorAny<RC, TC, B, DC>,
+    a: &TensorAny<RA, TA, B, DA>,
+    b: &TensorAny<RB, TB, B, DB>,
+    alpha: TC,
+    beta: TC,
+) where
+    // storage
+    RC: DataMutAPI<Data = <B as DeviceRawAPI<TC>>::Raw>,
+    RA: DataAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
+    RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
+    // dimension
+    DA: DimAPI,
+    DB: DimAPI,
+    DC: DimAPI,
+    // operation specific
+    TA: Mul<TB, Output = TC>,
+    TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + One,
+    B: DeviceMatMulAPI<TA, TB, TC, DA, DB, DC>,
+{
+    op_mutc_refa_refb_matmul(c, a, b, alpha, beta).rstsr_unwrap()
+}
+
 pub fn op_mutc_refa_refb_matmul<RA, RB, RC, TA, TB, TC, DA, DB, DC, B>(
     c: &mut TensorAny<RC, TC, B, DC>,
     a: &TensorAny<RA, TA, B, DA>,
@@ -136,29 +182,6 @@ where
     op_mutc_refa_refb_matmul(c, a, b, alpha, beta)
 }
 
-pub fn matmul_from<RA, RB, RC, TA, TB, TC, DA, DB, DC, B>(
-    c: &mut TensorAny<RC, TC, B, DC>,
-    a: &TensorAny<RA, TA, B, DA>,
-    b: &TensorAny<RB, TB, B, DB>,
-    alpha: TC,
-    beta: TC,
-) where
-    // storage
-    RC: DataMutAPI<Data = <B as DeviceRawAPI<TC>>::Raw>,
-    RA: DataAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
-    RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
-    // dimension
-    DA: DimAPI,
-    DB: DimAPI,
-    DC: DimAPI,
-    // operation specific
-    TA: Mul<TB, Output = TC>,
-    TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + One,
-    B: DeviceMatMulAPI<TA, TB, TC, DA, DB, DC>,
-{
-    op_mutc_refa_refb_matmul(c, a, b, alpha, beta).rstsr_unwrap()
-}
-
 pub fn matmul_f<RA, RB, TA, TB, TC, DA, DB, DC, B>(
     a: &TensorAny<RA, TA, B, DA>,
     b: &TensorAny<RB, TB, B, DB>,
@@ -182,34 +205,18 @@ where
     op_refa_refb_matmul(a, b, TC::one())
 }
 
-pub fn matmul<RA, RB, TA, TB, TC, DA, DB, DC, B>(
-    a: &TensorAny<RA, TA, B, DA>,
-    b: &TensorAny<RB, TB, B, DB>,
-) -> Tensor<TC, B, DC>
-where
-    // storage
-    RA: DataAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
-    RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
-    // dimension
-    DA: DimAPI,
-    DB: DimAPI,
-    DC: DimAPI,
-    // operation specific
-    TA: Mul<TB, Output = TC>,
-    TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + One,
-    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<TC>,
-    B: DeviceCreationAnyAPI<TC>,
-    LayoutMatMulConfig<DA, DB>: LayoutMatMulAPI<DA, DB, DC = DC>,
-    B: DeviceMatMulAPI<TA, TB, TC, DA, DB, DC>,
-{
-    op_refa_refb_matmul(a, b, TC::one()).rstsr_unwrap()
-}
-
 /* #endregion */
 
 /* #region matmul implementation to core ops */
 
-impl<RA, RB, TA, TB, TC, DA, DB, DC, B> Rem<&TensorAny<RB, TB, B, DB>> for &TensorAny<RA, TA, B, DA>
+#[duplicate_item(
+     TrA                         TrB                       ;
+    [ TensorAny<RA, TA, B, DA>] [ TensorAny<RB, TB, B, DB>];
+    [&TensorAny<RA, TA, B, DA>] [ TensorAny<RB, TB, B, DB>];
+    [ TensorAny<RA, TA, B, DA>] [&TensorAny<RB, TB, B, DB>];
+    [&TensorAny<RA, TA, B, DA>] [&TensorAny<RB, TB, B, DB>];
+)]
+impl<RA, RB, TA, TB, TC, DA, DB, DC, B> Rem<TrB> for TrA
 where
     // storage
     RA: DataAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
@@ -227,77 +234,8 @@ where
     B: DeviceMatMulAPI<TA, TB, TC, DA, DB, DC>,
 {
     type Output = Tensor<TC, B, DC>;
-    fn rem(self, rhs: &TensorAny<RB, TB, B, DB>) -> Self::Output {
-        op_refa_refb_matmul(self, rhs, TC::one()).rstsr_unwrap()
-    }
-}
-
-impl<RA, RB, TA, TB, TC, DA, DB, DC, B> Rem<&TensorAny<RB, TB, B, DB>> for TensorAny<RA, TA, B, DA>
-where
-    // storage
-    RA: DataAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
-    RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
-    // dimension
-    DA: DimAPI,
-    DB: DimAPI,
-    DC: DimAPI,
-    // operation specific
-    TA: Mul<TB, Output = TC>,
-    TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + One,
-    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<TC>,
-    B: DeviceCreationAnyAPI<TC>,
-    LayoutMatMulConfig<DA, DB>: LayoutMatMulAPI<DA, DB, DC = DC>,
-    B: DeviceMatMulAPI<TA, TB, TC, DA, DB, DC>,
-{
-    type Output = Tensor<TC, B, DC>;
-    fn rem(self, rhs: &TensorAny<RB, TB, B, DB>) -> Self::Output {
-        op_refa_refb_matmul(&self, rhs, TC::one()).rstsr_unwrap()
-    }
-}
-
-impl<RA, RB, TA, TB, TC, DA, DB, DC, B> Rem<TensorAny<RB, TB, B, DB>> for &TensorAny<RA, TA, B, DA>
-where
-    // storage
-    RA: DataAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
-    RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
-    // dimension
-    DA: DimAPI,
-    DB: DimAPI,
-    DC: DimAPI,
-    // operation specific
-    TA: Mul<TB, Output = TC>,
-    TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + One,
-    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<TC>,
-    B: DeviceCreationAnyAPI<TC>,
-    LayoutMatMulConfig<DA, DB>: LayoutMatMulAPI<DA, DB, DC = DC>,
-    B: DeviceMatMulAPI<TA, TB, TC, DA, DB, DC>,
-{
-    type Output = Tensor<TC, B, DC>;
-    fn rem(self, rhs: TensorAny<RB, TB, B, DB>) -> Self::Output {
-        op_refa_refb_matmul(self, &rhs, TC::one()).rstsr_unwrap()
-    }
-}
-
-impl<RA, RB, TA, TB, TC, DA, DB, DC, B> Rem<TensorAny<RB, TB, B, DB>> for TensorAny<RA, TA, B, DA>
-where
-    // storage
-    RA: DataAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
-    RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
-    // dimension
-    DA: DimAPI,
-    DB: DimAPI,
-    DC: DimAPI,
-    // operation specific
-    TA: Mul<TB, Output = TC>,
-    TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + One,
-    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<TC>,
-    B: DeviceCreationAnyAPI<TC>,
-    LayoutMatMulConfig<DA, DB>: LayoutMatMulAPI<DA, DB, DC = DC>,
-    B: DeviceMatMulAPI<TA, TB, TC, DA, DB, DC>,
-{
-    type Output = Tensor<TC, B, DC>;
-    fn rem(self, rhs: TensorAny<RB, TB, B, DB>) -> Self::Output {
-        op_refa_refb_matmul(&self, &rhs, TC::one()).rstsr_unwrap()
+    fn rem(self, rhs: TrB) -> Self::Output {
+        op_refa_refb_matmul(&self.view(), &rhs.view(), TC::one()).rstsr_unwrap()
     }
 }
 
