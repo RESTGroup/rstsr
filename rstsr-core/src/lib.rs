@@ -21,15 +21,16 @@ use crate::prelude::rstsr_traits::*;
 pub mod prelude;
 pub mod prelude_dev;
 
+pub mod format;
+pub mod operators;
 pub mod storage;
 pub mod tensor;
 pub mod tensorbase;
+
 pub use tensorbase::{
     Tensor, TensorAny, TensorArc, TensorBase, TensorCow, TensorMut, TensorRef, TensorReference, TensorView,
     TensorViewMut,
 };
-
-pub mod format;
 
 #[cfg(feature = "rayon")]
 pub mod feature_rayon;
