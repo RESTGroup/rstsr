@@ -20,35 +20,15 @@ pub use rstsr_dtype_traits::{DTypeCastAPI, DTypePromoteAPI, ExtFloat, ExtNum, Ex
 
 pub use rstsr_native_impl::prelude_dev::*;
 
-pub use crate::storage::adv_indexing::*;
-pub use crate::storage::assignment::*;
-pub use crate::storage::combined_trait::*;
-pub use crate::storage::conversion::*;
-pub use crate::storage::creation::*;
-pub use crate::storage::data::*;
-pub use crate::storage::device::*;
-pub use crate::storage::matmul::*;
-pub use crate::storage::operators::*;
-pub use crate::storage::reduction::*;
+pub use crate::operators::exports::*;
+pub use crate::storage::exports::*;
+pub use crate::tensor::exports::*;
 
 pub use crate::device_cpu_serial::device::*;
 pub use crate::DeviceCpu;
 
 #[allow(unused_imports)]
 pub use crate::dev_utilities::*;
-
-pub use crate::tensor::asarray::*;
-pub use crate::tensor::creation::*;
-pub use crate::tensor::creation_from_tensor::*;
-pub use crate::tensor::device_conversion::*;
-pub use crate::tensor::ext_conversion::*;
-pub use crate::tensor::indexing::*;
-pub use crate::tensor::iterator_axes::*;
-pub use crate::tensor::iterator_elem::*;
-pub use crate::tensor::manuplication::exports::*;
-pub use crate::tensor::ownership_conversion::*;
-pub use crate::tensor::reduction::TensorSumBoolAPI;
-pub use crate::tensor::tensor_mutable::*;
 
 pub use crate::prelude::rstsr_traits::*;
 

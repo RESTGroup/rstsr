@@ -192,7 +192,7 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 | assoc/fn | [`expand_dims`] | Expands the shape of an array by inserting a new axis (dimension) of size one at the position specified by `axis`. |
 | assoc/fn | [`flip`] | Reverses the order of elements in an array along the given axis. |
 | assoc/fn | [`moveaxis`] | Moves array axes (dimensions) to new positions, while leaving other axes in their original positions. |
-| assoc/fn | [`permute_dims`] <br/> [`transpose`] | Permutes the axes (dimensions) of an array `x`. |
+| assoc/fn | [`permute_dims`] <br/> [`transpose`] <br/> [`matrix_transpose`] | Permutes the axes (dimensions) of an array `x`. |
 | assoc/fn | [`reshape_with_args`] | Reshapes the given tensor to the specified shape, with argument specifying the order and whether to copy data. |
 | assoc/fn | [`reverse_axes`] | Reverse the order of elements in an array along the given axis. |
 | assoc/fn | [`swapaxes`] | Interchange two axes of an array. |
@@ -211,6 +211,8 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 
 ### Storage-creation manuplication
 
+| Type | Identifier | Minimal Description |
+|--|--|--|
 | fn | [`concat`](concat()) |  Join a sequence of arrays along an existing axis. |
 | fn | [`stack`] | Joins a sequence of arrays along a new axis. |
 | fn | [`hstack`] | Stack tensors in sequence horizontally (column-wise). |
@@ -274,6 +276,14 @@ Matrix multiply is implemented in many ways. The most useful way is function [`m
 Trait function calls like associated methods, so we also do not recommend usage of `tensor.rem(&other)`.
 
 </div>
+
+### Tensor Contraction
+
+| Type | Identifier | Minimal Description |
+|--|--|--|
+| assoc/fn | [`vecdot`] | Computes the (vector) dot product of two arrays. |
+
+Note we leave einsum and vectordot not implemented. For those functions, currently, we recommend users to use [`rt::tblis::einsum`](https://docs.rs/rstsr-tblis/latest/rstsr_tblis/einsum_impl/fn.einsum.html) and [`rt::tblis::vecdot`](https://docs.rs/rstsr-tblis/latest/rstsr_tblis/tensordot_impl/fn.tensordot.html), enabled in main crate `rstsr` with feature `tblis`.
 
 ## Common Functions
 

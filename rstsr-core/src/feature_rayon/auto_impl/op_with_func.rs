@@ -2,7 +2,7 @@ use crate::prelude_dev::*;
 
 /* #region impl op_func for DeviceRayonAutoImpl */
 
-impl<TA, TB, TC, D, F> DeviceOp_MutC_RefA_RefB_API<TA, TB, TC, D, F> for DeviceRayonAutoImpl
+impl<TA, TB, TC, D, F> Op_MutC_RefA_RefB_API<TA, TB, TC, D, F> for DeviceRayonAutoImpl
 where
     TA: Clone + Send + Sync,
     TB: Clone + Send + Sync,
@@ -25,7 +25,7 @@ where
     }
 }
 
-impl<TA, TB, TC, D, F> DeviceOp_MutC_RefA_NumB_API<TA, TB, TC, D, F> for DeviceRayonAutoImpl
+impl<TA, TB, TC, D, F> Op_MutC_RefA_NumB_API<TA, TB, TC, D, F> for DeviceRayonAutoImpl
 where
     TA: Clone + Send + Sync,
     TB: Clone + Send + Sync,
@@ -47,7 +47,7 @@ where
     }
 }
 
-impl<TA, TB, TC, D, F> DeviceOp_MutC_NumA_RefB_API<TA, TB, TC, D, F> for DeviceRayonAutoImpl
+impl<TA, TB, TC, D, F> Op_MutC_NumA_RefB_API<TA, TB, TC, D, F> for DeviceRayonAutoImpl
 where
     TA: Clone + Send + Sync,
     TB: Clone + Send + Sync,
@@ -69,7 +69,7 @@ where
     }
 }
 
-impl<TA, TB, D, F> DeviceOp_MutA_RefB_API<TA, TB, D, F> for DeviceRayonAutoImpl
+impl<TA, TB, D, F> Op_MutA_RefB_API<TA, TB, D, F> for DeviceRayonAutoImpl
 where
     TA: Clone + Send + Sync,
     TB: Clone + Send + Sync,
@@ -89,7 +89,7 @@ where
     }
 }
 
-impl<TA, TB, D, F> DeviceOp_MutA_NumB_API<TA, TB, D, F> for DeviceRayonAutoImpl
+impl<TA, TB, D, F> Op_MutA_NumB_API<TA, TB, D, F> for DeviceRayonAutoImpl
 where
     TA: Clone + Send + Sync,
     TB: Clone + Send + Sync,
@@ -102,7 +102,7 @@ where
     }
 }
 
-impl<T, D, F> DeviceOp_MutA_API<T, D, F> for DeviceRayonAutoImpl
+impl<T, D, F> Op_MutA_API<T, D, F> for DeviceRayonAutoImpl
 where
     T: Clone + Send + Sync,
     D: DimAPI,

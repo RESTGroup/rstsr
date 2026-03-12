@@ -33,6 +33,10 @@ pub trait ExtNum: Clone {
     /// Returns the imaginary part of the number.
     fn ext_imag(self) -> Self::AbsOut;
 
+    fn ext_conj(self) -> Self {
+        self
+    }
+
     /* #endregion */
 
     /* #region utilities */
@@ -200,6 +204,10 @@ impl ExtNum for T {
     #[inline]
     fn ext_imag(self) -> Self::AbsOut {
         self.im
+    }
+    #[inline]
+    fn ext_conj(self) -> Self {
+        self.conj()
     }
     /* #endregion */
 

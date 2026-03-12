@@ -329,7 +329,7 @@ pub fn allclose_all_f<TA, TB, TE, B, DA, DB>(
 where
     DA: DimAPI,
     DB: DimAPI,
-    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, IxD>,
+    B: DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, IxD>,
     TE: 'static,
 {
     let tensor_a = tensor_a.view();
@@ -358,7 +358,7 @@ pub fn allclose_all<TA, TB, TE, B, DA, DB>(
 where
     DA: DimAPI,
     DB: DimAPI,
-    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, IxD>,
+    B: DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, IxD>,
     TE: 'static,
 {
     allclose_all_f(tensor_a, tensor_b, isclose_args).rstsr_unwrap()
@@ -372,7 +372,7 @@ pub fn allclose_f<TA, TB, TE, B, DA, DB>(
 where
     DA: DimAPI,
     DB: DimAPI,
-    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, IxD>,
+    B: DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, IxD>,
     TE: 'static,
 {
     allclose_all_f(tensor_a, tensor_b, isclose_args)
@@ -386,7 +386,7 @@ pub fn allclose<TA, TB, TE, B, DA, DB>(
 where
     DA: DimAPI,
     DB: DimAPI,
-    B: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, IxD>,
+    B: DeviceAPI<bool> + OpAllCloseAPI<TA, TB, TE, IxD>,
     TE: 'static,
 {
     allclose_f(tensor_a, tensor_b, isclose_args).rstsr_unwrap()

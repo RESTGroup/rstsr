@@ -1,19 +1,19 @@
 use crate::prelude_dev::*;
 
 #[duplicate_item(
-     DeviceOpAPI       Op       func                                  ;
-    [DeviceAddAPI   ] [Add   ] [|c, a, b| { c.write(a.clone() +  b.clone()); }];
-    [DeviceSubAPI   ] [Sub   ] [|c, a, b| { c.write(a.clone() -  b.clone()); }];
-    [DeviceMulAPI   ] [Mul   ] [|c, a, b| { c.write(a.clone() *  b.clone()); }];
-    [DeviceDivAPI   ] [Div   ] [|c, a, b| { c.write(a.clone() /  b.clone()); }];
-    [DeviceRemAPI   ] [Rem   ] [|c, a, b| { c.write(a.clone() %  b.clone()); }];
-    [DeviceBitOrAPI ] [BitOr ] [|c, a, b| { c.write(a.clone() |  b.clone()); }];
-    [DeviceBitAndAPI] [BitAnd] [|c, a, b| { c.write(a.clone() &  b.clone()); }];
-    [DeviceBitXorAPI] [BitXor] [|c, a, b| { c.write(a.clone() ^  b.clone()); }];
-    [DeviceShlAPI   ] [Shl   ] [|c, a, b| { c.write(a.clone() << b.clone()); }];
-    [DeviceShrAPI   ] [Shr   ] [|c, a, b| { c.write(a.clone() >> b.clone()); }];
+     OpAPI         Op       func                                  ;
+    [OpAddAPI   ] [Add   ] [|c, a, b| { c.write(a.clone() +  b.clone()); }];
+    [OpSubAPI   ] [Sub   ] [|c, a, b| { c.write(a.clone() -  b.clone()); }];
+    [OpMulAPI   ] [Mul   ] [|c, a, b| { c.write(a.clone() *  b.clone()); }];
+    [OpDivAPI   ] [Div   ] [|c, a, b| { c.write(a.clone() /  b.clone()); }];
+    [OpRemAPI   ] [Rem   ] [|c, a, b| { c.write(a.clone() %  b.clone()); }];
+    [OpBitOrAPI ] [BitOr ] [|c, a, b| { c.write(a.clone() |  b.clone()); }];
+    [OpBitAndAPI] [BitAnd] [|c, a, b| { c.write(a.clone() &  b.clone()); }];
+    [OpBitXorAPI] [BitXor] [|c, a, b| { c.write(a.clone() ^  b.clone()); }];
+    [OpShlAPI   ] [Shl   ] [|c, a, b| { c.write(a.clone() << b.clone()); }];
+    [OpShrAPI   ] [Shr   ] [|c, a, b| { c.write(a.clone() >> b.clone()); }];
 )]
-impl<TA, TB, TC, D> DeviceOpAPI<TA, TB, TC, D> for DeviceRayonAutoImpl
+impl<TA, TB, TC, D> OpAPI<TA, TB, TC, D> for DeviceRayonAutoImpl
 where
     TA: Clone + Send + Sync + Op<TB, Output = TC>,
     TB: Clone + Send + Sync,

@@ -3,17 +3,14 @@ use core::mem::transmute;
 
 /* #region op_func */
 
-pub fn op_mutc_refa_refb_func<RA, RB, RC, DA, DB, DC, TA, TB, TC, B, F>(
-    c: &mut TensorAny<RC, TC, B, DC>,
-    a: &TensorAny<RA, TA, B, DA>,
-    b: &TensorAny<RB, TB, B, DB>,
+pub fn op_mutc_refa_refb_func<DA, DB, DC, TA, TB, TC, B, F>(
+    mut c: impl TensorViewMutAPI<Type = TC, Backend = B, Dim = DC>,
+    a: impl TensorViewAPI<Type = TA, Backend = B, Dim = DA>,
+    b: impl TensorViewAPI<Type = TB, Backend = B, Dim = DB>,
     f: &mut F,
 ) -> Result<()>
 where
-    // lifetime and data constraints
-    RA: DataAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
-    RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
-    RC: DataMutAPI<Data = <B as DeviceRawAPI<TC>>::Raw>,
+    // dimension
     DA: DimAPI,
     DB: DimAPI,
     DC: DimAPI,
@@ -21,9 +18,10 @@ where
     // broadcast constraints
     DC: DimMaxAPI<DA, Max = DC> + DimMaxAPI<DB, Max = DC>,
     // operation constraints
-    B: DeviceOp_MutC_RefA_RefB_API<TA, TB, TC, DC, F>,
+    B: Op_MutC_RefA_RefB_API<TA, TB, TC, DC, F>,
     F: FnMut(&mut MaybeUninit<TC>, &TA, &TB),
 {
+    let (a, b, mut c) = (a.view(), b.view(), c.view_mut());
     rstsr_assert!(c.device().same_device(a.device()), DeviceMismatch)?;
     rstsr_assert!(c.device().same_device(b.device()), DeviceMismatch)?;
     let lc = c.layout();
@@ -44,15 +42,13 @@ where
     device.op_mutc_refa_refb_func(c_raw_mut, &lc_b, a.raw(), &la_b, b.raw(), &lb_b, f)
 }
 
-pub fn op_refa_refb_func<RA, RB, DA, DB, DC, TA, TB, TC, B, F>(
-    a: &TensorAny<RA, TA, B, DA>,
-    b: &TensorAny<RB, TB, B, DB>,
+pub fn op_refa_refb_func<DA, DB, DC, TA, TB, TC, B, F>(
+    a: impl TensorViewAPI<Type = TA, Backend = B, Dim = DA>,
+    b: impl TensorViewAPI<Type = TB, Backend = B, Dim = DB>,
     f: &mut F,
 ) -> Result<Tensor<TC, B, DC>>
 where
-    // lifetime and data constraints
-    RA: DataAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
-    RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
+    // dimension
     DA: DimAPI,
     DB: DimAPI,
     DC: DimAPI,
@@ -60,10 +56,11 @@ where
     // broadcast constraints
     DA: DimMaxAPI<DB, Max = DC>,
     // operation constraints
-    B: DeviceOp_MutC_RefA_RefB_API<TA, TB, TC, DC, F>,
+    B: Op_MutC_RefA_RefB_API<TA, TB, TC, DC, F>,
     B: DeviceCreationAnyAPI<TC>,
     F: FnMut(&mut MaybeUninit<TC>, &TA, &TB),
 {
+    let (a, b) = (a.view(), b.view());
     rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch)?;
     let la = a.layout();
     let lb = b.layout();
@@ -90,24 +87,23 @@ where
     Tensor::new_f(storage_c, lc)
 }
 
-pub fn op_muta_refb_func<RA, RB, DA, DB, TA, TB, B, F>(
-    a: &mut TensorAny<RA, TA, B, DA>,
-    b: &TensorAny<RB, TB, B, DB>,
+pub fn op_muta_refb_func<DA, DB, TA, TB, B, F>(
+    mut a: impl TensorViewMutAPI<Type = TA, Backend = B, Dim = DA>,
+    b: impl TensorViewAPI<Type = TB, Backend = B, Dim = DB>,
     f: &mut F,
 ) -> Result<()>
 where
-    // lifetime and data constraints
-    RA: DataMutAPI<Data = <B as DeviceRawAPI<TA>>::Raw>,
-    RB: DataAPI<Data = <B as DeviceRawAPI<TB>>::Raw>,
+    // dimension
     DA: DimAPI,
     DB: DimAPI,
     B: DeviceAPI<TA> + DeviceAPI<TB>,
     // broadcast constraints
     DA: DimMaxAPI<DB, Max = DA>,
     // operation constraints
-    B: DeviceOp_MutA_RefB_API<TA, TB, DA, F>,
+    B: Op_MutA_RefB_API<TA, TB, DA, F>,
     F: FnMut(&mut MaybeUninit<TA>, &TB),
 {
+    let (b, mut a) = (b.view(), a.view_mut());
     rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch)?;
     let la = a.layout();
     let lb = b.layout();
@@ -124,14 +120,14 @@ where
     device.op_muta_refb_func(a_raw_mut, &la_b, b.raw(), &lb_b, f)
 }
 
-pub fn op_muta_func<R, T, D, B, F>(a: &mut TensorAny<R, T, B, D>, f: &mut F) -> Result<()>
+pub fn op_muta_func<T, D, B, F>(mut a: impl TensorViewMutAPI<Type = T, Backend = B, Dim = D>, f: &mut F) -> Result<()>
 where
-    R: DataMutAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     D: DimAPI,
     B: DeviceAPI<T>,
-    B: DeviceOp_MutA_API<T, D, F>,
+    B: Op_MutA_API<T, D, F>,
     F: FnMut(&mut MaybeUninit<T>),
 {
+    let mut a = a.view_mut();
     let la = a.layout().clone();
     let device = a.device().clone();
     let a_raw_mut = unsafe {

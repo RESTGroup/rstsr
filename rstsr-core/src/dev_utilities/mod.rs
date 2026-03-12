@@ -52,7 +52,7 @@ where
     B: DeviceAPI<T>
         + DeviceRawAPI<MaybeUninit<T>>
         + DeviceCreationComplexFloatAPI<T>
-        + DeviceCosAPI<T, IxD, TOut = T>
+        + OpCosAPI<T, IxD, TOut = T>
         + DeviceCreationAnyAPI<T>
         + OpAssignAPI<T, IxD>
         + OpAssignArbitaryAPI<T, IxD, D>

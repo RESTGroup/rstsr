@@ -1,0 +1,48 @@
+use crate::prelude_dev::*;
+
+#[duplicate_item(
+     OpAPI         Op     ;
+    [OpAddAPI   ] [Add   ];
+    [OpSubAPI   ] [Sub   ];
+    [OpMulAPI   ] [Mul   ];
+    [OpDivAPI   ] [Div   ];
+    [OpRemAPI   ] [Rem   ];
+    [OpBitOrAPI ] [BitOr ];
+    [OpBitAndAPI] [BitAnd];
+    [OpBitXorAPI] [BitXor];
+    [OpShlAPI   ] [Shl   ];
+    [OpShrAPI   ] [Shr   ];
+)]
+pub trait OpAPI<TA, TB, TC, D>
+where
+    D: DimAPI,
+    Self: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<MaybeUninit<TC>>,
+{
+    fn op_mutc_refa_refb(
+        &self,
+        c: &mut <Self as DeviceRawAPI<MaybeUninit<TC>>>::Raw,
+        lc: &Layout<D>,
+        a: &<Self as DeviceRawAPI<TA>>::Raw,
+        la: &Layout<D>,
+        b: &<Self as DeviceRawAPI<TB>>::Raw,
+        lb: &Layout<D>,
+    ) -> Result<()>;
+
+    fn op_mutc_refa_numb(
+        &self,
+        c: &mut <Self as DeviceRawAPI<MaybeUninit<TC>>>::Raw,
+        lc: &Layout<D>,
+        a: &<Self as DeviceRawAPI<TA>>::Raw,
+        la: &Layout<D>,
+        b: TB,
+    ) -> Result<()>;
+
+    fn op_mutc_numa_refb(
+        &self,
+        c: &mut <Self as DeviceRawAPI<MaybeUninit<TC>>>::Raw,
+        lc: &Layout<D>,
+        a: TA,
+        b: &<Self as DeviceRawAPI<TB>>::Raw,
+        lb: &Layout<D>,
+    ) -> Result<()>;
+}

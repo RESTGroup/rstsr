@@ -1,13 +1,9 @@
 use crate::prelude_dev::*;
 
-/* #region moveaxis */
-
 /// Moves array axes (dimensions) to new positions, while leaving other axes in their original
 /// positions.
 ///
-/// # See also
-///
-/// Refer to [`moveaxis`] for details and examples.
+/// See also [`moveaxis`].
 pub fn into_moveaxis_f<IS, ID, S, D>(tensor: TensorBase<S, D>, source: IS, destination: ID) -> Result<TensorBase<S, D>>
 where
     D: DimAPI,
@@ -161,9 +157,7 @@ where
 /// Moves array axes (dimensions) to new positions, while leaving other axes in their original
 /// positions.
 ///
-/// # See also
-///
-/// Refer to [`moveaxis`] for details and examples.
+/// See also [`moveaxis`].
 pub fn moveaxis_f<IS, ID, R, T, B, D>(
     tensor: &TensorAny<R, T, B, D>,
     source: IS,
@@ -182,9 +176,7 @@ where
 /// Moves array axes (dimensions) to new positions, while leaving other axes in their original
 /// positions.
 ///
-/// # See also
-///
-/// Refer to [`moveaxis`] for details and examples.
+/// See also [`moveaxis`].
 pub fn into_moveaxis<IS, ID, S, D>(tensor: TensorBase<S, D>, source: IS, destination: ID) -> TensorBase<S, D>
 where
     D: DimAPI,
@@ -203,9 +195,7 @@ where
     /// Moves array axes (dimensions) to new positions, while leaving other axes in their original
     /// positions.
     ///
-    /// # See also
-    ///
-    /// Refer to [`moveaxis`] for details and examples.
+    /// See also [`moveaxis`].
     pub fn moveaxis<IS, ID>(&self, source: IS, destination: ID) -> TensorView<'_, T, B, D>
     where
         IS: TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -217,9 +207,7 @@ where
     /// Moves array axes (dimensions) to new positions, while leaving other axes in their original
     /// positions.
     ///
-    /// # See also
-    ///
-    /// Refer to [`moveaxis`] for details and examples.
+    /// See also [`moveaxis`].
     pub fn moveaxis_f<IS, ID>(&self, source: IS, destination: ID) -> Result<TensorView<'_, T, B, D>>
     where
         IS: TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -231,9 +219,7 @@ where
     /// Moves array axes (dimensions) to new positions, while leaving other axes in their original
     /// positions.
     ///
-    /// # See also
-    ///
-    /// Refer to [`moveaxis`] for details and examples.
+    /// See also [`moveaxis`].
     pub fn into_moveaxis<IS, ID>(self, source: IS, destination: ID) -> TensorAny<R, T, B, D>
     where
         IS: TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -245,9 +231,7 @@ where
     /// Moves array axes (dimensions) to new positions, while leaving other axes in their original
     /// positions.
     ///
-    /// # See also
-    ///
-    /// Refer to [`moveaxis`] for details and examples.
+    /// See also [`moveaxis`].
     pub fn into_moveaxis_f<IS, ID>(self, source: IS, destination: ID) -> Result<TensorAny<R, T, B, D>>
     where
         IS: TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -256,5 +240,3 @@ where
         into_moveaxis_f(self, source, destination)
     }
 }
-
-/* #endregion */

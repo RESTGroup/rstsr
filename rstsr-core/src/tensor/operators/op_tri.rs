@@ -8,7 +8,7 @@ where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    B: DeviceAPI<T> + DeviceOpPackTriAPI<T> + DeviceCreationAnyAPI<T>,
+    B: DeviceAPI<T> + OpPackTriAPI<T> + DeviceCreationAnyAPI<T>,
 {
     pub fn pack_tri_f(&self, uplo: FlagUpLo) -> Result<Tensor<T, B, D::SmallerOne>> {
         // layouts manuplication
@@ -100,7 +100,7 @@ where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
     D: DimAPI + DimLargerOneAPI,
     D::LargerOne: DimAPI,
-    B: DeviceAPI<T> + DeviceOpUnpackTriAPI<T> + DeviceCreationAnyAPI<T>,
+    B: DeviceAPI<T> + OpUnpackTriAPI<T> + DeviceCreationAnyAPI<T>,
 {
     pub fn unpack_tri_f(&self, uplo: FlagUpLo, symm: FlagSymm) -> Result<Tensor<T, B, D::LargerOne>> {
         // layouts manuplication

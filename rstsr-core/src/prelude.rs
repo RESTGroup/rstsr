@@ -83,32 +83,31 @@ pub mod rstsr_funcs {
     };
 
     // binary arithmetics
-    pub use crate::tensor::operators::{
-        add, add_f, add_with_output, add_with_output_f, div, div_f, div_with_output, div_with_output_f, matmul::matmul,
-        matmul_f, matmul_from, matmul_from_f, matmul_with_output, matmul_with_output_f, mul, mul_f, mul_with_output,
-        mul_with_output_f, rem, rem_f, rem_with_output, rem_with_output_f, sub, sub_f, sub_with_output,
-        sub_with_output_f,
+    pub use crate::tensor::operators::exports::{
+        add, add_f, add_with_output, add_with_output_f, div, div_f, div_with_output, div_with_output_f, mul, mul_f,
+        mul_with_output, mul_with_output_f, rem, rem_f, rem_with_output, rem_with_output_f, sub, sub_f,
+        sub_with_output, sub_with_output_f,
     };
     // binary arithmetics with assignment
-    pub use crate::tensor::operators::{
+    pub use crate::tensor::operators::exports::{
         add_assign, add_assign_f, div_assign, div_assign_f, mul_assign, mul_assign_f, rem_assign, rem_assign_f,
         sub_assign, sub_assign_f,
     };
     // binary bitwise
-    pub use crate::tensor::operators::{
+    pub use crate::tensor::operators::exports::{
         bitand, bitand_f, bitand_with_output, bitand_with_output_f, bitor, bitor_f, bitor_with_output,
         bitor_with_output_f, bitxor, bitxor_f, bitxor_with_output, bitxor_with_output_f, shl, shl_f, shl_with_output,
         shl_with_output_f, shr, shr_f, shr_with_output, shr_with_output_f,
     };
     // binary bitwise with assignment
-    pub use crate::tensor::operators::{
+    pub use crate::tensor::operators::exports::{
         bitand_assign, bitand_assign_f, bitor_assign, bitor_assign_f, bitxor_assign, bitxor_assign_f, shl_assign,
         shl_assign_f, shr_assign, shr_assign_f,
     };
     // unary arithmetics
-    pub use crate::tensor::operators::{neg, neg_f, not, not_f};
+    pub use crate::tensor::operators::exports::{neg, neg_f, not, not_f};
     // unary common functions
-    pub use crate::tensor::operators::{
+    pub use crate::tensor::operators::exports::{
         abs, abs_f, acos, acos_f, acosh, acosh_f, asin, asin_f, asinh, asinh_f, atan, atan_f, atanh, atanh_f, ceil,
         ceil_f, conj, conj_f, cos, cos_f, cosh, cosh_f, exp, exp_f, expm1, expm1_f, floor, floor_f, imag, imag_f, inv,
         inv_f, is_finite, is_finite_f, is_inf, is_inf_f, is_nan, is_nan_f, log, log10, log10_f, log2, log2_f, log_f,
@@ -116,7 +115,7 @@ pub mod rstsr_funcs {
         sinh_f, sqrt, sqrt_f, square, square_f, tan, tan_f, tanh, tanh_f, trunc, trunc_f,
     };
     // binary common functions
-    pub use crate::tensor::operators::{
+    pub use crate::tensor::operators::exports::{
         atan2, atan2_f, copysign, copysign_f, eq, eq_f, equal, equal_f, equal_than, equal_than_f, floor_divide,
         floor_divide_f, ge, ge_f, greater, greater_equal, greater_equal_f, greater_equal_to, greater_equal_to_f,
         greater_f, greater_than, greater_than_f, gt, gt_f, hypot, hypot_f, le, le_f, less, less_equal, less_equal_f,
@@ -137,6 +136,12 @@ pub mod rstsr_funcs {
         unraveled_argmax_axes, unraveled_argmax_axes_f, unraveled_argmax_f, unraveled_argmin, unraveled_argmin_all,
         unraveled_argmin_all_f, unraveled_argmin_axes, unraveled_argmin_axes_f, unraveled_argmin_f, var, var_all,
         var_all_f, var_axes, var_axes_f, var_f,
+    };
+    // linalg (array-api's basic linalg operations, not the rstsr-linalg-traits)
+    pub use crate::tensor::linalg::exports::{
+        into_matrix_transpose, into_matrix_transpose_f, matmul, matmul_f, matmul_from, matmul_from_f,
+        matmul_with_output, matmul_with_output_f, matrix_transpose, matrix_transpose_f, vecdot, vecdot_f, vecdot_from,
+        vecdot_from_f,
     };
 }
 

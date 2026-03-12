@@ -4,7 +4,7 @@ use core::mem::transmute;
 /* #region binary operation function and traits */
 
 #[duplicate_item(
-    op       op_f       TensorOpAPI     ;
+    op       op_f       TensorOpAPI       ;
    [add   ] [add_f   ] [TensorAddAPI   ];
    [sub   ] [sub_f   ] [TensorSubAPI   ];
    [mul   ] [mul_f   ] [TensorMulAPI   ];
@@ -28,7 +28,7 @@ pub trait TensorOpAPI<TrB> {
 }
 
 #[duplicate_item(
-    op       op_f       TensorOpAPI     ;
+    op       op_f       TensorOpAPI       ;
    [add   ] [add_f   ] [TensorAddAPI   ];
    [sub   ] [sub_f   ] [TensorSubAPI   ];
    [mul   ] [mul_f   ] [TensorMulAPI   ];
@@ -48,7 +48,7 @@ where
 }
 
 #[duplicate_item(
-    op       op_f       TensorOpAPI     ;
+    op       op_f       TensorOpAPI       ;
    [add   ] [add_f   ] [TensorAddAPI   ];
    [sub   ] [sub_f   ] [TensorSubAPI   ];
    [mul   ] [mul_f   ] [TensorMulAPI   ];
@@ -68,7 +68,7 @@ where
 }
 
 #[duplicate_item(
-    op       op_f       TensorOpAPI     ;
+    op       op_f       TensorOpAPI       ;
    [add   ] [add_f   ] [TensorAddAPI   ];
    [sub   ] [sub_f   ] [TensorSubAPI   ];
    [mul   ] [mul_f   ] [TensorMulAPI   ];
@@ -104,17 +104,17 @@ where
 /* #region binary core ops implementation */
 
 #[duplicate_item(
-    op       DeviceOpAPI       TensorOpAPI       Op     ;
-   [add   ] [DeviceAddAPI   ] [TensorAddAPI   ] [Add   ];
-   [sub   ] [DeviceSubAPI   ] [TensorSubAPI   ] [Sub   ];
-   [mul   ] [DeviceMulAPI   ] [TensorMulAPI   ] [Mul   ];
-   [div   ] [DeviceDivAPI   ] [TensorDivAPI   ] [Div   ];
-// [rem   ] [DeviceRemAPI   ] [TensorRemAPI   ] [Rem   ];
-   [bitor ] [DeviceBitOrAPI ] [TensorBitOrAPI ] [BitOr ];
-   [bitand] [DeviceBitAndAPI] [TensorBitAndAPI] [BitAnd];
-   [bitxor] [DeviceBitXorAPI] [TensorBitXorAPI] [BitXor];
-   [shl   ] [DeviceShlAPI   ] [TensorShlAPI   ] [Shl   ];
-   [shr   ] [DeviceShrAPI   ] [TensorShrAPI   ] [Shr   ];
+    op       OpAPI         TensorOpAPI         Op     ;
+   [add   ] [OpAddAPI   ] [TensorAddAPI   ] [Add   ];
+   [sub   ] [OpSubAPI   ] [TensorSubAPI   ] [Sub   ];
+   [mul   ] [OpMulAPI   ] [TensorMulAPI   ] [Mul   ];
+   [div   ] [OpDivAPI   ] [TensorDivAPI   ] [Div   ];
+// [rem   ] [OpRemAPI   ] [TensorRemAPI   ] [Rem   ];
+   [bitor ] [OpBitOrAPI ] [TensorBitOrAPI ] [BitOr ];
+   [bitand] [OpBitAndAPI] [TensorBitAndAPI] [BitAnd];
+   [bitxor] [OpBitXorAPI] [TensorBitXorAPI] [BitXor];
+   [shl   ] [OpShlAPI   ] [TensorShlAPI   ] [Shl   ];
+   [shr   ] [OpShrAPI   ] [TensorShrAPI   ] [Shr   ];
 )]
 mod impl_core_ops {
     use super::*;
@@ -151,17 +151,17 @@ mod impl_core_ops {
 /* #region binary implementation */
 
 #[duplicate_item(
-    op_f       DeviceOpAPI       TensorOpAPI       Op     ;
-   [add_f   ] [DeviceAddAPI   ] [TensorAddAPI   ] [Add   ];
-   [sub_f   ] [DeviceSubAPI   ] [TensorSubAPI   ] [Sub   ];
-   [mul_f   ] [DeviceMulAPI   ] [TensorMulAPI   ] [Mul   ];
-   [div_f   ] [DeviceDivAPI   ] [TensorDivAPI   ] [Div   ];
-   [rem_f   ] [DeviceRemAPI   ] [TensorRemAPI   ] [Rem   ];
-   [bitor_f ] [DeviceBitOrAPI ] [TensorBitOrAPI ] [BitOr ];
-   [bitand_f] [DeviceBitAndAPI] [TensorBitAndAPI] [BitAnd];
-   [bitxor_f] [DeviceBitXorAPI] [TensorBitXorAPI] [BitXor];
-   [shl_f   ] [DeviceShlAPI   ] [TensorShlAPI   ] [Shl   ];
-   [shr_f   ] [DeviceShrAPI   ] [TensorShrAPI   ] [Shr   ];
+    op_f       OpAPI         TensorOpAPI         Op     ;
+   [add_f   ] [OpAddAPI   ] [TensorAddAPI   ] [Add   ];
+   [sub_f   ] [OpSubAPI   ] [TensorSubAPI   ] [Sub   ];
+   [mul_f   ] [OpMulAPI   ] [TensorMulAPI   ] [Mul   ];
+   [div_f   ] [OpDivAPI   ] [TensorDivAPI   ] [Div   ];
+   [rem_f   ] [OpRemAPI   ] [TensorRemAPI   ] [Rem   ];
+   [bitor_f ] [OpBitOrAPI ] [TensorBitOrAPI ] [BitOr ];
+   [bitand_f] [OpBitAndAPI] [TensorBitAndAPI] [BitAnd];
+   [bitxor_f] [OpBitXorAPI] [TensorBitXorAPI] [BitXor];
+   [shl_f   ] [OpShlAPI   ] [TensorShlAPI   ] [Shl   ];
+   [shr_f   ] [OpShrAPI   ] [TensorShrAPI   ] [Shr   ];
 )]
 mod impl_binary_arithmetic_ref {
     use super::*;
@@ -182,7 +182,7 @@ mod impl_binary_arithmetic_ref {
         DA: DimMaxAPI<DB, Max = DC>,
         // operation constraints
         TA: Op<TB, Output = TC>,
-        B: DeviceOpAPI<TA, TB, TC, DC>,
+        B: OpAPI<TA, TB, TC, DC>,
     {
         type Output = Tensor<TC, B, DC>;
         fn op_f(a: Self, b: &TensorAny<RB, TB, B, DB>) -> Result<Self::Output> {
@@ -236,7 +236,7 @@ mod impl_binary_arithmetic_ref {
         DA: DimMaxAPI<DB, Max = DC>,
         // operation constraints
         TA: Op<TB, Output = TC>,
-        B: DeviceOpAPI<TA, TB, TC, DC>,
+        B: OpAPI<TA, TB, TC, DC>,
     {
         type Output = Tensor<TC, B, DC>;
         fn op_f(a: Self, b: TrB) -> Result<Self::Output> {
@@ -246,17 +246,17 @@ mod impl_binary_arithmetic_ref {
 }
 
 #[duplicate_item(
-    op_f       DeviceOpAPI      TensorOpAPI        Op       DeviceLConsumeAPI         DeviceRConsumeAPI       ;
-   [add_f   ] [DeviceAddAPI   ] [TensorAddAPI   ] [Add   ] [DeviceLConsumeAddAPI   ] [DeviceRConsumeAddAPI   ];
-   [sub_f   ] [DeviceSubAPI   ] [TensorSubAPI   ] [Sub   ] [DeviceLConsumeSubAPI   ] [DeviceRConsumeSubAPI   ];
-   [mul_f   ] [DeviceMulAPI   ] [TensorMulAPI   ] [Mul   ] [DeviceLConsumeMulAPI   ] [DeviceRConsumeMulAPI   ];
-   [div_f   ] [DeviceDivAPI   ] [TensorDivAPI   ] [Div   ] [DeviceLConsumeDivAPI   ] [DeviceRConsumeDivAPI   ];
-   [rem_f   ] [DeviceRemAPI   ] [TensorRemAPI   ] [Rem   ] [DeviceLConsumeRemAPI   ] [DeviceRConsumeRemAPI   ];
-   [bitor_f ] [DeviceBitOrAPI ] [TensorBitOrAPI ] [BitOr ] [DeviceLConsumeBitOrAPI ] [DeviceRConsumeBitOrAPI ];
-   [bitand_f] [DeviceBitAndAPI] [TensorBitAndAPI] [BitAnd] [DeviceLConsumeBitAndAPI] [DeviceRConsumeBitAndAPI];
-   [bitxor_f] [DeviceBitXorAPI] [TensorBitXorAPI] [BitXor] [DeviceLConsumeBitXorAPI] [DeviceRConsumeBitXorAPI];
-   [shl_f   ] [DeviceShlAPI   ] [TensorShlAPI   ] [Shl   ] [DeviceLConsumeShlAPI   ] [DeviceRConsumeShlAPI   ];
-   [shr_f   ] [DeviceShrAPI   ] [TensorShrAPI   ] [Shr   ] [DeviceLConsumeShrAPI   ] [DeviceRConsumeShrAPI   ];
+    op_f       OpAPI        TensorOpAPI          Op       OpLConsumeAPI         OpRConsumeAPI       ;
+   [add_f   ] [OpAddAPI   ] [TensorAddAPI   ] [Add   ] [OpLConsumeAddAPI   ] [OpRConsumeAddAPI   ];
+   [sub_f   ] [OpSubAPI   ] [TensorSubAPI   ] [Sub   ] [OpLConsumeSubAPI   ] [OpRConsumeSubAPI   ];
+   [mul_f   ] [OpMulAPI   ] [TensorMulAPI   ] [Mul   ] [OpLConsumeMulAPI   ] [OpRConsumeMulAPI   ];
+   [div_f   ] [OpDivAPI   ] [TensorDivAPI   ] [Div   ] [OpLConsumeDivAPI   ] [OpRConsumeDivAPI   ];
+   [rem_f   ] [OpRemAPI   ] [TensorRemAPI   ] [Rem   ] [OpLConsumeRemAPI   ] [OpRConsumeRemAPI   ];
+   [bitor_f ] [OpBitOrAPI ] [TensorBitOrAPI ] [BitOr ] [OpLConsumeBitOrAPI ] [OpRConsumeBitOrAPI ];
+   [bitand_f] [OpBitAndAPI] [TensorBitAndAPI] [BitAnd] [OpLConsumeBitAndAPI] [OpRConsumeBitAndAPI];
+   [bitxor_f] [OpBitXorAPI] [TensorBitXorAPI] [BitXor] [OpLConsumeBitXorAPI] [OpRConsumeBitXorAPI];
+   [shl_f   ] [OpShlAPI   ] [TensorShlAPI   ] [Shl   ] [OpLConsumeShlAPI   ] [OpRConsumeShlAPI   ];
+   [shr_f   ] [OpShrAPI   ] [TensorShrAPI   ] [Shr   ] [OpLConsumeShrAPI   ] [OpRConsumeShrAPI   ];
 )]
 mod impl_binary_lr_consume {
     use super::*;
@@ -278,8 +278,8 @@ mod impl_binary_lr_consume {
         DA: DimIntoAPI<DC>,
         // operation constraints
         TA: Op<TB, Output = TA>,
-        B: DeviceOpAPI<TA, TB, TA, DC>,
-        B: DeviceLConsumeAPI<TA, TB, DA>,
+        B: OpAPI<TA, TB, TA, DC>,
+        B: OpLConsumeAPI<TA, TB, DA>,
     {
         type Output = Tensor<TA, B, DC>;
         fn op_f(a: Self, b: &TensorAny<RB, TB, B, DB>) -> Result<Self::Output> {
@@ -328,8 +328,8 @@ mod impl_binary_lr_consume {
         DB: DimIntoAPI<DC>,
         // operation constraints
         TA: Op<TB, Output = TB>,
-        B: DeviceOpAPI<TA, TB, TB, DC>,
-        B: DeviceRConsumeAPI<TA, TB, DB>,
+        B: OpAPI<TA, TB, TB, DC>,
+        B: OpRConsumeAPI<TA, TB, DB>,
     {
         type Output = Tensor<TB, B, DC>;
         fn op_f(a: Self, b: Tensor<TB, B, DB>) -> Result<Self::Output> {
@@ -374,8 +374,8 @@ mod impl_binary_lr_consume {
         DA: DimIntoAPI<DC>,
         // operation constraints
         TA: Op<TB, Output = TA>,
-        B: DeviceOpAPI<TA, TB, TA, DC>,
-        B: DeviceLConsumeAPI<TA, TB, DA>,
+        B: OpAPI<TA, TB, TA, DC>,
+        B: OpLConsumeAPI<TA, TB, DA>,
     {
         type Output = Tensor<TA, B, DC>;
         fn op_f(a: Self, b: TensorView<'b, TB, B, DB>) -> Result<Self::Output> {
@@ -399,8 +399,8 @@ mod impl_binary_lr_consume {
         DB: DimIntoAPI<DC>,
         // operation constraints
         TA: Op<TB, Output = TB>,
-        B: DeviceOpAPI<TA, TB, TB, DC>,
-        B: DeviceRConsumeAPI<TA, TB, DB>,
+        B: OpAPI<TA, TB, TB, DC>,
+        B: OpRConsumeAPI<TA, TB, DB>,
     {
         type Output = Tensor<TB, B, DC>;
         fn op_f(a: Self, b: Tensor<TB, B, DB>) -> Result<Self::Output> {
@@ -423,9 +423,9 @@ mod impl_binary_lr_consume {
         DC: DimIntoAPI<DA> + DimIntoAPI<DB>,
         // operation constraints
         T: Op<T, Output = T>,
-        B: DeviceOpAPI<T, T, T, DC>,
-        B: DeviceLConsumeAPI<T, T, DA>,
-        B: DeviceRConsumeAPI<T, T, DB>,
+        B: OpAPI<T, T, T, DC>,
+        B: OpLConsumeAPI<T, T, DA>,
+        B: OpRConsumeAPI<T, T, DB>,
     {
         type Output = Tensor<T, B, DC>;
         fn op_f(a: Self, b: Tensor<T, B, DB>) -> Result<Self::Output> {
@@ -475,9 +475,9 @@ mod impl_binary_lr_consume {
         DC: DimIntoAPI<DA> + DimIntoAPI<DB>,
         // operation constraints
         T: Op<T, Output = T>,
-        B: DeviceOpAPI<T, T, T, DC>,
-        B: DeviceLConsumeAPI<T, T, DA>,
-        B: DeviceRConsumeAPI<T, T, DB>,
+        B: OpAPI<T, T, T, DC>,
+        B: OpLConsumeAPI<T, T, DA>,
+        B: OpRConsumeAPI<T, T, DB>,
         // cow constraints
         T: Clone,
         <B as DeviceRawAPI<T>>::Raw: Clone,
@@ -513,9 +513,9 @@ mod impl_binary_lr_consume {
         DC: DimIntoAPI<DA> + DimIntoAPI<DB>,
         // operation constraints
         T: Op<T, Output = T>,
-        B: DeviceOpAPI<T, T, T, DC>,
-        B: DeviceLConsumeAPI<T, T, DA>,
-        B: DeviceRConsumeAPI<T, T, DB>,
+        B: OpAPI<T, T, T, DC>,
+        B: OpLConsumeAPI<T, T, DA>,
+        B: OpRConsumeAPI<T, T, DB>,
         // cow constraints
         T: Clone,
         <B as DeviceRawAPI<T>>::Raw: Clone,
@@ -544,9 +544,9 @@ mod impl_binary_lr_consume {
         DC: DimIntoAPI<DA> + DimIntoAPI<DB>,
         // operation constraints
         T: Op<T, Output = T>,
-        B: DeviceOpAPI<T, T, T, DC>,
-        B: DeviceLConsumeAPI<T, T, DA>,
-        B: DeviceRConsumeAPI<T, T, DB>,
+        B: OpAPI<T, T, T, DC>,
+        B: OpLConsumeAPI<T, T, DA>,
+        B: OpRConsumeAPI<T, T, DB>,
         // cow constraints
         T: Clone,
         <B as DeviceRawAPI<T>>::Raw: Clone,
@@ -569,17 +569,17 @@ mod impl_binary_lr_consume {
 /* #region binary with output implementation */
 
 #[duplicate_item(
-    op                   op_f                   DeviceOpAPI       Op     ;
-   [add_with_output   ] [add_with_output_f   ] [DeviceAddAPI   ] [Add   ];
-   [sub_with_output   ] [sub_with_output_f   ] [DeviceSubAPI   ] [Sub   ];
-   [mul_with_output   ] [mul_with_output_f   ] [DeviceMulAPI   ] [Mul   ];
-   [div_with_output   ] [div_with_output_f   ] [DeviceDivAPI   ] [Div   ];
-   [rem_with_output   ] [rem_with_output_f   ] [DeviceRemAPI   ] [Rem   ];
-   [bitor_with_output ] [bitor_with_output_f ] [DeviceBitOrAPI ] [BitOr ];
-   [bitand_with_output] [bitand_with_output_f] [DeviceBitAndAPI] [BitAnd];
-   [bitxor_with_output] [bitxor_with_output_f] [DeviceBitXorAPI] [BitXor];
-   [shl_with_output   ] [shl_with_output_f   ] [DeviceShlAPI   ] [Shl   ];
-   [shr_with_output   ] [shr_with_output_f   ] [DeviceShrAPI   ] [Shr   ];
+    op                   op_f                   OpAPI         Op     ;
+   [add_with_output   ] [add_with_output_f   ] [OpAddAPI   ] [Add   ];
+   [sub_with_output   ] [sub_with_output_f   ] [OpSubAPI   ] [Sub   ];
+   [mul_with_output   ] [mul_with_output_f   ] [OpMulAPI   ] [Mul   ];
+   [div_with_output   ] [div_with_output_f   ] [OpDivAPI   ] [Div   ];
+   [rem_with_output   ] [rem_with_output_f   ] [OpRemAPI   ] [Rem   ];
+   [bitor_with_output ] [bitor_with_output_f ] [OpBitOrAPI ] [BitOr ];
+   [bitand_with_output] [bitand_with_output_f] [OpBitAndAPI] [BitAnd];
+   [bitxor_with_output] [bitxor_with_output_f] [OpBitXorAPI] [BitXor];
+   [shl_with_output   ] [shl_with_output_f   ] [OpShlAPI   ] [Shl   ];
+   [shr_with_output   ] [shr_with_output_f   ] [OpShrAPI   ] [Shr   ];
 )]
 pub fn op_f<TrA, TrB, TrC, TA, TB, TC, DA, DB, DC, B>(a: TrA, b: TrB, mut c: TrC) -> Result<()>
 where
@@ -596,7 +596,7 @@ where
     DC: DimMaxAPI<DA, Max = DC> + DimMaxAPI<DB, Max = DC>,
     // operation constraints
     TA: Op<TB, Output = TC>,
-    B: DeviceOpAPI<TA, TB, TC, DC>,
+    B: OpAPI<TA, TB, TC, DC>,
 {
     // get tensor views
     let a = a.view();
@@ -625,17 +625,17 @@ where
 }
 
 #[duplicate_item(
-        op                   op_f                   DeviceOpAPI       Op     ;
-       [add_with_output   ] [add_with_output_f   ] [DeviceAddAPI   ] [Add   ];
-       [sub_with_output   ] [sub_with_output_f   ] [DeviceSubAPI   ] [Sub   ];
-       [mul_with_output   ] [mul_with_output_f   ] [DeviceMulAPI   ] [Mul   ];
-       [div_with_output   ] [div_with_output_f   ] [DeviceDivAPI   ] [Div   ];
-       [rem_with_output   ] [rem_with_output_f   ] [DeviceRemAPI   ] [Rem   ];
-       [bitor_with_output ] [bitor_with_output_f ] [DeviceBitOrAPI ] [BitOr ];
-       [bitand_with_output] [bitand_with_output_f] [DeviceBitAndAPI] [BitAnd];
-       [bitxor_with_output] [bitxor_with_output_f] [DeviceBitXorAPI] [BitXor];
-       [shl_with_output   ] [shl_with_output_f   ] [DeviceShlAPI   ] [Shl   ];
-       [shr_with_output   ] [shr_with_output_f   ] [DeviceShrAPI   ] [Shr   ];
+        op                   op_f                   OpAPI         Op     ;
+       [add_with_output   ] [add_with_output_f   ] [OpAddAPI   ] [Add   ];
+       [sub_with_output   ] [sub_with_output_f   ] [OpSubAPI   ] [Sub   ];
+       [mul_with_output   ] [mul_with_output_f   ] [OpMulAPI   ] [Mul   ];
+       [div_with_output   ] [div_with_output_f   ] [OpDivAPI   ] [Div   ];
+       [rem_with_output   ] [rem_with_output_f   ] [OpRemAPI   ] [Rem   ];
+       [bitor_with_output ] [bitor_with_output_f ] [OpBitOrAPI ] [BitOr ];
+       [bitand_with_output] [bitand_with_output_f] [OpBitAndAPI] [BitAnd];
+       [bitxor_with_output] [bitxor_with_output_f] [OpBitXorAPI] [BitXor];
+       [shl_with_output   ] [shl_with_output_f   ] [OpShlAPI   ] [Shl   ];
+       [shr_with_output   ] [shr_with_output_f   ] [OpShrAPI   ] [Shr   ];
     )]
 pub fn op<TrA, TrB, TrC, TA, TB, TC, DA, DB, DC, B>(a: TrA, b: TrB, c: TrC)
 where
@@ -652,7 +652,7 @@ where
     DC: DimMaxAPI<DA, Max = DC> + DimMaxAPI<DB, Max = DC>,
     // operation constraints
     TA: Op<TB, Output = TC>,
-    B: DeviceOpAPI<TA, TB, TC, DC>,
+    B: OpAPI<TA, TB, TC, DC>,
 {
     op_f(a, b, c).rstsr_unwrap()
 }
@@ -662,7 +662,7 @@ where
 /* #region binary with scalar, num a op tsr b */
 
 macro_rules! impl_arithmetic_scalar_lhs {
-    ($ty: ty, $op: ident, $op_f: ident, $Op: ident, $DeviceOpAPI: ident, $TensorOpAPI: ident, $DeviceRConsumeOpAPI: ident) => {
+    ($ty: ty, $op: ident, $op_f: ident, $Op: ident, $OpAPI: ident, $TensorOpAPI: ident, $OpRConsumeOpAPI: ident) => {
         #[doc(hidden)]
         impl<T, R, D, B> $TensorOpAPI<&TensorAny<R, T, B, D>> for $ty
         where
@@ -670,7 +670,7 @@ macro_rules! impl_arithmetic_scalar_lhs {
             R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
             B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
-            B: $DeviceOpAPI<T, T, T, D>,
+            B: $OpAPI<T, T, T, D>,
         {
             type Output = Tensor<T, B, D>;
             fn $op_f(a: Self, b: &TensorAny<R, T, B, D>) -> Result<Self::Output> {
@@ -692,7 +692,7 @@ macro_rules! impl_arithmetic_scalar_lhs {
             R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
             D: DimAPI,
             B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
-            B: $DeviceOpAPI<T, T, T, D>,
+            B: $OpAPI<T, T, T, D>,
         {
             type Output = Tensor<T, B, D>;
             fn $op(self, rhs: &TensorAny<R, T, B, D>) -> Self::Output {
@@ -706,7 +706,7 @@ macro_rules! impl_arithmetic_scalar_lhs {
             T: From<$ty> + $Op<T, Output = T>,
             D: DimAPI,
             B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
-            B: $DeviceOpAPI<T, T, T, D>,
+            B: $OpAPI<T, T, T, D>,
         {
             type Output = Tensor<T, B, D>;
             fn $op_f(a: Self, b: TensorView<'_, T, B, D>) -> Result<Self::Output> {
@@ -727,7 +727,7 @@ macro_rules! impl_arithmetic_scalar_lhs {
             T: From<$ty> + $Op<T, Output = T>,
             D: DimAPI,
             B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
-            B: $DeviceOpAPI<T, T, T, D>,
+            B: $OpAPI<T, T, T, D>,
         {
             type Output = Tensor<T, B, D>;
             fn $op(self, rhs: TensorView<'_, T, B, D>) -> Self::Output {
@@ -741,7 +741,7 @@ macro_rules! impl_arithmetic_scalar_lhs {
             T: From<$ty> + $Op<T, Output = T>,
             D: DimAPI,
             B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
-            B: $DeviceRConsumeOpAPI<T, T, D>,
+            B: $OpRConsumeOpAPI<T, T, D>,
         {
             type Output = Tensor<T, B, D>;
             fn $op_f(a: Self, mut b: Tensor<T, B, D>) -> Result<Self::Output> {
@@ -759,7 +759,7 @@ macro_rules! impl_arithmetic_scalar_lhs {
             T: From<$ty> + $Op<T, Output = T>,
             D: DimAPI,
             B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
-            B: $DeviceRConsumeOpAPI<T, T, D>,
+            B: $OpRConsumeOpAPI<T, T, D>,
         {
             type Output = Tensor<T, B, D>;
             fn $op(self, rhs: Tensor<T, B, D>) -> Self::Output {
@@ -773,7 +773,7 @@ macro_rules! impl_arithmetic_scalar_lhs {
             T: From<$ty> + $Op<T, Output = T>,
             D: DimAPI,
             B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
-            B: $DeviceRConsumeOpAPI<T, T, D> + $DeviceOpAPI<T, T, T, D>,
+            B: $OpRConsumeOpAPI<T, T, D> + $OpAPI<T, T, T, D>,
             // cow constraints
             T: Clone,
             <B as DeviceRawAPI<T>>::Raw: Clone,
@@ -794,7 +794,7 @@ macro_rules! impl_arithmetic_scalar_lhs {
             T: From<$ty> + $Op<T, Output = T>,
             D: DimAPI,
             B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
-            B: $DeviceRConsumeOpAPI<T, T, D> + $DeviceOpAPI<T, T, T, D>,
+            B: $OpRConsumeOpAPI<T, T, D> + $OpAPI<T, T, T, D>,
             // cow constraints
             T: Clone,
             <B as DeviceRawAPI<T>>::Raw: Clone,
@@ -811,35 +811,35 @@ macro_rules! impl_arithmetic_scalar_lhs {
 #[rustfmt::skip]
 macro_rules! impl_arithmetic_scalar_lhs_all {
     ($ty: ty) => {
-        impl_arithmetic_scalar_lhs!($ty, add   , add_f   , Add   , DeviceAddAPI   , TensorAddAPI   , DeviceRConsumeAddAPI   );
-        impl_arithmetic_scalar_lhs!($ty, sub   , sub_f   , Sub   , DeviceSubAPI   , TensorSubAPI   , DeviceRConsumeSubAPI   );
-        impl_arithmetic_scalar_lhs!($ty, mul   , mul_f   , Mul   , DeviceMulAPI   , TensorMulAPI   , DeviceRConsumeMulAPI   );
-        impl_arithmetic_scalar_lhs!($ty, div   , div_f   , Div   , DeviceDivAPI   , TensorDivAPI   , DeviceRConsumeDivAPI   );
-        impl_arithmetic_scalar_lhs!($ty, rem   , rem_f   , Rem   , DeviceRemAPI   , TensorRemAPI   , DeviceRConsumeRemAPI   );
-        impl_arithmetic_scalar_lhs!($ty, bitor , bitor_f , BitOr , DeviceBitOrAPI , TensorBitOrAPI , DeviceRConsumeBitOrAPI );
-        impl_arithmetic_scalar_lhs!($ty, bitand, bitand_f, BitAnd, DeviceBitAndAPI, TensorBitAndAPI, DeviceRConsumeBitAndAPI);
-        impl_arithmetic_scalar_lhs!($ty, bitxor, bitxor_f, BitXor, DeviceBitXorAPI, TensorBitXorAPI, DeviceRConsumeBitXorAPI);
-        impl_arithmetic_scalar_lhs!($ty, shl   , shl_f   , Shl   , DeviceShlAPI   , TensorShlAPI   , DeviceRConsumeShlAPI   );
-        impl_arithmetic_scalar_lhs!($ty, shr   , shr_f   , Shr   , DeviceShrAPI   , TensorShrAPI   , DeviceRConsumeShrAPI   );
+        impl_arithmetic_scalar_lhs!($ty, add   , add_f   , Add   , OpAddAPI   , TensorAddAPI   , OpRConsumeAddAPI   );
+        impl_arithmetic_scalar_lhs!($ty, sub   , sub_f   , Sub   , OpSubAPI   , TensorSubAPI   , OpRConsumeSubAPI   );
+        impl_arithmetic_scalar_lhs!($ty, mul   , mul_f   , Mul   , OpMulAPI   , TensorMulAPI   , OpRConsumeMulAPI   );
+        impl_arithmetic_scalar_lhs!($ty, div   , div_f   , Div   , OpDivAPI   , TensorDivAPI   , OpRConsumeDivAPI   );
+        impl_arithmetic_scalar_lhs!($ty, rem   , rem_f   , Rem   , OpRemAPI   , TensorRemAPI   , OpRConsumeRemAPI   );
+        impl_arithmetic_scalar_lhs!($ty, bitor , bitor_f , BitOr , OpBitOrAPI , TensorBitOrAPI , OpRConsumeBitOrAPI );
+        impl_arithmetic_scalar_lhs!($ty, bitand, bitand_f, BitAnd, OpBitAndAPI, TensorBitAndAPI, OpRConsumeBitAndAPI);
+        impl_arithmetic_scalar_lhs!($ty, bitxor, bitxor_f, BitXor, OpBitXorAPI, TensorBitXorAPI, OpRConsumeBitXorAPI);
+        impl_arithmetic_scalar_lhs!($ty, shl   , shl_f   , Shl   , OpShlAPI   , TensorShlAPI   , OpRConsumeShlAPI   );
+        impl_arithmetic_scalar_lhs!($ty, shr   , shr_f   , Shr   , OpShrAPI   , TensorShrAPI   , OpRConsumeShrAPI   );
     };
 }
 
 #[rustfmt::skip]
 macro_rules! impl_arithmetic_scalar_lhs_bool {
     ($ty: ty) => {
-        impl_arithmetic_scalar_lhs!($ty, bitor , bitor_f , BitOr , DeviceBitOrAPI , TensorBitOrAPI , DeviceRConsumeBitOrAPI );
-        impl_arithmetic_scalar_lhs!($ty, bitand, bitand_f, BitAnd, DeviceBitAndAPI, TensorBitAndAPI, DeviceRConsumeBitAndAPI);
-        impl_arithmetic_scalar_lhs!($ty, bitxor, bitxor_f, BitXor, DeviceBitXorAPI, TensorBitXorAPI, DeviceRConsumeBitXorAPI);
+        impl_arithmetic_scalar_lhs!($ty, bitor , bitor_f , BitOr , OpBitOrAPI , TensorBitOrAPI , OpRConsumeBitOrAPI );
+        impl_arithmetic_scalar_lhs!($ty, bitand, bitand_f, BitAnd, OpBitAndAPI, TensorBitAndAPI, OpRConsumeBitAndAPI);
+        impl_arithmetic_scalar_lhs!($ty, bitxor, bitxor_f, BitXor, OpBitXorAPI, TensorBitXorAPI, OpRConsumeBitXorAPI);
     };
 }
 
 #[rustfmt::skip]
 macro_rules! impl_arithmetic_scalar_lhs_float {
     ($ty: ty) => {
-        impl_arithmetic_scalar_lhs!($ty, add , add_f , Add   , DeviceAddAPI   , TensorAddAPI   , DeviceRConsumeAddAPI   );
-        impl_arithmetic_scalar_lhs!($ty, sub , sub_f , Sub   , DeviceSubAPI   , TensorSubAPI   , DeviceRConsumeSubAPI   );
-        impl_arithmetic_scalar_lhs!($ty, mul , mul_f , Mul   , DeviceMulAPI   , TensorMulAPI   , DeviceRConsumeMulAPI   );
-        impl_arithmetic_scalar_lhs!($ty, div , div_f , Div   , DeviceDivAPI   , TensorDivAPI   , DeviceRConsumeDivAPI   );
+        impl_arithmetic_scalar_lhs!($ty, add , add_f , Add   , OpAddAPI   , TensorAddAPI   , OpRConsumeAddAPI   );
+        impl_arithmetic_scalar_lhs!($ty, sub , sub_f , Sub   , OpSubAPI   , TensorSubAPI   , OpRConsumeSubAPI   );
+        impl_arithmetic_scalar_lhs!($ty, mul , mul_f , Mul   , OpMulAPI   , TensorMulAPI   , OpRConsumeMulAPI   );
+        impl_arithmetic_scalar_lhs!($ty, div , div_f , Div   , OpDivAPI   , TensorDivAPI   , OpRConsumeDivAPI   );
     };
 }
 
@@ -880,17 +880,17 @@ mod impl_arithmetic_scalar_lhs {
 // see macro_rule `impl_core_ops`
 
 #[duplicate_item(
-    op_f       Op       DeviceOpAPI       TensorOpAPI       DeviceLConsumeOpAPI     ;
-   [add_f   ] [Add   ] [DeviceAddAPI   ] [TensorAddAPI   ] [DeviceLConsumeAddAPI   ];
-   [sub_f   ] [Sub   ] [DeviceSubAPI   ] [TensorSubAPI   ] [DeviceLConsumeSubAPI   ];
-   [mul_f   ] [Mul   ] [DeviceMulAPI   ] [TensorMulAPI   ] [DeviceLConsumeMulAPI   ];
-   [div_f   ] [Div   ] [DeviceDivAPI   ] [TensorDivAPI   ] [DeviceLConsumeDivAPI   ];
-   [rem_f   ] [Rem   ] [DeviceRemAPI   ] [TensorRemAPI   ] [DeviceLConsumeRemAPI   ];
-   [bitor_f ] [BitOr ] [DeviceBitOrAPI ] [TensorBitOrAPI ] [DeviceLConsumeBitOrAPI ];
-   [bitand_f] [BitAnd] [DeviceBitAndAPI] [TensorBitAndAPI] [DeviceLConsumeBitAndAPI];
-   [bitxor_f] [BitXor] [DeviceBitXorAPI] [TensorBitXorAPI] [DeviceLConsumeBitXorAPI];
-   [shl_f   ] [Shl   ] [DeviceShlAPI   ] [TensorShlAPI   ] [DeviceLConsumeShlAPI   ];
-   [shr_f   ] [Shr   ] [DeviceShrAPI   ] [TensorShrAPI   ] [DeviceLConsumeShrAPI   ];
+    op_f       Op       OpAPI         TensorOpAPI         OpLConsumeOpAPI       ;
+   [add_f   ] [Add   ] [OpAddAPI   ] [TensorAddAPI   ] [OpLConsumeAddAPI   ];
+   [sub_f   ] [Sub   ] [OpSubAPI   ] [TensorSubAPI   ] [OpLConsumeSubAPI   ];
+   [mul_f   ] [Mul   ] [OpMulAPI   ] [TensorMulAPI   ] [OpLConsumeMulAPI   ];
+   [div_f   ] [Div   ] [OpDivAPI   ] [TensorDivAPI   ] [OpLConsumeDivAPI   ];
+   [rem_f   ] [Rem   ] [OpRemAPI   ] [TensorRemAPI   ] [OpLConsumeRemAPI   ];
+   [bitor_f ] [BitOr ] [OpBitOrAPI ] [TensorBitOrAPI ] [OpLConsumeBitOrAPI ];
+   [bitand_f] [BitAnd] [OpBitAndAPI] [TensorBitAndAPI] [OpLConsumeBitAndAPI];
+   [bitxor_f] [BitXor] [OpBitXorAPI] [TensorBitXorAPI] [OpLConsumeBitXorAPI];
+   [shl_f   ] [Shl   ] [OpShlAPI   ] [TensorShlAPI   ] [OpLConsumeShlAPI   ];
+   [shr_f   ] [Shr   ] [OpShrAPI   ] [TensorShrAPI   ] [OpLConsumeShrAPI   ];
 )]
 mod impl_arithmetic_scalar_rhs {
     use super::*;
@@ -902,7 +902,7 @@ mod impl_arithmetic_scalar_rhs {
         R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
         D: DimAPI,
         B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
-        B: DeviceOpAPI<T, T, T, D>,
+        B: OpAPI<T, T, T, D>,
         // this constraint prohibits confliting impl to TensorBase<RB, D>
         TB: num::Num,
     {
@@ -925,7 +925,7 @@ mod impl_arithmetic_scalar_rhs {
         T: From<TB> + Op<T, Output = T>,
         D: DimAPI,
         B: DeviceAPI<T> + DeviceCreationAnyAPI<T>,
-        B: DeviceOpAPI<T, T, T, D>,
+        B: OpAPI<T, T, T, D>,
         // this constraint prohibits confliting impl to TensorBase<RB, D>
         TB: num::Num,
     {
@@ -948,7 +948,7 @@ mod impl_arithmetic_scalar_rhs {
         T: From<TB> + Op<T, Output = T>,
         D: DimAPI,
         B: DeviceAPI<T>,
-        B: DeviceLConsumeOpAPI<T, T, D>,
+        B: OpLConsumeOpAPI<T, T, D>,
         // this constraint prohibits confliting impl to TensorBase<RB, D>
         TB: num::Num,
     {
@@ -968,7 +968,7 @@ mod impl_arithmetic_scalar_rhs {
         T: From<TB> + Op<T, Output = T>,
         D: DimAPI,
         B: DeviceAPI<T>,
-        B: DeviceLConsumeOpAPI<T, T, D> + DeviceOpAPI<T, T, T, D>,
+        B: OpLConsumeOpAPI<T, T, D> + OpAPI<T, T, T, D>,
         // this constraint prohibits confliting impl to TensorBase<RB, D>
         TB: num::Num,
         // cow constraints

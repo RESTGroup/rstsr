@@ -1,12 +1,8 @@
 use crate::prelude_dev::*;
 
-/* #region squeeze */
-
 /// Removes singleton dimensions (axes) from a tensor.
 ///
-/// # See also
-///
-/// Refer to [`squeeze`] for more detailed documentation.
+/// See also [`squeeze`].
 pub fn into_squeeze_f<S, D>(
     tensor: TensorBase<S, D>,
     axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -52,9 +48,7 @@ where
 
 /// Removes singleton dimensions (axes) from `x`.
 ///
-/// # See also
-///
-/// Refer to [`squeeze`] for more detailed documentation.
+/// See also [`squeeze`].
 pub fn into_squeeze<S, D>(
     tensor: TensorBase<S, D>,
     axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -107,10 +101,9 @@ where
 /// Squeeze a tensor along axis 0:
 ///
 /// ```rust
-/// use rstsr::prelude::*;
-/// let mut device = DeviceCpu::default();
-/// device.set_default_order(RowMajor);
-///
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
 /// let a: Tensor<f64, _> = rt::zeros(([1, 3, 1, 4], &device));
 /// let b = a.squeeze(0);
 /// assert_eq!(b.shape(), &[3, 1, 4]);
@@ -226,9 +219,7 @@ where
 
 /// Removes singleton dimensions (axes) from a tensor.
 ///
-/// # See also
-///
-/// Refer to [`squeeze`] for more detailed documentation.
+/// See also [`squeeze`].
 pub fn squeeze_f<R, T, B, D>(
     tensor: &TensorAny<R, T, B, D>,
     axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -249,18 +240,14 @@ where
 {
     /// Removes singleton dimensions (axes) from a tensor.
     ///
-    /// # See also
-    ///
-    /// Refer to [`squeeze`] for more detailed documentation.
+    /// See also [`squeeze`].
     pub fn squeeze(&self, axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> TensorView<'_, T, B, IxD> {
         squeeze(self, axes)
     }
 
     /// Removes singleton dimensions (axes) from a tensor.
     ///
-    /// # See also
-    ///
-    /// Refer to [`squeeze`] for more detailed documentation.
+    /// See also [`squeeze`].
     pub fn squeeze_f(
         &self,
         axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -270,18 +257,14 @@ where
 
     /// Removes singleton dimensions (axes) from a tensor.
     ///
-    /// # See also
-    ///
-    /// Refer to [`squeeze`] for more detailed documentation.
+    /// See also [`squeeze`].
     pub fn into_squeeze(self, axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> TensorAny<R, T, B, IxD> {
         into_squeeze(self, axes)
     }
 
     /// Removes singleton dimensions (axes) from a tensor.
     ///
-    /// # See also
-    ///
-    /// Refer to [`squeeze`] for more detailed documentation.
+    /// See also [`squeeze`].
     pub fn into_squeeze_f(
         self,
         axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -289,5 +272,3 @@ where
         into_squeeze_f(self, axes)
     }
 }
-
-/* #endregion */

@@ -5,7 +5,7 @@ pub mod assignment;
 pub mod conversion;
 pub mod creation;
 pub mod device;
-pub mod matmul;
+pub mod linalg;
 pub mod operators;
 pub mod reduction;
 

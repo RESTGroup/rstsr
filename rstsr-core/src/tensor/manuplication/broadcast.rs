@@ -32,7 +32,6 @@ use crate::prelude_dev::*;
 ///
 /// ```rust
 /// # use rstsr::prelude::*;
-///
 /// // A      (4d array):  8 x 1 x 6 x 1
 /// // B      (3d array):      7 x 1 x 5
 /// // ---------------------------------
@@ -49,7 +48,6 @@ use crate::prelude_dev::*;
 ///
 /// ```rust
 /// # use rstsr::prelude::*;
-///
 /// // A      (4d array):  1 x 6 x 1 x 8
 /// // B      (3d array):  5 x 1 x 7
 /// // ---------------------------------
@@ -66,7 +64,6 @@ use crate::prelude_dev::*;
 ///
 /// ```rust
 /// # use rstsr::prelude::*;
-///
 /// // Three shapes: (1,), (3, 1), (3, 4) -> (3, 4)
 /// let shapes = vec![vec![1], vec![3, 1], vec![3, 4]];
 /// let result = rt::broadcast_shapes(&shapes, RowMajor);
@@ -75,15 +72,17 @@ use crate::prelude_dev::*;
 /// assert_eq!(result, vec![3, 4]);
 /// ```
 ///
-/// # Panics
-///
-/// - If the shapes cannot be broadcast together (incompatible dimensions).
-///
 /// # Notes of API accordance
 ///
 /// - Array-API: `broadcast_shapes(*shapes)` ([`broadcast_shapes`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.broadcast_shapes.html))
 /// - NumPy: `numpy.broadcast_shapes(*shapes)` ([`numpy.broadcast_shapes`](https://numpy.org/doc/stable/reference/generated/numpy.broadcast_shapes.html))
 /// - RSTSR: `rt::broadcast_shapes(shapes, order)`
+///
+/// # Panics
+///
+/// Panics if the shapes cannot be broadcast together.
+///
+/// For a fallible version, use [`broadcast_shapes_f`].
 ///
 /// # See also
 ///
@@ -101,9 +100,7 @@ pub fn broadcast_shapes(shapes: &[IxD], order: FlagOrder) -> IxD {
 
 /// Broadcasts shapes against each other and returns the resulting shape.
 ///
-/// # See also
-///
-/// Refer to [`broadcast_shapes`] for detailed documentation.
+/// See also [`broadcast_shapes`].
 pub fn broadcast_shapes_f(shapes: &[IxD], order: FlagOrder) -> Result<IxD> {
     // fast return if empty or single shape
     if shapes.is_empty() {
@@ -164,7 +161,6 @@ pub fn broadcast_shapes_f(shapes: &[IxD], order: FlagOrder) -> Result<IxD> {
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
 /// # device.set_default_order(RowMajor);
-///
 /// let a = rt::asarray((vec![1, 2, 3], &device)).into_shape([3]);
 /// println!("{a}");
 /// // [ 1 2 3]
@@ -188,13 +184,13 @@ pub fn broadcast_shapes_f(shapes: &[IxD], order: FlagOrder) -> Result<IxD> {
 /// differently, shapes are incompatible (for col-major, broadcast comparison starts from left
 /// instead of row-major's right):
 ///
-/// ```rust,panic
+/// ```rust,should_panic
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
 /// device.set_default_order(ColMajor);
 /// let a = rt::asarray((vec![1, 2, 3], &device)).into_shape([3]);
 /// let b = rt::asarray((vec![4, 5], &device)).into_shape([2, 1]);
-/// let result = rt::broadcast_arrays_f(vec![a, b]);
+/// let result = rt::broadcast_arrays(vec![a, b]);
 /// ```
 ///
 /// You need to make the following changes to let [ColMajor] case work:
@@ -208,16 +204,17 @@ pub fn broadcast_shapes_f(shapes: &[IxD], order: FlagOrder) -> Result<IxD> {
 /// let result = rt::broadcast_arrays_f(vec![a, b]);
 /// ```
 ///
-/// # Panics
-///
-/// - Incompatible shapes to be broadcasted.
-/// - Tensors are on different devices.
-///
 /// # Notes of API accordance
 ///
 /// - Array-API: `broadcast_arrays(*arrays)` ([`broadcast_arrays`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.broadcast_arrays.html))
 /// - NumPy: `numpy.broadcast_arrays(*args, subok=False)` ([`numpy.broadcast_arrays`](https://numpy.org/doc/stable/reference/generated/numpy.broadcast_arrays.html))
 /// - RSTSR: `rt::broadcast_arrays(tensors)`
+///
+/// # Panics
+///
+/// Panics if the tensors cannot be broadcast together, or if tensors are on different devices.
+///
+/// For a fallible version, use [`broadcast_arrays_f`].
 ///
 /// # See also
 ///
@@ -238,9 +235,7 @@ where
 
 /// Broadcasts any number of arrays against each other.
 ///
-/// # See also
-///
-/// Refer to [`broadcast_arrays`] for detailed documentation.
+/// See also [`broadcast_arrays`].
 pub fn broadcast_arrays_f<R, T, B>(tensors: Vec<TensorAny<R, T, B, IxD>>) -> Result<Vec<TensorAny<R, T, B, IxD>>>
 where
     R: DataAPI<Data = B::Raw>,
@@ -273,9 +268,7 @@ where
 
 /// Broadcasts an array to a specified shape.
 ///
-/// # See also
-///
-/// Refer to [`to_broadcast`] and [`into_broadcast`] for detailed documentation.
+/// See also [`to_broadcast`].
 pub fn into_broadcast_f<R, T, B, D, D2>(tensor: TensorAny<R, T, B, D>, shape: D2) -> Result<TensorAny<R, T, B, D2>>
 where
     R: DataAPI<Data = B::Raw>,
@@ -347,7 +340,6 @@ where
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
 /// # device.set_default_order(RowMajor);
-///
 /// // broadcast (3, ) -> (2, 3) in row-major:
 /// let a = rt::tensor_from_nested!([1, 2, 3], &device);
 /// let result = a.to_broadcast(vec![2, 3]);
@@ -359,18 +351,22 @@ where
 /// Please note the above example is only working in RowMajor order. In ColMajor order, the
 /// broadcasting will be done along the other axis:
 ///
+/// ```rust,should_panic
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// device.set_default_order(ColMajor);
+/// let a = rt::tensor_from_nested!([1, 2, 3], &device);
+/// // in col-major, broadcast (3, ) -> (2, 3) will panic:
+/// let result = a.to_broadcast(vec![2, 3]);
+/// ```
 ///
+/// The correct shape for col-major is `(3, 2)` instead:
 ///
 /// ```rust
-/// use rstsr::prelude::*;
-/// let mut device = DeviceCpu::default();
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
 /// device.set_default_order(ColMajor);
-///
 /// let a = rt::tensor_from_nested!([1, 2, 3], &device);
-/// // in col-major, broadcast (3, ) -> (2, 3) will fail:
-/// let result = a.to_broadcast_f(vec![2, 3]);
-/// assert!(result.is_err());
-///
 /// // broadcast (3, ) -> (3, 2) in col-major:
 /// let result = a.to_broadcast(vec![3, 2]);
 /// println!("{result}");
@@ -378,10 +374,6 @@ where
 /// //  [ 2 2]
 /// //  [ 3 3]]
 /// ```
-///
-/// # Panics
-///
-/// - Incompatible shapes to be broadcasted.
 ///
 /// # Tips on common compilation errors
 ///
@@ -557,14 +549,20 @@ where
 /// assert_eq!(result.shape(), &[5, 3, 15]);
 /// ```
 ///
-/// # See also
-///
 /// # Notes of API accordance
 ///
 /// - Array-API: `broadcast_to(x, /, shape)` ([`broadcast_to`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.broadcast_to.html))
 /// - NumPy: `numpy.broadcast_to(array, shape, subok=False)` ([`numpy.broadcast_to`](https://numpy.org/doc/stable/reference/generated/numpy.broadcast_to.html))
 /// - ndarray: [`ArrayBase::broadcast`](https://docs.rs/ndarray/latest/ndarray/struct.ArrayBase.html#method.broadcast)
 /// - RSTSR: `rt::to_broadcast(tensor, shape)` or `rt::broadcast_to(tensor, shape)`
+///
+/// # Panics
+///
+/// Panics if the tensor cannot be broadcast to the given shape.
+///
+/// For a fallible version, use [`to_broadcast_f`].
+///
+/// # See also
 ///
 /// ## Detailed broadcasting rules
 ///
@@ -601,9 +599,7 @@ where
 
 /// Broadcasts an array to a specified shape.
 ///
-/// # See also
-///
-/// Refer to [`to_broadcast`] for detailed documentation.
+/// See also [`to_broadcast`].
 pub fn to_broadcast_f<R, T, B, D, D2>(tensor: &TensorAny<R, T, B, D>, shape: D2) -> Result<TensorView<'_, T, B, D2>>
 where
     D: DimAPI + DimMaxAPI<D2, Max = D2>,
@@ -616,9 +612,7 @@ where
 
 /// Broadcasts an array to a specified shape.
 ///
-/// # See also
-///
-/// Refer to [`to_broadcast`] for detailed documentation.
+/// See also [`to_broadcast`].
 pub fn into_broadcast<R, T, B, D, D2>(tensor: TensorAny<R, T, B, D>, shape: D2) -> TensorAny<R, T, B, D2>
 where
     R: DataAPI<Data = B::Raw>,
@@ -642,9 +636,7 @@ where
 {
     /// Broadcasts an array to a specified shape.
     ///
-    /// # See also
-    ///
-    /// Refer to [`to_broadcast`] for detailed documentation.
+    /// See also [`to_broadcast`].
     pub fn to_broadcast<D2>(&self, shape: D2) -> TensorView<'_, T, B, D2>
     where
         D2: DimAPI,
@@ -655,9 +647,7 @@ where
 
     /// Broadcasts an array to a specified shape.
     ///
-    /// # See also
-    ///
-    /// Refer to [`to_broadcast`] for detailed documentation.
+    /// See also [`to_broadcast`].
     pub fn broadcast_to<D2>(&self, shape: D2) -> TensorView<'_, T, B, D2>
     where
         D2: DimAPI,
@@ -668,9 +658,7 @@ where
 
     /// Broadcasts an array to a specified shape.
     ///
-    /// # See also
-    ///
-    /// Refer to [`to_broadcast`] for detailed documentation.
+    /// See also [`to_broadcast`].
     pub fn to_broadcast_f<D2>(&self, shape: D2) -> Result<TensorView<'_, T, B, D2>>
     where
         D2: DimAPI,
@@ -681,9 +669,7 @@ where
 
     /// Broadcasts an array to a specified shape.
     ///
-    /// # See also
-    ///
-    /// Refer to [`to_broadcast`] for detailed documentation.
+    /// See also [`to_broadcast`].
     pub fn into_broadcast<D2>(self, shape: D2) -> TensorAny<R, T, B, D2>
     where
         D2: DimAPI,
@@ -694,9 +680,7 @@ where
 
     /// Broadcasts an array to a specified shape.
     ///
-    /// # See also
-    ///
-    /// Refer to [`to_broadcast`] for detailed documentation.
+    /// See also [`to_broadcast`].
     pub fn into_broadcast_f<D2>(self, shape: D2) -> Result<TensorAny<R, T, B, D2>>
     where
         D2: DimAPI,

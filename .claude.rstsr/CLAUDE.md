@@ -32,3 +32,8 @@ rstsr/
 Please also see rules in directory `.claude/rules/` for more details on code style, workflow, etc.
 
 The user may use other languages (Chinese, English, for example) to interact with AI agent. As AI agent, you should communicate in the same language as the user. However, the code/PR generation should always be in English.
+
+## Rules and important skills
+
+@rules/agent-and-maintaince.md
+@skills/cargo-inst/SKILL.md

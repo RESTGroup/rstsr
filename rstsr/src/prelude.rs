@@ -32,6 +32,8 @@ pub mod rstsr_structs {
     pub use rstsr_aocl::DeviceAOCL;
     #[cfg(feature = "blis")]
     pub use rstsr_blis::DeviceBLIS;
+    #[cfg(feature = "kml")]
+    pub use rstsr_kml::DeviceKML;
     #[cfg(feature = "mkl")]
     pub use rstsr_mkl::DeviceMKL;
     #[cfg(feature = "openblas")]
@@ -76,7 +78,7 @@ pub mod rstsr_structs {
         not(feature = "aocl"),
         feature = "kml"
     ))]
-    pub type DeviceBLAS = rstsr_kml::DeviceKML;
+    pub type DeviceBLAS = DeviceKML;
 }
 
 pub mod rstsr_funcs {

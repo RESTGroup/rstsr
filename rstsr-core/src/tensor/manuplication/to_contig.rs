@@ -4,9 +4,7 @@ use crate::prelude_dev::*;
 
 /// Convert tensor to contiguous layout.
 ///
-/// # See also
-///
-/// Refer to [`to_contig`] for more detailed documentation.
+/// See also [`to_contig`].
 pub fn change_contig_f<'a, R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
     order: FlagOrder,
@@ -89,11 +87,9 @@ where
     to_contig_f(tensor, order).rstsr_unwrap()
 }
 
-/// Fallible version of [`to_contig`].
+/// Convert tensor to contiguous layout.
 ///
-/// # See also
-///
-/// - [`to_contig`]: Infallible version
+/// See also [`to_contig`].
 pub fn to_contig_f<R, T, B, D>(tensor: &TensorAny<R, T, B, D>, order: FlagOrder) -> Result<TensorCow<'_, T, B, D>>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
@@ -105,9 +101,7 @@ where
 
 /// Convert tensor to contiguous layout.
 ///
-/// # See also
-///
-/// Refer to [`to_contig`] for more detailed documentation.
+/// See also [`to_contig`].
 pub fn into_contig_f<'a, R, T, B, D>(tensor: TensorAny<R, T, B, D>, order: FlagOrder) -> Result<Tensor<T, B, D>>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
@@ -125,12 +119,7 @@ where
 
 /// Convert tensor to contiguous layout.
 ///
-/// This is the consuming version of [`to_contig`] that returns copy-on-write tensor. For the
-/// ownership semantics, refer to the documentation of [`reshape`].
-///
-/// # See also
-///
-/// Refer to [`to_contig`] for more detailed documentation.
+/// See also [`to_contig`].
 pub fn change_contig<'a, R, T, B, D>(tensor: TensorAny<R, T, B, D>, order: FlagOrder) -> TensorCow<'a, T, B, D>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
@@ -142,12 +131,7 @@ where
 
 /// Convert tensor to contiguous layout.
 ///
-/// This is the consuming version of [`to_contig`] that returns owned tensor. For the ownership
-/// semantics, refer to the documentation of [`reshape`].
-///
-/// # See also
-///
-/// Refer to [`to_contig`] for more detailed documentation.
+/// See also [`to_contig`].
 pub fn into_contig<'a, R, T, B, D>(tensor: TensorAny<R, T, B, D>, order: FlagOrder) -> Tensor<T, B, D>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
@@ -172,9 +156,7 @@ where
 {
     /// Convert tensor to contiguous layout.
     ///
-    /// # See also
-    ///
-    /// Refer to [`to_contig`] for more detailed documentation.
+    /// See also [`to_contig`].
     pub fn to_contig(&self, order: FlagOrder) -> TensorCow<'_, T, B, D>
     where
         B: OpAssignArbitaryAPI<T, D, D>,
@@ -184,9 +166,7 @@ where
 
     /// Convert tensor to contiguous layout.
     ///
-    /// # See also
-    ///
-    /// Refer to [`to_contig`] for more detailed documentation.
+    /// See also [`to_contig`].
     pub fn to_contig_f(&self, order: FlagOrder) -> Result<TensorCow<'_, T, B, D>>
     where
         B: OpAssignArbitaryAPI<T, D, D>,
@@ -196,9 +176,7 @@ where
 
     /// Convert tensor to contiguous layout.
     ///
-    /// # See also
-    ///
-    /// Refer to [`to_contig`] for more detailed documentation.
+    /// See also [`to_contig`].
     pub fn into_contig_f(self, order: FlagOrder) -> Result<Tensor<T, B, D>>
     where
         B: DeviceRawAPI<MaybeUninit<T>> + OpAssignArbitaryAPI<T, D, D> + OpAssignAPI<T, D>,
@@ -222,9 +200,7 @@ where
 
     /// Convert tensor to contiguous layout.
     ///
-    /// # See also
-    ///
-    /// Refer to [`to_contig`] for more detailed documentation.
+    /// See also [`to_contig`].
     pub fn change_contig_f(self, order: FlagOrder) -> Result<TensorCow<'a, T, B, D>>
     where
         B: OpAssignArbitaryAPI<T, D, D>,
@@ -234,9 +210,7 @@ where
 
     /// Convert tensor to contiguous layout.
     ///
-    /// # See also
-    ///
-    /// Refer to [`to_contig`] for more detailed documentation.
+    /// See also [`to_contig`].
     pub fn change_contig(self, order: FlagOrder) -> TensorCow<'a, T, B, D>
     where
         B: OpAssignArbitaryAPI<T, D, D>,
@@ -251,9 +225,7 @@ where
 
 /// Convert tensor to preferred layout if not already contiguous.
 ///
-/// # See also
-///
-/// Refer to [`to_prefer`] for more detailed documentation.
+/// See also [`to_prefer`].
 pub fn change_prefer_f<'a, R, T, B, D>(
     tensor: TensorAny<R, T, B, D>,
     order: FlagOrder,
@@ -335,9 +307,7 @@ where
 
 /// Convert tensor to preferred layout if not already contiguous.
 ///
-/// # See also
-///
-/// Refer to [`to_prefer`] for more detailed documentation.
+/// See also [`to_prefer`].
 pub fn to_prefer_f<R, T, B, D>(tensor: &TensorAny<R, T, B, D>, order: FlagOrder) -> Result<TensorCow<'_, T, B, D>>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
@@ -349,9 +319,7 @@ where
 
 /// Convert tensor to preferred layout if not already contiguous.
 ///
-/// # See also
-///
-/// Refer to [`to_prefer`] for more detailed documentation.
+/// See also [`to_prefer`].
 pub fn into_prefer_f<'a, R, T, B, D>(tensor: TensorAny<R, T, B, D>, order: FlagOrder) -> Result<Tensor<T, B, D>>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
@@ -369,12 +337,7 @@ where
 
 /// Convert tensor to preferred layout if not already contiguous.
 ///
-/// This is the consuming version of [`to_prefer`] that returns a view or owned tensor. For the
-/// ownership semantics, refer to the documentation of [`reshape`].
-///
-/// # See also
-///
-/// Refer to [`to_prefer`] for more detailed documentation.
+/// See also [`to_prefer`].
 pub fn change_prefer<'a, R, T, B, D>(tensor: TensorAny<R, T, B, D>, order: FlagOrder) -> TensorCow<'a, T, B, D>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
@@ -386,12 +349,7 @@ where
 
 /// Convert tensor to preferred layout if not already contiguous.
 ///
-/// This is the consuming version of [`to_prefer`] that returns owned tensor. For the ownership
-/// semantics, refer to the documentation of [`reshape`].
-///
-/// # See also
-///
-/// Refer to [`to_prefer`] for more detailed documentation.
+/// See also [`to_prefer`].
 pub fn into_prefer<'a, R, T, B, D>(tensor: TensorAny<R, T, B, D>, order: FlagOrder) -> Tensor<T, B, D>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
@@ -416,9 +374,7 @@ where
 {
     /// Convert tensor to preferred layout if not already contiguous.
     ///
-    /// # See also
-    ///
-    /// Refer to [`to_prefer`] for more detailed documentation.
+    /// See also [`to_prefer`].
     pub fn to_prefer(&self, order: FlagOrder) -> TensorCow<'_, T, B, D>
     where
         B: OpAssignArbitaryAPI<T, D, D>,
@@ -428,9 +384,7 @@ where
 
     /// Convert tensor to preferred layout if not already contiguous.
     ///
-    /// # See also
-    ///
-    /// Refer to [`to_prefer`] for more detailed documentation.
+    /// See also [`to_prefer`].
     pub fn to_prefer_f(&self, order: FlagOrder) -> Result<TensorCow<'_, T, B, D>>
     where
         B: OpAssignArbitaryAPI<T, D, D>,
@@ -440,9 +394,7 @@ where
 
     /// Convert tensor to preferred layout if not already contiguous.
     ///
-    /// # See also
-    ///
-    /// Refer to [`to_prefer`] for more detailed documentation.
+    /// See also [`to_prefer`].
     pub fn into_prefer_f(self, order: FlagOrder) -> Result<Tensor<T, B, D>>
     where
         B: DeviceRawAPI<MaybeUninit<T>> + OpAssignArbitaryAPI<T, D, D> + OpAssignAPI<T, D>,
@@ -453,9 +405,7 @@ where
 
     /// Convert tensor to preferred layout if not already contiguous.
     ///
-    /// # See also
-    ///
-    /// Refer to [`to_prefer`] for more detailed documentation.
+    /// See also [`to_prefer`].
     pub fn into_prefer(self, order: FlagOrder) -> Tensor<T, B, D>
     where
         B: DeviceRawAPI<MaybeUninit<T>> + OpAssignArbitaryAPI<T, D, D> + OpAssignAPI<T, D>,
@@ -466,9 +416,7 @@ where
 
     /// Convert tensor to preferred layout if not already contiguous.
     ///
-    /// # See also
-    ///
-    /// Refer to [`to_prefer`] for more detailed documentation.
+    /// See also [`to_prefer`].
     pub fn change_prefer_f(self, order: FlagOrder) -> Result<TensorCow<'a, T, B, D>>
     where
         B: OpAssignArbitaryAPI<T, D, D>,
@@ -478,9 +426,7 @@ where
 
     /// Convert tensor to preferred layout if not already contiguous.
     ///
-    /// # See also
-    ///
-    /// Refer to [`to_prefer`] for more detailed documentation.
+    /// See also [`to_prefer`].
     pub fn change_prefer(self, order: FlagOrder) -> TensorCow<'a, T, B, D>
     where
         B: OpAssignArbitaryAPI<T, D, D>,

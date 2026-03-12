@@ -4,6 +4,33 @@ use rstsr_core::prelude_dev::*;
 use rstsr_core::tensor::tensor_view_list::TensorViewListAPI;
 pub use tblis::prelude::*;
 
+pub fn einsum<T, B>(
+    subscripts: &str,
+    operands: impl TensorViewListAPI<T, B>,
+    optimize: impl PathOptimizer,
+    memory_limit: impl Into<SizeLimitType>,
+) -> Tensor<T, B>
+where
+    T: TblisFloatAPI,
+    B: DeviceAPI<T, Raw = Vec<T>> + DeviceRayonAPI,
+{
+    einsum_f(subscripts, operands, optimize, memory_limit).unwrap()
+}
+
+pub fn einsum_with_output<T, B>(
+    subscripts: &str,
+    operands: impl TensorViewListAPI<T, B>,
+    optimize: impl PathOptimizer,
+    memory_limit: impl Into<SizeLimitType>,
+    output: TensorMut<T, B>,
+) -> Result<()>
+where
+    T: TblisFloatAPI,
+    B: DeviceAPI<T, Raw = Vec<T>> + DeviceRayonAPI,
+{
+    einsum_with_output_f(subscripts, operands, optimize, memory_limit, output)
+}
+
 pub trait RTToTblisTensorAPI<T>
 where
     T: TblisFloatAPI,
@@ -52,7 +79,7 @@ where
     Tensor::new_f(storage, layout)
 }
 
-fn einsum_with_option_output_f<T, B>(
+pub(crate) fn einsum_with_option_output_f<T, B>(
     subscripts: &str,
     operands: impl TensorViewListAPI<T, B>,
     optimize: impl PathOptimizer,
@@ -105,19 +132,6 @@ where
     }
 }
 
-pub fn einsum<T, B>(
-    subscripts: &str,
-    operands: impl TensorViewListAPI<T, B>,
-    optimize: impl PathOptimizer,
-    memory_limit: impl Into<SizeLimitType>,
-) -> Tensor<T, B>
-where
-    T: TblisFloatAPI,
-    B: DeviceAPI<T, Raw = Vec<T>> + DeviceRayonAPI,
-{
-    einsum_f(subscripts, operands, optimize, memory_limit).unwrap()
-}
-
 pub fn einsum_f<T, B>(
     subscripts: &str,
     operands: impl TensorViewListAPI<T, B>,
@@ -129,20 +143,6 @@ where
     B: DeviceAPI<T, Raw = Vec<T>> + DeviceRayonAPI,
 {
     Ok(einsum_with_option_output_f(subscripts, operands, optimize, memory_limit, None)?.unwrap())
-}
-
-pub fn einsum_with_output<T, B>(
-    subscripts: &str,
-    operands: impl TensorViewListAPI<T, B>,
-    optimize: impl PathOptimizer,
-    memory_limit: impl Into<SizeLimitType>,
-    output: TensorMut<T, B>,
-) -> Result<()>
-where
-    T: TblisFloatAPI,
-    B: DeviceAPI<T, Raw = Vec<T>> + DeviceRayonAPI,
-{
-    einsum_with_output_f(subscripts, operands, optimize, memory_limit, output)
 }
 
 pub fn einsum_with_output_f<T, B>(

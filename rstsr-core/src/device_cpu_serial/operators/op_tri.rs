@@ -1,7 +1,7 @@
 use crate::prelude_dev::*;
 use num::complex::ComplexFloat;
 
-impl<T> DeviceOpPackTriAPI<T> for DeviceCpuSerial
+impl<T> OpPackTriAPI<T> for DeviceCpuSerial
 where
     T: Clone,
 {
@@ -26,7 +26,7 @@ where
     }
 }
 
-impl<T> DeviceOpUnpackTriAPI<T> for DeviceCpuSerial
+impl<T> OpUnpackTriAPI<T> for DeviceCpuSerial
 where
     T: ComplexFloat,
 {

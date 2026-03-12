@@ -177,7 +177,7 @@ The reference implementation (as in [`DeviceCpuSerial`] and [`DeviceFaer`]), fol
 | status | implementation | Python API | description |
 |-|-|-|-|
 | P | [`take`] | [`take`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.take.html) | Returns elements of an array along an axis. |
-| | | [`take_along_axis`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.take_along_axis.html) | Returns elements from an array at the one-dimensional indices specified by indices along a provided axis. |
+| | | [`take_along_axis`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.take_along_axis.html) | Returns elements from an array at the one-dimensional indices specified by `indices` along a provided `axis`. |
 
 **Partial implementation**
 - [`take`] currently only supports indexing from an axis, which is also the Python Array API requires. However, NumPy also allows `axis = None` to index the flattened array, which is not implemented in RSTSR.
@@ -196,10 +196,10 @@ The reference implementation (as in [`DeviceCpuSerial`] and [`DeviceFaer`]), fol
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| Y | [`matmul()`] | [`matmul`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.matmul.html) | Computes the matrix product. |
-| Y | [`swapaxes`]`(-1, -2)` | [`matrix_transpose`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.matrix_transpose.html) | Transposes a matrix (or a stack of matrices) x. |
-| | | [`tensordot`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.tensordot.html) | Returns a tensor contraction of x1 and x2 over specific axes. |
-| | | [`vecdot`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.vecdot.html) | Computes the (vector) dot product of two arrays. |
+| Y | [`matmul`] | [`matmul`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.matmul.html) | Computes the matrix product. |
+| Y | [`matrix_transpose`] <br> [`swapaxes`]`(-1, -2)` | [`matrix_transpose`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.matrix_transpose.html) | Transposes a matrix (or a stack of matrices) x. |
+| P | [`rt::tblis::einsum`](https://docs.rs/rstsr-tblis/latest/rstsr_tblis/einsum_impl/fn.einsum.html)<br>[`rt::tblis::tensordot`](https://docs.rs/rstsr-tblis/latest/rstsr_tblis/einsum_impl/fn.tensordot.html) | [`tensordot`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.tensordot.html) | Returns a tensor contraction of x1 and x2 over specific axes. |
+| Y | [`vecdot`] | [`vecdot`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.vecdot.html) | Computes the (vector) dot product of two arrays. |
 
 ## Manipulation Functions
 
@@ -216,7 +216,7 @@ The reference implementation (as in [`DeviceCpuSerial`] and [`DeviceFaer`]), fol
 | | | [`repeat`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.repeat.html) | Repeats each element of an array a specified number of times on a per-element basis. |
 | P | [`reshape`], [`reshape_with_args`] | [`reshape`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.reshape.html) | Reshapes an array without changing its data. |
 | | | [`roll`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.roll.html) | Rolls array elements along a specified axis. |
-| P | [`squeeze`] | [`squeeze`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.squeeze.html) | Removes singleton dimensions (axes) from x. |
+| P | [`squeeze`] | [`squeeze`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.squeeze.html) | Removes singleton axes from `x`. |
 | Y | [`stack`] | [`stack`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.stack.html) | Joins a sequence of arrays along a new axis. |
 | | | [`tile`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.tile.html) | Constructs an array by tiling an input array. |
 | Y | [`unstack`] | [`unstack`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.unstack.html) | Splits an array into a sequence of arrays along the given axis. |
@@ -241,10 +241,10 @@ The reference implementation (as in [`DeviceCpuSerial`] and [`DeviceFaer`]), fol
 | status | implementation | Python API | description |
 |-|-|-|-|
 | | | [`isin`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.isin.html) | Tests for each element in `x1` whether the element is in `x2`. |
-| | | [`unique_all`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.unique_all.html) | Returns the unique elements of an input array x, the first occurring indices for each unique element in x, the indices from the set of unique elements that reconstruct x, and the corresponding counts for each unique element in x. |
-| | | [`unique_counts`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.unique_counts.html) | Returns the unique elements of an input array x and the corresponding counts for each unique element in x. |
-| | | [`unique_inverse`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.unique_inverse.html) | Returns the unique elements of an input array x and the indices from the set of unique elements that reconstruct x. |
-| | | [`unique_values`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.unique_values.html) | Returns the unique elements of an input array x. |
+| | | [`unique_all`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.unique_all.html) | Returns the unique elements of an input array `x`, the first occurring indices for each unique element in `x`, the indices from the set of unique elements that reconstruct `x`, and the corresponding counts for each unique element in `x`. |
+| | | [`unique_counts`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.unique_counts.html) | Returns the unique elements of an input array `x` and the corresponding counts for each unique element in `x`. |
+| | | [`unique_inverse`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.unique_inverse.html) | Returns the unique elements of an input array `x` and the indices from the set of unique elements that reconstruct `x`. |
+| | | [`unique_values`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.unique_values.html) | Returns the unique elements of an input array `x`. |
 
 ## Sorting Functions
 
@@ -257,22 +257,22 @@ The reference implementation (as in [`DeviceCpuSerial`] and [`DeviceFaer`]), fol
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| | | [`cumulative_prod`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.cumulative_prod.html) | Calculates the cumulative product of elements in the input array x. |
-| | | [`cumulative_sum`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.cumulative_sum.html) | Calculates the cumulative sum of elements in the input array x. |
-| Y | [`max`], [`max_axes`] | [`max`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.max.html) | Calculates the maximum value of the input array x. |
-| Y | [`mean`], [`mean_axes`] | [`mean`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.mean.html) | Calculates the arithmetic mean of the input array x. |
-| Y | [`min`], [`min_axes`] | [`min`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.min.html) | Calculates the minimum value of the input array x. |
-| Y | [`prod`], [`prod_axes`] | [`prod`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.prod.html) | Calculates the product of input array x elements. |
-| Y | [`std`]([std()]), [`std_axes`] | [`std`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.std.html) | Calculates the standard deviation of the input array x. |
-| Y | [`sum`], [`sum_axes`] | [`sum`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.sum.html) | Calculates the sum of the input array x. |
-| Y | [`var`], [`var_axes`] | [`var`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.var.html) | Calculates the variance of the input array x. |
+| | | [`cumulative_prod`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.cumulative_prod.html) | Calculates the cumulative product of elements in the input array `x`. |
+| | | [`cumulative_sum`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.cumulative_sum.html) | Calculates the cumulative sum of elements in the input array `x`. |
+| Y | [`max`], [`max_axes`] | [`max`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.max.html) | Calculates the maximum value of the input array `x`. |
+| Y | [`mean`], [`mean_axes`] | [`mean`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.mean.html) | Calculates the arithmetic mean of the input array `x`. |
+| Y | [`min`], [`min_axes`] | [`min`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.min.html) | Calculates the minimum value of the input array `x`. |
+| Y | [`prod`], [`prod_axes`] | [`prod`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.prod.html) | Calculates the product of input array `x` elements. |
+| Y | [`std`]([std()]), [`std_axes`] | [`std`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.std.html) | Calculates the standard deviation of the input array `x`. |
+| Y | [`sum`], [`sum_axes`] | [`sum`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.sum.html) | Calculates the sum of the input array `x`. |
+| Y | [`var`], [`var_axes`] | [`var`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.var.html) | Calculates the variance of the input array `x`. |
 
 ## Utility Functions
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| Y | [`all`], [`all_axes`] | [`all`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.all.html) | Tests whether all input array elements evaluate to True along a specified axis. |
-| Y | [`any`], [`any_axes`] | [`any`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.any.html) | Tests whether any input array element evaluates to True along a specified axis. |
+| Y | [`all`], [`all_axes`] | [`all`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.all.html) | Tests whether all input array elements evaluate to `True` along a specified axis. |
+| Y | [`any`], [`any_axes`] | [`any`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.any.html) | Tests whether any input array element evaluates to `True` along a specified axis. |
 | | | [`diff`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.diff.html) | Calculates the n-th discrete forward difference along a specified axis. |
 
 
@@ -358,7 +358,7 @@ The reference implementation (as in [`DeviceCpuSerial`] and [`DeviceFaer`]), fol
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| | | [`clip`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.clip.html) | Clamps each element x_i of the input array x to the range [min, max]. |
+| | | [`clip`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.clip.html) | Clamps each element `x_i` of the input array `x` to the range `[min, max]`. |
 
 ## Constants
 
@@ -366,9 +366,9 @@ The reference implementation (as in [`DeviceCpuSerial`] and [`DeviceFaer`]), fol
 |-|-|-|-|
 | Y | [`core::f64::consts::E`] | [`e`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.constants.e.html) | IEEE 754 floating-point representation of Euler's constant. |
 | Y | [`f64::INFINITY`] | [`inf`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.constants.inf.html) | IEEE 754 floating-point representation of (positive) infinity. |
-| Y | [`f64::NAN`] | [`nan`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.constants.nan.html) | IEEE 754 floating-point representation of Not a Number (NaN). |
-| Y | [`Indexer::Insert`] | [`newaxis`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.constants.newaxis.html) | An alias for None which is useful for indexing arrays. |
-| Y | [`core::f64::consts::PI`] | [`pi`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.constants.pi.html) | IEEE 754 floating-point representation of the mathematical constant π. |
+| Y | [`f64::NAN`] | [`nan`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.constants.nan.html) | IEEE 754 floating-point representation of Not a Number (`NaN`). |
+| Y | [`Indexer::Insert`] | [`newaxis`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.constants.newaxis.html) | An alias for `None` which is useful for indexing arrays. |
+| Y | [`core::f64::consts::PI`] | [`pi`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.constants.pi.html) | IEEE 754 floating-point representation of the mathematical constant `π`. |
 
 ## Other Dropped Specifications
 

@@ -6,7 +6,7 @@ use crate::prelude_dev::*;
 
 /* #region impl op_func for DeviceCpuSerial */
 
-impl<TA, TB, TC, D, F> DeviceOp_MutC_RefA_RefB_API<TA, TB, TC, D, F> for DeviceCpuSerial
+impl<TA, TB, TC, D, F> Op_MutC_RefA_RefB_API<TA, TB, TC, D, F> for DeviceCpuSerial
 where
     TA: Clone,
     TB: Clone,
@@ -28,7 +28,7 @@ where
     }
 }
 
-impl<TA, TB, TC, D, F> DeviceOp_MutC_RefA_NumB_API<TA, TB, TC, D, F> for DeviceCpuSerial
+impl<TA, TB, TC, D, F> Op_MutC_RefA_NumB_API<TA, TB, TC, D, F> for DeviceCpuSerial
 where
     TA: Clone,
     TC: Clone,
@@ -48,7 +48,7 @@ where
     }
 }
 
-impl<TA, TB, TC, D, F> DeviceOp_MutC_NumA_RefB_API<TA, TB, TC, D, F> for DeviceCpuSerial
+impl<TA, TB, TC, D, F> Op_MutC_NumA_RefB_API<TA, TB, TC, D, F> for DeviceCpuSerial
 where
     TB: Clone,
     TC: Clone,
@@ -68,7 +68,7 @@ where
     }
 }
 
-impl<TA, TB, D, F> DeviceOp_MutA_RefB_API<TA, TB, D, F> for DeviceCpuSerial
+impl<TA, TB, D, F> Op_MutA_RefB_API<TA, TB, D, F> for DeviceCpuSerial
 where
     TA: Clone,
     TB: Clone,
@@ -87,7 +87,7 @@ where
     }
 }
 
-impl<TA, TB, D, F> DeviceOp_MutA_NumB_API<TA, TB, D, F> for DeviceCpuSerial
+impl<TA, TB, D, F> Op_MutA_NumB_API<TA, TB, D, F> for DeviceCpuSerial
 where
     TA: Clone,
     D: DimAPI,
@@ -98,7 +98,7 @@ where
     }
 }
 
-impl<T, D, F> DeviceOp_MutA_API<T, D, F> for DeviceCpuSerial
+impl<T, D, F> Op_MutA_API<T, D, F> for DeviceCpuSerial
 where
     T: Clone,
     D: DimAPI,

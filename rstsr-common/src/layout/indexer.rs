@@ -208,7 +208,14 @@ pub trait IndexerSmallerOneAPI {
     fn dim_select(&self, axis: isize, index: isize) -> Result<Layout<Self::DOut>>;
 
     /// Eliminate dimension at index. Number of dimension will decrease by 1.
+    ///
+    /// Dimension to be eliminated should have shape 1, otherwise it will raise error. This is
+    /// useful for squeezeing.
     fn dim_eliminate(&self, axis: isize) -> Result<Layout<Self::DOut>>;
+
+    /// Eliminate dimension at index (without addition checks). This may be useful to handle
+    /// zero-size axes, which is not eliminatable from dim_select(axis, 0) or dim_eliminate.
+    fn dim_chop(&self, axis: isize) -> Result<Layout<Self::DOut>>;
 }
 
 impl<D> IndexerSmallerOneAPI for Layout<D>
@@ -264,6 +271,24 @@ where
         if shape[axis] != 1 {
             rstsr_raise!(InvalidValue, "Dimension to be eliminated is not 1.")?;
         }
+
+        shape.remove(axis);
+        stride.remove(axis);
+
+        let layout = Layout::<IxD>::new(shape, stride, offset)?;
+        return layout.into_dim();
+    }
+
+    fn dim_chop(&self, axis: isize) -> Result<Layout<Self::DOut>> {
+        // dimension check
+        let axis = if axis < 0 { self.ndim() as isize + axis } else { axis };
+        rstsr_pattern!(axis, 0..self.ndim() as isize, ValueOutOfRange)?;
+        let axis = axis as usize;
+
+        // get essential information
+        let mut shape = self.shape().as_ref().to_vec();
+        let mut stride = self.stride().as_ref().to_vec();
+        let offset = self.offset();
 
         shape.remove(axis);
         stride.remove(axis);
