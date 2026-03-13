@@ -3,6 +3,7 @@ pub(crate) use rstsr_dtype_traits::DTypeCastAPI;
 
 pub use crate::cpu_serial::adv_indexing::*;
 pub use crate::cpu_serial::assignment::*;
+pub use crate::cpu_serial::creation::*;
 pub use crate::cpu_serial::matmul_naive::*;
 pub use crate::cpu_serial::op_tri::*;
 pub use crate::cpu_serial::op_with_func::*;

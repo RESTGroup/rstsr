@@ -1,5 +1,6 @@
 pub mod adv_indexing;
 pub mod assignment;
+pub mod creation;
 pub mod matmul_naive;
 pub mod op_tri;
 pub mod op_with_func;

@@ -80,17 +80,12 @@ where
 
 impl<T> DeviceCreationPartialOrdNumAPI<T> for DeviceCpuSerial
 where
-    T: Num + PartialOrd + Clone,
+    T: Num + PartialOrd + Clone + 'static,
     DeviceCpuSerial: DeviceRawAPI<T, Raw = Vec<T>>,
 {
     fn arange_impl(&self, start: T, end: T, step: T) -> Result<Storage<DataOwned<Vec<T>>, T, DeviceCpuSerial>> {
         rstsr_assert!(step != T::zero(), InvalidValue)?;
-        let mut raw = Vec::new();
-        let mut current = start.clone();
-        while current < end {
-            raw.push(current.clone());
-            current = current + step.clone();
-        }
+        let raw = arange_cpu_serial(start, end, step);
         Ok(Storage::new(raw.into(), self.clone()))
     }
 }

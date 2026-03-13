@@ -108,7 +108,7 @@ where
 
 impl<T> ArangeAPI<T> for (T, T, T)
 where
-    T: Num + PartialOrd + Clone + Send + Sync,
+    T: Num + PartialOrd + Clone + Send + Sync + 'static,
 {
     type Out = Tensor<T, DeviceCpu, IxD>;
 
@@ -121,7 +121,7 @@ where
 
 impl<T> ArangeAPI<T> for (T, T)
 where
-    T: Num + PartialOrd + Clone,
+    T: Num + PartialOrd + Clone + 'static,
 {
     type Out = Tensor<T, DeviceCpu, IxD>;
 
@@ -134,7 +134,7 @@ where
 
 impl<T> ArangeAPI<T> for T
 where
-    T: Num + PartialOrd + Clone,
+    T: Num + PartialOrd + Clone + 'static,
 {
     type Out = Tensor<T, DeviceCpu, IxD>;
 

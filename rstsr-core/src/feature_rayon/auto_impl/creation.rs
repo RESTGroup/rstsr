@@ -2,7 +2,7 @@ use crate::prelude_dev::*;
 use num::{complex::ComplexFloat, Num};
 
 // for creation, we use most of the functions from DeviceCpuSerial
-impl<T> DeviceCreationAnyAPI<T> for DeviceFaer
+impl<T> DeviceCreationAnyAPI<T> for DeviceRayonAutoImpl
 where
     Self: DeviceRawAPI<T, Raw = Vec<T>> + DeviceRawAPI<MaybeUninit<T>, Raw = Vec<MaybeUninit<T>>>,
 {
@@ -53,7 +53,7 @@ where
     }
 }
 
-impl<T> DeviceCreationNumAPI<T> for DeviceFaer
+impl<T> DeviceCreationNumAPI<T> for DeviceRayonAutoImpl
 where
     T: Num + Clone,
     Self: DeviceRawAPI<T, Raw = Vec<T>>,
@@ -77,9 +77,9 @@ where
     }
 }
 
-impl<T> DeviceCreationPartialOrdNumAPI<T> for DeviceFaer
+impl<T> DeviceCreationPartialOrdNumAPI<T> for DeviceRayonAutoImpl
 where
-    T: Num + PartialOrd + Clone,
+    T: Num + PartialOrd + Clone + 'static,
     Self: DeviceRawAPI<T, Raw = Vec<T>>,
 {
     fn arange_impl(&self, start: T, end: T, step: T) -> Result<Storage<DataOwned<Vec<T>>, T, Self>> {
@@ -89,7 +89,7 @@ where
     }
 }
 
-impl<T> DeviceCreationComplexFloatAPI<T> for DeviceFaer
+impl<T> DeviceCreationComplexFloatAPI<T> for DeviceRayonAutoImpl
 where
     T: ComplexFloat + Clone + Send + Sync,
     Self: DeviceRawAPI<T, Raw = Vec<T>>,
@@ -101,7 +101,7 @@ where
     }
 }
 
-impl<T> DeviceCreationTriAPI<T> for DeviceFaer
+impl<T> DeviceCreationTriAPI<T> for DeviceRayonAutoImpl
 where
     T: Num + Clone,
     Self: DeviceRawAPI<T, Raw = Vec<T>>,
@@ -127,7 +127,7 @@ mod test {
 
     #[test]
     fn test_linspace() {
-        let device = DeviceFaer::default();
+        let device = DeviceRayonAutoImpl::default();
         let a = linspace((1.0, 5.0, 5, &device));
         assert_eq!(a.raw(), &vec![1., 2., 3., 4., 5.]);
     }
