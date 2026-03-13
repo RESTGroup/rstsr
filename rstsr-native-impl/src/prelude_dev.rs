@@ -15,6 +15,7 @@ pub use crate::cpu_serial::vecdot::*;
 mod cpu_rayon {
     pub use crate::cpu_rayon::adv_indexing::*;
     pub use crate::cpu_rayon::assignment::*;
+    pub use crate::cpu_rayon::creation::*;
     pub use crate::cpu_rayon::matmul_naive::*;
     pub use crate::cpu_rayon::op_tri::*;
     pub use crate::cpu_rayon::op_with_func::*;

@@ -83,9 +83,10 @@ where
     Self: DeviceRawAPI<T, Raw = Vec<T>>,
 {
     fn arange_impl(&self, start: T, end: T, step: T) -> Result<Storage<DataOwned<Vec<T>>, T, Self>> {
-        let storage = DeviceCpuSerial::default().arange_impl(start, end, step)?;
-        let (data, _) = storage.into_raw_parts();
-        Ok(Storage::new(data, self.clone()))
+        rstsr_assert!(step != T::zero(), InvalidValue)?;
+        let pool = self.get_current_pool();
+        let raw = arange_cpu_rayon(start, end, step, pool);
+        Ok(Storage::new(raw.into(), self.clone()))
     }
 }
 

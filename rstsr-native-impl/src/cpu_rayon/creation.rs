@@ -1,26 +1,14 @@
 use crate::prelude_dev::*;
 use core::ops::*;
 use num::{FromPrimitive, ToPrimitive};
+use rayon::prelude::*;
 
 /* #region arange */
 
-pub fn arange_by_partial_ord_cpu_serial<T>(start: T, end: T, step: T) -> Vec<T>
+/// NOTE: this implementation does not involve a thread pool.
+pub fn arange_by_primitive_isize_cpu_rayon<T>(start: T, end: T, step: T) -> Option<Vec<T>>
 where
-    T: PartialOrd + Clone + Add<Output = T>,
-{
-    // This is serial implementation and low performance
-    let mut result = Vec::new();
-    let mut current = start;
-    while current < end {
-        result.push(current.clone());
-        current = current + step.clone();
-    }
-    result
-}
-
-pub fn arange_by_primitive_isize_cpu_serial<T>(start: T, end: T, step: T) -> Option<Vec<T>>
-where
-    T: PartialOrd + Clone + Add<Output = T> + ToPrimitive + FromPrimitive,
+    T: PartialOrd + Clone + Add<Output = T> + ToPrimitive + FromPrimitive + Send + Sync,
 {
     // This will use rust's internal iterator, should be much faster.
     // However, it only works for types that from/to primitives implemented.
@@ -34,7 +22,7 @@ where
     // The unwrap here is probably safe, since start/end/nstep are all checked.
     // `Some(map(option.unwrap).collect())` is much faster than `map(option).collect()` in this case, so
     // decided unwrap here.
-    let mut result: Vec<T> = (0..n).map(|i| T::from_isize(start_ + i * step_).unwrap()).collect();
+    let mut result: Vec<T> = (0..n).into_par_iter().map(|i| T::from_isize(start_ + i * step_).unwrap()).collect();
 
     // the interval may be open on the right, so we need to pop the last element if it's out of range.
     let last_val = result.last().cloned();
@@ -46,13 +34,14 @@ where
     Some(result)
 }
 
-pub fn arange_by_primitive_f64_cpu_serial<T>(start: T, end: T, step: T) -> Option<Vec<T>>
+/// NOTE: this implementation does not involve a thread pool.
+pub fn arange_by_primitive_f64_cpu_rayon<T>(start: T, end: T, step: T) -> Option<Vec<T>>
 where
-    T: PartialOrd + Clone + Add<Output = T> + ToPrimitive + FromPrimitive,
+    T: PartialOrd + Clone + Add<Output = T> + ToPrimitive + FromPrimitive + Send + Sync,
 {
     let (start_, end_, step_) = (start.to_f64()?, end.to_f64()?, step.to_f64()?);
     let n = ((end_ - start_) / step_).ceil().to_usize()?;
-    let mut result: Vec<T> = (0..n).map(|i| T::from_f64(start_ + i as f64 * step_).unwrap()).collect();
+    let mut result: Vec<T> = (0..n).into_par_iter().map(|i| T::from_f64(start_ + i as f64 * step_).unwrap()).collect();
 
     // the interval may be open on the right, so we need to pop the last element if it's out of range.
     let last_val = result.last().cloned();
@@ -64,12 +53,12 @@ where
     Some(result)
 }
 
-/// Create a 1-D array of evenly spaced values within a given interval, using CPU serial
+/// Create a 1-D array of evenly spaced values within a given interval, using CPU rayon
 /// implementation.
 ///
 /// Some numerical types (e.g., isize, usize) will be accelerated using internal iterators, while
 /// others will use a generic implementation.
-pub fn arange_cpu_serial<T>(start: T, end: T, step: T) -> Vec<T>
+pub fn arange_cpu_rayon<T>(start: T, end: T, step: T, pool: Option<&ThreadPool>) -> Vec<T>
 where
     T: PartialOrd + Clone + Add<Output = T> + 'static,
 {
@@ -78,23 +67,29 @@ where
 
     // 1. transmute type without affecting input/output types
     #[inline]
-    unsafe fn transmute_accelerated<T, U>(start: &T, end: &T, step: &T, int_mode: bool) -> Option<Vec<T>>
+    unsafe fn transmute_accelerated<T, U>(
+        start: &T,
+        end: &T,
+        step: &T,
+        int_mode: bool,
+        pool: Option<&ThreadPool>,
+    ) -> Option<Vec<T>>
     where
-        U: PartialOrd + Clone + Add<Output = U> + ToPrimitive + FromPrimitive,
+        U: PartialOrd + Clone + Add<Output = U> + ToPrimitive + FromPrimitive + Send + Sync,
     {
         let (start, end, step) =
             (transmute_copy::<T, U>(start), transmute_copy::<T, U>(end), transmute_copy::<T, U>(step));
-        let v = match int_mode {
-            true => arange_by_primitive_isize_cpu_serial(start, end, step),
-            false => arange_by_primitive_f64_cpu_serial(start, end, step),
+        let task = || match int_mode {
+            true => arange_by_primitive_isize_cpu_rayon(start.clone(), end.clone(), step.clone()),
+            false => arange_by_primitive_f64_cpu_rayon(start.clone(), end.clone(), step.clone()),
         };
-        v.map(|result| transmute::<Vec<U>, Vec<T>>(result))
+        pool.map_or_else(task, |pool| pool.install(task)).map(|result| transmute::<Vec<U>, Vec<T>>(result))
     }
 
     // 2. convenient macro in match definition
     macro_rules! expand_accelerated { ($mode: ident, $($ty: ty),*) => {
         match TypeId::of::<T>() {
-            $(id if id == TypeId::of::<$ty>() => unsafe { transmute_accelerated::<T, $ty>(&start, &end, &step, $mode) },)*
+            $(id if id == TypeId::of::<$ty>() => unsafe { transmute_accelerated::<T, $ty>(&start, &end, &step, $mode, pool) },)*
             _ => None
         }
     }}
