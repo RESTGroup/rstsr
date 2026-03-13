@@ -1,5 +1,5 @@
 use crate::prelude_dev::*;
-use num::{complex::ComplexFloat, Num};
+use num::{complex::ComplexFloat, Num, Zero};
 
 impl<T> DeviceCreationAnyAPI<T> for DeviceCpuSerial
 where
@@ -70,7 +70,7 @@ where
 
 impl<T> DeviceCreationArangeAPI<T> for DeviceCpuSerial
 where
-    T: Num + PartialOrd + Clone + 'static,
+    T: PartialOrd + Clone + Add<Output = T> + Zero + 'static,
     DeviceCpuSerial: DeviceRawAPI<T, Raw = Vec<T>>,
 {
     fn arange_impl(&self, start: T, end: T, step: T) -> Result<Storage<DataOwned<Vec<T>>, T, DeviceCpuSerial>> {
