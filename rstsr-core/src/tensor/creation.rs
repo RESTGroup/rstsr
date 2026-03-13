@@ -62,7 +62,7 @@ where
 impl<T, B> ArangeAPI<(T, B)> for (T, T, T, &B)
 where
     T: Num + PartialOrd,
-    B: DeviceAPI<T> + DeviceCreationPartialOrdNumAPI<T>,
+    B: DeviceAPI<T> + DeviceCreationArangeAPI<T>,
 {
     type Out = Tensor<T, B, IxD>;
 
@@ -78,7 +78,7 @@ where
 impl<T, B> ArangeAPI<(T, B)> for (T, T, &B)
 where
     T: Num + PartialOrd,
-    B: DeviceAPI<T> + DeviceCreationPartialOrdNumAPI<T>,
+    B: DeviceAPI<T> + DeviceCreationArangeAPI<T>,
 {
     type Out = Tensor<T, B, IxD>;
 
@@ -93,7 +93,7 @@ where
 impl<T, B> ArangeAPI<(T, B)> for (T, &B)
 where
     T: Num + PartialOrd,
-    B: DeviceAPI<T> + DeviceCreationPartialOrdNumAPI<T>,
+    B: DeviceAPI<T> + DeviceCreationArangeAPI<T>,
 {
     type Out = Tensor<T, B, IxD>;
 

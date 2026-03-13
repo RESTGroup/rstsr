@@ -36,7 +36,6 @@ pub trait DeviceCreationAnyAPI<T>: DeviceRawAPI<T> {
 pub trait DeviceCreationNumAPI<T>: DeviceRawAPI<T> {
     fn zeros_impl(&self, len: usize) -> Result<Storage<DataOwned<Self::Raw>, T, Self>>;
     fn ones_impl(&self, len: usize) -> Result<Storage<DataOwned<Self::Raw>, T, Self>>;
-    fn arange_int_impl(&self, len: usize) -> Result<Storage<DataOwned<Self::Raw>, T, Self>>;
 }
 
 pub trait DeviceCreationComplexFloatAPI<T>: DeviceRawAPI<T> {
@@ -49,7 +48,7 @@ pub trait DeviceCreationComplexFloatAPI<T>: DeviceRawAPI<T> {
     ) -> Result<Storage<DataOwned<Self::Raw>, T, Self>>;
 }
 
-pub trait DeviceCreationPartialOrdNumAPI<T>: DeviceRawAPI<T> {
+pub trait DeviceCreationArangeAPI<T>: DeviceRawAPI<T> {
     fn arange_impl(&self, start: T, end: T, step: T) -> Result<Storage<DataOwned<Self::Raw>, T, Self>>;
 }
 

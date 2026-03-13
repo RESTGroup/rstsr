@@ -69,15 +69,9 @@ where
         let (data, _) = storage.into_raw_parts();
         Ok(Storage::new(data, self.clone()))
     }
-
-    fn arange_int_impl(&self, len: usize) -> Result<Storage<DataOwned<Vec<T>>, T, Self>> {
-        let storage = DeviceCpuSerial::default().arange_int_impl(len)?;
-        let (data, _) = storage.into_raw_parts();
-        Ok(Storage::new(data, self.clone()))
-    }
 }
 
-impl<T> DeviceCreationPartialOrdNumAPI<T> for DeviceRayonAutoImpl
+impl<T> DeviceCreationArangeAPI<T> for DeviceRayonAutoImpl
 where
     T: Num + PartialOrd + Clone + 'static,
     Self: DeviceRawAPI<T, Raw = Vec<T>>,
