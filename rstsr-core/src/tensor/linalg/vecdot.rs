@@ -14,32 +14,36 @@ use core::mem::transmute;
 ///
 /// # Parameters
 ///
-/// - `a`: [`&TensorAny<R, T, B, D>`](TensorAny)
+/// - `a`: impl [`TensorViewAPI`]
 ///
-///   The first input array.
+///   - The first input array. Note this array is conjugated if it has a complex data type.
+///   - Scalar not allowed.
 ///
-/// - `b`: [`&TensorAny<R, T, B, D>`](TensorAny)
+/// - `b`: impl [`TensorViewAPI`]
 ///
-///   The second input array.
+///   - The second input array.
+///   - Scalar not allowed.
 ///
 /// - `axis`: `impl Into<Option<isize>>`
 ///
-///   The axis over which to compute the dot product.
-///   Default: `-1` (the last axis).
-///   If negative, the axis is counted from the last axis of each input array.
+///   - The axis over which to compute the dot product.
+///   - Default: `-1` (the last axis).
+///   - If negative, the axis is counted from the last axis of each input array.
 ///
 /// # Returns
 ///
-/// [`Tensor<T::Output, B, DA::Max>`] - The vector dot product of the inputs.
-/// The result shape is the broadcast of the input shapes with the contracted axis removed.
+/// [`Tensor<T::Output, B, DA::Max>`]
+///
+/// - The result shape is the broadcast of the input shapes with the contracted axis removed.
 ///
 /// # Examples
+///
+/// Basic vector dot product:
 ///
 /// ```rust
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
 /// # device.set_default_order(RowMajor);
-/// // Basic vector dot product
 /// let a = rt::tensor_from_nested!([1, 2, 3], &device);
 /// let b = rt::tensor_from_nested!([4, 5, 6], &device);
 /// let result = rt::vecdot(&a, &b, None);
@@ -47,11 +51,12 @@ use core::mem::transmute;
 /// // 32
 /// ```
 ///
+/// 2-dim dot product:
+///
 /// ```rust
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
 /// # device.set_default_order(RowMajor);
-/// // 2-dim dot product
 /// let a = rt::tensor_from_nested!([[1, 2], [3, 4]], &device);
 /// let b = rt::tensor_from_nested!([[5, 6], [7, 8]], &device);
 /// let result = rt::vecdot(&a, &b, None);
@@ -59,11 +64,13 @@ use core::mem::transmute;
 /// // [ 17 53]
 /// ```
 ///
+/// 2-dim broadcasted dot product (note in this case, the following two tensors only can be
+/// broadcasted row-major):
+///
 /// ```rust
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
-/// # device.set_default_order(RowMajor);
-/// // 2-dim broadcasted dot product
+/// device.set_default_order(RowMajor);
 /// let a = rt::tensor_from_nested!([[0., 5., 0.], [0., 0., 10.], [0., 6., 8.]], &device);
 /// let b = rt::tensor_from_nested!([0., 0.6, 0.8], &device);
 /// let result = rt::vecdot(&a, &b, None);
@@ -71,11 +78,12 @@ use core::mem::transmute;
 /// // [ 3 8 10]
 /// ```
 ///
+/// Complex vector dot product (conjugates first argument):
+///
 /// ```rust
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
 /// # device.set_default_order(RowMajor);
-/// // complex dot product (conjugates first argument)
 /// use num::complex::c64;
 /// let a = rt::tensor_from_nested!([c64(1., 0.), c64(2., 2.), c64(3., 0.)], &device);
 /// let b = rt::tensor_from_nested!([c64(1., 0.), c64(2., 0.), c64(3., 3.)], &device);
@@ -87,8 +95,15 @@ use core::mem::transmute;
 /// # Notes of API accordance
 ///
 /// - Array-API: `vecdot(x1, x2, /, *, axis=-1)` ([`vecdot`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.vecdot.html))
-/// - NumPy: `vecdot(x1, x2, /, *, axis=-1)` ([`numpy.vecdot`](https://numpy.org/doc/stable/reference/generated/numpy.vecdot.html))
+/// - NumPy: `vecdot(x1, x2, /, out=None, *, casting='same_kind', order='K', dtype=None, subok=True[, signature, axes, axis])` ([`numpy.vecdot`](https://numpy.org/doc/stable/reference/generated/numpy.vecdot.html))
 /// - RSTSR: `rt::vecdot(a, b, axis)`
+///
+/// # Panics
+///
+/// - The contracted axis dimensions do not match.
+/// - The input tensors cannot be broadcast together.
+///
+/// For a fallible version, use [`vecdot_f`].
 ///
 /// # See Also
 ///
@@ -104,13 +119,6 @@ use core::mem::transmute;
 ///
 /// - [`vecdot`] / [`vecdot_f`]: Returning a new tensor.
 /// - [`vecdot_from`] / [`vecdot_from_f`]: Writing result to existing tensor.
-///
-/// # Panics
-///
-/// Panics if the contracted axis dimensions do not match, or if the remaining
-/// dimensions cannot be broadcast together.
-///
-/// For a fallible version, use [`vecdot_f`].
 pub fn vecdot<TA, TB, DA, DB, B>(
     a: impl TensorViewAPI<Type = TA, Backend = B, Dim = DA>,
     b: impl TensorViewAPI<Type = TB, Backend = B, Dim = DB>,
