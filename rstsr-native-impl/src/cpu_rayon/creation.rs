@@ -1,6 +1,6 @@
 use crate::prelude_dev::*;
 use core::ops::*;
-use num::{FromPrimitive, ToPrimitive};
+use num::{complex::ComplexFloat, FromPrimitive, ToPrimitive};
 use rayon::prelude::*;
 
 /* #region arange */
@@ -99,6 +99,33 @@ where
         expand_accelerated!(true, usize, isize, i32, i64, u32, u64)
             .unwrap_or_else(|| arange_by_partial_ord_cpu_serial(start, end, step))
     })
+}
+
+/* #endregion */
+
+/* #region linspace */
+
+pub fn linspace_cpu_rayon<T>(start: T, end: T, n: usize, endpoint: bool, pool: Option<&ThreadPool>) -> Option<Vec<T>>
+where
+    T: ComplexFloat + Clone + Send + Sync,
+{
+    // handle special cases
+    if n == 0 {
+        return Some(vec![]);
+    } else if n == 1 {
+        return Some(vec![start]);
+    }
+
+    // step should be usually safe to unwrap, since usize should be convertible to float for most cases,
+    // though I'm not sure if FP8 or even smaller types are supported.
+    let step = match endpoint {
+        true => (end - start) / T::from(n - 1)?,
+        false => (end - start) / T::from(n)?,
+    };
+
+    // unwrap should be safe here: if `n` can be converted, this can surely be converted by `i`.
+    let task = || -> Vec<T> { (0..n).into_par_iter().map(|i| start + T::from(i).unwrap() * step).collect() };
+    Some(pool.map_or_else(task, |pool| pool.install(task)))
 }
 
 /* #endregion */

@@ -90,9 +90,11 @@ where
     Self: DeviceRawAPI<T, Raw = Vec<T>>,
 {
     fn linspace_impl(&self, start: T, end: T, n: usize, endpoint: bool) -> Result<Storage<DataOwned<Vec<T>>, T, Self>> {
-        let storage = DeviceCpuSerial::default().linspace_impl(start, end, n, endpoint)?;
-        let (data, _) = storage.into_raw_parts();
-        Ok(Storage::new(data, self.clone()))
+        let pool = self.get_current_pool();
+        let raw = linspace_cpu_rayon(start, end, n, endpoint, pool).ok_or_else(|| {
+            rstsr_error!(InvalidValue, "failed to create linspace parallel, probably due to too large `n`")
+        })?;
+        Ok(Storage::new(raw.into(), self.clone()))
     }
 }
 
