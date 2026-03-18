@@ -41,7 +41,8 @@ where
 
     // if no elements in layout, return itself
     if layout.size() == 0 {
-        return (layout.clone(), (0..layout.ndim() as isize).collect_vec());
+        let ndim = layout.ndim();
+        return (layout, (0..ndim as isize).collect_vec());
     }
 
     // revert negative strides if keep_shape is not required

@@ -1,7 +1,7 @@
 pub mod rstsr_traits {
     pub use crate::layout::exports::{
         DimAPI, DimBaseAPI, DimBroadcastableAPI, DimDevAPI, DimIntoAPI, DimLargerOneAPI, DimLayoutContigAPI, DimMaxAPI,
-        DimShapeAPI, DimSmallerOneAPI, DimStrideAPI,
+        DimShapeAPI, DimSmallerOneAPI,
     };
     pub use crate::pack_array::{PackArrayAPI, PackableArrayAPI, UnpackArrayAPI};
     pub use core::ops::*;

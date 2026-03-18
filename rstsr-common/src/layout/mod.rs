@@ -8,7 +8,6 @@ pub mod rearrangement;
 pub mod reshape;
 pub mod shape;
 pub mod slice;
-pub mod stride;
 
 pub mod exports {
     use super::*;
@@ -22,9 +21,8 @@ pub mod exports {
     pub use reshape::*;
     pub use shape::*;
     pub use slice::*;
-    pub use stride::*;
 
-    pub trait DimDevAPI: DimBaseAPI + DimShapeAPI + DimStrideAPI + DimLayoutContigAPI {}
+    pub trait DimDevAPI: DimBaseAPI + DimShapeAPI + DimLayoutContigAPI {}
 
     impl<const N: usize> DimDevAPI for Ix<N> {}
     impl DimDevAPI for IxD {}
