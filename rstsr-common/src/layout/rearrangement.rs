@@ -321,6 +321,54 @@ where
     }
 }
 
+/// Obtain composition of layout.
+///
+/// The returned indices are axes of input layout:
+///
+/// - shape = 1 part
+/// - stride = 0 part
+/// - contiguous part, col-major order
+/// - discontiguous part, col-major order
+pub fn get_axes_composition<D>(layout: &Layout<D>) -> (Vec<usize>, Vec<usize>, Vec<usize>, Vec<usize>)
+where
+    D: DimDevAPI,
+{
+    let mut comp_i = vec![]; // shape = 1 part, s[i]ngleton
+    let mut comp_b = vec![]; // stride = 0 part, [b]roadcast
+    let mut comp_c = vec![]; // [c]ontiguous part
+    let mut comp_d = vec![]; // [d]iscontiguous part
+    let mut remain = (0..layout.ndim()).collect_vec();
+
+    // shape = 1 part, stride = 0 part
+    for i in 0..layout.ndim() {
+        if layout.shape()[i] == 1 {
+            comp_i.push(i);
+        } else if layout.stride()[i] == 0 {
+            comp_b.push(i);
+        }
+    }
+    remain.retain(|&i| !comp_i.contains(&i) && !comp_b.contains(&i));
+    let (layout_cd, _) = layout.dim_split_axes(&remain.iter().map(|x| *x as isize).collect_vec()).unwrap();
+
+    // get axes sorted by stride size
+    remain.sort_by(|&i1, &i2| layout_cd.stride()[i1].abs().cmp(&layout_cd.stride()[i2].abs()));
+
+    // get contiguous part
+    let mut current_stride = 1;
+    for &i in &remain {
+        let (s, t) = (layout_cd.shape()[i], layout_cd.stride()[i]);
+        if t == current_stride {
+            comp_c.push(i);
+            current_stride *= s as isize;
+        }
+    }
+
+    // get discontiguous part
+    comp_d = remain.into_iter().filter(|i| !comp_c.contains(i)).collect_vec();
+
+    (comp_i, comp_b, comp_c, comp_d)
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

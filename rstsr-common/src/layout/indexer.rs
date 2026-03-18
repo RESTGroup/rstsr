@@ -462,7 +462,7 @@ where
         // returned layouts will be
         // (layout_axes, layout_rest)
 
-        let axes_update = normalize_axes_index(axes.into(), self.ndim(), false, true)?
+        let axes_update = normalize_axes_index(axes.into(), self.ndim(), false, false)?
             .into_iter()
             .map(|axis| axis as usize)
             .collect::<Vec<usize>>();
