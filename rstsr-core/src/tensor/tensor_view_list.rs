@@ -22,17 +22,16 @@ where
     fn view_list(&'_ self) -> Vec<TensorView<'_, T, B, IxD>>;
 }
 
-impl<R, T, B> TensorViewListAPI<T, B> for &[TensorAny<R, T, B, IxD>]
-where
-    B: DeviceAPI<T>,
-    R: DataAPI<Data = B::Raw>,
-{
-    fn view_list(&'_ self) -> Vec<TensorView<'_, T, B, IxD>> {
-        self.iter().map(|t| t.view()).collect()
-    }
-}
-
-impl<R, T, B> TensorViewListAPI<T, B> for &[&TensorAny<R, T, B, IxD>]
+#[duplicate_item(
+    TraitBound                 Type                              ;
+   [R, T, B]                  [&[TensorAny<R, T, B, IxD>]]       ;
+   [R, T, B]                  [&[&TensorAny<R, T, B, IxD>]]      ;
+   [R, T, B]                  [Vec<&TensorAny<R, T, B, IxD>>]    ;
+   [R, T, B]                  [Vec<TensorAny<R, T, B, IxD>>]     ;
+   [R, T, B, const N: usize]  [&[TensorAny<R, T, B, IxD>; N]]    ;
+   [R, T, B, const N: usize]  [&[&TensorAny<R, T, B, IxD>; N]]   ;
+)]
+impl<TraitBound> TensorViewListAPI<T, B> for Type
 where
     B: DeviceAPI<T>,
     R: DataAPI<Data = B::Raw>,
