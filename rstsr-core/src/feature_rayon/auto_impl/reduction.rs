@@ -252,7 +252,7 @@ where
             acc_2 / size_2 - (mean * mean.conj()).re()
         };
 
-        let (out, layout_out) = reduce_axes_difftype_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
 
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
@@ -308,7 +308,7 @@ where
             var.sqrt()
         };
 
-        let (out, layout_out) = reduce_axes_difftype_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
 
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }

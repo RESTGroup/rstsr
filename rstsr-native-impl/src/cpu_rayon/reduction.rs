@@ -106,7 +106,7 @@ where
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn reduce_axes_cpu_rayon<TI, TS, I, F, FSum, FOut>(
+pub fn reduce_axes_cpu_rayon<TI, TS, TO, I, F, FSum, FOut>(
     a: &[TI],
     la: &Layout<IxD>,
     axes: &[isize],
@@ -115,14 +115,15 @@ pub fn reduce_axes_cpu_rayon<TI, TS, I, F, FSum, FOut>(
     f_sum: FSum,
     f_out: FOut,
     pool: Option<&ThreadPool>,
-) -> Result<(Vec<TS>, Layout<IxD>)>
+) -> Result<(Vec<TO>, Layout<IxD>)>
 where
     TI: Clone + Send + Sync,
     TS: Clone + Send + Sync,
+    TO: Clone + Send + Sync,
     I: Fn() -> TS + Send + Sync,
     F: Fn(TS, TI) -> TS + Send + Sync,
     FSum: Fn(TS, TS) -> TS + Send + Sync,
-    FOut: Fn(TS) -> TS + Send + Sync,
+    FOut: Fn(TS) -> TO + Send + Sync,
 {
     // determine whether to use parallel iteration
     let size = la.size();
@@ -150,7 +151,7 @@ where
 
     // create output layout
     let lo = layout_for_array_copy(&lm, TensorIterOrder::K)?;
-    let mut out: Vec<MaybeUninit<TS>> = unsafe { uninitialized_vec(lo.size())? };
+    let mut out: Vec<MaybeUninit<TO>> = unsafe { uninitialized_vec(lo.size())? };
 
     // extract contiguous part and its corresponding dimensions
     // returns: remaining layout, remaining axes loc, contiguous size, contiguous axes loc
@@ -191,7 +192,7 @@ where
                     acc = f_sum(acc, acc_before.clone());
                 }
                 unsafe {
-                    let ptr_out_ocd = out.as_ptr().add(i_ocd) as *mut MaybeUninit<TS>;
+                    let ptr_out_ocd = out.as_ptr().add(i_ocd) as *mut MaybeUninit<TO>;
                     (*ptr_out_ocd).write(f_out(acc));
                 }
             });
@@ -237,7 +238,7 @@ where
                 });
                 // apply broadcast duplication and finalization function and write to output
                 (0..size_mc).into_par_iter().for_each(|i_mc| unsafe {
-                    let ptr_out = out.as_ptr().add(i_od + i_mc) as *mut MaybeUninit<TS>;
+                    let ptr_out = out.as_ptr().add(i_od + i_mc) as *mut MaybeUninit<TO>;
                     let mut acc = vacc[i_mc].clone();
                     for _ in 1..size_s0 {
                         acc = f_sum(acc, vacc[i_mc].clone());
@@ -271,7 +272,7 @@ where
                     acc = f_sum(acc, acc_before.clone());
                 }
                 unsafe {
-                    let ptr_out_od = out.as_ptr().add(i_od) as *mut MaybeUninit<TS>;
+                    let ptr_out_od = out.as_ptr().add(i_od) as *mut MaybeUninit<TO>;
                     (*ptr_out_od).write(f_out(acc));
                 }
             });
@@ -308,123 +309,22 @@ where
 
     // Safety: all broadcast, discontiguous, contiguous parts have been handled, the `out` is now fully
     // initialized, transmute it to the output type
-    let mut out = unsafe { transmute::<Vec<MaybeUninit<TS>>, Vec<TS>>(out) };
+    let mut out = unsafe { transmute::<Vec<MaybeUninit<TO>>, Vec<TO>>(out) };
 
     // handle tensor iter order
     if TensorIterOrder::default() != TensorIterOrder::K {
         let lo_default = layout_for_array_copy(&lm, TensorIterOrder::default())?;
         if lo_default != lo {
-            let mut out_default: Vec<MaybeUninit<TS>> = unsafe { uninitialized_vec(lo_default.size())? };
-            let mut func = |a: &mut MaybeUninit<TS>, b: &TS| {
+            let mut out_default: Vec<MaybeUninit<TO>> = unsafe { uninitialized_vec(lo_default.size())? };
+            let mut func = |a: &mut MaybeUninit<TO>, b: &TO| {
                 a.write(b.clone());
             };
             op_muta_refb_func_cpu_rayon(&mut out_default, &lo_default, &out, &lo, &mut func, pool)?;
-            out = unsafe { transmute::<Vec<MaybeUninit<TS>>, Vec<TS>>(out_default) };
+            out = unsafe { transmute::<Vec<MaybeUninit<TO>>, Vec<TO>>(out_default) };
         }
     }
 
     Ok((out, lo))
-}
-
-#[allow(clippy::too_many_arguments)]
-pub fn reduce_axes_difftype_cpu_rayon<TI, TS, TO, I, F, FSum, FOut>(
-    a: &[TI],
-    la: &Layout<IxD>,
-    axes: &[isize],
-    init: I,
-    f: F,
-    f_sum: FSum,
-    f_out: FOut,
-    pool: Option<&ThreadPool>,
-) -> Result<(Vec<TO>, Layout<IxD>)>
-where
-    TI: Clone + Send + Sync,
-    TS: Clone + Send + Sync,
-    TO: Clone + Send + Sync,
-    I: Fn() -> TS + Send + Sync,
-    F: Fn(TS, TI) -> TS + Send + Sync,
-    FSum: Fn(TS, TS) -> TS + Send + Sync,
-    FOut: Fn(TS) -> TO + Send + Sync,
-{
-    // determine whether to use parallel iteration
-    let size = la.size();
-    if size < PARALLEL_SWITCH {
-        return reduce_axes_difftype_cpu_serial(a, la, axes, init, f, f_sum, f_out);
-    }
-
-    // split the layout into axes (to be summed) and the rest
-    let (layout_axes, layout_rest) = la.dim_split_axes(axes)?;
-    let layout_axes = translate_to_col_major_unary(&layout_axes, TensorIterOrder::default())?;
-
-    // generate layout for result (from layout_rest)
-    let layout_out = layout_for_array_copy(&layout_rest, TensorIterOrder::default())?;
-
-    // use contiguous reduce_all only when size of contiguous part is large enough
-    let (_, size_contig) = translate_to_col_major_with_contig(&[&layout_axes]);
-    if size_contig >= CONTIG_SWITCH {
-        // generate layouts for actual evaluation
-        let layouts_swapped = translate_to_col_major(&[&layout_out, &layout_rest], TensorIterOrder::default())?;
-        let layout_out_swapped = &layouts_swapped[0];
-        let layout_rest_swapped = &layouts_swapped[1];
-
-        // iterate both layout_rest and layout_out
-        let iter_out_swapped = IterLayoutRowMajor::new(layout_out_swapped)?;
-        let iter_rest_swapped = IterLayoutRowMajor::new(layout_rest_swapped)?;
-
-        // prepare output
-        let len_out = layout_out.size();
-        let mut out: Vec<MaybeUninit<TO>> = unsafe { uninitialized_vec(len_out)? };
-        let out_ptr = AtomicPtr::new(out.as_mut_ptr());
-
-        // actual evaluation
-        let task = || {
-            (iter_out_swapped, iter_rest_swapped).into_par_iter().try_for_each(|(idx_out, idx_rest)| -> Result<()> {
-                let out_ptr = out_ptr.load(Ordering::Relaxed);
-                // let out_ptr = out_ptr.get();
-                let mut layout_inner = layout_axes.clone();
-                unsafe { layout_inner.set_offset(idx_rest) };
-                let acc = reduce_all_cpu_rayon(a, &layout_inner, &init, &f, &f_sum, &f_out, pool)?;
-                unsafe { *out_ptr.add(idx_out) = MaybeUninit::new(acc) };
-                Ok(())
-            })
-        };
-        match pool {
-            None => task()?,
-            Some(pool) => pool.install(task)?,
-        };
-        let out = unsafe { transmute::<Vec<MaybeUninit<TO>>, Vec<TO>>(out) };
-        Ok((out, layout_out))
-    } else {
-        // iterate layout_axes
-        let iter_layout_axes = IterLayoutRowMajor::new(&layout_axes)?;
-
-        // inner layout is axes not to be summed
-        let mut layout_inner = layout_rest.clone();
-
-        // prepare output
-        let len_out = layout_out.size();
-        let init_val = init();
-        let out = vec![init_val; len_out];
-        let mut out = unsafe { transmute::<Vec<TS>, Vec<MaybeUninit<TS>>>(out) };
-
-        // closure for adding to mutable reference
-        let mut f_add = |a: &mut MaybeUninit<TS>, b: &TI| unsafe {
-            a.write(f(a.assume_init_read(), b.clone()));
-        };
-
-        for idx_axes in iter_layout_axes {
-            unsafe { layout_inner.set_offset(idx_axes) };
-            op_muta_refb_func_cpu_rayon(&mut out, &layout_out, a, &layout_inner, &mut f_add, pool)?;
-        }
-
-        let mut out_converted = unsafe { uninitialized_vec(len_out)? };
-        let mut f_out = |a: &mut MaybeUninit<TO>, b: &MaybeUninit<TS>| unsafe {
-            a.write(f_out(b.assume_init_read()));
-        };
-        op_muta_refb_func_cpu_rayon(&mut out_converted, &layout_out, &out, &layout_out, &mut f_out, pool)?;
-        let out_converted = unsafe { transmute::<Vec<MaybeUninit<TO>>, Vec<TO>>(out_converted) };
-        Ok((out_converted, layout_out))
-    }
 }
 
 /* #endregion */

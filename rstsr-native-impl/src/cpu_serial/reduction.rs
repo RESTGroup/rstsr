@@ -177,7 +177,7 @@ where
     }
 }
 
-pub fn reduce_axes_cpu_serial<TI, TS, I, F, FSum, FOut>(
+pub fn reduce_axes_cpu_serial<TI, TS, TO, I, F, FSum, FOut>(
     a: &[TI],
     la: &Layout<IxD>,
     axes: &[isize],
@@ -185,14 +185,15 @@ pub fn reduce_axes_cpu_serial<TI, TS, I, F, FSum, FOut>(
     f: F,
     f_sum: FSum,
     f_out: FOut,
-) -> Result<(Vec<TS>, Layout<IxD>)>
+) -> Result<(Vec<TO>, Layout<IxD>)>
 where
     TI: Clone,
     TS: Clone,
+    TO: Clone,
     I: Fn() -> TS,
     F: Fn(TS, TI) -> TS,
     FSum: Fn(TS, TS) -> TS,
-    FOut: Fn(TS) -> TS,
+    FOut: Fn(TS) -> TO,
 {
     // Always use K (keep) order for reduction internally (which is the default).
     // Will then translate back to the default order at the end.
@@ -214,7 +215,7 @@ where
 
     // create output layout
     let lo = layout_for_array_copy(&lm, TensorIterOrder::K)?;
-    let mut out: Vec<MaybeUninit<TS>> = unsafe { uninitialized_vec(lo.size())? };
+    let mut out: Vec<MaybeUninit<TO>> = unsafe { uninitialized_vec(lo.size())? };
 
     // extract contiguous part and its corresponding dimensions
     // returns: remaining layout, remaining axes loc, contiguous size, contiguous axes loc
@@ -349,106 +350,21 @@ where
 
     // Safety: all broadcast, discontiguous, contiguous parts have been handled, the `out` is now fully
     // initialized, transmute it to the output type
-    let mut out = unsafe { transmute::<Vec<MaybeUninit<TS>>, Vec<TS>>(out) };
+    let mut out = unsafe { transmute::<Vec<MaybeUninit<TO>>, Vec<TO>>(out) };
 
     // handle tensor iter order
     if TensorIterOrder::default() != TensorIterOrder::K {
         let lo_default = layout_for_array_copy(&lm, TensorIterOrder::default())?;
         if lo_default != lo {
-            let mut out_default: Vec<MaybeUninit<TS>> = unsafe { uninitialized_vec(lo_default.size())? };
+            let mut out_default: Vec<MaybeUninit<TO>> = unsafe { uninitialized_vec(lo_default.size())? };
             op_muta_refb_func_cpu_serial(&mut out_default, &lo_default, &out, &lo, |a, b| {
                 a.write(b.clone());
             })?;
-            out = unsafe { transmute::<Vec<MaybeUninit<TS>>, Vec<TS>>(out_default) };
+            out = unsafe { transmute::<Vec<MaybeUninit<TO>>, Vec<TO>>(out_default) };
         }
     }
 
     Ok((out, lo))
-}
-
-pub fn reduce_axes_difftype_cpu_serial<TI, TS, TO, I, F, FSum, FOut>(
-    a: &[TI],
-    la: &Layout<IxD>,
-    axes: &[isize],
-    init: I,
-    f: F,
-    f_sum: FSum,
-    f_out: FOut,
-) -> Result<(Vec<TO>, Layout<IxD>)>
-where
-    TI: Clone,
-    TS: Clone,
-    I: Fn() -> TS,
-    F: Fn(TS, TI) -> TS,
-    FSum: Fn(TS, TS) -> TS,
-    FOut: Fn(TS) -> TO,
-{
-    // split the layout into axes (to be summed) and the rest
-    let (layout_axes, layout_rest) = la.dim_split_axes(axes)?;
-    let layout_axes = translate_to_col_major_unary(&layout_axes, TensorIterOrder::default())?;
-
-    // generate layout for result (from layout_rest)
-    let layout_out = layout_for_array_copy(&layout_rest, TensorIterOrder::default())?;
-
-    // use contiguous reduce_all only when size of contiguous part is large enough
-    let (_, size_contig) = translate_to_col_major_with_contig(&[&layout_axes]);
-    if size_contig >= CONTIG_SWITCH {
-        // generate layouts for actual evaluation
-        let layouts_swapped = translate_to_col_major(&[&layout_out, &layout_rest], TensorIterOrder::default())?;
-        let layout_out_swapped = &layouts_swapped[0];
-        let layout_rest_swapped = &layouts_swapped[1];
-
-        // iterate both layout_rest and layout_out
-        let iter_out_swapped = IterLayoutRowMajor::new(layout_out_swapped)?;
-        let iter_rest_swapped = IterLayoutRowMajor::new(layout_rest_swapped)?;
-
-        // inner layout is axes to be summed
-        let mut layout_inner = layout_axes.clone();
-
-        // prepare output
-        let len_out = layout_out.size();
-        let mut out: Vec<MaybeUninit<TO>> = unsafe { uninitialized_vec(len_out)? };
-
-        // actual evaluation
-        izip!(iter_out_swapped, iter_rest_swapped).try_for_each(|(idx_out, idx_rest)| -> Result<()> {
-            unsafe { layout_inner.set_offset(idx_rest) };
-            let acc = reduce_all_cpu_serial(a, &layout_inner, &init, &f, &f_sum, &f_out)?;
-            out[idx_out] = MaybeUninit::new(acc);
-            Ok(())
-        })?;
-        let out = unsafe { transmute::<Vec<MaybeUninit<TO>>, Vec<TO>>(out) };
-        Ok((out, layout_out))
-    } else {
-        // iterate layout_axes
-        let iter_layout_axes = IterLayoutRowMajor::new(&layout_axes)?;
-
-        // inner layout is axes not to be summed
-        let mut layout_inner = layout_rest.clone();
-
-        // prepare output
-        let len_out = layout_out.size();
-        let init_val = init();
-        let out = vec![init_val; len_out];
-        let mut out = unsafe { transmute::<Vec<TS>, Vec<MaybeUninit<TS>>>(out) };
-
-        // closure for adding to mutable reference
-        let f_add = |a: &mut MaybeUninit<TS>, b: &TI| unsafe {
-            a.write(f(a.assume_init_read(), b.clone()));
-        };
-
-        for idx_axes in iter_layout_axes {
-            unsafe { layout_inner.set_offset(idx_axes) };
-            op_muta_refb_func_cpu_serial(&mut out, &layout_out, a, &layout_inner, f_add)?;
-        }
-
-        let mut out_converted = unsafe { uninitialized_vec(len_out)? };
-        let f_out = |a: &mut MaybeUninit<TO>, b: &MaybeUninit<TS>| unsafe {
-            a.write(f_out(b.assume_init_read()));
-        };
-        op_muta_refb_func_cpu_serial(&mut out_converted, &layout_out, &out, &layout_out, f_out)?;
-        let out_converted = unsafe { transmute::<Vec<MaybeUninit<TO>>, Vec<TO>>(out_converted) };
-        Ok((out_converted, layout_out))
-    }
 }
 
 /* #endregion */
