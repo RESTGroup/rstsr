@@ -279,10 +279,17 @@ where
             // initialize sequential parts
             let mut vacc = vec![init(); size_mc];
             // iterate the reduction parts
-            it_scd.clone().for_each(|i_scd| {
-                let idx_in = i_md + i_scd - offset; // double-counted offset
-                vacc.iter_mut().zip(&a[idx_in..idx_in + size_mc]).for_each(|(acc, x)| {
-                    *acc = f(acc.clone(), x.clone());
+            // - chunk to contiguous output (current chunk size is small, but applicable to most situations)
+            const CHUNK: usize = 48;
+            vacc.chunks_mut(CHUNK).enumerate().for_each(|(i_chunk, vacc_chunk)| {
+                let start = i_chunk * CHUNK;
+                let nchunk = vacc_chunk.len();
+                it_scd.clone().for_each(|i_scd| {
+                    let idx_in = i_md + i_scd - offset; // double-counted offset
+                    let slc = &a[idx_in + start..idx_in + start + nchunk];
+                    vacc_chunk.iter_mut().zip(slc).for_each(|(acc, x)| {
+                        *acc = f(acc.clone(), x.clone());
+                    });
                 });
             });
             // apply broadcast duplication and finalization function and write to output
@@ -347,11 +354,13 @@ where
     // handle tensor iter order
     if TensorIterOrder::default() != TensorIterOrder::K {
         let lo_default = layout_for_array_copy(&lm, TensorIterOrder::default())?;
-        let mut out_default: Vec<MaybeUninit<TS>> = unsafe { uninitialized_vec(lo_default.size())? };
-        op_muta_refb_func_cpu_serial(&mut out_default, &lo_default, &out, &lo, |a, b| {
-            a.write(b.clone());
-        })?;
-        out = unsafe { transmute::<Vec<MaybeUninit<TS>>, Vec<TS>>(out_default) };
+        if lo_default != lo {
+            let mut out_default: Vec<MaybeUninit<TS>> = unsafe { uninitialized_vec(lo_default.size())? };
+            op_muta_refb_func_cpu_serial(&mut out_default, &lo_default, &out, &lo, |a, b| {
+                a.write(b.clone());
+            })?;
+            out = unsafe { transmute::<Vec<MaybeUninit<TS>>, Vec<TS>>(out_default) };
+        }
     }
 
     Ok((out, lo))
