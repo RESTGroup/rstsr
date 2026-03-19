@@ -218,8 +218,8 @@ where
 
     // extract contiguous part and its corresponding dimensions
     // returns: remaining layout, remaining axes loc, contiguous size, contiguous axes loc
-    let (as0, _as1, asc, asd) = get_axes_composition(&ls);
-    let (am0, _am1, amc, amd) = get_axes_composition(&lm);
+    let (_as1, as0, asc, asd) = get_axes_composition(&ls);
+    let (_am1, am0, amc, amd) = get_axes_composition(&lm);
 
     // get some specific sizes of different parts
     let size_s0 = as0.iter().map(|&i| lm.shape()[i]).product::<usize>();
