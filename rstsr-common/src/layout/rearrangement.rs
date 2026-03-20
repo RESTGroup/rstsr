@@ -323,12 +323,15 @@ where
 
 /// Obtain composition of layout.
 ///
-/// The returned indices are axes of input layout:
+/// The returned indices are axes of input layout (with priority):
 ///
 /// - shape = 1 part
 /// - stride = 0 part
-/// - contiguous part, col-major order
-/// - discontiguous part, col-major order
+/// - (memory) contiguous part, col-major order
+/// - (memory) discontiguous part, col-major order
+///
+/// Please note the function is mostly for operations of tensor, not for reshape (which should
+/// categorize all contiguous parts, not only the memory-contiguous only).
 pub fn get_axes_composition<D>(layout: &Layout<D>) -> (Vec<usize>, Vec<usize>, Vec<usize>, Vec<usize>)
 where
     D: DimDevAPI,
@@ -348,15 +351,14 @@ where
         }
     }
     remain.retain(|&i| !comp_i.contains(&i) && !comp_b.contains(&i));
-    let (layout_cd, _) = layout.dim_split_axes(&remain.iter().map(|x| *x as isize).collect_vec()).unwrap();
 
     // get axes sorted by stride size
-    remain.sort_by(|&i1, &i2| layout_cd.stride()[i1].abs().cmp(&layout_cd.stride()[i2].abs()));
+    remain.sort_by(|&i1, &i2| layout.stride()[i1].abs().cmp(&layout.stride()[i2].abs()));
 
     // get contiguous part
     let mut current_stride = 1;
     for &i in &remain {
-        let (s, t) = (layout_cd.shape()[i], layout_cd.stride()[i]);
+        let (s, t) = (layout.shape()[i], layout.stride()[i]);
         if t == current_stride {
             comp_c.push(i);
             current_stride *= s as isize;
@@ -367,6 +369,94 @@ where
     comp_d = remain.into_iter().filter(|i| !comp_c.contains(i)).collect_vec();
 
     (comp_i, comp_b, comp_c, comp_d)
+}
+
+/// Compute a layout for binary operation of two layouts.
+///
+/// The binary operation can be element-wise operation (add, mul, etc.).
+///
+/// ## Rules for output
+///
+/// - Before calling this function, the two layouts should have the same shape (i.e., already been
+///   broadcasted).
+/// - First, determine the axes with shape = 1 (`a1`), stride = 0 (`a0`), contiguous parts sorted
+///   (ascending) by stride size (`ac`), and remaining axes (`ad`).
+/// - For output, contiguous parts remains the same as input, remaining axes are re-assigned strides
+///   by the input `order` (row-major or col-major).
+/// - For axes with shape = 1, this function will assign stride by near non-zero stride, right-close
+///   for row-major and left-close for col-major, otherwise 1.
+/// - For axes with stride = 0, this function will still assign stride 0 (as broadcasted).
+///
+/// ## Error processing
+///
+/// - If the two layouts have different shapes, this function will raise error. Note that this
+///   function should be called after broadcasting, so the shapes should be the same.
+pub fn get_layout_for_binary_op<D>(la: &Layout<D>, lb: &Layout<D>, order: FlagOrder) -> Result<Layout<D>>
+where
+    D: DimDevAPI,
+{
+    // broadcast must be handled before this function
+    rstsr_assert_eq!(
+        la.shape(),
+        lb.shape(),
+        InvalidLayout,
+        "Shape of two layouts must be the same for this function."
+    )?;
+
+    let ndim = la.ndim();
+    let (a1, a0_a, ac_a, _) = get_axes_composition(la);
+    let (_, a0_b, ac_b, _) = get_axes_composition(lb);
+
+    // a0_o = a0_a ∩ a0_b
+    let a0_o = a0_a.iter().filter(|&&i| a0_b.contains(&i)).cloned().collect_vec();
+    // ac_o = first same axes in ac_a and ac_b
+    let mut ac_o = vec![];
+    for (ic_a, ic_b) in ac_a.iter().zip(ac_b.iter()) {
+        if *ic_a == *ic_b {
+            ac_o.push(*ic_a);
+        } else {
+            break;
+        }
+    }
+    // ad_o = remaining
+    let mut ad_o = (0..ndim).filter(|&i| !a0_o.contains(&i) && !ac_o.contains(&i) && !a1.contains(&i)).collect_vec();
+    // reverse ad_o if row-major
+    if order == RowMajor {
+        ad_o.reverse();
+    }
+
+    // generate strides
+    // ac_o -> ad_o: contiguously increase stride
+    let mut stride = la.new_stride();
+    let mut current_stride = 1;
+    for i in ac_o.iter().chain(ad_o.iter()) {
+        stride[*i] = current_stride;
+        current_stride *= la.shape()[*i] as isize;
+    }
+    // a1: refer first non-zero of stride[a1:] for row-major, last non-zero of stride[:a1] for
+    // col-major, otherwise 1
+    for i in a1 {
+        let mut s = 1;
+        match order {
+            RowMajor => {
+                if let Some(&x) = stride.as_ref()[i..].iter().find(|&&x| x != 0) {
+                    s = x;
+                }
+            },
+            ColMajor => {
+                if let Some(&x) = stride.as_ref()[..i].iter().rev().find(|&&x| x != 0) {
+                    s = x;
+                }
+            },
+        }
+        stride[i] = s;
+    }
+    // a0_o: stride = 0, but that has already initialized as zero.
+
+    let shape = la.shape().clone();
+    let offset = la.offset();
+    let layout = unsafe { Layout::new_unchecked(shape, stride, offset) };
+    Ok(layout)
 }
 
 #[cfg(test)]
