@@ -1,6 +1,7 @@
 use crate::prelude_dev::*;
 use core::ops::Mul;
 use num::Zero;
+use rayon::prelude::*;
 use rstsr_dtype_traits::ExtNum;
 
 const PARALLEL_SWITCH: usize = 512;
@@ -97,17 +98,62 @@ where
                 }
             })
         } else {
-            layout_col_major_dim_dispatch_par_3(lc, la_chop, lb_chop, |(idx_c, idx_a, idx_b)| {
-                let val_c = (0..n_contract).fold(Zero::zero(), |acc, i| {
-                    let x = &a[(idx_a as isize + i as isize * step_a) as usize];
-                    let y = &b[(idx_b as isize + i as isize * step_b) as usize];
-                    acc + x.clone().ext_conj() * y.clone()
-                });
-                unsafe {
-                    let c_ptr = c.as_ptr().add(idx_c) as *mut MaybeUninit<TC>;
-                    (*c_ptr).write(val_c);
+            // check if lc, la_chop, lb_chop have common contiguous dimension, then accelarate
+            let (_, _, ac_a, _) = get_axes_composition(la_chop);
+            let (_, _, ac_b, _) = get_axes_composition(lb_chop);
+            let (_, _, ac_c, _) = get_axes_composition(lc);
+            let mut ac = vec![];
+            for (ic_a, ic_b, ic_c) in izip!(ac_a, ac_b, ac_c) {
+                if ic_a == ic_b && ic_b == ic_c {
+                    ac.push(ic_a);
+                } else {
+                    break;
                 }
-            })
+            }
+            if !ac.is_empty() {
+                let n_contig = ac.iter().map(|&i| la_chop.shape()[i]).product::<usize>();
+                let ac_isize = ac.iter().map(|&x| x as isize).collect_vec();
+                let (_, la_chop_d) = la_chop.dim_split_axes(&ac_isize)?;
+                let (_, lb_chop_d) = lb_chop.dim_split_axes(&ac_isize)?;
+                let (_, lc_d) = lc.dim_split_axes(&ac_isize)?;
+                const CHUNK: usize = 64;
+                layout_col_major_dim_dispatch_par_3(&lc_d, &la_chop_d, &lb_chop_d, |(idx_c, idx_a, idx_b)| {
+                    // unsafely cast slc_c from pointer
+                    let slc_c = unsafe {
+                        let ptr_c = c.as_ptr().add(idx_c) as *mut MaybeUninit<TC>;
+                        core::slice::from_raw_parts_mut(ptr_c, n_contig)
+                    };
+                    // currently c has not been initialized, init here
+                    slc_c.iter_mut().for_each(|c| *c = MaybeUninit::new(Zero::zero()));
+                    slc_c.par_chunks_mut(CHUNK).enumerate().for_each(|(ichunk, chunk_c)| {
+                        let n_chunk = chunk_c.len();
+                        let idx_a_chunk = idx_a + ichunk * CHUNK;
+                        let idx_b_chunk = idx_b + ichunk * CHUNK;
+                        for ifold in 0..n_contract {
+                            let idx_a = (idx_a_chunk as isize + ifold as isize * step_a) as usize;
+                            let idx_b = (idx_b_chunk as isize + ifold as isize * step_b) as usize;
+                            let chunk_a = &a[idx_a..idx_a + n_chunk];
+                            let chunk_b = &b[idx_b..idx_b + n_chunk];
+                            chunk_c.iter_mut().zip(chunk_a.iter().zip(chunk_b.iter())).for_each(|(c, (x, y))| unsafe {
+                                let val = x.clone().ext_conj() * y.clone();
+                                c.write(c.assume_init_read() + val);
+                            });
+                        }
+                    })
+                })
+            } else {
+                layout_col_major_dim_dispatch_par_3(lc, la_chop, lb_chop, |(idx_c, idx_a, idx_b)| {
+                    let val_c = (0..n_contract).fold(Zero::zero(), |acc, i| {
+                        let x = &a[(idx_a as isize + i as isize * step_a) as usize];
+                        let y = &b[(idx_b as isize + i as isize * step_b) as usize];
+                        acc + x.clone().ext_conj() * y.clone()
+                    });
+                    unsafe {
+                        let c_ptr = c.as_ptr().add(idx_c) as *mut MaybeUninit<TC>;
+                        (*c_ptr).write(val_c);
+                    }
+                })
+            }
         }
     };
     pool.map_or_else(task, |pool| pool.install(task))

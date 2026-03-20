@@ -123,12 +123,12 @@ pub fn vecdot<TA, TB, DA, DB, B>(
     a: impl TensorViewAPI<Type = TA, Backend = B, Dim = DA>,
     b: impl TensorViewAPI<Type = TB, Backend = B, Dim = DB>,
     axis: impl Into<Option<isize>>,
-) -> Tensor<TA::Output, B, DA::Max>
+) -> Tensor<TA::Output, B, IxD>
 where
     TA: Mul<TB>,
-    DA: DimAPI + DimMaxAPI<DB>,
+    DA: DimAPI,
     DB: DimAPI,
-    B: DeviceVecdotAPI<TA, TB, TA::Output, DA, DB, DA::Max>
+    B: DeviceVecdotAPI<TA, TB, TA::Output, DA, DB, IxD>
         + DeviceAPI<TA>
         + DeviceAPI<TB>
         + DeviceAPI<TA::Output>
@@ -166,12 +166,12 @@ pub fn vecdot_f<TA, TB, DA, DB, B>(
     a: impl TensorViewAPI<Type = TA, Backend = B, Dim = DA>,
     b: impl TensorViewAPI<Type = TB, Backend = B, Dim = DB>,
     axis: impl Into<Option<isize>>,
-) -> Result<Tensor<TA::Output, B, DA::Max>>
+) -> Result<Tensor<TA::Output, B, IxD>>
 where
     TA: Mul<TB>,
-    DA: DimAPI + DimMaxAPI<DB>,
+    DA: DimAPI,
     DB: DimAPI,
-    B: DeviceVecdotAPI<TA, TB, TA::Output, DA, DB, DA::Max>
+    B: DeviceVecdotAPI<TA, TB, TA::Output, DA, DB, IxD>
         + DeviceAPI<TA>
         + DeviceAPI<TB>
         + DeviceAPI<TA::Output>
@@ -216,8 +216,17 @@ where
         InvalidLayout,
         "the dimensions of a and b along the contracted axis should be the same"
     )?;
-    let shape_c = broadcast_shapes_f(&[shape_a, shape_b], device.default_order())?;
-    let layout_c = shape_c.new_c_contig(None).into_dim()?;
+    // get output layout
+    let la_chop = a.layout().to_dim::<IxD>()?.dim_chop(axis_a as isize)?;
+    let lb_chop = b.layout().to_dim::<IxD>()?.dim_chop(axis_b as isize)?;
+    let default_order = a.device().default_order();
+    let (la_chop_b, lb_chop_b) = broadcast_layout(&la_chop, &lb_chop, default_order)?;
+    // generate output layout
+    let layout_c = match TensorIterOrder::default() {
+        TensorIterOrder::C => la_chop_b.shape().c(),
+        TensorIterOrder::F => la_chop_b.shape().f(),
+        _ => get_layout_for_binary_op(&la_chop_b, &lb_chop_b, default_order)?,
+    };
     let mut storage_c = device.uninit_impl(layout_c.bounds_index()?.1)?;
     device.vecdot(storage_c.raw_mut(), &layout_c, a.raw(), a.layout(), b.raw(), b.layout(), axis)?;
     unsafe { Tensor::new_f(B::assume_init_impl(storage_c)?, layout_c) }
