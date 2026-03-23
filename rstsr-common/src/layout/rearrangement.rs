@@ -454,8 +454,7 @@ where
     // a0_o: stride = 0, but that has already initialized as zero.
 
     let shape = la.shape().clone();
-    let offset = la.offset();
-    let layout = unsafe { Layout::new_unchecked(shape, stride, offset) };
+    let layout = unsafe { Layout::new_unchecked(shape, stride, 0) };
     Ok(layout)
 }
 
