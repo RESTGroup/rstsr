@@ -1,6 +1,7 @@
 use crate::prelude_dev::*;
 
 /// Enum for Axes indexing
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AxesIndex<T> {
     None,
     Val(T),

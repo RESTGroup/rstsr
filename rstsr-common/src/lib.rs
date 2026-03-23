@@ -12,6 +12,7 @@ pub mod prelude;
 pub mod prelude_dev;
 
 pub mod alloc_vec;
+pub mod axes_pair_index;
 pub mod axis_index;
 pub mod error;
 pub mod flags;

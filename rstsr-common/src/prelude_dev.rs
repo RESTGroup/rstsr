@@ -16,6 +16,7 @@ pub use duplicate::{duplicate_item, substitute_item};
 pub use itertools::{izip, Itertools};
 
 pub use crate::alloc_vec::*;
+pub use crate::axes_pair_index::*;
 pub use crate::axis_index::*;
 pub use crate::error::{rstsr_backtrace, Error, RSTSRError, RSTSRResultAPI, Result};
 pub use crate::flags::*;
