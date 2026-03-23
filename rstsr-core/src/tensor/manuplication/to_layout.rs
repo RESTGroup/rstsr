@@ -18,14 +18,7 @@ where
     let shape = layout.shape();
     rstsr_assert_eq!(tensor.size(), shape.shape_size(), InvalidLayout)?;
     let same_layout = tensor.layout().to_dim::<IxD>()? == layout.to_dim::<IxD>()?;
-    let contig_c = tensor.c_contig() && layout.c_contig() && tensor.layout().offset() == layout.offset();
-    let contig_f = tensor.f_contig() && layout.f_contig() && tensor.layout().offset() == layout.offset();
-    let default_order = tensor.device().default_order();
-    let contig = match default_order {
-        RowMajor => contig_c,
-        ColMajor => contig_f,
-    };
-    if same_layout || contig {
+    if same_layout {
         // no data cloned
         let (storage, _) = tensor.into_raw_parts();
         let tensor = unsafe { TensorBase::new_unchecked(storage, layout) };
