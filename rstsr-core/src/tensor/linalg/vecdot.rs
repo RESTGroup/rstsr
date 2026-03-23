@@ -122,7 +122,7 @@ use core::mem::transmute;
 pub fn vecdot<TA, TB, DA, DB, B>(
     a: impl TensorViewAPI<Type = TA, Backend = B, Dim = DA>,
     b: impl TensorViewAPI<Type = TB, Backend = B, Dim = DB>,
-    axis: impl Into<Option<isize>>,
+    axes_pair: impl TryInto<AxesPairIndex<isize>, Error: Into<Error>>,
 ) -> Tensor<TA::Output, B, IxD>
 where
     TA: Mul<TB>,
@@ -134,7 +134,7 @@ where
         + DeviceAPI<TA::Output>
         + DeviceCreationAnyAPI<TA::Output>,
 {
-    vecdot_f(a, b, axis).rstsr_unwrap()
+    vecdot_f(a, b, axes_pair).rstsr_unwrap()
 }
 
 /// Vector dot product of two arrays.
@@ -144,7 +144,7 @@ pub fn vecdot_from<TA, TB, TC, DA, DB, DC, B>(
     c: impl TensorViewMutAPI<Type = TC, Backend = B, Dim = DC>,
     a: impl TensorViewAPI<Type = TA, Backend = B, Dim = DA>,
     b: impl TensorViewAPI<Type = TB, Backend = B, Dim = DB>,
-    axis: impl Into<Option<isize>>,
+    axes_pair: impl TryInto<AxesPairIndex<isize>, Error: Into<Error>>,
 ) -> Result<()>
 where
     DA: DimAPI,
@@ -156,7 +156,7 @@ where
         + DeviceAPI<TC>
         + DeviceAPI<MaybeUninit<TC>>,
 {
-    vecdot_from_f(c, a, b, axis)
+    vecdot_from_f(c, a, b, axes_pair)
 }
 
 /// Vector dot product of two arrays.
@@ -165,7 +165,7 @@ where
 pub fn vecdot_f<TA, TB, DA, DB, B>(
     a: impl TensorViewAPI<Type = TA, Backend = B, Dim = DA>,
     b: impl TensorViewAPI<Type = TB, Backend = B, Dim = DB>,
-    axis: impl Into<Option<isize>>,
+    axes_pair: impl TryInto<AxesPairIndex<isize>, Error: Into<Error>>,
 ) -> Result<Tensor<TA::Output, B, IxD>>
 where
     TA: Mul<TB>,
@@ -184,51 +184,67 @@ where
     rstsr_assert!(device.same_device(b.device()), DeviceMismatch)?;
 
     // check axis
-    let axis = axis.into().unwrap_or(-1);
-    let (axis_a, axis_b) = if axis < 0 {
-        rstsr_pattern!(
-            axis,
-            -(a.ndim().min(b.ndim()) as isize)..=-1,
-            InvalidValue,
-            "axis should be [-N, -1] where N is min(a.ndim, b.ndim)"
-        )?;
-        let axis_a = (axis + a.ndim() as isize) as usize;
-        let axis_b = (axis + b.ndim() as isize) as usize;
-        (axis_a, axis_b)
-    } else {
-        rstsr_pattern!(
-            axis,
-            0..(a.ndim().min(b.ndim()) as isize),
-            InvalidValue,
-            "axis should be [0, N) where N is min(a.ndim, b.ndim)"
-        )?;
-        (axis as usize, axis as usize)
+    let mut axes_pair = axes_pair.try_into().map_err(Into::into)?;
+    if axes_pair == AxesPairIndex::None {
+        axes_pair = AxesPairIndex::Val(-1);
+    }
+
+    let (axes_a, axes_b) = match axes_pair {
+        AxesPairIndex::None => unreachable!("already handled above"),
+        AxesPairIndex::Val(axis) => {
+            if axis < 0 {
+                rstsr_pattern!(
+                    axis,
+                    -(a.ndim().min(b.ndim()) as isize)..=-1,
+                    InvalidValue,
+                    "axis should be [-N, -1] where N is min(a.ndim, b.ndim)"
+                )?;
+                let axis_a = axis + a.ndim() as isize;
+                let axis_b = axis + b.ndim() as isize;
+                (vec![axis_a], vec![axis_b])
+            } else {
+                rstsr_pattern!(
+                    axis,
+                    0..(a.ndim().min(b.ndim()) as isize),
+                    InvalidValue,
+                    "axis should be [0, N) where N is min(a.ndim, b.ndim)"
+                )?;
+                (vec![axis], vec![axis])
+            }
+        },
+        AxesPairIndex::Pair(axes_a, axes_b) => {
+            let axes_a = normalize_axes_index(axes_a, a.ndim(), false, false)?;
+            let axes_b = normalize_axes_index(axes_b, b.ndim(), false, false)?;
+            rstsr_assert_eq!(
+                axes_a.len(),
+                axes_b.len(),
+                InvalidValue,
+                "axes_a and axes_b should have the same length"
+            )?;
+            (axes_a, axes_b)
+        },
     };
 
-    // chop out shape_a[axis_a] and shape_b[axis_b], and the broadcasted is c's shape
-    let mut shape_a = a.shape().as_ref().to_vec();
-    let mut shape_b = b.shape().as_ref().to_vec();
-    let ncontract_a = shape_a.remove(axis_a);
-    let ncontract_b = shape_b.remove(axis_b);
+    let (las, lam) = a.layout().dim_split_axes(&axes_a)?;
+    let (lbs, lbm) = b.layout().dim_split_axes(&axes_b)?;
+
     rstsr_assert_eq!(
-        ncontract_a,
-        ncontract_b,
+        las.shape(),
+        lbs.shape(),
         InvalidLayout,
         "the dimensions of a and b along the contracted axis should be the same"
     )?;
-    // get output layout
-    let la_chop = a.layout().to_dim::<IxD>()?.dim_chop(axis_a as isize)?;
-    let lb_chop = b.layout().to_dim::<IxD>()?.dim_chop(axis_b as isize)?;
+
     let default_order = a.device().default_order();
-    let (la_chop_b, lb_chop_b) = broadcast_layout(&la_chop, &lb_chop, default_order)?;
+    let (lam_b, lbm_b) = broadcast_layout(&lam, &lbm, default_order)?;
     // generate output layout
     let layout_c = match TensorIterOrder::default() {
-        TensorIterOrder::C => la_chop_b.shape().c(),
-        TensorIterOrder::F => la_chop_b.shape().f(),
-        _ => get_layout_for_binary_op(&la_chop_b, &lb_chop_b, default_order)?,
+        TensorIterOrder::C => lam_b.shape().c(),
+        TensorIterOrder::F => lam_b.shape().f(),
+        _ => get_layout_for_binary_op(&lam_b, &lbm_b, default_order)?,
     };
     let mut storage_c = device.uninit_impl(layout_c.bounds_index()?.1)?;
-    device.vecdot(storage_c.raw_mut(), &layout_c, a.raw(), a.layout(), b.raw(), b.layout(), axis)?;
+    device.vecdot(storage_c.raw_mut(), &layout_c, a.raw(), a.layout(), b.raw(), b.layout(), &axes_a, &axes_b)?;
     unsafe { Tensor::new_f(B::assume_init_impl(storage_c)?, layout_c) }
 }
 
@@ -239,7 +255,7 @@ pub fn vecdot_from_f<TA, TB, TC, DA, DB, DC, B>(
     mut c: impl TensorViewMutAPI<Type = TC, Backend = B, Dim = DC>,
     a: impl TensorViewAPI<Type = TA, Backend = B, Dim = DA>,
     b: impl TensorViewAPI<Type = TB, Backend = B, Dim = DB>,
-    axis: impl Into<Option<isize>>,
+    axes_pair: impl TryInto<AxesPairIndex<isize>, Error: Into<Error>>,
 ) -> Result<()>
 where
     DA: DimAPI,
@@ -259,39 +275,58 @@ where
     rstsr_assert!(device.same_device(b.device()), DeviceMismatch)?;
 
     // check axis
-    let axis = axis.into().unwrap_or(-1);
-    let (axis_a, axis_b) = if axis < 0 {
-        rstsr_pattern!(
-            axis,
-            -(a.ndim().min(b.ndim()) as isize)..=-1,
-            InvalidValue,
-            "axis should be [-N, -1] where N is min(a.ndim, b.ndim)"
-        )?;
-        let axis_a = (axis + a.ndim() as isize) as usize;
-        let axis_b = (axis + b.ndim() as isize) as usize;
-        (axis_a, axis_b)
-    } else {
-        rstsr_pattern!(
-            axis,
-            0..(a.ndim().min(b.ndim()) as isize),
-            InvalidValue,
-            "axis should be [0, N) where N is min(a.ndim, b.ndim)"
-        )?;
-        (axis as usize, axis as usize)
+    let mut axes_pair = axes_pair.try_into().map_err(Into::into)?;
+    if axes_pair == AxesPairIndex::None {
+        axes_pair = AxesPairIndex::Val(-1);
+    }
+
+    let (axes_a, axes_b) = match axes_pair {
+        AxesPairIndex::None => unreachable!("already handled above"),
+        AxesPairIndex::Val(axis) => {
+            if axis < 0 {
+                rstsr_pattern!(
+                    axis,
+                    -(a.ndim().min(b.ndim()) as isize)..=-1,
+                    InvalidValue,
+                    "axis should be [-N, -1] where N is min(a.ndim, b.ndim)"
+                )?;
+                let axis_a = axis + a.ndim() as isize;
+                let axis_b = axis + b.ndim() as isize;
+                (vec![axis_a], vec![axis_b])
+            } else {
+                rstsr_pattern!(
+                    axis,
+                    0..(a.ndim().min(b.ndim()) as isize),
+                    InvalidValue,
+                    "axis should be [0, N) where N is min(a.ndim, b.ndim)"
+                )?;
+                (vec![axis], vec![axis])
+            }
+        },
+        AxesPairIndex::Pair(axes_a, axes_b) => {
+            let axes_a = normalize_axes_index(axes_a, a.ndim(), false, false)?;
+            let axes_b = normalize_axes_index(axes_b, b.ndim(), false, false)?;
+            rstsr_assert_eq!(
+                axes_a.len(),
+                axes_b.len(),
+                InvalidValue,
+                "axes_a and axes_b should have the same length"
+            )?;
+            (axes_a, axes_b)
+        },
     };
 
-    // chop out shape_a[axis_a] and shape_b[axis_b], and check the rest to be broadcastable
-    let mut shape_a = a.shape().as_ref().to_vec();
-    let mut shape_b = b.shape().as_ref().to_vec();
-    let ncontract_a = shape_a.remove(axis_a);
-    let ncontract_b = shape_b.remove(axis_b);
+    let (las, lam) = a.layout().dim_split_axes(&axes_a)?;
+    let (lbs, lbm) = b.layout().dim_split_axes(&axes_b)?;
+
     rstsr_assert_eq!(
-        ncontract_a,
-        ncontract_b,
+        las.shape(),
+        lbs.shape(),
         InvalidLayout,
         "the dimensions of a and b along the contracted axis should be the same"
     )?;
-    let shape_c_expect = broadcast_shapes_f(&[shape_a, shape_b], device.default_order())?;
+
+    let shape_c_expect = broadcast_shapes_f(&[lam.shape().to_vec(), lbm.shape().to_vec()], device.default_order())?;
     let shape_c = c.shape();
     rstsr_assert_eq!(shape_c_expect, shape_c.as_ref(), InvalidLayout, "incompatible shapes in vecdot")?;
 
@@ -299,7 +334,7 @@ where
     let c_raw_mut = unsafe {
         transmute::<&mut <B as DeviceRawAPI<TC>>::Raw, &mut <B as DeviceRawAPI<MaybeUninit<TC>>>::Raw>(c.raw_mut())
     };
-    device.vecdot(c_raw_mut, &c_layout, a.raw(), a.layout(), b.raw(), b.layout(), axis)
+    device.vecdot(c_raw_mut, &c_layout, a.raw(), a.layout(), b.raw(), b.layout(), &axes_a, &axes_b)
 }
 
 #[cfg(test)]

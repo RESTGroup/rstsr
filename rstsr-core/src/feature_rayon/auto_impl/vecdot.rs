@@ -21,9 +21,10 @@ where
         la: &Layout<DA>,
         b: &Vec<TB>,
         lb: &Layout<DB>,
-        axis: isize,
+        axes_a: &[isize],
+        axes_b: &[isize],
     ) -> Result<()> {
         let pool = self.get_current_pool();
-        vecdot_naive_cpu_rayon(c, lc, a, la, b, lb, axis, self.default_order(), pool)
+        vecdot_naive_cpu_rayon(c, lc, a, la, b, lb, axes_a, axes_b, self.default_order(), pool)
     }
 }
