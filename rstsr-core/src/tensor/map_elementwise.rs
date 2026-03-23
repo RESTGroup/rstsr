@@ -146,16 +146,12 @@ where
         let default_order = a.device().default_order();
         let (la_b, lb_b) = broadcast_layout(la, lb, default_order)?;
         // generate output layout
-        let lc_from_a = layout_for_array_copy(&la_b, TensorIterOrder::default())?;
-        let lc_from_b = layout_for_array_copy(&lb_b, TensorIterOrder::default())?;
-        let lc = if lc_from_a == lc_from_b {
-            lc_from_a
-        } else {
-            match self.device().default_order() {
-                RowMajor => la_b.shape().c(),
-                ColMajor => la_b.shape().f(),
-            }
+        let lc = match TensorIterOrder::default() {
+            TensorIterOrder::C => la_b.shape().c(),
+            TensorIterOrder::F => la_b.shape().f(),
+            _ => get_layout_for_binary_op(&la_b, &lb_b, default_order)?,
         };
+        // generate empty c
         let device = self.device();
         let mut storage_c = device.uninit_impl(lc.bounds_index()?.1)?;
         let mut f_inner = move |c: &mut MaybeUninit<TOut>, a: &T, b: &T2| {
@@ -366,16 +362,12 @@ where
         let default_order = a.device().default_order();
         let (la_b, lb_b) = broadcast_layout(la, lb, default_order)?;
         // generate output layout
-        let lc_from_a = layout_for_array_copy(&la_b, TensorIterOrder::default())?;
-        let lc_from_b = layout_for_array_copy(&lb_b, TensorIterOrder::default())?;
-        let lc = if lc_from_a == lc_from_b {
-            lc_from_a
-        } else {
-            match self.device().default_order() {
-                RowMajor => la_b.shape().c(),
-                ColMajor => la_b.shape().f(),
-            }
+        let lc = match TensorIterOrder::default() {
+            TensorIterOrder::C => la_b.shape().c(),
+            TensorIterOrder::F => la_b.shape().f(),
+            _ => get_layout_for_binary_op(&la_b, &lb_b, default_order)?,
         };
+        // generate empty c
         let device = self.device();
         let mut storage_c = device.uninit_impl(lc.bounds_index()?.1)?;
         let mut f_inner = move |c: &mut MaybeUninit<TOut>, a: &T, b: &T2| {

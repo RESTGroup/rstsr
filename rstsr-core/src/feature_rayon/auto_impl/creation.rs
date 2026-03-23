@@ -1,8 +1,8 @@
 use crate::prelude_dev::*;
-use num::{complex::ComplexFloat, Num};
+use num::{complex::ComplexFloat, Num, Zero};
 
 // for creation, we use most of the functions from DeviceCpuSerial
-impl<T> DeviceCreationAnyAPI<T> for DeviceFaer
+impl<T> DeviceCreationAnyAPI<T> for DeviceRayonAutoImpl
 where
     Self: DeviceRawAPI<T, Raw = Vec<T>> + DeviceRawAPI<MaybeUninit<T>, Raw = Vec<MaybeUninit<T>>>,
 {
@@ -53,7 +53,7 @@ where
     }
 }
 
-impl<T> DeviceCreationNumAPI<T> for DeviceFaer
+impl<T> DeviceCreationNumAPI<T> for DeviceRayonAutoImpl
 where
     T: Num + Clone,
     Self: DeviceRawAPI<T, Raw = Vec<T>>,
@@ -69,39 +69,36 @@ where
         let (data, _) = storage.into_raw_parts();
         Ok(Storage::new(data, self.clone()))
     }
-
-    fn arange_int_impl(&self, len: usize) -> Result<Storage<DataOwned<Vec<T>>, T, Self>> {
-        let storage = DeviceCpuSerial::default().arange_int_impl(len)?;
-        let (data, _) = storage.into_raw_parts();
-        Ok(Storage::new(data, self.clone()))
-    }
 }
 
-impl<T> DeviceCreationPartialOrdNumAPI<T> for DeviceFaer
+impl<T> DeviceCreationArangeAPI<T> for DeviceRayonAutoImpl
 where
-    T: Num + PartialOrd + Clone,
+    T: PartialOrd + Clone + Add<Output = T> + Zero + 'static,
     Self: DeviceRawAPI<T, Raw = Vec<T>>,
 {
     fn arange_impl(&self, start: T, end: T, step: T) -> Result<Storage<DataOwned<Vec<T>>, T, Self>> {
-        let storage = DeviceCpuSerial::default().arange_impl(start, end, step)?;
-        let (data, _) = storage.into_raw_parts();
-        Ok(Storage::new(data, self.clone()))
+        rstsr_assert!(step != T::zero(), InvalidValue)?;
+        let pool = self.get_current_pool();
+        let raw = arange_cpu_rayon(start, end, step, pool);
+        Ok(Storage::new(raw.into(), self.clone()))
     }
 }
 
-impl<T> DeviceCreationComplexFloatAPI<T> for DeviceFaer
+impl<T> DeviceCreationComplexFloatAPI<T> for DeviceRayonAutoImpl
 where
     T: ComplexFloat + Clone + Send + Sync,
     Self: DeviceRawAPI<T, Raw = Vec<T>>,
 {
     fn linspace_impl(&self, start: T, end: T, n: usize, endpoint: bool) -> Result<Storage<DataOwned<Vec<T>>, T, Self>> {
-        let storage = DeviceCpuSerial::default().linspace_impl(start, end, n, endpoint)?;
-        let (data, _) = storage.into_raw_parts();
-        Ok(Storage::new(data, self.clone()))
+        let pool = self.get_current_pool();
+        let raw = linspace_cpu_rayon(start, end, n, endpoint, pool).ok_or_else(|| {
+            rstsr_error!(InvalidValue, "failed to create linspace parallel, probably due to too large `n`")
+        })?;
+        Ok(Storage::new(raw.into(), self.clone()))
     }
 }
 
-impl<T> DeviceCreationTriAPI<T> for DeviceFaer
+impl<T> DeviceCreationTriAPI<T> for DeviceRayonAutoImpl
 where
     T: Num + Clone,
     Self: DeviceRawAPI<T, Raw = Vec<T>>,
@@ -127,7 +124,7 @@ mod test {
 
     #[test]
     fn test_linspace() {
-        let device = DeviceFaer::default();
+        let device = DeviceRayonAutoImpl::default();
         let a = linspace((1.0, 5.0, 5, &device));
         assert_eq!(a.raw(), &vec![1., 2., 3., 4., 5.]);
     }

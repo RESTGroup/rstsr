@@ -114,7 +114,7 @@ where
     let mut tblis_output = output.map(|t| t.to_tblis_tensor());
 
     // current number of threads
-    let num_threads_to_set = if device.get_current_pool().is_some() { 1 } else { device.get_num_threads() };
+    let num_threads_to_set = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
     let num_threads_original = tblis_get_num_threads();
     tblis_set_num_threads(num_threads_to_set);
 

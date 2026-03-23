@@ -353,6 +353,11 @@ pub trait IndexerDynamicAPI: IndexerPreserveAPI {
     /// Split current layout into two layouts at axis, with offset unchanged.
     fn dim_split_at(&self, axis: isize) -> Result<(Layout<IxD>, Layout<IxD>)>;
 
+    /// Split current layout into two layouts by axes, with offset unchanged. Returned layouts will
+    /// be (layout_axes, layout_rest).
+    ///
+    /// This function is designed for reduction, to split the layout into axes to be reduced and the
+    /// rest.
     fn dim_split_axes(&self, axes: &[isize]) -> Result<(Layout<IxD>, Layout<IxD>)>;
 }
 
@@ -457,24 +462,10 @@ where
         // returned layouts will be
         // (layout_axes, layout_rest)
 
-        // axes to usize
-        let mut axes_update: Vec<usize> = vec![];
-        for &axis in axes {
-            let axis = if axis < 0 { self.ndim() as isize + axis } else { axis };
-            rstsr_pattern!(axis, 0..self.ndim() as isize, ValueOutOfRange)?;
-            axes_update.push(axis as usize);
-        }
-
-        // check same values
-        let axes_check = axes_update.clone();
-        axes_update.sort();
-        axes_update.dedup();
-        rstsr_assert_eq!(
-            axes_update.len(),
-            axes_check.len(),
-            InvalidLayout,
-            "Same axis is not allowed for this function."
-        )?;
+        let axes_update = normalize_axes_index(axes.into(), self.ndim(), false, false)?
+            .into_iter()
+            .map(|axis| axis as usize)
+            .collect::<Vec<usize>>();
 
         // rest of axes
         // this is not the most efficient way, but low cost when dimension is small

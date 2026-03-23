@@ -1,6 +1,7 @@
 use crate::prelude_dev::*;
 
 /// Enum for Axes indexing
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AxesIndex<T> {
     None,
     Val(T),
@@ -372,6 +373,9 @@ impl_from_tuple_to_axes_index!(usize);
 /* #region utilities for AxesIndex */
 
 /// Normalize axes argument into a tuple of non-negative integer axes.
+///
+/// Though the returned vector will be of type `isize` for convenience, the values will be actually
+/// non-negative (`usize`-compatible).
 pub fn normalize_axes_index(
     axes: AxesIndex<isize>,
     ndim: usize,

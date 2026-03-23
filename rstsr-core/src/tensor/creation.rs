@@ -22,7 +22,7 @@
 
 use crate::prelude_dev::*;
 use num::complex::ComplexFloat;
-use num::Num;
+use num::{Num, One, Zero};
 
 /* #region arange */
 
@@ -61,8 +61,7 @@ where
 
 impl<T, B> ArangeAPI<(T, B)> for (T, T, T, &B)
 where
-    T: Num + PartialOrd,
-    B: DeviceAPI<T> + DeviceCreationPartialOrdNumAPI<T>,
+    B: DeviceAPI<T> + DeviceCreationArangeAPI<T>,
 {
     type Out = Tensor<T, B, IxD>;
 
@@ -77,8 +76,8 @@ where
 
 impl<T, B> ArangeAPI<(T, B)> for (T, T, &B)
 where
-    T: Num + PartialOrd,
-    B: DeviceAPI<T> + DeviceCreationPartialOrdNumAPI<T>,
+    T: One,
+    B: DeviceAPI<T> + DeviceCreationArangeAPI<T>,
 {
     type Out = Tensor<T, B, IxD>;
 
@@ -92,8 +91,8 @@ where
 
 impl<T, B> ArangeAPI<(T, B)> for (T, &B)
 where
-    T: Num + PartialOrd,
-    B: DeviceAPI<T> + DeviceCreationPartialOrdNumAPI<T>,
+    T: Zero + One,
+    B: DeviceAPI<T> + DeviceCreationArangeAPI<T>,
 {
     type Out = Tensor<T, B, IxD>;
 
@@ -108,7 +107,7 @@ where
 
 impl<T> ArangeAPI<T> for (T, T, T)
 where
-    T: Num + PartialOrd + Clone + Send + Sync,
+    T: PartialOrd + Clone + Add<Output = T> + Zero + 'static,
 {
     type Out = Tensor<T, DeviceCpu, IxD>;
 
@@ -121,7 +120,7 @@ where
 
 impl<T> ArangeAPI<T> for (T, T)
 where
-    T: Num + PartialOrd + Clone,
+    T: PartialOrd + Clone + Add<Output = T> + Zero + One + 'static,
 {
     type Out = Tensor<T, DeviceCpu, IxD>;
 
@@ -134,7 +133,7 @@ where
 
 impl<T> ArangeAPI<T> for T
 where
-    T: Num + PartialOrd + Clone,
+    T: PartialOrd + Clone + Add<Output = T> + Zero + One + 'static,
 {
     type Out = Tensor<T, DeviceCpu, IxD>;
 

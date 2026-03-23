@@ -1,10 +1,6 @@
 use crate::prelude_dev::*;
-use num::{complex::ComplexFloat, Num};
 
-pub trait DeviceCreationAnyAPI<T>
-where
-    Self: DeviceRawAPI<T>,
-{
+pub trait DeviceCreationAnyAPI<T>: DeviceRawAPI<T> {
     /// # Safety
     ///
     /// This function is unsafe because it does not initialize the memory.
@@ -37,21 +33,12 @@ where
         Self: DeviceRawAPI<MaybeUninit<T>>;
 }
 
-pub trait DeviceCreationNumAPI<T>
-where
-    T: Num,
-    Self: DeviceRawAPI<T>,
-{
+pub trait DeviceCreationNumAPI<T>: DeviceRawAPI<T> {
     fn zeros_impl(&self, len: usize) -> Result<Storage<DataOwned<Self::Raw>, T, Self>>;
     fn ones_impl(&self, len: usize) -> Result<Storage<DataOwned<Self::Raw>, T, Self>>;
-    fn arange_int_impl(&self, len: usize) -> Result<Storage<DataOwned<Self::Raw>, T, Self>>;
 }
 
-pub trait DeviceCreationComplexFloatAPI<T>
-where
-    T: ComplexFloat,
-    Self: DeviceRawAPI<T>,
-{
+pub trait DeviceCreationComplexFloatAPI<T>: DeviceRawAPI<T> {
     fn linspace_impl(
         &self,
         start: T,
@@ -61,19 +48,11 @@ where
     ) -> Result<Storage<DataOwned<Self::Raw>, T, Self>>;
 }
 
-pub trait DeviceCreationPartialOrdNumAPI<T>
-where
-    T: Num + PartialOrd,
-    Self: DeviceRawAPI<T>,
-{
+pub trait DeviceCreationArangeAPI<T>: DeviceRawAPI<T> {
     fn arange_impl(&self, start: T, end: T, step: T) -> Result<Storage<DataOwned<Self::Raw>, T, Self>>;
 }
 
-pub trait DeviceCreationTriAPI<T>
-where
-    T: Num,
-    Self: DeviceRawAPI<T>,
-{
+pub trait DeviceCreationTriAPI<T>: DeviceRawAPI<T> {
     fn tril_impl<D>(&self, raw: &mut Self::Raw, layout: &Layout<D>, k: isize) -> Result<()>
     where
         D: DimAPI;

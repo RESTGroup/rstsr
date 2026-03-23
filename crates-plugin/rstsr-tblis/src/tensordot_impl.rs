@@ -7,7 +7,7 @@ use crate::einsum_impl::einsum_with_option_output_f;
 pub fn tensordot<T, B>(
     a: impl TensorViewAPI<Type = T, Backend = B, Dim: DimAPI>,
     b: impl TensorViewAPI<Type = T, Backend = B, Dim: DimAPI>,
-    axes: impl TryInto<TensorDotAxes, Error: Into<Error>>,
+    axes: impl TryInto<AxesPairIndex<isize>, Error: Into<Error>>,
 ) -> Tensor<T, B>
 where
     T: TblisFloatAPI,
@@ -19,7 +19,7 @@ where
 pub fn tensordot_with_output<T, B>(
     a: impl TensorViewAPI<Type = T, Backend = B, Dim: DimAPI>,
     b: impl TensorViewAPI<Type = T, Backend = B, Dim: DimAPI>,
-    axes: impl TryInto<TensorDotAxes, Error: Into<Error>>,
+    axes: impl TryInto<AxesPairIndex<isize>, Error: Into<Error>>,
     output: TensorMut<T, B>,
 ) -> Result<()>
 where
@@ -32,7 +32,7 @@ where
 pub(crate) fn tensordot_with_option_output_f<T, B>(
     a: impl TensorViewAPI<Type = T, Backend = B, Dim: DimAPI>,
     b: impl TensorViewAPI<Type = T, Backend = B, Dim: DimAPI>,
-    axes: impl TryInto<TensorDotAxes, Error: Into<Error>>,
+    axes: impl TryInto<AxesPairIndex<isize>, Error: Into<Error>>,
     output: Option<TensorMut<T, B>>,
 ) -> Result<Option<Tensor<T, B>>>
 where
@@ -48,7 +48,7 @@ where
 pub fn tensordot_with_output_f<T, B>(
     a: impl TensorViewAPI<Type = T, Backend = B, Dim: DimAPI>,
     b: impl TensorViewAPI<Type = T, Backend = B, Dim: DimAPI>,
-    axes: impl TryInto<TensorDotAxes, Error: Into<Error>>,
+    axes: impl TryInto<AxesPairIndex<isize>, Error: Into<Error>>,
     output: TensorMut<T, B>,
 ) -> Result<()>
 where
@@ -61,7 +61,7 @@ where
 pub fn tensordot_f<T, B>(
     a: impl TensorViewAPI<Type = T, Backend = B, Dim: DimAPI>,
     b: impl TensorViewAPI<Type = T, Backend = B, Dim: DimAPI>,
-    axes: impl TryInto<TensorDotAxes, Error: Into<Error>>,
+    axes: impl TryInto<AxesPairIndex<isize>, Error: Into<Error>>,
 ) -> Result<Tensor<T, B>>
 where
     T: TblisFloatAPI,

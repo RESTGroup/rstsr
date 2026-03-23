@@ -1,5 +1,5 @@
 use crate::prelude_dev::*;
-use num::{complex::ComplexFloat, Num};
+use num::{complex::ComplexFloat, Num, Zero};
 
 impl<T> DeviceCreationAnyAPI<T> for DeviceCpuSerial
 where
@@ -66,31 +66,16 @@ where
         let raw = vec![T::one(); len];
         Ok(Storage::new(raw.into(), self.clone()))
     }
-
-    fn arange_int_impl(&self, len: usize) -> Result<Storage<DataOwned<Vec<T>>, T, DeviceCpuSerial>> {
-        let mut raw = Vec::with_capacity(len);
-        let mut v = T::zero();
-        for _ in 0..len {
-            raw.push(v.clone());
-            v = v + T::one();
-        }
-        Ok(Storage::new(raw.into(), self.clone()))
-    }
 }
 
-impl<T> DeviceCreationPartialOrdNumAPI<T> for DeviceCpuSerial
+impl<T> DeviceCreationArangeAPI<T> for DeviceCpuSerial
 where
-    T: Num + PartialOrd + Clone,
+    T: PartialOrd + Clone + Add<Output = T> + Zero + 'static,
     DeviceCpuSerial: DeviceRawAPI<T, Raw = Vec<T>>,
 {
     fn arange_impl(&self, start: T, end: T, step: T) -> Result<Storage<DataOwned<Vec<T>>, T, DeviceCpuSerial>> {
         rstsr_assert!(step != T::zero(), InvalidValue)?;
-        let mut raw = Vec::new();
-        let mut current = start.clone();
-        while current < end {
-            raw.push(current.clone());
-            current = current + step.clone();
-        }
+        let raw = arange_cpu_serial(start, end, step);
         Ok(Storage::new(raw.into(), self.clone()))
     }
 }
@@ -158,8 +143,6 @@ mod test {
         let storage: Storage<_, f64, _> = device.zeros_impl(10).unwrap();
         println!("{storage:?}");
         let storage: Storage<_, f64, _> = device.ones_impl(10).unwrap();
-        println!("{storage:?}");
-        let storage: Storage<_, f64, _> = device.arange_int_impl(10).unwrap();
         println!("{storage:?}");
         let storage: Storage<_, f64, _> = unsafe { device.empty_impl(10).unwrap() };
         println!("{storage:?}");

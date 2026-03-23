@@ -575,17 +575,13 @@ where
 ///
 /// ## Variants of this function
 ///
-/// - [`to_broadcast`]: Standard version.
-/// - [`to_broadcast_f`]: Fallible version.
-/// - [`into_broadcast`]: Consuming version that takes ownership of the input tensor.
-/// - [`into_broadcast_f`]: Consuming and fallible version, actual implementation.
+/// - [`to_broadcast`] / [`to_broadcast_f`]: Non-consuming version.
+/// - [`into_broadcast`] / [`into_broadcast_f`]: Consuming version.
 /// - [`broadcast_to`]: Alias for `to_broadcast` (name of Python Array API standard).
 /// - Associated methods on [`TensorAny`]:
 ///
-///   - [`TensorAny::to_broadcast`]
-///   - [`TensorAny::to_broadcast_f`]
-///   - [`TensorAny::into_broadcast`]
-///   - [`TensorAny::into_broadcast_f`]
+///   - [`TensorAny::to_broadcast`] / [`TensorAny::to_broadcast_f`]
+///   - [`TensorAny::into_broadcast`] / [`TensorAny::into_broadcast_f`]
 ///   - [`TensorAny::broadcast_to`]
 pub fn to_broadcast<R, T, B, D, D2>(tensor: &TensorAny<R, T, B, D>, shape: D2) -> TensorView<'_, T, B, D2>
 where

@@ -83,7 +83,7 @@ where
 /// Properties of layout.
 impl<D> Layout<D>
 where
-    D: DimBaseAPI + DimShapeAPI + DimStrideAPI,
+    D: DimBaseAPI + DimShapeAPI,
 {
     /// Whether this tensor is f-preferred.
     pub fn f_prefer(&self) -> bool {
@@ -394,7 +394,7 @@ where
     #[inline]
     pub fn new(shape: D, stride: D::Stride, offset: usize) -> Result<Self>
     where
-        D: DimShapeAPI + DimStrideAPI,
+        D: DimShapeAPI,
     {
         let layout = unsafe { Layout::new_unchecked(shape, stride, offset) };
         layout.bounds_index()?;
@@ -431,7 +431,7 @@ where
 /// Manuplation of layout.
 impl<D> Layout<D>
 where
-    D: DimBaseAPI + DimShapeAPI + DimStrideAPI,
+    D: DimBaseAPI + DimShapeAPI,
 {
     /// Transpose layout by permutation.
     ///
@@ -507,7 +507,7 @@ where
 /// These functions are mostly internal to this crate.
 impl<D> Layout<D>
 where
-    D: DimBaseAPI + DimShapeAPI + DimStrideAPI,
+    D: DimBaseAPI + DimShapeAPI,
 {
     /// Index of tensor by list of indexes to dimensions.
     ///
@@ -572,7 +572,7 @@ where
     }
 }
 
-pub trait DimLayoutContigAPI: DimBaseAPI + DimShapeAPI + DimStrideAPI {
+pub trait DimLayoutContigAPI: DimBaseAPI + DimShapeAPI {
     /// Generate new layout by providing shape and offset; stride fits into
     /// c-contiguous.
     fn new_c_contig(&self, offset: Option<usize>) -> Layout<Self> {

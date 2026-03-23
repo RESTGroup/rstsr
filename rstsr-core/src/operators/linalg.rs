@@ -15,6 +15,7 @@ where
         la: &Layout<DA>,
         b: &<Self as DeviceRawAPI<TB>>::Raw,
         lb: &Layout<DB>,
-        axis: isize,
+        axes_a: &[isize],
+        axes_b: &[isize],
     ) -> Result<()>;
 }

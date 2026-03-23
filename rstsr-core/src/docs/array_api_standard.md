@@ -198,7 +198,7 @@ The reference implementation (as in [`DeviceCpuSerial`] and [`DeviceFaer`]), fol
 |-|-|-|-|
 | Y | [`matmul`] | [`matmul`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.matmul.html) | Computes the matrix product. |
 | Y | [`matrix_transpose`] <br> [`swapaxes`]`(-1, -2)` | [`matrix_transpose`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.matrix_transpose.html) | Transposes a matrix (or a stack of matrices) x. |
-| P | [`rt::tblis::einsum`](https://docs.rs/rstsr-tblis/latest/rstsr_tblis/einsum_impl/fn.einsum.html)<br>[`rt::tblis::tensordot`](https://docs.rs/rstsr-tblis/latest/rstsr_tblis/einsum_impl/fn.tensordot.html) | [`tensordot`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.tensordot.html) | Returns a tensor contraction of x1 and x2 over specific axes. |
+| Y | [`rt::tblis::einsum`](https://docs.rs/rstsr-tblis/latest/rstsr_tblis/einsum_impl/fn.einsum.html)<br>[`rt::tblis::tensordot`](https://docs.rs/rstsr-tblis/latest/rstsr_tblis/einsum_impl/fn.tensordot.html) | [`tensordot`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.tensordot.html) | Returns a tensor contraction of x1 and x2 over specific axes. |
 | Y | [`vecdot`] | [`vecdot`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.vecdot.html) | Computes the (vector) dot product of two arrays. |
 
 ## Manipulation Functions
@@ -214,9 +214,9 @@ The reference implementation (as in [`DeviceCpuSerial`] and [`DeviceFaer`]), fol
 | Y | [`moveaxis`] | [`moveaxis`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.moveaxis.html) | Moves array axes (dimensions) to new positions, while leaving other axes in their original positions. |
 | Y | [`transpose`], [`permute_dims`] | [`permute_dims`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.permute_dims.html) | Permutes the axes (dimensions) of an array `x`. |
 | | | [`repeat`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.repeat.html) | Repeats each element of an array a specified number of times on a per-element basis. |
-| P | [`reshape`], [`reshape_with_args`] | [`reshape`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.reshape.html) | Reshapes an array without changing its data. |
+| Y | [`reshape`], [`reshape_with_args`] | [`reshape`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.reshape.html) | Reshapes an array without changing its data. |
 | | | [`roll`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.roll.html) | Rolls array elements along a specified axis. |
-| P | [`squeeze`] | [`squeeze`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.squeeze.html) | Removes singleton axes from `x`. |
+| Y | [`squeeze`] | [`squeeze`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.squeeze.html) | Removes singleton axes from `x`. |
 | Y | [`stack`] | [`stack`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.stack.html) | Joins a sequence of arrays along a new axis. |
 | | | [`tile`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.tile.html) | Constructs an array by tiling an input array. |
 | Y | [`unstack`] | [`unstack`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.unstack.html) | Splits an array into a sequence of arrays along the given axis. |

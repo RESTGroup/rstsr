@@ -1,43 +1,5 @@
 use crate::prelude_dev::*;
 
-pub enum TensorDotAxes {
-    /// The axes are specified as a pair of vectors, one for each tensor.
-    /// Each vector contains the indices of the axes to sum over for that tensor.
-    /// The two vectors must have the same length, and the i-th element of the first vector
-    /// corresponds to the i-th element of the second vector.
-    PairOfVecs(Vec<isize>, Vec<isize>),
-
-    /// The axes are specified as a single integer `n`, which means to sum over the last `n` axes
-    /// of the first tensor and the first `n` axes of the second tensor.
-    Int(usize),
-}
-
-impl<X1, X2> TryFrom<(X1, X2)> for TensorDotAxes
-where
-    X1: TryInto<AxesIndex<isize>, Error: Into<Error>>,
-    X2: TryInto<AxesIndex<isize>, Error: Into<Error>>,
-{
-    type Error = Error;
-
-    fn try_from(value: (X1, X2)) -> Result<Self> {
-        let axes_a = value.0.try_into().map_err(Into::into)?.as_ref().to_vec();
-        let axes_b = value.1.try_into().map_err(Into::into)?.as_ref().to_vec();
-        Ok(TensorDotAxes::PairOfVecs(axes_a, axes_b))
-    }
-}
-
-impl From<i32> for TensorDotAxes {
-    fn from(n: i32) -> Self {
-        TensorDotAxes::Int(n as usize)
-    }
-}
-
-impl From<isize> for TensorDotAxes {
-    fn from(n: isize) -> Self {
-        TensorDotAxes::Int(n as usize)
-    }
-}
-
 /// Converts `tensordot` parameters to an equivalent `einsum` subscript string.
 ///
 /// # Arguments
@@ -45,6 +7,7 @@ impl From<isize> for TensorDotAxes {
 /// * `dim_b` – number of dimensions of the second tensor.
 /// * `axes` – a pair of vectors specifying which axes to sum over. The first vector contains axes
 ///   of the first tensor, the second vector contains corresponding axes of the second tensor.
+///   Default value is `2`.
 ///
 /// # Example
 /// ```
@@ -55,16 +18,24 @@ impl From<isize> for TensorDotAxes {
 pub fn tensordot_to_einsum_str(
     dim_a: usize,
     dim_b: usize,
-    axes: impl TryInto<TensorDotAxes, Error: Into<Error>>,
+    axes: impl TryInto<AxesPairIndex<isize>, Error: Into<Error>>,
 ) -> Result<String> {
-    let axes = axes.try_into().map_err(Into::into)?;
+    let mut axes = axes.try_into().map_err(Into::into)?;
+    if axes == AxesPairIndex::None {
+        axes = AxesPairIndex::Val(2);
+    }
 
     let (axes_a, axes_b): (Vec<usize>, Vec<usize>) = match axes {
-        TensorDotAxes::PairOfVecs(axes_a, axes_b) => (
-            normalize_axes_index(axes_a.into(), dim_a, false, false)?.into_iter().map(|x| x as usize).collect(),
-            normalize_axes_index(axes_b.into(), dim_b, false, false)?.into_iter().map(|x| x as usize).collect(),
+        AxesPairIndex::None => unreachable!("this have been handled above"),
+        AxesPairIndex::Pair(axes_a, axes_b) => (
+            normalize_axes_index(axes_a, dim_a, false, false)?.into_iter().map(|x| x as usize).collect(),
+            normalize_axes_index(axes_b, dim_b, false, false)?.into_iter().map(|x| x as usize).collect(),
         ),
-        TensorDotAxes::Int(n) => {
+        AxesPairIndex::Val(n) => {
+            if n < 0 {
+                return rstsr_raise!(InvalidValue, "n must be non-negative")?;
+            }
+            let n = n as usize;
             if n > dim_a || n > dim_b {
                 return rstsr_raise!(
                     InvalidLayout,

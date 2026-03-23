@@ -123,6 +123,12 @@ pub mod sci {
     pub use rstsr_sci_traits::prelude::rstsr_traits::*;
 }
 
+#[cfg(feature = "tblis")]
+pub mod tblis {
+    pub use rstsr_tblis::prelude::rstsr_funcs::*;
+    pub use rstsr_tblis::prelude::rstsr_traits::*;
+}
+
 pub mod rt {
     pub use super::rstsr_funcs;
     pub use super::rstsr_macros;
