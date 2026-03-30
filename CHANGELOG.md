@@ -1,5 +1,40 @@
 # Changelog
 
+## v0.7.0 -- 2026-03-30
+
+API breaking changes:
+
+- rstsr-core: Removed unnecessary trait bounds on `DeviceCreationAPI` and related traits. Deprecated `arange_int_impl` as device function. Removed `DimStrideAPI` trait. (RESTGroup/rstsr#74)
+- rstsr-core: Changed `TensorDotAxes` to `AxesPairIndex<T>` for general usage. Changed vecdot device trait function definition. (RESTGroup/rstsr#74)
+- rstsr-core: Refactored AxesIndex trait bounds for improved error handling. (RESTGroup/rstsr#71)
+
+New features:
+
+- rstsr-core: Added `matrix_transpose` function for array-api compliance. (RESTGroup/rstsr#73)
+- rstsr-core: Added `vecdot` traits and implementation (parallel for rayon devices). (RESTGroup/rstsr#73)
+- rstsr-core: Added `reshape_with_args`, `into_compatible_shape` functions for flexible reshape operations. (RESTGroup/rstsr#70)
+- rstsr-tblis: Implemented `tensordot` using einsum. (RESTGroup/rstsr#73)
+
+Enhancements:
+
+- rstsr-core: Efficiency improvement for `sum_axes` and related reduction with contiguous memory optimization. (RESTGroup/rstsr#74)
+- rstsr-core: Parallel `arange` and `linspace` for devices supporting rayon. (RESTGroup/rstsr#74)
+- rstsr-core: Changed output layout rule for binary functions; contiguous axes parts are preserved. (RESTGroup/rstsr#74)
+- rstsr-core: Different-type reduction shares same implementation with same-type reduction. (RESTGroup/rstsr#74)
+- rstsr-core: Restructured linalg directory; updated API documentation style. (RESTGroup/rstsr#73)
+- rstsr-core: Enhanced stride checking in layout and reshape functions. Added NumPy-style tests for reshape and expand_dims. (RESTGroup/rstsr#70, RESTGroup/rstsr#71)
+- rstsr-core: Testing framework updated for DeviceCpuSerial. Added reshape tests. (RESTGroup/rstsr#69)
+
+Fixes:
+
+- rstsr-core: Fix `change_layout` (contig may still require data copy).
+- rstsr-tblis: Fixed threading and prelude imports. (RESTGroup/rstsr#74)
+- rstsr-core: Various manipulation function bug fixes (expand_dims, flip). (RESTGroup/rstsr#71)
+
+Dev infrastructure:
+
+- Introduced Claude Code configuration for AI-assisted development. (RESTGroup/rstsr#72)
+
 ## v0.6.2 -- 2025-11-15
 
 MSRV specified to 1.82.0, written to Cargo.toml.
