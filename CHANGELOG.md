@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.7.1 -- 2026-03-30
+
+Documentation update:
+
+- rstsr-tblis: Updated documentation for einsum functions.
+
 ## v0.7.0 -- 2026-03-30
 
 API breaking changes:
