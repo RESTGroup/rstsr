@@ -15,6 +15,6 @@ tblis = { workspace = true }
 opt-einsum-path = { workspace = true }
 
 [dev-dependencies]
-rstsr = { path = "../../rstsr", features = ["faer"] }
+rstsr = { path = "../../rstsr", features = ["faer", "tblis"] }
 tblis-src = { workspace = true }
 rstsr-core = { workspace = true, features = ["rayon", "faer"] }

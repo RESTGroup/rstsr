@@ -4,6 +4,64 @@ use rstsr_core::prelude_dev::*;
 use rstsr_core::tensor::tensor_view_list::TensorViewListAPI;
 pub use tblis::prelude::*;
 
+/// Perform einsum operation using TBLIS.
+///
+/// This function requires the user to link `tblis.so` or similar libraries that provides TBLIS
+/// symbols.
+///
+/// # Parameters
+///
+/// - `subscripts`: einsum subscripts, e.g. `"ij,jk->ik"`.
+/// - `operands`: list of input tensors (see [`TblisTensor`] for data structure and
+///   [`ToTblisTensor`] for conversion trait).
+/// - `optimize`: contraction path optimization strategy (see [`opt_einsum_path::contract_path`],
+///   usually set to `true`).
+/// - `memory_limit`: memory limit for contraction path optimization (see
+///   [`opt_einsum_path::contract_path`], usually set to `None`).
+///
+/// # Returns
+///
+/// - `Tensor<T, B>`: The output tensor of the einsum operation.
+///
+/// # Panics
+///
+/// - This function will panic if failed. Use [`einsum_f`] for fallible version.
+/// - This function allows non-ASCII characters in einsum subscripts, but TBLIS may panic if too
+///   many characters are used. It is recommended to use no more than 52 characters in total. It is
+///   not allowed to use more than 128 characters.
+///
+/// # Example
+///
+/// The following example is to perform contraction:
+/// $$
+/// G_{pqrs} = \sum_{\mu \nu \kappa \lambda} C_{\mu p} C_{\nu q} E_{\mu \nu \kappa \lambda}
+/// C_{\kappa r} C_{\lambda s}
+/// $$
+/// This tensor contraction is utilized in electronic structure (electronic integral in atomic
+/// orbital basis $E_{\mu \nu \kappa \lambda}$ to molecular orbital basis $G_{pqrs}$).
+///
+/// The following code snippet performs this contraction.
+///
+/// ```rust
+/// // Must declare crate `tblis-src` if you want link tblis dynamically.
+/// // You can also call the following code in `build.rs`, instead of using crate `tblis-src`:
+/// //     println!("cargo:rustc-link-lib=tblis");
+/// extern crate tblis_src;
+/// use rstsr::prelude::*;
+///
+/// let device = DeviceFaer::default(); // any device with rayon support can be used.
+/// let (nao, nmo): (usize, usize) = (3, 2);
+/// let c = rt::arange(((nao * nmo) as f64, &device)).into_shape((nao, nmo));
+/// let e = rt::arange(((nao * nao * nao * nao) as f64, &device)).into_shape((nao, nao, nao, nao));
+///
+/// let g = rt::tblis::einsum(
+///     "μi,νa,μνκλ,κj,λb->iajb", // einsum subscripts
+///     [&c, &c, &e, &c, &c],     // tensors to be contracted
+///     true,                     // contraction strategy (see crate opt-einsum-path)
+///     None,                     // memory limit (None means no limit, see crate opt-einsum-path)
+/// );
+/// println!("{:?}", g);
+/// ```
 pub fn einsum<T, B>(
     subscripts: &str,
     operands: impl TensorViewListAPI<T, B>,
@@ -17,6 +75,9 @@ where
     einsum_f(subscripts, operands, optimize, memory_limit).unwrap()
 }
 
+/// Perform einsum operation using TBLIS.
+///
+/// See also [`einsum`].
 pub fn einsum_with_output<T, B>(
     subscripts: &str,
     operands: impl TensorViewListAPI<T, B>,
@@ -79,6 +140,9 @@ where
     Tensor::new_f(storage, layout)
 }
 
+/// Perform einsum operation using TBLIS.
+///
+/// See also [`einsum`].
 pub(crate) fn einsum_with_option_output_f<T, B>(
     subscripts: &str,
     operands: impl TensorViewListAPI<T, B>,
@@ -132,6 +196,9 @@ where
     }
 }
 
+/// Perform einsum operation using TBLIS.
+///
+/// See also [`einsum`].
 pub fn einsum_f<T, B>(
     subscripts: &str,
     operands: impl TensorViewListAPI<T, B>,
@@ -145,6 +212,9 @@ where
     Ok(einsum_with_option_output_f(subscripts, operands, optimize, memory_limit, None)?.unwrap())
 }
 
+/// Perform einsum operation using TBLIS.
+///
+/// See also [`einsum`].
 pub fn einsum_with_output_f<T, B>(
     subscripts: &str,
     operands: impl TensorViewListAPI<T, B>,
@@ -164,25 +234,19 @@ mod tests {
     #[test]
     fn playground() {
         extern crate tblis_src;
-        use crate::einsum_impl::*;
-        use rstsr_core::prelude::DeviceFaer;
+        use rstsr::prelude::*;
 
-        let device = DeviceFaer::default();
+        let device = DeviceFaer::default(); // any device with rayon support can be used.
         let (nao, nmo): (usize, usize) = (3, 2);
-        let c = arange(((nao * nmo) as f64, &device)).into_shape((nao, nmo));
-        let e = arange(((nao * nao * nao * nao) as f64, &device)).into_shape((nao, nao, nao, nao));
+        let c = rt::arange(((nao * nmo) as f64, &device)).into_shape((nao, nmo));
+        let e = rt::arange(((nao * nao * nao * nao) as f64, &device)).into_shape((nao, nao, nao, nao));
 
-        fn ao2mo(c: TensorView<f64, DeviceFaer>, e: TensorView<f64, DeviceFaer>) -> Tensor<f64, DeviceFaer> {
-            let operands = [&c, &c, &e, &c, &c];
-            einsum(
-                "μi,νa,μνκλ,κj,λb->iajb", // einsum subscripts
-                operands.as_ref(),        // tensors to be contracted
-                "optimal",                // contraction strategy (see crate opt-einsum-path)
-                None,                     // memory limit (None means no limit, see crate opt-einsum-path)
-            )
-        }
-
-        let g = ao2mo(c.view(), e.view());
+        let g = rt::tblis::einsum(
+            "μi,νa,μνκλ,κj,λb->iajb", // einsum subscripts
+            [&c, &c, &e, &c, &c],     // tensors to be contracted
+            true,                     // contraction strategy (see crate opt-einsum-path)
+            None,                     // memory limit (None means no limit, see crate opt-einsum-path)
+        );
         println!("{:?}", g);
     }
 }

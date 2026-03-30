@@ -30,6 +30,8 @@ where
    [R, T, B]                  [Vec<TensorAny<R, T, B, IxD>>]     ;
    [R, T, B, const N: usize]  [&[TensorAny<R, T, B, IxD>; N]]    ;
    [R, T, B, const N: usize]  [&[&TensorAny<R, T, B, IxD>; N]]   ;
+   [R, T, B, const N: usize]  [[TensorAny<R, T, B, IxD>; N]]     ;
+   [R, T, B, const N: usize]  [[&TensorAny<R, T, B, IxD>; N]]    ;
 )]
 impl<TraitBound> TensorViewListAPI<T, B> for Type
 where
