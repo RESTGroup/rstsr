@@ -1,7 +1,7 @@
 use crate::lapack_ffi;
 use crate::DeviceBLAS;
 use num::complex::ComplexFloat;
-use num::Complex;
+use num::{Complex, ToPrimitive, Zero};
 use rstsr_blas_traits::prelude::*;
 use rstsr_common::prelude_dev::*;
 
@@ -39,7 +39,7 @@ impl GESDDDriverAPI<T> for DeviceBLAS {
         // Query optimal working array(s) size
         let mut info = 0;
         let lwork = -1;
-        let mut work_query = 0.0;
+        let mut work_query: T = T::zero();
         func_(
             &(jobz as _),
             &(m as _),
@@ -59,7 +59,7 @@ impl GESDDDriverAPI<T> for DeviceBLAS {
         if info != 0 {
             return info;
         }
-        let lwork = work_query as usize;
+        let lwork = work_query.to_usize().unwrap();
 
         // Allocate memory for temporary array(s)
         let mut work: Vec<T> = match uninitialized_vec(lwork) {
@@ -180,8 +180,8 @@ impl GESDDDriverAPI<T> for DeviceBLAS {
 
 #[duplicate_item(
     T              func_   ;
-   [Complex<f32>] [cgesdd_];
-   [Complex<f64>] [zgesdd_];
+   [Complex::<f32>] [cgesdd_];
+   [Complex::<f64>] [zgesdd_];
 )]
 impl GESDDDriverAPI<T> for DeviceBLAS {
     unsafe fn driver_gesdd(
@@ -211,8 +211,8 @@ impl GESDDDriverAPI<T> for DeviceBLAS {
         let lwork = -1;
         let lrwork =
             if jobz == 'N' { 7 * m.min(n) } else { m.min(n) * (5 * m.min(n) + 7).max(2 * m.max(n) + 2 * m.min(n) + 1) };
-        let mut work_query = Complex::new(0.0, 0.0);
-        let mut rwork_query = 0.0;
+        let mut work_query = T::zero();
+        let mut rwork_query = <T as ComplexFloat>::Real::zero();
         func_(
             &(jobz as _),
             &(m as _),
@@ -233,7 +233,7 @@ impl GESDDDriverAPI<T> for DeviceBLAS {
         if info != 0 {
             return info;
         }
-        let lwork = work_query.re as usize;
+        let lwork = work_query.to_usize().unwrap();
 
         // Allocate memory for temporary array(s)
         let mut work: Vec<T> = match uninitialized_vec(lwork) {

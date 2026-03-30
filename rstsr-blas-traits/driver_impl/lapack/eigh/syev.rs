@@ -1,7 +1,7 @@
 use crate::lapack_ffi;
 use crate::DeviceBLAS;
 use num::complex::ComplexFloat;
-use num::Complex;
+use num::{Complex, ToPrimitive, Zero};
 use rstsr_blas_traits::prelude::*;
 use rstsr_common::prelude_dev::*;
 use rstsr_native_impl::prelude_dev::*;
@@ -27,12 +27,12 @@ impl SYEVDriverAPI<T> for DeviceBLAS {
         // Query optimal working array(s) size
         let mut info = 0;
         let lwork = -1;
-        let mut work_query = 0.0;
+        let mut work_query: T = T::zero();
         func_(&(jobz as _), &uplo.into(), &(n as _), a, &(lda as _), w, &mut work_query, &lwork, &mut info);
         if info != 0 {
             return info;
         }
-        let lwork = work_query as usize;
+        let lwork = work_query.to_usize().unwrap();
 
         // Allocate memory for work arrays
         let mut work: Vec<T> = match uninitialized_vec(lwork) {
@@ -91,8 +91,8 @@ impl SYEVDriverAPI<T> for DeviceBLAS {
 
 #[duplicate_item(
     T              func_   ;
-   [Complex<f32>] [cheev_];
-   [Complex<f64>] [zheev_];
+   [Complex::<f32>] [cheev_];
+   [Complex::<f64>] [zheev_];
 )]
 impl SYEVDriverAPI<T> for DeviceBLAS {
     unsafe fn driver_syev(
@@ -116,7 +116,7 @@ impl SYEVDriverAPI<T> for DeviceBLAS {
         // Query optimal working array(s) size
         let mut info = 0;
         let lwork = -1;
-        let mut work_query = 0.0;
+        let mut work_query = T::zero();
         func_(
             &(jobz as _),
             &uplo.into(),
@@ -132,7 +132,7 @@ impl SYEVDriverAPI<T> for DeviceBLAS {
         if info != 0 {
             return info;
         }
-        let lwork = work_query as usize;
+        let lwork = work_query.to_usize().unwrap();
 
         // Allocate memory for work arrays
         let mut work: Vec<T> = match uninitialized_vec(lwork) {

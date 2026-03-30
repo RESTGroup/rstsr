@@ -1,7 +1,7 @@
 use crate::lapack_ffi;
 use crate::DeviceBLAS;
 use num::complex::ComplexFloat;
-use num::Complex;
+use num::{Complex, ToPrimitive, Zero};
 use rstsr_blas_traits::prelude::*;
 use rstsr_common::prelude_dev::*;
 use rstsr_native_impl::prelude_dev::*;
@@ -31,7 +31,7 @@ impl SYGVDDriverAPI<T> for DeviceBLAS {
         let mut info = 0;
         let lwork = -1;
         let liwork = -1;
-        let mut work_query = 0.0;
+        let mut work_query: T = T::zero();
         let mut iwork_query = 0;
         func_(
             &itype,
@@ -52,7 +52,7 @@ impl SYGVDDriverAPI<T> for DeviceBLAS {
         if info != 0 {
             return info;
         }
-        let lwork = work_query as usize;
+        let lwork = work_query.to_usize().unwrap();
         let liwork = iwork_query as usize;
 
         // Allocate memory for temporary array(s)
@@ -136,8 +136,8 @@ impl SYGVDDriverAPI<T> for DeviceBLAS {
 
 #[duplicate_item(
     T              func_   ;
-   [Complex<f32>] [chegvd_];
-   [Complex<f64>] [zhegvd_];
+   [Complex::<f32>] [chegvd_];
+   [Complex::<f64>] [zhegvd_];
 )]
 impl SYGVDDriverAPI<T> for DeviceBLAS {
     unsafe fn driver_sygvd(
@@ -159,8 +159,8 @@ impl SYGVDDriverAPI<T> for DeviceBLAS {
         let lwork = -1;
         let lrwork = -1;
         let liwork = -1;
-        let mut work_query = 0.0;
-        let mut rwork_query = 0.0;
+        let mut work_query = T::zero();
+        let mut rwork_query = <T as ComplexFloat>::Real::zero();
         let mut iwork_query = 0;
         func_(
             &itype,
@@ -183,8 +183,8 @@ impl SYGVDDriverAPI<T> for DeviceBLAS {
         if info != 0 {
             return info;
         }
-        let lwork = work_query as usize;
-        let lrwork = rwork_query as usize;
+        let lwork = work_query.to_usize().unwrap();
+        let lrwork = rwork_query.to_usize().unwrap();
         let liwork = iwork_query as usize;
 
         // Allocate memory for temporary array(s)

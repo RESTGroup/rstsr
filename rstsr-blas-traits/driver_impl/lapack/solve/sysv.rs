@@ -1,6 +1,6 @@
 use crate::lapack_ffi;
 use crate::DeviceBLAS;
-use num::Complex;
+use num::{Complex, ToPrimitive, Zero};
 use rstsr_blas_traits::prelude::*;
 use rstsr_common::prelude_dev::*;
 
@@ -29,7 +29,7 @@ impl<const HERMI: bool> SYSVDriverAPI<T, HERMI> for DeviceBLAS {
         // Query optimal working array(s) size
         let mut info = 0;
         let lwork = -1;
-        let mut work_query = 0.0;
+        let mut work_query: T = T::zero();
         func_(
             &uplo.into(),
             &(n as _),
@@ -46,7 +46,7 @@ impl<const HERMI: bool> SYSVDriverAPI<T, HERMI> for DeviceBLAS {
         if info != 0 {
             return info;
         }
-        let lwork = work_query as usize;
+        let lwork = work_query.to_usize().unwrap();
 
         // Allocate memory for work arrays
         let mut work: Vec<T> = match uninitialized_vec(lwork) {
@@ -119,10 +119,10 @@ impl<const HERMI: bool> SYSVDriverAPI<T, HERMI> for DeviceBLAS {
 
 #[duplicate_item(
     T              func_   HERMI  ;
-   [Complex<f32>] [csysv_] [false];
-   [Complex<f32>] [chesv_] [true ];
-   [Complex<f64>] [zsysv_] [false];
-   [Complex<f64>] [zhesv_] [true ];
+   [Complex::<f32>] [csysv_] [false];
+   [Complex::<f32>] [chesv_] [true ];
+   [Complex::<f64>] [zsysv_] [false];
+   [Complex::<f64>] [zhesv_] [true ];
 )]
 impl SYSVDriverAPI<T, HERMI> for DeviceBLAS {
     unsafe fn driver_sysv(
@@ -141,7 +141,7 @@ impl SYSVDriverAPI<T, HERMI> for DeviceBLAS {
         // Query optimal working array(s) size
         let mut info = 0;
         let lwork = -1;
-        let mut work_query = 0.0;
+        let mut work_query = T::zero();
         func_(
             &uplo.into(),
             &(n as _),
@@ -158,7 +158,7 @@ impl SYSVDriverAPI<T, HERMI> for DeviceBLAS {
         if info != 0 {
             return info;
         }
-        let lwork = work_query as usize;
+        let lwork = work_query.to_usize().unwrap();
 
         // Allocate memory for work arrays
         let mut work: Vec<T> = match uninitialized_vec(lwork) {

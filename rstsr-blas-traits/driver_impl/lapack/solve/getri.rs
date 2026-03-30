@@ -1,6 +1,6 @@
 use crate::lapack_ffi;
 use crate::DeviceBLAS;
-use num::Complex;
+use num::{Complex, ToPrimitive, Zero};
 use rstsr_blas_traits::prelude::*;
 use rstsr_common::prelude_dev::*;
 
@@ -19,12 +19,12 @@ impl GETRIDriverAPI<T> for DeviceBLAS {
         // Query optimal working array(s) size
         let mut info = 0;
         let lwork = -1;
-        let mut work_query = 0.0;
+        let mut work_query: T = T::zero();
         func_(&(n as _), a, &(lda as _), ipiv, &mut work_query, &lwork, &mut info);
         if info != 0 {
             return info;
         }
-        let lwork = work_query as usize;
+        let lwork = work_query.to_usize().unwrap();
 
         // Allocate memory for work arrays
         let mut work: Vec<T> = match uninitialized_vec(lwork) {
@@ -63,8 +63,8 @@ impl GETRIDriverAPI<T> for DeviceBLAS {
 
 #[duplicate_item(
     T              func_   ;
-   [Complex<f32>] [cgetri_];
-   [Complex<f64>] [zgetri_];
+   [Complex::<f32>] [cgetri_];
+   [Complex::<f64>] [zgetri_];
 )]
 impl GETRIDriverAPI<T> for DeviceBLAS {
     unsafe fn driver_getri(order: FlagOrder, n: usize, a: *mut T, lda: usize, ipiv: *mut blas_int) -> blas_int {
@@ -73,12 +73,12 @@ impl GETRIDriverAPI<T> for DeviceBLAS {
         // Query optimal working array(s) size
         let mut info = 0;
         let lwork = -1;
-        let mut work_query: T = num::zero();
+        let mut work_query = T::zero();
         func_(&(n as _), a as *mut _, &(lda as _), ipiv, &mut work_query as *mut _ as *mut _, &lwork, &mut info);
         if info != 0 {
             return info;
         }
-        let lwork = work_query.re as usize;
+        let lwork = work_query.to_usize().unwrap();
 
         // Allocate memory for work arrays
         let mut work: Vec<T> = match uninitialized_vec(lwork) {

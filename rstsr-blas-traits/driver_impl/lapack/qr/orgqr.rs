@@ -1,7 +1,6 @@
 use crate::lapack_ffi;
 use crate::DeviceBLAS;
 use duplicate::duplicate_item;
-use num::complex::ComplexFloat;
 use num::{Complex, ToPrimitive, Zero};
 use rstsr_blas_traits::prelude::*;
 use rstsr_common::prelude_dev::*;
@@ -90,8 +89,8 @@ impl ORGQRDriverAPI<T> for DeviceBLAS {
 // UNGQR for complex types
 #[duplicate_item(
     T              func_   ;
-   [Complex<f32>] [cungqr_];
-   [Complex<f64>] [zungqr_];
+   [Complex::<f32>] [cungqr_];
+   [Complex::<f64>] [zungqr_];
 )]
 impl ORGQRDriverAPI<T> for DeviceBLAS {
     unsafe fn driver_orgqr(
@@ -108,7 +107,7 @@ impl ORGQRDriverAPI<T> for DeviceBLAS {
         // Query optimal working array(s) size
         let mut info = 0;
         let lwork = -1;
-        let mut work_query = <T as ComplexFloat>::Real::zero();
+        let mut work_query = T::zero();
         func_(
             &(m as _),
             &(n as _),

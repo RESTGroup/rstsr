@@ -1,7 +1,7 @@
 use crate::lapack_ffi;
 use crate::DeviceBLAS;
 use num::complex::ComplexFloat;
-use num::{Complex, Zero};
+use num::{Complex, ToPrimitive, Zero};
 use rstsr_blas_traits::prelude::*;
 use rstsr_common::prelude_dev::*;
 
@@ -34,7 +34,7 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
         // Query optimal working array size
         let mut info = 0;
         let lwork = -1;
-        let mut work_query = 0.0;
+        let mut work_query: T = T::zero();
         func_(
             &(jobu as _),
             &(jobvt as _),
@@ -54,7 +54,7 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
         if info != 0 {
             return info;
         }
-        let lwork = work_query as usize;
+        let lwork = work_query.to_usize().unwrap();
 
         // Allocate memory for work array
         let mut work: Vec<T> = match uninitialized_vec(lwork) {
@@ -182,8 +182,8 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
 
 #[duplicate_item(
     T              func_   ;
-   [Complex<f32>] [cgesvd_];
-   [Complex<f64>] [zgesvd_];
+   [Complex::<f32>] [cgesvd_];
+   [Complex::<f64>] [zgesvd_];
 )]
 impl GESVDDriverAPI<T> for DeviceBLAS {
     unsafe fn driver_gesvd(
@@ -213,7 +213,7 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
         // Query optimal working array size
         let mut info = 0;
         let lwork = -1;
-        let mut work_query = <T as Zero>::zero();
+        let mut work_query = T::zero();
         func_(
             &(jobu as _),
             &(jobvt as _),
@@ -234,7 +234,7 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
         if info != 0 {
             return info;
         }
-        let lwork = work_query.re() as usize;
+        let lwork = work_query.to_usize().unwrap();
 
         // Allocate memory for work array
         let mut work: Vec<T> = match uninitialized_vec(lwork) {

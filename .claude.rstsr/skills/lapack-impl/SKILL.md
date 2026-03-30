@@ -354,6 +354,40 @@ Many LAPACK functions require work arrays:
 
 **For row-major**: Query AFTER transposing, with column-major lda values.
 
+**Critical: Work Query Type Declaration**
+
+When declaring `work_query` for LAPACK work array size queries, ALWAYS use explicit type annotation or type-inferred zero:
+
+```rust
+// CORRECT: Type annotation with T::zero()
+let mut work_query: T = T::zero();
+
+// CORRECT: Type-inferred zero (T is inferred from context)
+let mut work_query = T::zero();
+
+// WRONG: Defaults to f64, incorrect for f32 and Complex types!
+let mut work_query = 0.0;  // NEVER use this!
+```
+
+**Why this matters**:
+- `0.0` defaults to `f64` in Rust, which is wrong for `f32` types
+- For complex types, work arrays are typically `Complex<T>`, not `T`
+- Using the wrong type causes pointer casts (`as *mut _ as *mut _`) to pass incorrect data to LAPACK
+
+**For rwork in complex functions**: Use `<T as ComplexFloat>::Real::zero()`:
+```rust
+// For complex functions with rwork (real-valued work array)
+let mut rwork_query = <T as ComplexFloat>::Real::zero();
+```
+
+**Required imports**:
+```rust
+use num::{ToPrimitive, Zero};
+// or for complex functions:
+use num::{Complex, ToPrimitive, Zero};
+use num::complex::ComplexFloat;
+```
+
 ### Error Codes
 
 Standard LAPACK info codes:

@@ -87,8 +87,8 @@ impl GEQP3DriverAPI<T> for DeviceBLAS {
 
 #[duplicate_item(
     T              func_   ;
-   [Complex<f32>] [cgeqp3_];
-   [Complex<f64>] [zgeqp3_];
+   [Complex::<f32>] [cgeqp3_];
+   [Complex::<f64>] [zgeqp3_];
 )]
 impl GEQP3DriverAPI<T> for DeviceBLAS {
     unsafe fn driver_geqp3(
@@ -112,7 +112,7 @@ impl GEQP3DriverAPI<T> for DeviceBLAS {
         // Query optimal working array(s) size
         let mut info = 0;
         let lwork = -1;
-        let mut work_query = <T as ComplexFloat>::Real::zero();
+        let mut work_query = T::zero();
         func_(
             &(m as _),
             &(n as _),
