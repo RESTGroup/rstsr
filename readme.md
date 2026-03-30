@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./assets/logo-3-white.png" width="500px" alt="Logo of RSTSR" />
+<img src="https://github.com/RESTGroup/rstsr/raw/master/assets/logo-3-white.png" width="500px" alt="Logo of RSTSR" />
 
 </div>
 
