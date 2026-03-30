@@ -1,4 +1,5 @@
 ---
+name: api-doc
 description: Core function API documentation and testing guide.
 ---
 

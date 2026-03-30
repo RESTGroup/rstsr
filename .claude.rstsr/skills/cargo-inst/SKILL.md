@@ -1,4 +1,5 @@
 ---
+name: cargo-inst
 description: Rust's cargo instructions for building, testing, API documentation for various cases and crates.
 ---
 

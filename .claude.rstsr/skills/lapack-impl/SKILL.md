@@ -1,3 +1,8 @@
+---
+name: lapack-impl
+description: Implementation guide for LAPACK driver functions in `rstsr-blas-traits/driver_impl/lapack/`.
+---
+
 # LAPACK Driver Implementation Guide
 
 This skill guides implementation of LAPACK driver functions in `rstsr-blas-traits/driver_impl/lapack/`.
