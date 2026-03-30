@@ -1,0 +1,430 @@
+# LAPACK Driver Implementation Guide
+
+This skill guides implementation of LAPACK driver functions in `rstsr-blas-traits/driver_impl/lapack/`.
+
+## Overview
+
+The rstsr project implements LAPACK functionality through a layered architecture:
+- **Trait layer** (`src/lapack_*/`): Defines `XXXDriverAPI` traits and `XXX_` structs (e.g., `SYEVDriverAPI`, `SYEV_`)
+- **Driver implementation** (`driver_impl/lapack/`): Implements traits using raw LAPACK Fortran interface (column-major, with manual row-major handling)
+- **LAPACKE implementation** (`driver_impl/lapacke/`): Implements traits using LAPACKE C interface (handles row-major internally)
+
+## Directory Structure
+
+```
+rstsr-blas-traits/
+├── src/
+│   ├── lapack_eigh/    # Eigenvalue trait definitions (syev, syevd, sygv, sygvd)
+│   ├── lapack_qr/      # QR trait definitions (geqrf, orgqr, geqp3, ormqr)
+│   ├── lapack_solve/   # Linear solve trait definitions (gesv, getrf, getri, potrf, sysv)
+│   ├── lapack_svd/     # SVD trait definitions (gesvd, gesdd)
+│   └── trait_def.rs    # Aggregates all traits into LapackDriverAPI
+├── driver_impl/
+│   ├── lapack/         # Raw LAPACK implementations (requires row-major handling)
+│   │   ├── eigh/       # syev.rs, syevd.rs, sygv.rs, sygvd.rs
+│   │   ├── qr/         # geqrf.rs, orgqr.rs, geqp3.rs, ormqr.rs
+│   │   ├── solve/      # gesv.rs, getrf.rs, getri.rs, potrf.rs, sysv.rs
+│   │   └── svd/        # gesvd.rs, gesdd.rs
+│   └── lapacke/        # LAPACKE implementations (simpler, handles row-major)
+│       ├── eigh/
+│       ├── qr/
+│       ├── solve/
+│       └── svd/
+```
+
+## Implementation Steps
+
+### 1. Study LAPACKE Reference
+
+Reference LAPACKE source at `../other-repos/lapack/LAPACKE/src/lapacke_<func>.c`:
+
+```bash
+# Example: study syev implementation
+cat ../other-repos/lapack/LAPACKE/src/lapacke_dsyev.c
+cat ../other-repos/lapack/LAPACKE/src/lapacke_dsyev_work.c
+```
+
+Key observations:
+- High-level `LAPACKE_dsyev` handles work array allocation and calls `_work` variant
+- `_work` variant handles row/col-major conversion via `LAPACKE_dsy_transpose` macros
+- Header signatures in `../other-repos/lapack/LAPACKE/include/lapacke.h`
+
+### 2. Define Trait API
+
+Create trait in `src/lapack_<category>/<func>.rs`:
+
+```rust
+pub trait XXXDriverAPI<T>
+where
+    T: BlasFloat,
+{
+    unsafe fn driver_xxx(
+        order: FlagOrder,
+        // ... LAPACKE-style parameters (matrix_layout first)
+        // Use usize for sizes, FlagUpLo/FlagSide/FlagTrans for enums
+    ) -> blas_int;
+}
+```
+
+**Important**: Use existing flag types from `rstsr-common/src/flags.rs`:
+- `FlagOrder` - RowMajor/ColMajor (C/F)
+- `FlagTrans` - N/T/C/CN (NoTrans/Trans/ConjTrans)
+- `FlagSide` - L/R (Left/Right)
+- `FlagUpLo` - U/L (Upper/Lower)
+- `FlagDiag` - N/U (NonUnit/Unit)
+
+Do NOT define new flag types - reuse the existing ones which already have `From` implementations for `char` and `c_char`.
+
+### 3. Define Struct with Builder Pattern
+
+Use `derive_builder` for ergonomic API:
+
+```rust
+#[derive(Builder)]
+#[builder(pattern = "owned", no_std, build_fn(error = "Error"))]
+pub struct XXX_<'a, B, T>
+where
+    T: BlasFloat,
+    B: DeviceAPI<T>,
+{
+    #[builder(setter(into))]
+    pub a: TensorReference<'a, T, B, Ix2>,
+    // ... other parameters with defaults
+}
+
+impl<'a, B, T> XXX_<'a, B, T>
+where
+    T: BlasFloat,
+    B: BlasDriverBaseAPI<T> + XXXDriverAPI<T>,
+{
+    pub fn run(self) -> Result<(OutputTypes)> {
+        // Implementation logic
+    }
+}
+```
+
+### 4. Implement LAPACKE Driver (Simple Path)
+
+In `driver_impl/lapacke/<category>/<func>.rs`:
+
+```rust
+use crate::lapack_ffi;
+use crate::DeviceBLAS;
+use duplicate::duplicate_item;
+use rstsr_blas_traits::prelude::*;
+use rstsr_common::prelude::*;
+
+#[duplicate_item(
+    T     lapacke_func  ;
+   [f32] [LAPACKE_sxxx];
+   [f64] [LAPACKE_dxxx];
+)]
+impl XXXDriverAPI<T> for DeviceBLAS {
+    unsafe fn driver_xxx(
+        order: FlagOrder,
+        // ... parameters with flag types (FlagSide, FlagTrans, etc.)
+    ) -> blas_int {
+        use std::os::raw::c_char;
+        lapack_ffi::lapacke::lapacke_func(
+            order as _,
+            side.into() as c_char,  // Use .into() for flag conversions
+            trans.into() as c_char,
+            // ... cast parameters (m as _, lda as _)
+        )
+    }
+}
+
+// For complex types (if applicable):
+#[duplicate_item(
+    T              lapacke_func  ;
+   [Complex::<f32>] [LAPACKE_cxxx];  // NOTE: Use turbofish syntax!
+   [Complex::<f64>] [LAPACKE_zxxx];
+)]
+impl XXXDriverAPI<T> for DeviceBLAS {
+    // ... similar implementation with pointer casts
+}
+```
+
+**Critical**: Use turbofish syntax `[Complex::<f32>]` in the duplicate macro, NOT `[Complex<f32>]` - Rust will interpret `<` and `>` as comparison operators otherwise.
+
+### 5. Implement Raw LAPACK Driver (Complex Path)
+
+In `driver_impl/lapack/<category>/<func>.rs`:
+
+Pattern for real types:
+
+```rust
+#[duplicate_item(
+    T     func_   ;
+   [f32] [sxxx_];
+   [f64] [dxxx_];
+)]
+impl XXXDriverAPI<T> for DeviceBLAS {
+    unsafe fn driver_xxx(
+        order: FlagOrder,
+        // ... parameters
+    ) -> blas_int {
+        use lapack_ffi::lapack::func_;
+        use num::Zero;
+
+        if order == ColMajor {
+            // 1. Query work array size
+            let mut info = 0;
+            let lwork = -1;
+            let mut work_query: T = T::zero();
+            func_(/* query call with lwork = -1 */);
+            let lwork = work_query.to_usize().unwrap();
+
+            // 2. Allocate work arrays
+            let mut work: Vec<T> = uninitialized_vec(lwork).unwrap();
+
+            // 3. Direct call
+            func_(/* direct call */);
+            info
+        } else {
+            // Row-major: transpose first, then query, then call
+            // ... see Row-Major Handling section below
+        }
+    }
+}
+```
+
+**Critical for Row-Major**: The work array query MUST be done AFTER transposing input matrices, using the column-major leading dimensions. Querying with row-major lda values will give incorrect results.
+
+### 6. Row-Major Handling Pattern
+
+For functions with multiple matrices (e.g., ORMQR with A and C):
+
+```rust
+if order == ColMajor {
+    // Query and call directly with lda, ldc
+} else {
+    // 1. Calculate column-major leading dimensions
+    let lda_t = rows_of_a.max(1);
+    let ldc_t = rows_of_c.max(1);
+
+    // 2. Allocate temporary buffers
+    let size_a = r * k;
+    let size_c = m * n;
+    let mut a_t: Vec<T> = uninitialized_vec(size_a)?;
+    let mut c_t: Vec<T> = uninitialized_vec(size_c)?;
+
+    // 3. Transpose inputs from row-major to column-major
+    let a_slice = from_raw_parts_mut(a as *mut T, size_a);
+    let la = Layout::new_unchecked([r, k], [lda as isize, 1], 0);
+    let la_t = Layout::new_unchecked([r, k], [1, lda_t as isize], 0);
+    orderchange_out_r2c_ix2_cpu_serial(&mut a_t, &la_t, a_slice, &la)?;
+
+    // ... same for C matrix
+
+    // 4. Query work array size WITH column-major dimensions
+    let mut work_query: T = T::zero();
+    func_(
+        &side.into(),
+        &trans.into(),
+        /* ... */,
+        a_t.as_ptr(),
+        &(lda_t as _),  // Column-major LDA
+        /* ... */,
+        c_t.as_mut_ptr(),
+        &(ldc_t as _),  // Column-major LDC
+        &mut work_query,
+        &lwork,
+        &mut info,
+    );
+    let lwork = work_query.to_usize().unwrap();
+
+    // 5. Allocate work array
+    let mut work: Vec<T> = uninitialized_vec(lwork)?;
+
+    // 6. Call LAPACK with column-major buffers
+    func_(/* ... with a_t, c_t, lda_t, ldc_t */);
+
+    // 7. Transpose outputs back to row-major
+    orderchange_out_c2r_ix2_cpu_serial(c_slice, &lc, &c_t, &lc_t)?;
+
+    info
+}
+```
+
+Key functions:
+- `orderchange_out_r2c_ix2_cpu_serial(&mut dst, &layout_dst, src, &layout_src)` - row→col
+- `orderchange_out_c2r_ix2_cpu_serial(dst, &layout_dst, &src, &layout_src)` - col→row
+
+### 7. Update Module Exports
+
+Add to `src/lapack_<category>/mod.rs`:
+```rust
+pub mod xxx;
+pub use xxx::*;
+```
+
+Add to `src/trait_def.rs` in `LapackDriverAPI`:
+```rust
++ XXXDriverAPI<T>
+```
+
+Add to `driver_impl/lapack/<category>/mod.rs`:
+```rust
+pub mod xxx;
+```
+
+### 8. Testing with Python Validation
+
+Create validation in `crates-device/rstsr-openblas/tests/driver_impl/driver_validation_f64.py`:
+
+```python
+import numpy as np
+import scipy.linalg.lapack
+
+def fingerprint(a):
+    return np.dot(np.cos(np.arange(a.size)), np.asarray(a, order="C").ravel())
+
+# Test case
+a = a_raw.copy()[:512*512].reshape(512, 512)
+qr, tau, _, _ = scipy.linalg.lapack.dgeqrf(a)
+assert np.isclose(fingerprint(np.abs(qr)), 104.85191447485762)
+assert np.isclose(fingerprint(tau), 2.599625942247915)
+```
+
+Run Python to get correct fingerprint values, then create Rust test:
+
+```rust
+use rstsr_blas_traits::lapack_xxx::*;
+use rstsr_common::flags::{Left, Trans};  // Import flag aliases
+use rstsr_core::prelude::*;
+use rstsr_core::prelude_dev::fingerprint;
+use rstsr_openblas::DeviceOpenBLAS as DeviceBLAS;
+use rstsr_test_manifest::get_vec;
+
+#[test]
+fn test_xxx() {
+    let device = DeviceBLAS::default();
+    let a = rt::asarray((get_vec::<f64>('a'), [512, 512].c(), &device)).into_dim::<Ix2>();
+
+    let driver = XXX::default().a(a.view()).build().unwrap();
+    let (output) = driver.run().unwrap();
+    assert!((fingerprint(&output) - expected_value).abs() < 1e-8);
+}
+```
+
+Test command:
+```bash
+RUST_BACKTRACE=1 RSTSR_DEV=1 cargo test -p rstsr-openblas --release \
+    --features "rstsr/backtrace openmp" \
+    --test tests_driver_impl -- --test-threads=1 lapack_xxx --nocapture
+```
+
+## Key Patterns
+
+### Duplicate Macro
+
+Use `duplicate::duplicate_item` for type polymorphism:
+- Real types: `[f32] [sxxx_]`, `[f64] [dxxx_]`
+- Complex types: `[Complex::<f32>] [cxxx_]`, `[Complex::<f64>] [zxxx_]` (turbofish!)
+- LAPACKE functions: `[LAPACKE_sxxx]`, `[LAPACKE_dxxx]`, etc.
+
+### Flag Type Conversions
+
+Flag types have `From` implementations for `char` and `c_char`:
+
+```rust
+use rstsr_common::flags::{Left, Trans};  // Convenient aliases
+
+// In trait signature:
+fn driver_xxx(side: FlagSide, trans: FlagTrans, ...) -> blas_int;
+
+// In implementation:
+&side.into()  // Returns c_char for LAPACK FFI
+side.into() as c_char  // Explicit for LAPACKE
+```
+
+### Work Array Query
+
+Many LAPACK functions require work arrays:
+1. Call with `lwork = -1` to query optimal size
+2. `work_query` receives recommended size
+3. Allocate `work` array with that size
+4. Call again with proper `lwork`
+
+**For row-major**: Query AFTER transposing, with column-major lda values.
+
+### Error Codes
+
+Standard LAPACK info codes:
+- `info = 0`: success
+- `info < 0`: parameter error (e.g., `-1010` for memory allocation failure)
+- `info > 0`: algorithmic error (e.g., convergence failure)
+
+Use `rstsr_errcode!(info, "Lapack XXX")?` for error propagation.
+
+### Layout Helpers
+
+```rust
+let la = Layout::new_unchecked([m, n], [lda as isize, 1], 0);  // row-major input
+let la_t = Layout::new_unchecked([m, n], [1, lda_t as isize], 0);  // col-major temp
+```
+
+### Zero-Cost Tensor to Vec Conversion
+
+For contiguous tensors of primitive types:
+```rust
+let jpvt: Tensor<i32, DeviceBLAS, Ix1> = /* ... */;
+let vec: Vec<i32> = jpvt.into_vec();  // Zero-cost, just takes ownership of data
+```
+
+## Reference Locations
+
+- **LAPACKE source**: `../other-repos/lapack/LAPACKE/src/lapacke_<func>.c`
+- **LAPACKE headers**: `../other-repos/lapack/LAPACKE/include/lapacke.h`
+- **Existing implementations**:
+  - `rstsr-blas-traits/driver_impl/lapack/eigh/syev.rs`
+  - `rstsr-blas-traits/driver_impl/lapack/qr/ormqr.rs` (complex row-major example)
+- **Tests**: `crates-device/rstsr-openblas/tests/driver_impl/lapack_*_f64.rs`
+- **Trait definitions**: `rstsr-blas-traits/src/lapack_*/`
+- **NumPy reference**: `../other-repos/numpy/numpy/linalg/_linalg.py`
+- **SciPy reference**: `../other-repos/scipy/scipy/linalg/`
+
+## Common LAPACK Functions by Category
+
+### Eigenvalue (eigh)
+- `syev/syevd`: Symmetric eigenvalues
+- `sygv/sygvd`: Symmetric generalized eigenvalues
+- `heev/heevd`: Hermitian eigenvalues (complex)
+- Future: `syevr`, `syevx`, `heevr`, `heevx`
+
+### QR
+- `geqrf`: Basic QR factorization (returns QR in packed form + tau)
+- `orgqr/ungqr`: Generate Q matrix from QR (real/complex)
+- `geqp3`: QR with column pivoting (rank-revealing QR)
+- `ormqr/unmqr`: Multiply Q with matrix without forming Q explicitly (real/complex)
+- Future: `gelqf`, `orglq`, `ormlq`, `geqlf`, `gerqf`
+
+### SVD
+- `gesvd`: Standard SVD
+- `gesdd`: Divide-and-conquer SVD
+- Future: `gesvdx`, `gesvdq`
+
+### Linear Solve
+- `gesv`: General solve
+- `getrf/getri`: LU factorization + inverse
+- `potrf`: Cholesky factorization
+- `sysv`: Symmetric solve
+- Future: `posv`, `gels`, `gelsy`, `gelss`, `gelsd`
+
+## Checklist for New Function
+
+1. [ ] Study LAPACKE reference (`lapacke_<func>.c` and `_work.c`)
+2. [ ] Check `rstsr-common/src/flags.rs` for existing flag types
+3. [ ] Define `XXXDriverAPI` trait in `src/lapack_<category>/<func>.rs`
+4. [ ] Define `XXX_` struct with builder pattern
+5. [ ] Implement trait in `driver_impl/lapacke/<category>/<func>.rs`
+6. [ ] Implement trait in `driver_impl/lapack/<category>/<func>.rs`
+   - [ ] Handle ColMajor: query + direct call
+   - [ ] Handle RowMajor: transpose → query → call → transpose back
+7. [ ] Add exports to `mod.rs` files
+8. [ ] Add trait to `LapackDriverAPI` in `trait_def.rs`
+9. [ ] Write Python validation to get fingerprint values
+10. [ ] Write Rust tests with `fingerprint` verification
+11. [ ] Run `cargo fmt` and `cargo clippy`
+12. [ ] Test on at least one device crate

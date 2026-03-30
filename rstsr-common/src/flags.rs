@@ -154,9 +154,10 @@ pub mod TensorCopyPolicy {
 /* #region blas-flags */
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum FlagTrans {
     /// No transpose
+    #[default]
     N = 111,
     /// Transpose
     T = 112,
@@ -167,9 +168,10 @@ pub enum FlagTrans {
 }
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum FlagSide {
     /// Left side
+    #[default]
     L = 141,
     /// Right side
     R = 142,

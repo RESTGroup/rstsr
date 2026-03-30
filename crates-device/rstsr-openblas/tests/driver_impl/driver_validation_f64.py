@@ -139,3 +139,45 @@ assert np.isclose(fingerprint(np.abs(vt)), 13.465522484136157)
 fingerprint(np.abs(u)), fingerprint(s), fingerprint(np.abs(vt))
 
 
+# ## qr driver tests
+
+# ### dgeqrf
+
+a = a_raw.copy()[:512*512].reshape(512, 512)
+qr, tau, _, _ = scipy.linalg.lapack.dgeqrf(a)
+assert np.isclose(fingerprint(np.abs(qr)), 104.85191447485762)
+assert np.isclose(fingerprint(tau), 2.599625942247915)
+fingerprint(np.abs(qr)), fingerprint(tau)
+
+# ### dorgqr
+
+a = a_raw.copy()[:512*512].reshape(512, 512)
+qr, tau, _, _ = scipy.linalg.lapack.dgeqrf(a)
+q, _, _ = scipy.linalg.lapack.dorgqr(qr, tau)
+assert np.isclose(fingerprint(np.abs(q)), -1.6083348348387112)
+fingerprint(np.abs(q))
+
+# ### dgeqp3
+
+a = a_raw.copy()[:512*512].reshape(512, 512)
+qr, jpvt, tau, _, _ = scipy.linalg.lapack.dgeqp3(a)
+assert np.isclose(fingerprint(np.abs(qr)), 82.18652098057946)
+assert np.isclose(fingerprint(tau), 0.9651077849682483)
+# jpvt is 1-indexed from LAPACK, verify it's a permutation
+jpvt_sorted = np.sort(jpvt)
+assert np.allclose(jpvt_sorted, np.arange(1, 513))
+fingerprint(np.abs(qr)), fingerprint(tau), jpvt[:10]
+
+# ### dormqr
+
+a = a_raw.copy()[:512*512].reshape(512, 512)
+c = b_raw.copy()[:512*256].reshape(512, 256)
+qr, tau, _, _ = scipy.linalg.lapack.dgeqrf(a)
+# Q^T * C: use lwork=-1 to query, then use optimal lwork
+cq, work, info = scipy.linalg.lapack.dormqr('L', 'T', qr, tau, c, -1)
+lwork = int(work[0])
+cq, work, info = scipy.linalg.lapack.dormqr('L', 'T', qr, tau, c, lwork)
+assert np.isclose(fingerprint(np.abs(cq)), 14.485921558590004)
+fingerprint(np.abs(cq))
+
+

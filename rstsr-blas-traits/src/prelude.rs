@@ -4,6 +4,7 @@ pub use crate::threading::*;
 
 pub use crate::blas3::*;
 pub use crate::lapack_eigh::*;
+pub use crate::lapack_qr::*;
 pub use crate::lapack_solve::*;
 pub use crate::lapack_svd::*;
 pub use crate::trait_def::*;

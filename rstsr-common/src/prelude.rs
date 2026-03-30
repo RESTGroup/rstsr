@@ -8,7 +8,7 @@ pub mod rstsr_traits {
 }
 
 pub mod rstsr_structs {
-    pub use crate::flags::{ColMajor, ConjTrans, Lower, NoTrans, NonUnit, RowMajor, Trans, Unit, Upper};
+    pub use crate::flags::{ColMajor, ConjTrans, Left, Lower, NoTrans, NonUnit, Right, RowMajor, Trans, Unit, Upper};
     pub use crate::flags::{
         FlagDiag, FlagOrder, FlagSide, FlagSymm, FlagTrans, FlagUpLo, TensorCopyPolicy, TensorDiag, TensorIterOrder,
         TensorOrder, TensorSide, TensorSymm, TensorTrans, TensorUpLo,
