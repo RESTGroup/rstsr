@@ -39,13 +39,8 @@ where
     pub fn internal_run(self) -> Result<TensorMutable<'a, T, B, Ix2>> {
         let Self { a, tau, k } = self;
 
-        let device = a.device().clone();
-        let order = match (a.c_prefer(), a.f_prefer()) {
-            (true, false) => RowMajor,
-            (false, true) => ColMajor,
-            (false, false) | (true, true) => device.default_order(),
-        };
-        let mut a = overwritable_convert_with_order(a, order)?;
+        let mut a = overwritable_convert(a)?;
+        let order = if a.f_prefer() && !a.c_prefer() { ColMajor } else { RowMajor };
         let [m, n] = *a.view().shape();
         let k = k.unwrap_or_else(|| {
             let [tau_len] = *tau.view().shape();

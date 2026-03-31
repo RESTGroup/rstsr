@@ -170,4 +170,48 @@ assert np.isclose(fingerprint(a_pinv), -0.3244041253699862)
 assert rank == 161
 fingerprint(a_pinv), rank
 
+# ### qr
+
+# square matrix (512 x 512)
+a = a_raw[:512*512].copy().reshape(512, 512)
+q, r = scipy.linalg.qr(a, mode='economic')
+assert np.isclose(fingerprint(np.abs(q)), -1.6083348348387723)
+assert np.isclose(fingerprint(r), -132.6453339160845)
+
+# reduced mode (M > N)
+a = a_raw[:1024*512].copy().reshape(1024, 512)
+q, r = scipy.linalg.qr(a, mode='economic')
+assert np.isclose(fingerprint(np.abs(q)), -3.816695392252395)
+assert np.isclose(fingerprint(r), 443.8056068942338)
+fingerprint(np.abs(q)), fingerprint(r)
+
+# complete mode (M > N)
+a = a_raw[:1024*512].copy().reshape(1024, 512)
+q, r = scipy.linalg.qr(a, mode='full')
+assert np.isclose(fingerprint(np.abs(q)), 2.2969510394541404)
+assert np.isclose(fingerprint(r), 443.8056068942341)
+fingerprint(np.abs(q)), fingerprint(r)
+
+# r mode (M > N)
+a = a_raw[:1024*512].copy().reshape(1024, 512)
+r = scipy.linalg.qr(a, mode='r')[0]
+assert np.isclose(fingerprint(r), 443.8056068942341)
+fingerprint(r)
+
+# reduced mode (M < N)
+a = a_raw[:1024*512].copy().reshape(512, 1024)
+q, r = scipy.linalg.qr(a, mode='economic')
+assert np.isclose(fingerprint(np.abs(q)), -0.9769304656721538)
+assert np.isclose(fingerprint(r), -476.9310050389706)
+fingerprint(np.abs(q)), fingerprint(r)
+
+# pivoting mode
+a = a_raw[:1024*512].copy().reshape(1024, 512)
+q, r, p = scipy.linalg.qr(a, mode='economic', pivoting=True)
+p_f64 = p.astype(np.float64)
+assert np.isclose(fingerprint(np.abs(q)), 8.110705884324302)
+assert np.isclose(fingerprint(r), 466.0756909302775)
+assert np.isclose(fingerprint(p_f64), -26.4276638273343)
+fingerprint(np.abs(q)), fingerprint(r), fingerprint(p_f64)
+
 

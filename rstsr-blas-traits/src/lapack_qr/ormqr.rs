@@ -47,12 +47,8 @@ where
     pub fn internal_run(self) -> Result<TensorMutable<'a, T, B, Ix2>> {
         let Self { a, tau, c, side, trans } = self;
 
-        let device = a.device().clone();
-        let order = match (c.c_prefer(), c.f_prefer()) {
-            (true, false) => RowMajor,
-            (false, true) => ColMajor,
-            (false, false) | (true, true) => device.default_order(),
-        };
+        let mut c = overwritable_convert(c)?;
+        let order = if c.f_prefer() && !c.c_prefer() { ColMajor } else { RowMajor };
 
         let a_shape = *a.view().shape();
         let c_shape = *c.view().shape();
@@ -82,7 +78,6 @@ where
             },
         };
 
-        let mut c = overwritable_convert_with_order(c, order)?;
         let ldc = c.view().ld(order).unwrap();
 
         // Convert A to the same order as C (read-only, so make a copy if needed)

@@ -28,12 +28,8 @@ where
         let Self { a } = self;
 
         let device = a.device().clone();
-        let order = match (a.c_prefer(), a.f_prefer()) {
-            (true, false) => RowMajor,
-            (false, true) => ColMajor,
-            (false, false) | (true, true) => device.default_order(),
-        };
-        let mut a = overwritable_convert_with_order(a, order)?;
+        let mut a = overwritable_convert(a)?;
+        let order = if a.f_prefer() && !a.c_prefer() { ColMajor } else { RowMajor };
         let [m, n] = *a.view().shape();
         let minmn = m.min(n);
         let lda = a.view().ld(order).unwrap();

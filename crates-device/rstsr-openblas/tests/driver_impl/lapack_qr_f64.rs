@@ -24,6 +24,29 @@ mod test {
     }
 
     #[test]
+    fn test_dgeqrf_nonsquare() {
+        let device = DeviceBLAS::default();
+        // Test with non-square matrix (M > N) - Column-major
+        let a_col =
+            rt::asarray((get_vec::<f64>('a')[..1024 * 512].to_vec(), [1024, 512].f(), &device)).into_dim::<Ix2>();
+
+        // Test GEQRF with column-major
+        let driver = DGEQRF::default().a(a_col.view()).build().unwrap();
+        let (_qr, _tau) = driver.run().unwrap();
+
+        // Test with non-square matrix (M > N) - Row-major
+        let a_row =
+            rt::asarray((get_vec::<f64>('a')[..1024 * 512].to_vec(), [1024, 512].c(), &device)).into_dim::<Ix2>();
+
+        // Test GEQRF with row-major
+        let driver = DGEQRF::default().a(a_row.view()).build().unwrap();
+        let (qr, _tau) = driver.run().unwrap();
+
+        // Verify that the result has correct shape
+        assert_eq!(qr.view().shape(), &[1024, 512]);
+    }
+
+    #[test]
     fn test_dorgqr() {
         let device = DeviceBLAS::default();
         let a = rt::asarray((get_vec::<f64>('a'), [512, 512].c(), &device)).into_dim::<Ix2>();

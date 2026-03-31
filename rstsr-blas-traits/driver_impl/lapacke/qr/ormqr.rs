@@ -1,6 +1,7 @@
 use crate::lapack_ffi;
 use crate::DeviceBLAS;
 use duplicate::duplicate_item;
+use num::Complex;
 use rstsr_blas_traits::prelude::*;
 use rstsr_common::prelude::*;
 
@@ -24,11 +25,10 @@ impl ORMQRDriverAPI<T> for DeviceBLAS {
         c: *mut T,
         ldc: usize,
     ) -> blas_int {
-        use std::os::raw::c_char;
         lapack_ffi::lapacke::lapacke_func(
             order as _,
-            side.into() as c_char,
-            trans.into() as c_char,
+            <FlagSide as Into<std::os::raw::c_char>>::into(side),
+            <FlagTrans as Into<std::os::raw::c_char>>::into(trans),
             m as _,
             n as _,
             k as _,
@@ -61,11 +61,10 @@ impl ORMQRDriverAPI<T> for DeviceBLAS {
         c: *mut T,
         ldc: usize,
     ) -> blas_int {
-        use std::os::raw::c_char;
         lapack_ffi::lapacke::lapacke_func(
             order as _,
-            side.into() as c_char,
-            trans.into() as c_char,
+            <FlagSide as Into<std::os::raw::c_char>>::into(side),
+            <FlagTrans as Into<std::os::raw::c_char>>::into(trans),
             m as _,
             n as _,
             k as _,

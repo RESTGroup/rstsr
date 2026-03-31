@@ -266,6 +266,136 @@ mod test {
         let s = rt::linalg::svdvals(a.view());
         assert!((fingerprint(&s) - 47.599274835886646).abs() < 1e-8);
     }
+
+    #[test]
+    fn test_qr() {
+        let device = DeviceBLAS::default();
+
+        // Test with square matrix first
+        let a_vec = get_vec::<c64>('a')[..512 * 512].to_vec();
+        let a = rt::asarray((a_vec, [512, 512].c(), &device)).into_dim::<Ix2>();
+
+        // Test tuple conversion (Q, R)
+        let (q, r) = rt::linalg::qr(a.view()).into();
+        assert!((fingerprint(&q.abs()) - 5.130192364112329).abs() < 1e-8);
+        assert!((fingerprint(&r) - c64!(75.80674992700851, 164.615763513737)).norm() < 1e-8);
+    }
+
+    #[test]
+    fn test_qr_nonsquare() {
+        let device = DeviceBLAS::default();
+
+        // Test with non-square matrix (M > N)
+        let a_vec = get_vec::<c64>('a')[..1024 * 512].to_vec();
+        let a = rt::asarray((a_vec, [1024, 512].c(), &device)).into_dim::<Ix2>();
+
+        // Test tuple conversion (Q, R)
+        let (q, r) = rt::linalg::qr(a.view()).into();
+        assert!((fingerprint(&q.abs()) - -10.06474255929977).abs() < 1e-8);
+        assert!((fingerprint(&r) - c64!(-494.4676746210691, 38.38755919576653)).norm() < 1e-8);
+    }
+
+    #[test]
+    fn test_qr_complete() {
+        let device = DeviceBLAS::default();
+
+        // Test 2: complete mode (M > N)
+        let a_vec = get_vec::<c64>('a')[..1024 * 512].to_vec();
+        let a = rt::asarray((a_vec, [1024, 512].c(), &device)).into_dim::<Ix2>();
+
+        // Test tuple conversion (Q, R)
+        let (q, r) = rt::linalg::qr((a.view(), "complete")).into();
+        assert!((fingerprint(&q.abs()) - 4.063591959250008).abs() < 1e-8);
+        assert!((fingerprint(&r) - c64!(-494.46767462106914, 38.38755919576663)).norm() < 1e-8);
+    }
+
+    #[test]
+    fn test_qr_m_less_n() {
+        let device = DeviceBLAS::default();
+
+        // Test 4: M < N case
+        let a_vec = get_vec::<c64>('a')[..1024 * 512].to_vec();
+        let a = rt::asarray((a_vec, [512, 1024].c(), &device)).into_dim::<Ix2>();
+
+        // Test tuple conversion (Q, R)
+        let (q, r) = rt::linalg::qr(a.view()).into();
+        assert!((fingerprint(&q.abs()) - -0.7203599314373275).abs() < 1e-8);
+        assert!((fingerprint(&r) - c64!(-582.4241295882298, 202.54615825826306)).norm() < 1e-8);
+    }
+
+    #[test]
+    fn test_qr_pivoting() {
+        let device = DeviceBLAS::default();
+
+        // Test 5: pivoting - use (Q, R, P) tuple conversion
+        let a_vec = get_vec::<c64>('a')[..1024 * 512].to_vec();
+        let a = rt::asarray((a_vec, [1024, 512].c(), &device)).into_dim::<Ix2>();
+
+        let (q, r, p) = rt::linalg::qr((a.view(), "reduced", true)).into();
+        assert!((fingerprint(&q.abs()) - 3.478992345356496).abs() < 1e-8);
+        assert!((fingerprint(&r) - c64!(-1068.7288017773842, -37.65296060898508)).norm() < 1e-8);
+        // Convert pivot indices to f64 for fingerprint
+        let p_f64 = p.mapv(|x| x as f64);
+        assert!((fingerprint(&p_f64) - -1940.0388752749188).abs() < 1e-8);
+    }
+
+    #[test]
+    fn test_qr_r_mode() {
+        let device = DeviceBLAS::default();
+
+        // Test 'r' mode - only returns R (cannot use (Q, R) tuple conversion)
+        let a_vec = get_vec::<c64>('a')[..1024 * 512].to_vec();
+        let a = rt::asarray((a_vec, [1024, 512].c(), &device)).into_dim::<Ix2>();
+
+        let result = rt::linalg::qr((a.view(), "r"));
+        assert!(result.q.is_none());
+        let r = result.r.unwrap();
+        assert!((fingerprint(&r) - c64!(-494.46767462106914, 38.38755919576663)).norm() < 1e-8);
+        assert!(result.h.is_none());
+        assert!(result.tau.is_none());
+        assert!(result.p.is_none());
+    }
+
+    #[test]
+    fn test_qr_raw_mode() {
+        let device = DeviceBLAS::default();
+
+        // Test 'raw' mode - returns packed H and tau
+        let a_vec = get_vec::<c64>('a')[..1024 * 512].to_vec();
+        let a = rt::asarray((a_vec, [1024, 512].c(), &device)).into_dim::<Ix2>();
+
+        let result = rt::linalg::qr((a.view(), "raw"));
+        assert!(result.q.is_none());
+        assert!(result.r.is_none());
+        let h = result.h.unwrap();
+        let tau = result.tau.unwrap();
+        assert!(result.p.is_none());
+
+        // Verify shapes: h has shape [1024, 512], tau has shape [512]
+        assert_eq!(h.shape(), &[1024, 512]);
+        assert_eq!(tau.shape(), &[512]);
+
+        // Verify fingerprints
+        assert!((fingerprint(&h) - c64!(-501.61932484481514, 34.79514296888962)).norm() < 1e-8);
+        assert!((fingerprint(&tau) - c64!(0.895022938093218, -0.8172306823248144)).norm() < 1e-8);
+    }
+
+    #[test]
+    fn test_qr_economic_mode() {
+        let device = DeviceBLAS::default();
+
+        // Test 'economic' mode - should be same as 'reduced' (SciPy terminology)
+        let a_vec = get_vec::<c64>('a')[..1024 * 512].to_vec();
+        let a = rt::asarray((a_vec, [1024, 512].c(), &device)).into_dim::<Ix2>();
+
+        // Compare 'economic' with 'reduced'
+        let (q_red, r_red) = rt::linalg::qr((a.view(), "reduced")).into();
+        let (q_econ, r_econ) = rt::linalg::qr((a.view(), "economic")).into();
+
+        // Should produce identical results
+        assert!((fingerprint(&q_red.abs()) - fingerprint(&q_econ.abs())).abs() < 1e-10);
+        assert!((fingerprint(&r_red) - fingerprint(&r_econ)).norm() < 1e-10);
+    }
 }
 
 #[cfg(test)]

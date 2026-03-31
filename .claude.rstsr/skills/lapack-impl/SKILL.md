@@ -196,6 +196,21 @@ impl XXXDriverAPI<T> for DeviceBLAS {
 
 **Critical for Row-Major**: The work array query MUST be done AFTER transposing input matrices, using the column-major leading dimensions. Querying with row-major lda values will give incorrect results.
 
+**CRITICAL BUG FIX (2026-03-31)**: For non-square matrices, the work query was incorrectly using the input `lda` (row-major stride) instead of `lda_t` (column-major leading dimension for transposed matrix). This caused LAPACK error -4 (illegal parameter value).
+
+**Correct pattern for row-major work query**:
+```rust
+if order == ColMajor {
+    // Query with input lda
+    func_(/* ... */, &(lda as _), /* ... */);
+} else {
+    let lda_t = m.max(1);  // Column-major LDA for transposed matrix
+
+    // Query with lda_t, NOT lda! Use null pointer for matrix data
+    func_(/* ... */, std::ptr::null_mut(), &(lda_t as _), /* ... */);
+}
+```
+
 ### 6. Row-Major Handling Pattern
 
 For functions with multiple matrices (e.g., ORMQR with A and C):

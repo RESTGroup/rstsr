@@ -12,6 +12,7 @@ use rstsr_core::prelude_dev::*;
    [EigvalshAPI       ] [eigvalsh        ] [eigvalsh_f        ];
    [InvAPI            ] [inv             ] [inv_f             ];
    [PinvAPI           ] [pinv            ] [pinv_f            ];
+   [QRAPI             ] [qr              ] [qr_f              ];
    [SLogDetAPI        ] [slogdet         ] [slogdet_f         ];
    [SolveGeneralAPI   ] [solve_general   ] [solve_general_f   ];
    [SolveSymmetricAPI ] [solve_symmetric ] [solve_symmetric_f ];
@@ -38,6 +39,7 @@ pub trait LinalgAPI<Inp> {
    [EigvalshAPI       ] [eigvalsh        ] [eigvalsh_f        ];
    [InvAPI            ] [inv             ] [inv_f             ];
    [PinvAPI           ] [pinv            ] [pinv_f            ];
+   [QRAPI             ] [qr              ] [qr_f              ];
    [SLogDetAPI        ] [slogdet         ] [slogdet_f         ];
    [SolveGeneralAPI   ] [solve_general   ] [solve_general_f   ];
    [SolveSymmetricAPI ] [solve_symmetric ] [solve_symmetric_f ];
@@ -60,6 +62,7 @@ where
    [EigvalshAPI       ] [eigvalsh        ] [eigvalsh_f        ];
    [InvAPI            ] [inv             ] [inv_f             ];
    [PinvAPI           ] [pinv            ] [pinv_f            ];
+   [QRAPI             ] [qr              ] [qr_f              ];
    [SLogDetAPI        ] [slogdet         ] [slogdet_f         ];
    [SolveGeneralAPI   ] [solve_general   ] [solve_general_f   ];
    [SolveSymmetricAPI ] [solve_symmetric ] [solve_symmetric_f ];
@@ -212,5 +215,59 @@ where
 }
 
 pub type SVDArgs<'a, B, T> = SVDArgs_Builder<'a, B, T>;
+
+/* #endregion */
+
+/* #region qr */
+
+/// Unified QR decomposition result for all modes
+///
+/// Different modes populate different fields:
+/// - "reduced" (or "economic"): q=Some(Q), r=Some(R), p=Some/None
+/// - "complete": q=Some(Q), r=Some(R), p=Some/None
+/// - "r": q=None, r=Some(R), p=Some/None
+/// - "raw": q=None, r=None, h=Some(H), tau=Some(tau), p=Some/None
+///
+/// Note: "economic" is an alias for "reduced" (SciPy vs NumPy terminology).
+pub struct QRResult<Q, R, H, Tau, P> {
+    /// Orthogonal matrix Q (Some for reduced/complete modes)
+    pub q: Option<Q>,
+    /// Upper triangular R (Some for reduced/complete/r modes)
+    pub r: Option<R>,
+    /// Packed Householder matrix H (Some for raw mode)
+    pub h: Option<H>,
+    /// Tau vector (Some for raw mode)
+    pub tau: Option<Tau>,
+    /// Pivot indices (Some if pivoting enabled)
+    pub p: Option<P>,
+}
+
+impl<Q, R, H, Tau, P> From<(Option<Q>, Option<R>, Option<H>, Option<Tau>, Option<P>)> for QRResult<Q, R, H, Tau, P> {
+    fn from((q, r, h, tau, p): (Option<Q>, Option<R>, Option<H>, Option<Tau>, Option<P>)) -> Self {
+        Self { q, r, h, tau, p }
+    }
+}
+
+impl<Q, R, H, Tau, P> From<QRResult<Q, R, H, Tau, P>> for (Option<Q>, Option<R>, Option<H>, Option<Tau>, Option<P>) {
+    fn from(qr_result: QRResult<Q, R, H, Tau, P>) -> Self {
+        (qr_result.q, qr_result.r, qr_result.h, qr_result.tau, qr_result.p)
+    }
+}
+
+/// Convert QRResult to (Q, R) tuple for reduced/complete modes
+/// Panics if q or r is None (i.e., for 'r' or 'raw' modes)
+impl<Q, R, H, Tau, P> From<QRResult<Q, R, H, Tau, P>> for (Q, R) {
+    fn from(qr_result: QRResult<Q, R, H, Tau, P>) -> Self {
+        (qr_result.q.unwrap(), qr_result.r.unwrap())
+    }
+}
+
+/// Convert QRResult to (Q, R, P) tuple for reduced/complete modes with pivoting
+/// Panics if q, r, or p is None
+impl<Q, R, H, Tau, P> From<QRResult<Q, R, H, Tau, P>> for (Q, R, P) {
+    fn from(qr_result: QRResult<Q, R, H, Tau, P>) -> Self {
+        (qr_result.q.unwrap(), qr_result.r.unwrap(), qr_result.p.unwrap())
+    }
+}
 
 /* #endregion */

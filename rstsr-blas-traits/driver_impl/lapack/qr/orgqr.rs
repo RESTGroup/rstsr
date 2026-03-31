@@ -26,29 +26,56 @@ impl ORGQRDriverAPI<T> for DeviceBLAS {
         use lapack_ffi::lapack::func_;
         use num::Zero;
 
-        // Query optimal working array(s) size
-        let mut info = 0;
-        let lwork = -1;
-        let mut work_query: T = T::zero();
-        func_(&(m as _), &(n as _), &(k as _), a, &(lda as _), tau, &mut work_query, &lwork, &mut info);
-        if info != 0 {
-            return info;
-        }
-        let lwork = work_query.to_usize().unwrap();
-
-        // Allocate memory for work arrays
-        let mut work: Vec<T> = match uninitialized_vec(lwork) {
-            Ok(work) => work,
-            Err(_) => return -1010,
-        };
-
         if order == ColMajor {
+            // Query optimal working array(s) size
+            let mut info = 0;
+            let lwork = -1;
+            let mut work_query: T = T::zero();
+            func_(&(m as _), &(n as _), &(k as _), a, &(lda as _), tau, &mut work_query, &lwork, &mut info);
+            if info != 0 {
+                return info;
+            }
+            let lwork = work_query.to_usize().unwrap();
+
+            // Allocate memory for work arrays
+            let mut work: Vec<T> = match uninitialized_vec(lwork) {
+                Ok(work) => work,
+                Err(_) => return -1010,
+            };
+
             // Call LAPACK function directly
             func_(&(m as _), &(n as _), &(k as _), a, &(lda as _), tau, work.as_mut_ptr(), &(lwork as _), &mut info);
+            info
         } else {
             // Row-major: need to transpose
             let lda_t = m.max(1);
             let size_a = m * n;
+
+            // Query optimal working array(s) size
+            let mut info = 0;
+            let lwork = -1;
+            let mut work_query: T = T::zero();
+            func_(
+                &(m as _),
+                &(n as _),
+                &(k as _),
+                std::ptr::null_mut(),
+                &(lda_t as _),
+                tau,
+                &mut work_query,
+                &lwork,
+                &mut info,
+            );
+            if info != 0 {
+                return info;
+            }
+            let lwork = work_query.to_usize().unwrap();
+
+            // Allocate memory for work arrays
+            let mut work: Vec<T> = match uninitialized_vec(lwork) {
+                Ok(work) => work,
+                Err(_) => return -1010,
+            };
 
             // Allocate temporary buffer for transposed A
             let mut a_t: Vec<T> = match uninitialized_vec(size_a) {
@@ -80,9 +107,9 @@ impl ORGQRDriverAPI<T> for DeviceBLAS {
 
             // Transpose A back from column-major to row-major
             orderchange_out_c2r_ix2_cpu_serial(a_slice, &la, &a_t, &la_t).unwrap();
-        }
 
-        info
+            info
+        }
     }
 }
 
@@ -104,33 +131,33 @@ impl ORGQRDriverAPI<T> for DeviceBLAS {
     ) -> blas_int {
         use lapack_ffi::lapack::func_;
 
-        // Query optimal working array(s) size
-        let mut info = 0;
-        let lwork = -1;
-        let mut work_query = T::zero();
-        func_(
-            &(m as _),
-            &(n as _),
-            &(k as _),
-            a as *mut _,
-            &(lda as _),
-            tau as *mut _,
-            &mut work_query as *mut _ as *mut _,
-            &lwork,
-            &mut info,
-        );
-        if info != 0 {
-            return info;
-        }
-        let lwork = work_query.to_usize().unwrap();
-
-        // Allocate memory for work arrays
-        let mut work: Vec<T> = match uninitialized_vec(lwork) {
-            Ok(work) => work,
-            Err(_) => return -1010,
-        };
-
         if order == ColMajor {
+            // Query optimal working array(s) size
+            let mut info = 0;
+            let lwork = -1;
+            let mut work_query = T::zero();
+            func_(
+                &(m as _),
+                &(n as _),
+                &(k as _),
+                a as *mut _,
+                &(lda as _),
+                tau as *mut _,
+                &mut work_query as *mut _ as *mut _,
+                &lwork,
+                &mut info,
+            );
+            if info != 0 {
+                return info;
+            }
+            let lwork = work_query.to_usize().unwrap();
+
+            // Allocate memory for work arrays
+            let mut work: Vec<T> = match uninitialized_vec(lwork) {
+                Ok(work) => work,
+                Err(_) => return -1010,
+            };
+
             // Call LAPACK function directly
             func_(
                 &(m as _),
@@ -143,10 +170,37 @@ impl ORGQRDriverAPI<T> for DeviceBLAS {
                 &(lwork as _),
                 &mut info,
             );
+            info
         } else {
             // Row-major: need to transpose
             let lda_t = m.max(1);
             let size_a = m * n;
+
+            // Query optimal working array(s) size
+            let mut info = 0;
+            let lwork = -1;
+            let mut work_query = T::zero();
+            func_(
+                &(m as _),
+                &(n as _),
+                &(k as _),
+                std::ptr::null_mut(),
+                &(lda_t as _),
+                tau as *mut _,
+                &mut work_query as *mut _ as *mut _,
+                &lwork,
+                &mut info,
+            );
+            if info != 0 {
+                return info;
+            }
+            let lwork = work_query.to_usize().unwrap();
+
+            // Allocate memory for work arrays
+            let mut work: Vec<T> = match uninitialized_vec(lwork) {
+                Ok(work) => work,
+                Err(_) => return -1010,
+            };
 
             // Allocate temporary buffer for transposed A
             let mut a_t: Vec<T> = match uninitialized_vec(size_a) {
@@ -178,8 +232,8 @@ impl ORGQRDriverAPI<T> for DeviceBLAS {
 
             // Transpose A back from column-major to row-major
             orderchange_out_c2r_ix2_cpu_serial(a_slice, &la, &a_t, &la_t).unwrap();
-        }
 
-        info
+            info
+        }
     }
 }

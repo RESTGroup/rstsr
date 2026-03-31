@@ -1,6 +1,7 @@
 use crate::lapack_ffi;
 use crate::DeviceBLAS;
 use duplicate::duplicate_item;
+use num::Complex;
 use rstsr_blas_traits::prelude::*;
 use rstsr_common::prelude::*;
 

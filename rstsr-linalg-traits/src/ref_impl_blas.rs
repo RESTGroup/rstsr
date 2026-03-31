@@ -291,3 +291,137 @@ where
 }
 
 /* #endregion */
+
+/* #region qr */
+
+use crate::traits_def::QRResult;
+
+/// Reference implementation of QR decomposition
+///
+/// # Arguments
+/// * `a` - Input matrix
+/// * `mode` - "reduced" (or "economic"), "complete", "r", or "raw"
+/// * `pivoting` - Whether to use column pivoting (GEQP3 instead of GEQRF)
+///
+/// # Returns
+/// Unified QRResult with fields populated based on mode:
+/// - "reduced" (or "economic"): q=Some(Q with shape [m,k]), r=Some(R with shape [k,n])
+/// - "complete": q=Some(Q with shape [m,m]), r=Some(R with shape [m,n])
+/// - "r": q=None, r=Some(R with shape [k,n])
+/// - "raw": q=None, r=None, h=Some(packed), tau=Some(tau)
+///
+/// Note: "economic" is an alias for "reduced" (SciPy vs NumPy terminology).
+pub fn ref_impl_qr_f<'a, T, B>(
+    a: TensorReference<'a, T, B, Ix2>,
+    mode: &'static str,
+    pivoting: bool,
+) -> Result<
+    QRResult<
+        Tensor<T, B, Ix2>,
+        Tensor<T, B, Ix2>,
+        TensorMutable<'a, T, B, Ix2>,
+        Tensor<T, B, Ix1>,
+        Tensor<blas_int, B, Ix1>,
+    >,
+>
+where
+    T: BlasFloat,
+    B: LapackDriverAPI<T>,
+{
+    let device = a.device().clone();
+    let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
+
+    // Normalize mode: "economic" is an alias for "reduced" (SciPy vs NumPy terminology)
+    let mode = if mode == "economic" { "reduced" } else { mode };
+
+    rstsr_assert!(
+        matches!(mode, "reduced" | "complete" | "r" | "raw"),
+        InvalidValue,
+        "mode must be 'reduced' (or 'economic'), 'complete', 'r', or 'raw'"
+    )?;
+
+    let task = || {
+        let [m, n] = *a.view().shape();
+        let k = m.min(n);
+
+        // Step 1: Perform QR factorization (GEQRF or GEQP3)
+        let (qr, tau, p) = if pivoting {
+            let (qr, jpvt, tau) = GEQP3::default().a(a).build()?.run()?;
+            (qr, tau, Some(jpvt))
+        } else {
+            let (qr, tau) = GEQRF::default().a(a).build()?.run()?;
+            (qr, tau, None)
+        };
+
+        // Handle 'raw' mode: return packed QR and tau directly
+        if mode == "raw" {
+            return Ok(QRResult { q: None, r: None, h: Some(qr), tau: Some(tau), p });
+        }
+
+        // Step 2: Extract R (upper triangular part)
+        // R has shape (k, n) where k = min(m, n)
+        let r = {
+            let qr_view = qr.view();
+            let mut r: Tensor<T, B, Ix2> = zeros_f(([k, n].c(), &device))?.into_dim::<Ix2>();
+            // Extract upper triangular part: R[i,j] = QR[i,j] for i <= j, else 0
+            // manually copy by strides and shapes
+            let r_stride = *r.stride();
+            let qr_stride = *qr_view.stride();
+            let r_offset = r.offset();
+            let qr_offset = qr_view.offset();
+            let vec_r = r.raw_mut();
+            let vec_qr = qr_view.raw();
+            for i in 0..(k as isize) {
+                for j in i..(n as isize) {
+                    let idx_r = (i * r_stride[0] + j * r_stride[1] + r_offset as isize) as usize;
+                    let idx_qr = (i * qr_stride[0] + j * qr_stride[1] + qr_offset as isize) as usize;
+                    vec_r[idx_r] = vec_qr[idx_qr];
+                }
+            }
+            r
+        };
+
+        // Handle 'r' mode: return only R
+        if mode == "r" {
+            return Ok(QRResult { q: None, r: Some(r), h: None, tau: None, p });
+        }
+
+        // Step 3: Generate Q using ORGQR
+        let q = if mode == "reduced" || m <= n {
+            // For 'reduced' mode: generate Q with k columns
+            // For 'complete' mode with m <= n: k == m, so same as reduced
+            // ORGQR requires m >= n (columns of output Q)
+            if m < n {
+                // For M < N: QR has shape [M, N], but ORGQR requires m >= n
+                // We need to extract the first M columns of QR for ORGQR
+                // The Householder vectors are stored in the first min(M,N)=M columns
+                let mut qr_mxm = unsafe { empty_f(([m, m].c(), &device))?.into_dim::<Ix2>() };
+                qr_mxm.view_mut().assign(&qr.view().i((.., ..m)));
+                ORGQR::default().a(qr_mxm.view_mut()).tau(tau.view()).build()?.run()?.into_owned()
+            } else {
+                ORGQR::default().a(qr.view()).tau(tau.view()).build()?.run()?.into_owned()
+            }
+        } else {
+            // For 'complete' mode with m > n:
+            // We need to generate an m x m orthogonal matrix.
+            // ORGQR generates Q from the first n columns of the input matrix.
+            // We create an m x m matrix with identity extension and use ORGQR.
+            let mut q_full = zeros_f(([m, m].c(), &device))?.into_dim::<Ix2>();
+            let qr_view = qr.view();
+            // Copy QR into first n columns
+            q_full.i_mut((.., ..n)).assign(&qr_view);
+            // Fill remaining columns with identity matrix
+            for j in n..m {
+                q_full[[j, j]] = T::one();
+            }
+            // Generate Q using ORGQR with k=n (use all n Householder vectors)
+            ORGQR::default().a(q_full.view_mut()).tau(tau.view()).build()?.run()?.into_owned()
+        };
+
+        Ok(QRResult { q: Some(q), r: Some(r), h: None, tau: None, p })
+    };
+
+    device.with_blas_num_threads(nthreads, task)
+}
+
+/* #endregion */

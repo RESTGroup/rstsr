@@ -6,6 +6,32 @@ use rstsr_core::prelude_dev::*;
 pub type TensorMutable1<'a, T, B> = TensorMutable<'a, T, B, Ix1>;
 pub type TensorMutable2<'a, T, B> = TensorMutable<'a, T, B, Ix2>;
 
+/// Convert a tensor reference to a mutable tensor with optimal layout for LAPACK.
+///
+/// This function converts the input tensor to a contiguous layout suitable for
+/// LAPACK operations:
+/// - F-prefer (column-major prefer) tensors are converted to ColMajor (stride=[1, ld])
+/// - C-prefer (row-major prefer) tensors are converted to RowMajor (stride=[ld, 1])
+///
+/// The conversion is "overwritable" meaning:
+/// - If the input is a reference (read-only), a new owned tensor is created
+/// - If the input is already mutable and contiguous, it's returned as-is
+/// - If the input is mutable but not contiguous, it's converted with data cloning
+///
+/// # Returns
+///
+/// A `TensorMutable` that can be used for in-place LAPACK operations.
+/// The caller should check `f_prefer()` or `c_prefer()` to determine the actual
+/// layout after conversion.
+///
+/// # Example
+///
+/// ```ignore
+/// let mut a = overwritable_convert(a)?;
+/// let order = if a.f_prefer() && !a.c_prefer() { ColMajor } else { RowMajor };
+/// let lda = a.view().ld(order).unwrap();
+/// // Now call LAPACK with the correct order and lda
+/// ```
 pub fn overwritable_convert<T, B, D>(a: TensorReference<'_, T, B, D>) -> Result<TensorMutable<'_, T, B, D>>
 where
     T: Clone,
@@ -31,6 +57,23 @@ where
     Ok(a)
 }
 
+/// Convert a tensor reference to a mutable tensor with a specified layout order.
+///
+/// Unlike `overwritable_convert`, this function forces conversion to a specific
+/// order (RowMajor or ColMajor), potentially requiring a transpose operation.
+///
+/// **Note**: For most LAPACK drivers, prefer `overwritable_convert` instead,
+/// as it automatically selects the optimal layout without unnecessary conversions.
+/// Use this function only when you specifically need a particular order.
+///
+/// # Arguments
+///
+/// * `a` - Input tensor reference
+/// * `order` - Target order (RowMajor or ColMajor)
+///
+/// # Returns
+///
+/// A `TensorMutable` with the specified order.
 pub fn overwritable_convert_with_order<T, B, D>(
     a: TensorReference<'_, T, B, D>,
     order: FlagOrder,
