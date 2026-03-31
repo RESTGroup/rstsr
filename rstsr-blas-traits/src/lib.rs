@@ -18,6 +18,7 @@ pub mod util;
 
 pub mod blas3;
 
+pub mod lapack_eig;
 pub mod lapack_eigh;
 pub mod lapack_qr;
 pub mod lapack_solve;

@@ -19,6 +19,7 @@ The rstsr project implements LAPACK functionality through a layered architecture
 ```
 rstsr-blas-traits/
 ├── src/
+│   ├── lapack_eig/     # General eigenvalue trait definitions (geev)
 │   ├── lapack_eigh/    # Eigenvalue trait definitions (syev, syevd, sygv, sygvd)
 │   ├── lapack_qr/      # QR trait definitions (geqrf, orgqr, geqp3, ormqr)
 │   ├── lapack_solve/   # Linear solve trait definitions (gesv, getrf, getri, potrf, sysv)
@@ -26,11 +27,13 @@ rstsr-blas-traits/
 │   └── trait_def.rs    # Aggregates all traits into LapackDriverAPI
 ├── driver_impl/
 │   ├── lapack/         # Raw LAPACK implementations (requires row-major handling)
+│   │   ├── eig/        # geev.rs
 │   │   ├── eigh/       # syev.rs, syevd.rs, sygv.rs, sygvd.rs
 │   │   ├── qr/         # geqrf.rs, orgqr.rs, geqp3.rs, ormqr.rs
 │   │   ├── solve/      # gesv.rs, getrf.rs, getri.rs, potrf.rs, sysv.rs
 │   │   └── svd/        # gesvd.rs, gesdd.rs
 │   └── lapacke/        # LAPACKE implementations (simpler, handles row-major)
+│       ├── eig/
 │       ├── eigh/
 │       ├── qr/
 │       ├── solve/
@@ -359,6 +362,37 @@ fn driver_xxx(side: FlagSide, trans: FlagTrans, ...) -> blas_int;
 side.into() as c_char  // Explicit for LAPACKE
 ```
 
+### Char Parameters
+
+Some LAPACK functions use plain `char` parameters that don't correspond to existing flag types (e.g., `jobvl`, `jobvr` in GEEV). For these:
+
+```rust
+// In trait signature - use char directly
+unsafe fn driver_geev(
+    order: FlagOrder,
+    jobvl: char,  // 'N' or 'V'
+    jobvr: char,  // 'N' or 'V'
+    ...
+) -> blas_int;
+
+// In LAPACKE implementation - cast with as _
+lapack_ffi::lapacke::lapacke_func(
+    order as _,
+    jobvl as _,  // Rust char to c_char works for ASCII
+    jobvr as _,
+    ...
+)
+
+// In raw LAPACK implementation - pass as reference
+func_(
+    &(jobvl as _),  // Pass as reference for Fortran interface
+    &(jobvr as _),
+    ...
+)
+```
+
+**Note**: Rust's `char` is 4 bytes but the `as _` cast to `c_char` (1 byte) works correctly for ASCII characters like 'N', 'V', 'U', 'L'.
+
 ### Work Array Query
 
 Many LAPACK functions require work arrays:
@@ -412,6 +446,36 @@ Standard LAPACK info codes:
 
 Use `rstsr_errcode!(info, "Lapack XXX")?` for error propagation.
 
+### Real vs Complex Type Handling
+
+Some LAPACK functions have different signatures for real and complex types. For example, GEEV:
+
+**Real types (f32, f64)**:
+```rust
+// Trait signature
+unsafe fn driver_geev(
+    ...
+    wr: *mut T::Real,  // Real part of eigenvalues
+    wi: *mut T::Real,  // Imaginary part of eigenvalues
+    ...
+) -> blas_int;
+```
+
+**Complex types (Complex<f32>, Complex<f64>)**:
+```rust
+// LAPACKE implementation needs temporary array
+let mut w: Vec<T> = uninitialized_vec(n)?;
+// Call LAPACKE with single complex array
+LAPACKE_zgeev(..., w.as_mut_ptr(), ...);
+// Split into real/imaginary parts
+for i in 0..n {
+    *wr.add(i) = w[i].re;
+    *wi.add(i) = w[i].im;
+}
+```
+
+This unified interface allows the higher-level `GEEV_` struct to work consistently across all types.
+
 ### Layout Helpers
 
 ```rust
@@ -440,6 +504,13 @@ let vec: Vec<i32> = jpvt.into_vec();  // Zero-cost, just takes ownership of data
 - **SciPy reference**: `../other-repos/scipy/scipy/linalg/`
 
 ## Common LAPACK Functions by Category
+
+### General Eigenvalue (eig)
+- `geev`: General eigenvalues and eigenvectors
+  - For real types: returns separate wr (real part) and wi (imaginary part) arrays
+  - For complex types: returns single complex w array
+  - Has left (`vl`) and right (`vr`) eigenvector options
+- Future: `geevx`, `ggev`, `ggevd`
 
 ### Eigenvalue (eigh)
 - `syev/syevd`: Symmetric eigenvalues
@@ -482,3 +553,38 @@ let vec: Vec<i32> = jpvt.into_vec();  // Zero-cost, just takes ownership of data
 10. [ ] Write Rust tests with `fingerprint` verification
 11. [ ] Run `cargo fmt` and `cargo clippy`
 12. [ ] Test on at least one device crate
+
+## Important Notes
+
+### Eigenvalue Ordering (GEEV, etc.)
+
+**CRITICAL**: LAPACK does NOT guarantee eigenvalue ordering. Different implementations return eigenvalues in different orders:
+
+| Implementation | Used By | Ordering |
+|----------------|---------|----------|
+| MKL | scipy | Implementation-specific |
+| OpenBLAS | rstsr | Implementation-specific |
+| Reference LAPACK | - | Implementation-specific |
+
+**Testing pattern for eigenvalue correctness**:
+```rust
+/// Compute fingerprint of sorted eigenvalues (implementation-agnostic)
+fn sorted_eigenvalue_fingerprint(wr: &Tensor<f64, DeviceBLAS, Ix1>, wi: &Tensor<f64, DeviceBLAS, Ix1>) -> f64 {
+    use num::Complex;
+    let wr_vec: Vec<f64> = wr.iter().copied().collect();
+    let wi_vec: Vec<f64> = wi.iter().copied().collect();
+    let n = wr_vec.len();
+    let mut eigenvalues: Vec<Complex<f64>> = (0..n).map(|i| Complex::new(wr_vec[i], wi_vec[i])).collect();
+    eigenvalues.sort_by(|a, b| a.re.partial_cmp(&b.re).unwrap().then_with(|| a.im.partial_cmp(&b.im).unwrap()));
+    let sorted_wr: Vec<f64> = eigenvalues.iter().map(|c| c.re).collect();
+    (0..n).map(|i| (i as f64).cos() * sorted_wr[i]).sum()
+}
+```
+
+**Why this matters**:
+- Eigenvalue fingerprint tests using raw order will fail across different LAPACK implementations
+- Eigenvector fingerprints also depend on eigenvalue ordering
+- For symmetric matrices (EIGH), eigenvalues ARE sorted by LAPACK, so direct comparison works
+- For general matrices (EIG/GEEV), you MUST sort before comparing
+
+**Eigenvector comparison**: More complex because eigenvectors for complex eigenvalue pairs are stored in two columns (real + imaginary parts). The ordering matches the eigenvalue ordering, making cross-implementation comparison difficult.

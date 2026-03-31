@@ -181,3 +181,33 @@ assert np.isclose(fingerprint(np.abs(cq)), 14.485921558590004)
 fingerprint(np.abs(cq))
 
 
+# ## eig driver tests
+
+# ### dgeev
+
+# Test with right eigenvectors only
+a = a_raw.copy()[:512*512].reshape(512, 512)
+wr, wi, vl, vr, _ = scipy.linalg.lapack.dgeev(a, compute_vl=False, compute_vr=True)
+assert np.isclose(fingerprint(wr), 18.71988822379452)
+assert np.isclose(fingerprint(wi), -44.508746930827016)
+assert np.isclose(fingerprint(np.abs(vr)), 1.4038315907569003)
+fingerprint(wr), fingerprint(wi), fingerprint(np.abs(vr))
+
+# Test with left eigenvectors only
+a = a_raw.copy()[:512*512].reshape(512, 512)
+wr, wi, vl, vr, _ = scipy.linalg.lapack.dgeev(a, compute_vl=True, compute_vr=False)
+assert np.isclose(fingerprint(wr), 18.71988822379452)
+assert np.isclose(fingerprint(wi), -44.508746930827016)
+assert np.isclose(fingerprint(np.abs(vl)), -3.014414428565583)
+fingerprint(wr), fingerprint(wi), fingerprint(np.abs(vl))
+
+# Test with both eigenvectors
+a = a_raw.copy()[:512*512].reshape(512, 512)
+wr, wi, vl, vr, _ = scipy.linalg.lapack.dgeev(a, compute_vl=True, compute_vr=True)
+assert np.isclose(fingerprint(wr), 18.71988822379452)
+assert np.isclose(fingerprint(wi), -44.508746930827016)
+assert np.isclose(fingerprint(np.abs(vl)), -3.014414428565583)
+assert np.isclose(fingerprint(np.abs(vr)), 1.4038315907569003)
+fingerprint(wr), fingerprint(wi), fingerprint(np.abs(vl)), fingerprint(np.abs(vr))
+
+

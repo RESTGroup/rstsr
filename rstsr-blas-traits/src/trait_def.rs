@@ -1,6 +1,7 @@
 //! Convenient traits for BLAS operations.
 
 use crate::blas3::*;
+use crate::lapack_eig::*;
 use crate::lapack_eigh::*;
 use crate::lapack_qr::*;
 use crate::lapack_solve::*;
@@ -42,6 +43,8 @@ where
 pub trait LapackDriverAPI<T>:
     BlasDriverBaseAPI<T>
     + BlasDriverAPI<T>
+    // lapack_eig
+    + GEEVDriverAPI<T>
     // lapack_eigh
     + SYEVDriverAPI<T>
     + SYEVDDriverAPI<T>
