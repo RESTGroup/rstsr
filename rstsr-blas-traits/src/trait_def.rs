@@ -49,6 +49,7 @@ pub trait LapackDriverAPI<T>:
     // lapack_eigh
     + SYEVDriverAPI<T>
     + SYEVDDriverAPI<T>
+    + SYEVRDriverAPI<T>
     + SYGVDriverAPI<T>
     + SYGVDDriverAPI<T>
     // lapack_qr

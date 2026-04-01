@@ -36,6 +36,50 @@ assert np.isclose(fingerprint(w), -71.4902453763506)
 assert np.isclose(fingerprint(np.abs(v)), 6.973792268793419)
 fingerprint(w), fingerprint(np.abs(v))
 
+# ### dsyevr
+
+# all eigenvalues (lower=True)
+a = a_raw.copy().reshape(1024, 1024)
+w, z, m, isuppz, _ = scipy.linalg.lapack.dsyevr(a, lower=True, range='A')
+assert m == 1024
+assert np.isclose(fingerprint(w), -71.4747209499407)
+assert np.isclose(fingerprint(np.abs(z)), -9.903934930318247)
+fingerprint(w), fingerprint(np.abs(z))
+
+# all eigenvalues (lower=False)
+a = a_raw.copy().reshape(1024, 1024)
+w, z, m, isuppz, _ = scipy.linalg.lapack.dsyevr(a, lower=False, range='A')
+assert m == 1024
+assert np.isclose(fingerprint(w), -71.4902453763506)
+assert np.isclose(fingerprint(np.abs(z)), 6.973792268793419)
+fingerprint(w), fingerprint(np.abs(z))
+
+# eigenvalues by index [0,99] (lower=True)
+a = a_raw.copy().reshape(1024, 1024)
+w, z, m, isuppz, _ = scipy.linalg.lapack.dsyevr(a, lower=True, range='I', il=1, iu=100)
+assert m == 100
+w_valid = w[:m]
+assert np.isclose(fingerprint(w_valid), 7.172235948598356)
+assert np.isclose(fingerprint(np.abs(z)), -4.561871974095643)
+fingerprint(w_valid), fingerprint(np.abs(z))
+
+# eigenvalues by index [500,599] (lower=True)
+a = a_raw.copy().reshape(1024, 1024)
+w, z, m, isuppz, _ = scipy.linalg.lapack.dsyevr(a, lower=True, range='I', il=501, iu=600)
+assert m == 100
+w_valid = w[:m]
+assert np.isclose(fingerprint(w_valid), -8.66127659333348)
+assert np.isclose(fingerprint(np.abs(z)), 4.814753342657916)
+fingerprint(w_valid), fingerprint(np.abs(z))
+
+# eigenvalues only (jobz='N')
+a = a_raw.copy().reshape(1024, 1024)
+w, z, m, isuppz, _ = scipy.linalg.lapack.dsyevr(a, lower=True, range='A', compute_v=False)
+assert m == 1024
+assert z.size == 0  # z should be empty when compute_v=False
+assert np.isclose(fingerprint(w), -71.4747209499407)
+fingerprint(w)
+
 # ### dsygv*
 
 a = a_raw.copy().reshape(1024, 1024)
