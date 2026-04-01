@@ -45,6 +45,7 @@ pub trait LapackDriverAPI<T>:
     + BlasDriverAPI<T>
     // lapack_eig
     + GEEVDriverAPI<T>
+    + GGEVDriverAPI<T>
     // lapack_eigh
     + SYEVDriverAPI<T>
     + SYEVDDriverAPI<T>

@@ -294,48 +294,97 @@ pub mod xxx;
 
 ### 8. Testing with Python Validation
 
-Create validation in `crates-device/rstsr-openblas/tests/driver_impl/driver_validation_f64.py`:
+**Step 1: Create Python script for fingerprint computation**
+
+Create a script in `tmp/` directory to compute expected fingerprint values:
 
 ```python
+#!/usr/bin/env python3
 import numpy as np
-import scipy.linalg.lapack
+from scipy import linalg
+import os
 
-def fingerprint(a):
-    return np.dot(np.cos(np.arange(a.size)), np.asarray(a, order="C").ravel())
+# Get the path to the test data
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
+DATA_DIR = os.path.join(PROJECT_ROOT, 'rstsr-test-manifest', 'resources')
 
-# Test case
-a = a_raw.copy()[:512*512].reshape(512, 512)
-qr, tau, _, _ = scipy.linalg.lapack.dgeqrf(a)
-assert np.isclose(fingerprint(np.abs(qr)), 104.85191447485762)
-assert np.isclose(fingerprint(tau), 2.599625942247915)
+def fingerprint(arr):
+    """Compute fingerprint matching Rust's rstsr_core::prelude_dev::fingerprint"""
+    arr = np.asarray(arr).flatten()
+    indices = np.arange(len(arr))
+    return np.sum(np.cos(indices) * arr)
+
+def sorted_eigenvalue_fingerprint(w):
+    """For general eigenvalues (unsorted by LAPACK)."""
+    if np.iscomplexobj(w):
+        w_sorted = sorted(w, key=lambda x: (x.real, x.imag))
+    else:
+        w_sorted = sorted(w)
+    return fingerprint([v.real for v in w_sorted])
+
+# Load test data
+a = np.load(os.path.join(DATA_DIR, 'a-f64.npy'))
+b = np.load(os.path.join(DATA_DIR, 'b-f64.npy'))
+
+# Example: GGEV test
+a_32 = a[:32*32].reshape(32, 32)
+b_32 = b[:32*32].reshape(32, 32)
+alphar, alphai, beta, vl, vr, work, info = linalg.lapack.dggev(a_32, b_32)
+
+# Compute fingerprint for validation
+eigenvalues = [complex(alphar[i], alphai[i]) / beta[i] for i in range(len(alphar)) if abs(beta[i]) > 1e-15]
+fp = sorted_eigenvalue_fingerprint(eigenvalues)
+print(f"GGEV eigenvalue fingerprint: {fp}")
 ```
 
-Run Python to get correct fingerprint values, then create Rust test:
+**Step 2: Write Rust test with fingerprint assertions**
 
 ```rust
-use rstsr_blas_traits::lapack_xxx::*;
-use rstsr_common::flags::{Left, Trans};  // Import flag aliases
+use rstsr_blas_traits::lapack_eig::*;
 use rstsr_core::prelude::*;
 use rstsr_core::prelude_dev::fingerprint;
 use rstsr_openblas::DeviceOpenBLAS as DeviceBLAS;
 use rstsr_test_manifest::get_vec;
 
-#[test]
-fn test_xxx() {
-    let device = DeviceBLAS::default();
-    let a = rt::asarray((get_vec::<f64>('a'), [512, 512].c(), &device)).into_dim::<Ix2>();
+/// Use .raw() to access underlying slice (zero-copy for views)
+fn sorted_ggev_eigenvalue_fingerprint(
+    alphar: &Tensor<f64, DeviceBLAS, Ix1>,
+    alphai: &Tensor<f64, DeviceBLAS, Ix1>,
+    beta: &Tensor<f64, DeviceBLAS, Ix1>,
+) -> f64 {
+    use num::Complex;
+    let alphar_v = alphar.raw();  // Zero-copy access to slice
+    let alphai_v = alphai.raw();
+    let beta_v = beta.raw();
+    // ... compute fingerprint
+}
 
-    let driver = XXX::default().a(a.view()).build().unwrap();
-    let (output) = driver.run().unwrap();
-    assert!((fingerprint(&output) - expected_value).abs() < 1e-8);
+#[test]
+fn test_dggev() {
+    let device = DeviceBLAS::default();
+    let a = rt::asarray((get_vec::<f64>('a'), [32, 32].c(), &device)).into_dim::<Ix2>();
+    let b = rt::asarray((get_vec::<f64>('b'), [32, 32].c(), &device)).into_dim::<Ix2>();
+
+    let driver = GGEV::default().a(a.view()).b(b.view()).build().unwrap();
+    let (alphar, alphai, beta, _, _, _, _) = driver.run().unwrap();
+
+    let fp = sorted_ggev_eigenvalue_fingerprint(&alphar, &alphai, &beta);
+    assert!((fp - expected_value).abs() < 1e-8);
 }
 ```
 
-Test command:
+**Key patterns for tensor data access:**
+- `.raw()` → `&[T]` for views (zero-copy)
+- `.raw_mut()` → `&mut [T]` for owned tensors
+- `.to_vec()` → `Vec<T>` for owned conversion
+- `.into_vec()` → `Vec<T>` takes ownership (zero-cost)
+
+**Test command:**
 ```bash
-RUST_BACKTRACE=1 RSTSR_DEV=1 cargo test -p rstsr-openblas --release \
-    --features "rstsr/backtrace openmp" \
-    --test tests_driver_impl -- --test-threads=1 lapack_xxx --nocapture
+RUST_BACKTRACE=1 RSTSR_DEV=1 cargo test -p rstsr-openblas --test tests_driver_impl \
+    --features "rstsr/backtrace openmp linalg" \
+    -- test_ggev --test-threads=1 --nocapture
 ```
 
 ## Key Patterns
@@ -510,7 +559,12 @@ let vec: Vec<i32> = jpvt.into_vec();  // Zero-cost, just takes ownership of data
   - For real types: returns separate wr (real part) and wi (imaginary part) arrays
   - For complex types: returns single complex w array
   - Has left (`vl`) and right (`vr`) eigenvector options
-- Future: `geevx`, `ggev`, `ggevd`
+- `ggev`: Generalized eigenvalues and eigenvectors (A*v = λ*B*v)
+  - Eigenvalues returned as (alpha, beta) pairs where λ = alpha/beta
+  - For real types: returns alphar, alphai, beta arrays
+  - For complex types: returns complex alpha, beta arrays
+  - Has left (`vl`) and right (`vr`) eigenvector options
+- Future: `geevx`, `ggevd`
 
 ### Eigenvalue (eigh)
 - `syev/syevd`: Symmetric eigenvalues
