@@ -10,11 +10,14 @@ pub type blas_int = i64;
 
 pub mod blas_scalar;
 pub mod cblas_flags;
+pub mod eigen_range;
 pub mod prelude;
 pub mod prelude_dev;
 pub mod threading;
 pub mod trait_def;
 pub mod util;
+
+pub use eigen_range::EigenRange;
 
 pub mod blas3;
 

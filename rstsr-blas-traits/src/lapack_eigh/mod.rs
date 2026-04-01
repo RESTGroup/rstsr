@@ -11,3 +11,6 @@ pub use syevr::*;
 pub use sygv::*;
 pub use sygvd::*;
 pub use sygvx::*;
+
+// Re-export EigenRange from the dedicated module
+pub use crate::eigen_range::EigenRange;

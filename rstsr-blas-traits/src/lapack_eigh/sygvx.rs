@@ -1,4 +1,4 @@
-use crate::lapack_eigh::syevr::EigenRange;
+use crate::eigen_range::EigenRange;
 use crate::prelude_dev::*;
 use num::Zero;
 use rstsr_core::prelude_dev::*;
