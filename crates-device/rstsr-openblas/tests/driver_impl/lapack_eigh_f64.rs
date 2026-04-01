@@ -263,4 +263,101 @@ mod test {
         assert_eq!(w.size(), 100);
         assert!((fingerprint(&w) - 7.172235948598356).abs() < 1e-8);
     }
+
+    #[test]
+    fn test_dsygvx() {
+        let device = DeviceBLAS::default();
+        let a = rt::asarray((get_vec::<f64>('a'), [1024, 1024].c(), &device)).into_dim::<Ix2>();
+        let b = rt::asarray((get_vec::<f64>('b'), [1024, 1024].c(), &device)).into_dim::<Ix2>();
+
+        // all eigenvalues (lower, should match SYGV)
+        let driver = DSYGVX::default().a(a.view()).b(b.view()).range(EigenRange::All).build().unwrap();
+        let (w, v, _, _) = driver.run().unwrap();
+        let v = v.unwrap();
+        assert!((fingerprint(&w) - -89.60433120129986).abs() < 1e-8);
+        assert!((fingerprint(&v.view().abs()) - -5.243112559129755).abs() < 1e-8);
+
+        // all eigenvalues (upper)
+        let driver = DSYGVX::default().a(a.view()).b(b.view()).uplo(Upper).range(EigenRange::All).build().unwrap();
+        let (w, v, _, _) = driver.run().unwrap();
+        let v = v.unwrap();
+        assert!((fingerprint(&w) - -65.27252612342821).abs() < 1e-8);
+        assert!((fingerprint(&v.view().abs()) - -7.084950485752325).abs() < 1e-8);
+
+        // eigenvalues by index [0,99] (lower)
+        let driver = DSYGVX::default().a(a.view()).b(b.view()).range(EigenRange::Index(0, Some(99))).build().unwrap();
+        let (w, v, _, _) = driver.run().unwrap();
+        let v = v.unwrap();
+        assert_eq!(w.size(), 100);
+        assert_eq!(v.shape(), &[1024, 100]);
+        assert!((fingerprint(&w) - -66.50936647104814).abs() < 1e-8);
+        assert!((fingerprint(&v.view().abs()) - -2.4155996407215308).abs() < 1e-8);
+
+        // eigenvalues by index [500,599] (lower)
+        let driver =
+            DSYGVX::default().a(a.view()).b(b.view()).range(EigenRange::Index(500, Some(599))).build().unwrap();
+        let (w, v, _, _) = driver.run().unwrap();
+        let v = v.unwrap();
+        assert_eq!(w.size(), 100);
+        assert_eq!(v.shape(), &[1024, 100]);
+        assert!((fingerprint(&w) - -0.31195670912953266).abs() < 1e-8);
+        assert!((fingerprint(&v.view().abs()) - 0.36590319727369397).abs() < 1e-8);
+
+        // eigenvalues by value range [-10, 10] (lower)
+        let driver = DSYGVX::default().a(a.view()).b(b.view()).range(EigenRange::Value(-10.0, 10.0)).build().unwrap();
+        let (w, v, _, _) = driver.run().unwrap();
+        let v = v.unwrap();
+        assert_eq!(w.size(), 990);
+        assert_eq!(v.shape(), &[1024, 990]);
+        assert!((fingerprint(&w) - -4.664359009761954).abs() < 1e-7);
+        assert!((fingerprint(&v.view().abs()) - -3.898103312447499).abs() < 1e-7);
+
+        // eigenvalues only (jobz = 'N')
+        let driver = DSYGVX::default().a(a.view()).b(b.view()).jobz('N').range(EigenRange::All).build().unwrap();
+        let (w, v, _, _) = driver.run().unwrap();
+        assert!(v.is_none());
+        assert_eq!(w.size(), 1024);
+        assert!((fingerprint(&w) - -89.60433120129974).abs() < 1e-8);
+
+        // itype=2, all eigenvalues (lower)
+        let driver = DSYGVX::default().a(a.view()).b(b.view()).itype(2).range(EigenRange::All).build().unwrap();
+        let (w, v, _, _) = driver.run().unwrap();
+        let v = v.unwrap();
+        assert!((fingerprint(&w) - -2437.0943048614404).abs() < 1e-8);
+        assert!((fingerprint(&v.view().abs()) - -4.108281604766399).abs() < 1e-8);
+
+        // itype=3, all eigenvalues (lower)
+        let driver = DSYGVX::default().a(a.view()).b(b.view()).itype(3).range(EigenRange::All).build().unwrap();
+        let (w, v, _, _) = driver.run().unwrap();
+        let v = v.unwrap();
+        assert!((fingerprint(&w) - -2437.0943048614404).abs() < 1e-8);
+        assert!((fingerprint(&v.view().abs()) - 30.756098926681165).abs() < 1e-8);
+    }
+
+    #[test]
+    fn test_dsygvx_range_syntax() {
+        let device = DeviceBLAS::default();
+        let a = rt::asarray((get_vec::<f64>('a'), [1024, 1024].c(), &device)).into_dim::<Ix2>();
+        let b = rt::asarray((get_vec::<f64>('b'), [1024, 1024].c(), &device)).into_dim::<Ix2>();
+
+        // Test RangeFull (..)
+        let driver = DSYGVX::default().a(a.view()).b(b.view()).range(..).build().unwrap();
+        let (w, v, _, _) = driver.run().unwrap();
+        assert!(v.is_some());
+        assert_eq!(w.size(), 1024);
+        assert!((fingerprint(&w) - -89.60433120129986).abs() < 1e-8);
+
+        // Test Range<usize> (0..100)
+        let driver = DSYGVX::default().a(a.view()).b(b.view()).range(0..100).build().unwrap();
+        let (w, v, _, _) = driver.run().unwrap();
+        assert!(v.is_some());
+        assert_eq!(w.size(), 100);
+        assert!((fingerprint(&w) - -66.50936647104814).abs() < 1e-8);
+
+        // Test RangeFrom<usize> (500..)
+        let driver = DSYGVX::default().a(a.view()).b(b.view()).range(500..).build().unwrap();
+        let (w, v, _, _) = driver.run().unwrap();
+        assert!(v.is_some());
+        assert_eq!(w.size(), 524); // 1024 - 500
+    }
 }

@@ -110,6 +110,80 @@ assert np.isclose(fingerprint(w), -2437.094304861363)
 assert np.isclose(fingerprint(np.abs(v)), 30.756098926747757)
 fingerprint(w), fingerprint(np.abs(v))
 
+# ### dsygvx
+
+# all eigenvalues (lower, should match SYGV)
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw.copy().reshape(1024, 1024)
+w, z, m, ifail, _ = scipy.linalg.lapack.dsygvx(a, b, itype=1, jobz='V', range='A', uplo='L')
+assert m == 1024
+assert np.isclose(fingerprint(w[:m]), -89.60433120129986)
+assert np.isclose(fingerprint(np.abs(z[:, :m])), -5.243112559129755)
+fingerprint(w[:m]), fingerprint(np.abs(z[:, :m]))
+
+# all eigenvalues (upper)
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw.copy().reshape(1024, 1024)
+w, z, m, ifail, _ = scipy.linalg.lapack.dsygvx(a, b, itype=1, jobz='V', range='A', uplo='U')
+assert m == 1024
+assert np.isclose(fingerprint(w[:m]), -65.27252612342821)
+assert np.isclose(fingerprint(np.abs(z[:, :m])), -7.084950485752325)
+fingerprint(w[:m]), fingerprint(np.abs(z[:, :m]))
+
+# eigenvalues by index [0,99] (lower)
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw.copy().reshape(1024, 1024)
+w, z, m, ifail, _ = scipy.linalg.lapack.dsygvx(a, b, itype=1, jobz='V', range='I', uplo='L', il=1, iu=100)
+assert m == 100
+assert np.isclose(fingerprint(w[:m]), -66.50936647104814)
+assert np.isclose(fingerprint(np.abs(z[:, :m])), -2.4155996407215308)
+fingerprint(w[:m]), fingerprint(np.abs(z[:, :m]))
+
+# eigenvalues by index [500,599] (lower)
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw.copy().reshape(1024, 1024)
+w, z, m, ifail, _ = scipy.linalg.lapack.dsygvx(a, b, itype=1, jobz='V', range='I', uplo='L', il=501, iu=600)
+assert m == 100
+assert np.isclose(fingerprint(w[:m]), -0.31195670912953266)
+assert np.isclose(fingerprint(np.abs(z[:, :m])), 0.36590319727369397)
+fingerprint(w[:m]), fingerprint(np.abs(z[:, :m]))
+
+# eigenvalues by value range [-10, 10] (lower)
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw.copy().reshape(1024, 1024)
+w, z, m, ifail, _ = scipy.linalg.lapack.dsygvx(a, b, itype=1, jobz='V', range='V', uplo='L', vl=-10.0, vu=10.0)
+assert m == 990
+assert np.isclose(fingerprint(w[:m]), -4.664359009761954)
+assert np.isclose(fingerprint(np.abs(z[:, :m])), -3.898103312447499)
+fingerprint(w[:m]), fingerprint(np.abs(z[:, :m]))
+
+# eigenvalues only (jobz='N')
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw.copy().reshape(1024, 1024)
+w, z, m, ifail, _ = scipy.linalg.lapack.dsygvx(a, b, itype=1, jobz='N', range='A', uplo='L')
+assert m == 1024
+assert z.size == 0
+assert np.isclose(fingerprint(w[:m]), -89.60433120129974)
+fingerprint(w[:m])
+
+# itype=2, all eigenvalues (lower)
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw.copy().reshape(1024, 1024)
+w, z, m, ifail, _ = scipy.linalg.lapack.dsygvx(a, b, itype=2, jobz='V', range='A', uplo='L')
+assert m == 1024
+assert np.isclose(fingerprint(w[:m]), -2437.0943048614404)
+assert np.isclose(fingerprint(np.abs(z[:, :m])), -4.108281604766399)
+fingerprint(w[:m]), fingerprint(np.abs(z[:, :m]))
+
+# itype=3, all eigenvalues (lower)
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw.copy().reshape(1024, 1024)
+w, z, m, ifail, _ = scipy.linalg.lapack.dsygvx(a, b, itype=3, jobz='V', range='A', uplo='L')
+assert m == 1024
+assert np.isclose(fingerprint(w[:m]), -2437.0943048614404)
+assert np.isclose(fingerprint(np.abs(z[:, :m])), 30.756098926681165)
+fingerprint(w[:m]), fingerprint(np.abs(z[:, :m]))
+
 # ## solve driver tests
 
 # ### gesv
