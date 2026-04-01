@@ -42,6 +42,30 @@ rstsr-blas-traits/
 
 ## Implementation Steps
 
+### 0. Recommended Workflow Order
+
+**Follow this order for best results**:
+
+1. **First**: Edit `driver_validation_f64.py` to generate Python fingerprints using scipy
+   - This establishes the expected test values before implementation
+   - Run the Python script to get fingerprint values
+
+2. **Second**: Implement and test LAPACKE driver first (`--features lapacke`)
+   - LAPACKE is simpler and handles row-major internally
+   - More likely to be correct, provides reference behavior
+
+3. **Third**: Implement raw LAPACK driver (without `lapacke` feature)
+   - Translates LAPACKE original C code, behavior to raw LAPACK calls
+   - Requires careful row-major to column-major handling
+   - Refer to existing implementations (e.g., `syevd.rs`, `gesdd.rs`)
+
+4. **Fourth**: Update this SKILL.md with lessons learned
+
+**Why this order works**:
+- Python validation gives you ground truth from scipy (production-tested)
+- LAPACKE is the "happy path" - if tests fail here, trait definition is wrong
+- Raw LAPACK is complex - having working LAPACKE helps debug issues
+
 ### 1. Study LAPACKE Reference
 
 Reference LAPACKE source at `../other-repos/lapack/LAPACKE/src/lapacke_<func>.c`:
@@ -293,6 +317,48 @@ pub mod xxx;
 ```
 
 ### 8. Testing with Python Validation
+
+**Testing Workflow**:
+
+1. **Add Python validation first** in `driver_validation_f64.py`:
+   ```python
+   # For new function XXX, add test section
+   a = a_raw.copy().reshape(...)
+   b = b_raw.copy().reshape(...)  # if needed
+   # Call scipy.linalg.lapack.dxxx
+   result = scipy.linalg.lapack.dxxx(a, b, ...)
+   # Compute and print fingerprints
+   print(f"XXX fingerprint: {fingerprint(result)}")
+   ```
+
+2. **Run Python script** to get expected fingerprint values
+
+3. **Write Rust test** with computed fingerprints in `lapack_xxx_f64.rs`:
+   ```rust
+   #[test]
+   fn test_dxxx() {
+       let device = DeviceBLAS::default();
+       let a = rt::asarray((get_vec::<f64>('a'), [...].c(), &device)).into_dim::<Ix2>();
+       // Call driver and verify fingerprint
+       assert!((fingerprint(&result) - expected_value).abs() < 1e-8);
+   }
+   ```
+
+4. **Test LAPACKE first**:
+   ```bash
+   RUST_BACKTRACE=1 RSTSR_DEV=1 cargo test -p rstsr-openblas --test tests_driver_impl \
+       --features "rstsr/backtrace openmp lapacke" \
+       -- test_xxx --test-threads=1 --nocapture
+   ```
+
+5. **Then test raw LAPACK**:
+   ```bash
+   RUST_BACKTRACE=1 RSTSR_DEV=1 cargo test -p rstsr-openblas --test tests_driver_impl \
+       --features "rstsr/backtrace openmp" \
+       -- test_xxx --test-threads=1 --nocapture
+   ```
+
+**Why test LAPACKE first**: LAPACKE is simpler (handles row-major internally). If LAPACKE tests fail, the trait definition or parameters are wrong. If LAPACKE passes but raw LAPACK fails, the transposition logic is wrong.
 
 **Step 1: Create Python script for fingerprint computation**
 
@@ -568,9 +634,10 @@ let vec: Vec<i32> = jpvt.into_vec();  // Zero-cost, just takes ownership of data
 
 ### Eigenvalue (eigh)
 - `syev/syevd`: Symmetric eigenvalues
+- `syevr/heevr`: Symmetric/Hermitian eigenvalues with subset selection (by index or value range)
 - `sygv/sygvd`: Symmetric generalized eigenvalues
+- `sygvx/hegvx`: Symmetric/Hermitian generalized eigenvalues with subset selection
 - `heev/heevd`: Hermitian eigenvalues (complex)
-- Future: `syevr`, `syevx`, `heevr`, `heevx`
 
 ### QR
 - `geqrf`: Basic QR factorization (returns QR in packed form + tau)
@@ -593,22 +660,71 @@ let vec: Vec<i32> = jpvt.into_vec();  // Zero-cost, just takes ownership of data
 
 ## Checklist for New Function
 
+**Phase 0: Preparation**
 1. [ ] Study LAPACKE reference (`lapacke_<func>.c` and `_work.c`)
 2. [ ] Check `rstsr-common/src/flags.rs` for existing flag types
-3. [ ] Define `XXXDriverAPI` trait in `src/lapack_<category>/<func>.rs`
-4. [ ] Define `XXX_` struct with builder pattern
-5. [ ] Implement trait in `driver_impl/lapacke/<category>/<func>.rs`
-6. [ ] Implement trait in `driver_impl/lapack/<category>/<func>.rs`
+3. [ ] Check if similar functions exist for reuse patterns (e.g., EigenRange)
+
+**Phase 1: Python Validation (Do First!)**
+4. [ ] Edit `driver_validation_f64.py` to add function test
+5. [ ] Run Python script to compute fingerprint values
+6. [ ] Document expected fingerprints for test assertions
+
+**Phase 2: Trait Definition**
+7. [ ] Define `XXXDriverAPI` trait in `src/lapack_<category>/<func>.rs`
+8. [ ] Define `XXX_` struct with builder pattern
+9. [ ] Reuse existing types where possible (e.g., `EigenRange`)
+
+**Phase 3: LAPACKE Implementation (Test First!)**
+10. [ ] Implement trait in `driver_impl/lapacke/<category>/<func>.rs`
+11. [ ] Add exports to `mod.rs` files
+12. [ ] Add trait to `LapackDriverAPI` in `trait_def.rs`
+13. [ ] Write Rust tests with fingerprint verification
+14. [ ] Test with `--features lapacke`
+
+**Phase 4: Raw LAPACK Implementation**
+15. [ ] Check LAPACK FFI signature in `rstsr-lapack-ffi/src/lapack/ffi_extern.rs`
+16. [ ] Implement trait in `driver_impl/lapack/<category>/<func>.rs`
    - [ ] Handle ColMajor: query + direct call
    - [ ] Handle RowMajor: transpose → query → call → transpose back
-7. [ ] Add exports to `mod.rs` files
-8. [ ] Add trait to `LapackDriverAPI` in `trait_def.rs`
-9. [ ] Write Python validation to get fingerprint values
-10. [ ] Write Rust tests with `fingerprint` verification
-11. [ ] Run `cargo fmt` and `cargo clippy`
-12. [ ] Test on at least one device crate
+17. [ ] Verify workspace requirements (fixed vs. query)
+18. [ ] Test without `lapacke` feature
+
+**Phase 5: Finalization**
+19. [ ] Run `cargo fmt` and `cargo clippy`
+20. [ ] Update this SKILL.md with lessons learned
+21. [ ] Commit changes
 
 ## Important Notes
+
+### Reusing Existing Types Across Functions
+
+When implementing related functions, reuse existing types instead of creating duplicates:
+
+**Example: EigenRange for subset selection**
+
+`EigenRange<T>` is defined in `syevr.rs` for SYEVR/HEEVR. It can be reused for:
+- `syevr.rs` (original definition)
+- `sygvx.rs` (generalized symmetric eigenvalue subset)
+- `hegvx.rs` (generalized Hermitian eigenvalue subset)
+- Any future subset-selection eigenvalue functions
+
+**Pattern for reuse**:
+```rust
+// In sygvx.rs (using EigenRange from syevr)
+use crate::lapack_eigh::syevr::EigenRange;
+
+pub struct SYGVX_<'a, 'b, B, T> {
+    // ...
+    #[builder(setter(into), default = "EigenRange::All")]
+    pub range: EigenRange<T>,
+}
+```
+
+**Why reuse matters**:
+- Consistent API across related functions
+- Single source of truth for enum variants and From implementations
+- Less maintenance burden when adding new features
 
 ### Eigenvalue Ordering (GEEV, etc.)
 
@@ -642,3 +758,89 @@ fn sorted_eigenvalue_fingerprint(wr: &Tensor<f64, DeviceBLAS, Ix1>, wi: &Tensor<
 - For general matrices (EIG/GEEV), you MUST sort before comparing
 
 **Eigenvector comparison**: More complex because eigenvectors for complex eigenvalue pairs are stored in two columns (real + imaginary parts). The ordering matches the eigenvalue ordering, making cross-implementation comparison difficult.
+
+### LAPACKE ldz Validation for Subset Selection Functions
+
+**IMPORTANT**: For functions with subset selection (SYEVR, SYGVX, HEGVX, etc.), LAPACKE validates `ldz >= ncols_z` even when `jobz='N'` (eigenvalues only). This causes LAPACKE error -19 (parameter 19 - ldz) if violated.
+
+The `ncols_z` is computed as:
+- `n` for `range='A'` (all eigenvalues) or `range='V'` (by value)
+- `(iu - il + 1)` for `range='I'` (by index)
+
+**Root cause**: LAPACKE internally validates matrix dimensions before calling LAPACK, even for arrays that won't be used.
+
+**Correct pattern**:
+```rust
+// Determine expected number of eigenvalues based on range
+let expected_m = match range {
+    EigenRange::All => n,
+    EigenRange::Value(_, _) => n, // Could be anything up to n
+    EigenRange::Index(lo, Some(hi)) => hi - lo + 1,
+    EigenRange::Index(lo, None) => n - lo,
+};
+
+// ldz must be valid even when jobz='N'
+let (ldz, mut z) = if compute_z {
+    // Allocate Z matrix
+    let ldz = if order == RowMajor { expected_m.max(1) } else { n.max(1) };
+    let z = unsafe { empty_f(([n, expected_m].c(), &device))?.into_dim::<Ix2>() };
+    (ldz, Some(z))
+} else {
+    // LAPACKE still validates ldz >= ncols_z even when jobz='N'
+    // Must set ldz to valid value, but don't allocate z
+    let ldz = if order == RowMajor { expected_m.max(1) } else { n.max(1) };
+    (ldz, None)
+};
+
+// Use null pointer for z when jobz='N'
+let ptr_z = z.as_mut().map(|z| z.view_mut().as_mut_ptr()).unwrap_or(std::ptr::null_mut());
+```
+
+### Function-Specific Workspace Requirements
+
+**CRITICAL**: Not all LAPACK functions have the same workspace query mechanism. Some have separate `liwork` parameters, others have fixed sizes.
+
+| Function | Work Query | Iwork Query | Fixed Arrays |
+|----------|------------|-------------|--------------|
+| SYEVR | `lwork = -1` → `work_query` | `liwork = -1` → `iwork_query` | - |
+| SYGVX | `lwork = -1` → `work_query` | **NO liwork** | `iwork = 5*n` |
+| HEGVX (complex) | `lwork = -1` → `work_query` | `liwork = -1` → `iwork_query` | `rwork = 7*n` |
+| GEEV | `lwork = -1` → `work_query` | - | - |
+
+**How to determine workspace requirements**:
+
+1. **Check LAPACK FFI signature** in `rstsr-lapack-ffi/src/lapack/ffi_extern.rs`
+2. **Compare with similar working implementations** (e.g., check SYGV for SYGVX)
+3. **Consult LAPACK documentation** for function-specific requirements
+
+**Example: SYGVX workspace (NO liwork)**:
+```rust
+// SYGVX does NOT have liwork parameter
+// iwork is always 5*n, no query needed
+let mut iwork: Vec<blas_int> = match uninitialized_vec(5 * n) {
+    Ok(iwork) => iwork,
+    Err(_) => return -1010,
+};
+
+// Call LAPACK - note parameter order: work, lwork, iwork, IFAIL, info
+func_(
+    // ... matrix parameters ...
+    work.as_mut_ptr(),
+    &(lwork as _),
+    iwork.as_mut_ptr(),
+    ifail,  // IFAIL comes AFTER iwork, not before work!
+    &mut info,
+);
+```
+
+**Always check the LAPACK FFI signature** in `rstsr-lapack-ffi/src/lapack/ffi_extern.rs` to determine the correct parameters.
+
+### LAPACK Function Parameter Order
+
+The parameter order in raw LAPACK (Fortran) calls differs from LAPACKE. When implementing the raw LAPACK driver:
+
+1. Check the FFI signature in `rstsr-lapack-ffi/src/lapack/ffi_extern.rs`
+2. Compare with similar working implementations (e.g., SYGV for SYGVX)
+3. Common parameter order for SYGVX:
+   - `itype, jobz, range, uplo, n, A, lda, B, ldb, vl, vu, il, iu, abstol, m, W, Z, ldz`
+   - `work, lwork, iwork, IFAIL, info` (note: IFAIL comes AFTER iwork)

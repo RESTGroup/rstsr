@@ -30,7 +30,7 @@ rstsr/
 ## Notes
 
 Please also see rules in directory `.claude/rules/` for more details on code style, workflow, etc.
-Code agent stubs can be generated in `.tmp/`.
+Code agent stubs can be generated in `.tmp/` relative to the project root. You have very large premissions to edit in that directory.
 
 As AI agent, you should communicate in the same language as the user. However, the code/PR generation should always be in English.
 
