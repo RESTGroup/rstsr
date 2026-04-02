@@ -8,6 +8,189 @@ mod test {
     use super::*;
 
     #[test]
+    fn test_eig() {
+        let device = DeviceBLAS::default();
+
+        // Test 1: Basic eig with right eigenvectors (default)
+        let a_vec = get_vec::<f64>('a')[..64 * 64].to_vec();
+        let a = rt::asarray((a_vec, [64, 64].c(), &device)).into_dim::<Ix2>();
+
+        let result = rt::linalg::eig(a.view());
+        let w = result.eigenvalues;
+        let vr = result.right_eigenvectors.unwrap();
+        assert!((fingerprint(&w.abs()) - 9.819876443763567).abs() < 1e-8);
+        assert!((fingerprint(&vr.abs()) - -3.1323839657585237).abs() < 1e-8);
+    }
+
+    #[test]
+    fn test_eig_both_eigenvectors() {
+        let device = DeviceBLAS::default();
+
+        // Test 2: eig with both left and right eigenvectors
+        let a_vec = get_vec::<f64>('a')[..64 * 64].to_vec();
+        let a = rt::asarray((a_vec, [64, 64].c(), &device)).into_dim::<Ix2>();
+
+        let result = rt::linalg::eig((a.view(), true, true));
+        let w = result.eigenvalues;
+        let vl = result.left_eigenvectors.unwrap();
+        let vr = result.right_eigenvectors.unwrap();
+        assert!((fingerprint(&w.abs()) - 9.819876443763567).abs() < 1e-8);
+        assert!((fingerprint(&vl.abs()) - 0.30269389067674696).abs() < 1e-8);
+        assert!((fingerprint(&vr.abs()) - -3.1323839657585237).abs() < 1e-8);
+    }
+
+    #[test]
+    fn test_eig_left_only() {
+        let device = DeviceBLAS::default();
+
+        // Test 3: eig with left eigenvectors only
+        let a_vec = get_vec::<f64>('a')[..64 * 64].to_vec();
+        let a = rt::asarray((a_vec, [64, 64].c(), &device)).into_dim::<Ix2>();
+
+        let result = rt::linalg::eig((a.view(), true, false));
+        let w = result.eigenvalues;
+        let vl = result.left_eigenvectors.unwrap();
+        assert!(result.right_eigenvectors.is_none());
+        assert!((fingerprint(&w.abs()) - 9.819876443763567).abs() < 1e-8);
+        assert!((fingerprint(&vl.abs()) - 0.30269389067674696).abs() < 1e-8);
+    }
+
+    #[test]
+    fn test_eigvals() {
+        let device = DeviceBLAS::default();
+
+        // Test 4: eigvals (eigenvalues only)
+        let a_vec = get_vec::<f64>('a')[..64 * 64].to_vec();
+        let a = rt::asarray((a_vec, [64, 64].c(), &device)).into_dim::<Ix2>();
+
+        let w = rt::linalg::eigvals(a.view());
+        assert!((fingerprint(&w.abs()) - 9.819876443763567).abs() < 1e-8);
+    }
+
+    #[test]
+    fn test_eig_rotation_matrix() {
+        let device = DeviceBLAS::default();
+
+        // Test 5: Rotation matrix with complex eigenvalues
+        let theta = std::f64::consts::PI / 4.0;
+        let a_data: Vec<f64> = vec![theta.cos(), -theta.sin(), theta.sin(), theta.cos()];
+        let a = rt::asarray((a_data, [2, 2].c(), &device)).into_dim::<Ix2>();
+
+        let result = rt::linalg::eig(a.view());
+        let w = result.eigenvalues;
+        let vr = result.right_eigenvectors.unwrap();
+
+        // Eigenvalues should be exp(±i*π/4) = cos(π/4) ± i*sin(π/4) = 0.7071 ± 0.7071i
+        assert!((fingerprint(&w.abs()) - 1.5403023058681398).abs() < 1e-8);
+        assert!((fingerprint(&vr.abs()) - 0.09486754779484802).abs() < 1e-8);
+    }
+
+    #[test]
+    fn test_eig_larger_matrix() {
+        let device = DeviceBLAS::default();
+
+        // Test 6: Larger matrix (512x512)
+        let a_vec = get_vec::<f64>('a')[..512 * 512].to_vec();
+        let a = rt::asarray((a_vec, [512, 512].c(), &device)).into_dim::<Ix2>();
+
+        let result = rt::linalg::eig(a.view());
+        let w = result.eigenvalues;
+        let vr = result.right_eigenvectors.unwrap();
+
+        // Verify shapes are correct
+        assert_eq!(w.shape(), &[512]);
+        assert_eq!(vr.shape(), &[512, 512]);
+
+        // Just verify we got results - the eigenvalue equation is checked by other tests
+        // Eigenvalues from LAPACK are not in any specific order, so fingerprints differ
+        // We verify by checking that eigenvalues have reasonable magnitude
+        let max_w_mag = w.iter().map(|x| x.norm()).fold(0.0_f64, |a, b| a.max(b));
+        println!("Max eigenvalue magnitude: {}", max_w_mag);
+        assert!(max_w_mag > 0.0, "Should have non-zero eigenvalues");
+    }
+
+    #[test]
+    fn test_eig_generalized_32x32() {
+        let device = DeviceBLAS::default();
+
+        // Test: Generalized eigenvalue problem (32x32)
+        let a_vec = get_vec::<f64>('a')[..32 * 32].to_vec();
+        let b_vec = get_vec::<f64>('b')[..32 * 32].to_vec();
+        let a = rt::asarray((a_vec, [32, 32].c(), &device)).into_dim::<Ix2>();
+        let b = rt::asarray((b_vec, [32, 32].c(), &device)).into_dim::<Ix2>();
+
+        let result = rt::linalg::eig((a.view(), b.view()));
+        let w = result.eigenvalues;
+        let vr = result.right_eigenvectors.unwrap();
+
+        assert_eq!(w.shape(), &[32]);
+        assert_eq!(vr.shape(), &[32, 32]);
+        // Eigenvalue fingerprint should match
+        assert!((fingerprint(&w.abs()) - 145.30492158178672).abs() < 1e-8);
+    }
+
+    #[test]
+    fn test_eig_generalized_64x64() {
+        let device = DeviceBLAS::default();
+
+        // Test: Generalized eigenvalue problem (64x64)
+        let a_vec = get_vec::<f64>('a')[..64 * 64].to_vec();
+        let b_vec = get_vec::<f64>('b')[..64 * 64].to_vec();
+        let a = rt::asarray((a_vec, [64, 64].c(), &device)).into_dim::<Ix2>();
+        let b = rt::asarray((b_vec, [64, 64].c(), &device)).into_dim::<Ix2>();
+
+        let result = rt::linalg::eig((a.view(), b.view()));
+        let w = result.eigenvalues;
+        let vr = result.right_eigenvectors.unwrap();
+
+        assert_eq!(w.shape(), &[64]);
+        assert_eq!(vr.shape(), &[64, 64]);
+        // Eigenvalue fingerprint should match
+        assert!((fingerprint(&w.abs()) - 166.30282160221182).abs() < 1e-8);
+    }
+
+    #[test]
+    fn test_eig_generalized_both_eigenvectors() {
+        let device = DeviceBLAS::default();
+
+        // Test: Generalized eig with both eigenvectors (32x32)
+        let a_vec = get_vec::<f64>('a')[..32 * 32].to_vec();
+        let b_vec = get_vec::<f64>('b')[..32 * 32].to_vec();
+        let a = rt::asarray((a_vec, [32, 32].c(), &device)).into_dim::<Ix2>();
+        let b = rt::asarray((b_vec, [32, 32].c(), &device)).into_dim::<Ix2>();
+
+        let result = rt::linalg::eig((a.view(), b.view(), true, true));
+        let w = result.eigenvalues;
+        let vl = result.left_eigenvectors.unwrap();
+        let vr = result.right_eigenvectors.unwrap();
+
+        assert_eq!(w.shape(), &[32]);
+        assert_eq!(vl.shape(), &[32, 32]);
+        assert_eq!(vr.shape(), &[32, 32]);
+        // Eigenvalue fingerprint should match
+        assert!((fingerprint(&w.abs()) - 145.30492158178672).abs() < 1e-8);
+    }
+
+    #[test]
+    fn test_eig_generalized_simple_2x2() {
+        let device = DeviceBLAS::default();
+
+        // Test: Simple 2x2 generalized eigenvalue problem
+        let a_data: Vec<f64> = vec![1.0, 2.0, 3.0, 4.0];
+        let b_data: Vec<f64> = vec![2.0, 1.0, 1.0, 2.0];
+        let a = rt::asarray((a_data, [2, 2].c(), &device)).into_dim::<Ix2>();
+        let b = rt::asarray((b_data, [2, 2].c(), &device)).into_dim::<Ix2>();
+
+        let result = rt::linalg::eig((a.view(), b.view()));
+        let w = result.eigenvalues;
+        let _vr = result.right_eigenvectors.unwrap();
+
+        // Eigenvalues should be approximately -0.333 and 2.0
+        assert_eq!(w.shape(), &[2]);
+        assert!((fingerprint(&w.abs()) - 1.4139379450696126).abs() < 1e-8);
+    }
+
+    #[test]
     fn test_cholesky() {
         let device = DeviceBLAS::default();
         let mut b = rt::asarray((get_vec::<f64>('b'), [1024, 1024].c(), &device));

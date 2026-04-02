@@ -28,6 +28,7 @@ impl GGEVDriverAPI<T> for DeviceBLAS {
         alphar: *mut T,
         alphai: *mut T,
         beta: *mut T,
+        _betai: *mut T,  // unused for real types
         vl: *mut T,
         ldvl: usize,
         vr: *mut T,
@@ -102,6 +103,8 @@ impl GGEVDriverAPI<T> for DeviceBLAS {
             let ldvr_t = n.max(1);
 
             // Allocate temporary column-major arrays
+            // Note: We always allocate VL and VR arrays even if not computing them,
+            // to avoid passing dangling pointers to LAPACK.
             let mut a_t: Vec<T> = match uninitialized_vec(n * lda_t) {
                 Ok(a_t) => a_t,
                 Err(_) => return -1010,
@@ -110,21 +113,13 @@ impl GGEVDriverAPI<T> for DeviceBLAS {
                 Ok(b_t) => b_t,
                 Err(_) => return -1010,
             };
-            let mut vl_t: Vec<T> = if compute_vl {
-                match uninitialized_vec(n * ldvl_t) {
-                    Ok(vl_t) => vl_t,
-                    Err(_) => return -1011,
-                }
-            } else {
-                Vec::new()
+            let mut vl_t: Vec<T> = match uninitialized_vec(n * ldvl_t) {
+                Ok(vl_t) => vl_t,
+                Err(_) => return -1011,
             };
-            let mut vr_t: Vec<T> = if compute_vr {
-                match uninitialized_vec(n * ldvr_t) {
-                    Ok(vr_t) => vr_t,
-                    Err(_) => return -1011,
-                }
-            } else {
-                Vec::new()
+            let mut vr_t: Vec<T> = match uninitialized_vec(n * ldvr_t) {
+                Ok(vr_t) => vr_t,
+                Err(_) => return -1011,
             };
 
             // Transpose inputs from row-major to column-major
@@ -234,6 +229,7 @@ impl GGEVDriverAPI<T> for DeviceBLAS {
         alphar: *mut <T as ComplexFloat>::Real,
         alphai: *mut <T as ComplexFloat>::Real,
         beta: *mut <T as ComplexFloat>::Real,
+        betai: *mut <T as ComplexFloat>::Real,
         vl: *mut T,
         ldvl: usize,
         vr: *mut T,
@@ -327,6 +323,7 @@ impl GGEVDriverAPI<T> for DeviceBLAS {
                 *alphai.add(i) = val_alpha.im;
                 let val_beta = beta_complex[i];
                 *beta.add(i) = val_beta.re;
+                *betai.add(i) = val_beta.im;
             }
 
             info
@@ -338,6 +335,8 @@ impl GGEVDriverAPI<T> for DeviceBLAS {
             let ldvr_t = n.max(1);
 
             // Allocate temporary column-major arrays
+            // Note: We always allocate VL and VR arrays even if not computing them,
+            // to avoid passing dangling pointers to LAPACK.
             let mut a_t: Vec<T> = match uninitialized_vec(n * lda_t) {
                 Ok(a_t) => a_t,
                 Err(_) => return -1010,
@@ -346,21 +345,13 @@ impl GGEVDriverAPI<T> for DeviceBLAS {
                 Ok(b_t) => b_t,
                 Err(_) => return -1010,
             };
-            let mut vl_t: Vec<T> = if compute_vl {
-                match uninitialized_vec(n * ldvl_t) {
-                    Ok(vl_t) => vl_t,
-                    Err(_) => return -1011,
-                }
-            } else {
-                Vec::new()
+            let mut vl_t: Vec<T> = match uninitialized_vec(n * ldvl_t) {
+                Ok(vl_t) => vl_t,
+                Err(_) => return -1011,
             };
-            let mut vr_t: Vec<T> = if compute_vr {
-                match uninitialized_vec(n * ldvr_t) {
-                    Ok(vr_t) => vr_t,
-                    Err(_) => return -1011,
-                }
-            } else {
-                Vec::new()
+            let mut vr_t: Vec<T> = match uninitialized_vec(n * ldvr_t) {
+                Ok(vr_t) => vr_t,
+                Err(_) => return -1011,
             };
 
             // Transpose inputs from row-major to column-major
@@ -454,6 +445,7 @@ impl GGEVDriverAPI<T> for DeviceBLAS {
                 *alphai.add(i) = val_alpha.im;
                 let val_beta = beta_complex[i];
                 *beta.add(i) = val_beta.re;
+                *betai.add(i) = val_beta.im;
             }
 
             info

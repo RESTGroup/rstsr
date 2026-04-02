@@ -399,6 +399,147 @@ mod test {
 }
 
 #[cfg(test)]
+mod test_eig {
+    use super::*;
+
+    #[test]
+    fn test_eig() {
+        let device = DeviceBLAS::default();
+        // Test 1: Basic eig with right eigenvectors (default) - 64x64
+        let a_vec = get_vec::<c64>('a')[..64 * 64].to_vec();
+        let a = rt::asarray((a_vec, [64, 64].c(), &device)).into_dim::<Ix2>();
+        let result = rt::linalg::eig(a.view());
+        let w = result.eigenvalues;
+        let vr = result.right_eigenvectors.unwrap();
+        assert!((fingerprint(&w.abs()) - 10.237632603014857).abs() < 1e-8);
+        assert!((fingerprint(&vr.abs()) - -0.3765273892608302).abs() < 1e-8);
+    }
+
+    #[test]
+    fn test_eig_both_eigenvectors() {
+        let device = DeviceBLAS::default();
+        // Test 2: eig with both left and right eigenvectors - 64x64
+        let a_vec = get_vec::<c64>('a')[..64 * 64].to_vec();
+        let a = rt::asarray((a_vec, [64, 64].c(), &device)).into_dim::<Ix2>();
+        let result = rt::linalg::eig((a.view(), true, true));
+        let w = result.eigenvalues;
+        let vl = result.left_eigenvectors.unwrap();
+        let vr = result.right_eigenvectors.unwrap();
+        assert!((fingerprint(&w.abs()) - 10.237632603014857).abs() < 1e-8);
+        assert!((fingerprint(&vl.abs()) - 5.802237057668709).abs() < 1e-8);
+        assert!((fingerprint(&vr.abs()) - -0.3765273892608302).abs() < 1e-8);
+    }
+
+    #[test]
+    fn test_eig_left_only() {
+        let device = DeviceBLAS::default();
+        // Test 3: eig with left eigenvectors only - 64x64
+        let a_vec = get_vec::<c64>('a')[..64 * 64].to_vec();
+        let a = rt::asarray((a_vec, [64, 64].c(), &device)).into_dim::<Ix2>();
+        let result = rt::linalg::eig((a.view(), true, false));
+        let w = result.eigenvalues;
+        let vl = result.left_eigenvectors.unwrap();
+        assert!(result.right_eigenvectors.is_none());
+        assert!((fingerprint(&w.abs()) - 10.237632603014857).abs() < 1e-8);
+        assert!((fingerprint(&vl.abs()) - 5.802237057668709).abs() < 1e-8);
+    }
+
+    #[test]
+    fn test_eigvals() {
+        let device = DeviceBLAS::default();
+        // Test 4: eigvals (eigenvalues only) - 64x64
+        let a_vec = get_vec::<c64>('a')[..64 * 64].to_vec();
+        let a = rt::asarray((a_vec, [64, 64].c(), &device)).into_dim::<Ix2>();
+        let w = rt::linalg::eigvals(a.view());
+        assert!((fingerprint(&w.abs()) - 10.237632603014857).abs() < 1e-8);
+    }
+
+    #[test]
+    fn test_eig_larger_matrix() {
+        let device = DeviceBLAS::default();
+        // Test 5: Larger matrix - 512x512
+        let a_vec = get_vec::<c64>('a')[..512 * 512].to_vec();
+        let a = rt::asarray((a_vec, [512, 512].c(), &device)).into_dim::<Ix2>();
+        let result = rt::linalg::eig(a.view());
+        let w = result.eigenvalues;
+        let vr = result.right_eigenvectors.unwrap();
+        assert!((fingerprint(&w.abs()) - 16.84923087126611).abs() < 1e-8);
+        assert!((fingerprint(&vr.abs()) - (-0.2098623126454835)).abs() < 1e-8);
+    }
+
+    #[test]
+    fn test_eig_generalized_32x32() {
+        let device = DeviceBLAS::default();
+        // Test 6: Generalized eigenvalue problem - 32x32
+        let a_vec = get_vec::<c64>('a')[..32 * 32].to_vec();
+        let b_vec = get_vec::<c64>('b')[..32 * 32].to_vec();
+        let a = rt::asarray((a_vec, [32, 32].c(), &device)).into_dim::<Ix2>();
+        let b = rt::asarray((b_vec, [32, 32].c(), &device)).into_dim::<Ix2>();
+        let result = rt::linalg::eig((a.view(), b.view()));
+        let w = result.eigenvalues;
+        assert!((fingerprint(&w.abs()) - 9.593381733904854).abs() < 1e-8);
+    }
+
+    #[test]
+    fn test_eig_generalized_64x64() {
+        let device = DeviceBLAS::default();
+        // Test 7: Generalized eigenvalue problem - 64x64
+        let a_vec = get_vec::<c64>('a')[..64 * 64].to_vec();
+        let b_vec = get_vec::<c64>('b')[..64 * 64].to_vec();
+        let a = rt::asarray((a_vec, [64, 64].c(), &device)).into_dim::<Ix2>();
+        let b = rt::asarray((b_vec, [64, 64].c(), &device)).into_dim::<Ix2>();
+        let result = rt::linalg::eig((a.view(), b.view()));
+        let w = result.eigenvalues;
+        assert!((fingerprint(&w.abs()) - 15.169874441187222).abs() < 1e-8);
+    }
+
+    #[test]
+    fn test_eig_generalized_both_eigenvectors() {
+        let device = DeviceBLAS::default();
+        // Test 8: Generalized eig with left and right eigenvectors - 32x32
+        let a_vec = get_vec::<c64>('a')[..32 * 32].to_vec();
+        let b_vec = get_vec::<c64>('b')[..32 * 32].to_vec();
+        let a = rt::asarray((a_vec, [32, 32].c(), &device)).into_dim::<Ix2>();
+        let b = rt::asarray((b_vec, [32, 32].c(), &device)).into_dim::<Ix2>();
+        let result = rt::linalg::eig((a.view(), b.view(), true, true));
+        let w = result.eigenvalues;
+        let vl = result.left_eigenvectors.unwrap();
+        let vr = result.right_eigenvectors.unwrap();
+        assert!((fingerprint(&w.abs()) - 9.593381733904858).abs() < 1e-8);
+        assert!((fingerprint(&vl.abs()) - 3.7152914807178323).abs() < 1e-8);
+        assert!((fingerprint(&vr.abs()) - 2.6849725877054844).abs() < 1e-8);
+    }
+
+    #[test]
+    fn test_eig_generalized_128x128() {
+        let device = DeviceBLAS::default();
+        // Test 9: Generalized eigenvalue problem - 128x128
+        let a_vec = get_vec::<c64>('a')[..128 * 128].to_vec();
+        let b_vec = get_vec::<c64>('b')[..128 * 128].to_vec();
+        let a = rt::asarray((a_vec, [128, 128].c(), &device)).into_dim::<Ix2>();
+        let b = rt::asarray((b_vec, [128, 128].c(), &device)).into_dim::<Ix2>();
+        let result = rt::linalg::eig((a.view(), b.view()));
+        let w = result.eigenvalues;
+        assert!((fingerprint(&w.abs()) - 21.069841281001473).abs() < 1e-8);
+    }
+
+    #[test]
+    fn test_eig_generalized_simple_2x2() {
+        let device = DeviceBLAS::default();
+        // Test 10: Simple 2x2 generalized eigenvalue problem (complex)
+        let a_simple =
+            rt::asarray((vec![c64!(1.0, 0.5), c64!(2.0, -0.3), c64!(3.0, 0.2), c64!(4.0, -0.1)], [2, 2].c(), &device))
+                .into_dim::<Ix2>();
+        let b_simple =
+            rt::asarray((vec![c64!(2.0, 0.1), c64!(1.0, -0.2), c64!(1.0, 0.3), c64!(2.0, -0.4)], [2, 2].c(), &device))
+                .into_dim::<Ix2>();
+        let result = rt::linalg::eig((a_simple.view(), b_simple.view()));
+        let w = result.eigenvalues;
+        assert!((fingerprint(&w.abs()) - 2.224853629259969).abs() < 1e-8);
+    }
+}
+
+#[cfg(test)]
 mod test_generalized_eigh {
     use super::*;
 

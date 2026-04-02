@@ -159,7 +159,7 @@ mod test_ggev {
         let b = rt::asarray((data_b.clone(), [2, 2].c(), &device)).into_dim::<Ix2>();
 
         let driver = GGEV::default().a(a.view()).b(b.view()).left(false).right(true).build().unwrap();
-        let (alphar, alphai, beta, _vl, _vr, _a, _b) = driver.run().unwrap();
+        let (alphar, alphai, beta, _betai, _vl, _vr, _a, _b) = driver.run().unwrap();
 
         // Check sorted eigenvalue fingerprint
         let fp = sorted_ggev_eigenvalue_fingerprint(&alphar, &alphai, &beta);
@@ -182,7 +182,7 @@ mod test_ggev {
 
         // Run GGEV with identity B
         let driver_ggev = GGEV::default().a(a.view()).b(b.view()).left(false).right(true).build().unwrap();
-        let (alphar_ggev, alphai_ggev, beta_ggev, _vl, vr_ggev, _a_out, _b_out) = driver_ggev.run().unwrap();
+        let (alphar_ggev, alphai_ggev, beta_ggev, _betai, _vl, vr_ggev, _a_out, _b_out) = driver_ggev.run().unwrap();
 
         // Check sorted eigenvalue fingerprint
         let fp_ggev = sorted_ggev_eigenvalue_fingerprint(&alphar_ggev, &alphai_ggev, &beta_ggev);
@@ -201,7 +201,7 @@ mod test_ggev {
 
         // Row-major
         let driver = GGEV::default().a(a.view()).b(b.view()).left(false).right(true).build().unwrap();
-        let (alphar, alphai, beta, _vl, vr, _a_out, _b_out) = driver.run().unwrap();
+        let (alphar, alphai, beta, _betai, _vl, vr, _a_out, _b_out) = driver.run().unwrap();
 
         let fp = sorted_ggev_eigenvalue_fingerprint(&alphar, &alphai, &beta);
         assert!((fp - (-146.02668700723964)).abs() < 1e-8);
@@ -218,7 +218,7 @@ mod test_ggev {
         let b = rt::asarray((get_vec::<f64>('b'), [32, 32].f(), &device)).into_dim::<Ix2>();
 
         let driver = GGEV::default().a(a.view()).b(b.view()).left(false).right(true).build().unwrap();
-        let (alphar, alphai, beta, _vl, vr, _a_out, _b_out) = driver.run().unwrap();
+        let (alphar, alphai, beta, _betai, _vl, vr, _a_out, _b_out) = driver.run().unwrap();
 
         // Same fingerprint as row-major
         let fp = sorted_ggev_eigenvalue_fingerprint(&alphar, &alphai, &beta);
@@ -236,7 +236,7 @@ mod test_ggev {
         let b = rt::asarray((get_vec::<f64>('b'), [32, 32].c(), &device)).into_dim::<Ix2>();
 
         let driver = GGEV::default().a(a.view()).b(b.view()).left(true).right(true).build().unwrap();
-        let (_alphar, _alphai, _beta, vl, vr, _a_out, _b_out) = driver.run().unwrap();
+        let (_alphar, _alphai, _beta, _betai, vl, vr, _a_out, _b_out) = driver.run().unwrap();
 
         // Verify both eigenvectors were computed
         let vl = vl.unwrap();

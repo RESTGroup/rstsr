@@ -171,3 +171,111 @@ assert rank == 161
 fingerprint(a_pinv), rank
 
 
+# ### eig
+
+def test_eig():
+    """Test eig and eigvals functions for general eigenvalue problems."""
+    # Test 1: Basic eig with right eigenvectors (default)
+    a = a_raw[:64*64].copy().reshape(64, 64)
+    w, vr = scipy.linalg.eig(a)
+    assert np.isclose(fingerprint(np.abs(w)), 9.819876443763567)
+    assert np.isclose(fingerprint(np.abs(vr)), -3.1323839657585237)
+
+    # Test 2: eig with both left and right eigenvectors
+    a = a_raw[:64*64].copy().reshape(64, 64)
+    w, vl, vr = scipy.linalg.eig(a, left=True, right=True)
+    assert np.isclose(fingerprint(np.abs(w)), 9.819876443763567)
+    assert np.isclose(fingerprint(np.abs(vl)), 0.30269389067674696)
+    assert np.isclose(fingerprint(np.abs(vr)), -3.1323839657585237)
+
+    # Test 3: eig with left eigenvectors only
+    a = a_raw[:64*64].copy().reshape(64, 64)
+    w, vl = scipy.linalg.eig(a, left=True, right=False)
+    assert np.isclose(fingerprint(np.abs(w)), 9.819876443763567)
+    assert np.isclose(fingerprint(np.abs(vl)), 0.30269389067674696)
+
+    # Test 4: eigvals (eigenvalues only)
+    a = a_raw[:64*64].copy().reshape(64, 64)
+    w = scipy.linalg.eigvals(a)
+    assert np.isclose(fingerprint(np.abs(w)), 9.819876443763567)
+
+    # Test 5: Rotation matrix with complex eigenvalues
+    theta = np.pi / 4
+    a_rot = np.array([[np.cos(theta), -np.sin(theta)],
+                      [np.sin(theta), np.cos(theta)]], dtype=np.float64)
+    w, vr = scipy.linalg.eig(a_rot)
+    assert np.isclose(fingerprint(np.abs(w)), 1.5403023058681398)
+    assert np.isclose(fingerprint(np.abs(vr)), 0.09486754779484802)
+    # Verify eigenvalue equation: A @ vr[:,i] = w[i] * vr[:,i]
+    for i in range(len(w)):
+        residual = np.linalg.norm(a_rot @ vr[:, i] - w[i] * vr[:, i])
+        assert residual < 1e-10
+
+    # Test 6: Matrix with mixed real/complex eigenvalues
+    a_mixed = np.array([[1.0, 0.0, 0.0],
+                        [0.0, np.cos(np.pi/3), -np.sin(np.pi/3)],
+                        [0.0, np.sin(np.pi/3), np.cos(np.pi/3)]], dtype=np.float64)
+    w, vr = scipy.linalg.eig(a_mixed)
+    assert np.isclose(fingerprint(np.abs(w)), 1.1241554693209974)
+    assert np.isclose(fingerprint(np.abs(vr)), -0.36634076382682534)
+
+    # Test 7: Larger matrix (512x512)
+    a = a_raw[:512*512].copy().reshape(512, 512)
+    w, vr = scipy.linalg.eig(a)
+    assert np.isclose(fingerprint(np.abs(w)), -0.3581013200396912)
+    assert np.isclose(fingerprint(np.abs(vr)), 15.557771573864212)
+
+    # ===============================
+    # Generalized eigenvalue problems
+    # ===============================
+
+    # Test 8: Generalized eigenvalue problem (32x32)
+    a = a_raw[:32*32].copy().reshape(32, 32)
+    b = b_raw[:32*32].copy().reshape(32, 32)
+    w, vr = scipy.linalg.eig(a, b)
+    assert np.isclose(fingerprint(np.abs(w)), 145.30492158178672)
+    # Verify eigenvalue equation: A @ vr[:,i] = w[i] * B @ vr[:,i]
+    for i in range(min(3, len(w))):
+        residual = np.linalg.norm(a @ vr[:, i] - w[i] * b @ vr[:, i])
+        assert residual < 1e-10
+
+    # Test 9: Generalized eigenvalue problem (64x64)
+    a = a_raw[:64*64].copy().reshape(64, 64)
+    b = b_raw[:64*64].copy().reshape(64, 64)
+    w, vr = scipy.linalg.eig(a, b)
+    assert np.isclose(fingerprint(np.abs(w)), 166.30282160221182)
+
+    # Test 10: Generalized eig with left and right eigenvectors (32x32)
+    a = a_raw[:32*32].copy().reshape(32, 32)
+    b = b_raw[:32*32].copy().reshape(32, 32)
+    w, vl, vr = scipy.linalg.eig(a, b, left=True, right=True)
+    assert np.isclose(fingerprint(np.abs(w)), 145.30492158178672)
+    assert np.isclose(fingerprint(np.abs(vl)), 3.1071697883122544)
+    assert np.isclose(fingerprint(np.abs(vr)), 1.5806610713013591)
+
+    # Test 11: Generalized eig with left eigenvectors only (32x32)
+    a = a_raw[:32*32].copy().reshape(32, 32)
+    b = b_raw[:32*32].copy().reshape(32, 32)
+    w, vl = scipy.linalg.eig(a, b, left=True, right=False)
+    assert np.isclose(fingerprint(np.abs(w)), 145.30492158178672)
+
+    # Test 12: Generalized eigenvalue problem (128x128)
+    a = a_raw[:128*128].copy().reshape(128, 128)
+    b = b_raw[:128*128].copy().reshape(128, 128)
+    w, vr = scipy.linalg.eig(a, b)
+    assert np.isclose(fingerprint(np.abs(w)), 23.2127389400861)
+
+    # Test 13: Simple 2x2 generalized eigenvalue problem
+    a_simple = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float64)
+    b_simple = np.array([[2.0, 1.0], [1.0, 2.0]], dtype=np.float64)
+    w, vr = scipy.linalg.eig(a_simple, b_simple)
+    assert np.isclose(fingerprint(np.abs(w)), 1.4139379450696126)
+    # Verify eigenvalue equation
+    for i in range(len(w)):
+        residual = np.linalg.norm(a_simple @ vr[:, i] - w[i] * b_simple @ vr[:, i])
+        assert residual < 1e-10
+
+
+test_eig()
+
+

@@ -425,3 +425,307 @@ where
 }
 
 /* #endregion */
+
+/* #region eig */
+
+use crate::traits_def::EigResult;
+use rstsr_blas_traits::prelude_dev::ComplexFloat;
+
+/// Helper trait for converting eigenvector tensors to complex format.
+/// For real types, this performs the LAPACK packed format conversion.
+/// For complex types, this is an identity conversion.
+pub trait EigenvectorConvertAPI<B, T>
+where
+    T: BlasFloat,
+    B: DeviceAPI<T> + DeviceRawAPI<T::Real, Raw = Vec<T::Real>>,
+{
+    type ComplexType;
+    fn convert_eigenvectors(
+        wi: &Tensor<T::Real, B, Ix1>,
+        v: Option<Tensor<T, B, Ix2>>,
+        device: &B,
+    ) -> Result<Option<Self::ComplexType>>;
+}
+
+/// Implementation for f32 - convert from LAPACK packed format
+impl<B> EigenvectorConvertAPI<B, f32> for ()
+where
+    B: DeviceAPI<f32>
+        + DeviceAPI<num::Complex<f32>>
+        + DeviceCreationAnyAPI<num::Complex<f32>>
+        + DeviceRawAPI<f32, Raw = Vec<f32>>
+        + DeviceRawAPI<num::Complex<f32>, Raw = Vec<num::Complex<f32>>>,
+{
+    type ComplexType = Tensor<num::Complex<f32>, B, Ix2>;
+    fn convert_eigenvectors(
+        wi: &Tensor<f32, B, Ix1>,
+        v: Option<Tensor<f32, B, Ix2>>,
+        device: &B,
+    ) -> Result<Option<Self::ComplexType>> {
+        match v {
+            Some(v) => Ok(Some(convert_real_eigvecs_to_complex(wi, v, device)?)),
+            None => Ok(None),
+        }
+    }
+}
+
+/// Implementation for f64 - convert from LAPACK packed format
+impl<B> EigenvectorConvertAPI<B, f64> for ()
+where
+    B: DeviceAPI<f64>
+        + DeviceAPI<num::Complex<f64>>
+        + DeviceCreationAnyAPI<num::Complex<f64>>
+        + DeviceRawAPI<f64, Raw = Vec<f64>>
+        + DeviceRawAPI<num::Complex<f64>, Raw = Vec<num::Complex<f64>>>,
+{
+    type ComplexType = Tensor<num::Complex<f64>, B, Ix2>;
+    fn convert_eigenvectors(
+        wi: &Tensor<f64, B, Ix1>,
+        v: Option<Tensor<f64, B, Ix2>>,
+        device: &B,
+    ) -> Result<Option<Self::ComplexType>> {
+        match v {
+            Some(v) => Ok(Some(convert_real_eigvecs_to_complex(wi, v, device)?)),
+            None => Ok(None),
+        }
+    }
+}
+
+/// Implementation for Complex<f32> - identity conversion
+impl<B> EigenvectorConvertAPI<B, num::Complex<f32>> for ()
+where
+    B: DeviceAPI<num::Complex<f32>>
+        + DeviceRawAPI<num::Complex<f32>, Raw = Vec<num::Complex<f32>>>
+        + DeviceRawAPI<f32, Raw = Vec<f32>>,
+{
+    type ComplexType = Tensor<num::Complex<f32>, B, Ix2>;
+    fn convert_eigenvectors(
+        _wi: &Tensor<f32, B, Ix1>,
+        v: Option<Tensor<num::Complex<f32>, B, Ix2>>,
+        _device: &B,
+    ) -> Result<Option<Self::ComplexType>> {
+        Ok(v)
+    }
+}
+
+/// Implementation for Complex<f64> - identity conversion
+impl<B> EigenvectorConvertAPI<B, num::Complex<f64>> for ()
+where
+    B: DeviceAPI<num::Complex<f64>>
+        + DeviceRawAPI<num::Complex<f64>, Raw = Vec<num::Complex<f64>>>
+        + DeviceRawAPI<f64, Raw = Vec<f64>>,
+{
+    type ComplexType = Tensor<num::Complex<f64>, B, Ix2>;
+    fn convert_eigenvectors(
+        _wi: &Tensor<f64, B, Ix1>,
+        v: Option<Tensor<num::Complex<f64>, B, Ix2>>,
+        _device: &B,
+    ) -> Result<Option<Self::ComplexType>> {
+        Ok(v)
+    }
+}
+
+/// Reference implementation of general eigenvalue decomposition using GEEV
+///
+/// Computes eigenvalues and optionally left/right eigenvectors of a general matrix.
+///
+/// For real types (f32, f64), eigenvalues are returned as complex numbers since
+/// non-symmetric matrices can have complex eigenvalues. The eigenvectors are also
+/// converted to complex form when complex eigenvalues exist.
+///
+/// For complex types, eigenvalues and eigenvectors are already complex.
+pub fn ref_impl_eig_f<B, T>(
+    a: TensorReference<'_, T, B, Ix2>,
+    left: bool,
+    right: bool,
+) -> Result<
+    EigResult<
+        Tensor<num::Complex<T::Real>, B, Ix1>,
+        Tensor<num::Complex<T::Real>, B, Ix2>,
+        Tensor<num::Complex<T::Real>, B, Ix2>,
+    >,
+>
+where
+    T: BlasFloat,
+    T::Real: num::Zero + PartialEq + Clone,
+    B: LapackDriverAPI<T>,
+    B: DeviceAPI<T>,
+    B: DeviceAPI<T::Real>,
+    B: DeviceAPI<num::Complex<T::Real>>,
+    B: DeviceCreationAnyAPI<num::Complex<T::Real>>,
+    B: DeviceRawAPI<T, Raw = Vec<T>>,
+    B: DeviceRawAPI<T::Real, Raw = Vec<T::Real>>,
+    B: DeviceRawAPI<num::Complex<T::Real>, Raw = Vec<num::Complex<T::Real>>>,
+    (): EigenvectorConvertAPI<B, T, ComplexType = Tensor<num::Complex<T::Real>, B, Ix2>>,
+{
+    let device = a.device().clone();
+    let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
+
+    let task = || {
+        let (wr, wi, vl, vr, _) = GEEV::default().a(a).left(left).right(right).build()?.run()?;
+
+        // Convert eigenvalues to complex
+        let n = wr.shape()[0];
+        let wr_raw = wr.raw();
+        let wi_raw = wi.raw();
+        let mut w_vec: Vec<num::Complex<T::Real>> = Vec::with_capacity(n);
+        for i in 0..n {
+            w_vec.push(num::Complex::new(wr_raw[i], wi_raw[i]));
+        }
+        let w = rt::asarray((w_vec, [n].c(), &device)).into_dim::<Ix1>();
+
+        // Convert eigenvectors using the trait
+        let vl_complex = <() as EigenvectorConvertAPI<B, T>>::convert_eigenvectors(&wi, vl, &device)?;
+        let vr_complex = <() as EigenvectorConvertAPI<B, T>>::convert_eigenvectors(&wi, vr, &device)?;
+
+        Ok(EigResult { eigenvalues: w, left_eigenvectors: vl_complex, right_eigenvectors: vr_complex })
+    };
+
+    device.with_blas_num_threads(nthreads, task)
+}
+
+/// Reference implementation of generalized eigenvalue decomposition using GGEV
+///
+/// Computes eigenvalues and optionally left/right eigenvectors of a generalized
+/// eigenvalue problem: A @ v = λ * B @ v
+///
+/// For real types (f32, f64), eigenvalues are returned as complex numbers since
+/// non-symmetric matrices can have complex eigenvalues. The eigenvectors are also
+/// converted to complex form when complex eigenvalues exist.
+///
+/// For complex types, eigenvalues and eigenvectors are already complex.
+pub fn ref_impl_eig_generalized_f<B, T>(
+    a: TensorReference<'_, T, B, Ix2>,
+    b: TensorReference<'_, T, B, Ix2>,
+    left: bool,
+    right: bool,
+) -> Result<
+    EigResult<
+        Tensor<num::Complex<T::Real>, B, Ix1>,
+        Tensor<num::Complex<T::Real>, B, Ix2>,
+        Tensor<num::Complex<T::Real>, B, Ix2>,
+    >,
+>
+where
+    T: BlasFloat,
+    T::Real: num::Zero + PartialEq + Clone,
+    B: LapackDriverAPI<T>,
+    B: DeviceAPI<T>,
+    B: DeviceAPI<T::Real>,
+    B: DeviceAPI<num::Complex<T::Real>>,
+    B: DeviceCreationAnyAPI<num::Complex<T::Real>>,
+    B: DeviceRawAPI<T, Raw = Vec<T>>,
+    B: DeviceRawAPI<T::Real, Raw = Vec<T::Real>>,
+    B: DeviceRawAPI<num::Complex<T::Real>, Raw = Vec<num::Complex<T::Real>>>,
+    B: GGEVDriverAPI<T>,
+    (): EigenvectorConvertAPI<B, T, ComplexType = Tensor<num::Complex<T::Real>, B, Ix2>>,
+{
+    let device = a.device().clone();
+    rstsr_assert!(device.same_device(b.device()), DeviceMismatch)?;
+    let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
+
+    let task = || {
+        let (alphar, alphai, beta, betai, vl, vr, _, _) = GGEV::default().a(a).b(b).left(left).right(right).build()?.run()?;
+
+        // Convert eigenvalues to complex: λ = (alphar + i*alphai) / (beta + i*betai)
+        // For real types, betai is all zeros (or unused), so this simplifies to alpha/beta
+        // For complex types, both alpha and beta are complex
+        let n = alphar.shape()[0];
+        let alphar_raw = alphar.raw();
+        let alphai_raw = alphai.raw();
+        let beta_raw = beta.raw();
+        let betai_raw = betai.raw();
+
+        let mut w_vec: Vec<num::Complex<T::Real>> = Vec::with_capacity(n);
+        for i in 0..n {
+            let alpha = num::Complex::new(alphar_raw[i], alphai_raw[i]);
+            let beta_complex = num::Complex::new(beta_raw[i], betai_raw[i]);
+            let beta_mag = beta_complex.norm();
+            if beta_mag > T::Real::epsilon() {
+                w_vec.push(alpha / beta_complex);
+            } else {
+                // Infinite eigenvalue (beta is near zero)
+                w_vec.push(num::Complex::new(T::Real::infinity(), T::Real::zero()));
+            }
+        }
+        let w = rt::asarray((w_vec, [n].c(), &device)).into_dim::<Ix1>();
+
+        // Convert eigenvectors using the trait
+        let vl_complex = <() as EigenvectorConvertAPI<B, T>>::convert_eigenvectors(&alphai, vl, &device)?;
+        let vr_complex = <() as EigenvectorConvertAPI<B, T>>::convert_eigenvectors(&alphai, vr, &device)?;
+
+        Ok(EigResult { eigenvalues: w, left_eigenvectors: vl_complex, right_eigenvectors: vr_complex })
+    };
+
+    device.with_blas_num_threads(nthreads, task)
+}
+
+/// Convert real eigenvector storage to complex eigenvectors
+///
+/// LAPACK stores eigenvectors for complex conjugate eigenvalue pairs
+/// in consecutive columns: if eigenvalue i has wi > 0, then
+/// vr[:, i] is the real part and vr[:, i+1] is the imaginary part.
+/// The eigenvector for the conjugate eigenvalue (wi < 0) is the conjugate.
+fn convert_real_eigvecs_to_complex<B, T>(
+    wi: &Tensor<T::Real, B, Ix1>,
+    v_real: Tensor<T, B, Ix2>,
+    device: &B,
+) -> Result<Tensor<num::Complex<T::Real>, B, Ix2>>
+where
+    T: BlasFloat,
+    T::Real: num::Zero + PartialEq + Clone,
+    B: DeviceAPI<T>,
+    B: DeviceAPI<T::Real>,
+    B: DeviceAPI<num::Complex<T::Real>>,
+    B: DeviceCreationAnyAPI<num::Complex<T::Real>>,
+    B: DeviceRawAPI<T, Raw = Vec<T>>,
+    B: DeviceRawAPI<T::Real, Raw = Vec<T::Real>>,
+{
+    let n = wi.shape()[0];
+    let wi_raw = wi.raw();
+
+    // Create complex eigenvector matrix
+    let mut v_complex_vec: Vec<num::Complex<T::Real>> = vec![num::Complex::zero(); n * n];
+
+    // Get raw data and strides from v_real
+    let v_real_raw = v_real.raw();
+    let v_real_stride = *v_real.stride();
+
+    // Process each eigenvalue
+    let mut i = 0usize;
+    while i < n {
+        let is_real_eigenvalue = wi_raw[i] == T::Real::zero();
+        if is_real_eigenvalue {
+            // Real eigenvalue: eigenvector is purely real
+            for j in 0..n {
+                let idx_real = j * (v_real_stride[0] as usize) + i * (v_real_stride[1] as usize);
+                // For real types (f64), T = T::Real, so the value is the real part
+                // Use ComplexFloat::re() to get the real part
+                let val = ComplexFloat::re(v_real_raw[idx_real]);
+                v_complex_vec[j * n + i] = num::Complex::new(val, T::Real::zero());
+            }
+            i += 1;
+        } else {
+            // Complex conjugate pair: wi[i] > 0, wi[i+1] = -wi[i] < 0
+            // vr[:, i] is real part, vr[:, i+1] is imaginary part
+            for j in 0..n {
+                let idx_real_i = j * (v_real_stride[0] as usize) + i * (v_real_stride[1] as usize);
+                let idx_real_i1 = j * (v_real_stride[0] as usize) + (i + 1) * (v_real_stride[1] as usize);
+
+                let real_part = ComplexFloat::re(v_real_raw[idx_real_i]);
+                let imag_part = ComplexFloat::re(v_real_raw[idx_real_i1]);
+
+                // Eigenvector for eigenvalue with positive imaginary part
+                v_complex_vec[j * n + i] = num::Complex::new(real_part, imag_part);
+                // Eigenvector for conjugate eigenvalue (negative imaginary part)
+                v_complex_vec[j * n + (i + 1)] = num::Complex::new(real_part, -imag_part);
+            }
+            i += 2;
+        }
+    }
+
+    let v_complex = rt::asarray((v_complex_vec, [n, n].c(), device)).into_dim::<Ix2>();
+    Ok(v_complex)
+}
+
+/* #endregion */

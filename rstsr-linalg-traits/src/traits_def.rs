@@ -8,7 +8,9 @@ use rstsr_core::prelude_dev::*;
     LinalgAPI            func               func_f             ;
    [CholeskyAPI       ] [cholesky        ] [cholesky_f        ];
    [DetAPI            ] [det             ] [det_f             ];
+   [EigAPI            ] [eig             ] [eig_f             ];
    [EighAPI           ] [eigh            ] [eigh_f            ];
+   [EigvalsAPI        ] [eigvals         ] [eigvals_f         ];
    [EigvalshAPI       ] [eigvalsh        ] [eigvalsh_f        ];
    [InvAPI            ] [inv             ] [inv_f             ];
    [PinvAPI           ] [pinv            ] [pinv_f            ];
@@ -35,7 +37,9 @@ pub trait LinalgAPI<Inp> {
     LinalgAPI            func               func_f             ;
    [CholeskyAPI       ] [cholesky        ] [cholesky_f        ];
    [DetAPI            ] [det             ] [det_f             ];
+   [EigAPI            ] [eig             ] [eig_f             ];
    [EighAPI           ] [eigh            ] [eigh_f            ];
+   [EigvalsAPI        ] [eigvals         ] [eigvals_f         ];
    [EigvalshAPI       ] [eigvalsh        ] [eigvalsh_f        ];
    [InvAPI            ] [inv             ] [inv_f             ];
    [PinvAPI           ] [pinv            ] [pinv_f            ];
@@ -58,7 +62,9 @@ where
     LinalgAPI            func               func_f             ;
    [CholeskyAPI       ] [cholesky        ] [cholesky_f        ];
    [DetAPI            ] [det             ] [det_f             ];
+   [EigAPI            ] [eig             ] [eig_f             ];
    [EighAPI           ] [eigh            ] [eigh_f            ];
+   [EigvalsAPI        ] [eigvals         ] [eigvals_f         ];
    [EigvalshAPI       ] [eigvalsh        ] [eigvalsh_f        ];
    [InvAPI            ] [inv             ] [inv_f             ];
    [PinvAPI           ] [pinv            ] [pinv_f            ];
@@ -125,6 +131,71 @@ where
 }
 
 pub type EighArgs<'a, 'b, B, T> = EighArgs_Builder<'a, 'b, B, T>;
+
+/* #endregion */
+
+/* #region eig */
+
+/// Result structure for general eigenvalue decomposition (eig)
+///
+/// For non-symmetric/general matrices, eigenvalues can be complex even for real input.
+/// This result structure always returns complex eigenvalues.
+///
+/// For real input matrices with complex eigenvalues, eigenvectors are also complex.
+pub struct EigResult<W, VL, VR> {
+    /// Eigenvalues (always complex for general matrices)
+    pub eigenvalues: W,
+    /// Left eigenvectors (optional)
+    pub left_eigenvectors: Option<VL>,
+    /// Right eigenvectors (optional)
+    pub right_eigenvectors: Option<VR>,
+}
+
+impl<W, VL, VR> From<(W, Option<VL>, Option<VR>)> for EigResult<W, VL, VR> {
+    fn from((w, vl, vr): (W, Option<VL>, Option<VR>)) -> Self {
+        Self { eigenvalues: w, left_eigenvectors: vl, right_eigenvectors: vr }
+    }
+}
+
+impl<W, VL, VR> From<EigResult<W, VL, VR>> for (W, Option<VL>, Option<VR>) {
+    fn from(eig_result: EigResult<W, VL, VR>) -> Self {
+        (eig_result.eigenvalues, eig_result.left_eigenvectors, eig_result.right_eigenvectors)
+    }
+}
+
+/// Convert EigResult to (w, vr) tuple for default case (right eigenvectors only)
+impl<W, VR> From<EigResult<W, W, VR>> for (W, VR) {
+    fn from(eig_result: EigResult<W, W, VR>) -> Self {
+        (eig_result.eigenvalues, eig_result.right_eigenvectors.unwrap())
+    }
+}
+
+/// Convert EigResult to (w, vl, vr) tuple for both eigenvectors
+impl<W, VL, VR> From<EigResult<W, VL, VR>> for (W, VL, VR) {
+    fn from(eig_result: EigResult<W, VL, VR>) -> Self {
+        (eig_result.eigenvalues, eig_result.left_eigenvectors.unwrap(), eig_result.right_eigenvectors.unwrap())
+    }
+}
+
+#[derive(Builder)]
+#[builder(pattern = "owned", no_std, build_fn(error = "Error"))]
+pub struct EigArgs_<'a, 'b, B, T>
+where
+    T: BlasFloat,
+    B: DeviceAPI<T>,
+{
+    #[builder(setter(into))]
+    pub a: TensorReference<'a, T, B, Ix2>,
+    #[builder(setter(into, strip_option), default = "None")]
+    pub b: Option<TensorReference<'b, T, B, Ix2>>,
+
+    #[builder(setter(into), default = false)]
+    pub left: bool,
+    #[builder(setter(into), default = true)]
+    pub right: bool,
+}
+
+pub type EigArgs<'a, 'b, B, T> = EigArgs_Builder<'a, 'b, B, T>;
 
 /* #endregion */
 

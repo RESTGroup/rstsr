@@ -1,5 +1,7 @@
 tmp*
 tmp
+*.tmp/
+*.tmp
 profile
 lcov.info
 tarpaulin-report.html
