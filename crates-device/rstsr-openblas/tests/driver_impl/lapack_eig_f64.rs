@@ -1,3 +1,4 @@
+use num::Complex;
 use rstsr_blas_traits::lapack_eig::*;
 use rstsr_core::prelude::*;
 use rstsr_core::prelude_dev::fingerprint;
@@ -6,39 +7,32 @@ use rstsr_test_manifest::get_vec;
 
 /// Compute fingerprint of eigenvalues after sorting by complex value.
 /// This makes the comparison implementation-agnostic (works with both MKL and OpenBLAS).
-fn sorted_eigenvalue_fingerprint(wr: &Tensor<f64, DeviceBLAS, Ix1>, wi: &Tensor<f64, DeviceBLAS, Ix1>) -> f64 {
-    use num::Complex;
-    let wr_vec = wr.raw();
-    let wi_vec = wi.raw();
-    let n = wr_vec.len();
-    let mut eigenvalues: Vec<Complex<f64>> = (0..n).map(|i| Complex::new(wr_vec[i], wi_vec[i])).collect();
+fn sorted_eigenvalue_fingerprint(w: &Tensor<Complex<f64>, DeviceBLAS, Ix1>) -> f64 {
+    let w_vec = w.raw();
+    let n = w_vec.len();
+    let mut eigenvalues: Vec<Complex<f64>> = w_vec.clone();
     // Sort by real part first, then imaginary part
     eigenvalues.sort_by(|a, b| a.re.partial_cmp(&b.re).unwrap().then_with(|| a.im.partial_cmp(&b.im).unwrap()));
     // Compute fingerprint on sorted eigenvalues (use real parts)
-    let sorted_wr: Vec<f64> = eigenvalues.iter().map(|c| c.re).collect();
-    // Compute fingerprint directly: sum of cos(i) * sorted_wr[i]
-    let n = sorted_wr.len();
-    (0..n).map(|i| (i as f64).cos() * sorted_wr[i]).sum()
+    let n = eigenvalues.len();
+    (0..n).map(|i| (i as f64).cos() * eigenvalues[i].re).sum()
 }
 
 /// Compute fingerprint of generalized eigenvalues (alpha/beta) after sorting.
-/// Eigenvalues are computed as alpha/beta where alpha = alphar + i*alphai.
+/// Eigenvalues are computed as alpha/beta.
 fn sorted_ggev_eigenvalue_fingerprint(
-    alphar: &Tensor<f64, DeviceBLAS, Ix1>,
-    alphai: &Tensor<f64, DeviceBLAS, Ix1>,
-    beta: &Tensor<f64, DeviceBLAS, Ix1>,
+    alpha: &Tensor<Complex<f64>, DeviceBLAS, Ix1>,
+    beta: &Tensor<Complex<f64>, DeviceBLAS, Ix1>,
 ) -> f64 {
-    use num::Complex;
-    let alphar_vec = alphar.raw();
-    let alphai_vec = alphai.raw();
+    let alpha_vec = alpha.raw();
     let beta_vec = beta.raw();
-    let n = alphar_vec.len();
+    let n = alpha_vec.len();
     let mut eigenvalues: Vec<Complex<f64>> = (0..n)
         .map(|i| {
-            let alpha = Complex::new(alphar_vec[i], alphai_vec[i]);
+            let a = alpha_vec[i];
             let b = beta_vec[i];
-            if b.abs() > 1e-15 {
-                alpha / b
+            if b.norm() > 1e-15 {
+                a / b
             } else {
                 // Handle infinite eigenvalues
                 Complex::new(f64::INFINITY, 0.0)
@@ -68,10 +62,10 @@ mod test {
         let a = rt::asarray((data.clone(), [2, 2].c(), &device)).into_dim::<Ix2>();
 
         let driver = GEEV::default().a(a.view()).left(false).right(true).build().unwrap();
-        let (wr, wi, _vl, _vr, _a) = driver.run().unwrap();
+        let (w, _vl, _vr, _a) = driver.run().unwrap();
 
         // Check sorted eigenvalue fingerprint
-        let fp = sorted_eigenvalue_fingerprint(&wr, &wi);
+        let fp = sorted_eigenvalue_fingerprint(&w);
         // Expected: sum of cos(i) * sorted_eigenvalues for eigenvalues 5.372 and -0.372
         assert!((fp - 2.5303746634655755).abs() < 1e-8);
     }
@@ -83,9 +77,9 @@ mod test {
 
         // Default (right eigenvectors only)
         let driver = GEEV::default().a(a.view()).left(false).right(true).build().unwrap();
-        let (wr, wi, _vl, vr, _a_out) = driver.run().unwrap();
+        let (w, _vl, vr, _a_out) = driver.run().unwrap();
 
-        let sorted_fp = sorted_eigenvalue_fingerprint(&wr, &wi);
+        let sorted_fp = sorted_eigenvalue_fingerprint(&w);
         assert!((sorted_fp - (-0.20985324861994137)).abs() < 1e-8);
 
         // Verify eigenvector was computed
@@ -98,10 +92,10 @@ mod test {
         let a = rt::asarray((get_vec::<f64>('a'), [512, 512].c(), &device)).into_dim::<Ix2>();
 
         let driver = GEEV::default().a(a.view()).left(true).right(false).build().unwrap();
-        let (wr, wi, vl, vr, _a) = driver.run().unwrap();
+        let (w, vl, vr, _a) = driver.run().unwrap();
 
         // Use sorted eigenvalue fingerprint (implementation-agnostic)
-        let sorted_fp = sorted_eigenvalue_fingerprint(&wr, &wi);
+        let sorted_fp = sorted_eigenvalue_fingerprint(&w);
         assert!((sorted_fp - (-0.20985324861994137)).abs() < 1e-8);
         assert!(vr.is_none());
 
@@ -115,10 +109,10 @@ mod test {
         let a = rt::asarray((get_vec::<f64>('a'), [512, 512].c(), &device)).into_dim::<Ix2>();
 
         let driver = GEEV::default().a(a.view()).left(true).right(true).build().unwrap();
-        let (wr, wi, vl, vr, _a) = driver.run().unwrap();
+        let (w, vl, vr, _a) = driver.run().unwrap();
 
         // Use sorted eigenvalue fingerprint (implementation-agnostic)
-        let sorted_fp = sorted_eigenvalue_fingerprint(&wr, &wi);
+        let sorted_fp = sorted_eigenvalue_fingerprint(&w);
         assert!((sorted_fp - (-0.20985324861994137)).abs() < 1e-8);
 
         // Verify eigenvectors were computed
@@ -132,10 +126,10 @@ mod test {
         let a = rt::asarray((get_vec::<f64>('a'), [512, 512].f(), &device)).into_dim::<Ix2>();
 
         let driver = GEEV::default().a(a.view()).left(false).right(true).build().unwrap();
-        let (wr, wi, _vl, vr, _a_out) = driver.run().unwrap();
+        let (w, _vl, vr, _a_out) = driver.run().unwrap();
 
         // Same sorted eigenvalue fingerprint as row-major
-        let sorted_fp = sorted_eigenvalue_fingerprint(&wr, &wi);
+        let sorted_fp = sorted_eigenvalue_fingerprint(&w);
         assert!((sorted_fp - (-0.20985324861994137)).abs() < 1e-8);
 
         // Verify eigenvector was computed
@@ -159,10 +153,10 @@ mod test_ggev {
         let b = rt::asarray((data_b.clone(), [2, 2].c(), &device)).into_dim::<Ix2>();
 
         let driver = GGEV::default().a(a.view()).b(b.view()).left(false).right(true).build().unwrap();
-        let (alphar, alphai, beta, _betai, _vl, _vr, _a, _b) = driver.run().unwrap();
+        let (alpha, beta, _vl, _vr, _a, _b) = driver.run().unwrap();
 
         // Check sorted eigenvalue fingerprint
-        let fp = sorted_ggev_eigenvalue_fingerprint(&alphar, &alphai, &beta);
+        let fp = sorted_ggev_eigenvalue_fingerprint(&alpha, &beta);
         // Expected: eigenvalues are -0.186 and 2.686 (sorted: [-0.186, 2.686])
         assert!((fp - 1.2651873317327877).abs() < 1e-8);
     }
@@ -182,10 +176,10 @@ mod test_ggev {
 
         // Run GGEV with identity B
         let driver_ggev = GGEV::default().a(a.view()).b(b.view()).left(false).right(true).build().unwrap();
-        let (alphar_ggev, alphai_ggev, beta_ggev, _betai, _vl, vr_ggev, _a_out, _b_out) = driver_ggev.run().unwrap();
+        let (alpha_ggev, beta_ggev, _vl, vr_ggev, _a_out, _b_out) = driver_ggev.run().unwrap();
 
         // Check sorted eigenvalue fingerprint
-        let fp_ggev = sorted_ggev_eigenvalue_fingerprint(&alphar_ggev, &alphai_ggev, &beta_ggev);
+        let fp_ggev = sorted_ggev_eigenvalue_fingerprint(&alpha_ggev, &beta_ggev);
         assert!((fp_ggev - (-1.3665882148626807)).abs() < 1e-8);
 
         // Verify eigenvector was computed
@@ -201,9 +195,9 @@ mod test_ggev {
 
         // Row-major
         let driver = GGEV::default().a(a.view()).b(b.view()).left(false).right(true).build().unwrap();
-        let (alphar, alphai, beta, _betai, _vl, vr, _a_out, _b_out) = driver.run().unwrap();
+        let (alpha, beta, _vl, vr, _a_out, _b_out) = driver.run().unwrap();
 
-        let fp = sorted_ggev_eigenvalue_fingerprint(&alphar, &alphai, &beta);
+        let fp = sorted_ggev_eigenvalue_fingerprint(&alpha, &beta);
         assert!((fp - (-146.02668700723964)).abs() < 1e-8);
 
         // Verify eigenvector was computed
@@ -218,10 +212,10 @@ mod test_ggev {
         let b = rt::asarray((get_vec::<f64>('b'), [32, 32].f(), &device)).into_dim::<Ix2>();
 
         let driver = GGEV::default().a(a.view()).b(b.view()).left(false).right(true).build().unwrap();
-        let (alphar, alphai, beta, _betai, _vl, vr, _a_out, _b_out) = driver.run().unwrap();
+        let (alpha, beta, _vl, vr, _a_out, _b_out) = driver.run().unwrap();
 
         // Same fingerprint as row-major
-        let fp = sorted_ggev_eigenvalue_fingerprint(&alphar, &alphai, &beta);
+        let fp = sorted_ggev_eigenvalue_fingerprint(&alpha, &beta);
         assert!((fp - (-146.02668700723964)).abs() < 1e-8);
 
         // Verify eigenvector was computed
@@ -236,7 +230,7 @@ mod test_ggev {
         let b = rt::asarray((get_vec::<f64>('b'), [32, 32].c(), &device)).into_dim::<Ix2>();
 
         let driver = GGEV::default().a(a.view()).b(b.view()).left(true).right(true).build().unwrap();
-        let (_alphar, _alphai, _beta, _betai, vl, vr, _a_out, _b_out) = driver.run().unwrap();
+        let (_alpha, _beta, vl, vr, _a_out, _b_out) = driver.run().unwrap();
 
         // Verify both eigenvectors were computed
         let vl = vl.unwrap();

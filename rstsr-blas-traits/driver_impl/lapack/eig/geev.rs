@@ -23,8 +23,7 @@ impl GEEVDriverAPI<T> for DeviceBLAS {
         n: usize,
         a: *mut T,
         lda: usize,
-        wr: *mut T,
-        wi: *mut T,
+        w: *mut Complex<T>,
         vl: *mut T,
         ldvl: usize,
         vr: *mut T,
@@ -34,6 +33,16 @@ impl GEEVDriverAPI<T> for DeviceBLAS {
 
         let compute_vl = jobvl == 'V' || jobvl == 'v';
         let compute_vr = jobvr == 'V' || jobvr == 'v';
+
+        // Allocate temporary arrays for wr and wi (LAPACK's real format)
+        let mut wr: Vec<T> = match uninitialized_vec(n) {
+            Ok(wr) => wr,
+            Err(_) => return -1010,
+        };
+        let mut wi: Vec<T> = match uninitialized_vec(n) {
+            Ok(wi) => wi,
+            Err(_) => return -1010,
+        };
 
         if order == ColMajor {
             // Query optimal work array size
@@ -46,8 +55,8 @@ impl GEEVDriverAPI<T> for DeviceBLAS {
                 &(n as blas_int),
                 a,
                 &(lda as blas_int),
-                wr,
-                wi,
+                wr.as_mut_ptr(),
+                wi.as_mut_ptr(),
                 vl,
                 &(ldvl as blas_int),
                 vr,
@@ -74,8 +83,8 @@ impl GEEVDriverAPI<T> for DeviceBLAS {
                 &(n as blas_int),
                 a,
                 &(lda as blas_int),
-                wr,
-                wi,
+                wr.as_mut_ptr(),
+                wi.as_mut_ptr(),
                 vl,
                 &(ldvl as blas_int),
                 vr,
@@ -84,14 +93,15 @@ impl GEEVDriverAPI<T> for DeviceBLAS {
                 &(lwork as blas_int),
                 &mut info,
             );
+
+            // Combine wr and wi into complex eigenvalues
+            for i in 0..n {
+                *w.add(i) = Complex::new(wr[i], wi[i]);
+            }
+
             info
         } else {
             // Row-major handling: LAPACK is column-major, so we need to transpose
-            // For a row-major matrix A, A^T in column-major has the same memory layout
-            // So we can just call LAPACK with column-major order and transposed dimensions
-
-            // Actually, LAPACKE handles this by transposing the matrix
-            // For raw LAPACK, we need to transpose A first
             let lda_t = n.max(1);
             let ldvl_t = n.max(1);
             let ldvr_t = n.max(1);
@@ -134,8 +144,8 @@ impl GEEVDriverAPI<T> for DeviceBLAS {
                 &(n as blas_int),
                 a_t.as_mut_ptr(),
                 &(lda_t as blas_int),
-                wr,
-                wi,
+                wr.as_mut_ptr(),
+                wi.as_mut_ptr(),
                 vl_t.as_mut_ptr(),
                 &(ldvl_t as blas_int),
                 vr_t.as_mut_ptr(),
@@ -162,8 +172,8 @@ impl GEEVDriverAPI<T> for DeviceBLAS {
                 &(n as blas_int),
                 a_t.as_mut_ptr(),
                 &(lda_t as blas_int),
-                wr,
-                wi,
+                wr.as_mut_ptr(),
+                wi.as_mut_ptr(),
                 vl_t.as_mut_ptr(),
                 &(ldvl_t as blas_int),
                 vr_t.as_mut_ptr(),
@@ -191,6 +201,11 @@ impl GEEVDriverAPI<T> for DeviceBLAS {
                 orderchange_out_c2r_ix2_cpu_serial(vr_slice, &lvr, &vr_t, &lvr_t).unwrap();
             }
 
+            // Combine wr and wi into complex eigenvalues
+            for i in 0..n {
+                *w.add(i) = Complex::new(wr[i], wi[i]);
+            }
+
             info
         }
     }
@@ -209,8 +224,7 @@ impl GEEVDriverAPI<T> for DeviceBLAS {
         n: usize,
         a: *mut T,
         lda: usize,
-        wr: *mut <T as ComplexFloat>::Real,
-        wi: *mut <T as ComplexFloat>::Real,
+        w: *mut T, // For complex types, T = Complex<T::Real>
         vl: *mut T,
         ldvl: usize,
         vr: *mut T,
@@ -228,11 +242,9 @@ impl GEEVDriverAPI<T> for DeviceBLAS {
             Err(_) => return -1010,
         };
 
-        // Allocate temporary complex eigenvalue array w
-        let mut w: Vec<T> = match uninitialized_vec(n) {
-            Ok(w) => w,
-            Err(_) => return -1010,
-        };
+        // For complex types, T = Complex<T::Real>, so w pointer is compatible with T*
+        // LAPACK FFI uses __BindgenComplex but we can cast
+        let ptr_w = w as *mut T;
 
         if order == ColMajor {
             // Query optimal work array size
@@ -245,7 +257,7 @@ impl GEEVDriverAPI<T> for DeviceBLAS {
                 &(n as blas_int),
                 a as *mut _,
                 &(lda as blas_int),
-                w.as_mut_ptr() as *mut _,
+                ptr_w as *mut _,
                 vl as *mut _,
                 &(ldvl as blas_int),
                 vr as *mut _,
@@ -273,7 +285,7 @@ impl GEEVDriverAPI<T> for DeviceBLAS {
                 &(n as blas_int),
                 a as *mut _,
                 &(lda as blas_int),
-                w.as_mut_ptr() as *mut _,
+                ptr_w as *mut _,
                 vl as *mut _,
                 &(ldvl as blas_int),
                 vr as *mut _,
@@ -283,17 +295,6 @@ impl GEEVDriverAPI<T> for DeviceBLAS {
                 rwork.as_mut_ptr() as *mut _,
                 &mut info,
             );
-            if info != 0 {
-                return info;
-            }
-
-            // Copy complex eigenvalues to wr (real part) and wi (imaginary part)
-            for i in 0..n {
-                let val = w[i];
-                *wr.add(i) = val.re;
-                *wi.add(i) = val.im;
-            }
-
             info
         } else {
             // Row-major handling
@@ -339,7 +340,7 @@ impl GEEVDriverAPI<T> for DeviceBLAS {
                 &(n as blas_int),
                 a_t.as_mut_ptr() as *mut _,
                 &(lda_t as blas_int),
-                w.as_mut_ptr() as *mut _,
+                ptr_w as *mut _,
                 vl_t.as_mut_ptr() as *mut _,
                 &(ldvl_t as blas_int),
                 vr_t.as_mut_ptr() as *mut _,
@@ -367,7 +368,7 @@ impl GEEVDriverAPI<T> for DeviceBLAS {
                 &(n as blas_int),
                 a_t.as_mut_ptr() as *mut _,
                 &(lda_t as blas_int),
-                w.as_mut_ptr() as *mut _,
+                ptr_w as *mut _,
                 vl_t.as_mut_ptr() as *mut _,
                 &(ldvl_t as blas_int),
                 vr_t.as_mut_ptr() as *mut _,
@@ -394,13 +395,6 @@ impl GEEVDriverAPI<T> for DeviceBLAS {
                 let lvr = Layout::new_unchecked([n, n], [ldvr as isize, 1], 0);
                 let lvr_t = Layout::new_unchecked([n, n], [1, ldvr_t as isize], 0);
                 orderchange_out_c2r_ix2_cpu_serial(vr_slice, &lvr, &vr_t, &lvr_t).unwrap();
-            }
-
-            // Copy complex eigenvalues to wr (real part) and wi (imaginary part)
-            for i in 0..n {
-                let val = w[i];
-                *wr.add(i) = val.re;
-                *wi.add(i) = val.im;
             }
 
             info

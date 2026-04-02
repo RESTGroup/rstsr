@@ -1,12 +1,14 @@
 use crate::prelude_dev::*;
+use num::Complex;
 use rstsr_core::prelude_dev::*;
 
 /// LAPACK GEEV driver API for general eigenvalue problem.
 ///
 /// Computes eigenvalues and optionally left/right eigenvectors of a general matrix.
 ///
-/// For real types (f32, f64), eigenvalues are returned as real and imaginary parts (wr, wi).
-/// For complex types, eigenvalues are returned as complex values (w).
+/// Eigenvalues are returned as complex values (w) for both real and complex types.
+/// For real types, LAPACK returns eigenvalues as (wr, wi) pairs; the driver converts
+/// them to complex format internally.
 pub trait GEEVDriverAPI<T>
 where
     T: BlasFloat,
@@ -16,6 +18,11 @@ where
     /// # Safety
     ///
     /// This function calls LAPACK routines directly and modifies memory in place.
+    ///
+    /// # Parameters
+    /// - `w`: Pointer to complex eigenvalue array of length n. For real types, this will be
+    ///   populated from LAPACK's wr/wi outputs. For complex types, this directly receives LAPACK's
+    ///   complex w output.
     unsafe fn driver_geev(
         order: FlagOrder,
         jobvl: char,
@@ -23,9 +30,7 @@ where
         n: usize,
         a: *mut T,
         lda: usize,
-        // For real types: wr and wi are separate; for complex: w only
-        wr: *mut T::Real,
-        wi: *mut T::Real,
+        w: *mut Complex<T::Real>,
         vl: *mut T,
         ldvl: usize,
         vr: *mut T,
@@ -53,12 +58,14 @@ impl<'a, B, T> GEEV_<'a, B, T>
 where
     T: BlasFloat,
     B: BlasDriverBaseAPI<T> + GEEVDriverAPI<T>,
+    B: DeviceAPI<Complex<T::Real>>,
+    B: DeviceCreationAnyAPI<Complex<T::Real>>,
+    B: DeviceRawAPI<Complex<T::Real>, Raw = Vec<Complex<T::Real>>>,
 {
     pub fn internal_run(
         self,
     ) -> Result<(
-        Tensor<T::Real, B, Ix1>,
-        Tensor<T::Real, B, Ix1>,
+        Tensor<Complex<T::Real>, B, Ix1>,
         Option<Tensor<T, B, Ix2>>,
         Option<Tensor<T, B, Ix2>>,
         TensorMutable<'a, T, B, Ix2>,
@@ -78,15 +85,11 @@ where
         let jobvl = if left { 'V' } else { 'N' };
         let jobvr = if right { 'V' } else { 'N' };
 
-        // Allocate output arrays
-        // For real types: wr and wi are separate arrays
-        // For complex types: we still use wr and wi layout (wr for real part, wi for imaginary)
-        let mut wr = unsafe { empty_f(([n].c(), &device))?.into_dim::<Ix1>() };
-        let mut wi = unsafe { empty_f(([n].c(), &device))?.into_dim::<Ix1>() };
+        // Allocate complex eigenvalue array
+        let mut w = unsafe { empty_f(([n].c(), &device))?.into_dim::<Ix1>() };
 
         let ptr_a = a.view_mut().as_mut_ptr();
-        let ptr_wr = wr.as_mut_ptr();
-        let ptr_wi = wi.as_mut_ptr();
+        let ptr_w = w.as_mut_ptr();
 
         // Allocate vl and vr if needed
         let mut vl = if left { Some(unsafe { empty_f(([n, n].c(), &device))?.into_dim::<Ix2>() }) } else { None };
@@ -99,21 +102,19 @@ where
         let ldvr = if right { n } else { 1 };
 
         // run driver
-        let info =
-            unsafe { B::driver_geev(order, jobvl, jobvr, n, ptr_a, lda, ptr_wr, ptr_wi, ptr_vl, ldvl, ptr_vr, ldvr) };
+        let info = unsafe { B::driver_geev(order, jobvl, jobvr, n, ptr_a, lda, ptr_w, ptr_vl, ldvl, ptr_vr, ldvr) };
         let info = info as i32;
         if info != 0 {
             rstsr_errcode!(info, "Lapack GEEV")?;
         }
 
-        Ok((wr, wi, vl, vr, a.clone_to_mut()))
+        Ok((w, vl, vr, a.clone_to_mut()))
     }
 
     pub fn run(
         self,
     ) -> Result<(
-        Tensor<T::Real, B, Ix1>,
-        Tensor<T::Real, B, Ix1>,
+        Tensor<Complex<T::Real>, B, Ix1>,
         Option<Tensor<T, B, Ix2>>,
         Option<Tensor<T, B, Ix2>>,
         TensorMutable<'a, T, B, Ix2>,

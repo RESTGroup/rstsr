@@ -1,4 +1,5 @@
 use crate::prelude_dev::*;
+use num::Complex;
 use rstsr_core::prelude_dev::*;
 
 /// LAPACK GGEV driver API for generalized eigenvalue problem.
@@ -7,10 +8,10 @@ use rstsr_core::prelude_dev::*;
 /// eigenvalue problem: A*v = λ*B*v.
 ///
 /// Eigenvalues are returned as (alpha, beta) pairs where λ = alpha/beta.
-///
-/// For real types (f32, f64), eigenvalues are returned as (alphar, alphai, beta).
-/// For complex types, eigenvalues are returned as (alpha, beta) complex arrays,
-/// where alphar/alphai store alpha's real/imaginary parts and beta/betai store beta's real/imaginary parts.
+/// Both alpha and beta are returned as complex values.
+/// For real types, LAPACK returns (alphar, alphai, beta) where beta is real;
+/// the driver converts alpha to complex and sets beta's imaginary part to 0.
+/// For complex types, both alpha and beta are complex.
 pub trait GGEVDriverAPI<T>
 where
     T: BlasFloat,
@@ -20,6 +21,11 @@ where
     /// # Safety
     ///
     /// This function calls LAPACK routines directly and modifies memory in place.
+    ///
+    /// # Parameters
+    /// - `alpha`: Pointer to complex alpha array of length n.
+    /// - `beta`: Pointer to complex beta array of length n. For real types, beta's imaginary part
+    ///   will be set to 0.
     unsafe fn driver_ggev(
         order: FlagOrder,
         jobvl: char,
@@ -29,14 +35,8 @@ where
         lda: usize,
         b: *mut T,
         ldb: usize,
-        // For real types: alphar, alphai, beta are separate arrays
-        // For complex types: alpha and beta are complex, stored as (alphar, alphai) and (beta, betai)
-        alphar: *mut T::Real,
-        alphai: *mut T::Real,
-        beta: *mut T::Real,
-        // For complex types: betai stores the imaginary part of beta
-        // For real types: this parameter is unused (can be null)
-        betai: *mut T::Real,
+        alpha: *mut Complex<T::Real>,
+        beta: *mut Complex<T::Real>,
         vl: *mut T,
         ldvl: usize,
         vr: *mut T,
@@ -66,14 +66,15 @@ impl<'a, B, T> GGEV_<'a, B, T>
 where
     T: BlasFloat,
     B: BlasDriverBaseAPI<T> + GGEVDriverAPI<T>,
+    B: DeviceAPI<Complex<T::Real>>,
+    B: DeviceCreationAnyAPI<Complex<T::Real>>,
+    B: DeviceRawAPI<Complex<T::Real>, Raw = Vec<Complex<T::Real>>>,
 {
     pub fn internal_run(
         self,
     ) -> Result<(
-        Tensor<T::Real, B, Ix1>,
-        Tensor<T::Real, B, Ix1>,
-        Tensor<T::Real, B, Ix1>,
-        Tensor<T::Real, B, Ix1>,
+        Tensor<Complex<T::Real>, B, Ix1>,
+        Tensor<Complex<T::Real>, B, Ix1>,
         Option<Tensor<T, B, Ix2>>,
         Option<Tensor<T, B, Ix2>>,
         TensorMutable<'a, T, B, Ix2>,
@@ -98,22 +99,14 @@ where
         let jobvl = if left { 'V' } else { 'N' };
         let jobvr = if right { 'V' } else { 'N' };
 
-        // Allocate output arrays
-        // For real and complex types, we use alphar, alphai, beta layout
-        // For complex, alpha_re, alpha_im, beta_re, beta_im are stored in these arrays
-        // Note: betai is zero-initialized so that for real types (where the driver doesn't write to it),
-        // the imaginary part of beta is correctly zero.
-        let mut alphar = unsafe { empty_f(([n].c(), &device))?.into_dim::<Ix1>() };
-        let mut alphai = unsafe { empty_f(([n].c(), &device))?.into_dim::<Ix1>() };
+        // Allocate complex alpha and beta arrays
+        let mut alpha = unsafe { empty_f(([n].c(), &device))?.into_dim::<Ix1>() };
         let mut beta = unsafe { empty_f(([n].c(), &device))?.into_dim::<Ix1>() };
-        let mut betai = zeros_f(([n].c(), &device))?.into_dim::<Ix1>();
 
         let ptr_a = a.view_mut().as_mut_ptr();
         let ptr_b = b.view_mut().as_mut_ptr();
-        let ptr_alphar = alphar.as_mut_ptr();
-        let ptr_alphai = alphai.as_mut_ptr();
+        let ptr_alpha = alpha.as_mut_ptr();
         let ptr_beta = beta.as_mut_ptr();
-        let ptr_betai = betai.as_mut_ptr();
 
         // Allocate vl and vr if needed
         let mut vl = if left { Some(unsafe { empty_f(([n, n].c(), &device))?.into_dim::<Ix2>() }) } else { None };
@@ -128,8 +121,7 @@ where
         // run driver
         let info = unsafe {
             B::driver_ggev(
-                order, jobvl, jobvr, n, ptr_a, lda, ptr_b, ldb, ptr_alphar, ptr_alphai, ptr_beta, ptr_betai, ptr_vl, ldvl,
-                ptr_vr, ldvr,
+                order, jobvl, jobvr, n, ptr_a, lda, ptr_b, ldb, ptr_alpha, ptr_beta, ptr_vl, ldvl, ptr_vr, ldvr,
             )
         };
         let info = info as i32;
@@ -137,16 +129,14 @@ where
             rstsr_errcode!(info, "Lapack GGEV")?;
         }
 
-        Ok((alphar, alphai, beta, betai, vl, vr, a.clone_to_mut(), b.clone_to_mut()))
+        Ok((alpha, beta, vl, vr, a.clone_to_mut(), b.clone_to_mut()))
     }
 
     pub fn run(
         self,
     ) -> Result<(
-        Tensor<T::Real, B, Ix1>,
-        Tensor<T::Real, B, Ix1>,
-        Tensor<T::Real, B, Ix1>,
-        Tensor<T::Real, B, Ix1>,
+        Tensor<Complex<T::Real>, B, Ix1>,
+        Tensor<Complex<T::Real>, B, Ix1>,
         Option<Tensor<T, B, Ix2>>,
         Option<Tensor<T, B, Ix2>>,
         TensorMutable<'a, T, B, Ix2>,

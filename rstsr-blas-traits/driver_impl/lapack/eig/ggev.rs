@@ -25,10 +25,8 @@ impl GGEVDriverAPI<T> for DeviceBLAS {
         lda: usize,
         b: *mut T,
         ldb: usize,
-        alphar: *mut T,
-        alphai: *mut T,
-        beta: *mut T,
-        _betai: *mut T,  // unused for real types
+        alpha: *mut Complex<T>,
+        beta: *mut Complex<T>,
         vl: *mut T,
         ldvl: usize,
         vr: *mut T,
@@ -38,6 +36,20 @@ impl GGEVDriverAPI<T> for DeviceBLAS {
 
         let compute_vl = jobvl == 'V' || jobvl == 'v';
         let compute_vr = jobvr == 'V' || jobvr == 'v';
+
+        // Allocate temporary arrays for LAPACK's real format
+        let mut alphar: Vec<T> = match uninitialized_vec(n) {
+            Ok(alphar) => alphar,
+            Err(_) => return -1010,
+        };
+        let mut alphai: Vec<T> = match uninitialized_vec(n) {
+            Ok(alphai) => alphai,
+            Err(_) => return -1010,
+        };
+        let mut beta_real: Vec<T> = match uninitialized_vec(n) {
+            Ok(beta) => beta,
+            Err(_) => return -1010,
+        };
 
         if order == ColMajor {
             // Query optimal work array size
@@ -52,9 +64,9 @@ impl GGEVDriverAPI<T> for DeviceBLAS {
                 &(lda as blas_int),
                 b,
                 &(ldb as blas_int),
-                alphar,
-                alphai,
-                beta,
+                alphar.as_mut_ptr(),
+                alphai.as_mut_ptr(),
+                beta_real.as_mut_ptr(),
                 vl,
                 &(ldvl as blas_int),
                 vr,
@@ -83,9 +95,9 @@ impl GGEVDriverAPI<T> for DeviceBLAS {
                 &(lda as blas_int),
                 b,
                 &(ldb as blas_int),
-                alphar,
-                alphai,
-                beta,
+                alphar.as_mut_ptr(),
+                alphai.as_mut_ptr(),
+                beta_real.as_mut_ptr(),
                 vl,
                 &(ldvl as blas_int),
                 vr,
@@ -94,6 +106,13 @@ impl GGEVDriverAPI<T> for DeviceBLAS {
                 &(lwork as blas_int),
                 &mut info,
             );
+
+            // Convert to complex: alpha = Complex(alphar, alphai), beta = Complex(beta, 0)
+            for i in 0..n {
+                *alpha.add(i) = Complex::new(alphar[i], alphai[i]);
+                *beta.add(i) = Complex::new(beta_real[i], T::zero());
+            }
+
             info
         } else {
             // Row-major handling: LAPACK is column-major, so we need to transpose
@@ -144,9 +163,9 @@ impl GGEVDriverAPI<T> for DeviceBLAS {
                 &(lda_t as blas_int),
                 b_t.as_mut_ptr(),
                 &(ldb_t as blas_int),
-                alphar,
-                alphai,
-                beta,
+                alphar.as_mut_ptr(),
+                alphai.as_mut_ptr(),
+                beta_real.as_mut_ptr(),
                 vl_t.as_mut_ptr(),
                 &(ldvl_t as blas_int),
                 vr_t.as_mut_ptr(),
@@ -175,9 +194,9 @@ impl GGEVDriverAPI<T> for DeviceBLAS {
                 &(lda_t as blas_int),
                 b_t.as_mut_ptr(),
                 &(ldb_t as blas_int),
-                alphar,
-                alphai,
-                beta,
+                alphar.as_mut_ptr(),
+                alphai.as_mut_ptr(),
+                beta_real.as_mut_ptr(),
                 vl_t.as_mut_ptr(),
                 &(ldvl_t as blas_int),
                 vr_t.as_mut_ptr(),
@@ -206,6 +225,12 @@ impl GGEVDriverAPI<T> for DeviceBLAS {
                 orderchange_out_c2r_ix2_cpu_serial(vr_slice, &lvr, &vr_t, &lvr_t).unwrap();
             }
 
+            // Convert to complex: alpha = Complex(alphar, alphai), beta = Complex(beta, 0)
+            for i in 0..n {
+                *alpha.add(i) = Complex::new(alphar[i], alphai[i]);
+                *beta.add(i) = Complex::new(beta_real[i], T::zero());
+            }
+
             info
         }
     }
@@ -226,10 +251,8 @@ impl GGEVDriverAPI<T> for DeviceBLAS {
         lda: usize,
         b: *mut T,
         ldb: usize,
-        alphar: *mut <T as ComplexFloat>::Real,
-        alphai: *mut <T as ComplexFloat>::Real,
-        beta: *mut <T as ComplexFloat>::Real,
-        betai: *mut <T as ComplexFloat>::Real,
+        alpha: *mut T, // For complex types, T = Complex<T::Real>
+        beta: *mut T,  // For complex types, T = Complex<T::Real>
         vl: *mut T,
         ldvl: usize,
         vr: *mut T,
@@ -247,15 +270,9 @@ impl GGEVDriverAPI<T> for DeviceBLAS {
             Err(_) => return -1010,
         };
 
-        // Allocate temporary complex arrays for alpha and beta
-        let mut alpha: Vec<T> = match uninitialized_vec(n) {
-            Ok(alpha) => alpha,
-            Err(_) => return -1010,
-        };
-        let mut beta_complex: Vec<T> = match uninitialized_vec(n) {
-            Ok(beta) => beta,
-            Err(_) => return -1010,
-        };
+        // For complex types, alpha and beta are already complex.
+        // T = Complex<T::Real>, so T* = Complex<T::Real>*
+        // Cast to opaque pointer type for LAPACK FFI
 
         if order == ColMajor {
             // Query optimal work array size
@@ -270,8 +287,8 @@ impl GGEVDriverAPI<T> for DeviceBLAS {
                 &(lda as blas_int),
                 b as *mut _,
                 &(ldb as blas_int),
-                alpha.as_mut_ptr() as *mut _,
-                beta_complex.as_mut_ptr() as *mut _,
+                alpha as *mut _,
+                beta as *mut _,
                 vl as *mut _,
                 &(ldvl as blas_int),
                 vr as *mut _,
@@ -301,8 +318,8 @@ impl GGEVDriverAPI<T> for DeviceBLAS {
                 &(lda as blas_int),
                 b as *mut _,
                 &(ldb as blas_int),
-                alpha.as_mut_ptr() as *mut _,
-                beta_complex.as_mut_ptr() as *mut _,
+                alpha as *mut _,
+                beta as *mut _,
                 vl as *mut _,
                 &(ldvl as blas_int),
                 vr as *mut _,
@@ -312,20 +329,6 @@ impl GGEVDriverAPI<T> for DeviceBLAS {
                 rwork.as_mut_ptr() as *mut _,
                 &mut info,
             );
-            if info != 0 {
-                return info;
-            }
-
-            // Copy complex eigenvalues to alphar (real part) and alphai (imaginary part)
-            for i in 0..n {
-                let val_alpha = alpha[i];
-                *alphar.add(i) = val_alpha.re;
-                *alphai.add(i) = val_alpha.im;
-                let val_beta = beta_complex[i];
-                *beta.add(i) = val_beta.re;
-                *betai.add(i) = val_beta.im;
-            }
-
             info
         } else {
             // Row-major handling
@@ -376,8 +379,8 @@ impl GGEVDriverAPI<T> for DeviceBLAS {
                 &(lda_t as blas_int),
                 b_t.as_mut_ptr() as *mut _,
                 &(ldb_t as blas_int),
-                alpha.as_mut_ptr() as *mut _,
-                beta_complex.as_mut_ptr() as *mut _,
+                alpha as *mut _,
+                beta as *mut _,
                 vl_t.as_mut_ptr() as *mut _,
                 &(ldvl_t as blas_int),
                 vr_t.as_mut_ptr() as *mut _,
@@ -407,8 +410,8 @@ impl GGEVDriverAPI<T> for DeviceBLAS {
                 &(lda_t as blas_int),
                 b_t.as_mut_ptr() as *mut _,
                 &(ldb_t as blas_int),
-                alpha.as_mut_ptr() as *mut _,
-                beta_complex.as_mut_ptr() as *mut _,
+                alpha as *mut _,
+                beta as *mut _,
                 vl_t.as_mut_ptr() as *mut _,
                 &(ldvl_t as blas_int),
                 vr_t.as_mut_ptr() as *mut _,
@@ -436,16 +439,6 @@ impl GGEVDriverAPI<T> for DeviceBLAS {
                 let lvr = Layout::new_unchecked([n, n], [ldvr as isize, 1], 0);
                 let lvr_t = Layout::new_unchecked([n, n], [1, ldvr_t as isize], 0);
                 orderchange_out_c2r_ix2_cpu_serial(vr_slice, &lvr, &vr_t, &lvr_t).unwrap();
-            }
-
-            // Copy complex eigenvalues to alphar (real part) and alphai (imaginary part)
-            for i in 0..n {
-                let val_alpha = alpha[i];
-                *alphar.add(i) = val_alpha.re;
-                *alphai.add(i) = val_alpha.im;
-                let val_beta = beta_complex[i];
-                *beta.add(i) = val_beta.re;
-                *betai.add(i) = val_beta.im;
             }
 
             info

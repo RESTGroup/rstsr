@@ -1,7 +1,6 @@
 use crate::lapack_ffi;
 use crate::DeviceBLAS;
 use duplicate::duplicate_item;
-use num::complex::ComplexFloat;
 use num::Complex;
 use rstsr_blas_traits::lapack_eig::GEEVDriverAPI;
 use rstsr_blas_traits::prelude::*;
@@ -21,24 +20,51 @@ impl GEEVDriverAPI<T> for DeviceBLAS {
         n: usize,
         a: *mut T,
         lda: usize,
-        wr: *mut T,
-        wi: *mut T,
+        w: *mut Complex<T>,
         vl: *mut T,
         ldvl: usize,
         vr: *mut T,
         ldvr: usize,
     ) -> blas_int {
+        // For real types, LAPACKE_sgeev/dgeev returns wr and wi separately.
+        // We need to allocate temporary arrays, call LAPACKE, then combine into complex.
+        let mut wr: Vec<T> = match uninitialized_vec(n) {
+            Ok(wr) => wr,
+            Err(_) => return -1010,
+        };
+        let mut wi: Vec<T> = match uninitialized_vec(n) {
+            Ok(wi) => wi,
+            Err(_) => return -1010,
+        };
+
         let result = lapack_ffi::lapacke::lapacke_func(
-            order as _, jobvl as _, jobvr as _, n as _, a, lda as _, wr, wi, vl, ldvl as _, vr, ldvr as _,
+            order as _,
+            jobvl as _,
+            jobvr as _,
+            n as _,
+            a,
+            lda as _,
+            wr.as_mut_ptr(),
+            wi.as_mut_ptr(),
+            vl,
+            ldvl as _,
+            vr,
+            ldvr as _,
         );
+
+        // Combine wr and wi into complex eigenvalues
+        for i in 0..n {
+            *w.add(i) = Complex::new(wr[i], wi[i]);
+        }
+
         result
     }
 }
 
 #[duplicate_item(
     T              lapacke_func  ;
-   [Complex<f32>] [LAPACKE_cgeev];
-   [Complex<f64>] [LAPACKE_zgeev];
+   [Complex::<f32>] [LAPACKE_cgeev];
+   [Complex::<f64>] [LAPACKE_zgeev];
 )]
 impl GEEVDriverAPI<T> for DeviceBLAS {
     unsafe fn driver_geev(
@@ -48,22 +74,15 @@ impl GEEVDriverAPI<T> for DeviceBLAS {
         n: usize,
         a: *mut T,
         lda: usize,
-        wr: *mut <T as ComplexFloat>::Real,
-        wi: *mut <T as ComplexFloat>::Real,
+        w: *mut T, // For complex types, T = Complex<T::Real>
         vl: *mut T,
         ldvl: usize,
         vr: *mut T,
         ldvr: usize,
     ) -> blas_int {
-        // For complex types, LAPACKE_cgeev and LAPACKE_zgeev have a single complex eigenvalue array w
-        // We need to allocate a temporary complex array, call LAPACKE, then split into wr and wi
-
-        // Allocate temporary complex array for eigenvalues
-        let mut w: Vec<T> = match uninitialized_vec(n) {
-            Ok(w) => w,
-            Err(_) => return -1010,
-        };
-
+        // For complex types, LAPACKE_cgeev/zgeev has a single complex eigenvalue array w.
+        // The w pointer is already Complex<T::Real>*, which matches T* for complex types.
+        // We can pass it directly.
         let result = lapack_ffi::lapacke::lapacke_func(
             order as _,
             jobvl as _,
@@ -71,19 +90,12 @@ impl GEEVDriverAPI<T> for DeviceBLAS {
             n as _,
             a as *mut _,
             lda as _,
-            w.as_mut_ptr() as *mut _,
+            w as *mut _, // T and Complex<T::Real> are the same for complex types
             vl as *mut _,
             ldvl as _,
             vr as *mut _,
             ldvr as _,
         );
-
-        // Copy complex eigenvalues to wr (real part) and wi (imaginary part)
-        for i in 0..n {
-            let val = w[i];
-            *wr.add(i) = val.re;
-            *wi.add(i) = val.im;
-        }
 
         result
     }

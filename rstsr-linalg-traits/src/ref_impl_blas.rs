@@ -562,17 +562,13 @@ where
     let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
 
     let task = || {
-        let (wr, wi, vl, vr, _) = GEEV::default().a(a).left(left).right(right).build()?.run()?;
+        let (w, vl, vr, _) = GEEV::default().a(a).left(left).right(right).build()?.run()?;
 
-        // Convert eigenvalues to complex
-        let n = wr.shape()[0];
-        let wr_raw = wr.raw();
-        let wi_raw = wi.raw();
-        let mut w_vec: Vec<num::Complex<T::Real>> = Vec::with_capacity(n);
-        for i in 0..n {
-            w_vec.push(num::Complex::new(wr_raw[i], wi_raw[i]));
-        }
-        let w = rt::asarray((w_vec, [n].c(), &device)).into_dim::<Ix1>();
+        // w is already complex - extract imaginary parts for eigenvector conversion
+        let n = w.shape()[0];
+        let w_raw = w.raw();
+        let wi_vec: Vec<T::Real> = (0..n).map(|i| w_raw[i].im).collect();
+        let wi = rt::asarray((wi_vec, [n].c(), &device)).into_dim::<Ix1>();
 
         // Convert eigenvectors using the trait
         let vl_complex = <() as EigenvectorConvertAPI<B, T>>::convert_eigenvectors(&wi, vl, &device)?;
@@ -625,30 +621,29 @@ where
     let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
 
     let task = || {
-        let (alphar, alphai, beta, betai, vl, vr, _, _) = GGEV::default().a(a).b(b).left(left).right(right).build()?.run()?;
+        let (alpha, beta, vl, vr, _, _) = GGEV::default().a(a).b(b).left(left).right(right).build()?.run()?;
 
-        // Convert eigenvalues to complex: λ = (alphar + i*alphai) / (beta + i*betai)
-        // For real types, betai is all zeros (or unused), so this simplifies to alpha/beta
-        // For complex types, both alpha and beta are complex
-        let n = alphar.shape()[0];
-        let alphar_raw = alphar.raw();
-        let alphai_raw = alphai.raw();
+        // Eigenvalues are already complex: λ = alpha / beta
+        let n = alpha.shape()[0];
+        let alpha_raw = alpha.raw();
         let beta_raw = beta.raw();
-        let betai_raw = betai.raw();
 
         let mut w_vec: Vec<num::Complex<T::Real>> = Vec::with_capacity(n);
         for i in 0..n {
-            let alpha = num::Complex::new(alphar_raw[i], alphai_raw[i]);
-            let beta_complex = num::Complex::new(beta_raw[i], betai_raw[i]);
-            let beta_mag = beta_complex.norm();
+            let beta_val = beta_raw[i];
+            let beta_mag = beta_val.norm();
             if beta_mag > T::Real::epsilon() {
-                w_vec.push(alpha / beta_complex);
+                w_vec.push(alpha_raw[i] / beta_val);
             } else {
                 // Infinite eigenvalue (beta is near zero)
                 w_vec.push(num::Complex::new(T::Real::infinity(), T::Real::zero()));
             }
         }
         let w = rt::asarray((w_vec, [n].c(), &device)).into_dim::<Ix1>();
+
+        // Extract imaginary parts of alpha for eigenvector conversion
+        let alphai_vec: Vec<T::Real> = (0..n).map(|i| alpha_raw[i].im).collect();
+        let alphai = rt::asarray((alphai_vec, [n].c(), &device)).into_dim::<Ix1>();
 
         // Convert eigenvectors using the trait
         let vl_complex = <() as EigenvectorConvertAPI<B, T>>::convert_eigenvectors(&alphai, vl, &device)?;
