@@ -264,7 +264,8 @@ impl GGEVDriverAPI<T> for DeviceBLAS {
         let compute_vr = jobvr == 'V' || jobvr == 'v';
 
         // Allocate rwork array (required for complex GGEV)
-        let rwork_len = 2 * n;
+        // LAPACK documentation: RWORK is DOUBLE PRECISION array, dimension (8*N)
+        let rwork_len = 8 * n;
         let mut rwork: Vec<<T as ComplexFloat>::Real> = match uninitialized_vec(rwork_len) {
             Ok(rwork) => rwork,
             Err(_) => return -1010,
