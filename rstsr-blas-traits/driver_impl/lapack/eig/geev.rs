@@ -242,10 +242,6 @@ impl GEEVDriverAPI<T> for DeviceBLAS {
             Err(_) => return -1010,
         };
 
-        // For complex types, T = Complex<T::Real>, so w pointer is compatible with T*
-        // LAPACK FFI uses __BindgenComplex but we can cast
-        let ptr_w = w as *mut T;
-
         if order == ColMajor {
             // Query optimal work array size
             let mut info = 0;
@@ -257,7 +253,7 @@ impl GEEVDriverAPI<T> for DeviceBLAS {
                 &(n as blas_int),
                 a as *mut _,
                 &(lda as blas_int),
-                ptr_w as *mut _,
+                w as *mut _ as *mut _,
                 vl as *mut _,
                 &(ldvl as blas_int),
                 vr as *mut _,
@@ -285,7 +281,7 @@ impl GEEVDriverAPI<T> for DeviceBLAS {
                 &(n as blas_int),
                 a as *mut _,
                 &(lda as blas_int),
-                ptr_w as *mut _,
+                w as *mut _ as *mut _,
                 vl as *mut _,
                 &(ldvl as blas_int),
                 vr as *mut _,
@@ -340,7 +336,7 @@ impl GEEVDriverAPI<T> for DeviceBLAS {
                 &(n as blas_int),
                 a_t.as_mut_ptr() as *mut _,
                 &(lda_t as blas_int),
-                ptr_w as *mut _,
+                w as *mut _ as *mut _,
                 vl_t.as_mut_ptr() as *mut _,
                 &(ldvl_t as blas_int),
                 vr_t.as_mut_ptr() as *mut _,
@@ -368,7 +364,7 @@ impl GEEVDriverAPI<T> for DeviceBLAS {
                 &(n as blas_int),
                 a_t.as_mut_ptr() as *mut _,
                 &(lda_t as blas_int),
-                ptr_w as *mut _,
+                w as *mut _ as *mut _,
                 vl_t.as_mut_ptr() as *mut _,
                 &(ldvl_t as blas_int),
                 vr_t.as_mut_ptr() as *mut _,

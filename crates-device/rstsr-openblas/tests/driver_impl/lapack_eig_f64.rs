@@ -9,7 +9,6 @@ use rstsr_test_manifest::get_vec;
 /// This makes the comparison implementation-agnostic (works with both MKL and OpenBLAS).
 fn sorted_eigenvalue_fingerprint(w: &Tensor<Complex<f64>, DeviceBLAS, Ix1>) -> f64 {
     let w_vec = w.raw();
-    let n = w_vec.len();
     let mut eigenvalues: Vec<Complex<f64>> = w_vec.clone();
     // Sort by real part first, then imaginary part
     eigenvalues.sort_by(|a, b| a.re.partial_cmp(&b.re).unwrap().then_with(|| a.im.partial_cmp(&b.im).unwrap()));
