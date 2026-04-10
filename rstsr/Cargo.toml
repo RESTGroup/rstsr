@@ -15,6 +15,7 @@ rstsr-core = { workspace = true }
 rstsr-common = { workspace = true }
 rstsr-dtype-traits = { workspace = true }
 rstsr-linalg-traits = { workspace = true, optional = true }
+rstsr-blas-traits = { workspace = true, optional = true }
 rstsr-sci-traits = { workspace = true, optional = true }
 # API document dependencies
 num = { workspace = true }
@@ -44,11 +45,12 @@ aligned_alloc = ["rstsr-core/aligned_alloc"]
 dispatch_dim_layout_iter = ["rstsr-core/dispatch_dim_layout_iter"]
 
 # rstsr BLAS device features
-openblas = ["dep:rstsr-openblas"]
-mkl = ["dep:rstsr-mkl"]
-blis = ["dep:rstsr-blis"]
-aocl = ["dep:rstsr-aocl"]
-kml = ["dep:rstsr-kml"]
+use_blas_traits = ["dep:rstsr-blas-traits"]
+openblas = ["dep:rstsr-openblas", "use_blas_traits"]
+mkl = ["dep:rstsr-mkl", "use_blas_traits"]
+blis = ["dep:rstsr-blis", "use_blas_traits"]
+aocl = ["dep:rstsr-aocl", "use_blas_traits"]
+kml = ["dep:rstsr-kml", "use_blas_traits"]
 
 # dependencies specification
 linalg = ["dep:rstsr-linalg-traits", "rstsr-openblas?/linalg", "rstsr-mkl?/linalg", "rstsr-blis?/linalg", "rstsr-aocl?/linalg", "rstsr-kml?/linalg"]

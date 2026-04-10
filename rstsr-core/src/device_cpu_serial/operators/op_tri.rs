@@ -19,7 +19,7 @@ where
             ColMajor => {
                 let la = la.reverse_axes();
                 let lb = lb.reverse_axes();
-                let uplo = uplo.flip()?;
+                let uplo = uplo.flip();
                 pack_tri_cpu_serial(a, &la, b, &lb, uplo)
             },
         }
@@ -45,7 +45,7 @@ where
             ColMajor => {
                 let la = la.reverse_axes();
                 let lb = lb.reverse_axes();
-                let uplo = uplo.flip()?;
+                let uplo = uplo.flip();
                 unpack_tri_cpu_serial(a, &la, b, &lb, uplo, symm)
             },
         }
