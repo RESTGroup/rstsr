@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.7.2 -- 2026-04-10
+
+All changes at RESTGroup/rstsr#76.
+
+API breaking changes
+
+- Refactored the `flip` methods for `FlagSide` and `FlagUpLo` enums to return the flipped value directly instead of a `Result`, since the operation cannot fail. Updated all call sites to remove unnecessary `?` error propagation.
+
+Enhancements
+
+- Re-exported the BLAS traits prelude under the new feature in `rstsr/src/prelude.rs` for easier access.
+- Made all BLAS flag enums (`FlagOrder`, `TensorIterOrder`, `FlagTrans`, `FlagSide`, `FlagUpLo`, `FlagDiag`, `FlagSymm`) derive `Serialize` and `Deserialize`, and added Serde `rename` attributes for better control over their string representations.
+
+Crate structure
+
+- Added `serde` as a dependency in the relevant `Cargo.toml` files and imported the necessary traits in `flags.rs`.
+- Symlinked `CHANGELOG.md` to rstsr crate directory.
+
 ## v0.7.1 -- 2026-03-30
 
 Documentation update:
