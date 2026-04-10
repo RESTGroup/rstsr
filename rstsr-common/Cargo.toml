@@ -16,6 +16,7 @@ num = { workspace = true }
 derive_builder = { workspace = true }
 rayon = { workspace = true, optional = true }
 rstsr-cblas-base = { workspace = true }
+serde = { workspace = true }
 
 [dev-dependencies]
 rstsr-core = { path = "../rstsr-core", default-features = false }

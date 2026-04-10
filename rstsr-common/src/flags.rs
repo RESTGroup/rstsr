@@ -3,6 +3,7 @@
 use crate::prelude_dev::*;
 use core::ffi::c_char;
 use rstsr_cblas_base::*;
+use serde::{Deserialize, Serialize};
 
 /* #region changeable default */
 
@@ -57,11 +58,13 @@ macro_rules! impl_changeable_default {
 /// F-prefer is not a stable feature currently! We develop only in C-prefer
 /// currently.
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FlagOrder {
     /// row-major order.
+    #[serde(rename = "RowMajor")]
     C = 101,
     /// column-major order.
+    #[serde(rename = "ColMajor")]
     F = 102,
 }
 
@@ -87,15 +90,17 @@ impl Default for FlagOrder {
 /* #region TensorIterOrder */
 
 /// The policy of the tensor iterator.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TensorIterOrder {
     /// Row-major order.
     ///
     /// - absolute safe for array iteration
+    #[serde(rename = "RowMajor")]
     C,
     /// Column-major order.
     ///
     /// - absolute safe for array iteration
+    #[serde(rename = "ColMajor")]
     F,
     /// Automatically choose row/col-major order.
     ///
@@ -105,22 +110,26 @@ pub enum TensorIterOrder {
     ///
     /// - safe for multi-array iteration like `get_iter(a, b)`
     /// - not safe for cases like `a.iter().zip(b.iter())`
+    #[serde(rename = "Auto")]
     A,
     /// Greedy when possible (reorder layouts during iteration).
     ///
     /// - safe for multi-array iteration like `get_iter(a, b)`
     /// - not safe for cases like `a.iter().zip(b.iter())`
     /// - if it is used to create a new array, the stride of new array will be in K order
+    #[serde(rename = "Greedy")]
     K,
     /// Greedy when possible (reset dimension to 1 if axis is broadcasted).
     ///
     /// - not safe for multi-array iteration like `get_iter(a, b)`
     /// - this is useful for inplace-assign broadcasted array.
+    #[serde(rename = "GreedyInplace")]
     G,
     /// Sequential buffer.
     ///
     /// - not safe for multi-array iteration like `get_iter(a, b)`
     /// - this is useful for reshaping or all-contiguous cases.
+    #[serde(rename = "Sequential")]
     B,
 }
 
@@ -154,42 +163,52 @@ pub mod TensorCopyPolicy {
 /* #region blas-flags */
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FlagTrans {
     /// No transpose
+    #[serde(rename = "NoTrans")]
     N = 111,
     /// Transpose
+    #[serde(rename = "Trans")]
     T = 112,
     /// Conjugate transpose
+    #[serde(rename = "ConjTrans")]
     C = 113,
     // Conjuate only
+    #[serde(rename = "Conj")]
     CN = 114,
 }
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FlagSide {
     /// Left side
+    #[serde(rename = "Left")]
     L = 141,
     /// Right side
+    #[serde(rename = "Right")]
     R = 142,
 }
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FlagUpLo {
     /// Upper triangle
+    #[serde(rename = "Upper")]
     U = 121,
     /// Lower triangle
+    #[serde(rename = "Lower")]
     L = 122,
 }
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FlagDiag {
     /// Non-unit diagonal
+    #[serde(rename = "NonUnit")]
     N = 131,
     /// Unit diagonal
+    #[serde(rename = "Unit")]
     U = 132,
 }
 
@@ -197,17 +216,22 @@ pub enum FlagDiag {
 
 /* #region symm-flags */
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FlagSymm {
     /// Symmetric matrix
+    #[serde(rename = "Symmetric")]
     Sy,
     /// Hermitian matrix
+    #[serde(rename = "Hermitian")]
     He,
     /// Anti-symmetric matrix
+    #[serde(rename = "AntiSymmetric")]
     Ay,
     /// Anti-Hermitian matrix
+    #[serde(rename = "AntiHermitian")]
     Ah,
     /// Non-symmetric matrix
+    #[serde(rename = "NonSymmetric")]
     N,
 }
 
