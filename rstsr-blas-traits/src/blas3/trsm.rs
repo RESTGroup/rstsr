@@ -68,7 +68,7 @@ where
         let order = get_output_order(&[order, Some(order_b)], &[], default_order);
         if order == ColMajor {
             let (transa_new, a_cow) = flip_trans(ColMajor, transa, a, false)?;
-            let uplo = if transa_new != transa { uplo.flip()? } else { uplo };
+            let uplo = if transa_new != transa { uplo.flip() } else { uplo };
             let obj = TRSM_ {
                 a: a_cow.view(),
                 b,
@@ -82,13 +82,13 @@ where
             obj.internal_run()
         } else {
             let (transa_new, a_cow) = flip_trans(RowMajor, transa, a, false)?;
-            let uplo = if transa_new != transa { uplo.flip()? } else { uplo };
+            let uplo = if transa_new != transa { uplo.flip() } else { uplo };
             let obj = TRSM_ {
                 a: a_cow.t(),
                 b: b.into_reverse_axes(),
                 alpha,
-                side: side.flip()?,
-                uplo: Some(uplo.flip()?),
+                side: side.flip(),
+                uplo: Some(uplo.flip()),
                 transa: transa_new,
                 diag,
                 order: Some(ColMajor),

@@ -521,19 +521,19 @@ impl FlagTrans {
 }
 
 impl FlagSide {
-    pub fn flip(&self) -> Result<Self> {
+    pub fn flip(&self) -> Self {
         match self {
-            FlagSide::L => Ok(FlagSide::R),
-            FlagSide::R => Ok(FlagSide::L),
+            FlagSide::L => FlagSide::R,
+            FlagSide::R => FlagSide::L,
         }
     }
 }
 
 impl FlagUpLo {
-    pub fn flip(&self) -> Result<Self> {
+    pub fn flip(&self) -> Self {
         match self {
-            FlagUpLo::U => Ok(FlagUpLo::L),
-            FlagUpLo::L => Ok(FlagUpLo::U),
+            FlagUpLo::U => FlagUpLo::L,
+            FlagUpLo::L => FlagUpLo::U,
         }
     }
 }

@@ -64,7 +64,7 @@ where
         let order = get_output_order(&[order, order_c], &[], default_order);
         if order == ColMajor {
             let (uplo, a_cow) = match (HERMI, a.f_prefer()) {
-                (false, false) => (uplo.flip()?, a.to_contig_f(ColMajor)?),
+                (false, false) => (uplo.flip(), a.to_contig_f(ColMajor)?),
                 _ => (uplo, a.to_contig_f(ColMajor)?),
             };
             let b_cow = b.to_contig_f(ColMajor)?;
@@ -72,7 +72,7 @@ where
             obj.internal_run()
         } else {
             let (uplo, a_cow) = match (HERMI, a.c_prefer()) {
-                (false, false) => (uplo.flip()?, a.to_contig_f(RowMajor)?),
+                (false, false) => (uplo.flip(), a.to_contig_f(RowMajor)?),
                 _ => (uplo, a.to_contig_f(RowMajor)?),
             };
             let b_cow = b.to_contig_f(RowMajor)?;
@@ -82,8 +82,8 @@ where
                 c: c.map(|c| c.into_reverse_axes()),
                 alpha,
                 beta,
-                side: side.flip()?,
-                uplo: uplo.flip()?,
+                side: side.flip(),
+                uplo: uplo.flip(),
                 order: Some(ColMajor),
             };
             Ok(obj.internal_run()?.into_reverse_axes())
