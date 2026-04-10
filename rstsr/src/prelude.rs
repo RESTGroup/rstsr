@@ -149,5 +149,8 @@ pub mod rt {
     #[cfg(feature = "tblis")]
     pub use super::tblis;
 
+    #[cfg(feature = "use_blas_traits")]
+    pub use rstsr_blas_traits::prelude as blas;
+
     pub use rstsr_core::prelude::rt::{Error, Result};
 }
