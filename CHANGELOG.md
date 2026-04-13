@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.7.3 -- 2026-04-13
+
+Bug Fix
+
+- Fix previous behavior that layout equality check does not involve offset. (issue RESTGroup/rstsr#77, pr RESTGroup/rstsr#78)
+
 ## v0.7.2 -- 2026-04-10
 
 All changes at RESTGroup/rstsr#76.
