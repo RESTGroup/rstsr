@@ -552,10 +552,13 @@ impl<D> PartialEq for Layout<D>
 where
     D: DimBaseAPI,
 {
-    /// For layout, shape must be the same, while stride should be the same when
-    /// shape is not zero or one, but can be arbitary otherwise.
+    /// For layout, shape must be the same, offset must be the same, while stride should be the same
+    /// when shape is not zero or one, but can be arbitary otherwise.
     fn eq(&self, other: &Self) -> bool {
         if self.ndim() != other.ndim() {
+            return false;
+        }
+        if self.offset != other.offset {
             return false;
         }
         for i in 0..self.ndim() {
