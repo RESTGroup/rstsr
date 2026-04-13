@@ -958,7 +958,7 @@ mod test {
         let diag = layout.diagonal(None, None, None).unwrap();
         assert_eq!(diag, Layout::new([4, 2], [1, 16], 0).unwrap());
         let diag = layout.diagonal(Some(-1), Some(-2), Some(-1)).unwrap();
-        assert_eq!(diag, Layout::new([2, 2], [12, 5], 0).unwrap());
+        assert_eq!(diag, Layout::new([2, 2], [12, 5], 4).unwrap()); // fixed at issue 77
         let diag = layout.diagonal(Some(-4), Some(-2), Some(-1)).unwrap();
         assert_eq!(diag, Layout::new([2, 0], [12, 5], 0).unwrap());
     }

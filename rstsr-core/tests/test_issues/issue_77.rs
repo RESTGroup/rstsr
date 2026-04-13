@@ -1,5 +1,5 @@
 #[test]
-pub fn issue_xx() {
+pub fn issue() {
     use rstsr::prelude::*;
     let mut device = DeviceCpuSerial::default();
     device.set_default_order(RowMajor);
