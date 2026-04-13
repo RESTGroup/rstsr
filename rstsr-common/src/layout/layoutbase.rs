@@ -552,10 +552,13 @@ impl<D> PartialEq for Layout<D>
 where
     D: DimBaseAPI,
 {
-    /// For layout, shape must be the same, while stride should be the same when
-    /// shape is not zero or one, but can be arbitary otherwise.
+    /// For layout, shape must be the same, offset must be the same, while stride should be the same
+    /// when shape is not zero or one, but can be arbitary otherwise.
     fn eq(&self, other: &Self) -> bool {
         if self.ndim() != other.ndim() {
+            return false;
+        }
+        if self.offset != other.offset {
             return false;
         }
         for i in 0..self.ndim() {
@@ -955,7 +958,7 @@ mod test {
         let diag = layout.diagonal(None, None, None).unwrap();
         assert_eq!(diag, Layout::new([4, 2], [1, 16], 0).unwrap());
         let diag = layout.diagonal(Some(-1), Some(-2), Some(-1)).unwrap();
-        assert_eq!(diag, Layout::new([2, 2], [12, 5], 0).unwrap());
+        assert_eq!(diag, Layout::new([2, 2], [12, 5], 4).unwrap()); // fixed at issue 77
         let diag = layout.diagonal(Some(-4), Some(-2), Some(-1)).unwrap();
         assert_eq!(diag, Layout::new([2, 0], [12, 5], 0).unwrap());
     }
