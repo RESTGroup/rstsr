@@ -18,3 +18,6 @@ opt-einsum-path = { workspace = true }
 rstsr = { path = "../../rstsr", features = ["faer", "tblis"] }
 tblis-src = { workspace = true }
 rstsr-core = { workspace = true, features = ["rayon", "faer"] }
+
+[features]
+dynamic_loading = ["tblis/dynamic_loading"]
