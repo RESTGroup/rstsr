@@ -228,7 +228,7 @@ mod test {
     #[test]
     fn test_abs() {
         use num::complex::c32;
-        let a = linspace((c32(1.0, 2.0), c32(5.0, 6.0), 6)).into_shape([2, 3]);
+        let a = linspace((c32(1.0f32, 2.0f32), c32(5.0f32, 6.0f32), 6)).into_shape([2, 3]);
         let ptr_a = a.raw().as_ptr();
         let b = a.abs();
         let ptr_b = b.raw().as_ptr();
@@ -251,7 +251,7 @@ mod test {
     #[test]
     fn test_hetrogeneous_type() {
         use num::complex::c32;
-        let a = linspace((c32(1.0, 2.0), c32(5.0, 6.0), 6)).into_shape([2, 3]);
+        let a = linspace((c32(1.0f32, 2.0f32), c32(5.0f32, 6.0f32), 6)).into_shape([2, 3]);
         let b = (&a).imag();
         println!("{b:}");
     }
