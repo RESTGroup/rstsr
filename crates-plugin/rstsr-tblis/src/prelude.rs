@@ -1,5 +1,5 @@
 pub mod rstsr_traits {
-    pub use crate::einsum_impl::RTToTblisTensorAPI;
+    pub use crate::einsum_impl::{RTToTblisTensorAPI, TblisEinsumFromAPI};
 }
 
 pub mod rstsr_funcs {
