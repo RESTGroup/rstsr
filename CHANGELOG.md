@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.7.5 -- 2026-05-24
+
+All changes at RESTGroup/rstsr#80.
+
+Enhancement
+
+- Allow LowerExp/UpperExp (scientific float print).
+
+API breaking changes (user should not feel that)
+
+- Changes the behavior of Display print, now the tensor will only be referenced when printing at least for CPU devices.
+
+We still make Debug print to copy the whole tensor. In this way, the debug print uses minimal trait bounds, easier for debugging in other devices. This behavior may also change if necessary.
+
 ## v0.7.4 -- 2026-05-21
 
 All changes at RESTGroup/rstsr#79
