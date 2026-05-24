@@ -1,5 +1,5 @@
 use crate::prelude_dev::*;
-use core::fmt::{Debug, Display, LowerExp};
+use core::fmt::{Debug, Display, LowerExp, UpperExp};
 use core::sync::atomic::{AtomicUsize, Ordering};
 
 pub static MIN_PRINT: AtomicUsize = AtomicUsize::new(3);
@@ -210,25 +210,12 @@ where
 
 /* #endregion */
 
-/* #region display print */
+/* #region display/lowerexp/upperexp print */
 
-pub fn print_vec_with_layout<T, D>(
-    fmt: &mut core::fmt::Formatter<'_>,
-    vec: &[T],
-    layout: &Layout<D>,
-    max_print: usize,
-    min_print: usize,
-) -> core::fmt::Result
+#[duplicate_item(Trait; [Display]; [LowerExp]; [UpperExp])]
+impl<R, T, B, D> Trait for TensorAny<R, T, B, D>
 where
-    T: Clone + Display,
-    D: DimAPI,
-{
-    print_vec_with_layout_generic(fmt, vec, layout, max_print, min_print, Display::fmt)
-}
-
-impl<R, T, B, D> Display for TensorAny<R, T, B, D>
-where
-    T: Clone + Display,
+    T: Clone + Trait,
     for<'a> B: DeviceAPI<T, Raw: 'a>
         + DeviceChangeAPI<
             'a,
@@ -247,7 +234,7 @@ where
         let layout = &tsr.layout();
         let max_print = MAX_PRINT.load(Ordering::Relaxed);
         let min_print = MIN_PRINT.load(Ordering::Relaxed);
-        print_vec_with_layout(f, slc, layout, max_print, min_print)
+        print_vec_with_layout_generic(f, slc, layout, max_print, min_print, Trait::fmt)
     }
 }
 
@@ -283,7 +270,7 @@ where
         let layout = &self.layout();
         let max_print = MAX_PRINT.load(Ordering::Relaxed);
         let min_print = MIN_PRINT.load(Ordering::Relaxed);
-        print_vec_with_layout_debug(f, &vec, layout, max_print, min_print)?;
+        print_vec_with_layout_generic(f, &vec, layout, max_print, min_print, Debug::fmt)?;
         writeln!(f)?;
         Debug::fmt(&self.device(), f)?;
         writeln!(f)?;
@@ -292,41 +279,6 @@ where
         let self_type = core::any::type_name::<Self>();
         writeln!(f, "Type: {self_type}")?;
         writeln!(f, "==========================")
-    }
-}
-
-/* #endregion */
-
-/* #region lower exp print */
-
-pub fn print_vec_with_layout_lower_exp<T, D>(
-    fmt: &mut core::fmt::Formatter<'_>,
-    vec: &[T],
-    layout: &Layout<D>,
-    max_print: usize,
-    min_print: usize,
-) -> core::fmt::Result
-where
-    T: Clone + LowerExp,
-    D: DimAPI,
-{
-    print_vec_with_layout_generic(fmt, vec, layout, max_print, min_print, LowerExp::fmt)
-}
-
-impl<R, T, B, D> LowerExp for TensorAny<R, T, B, D>
-where
-    T: Clone + LowerExp,
-    B: DeviceAPI<T>,
-    B::Raw: Clone,
-    D: DimAPI,
-    R: DataCloneAPI<Data = B::Raw>,
-{
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        let vec = self.storage().to_cpu_vec().unwrap();
-        let layout = &self.layout();
-        let max_print = MAX_PRINT.load(Ordering::Relaxed);
-        let min_print = MIN_PRINT.load(Ordering::Relaxed);
-        print_vec_with_layout_lower_exp(f, &vec, layout, max_print, min_print)
     }
 }
 
@@ -352,7 +304,7 @@ mod playground {
             let layout = &self.1;
             let max_print = MAX_PRINT.load(Ordering::Relaxed);
             let min_print = MIN_PRINT.load(Ordering::Relaxed);
-            print_vec_with_layout(f, vec, layout, max_print, min_print)
+            print_vec_with_layout_generic(f, vec, layout, max_print, min_print, Display::fmt)
         }
     }
 
