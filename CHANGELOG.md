@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.7.4 -- 2026-05-21
+
+All changes at RESTGroup/rstsr#79
+
+Bug Fix
+
+- Fix function `rt::vecdot_from`, which previously falsely returned result instead of panic.
+
+Enhancement
+
+- add associated function of `vecdot` series
+- add trait function (use as associated function) `einsum_from`
+
 ## v0.7.3 -- 2026-04-13
 
 Bug Fix

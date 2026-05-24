@@ -229,6 +229,57 @@ where
     einsum_with_option_output_f(subscripts, operands, optimize, memory_limit, Some(output)).map(|_| ())
 }
 
+/// Perform einsum operation using TBLIS, and store the result inplace.
+///
+/// See also [`einsum`] and [`einsum_with_output`].
+pub trait TblisEinsumFromAPI<T, B>
+where
+    T: TblisFloatAPI,
+    B: DeviceAPI<T, Raw = Vec<T>>,
+{
+    /// Perform einsum operation using TBLIS, and store the result inplace.
+    ///
+    /// See also [`einsum`] and [`einsum_with_output`].
+    fn einsum_from(
+        &mut self,
+        subscripts: &str,
+        operands: impl TensorViewListAPI<T, B>,
+        optimize: impl PathOptimizer,
+        memory_limit: impl Into<SizeLimitType>,
+    ) {
+        self.einsum_from_f(subscripts, operands, optimize, memory_limit).rstsr_unwrap()
+    }
+
+    /// Perform einsum operation using TBLIS, and store the result inplace.
+    ///
+    /// See also [`einsum`] and [`einsum_with_output`].
+    fn einsum_from_f(
+        &mut self,
+        subscripts: &str,
+        operands: impl TensorViewListAPI<T, B>,
+        optimize: impl PathOptimizer,
+        memory_limit: impl Into<SizeLimitType>,
+    ) -> Result<()>;
+}
+
+impl<R, T, B> TblisEinsumFromAPI<T, B> for TensorAny<R, T, B, IxD>
+where
+    R: DataMutAPI<Data = B::Raw>,
+    T: TblisFloatAPI,
+    B: DeviceAPI<T, Raw = Vec<T>> + DeviceRayonAPI,
+{
+    fn einsum_from_f(
+        &mut self,
+        subscripts: &str,
+        operands: impl TensorViewListAPI<T, B>,
+        optimize: impl PathOptimizer,
+        memory_limit: impl Into<SizeLimitType>,
+    ) -> Result<()> {
+        let output = self.view_mut();
+        einsum_with_output_f(subscripts, operands, optimize, memory_limit, output)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     #[test]

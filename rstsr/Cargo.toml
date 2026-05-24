@@ -53,13 +53,40 @@ aocl = ["dep:rstsr-aocl", "use_blas_traits"]
 kml = ["dep:rstsr-kml", "use_blas_traits"]
 
 # dependencies specification
-linalg = ["dep:rstsr-linalg-traits", "rstsr-openblas?/linalg", "rstsr-mkl?/linalg", "rstsr-blis?/linalg", "rstsr-aocl?/linalg", "rstsr-kml?/linalg"]
-sci = ["dep:rstsr-sci-traits", "rstsr-openblas?/sci", "rstsr-mkl?/sci", "rstsr-blis?/sci", "rstsr-aocl?/sci", "rstsr-kml?/sci"]
+linalg = [
+    "dep:rstsr-linalg-traits",
+    "rstsr-openblas?/linalg",
+    "rstsr-mkl?/linalg",
+    "rstsr-blis?/linalg",
+    "rstsr-aocl?/linalg",
+    "rstsr-kml?/linalg",
+]
+sci = [
+    "dep:rstsr-sci-traits",
+    "rstsr-openblas?/sci",
+    "rstsr-mkl?/sci",
+    "rstsr-blis?/sci",
+    "rstsr-aocl?/sci",
+    "rstsr-kml?/sci",
+]
 tblis = ["dep:rstsr-tblis"]
 
 # BLAS configurations
-dynamic_loading = ["rstsr-openblas?/dynamic_loading", "rstsr-mkl?/dynamic_loading", "rstsr-blis?/dynamic_loading", "rstsr-aocl?/dynamic_loading", "rstsr-kml?/dynamic_loading"]
-ilp64 = ["rstsr-openblas?/ilp64", "rstsr-mkl?/ilp64", "rstsr-blis?/ilp64", "rstsr-aocl?/ilp64", "rstsr-kml?/ilp64"]
+dynamic_loading = [
+    "rstsr-openblas?/dynamic_loading",
+    "rstsr-mkl?/dynamic_loading",
+    "rstsr-blis?/dynamic_loading",
+    "rstsr-aocl?/dynamic_loading",
+    "rstsr-kml?/dynamic_loading",
+    "rstsr-tblis?/dynamic_loading",
+]
+ilp64 = [
+    "rstsr-openblas?/ilp64",
+    "rstsr-mkl?/ilp64",
+    "rstsr-blis?/ilp64",
+    "rstsr-aocl?/ilp64",
+    "rstsr-kml?/ilp64",
+]
 
 [package.metadata.docs.rs]
 features = ["default", "openblas", "linalg", "sci", "tblis"]

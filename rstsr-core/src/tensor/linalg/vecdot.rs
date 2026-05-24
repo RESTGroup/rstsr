@@ -145,18 +145,13 @@ pub fn vecdot_from<TA, TB, TC, DA, DB, DC, B>(
     a: impl TensorViewAPI<Type = TA, Backend = B, Dim = DA>,
     b: impl TensorViewAPI<Type = TB, Backend = B, Dim = DB>,
     axes_pair: impl TryInto<AxesPairIndex<isize>, Error: Into<Error>>,
-) -> Result<()>
-where
+) where
     DA: DimAPI,
     DB: DimAPI,
     DC: DimAPI,
-    B: DeviceVecdotAPI<TA, TB, TC, DA, DB, DC>
-        + DeviceAPI<TA>
-        + DeviceAPI<TB>
-        + DeviceAPI<TC>
-        + DeviceAPI<MaybeUninit<TC>>,
+    B: DeviceVecdotAPI<TA, TB, TC, DA, DB, DC> + DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<TC>,
 {
-    vecdot_from_f(c, a, b, axes_pair)
+    vecdot_from_f(c, a, b, axes_pair).rstsr_unwrap()
 }
 
 /// Vector dot product of two arrays.
@@ -261,11 +256,7 @@ where
     DA: DimAPI,
     DB: DimAPI,
     DC: DimAPI,
-    B: DeviceVecdotAPI<TA, TB, TC, DA, DB, DC>
-        + DeviceAPI<TA>
-        + DeviceAPI<TB>
-        + DeviceAPI<TC>
-        + DeviceAPI<MaybeUninit<TC>>,
+    B: DeviceVecdotAPI<TA, TB, TC, DA, DB, DC> + DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<TC>,
 {
     let (a, b, mut c) = (a.view(), b.view(), c.view_mut());
 
@@ -335,6 +326,88 @@ where
         transmute::<&mut <B as DeviceRawAPI<TC>>::Raw, &mut <B as DeviceRawAPI<MaybeUninit<TC>>>::Raw>(c.raw_mut())
     };
     device.vecdot(c_raw_mut, &c_layout, a.raw(), a.layout(), b.raw(), b.layout(), &axes_a, &axes_b)
+}
+
+impl<R, T, B, D> TensorAny<R, T, B, D>
+where
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+    B: DeviceAPI<T>,
+    D: DimAPI,
+{
+    /// Vector dot product of two arrays.
+    ///
+    /// See also [`vecdot`].
+    pub fn vecdot<TB, DB, TC>(
+        &self,
+        b: impl TensorViewAPI<Type = TB, Backend = B, Dim = DB>,
+        axes_pair: impl TryInto<AxesPairIndex<isize>, Error: Into<Error>>,
+    ) -> Tensor<TC, B, IxD>
+    where
+        T: Mul<TB, Output = TC>,
+        DB: DimAPI,
+        B: DeviceVecdotAPI<T, TB, TC, D, DB, IxD>
+            + DeviceAPI<T>
+            + DeviceAPI<TB>
+            + DeviceAPI<TC>
+            + DeviceCreationAnyAPI<TC>,
+    {
+        vecdot_f(self.view(), b, axes_pair).rstsr_unwrap()
+    }
+
+    /// Vector dot product of two arrays.
+    ///
+    /// See also [`vecdot`].
+    pub fn vecdot_f<TB, DB, TC>(
+        &self,
+        b: impl TensorViewAPI<Type = TB, Backend = B, Dim = DB>,
+        axes_pair: impl TryInto<AxesPairIndex<isize>, Error: Into<Error>>,
+    ) -> Result<Tensor<TC, B, IxD>>
+    where
+        T: Mul<TB, Output = TC>,
+        DB: DimAPI,
+        B: DeviceVecdotAPI<T, TB, TC, D, DB, IxD>
+            + DeviceAPI<T>
+            + DeviceAPI<TB>
+            + DeviceAPI<TC>
+            + DeviceCreationAnyAPI<TC>,
+    {
+        vecdot_f(self.view(), b, axes_pair)
+    }
+
+    /// Vector dot product of two arrays.
+    ///
+    /// See also [`vecdot`].
+    pub fn vecdot_from<TA, TB, DA, DB>(
+        &mut self,
+        a: impl TensorViewAPI<Type = TA, Backend = B, Dim = DA>,
+        b: impl TensorViewAPI<Type = TB, Backend = B, Dim = DB>,
+        axes_pair: impl TryInto<AxesPairIndex<isize>, Error: Into<Error>>,
+    ) where
+        DA: DimAPI,
+        DB: DimAPI,
+        B: DeviceVecdotAPI<TA, TB, T, DA, DB, D> + DeviceAPI<TA> + DeviceAPI<TB>,
+        R: DataMutAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+    {
+        vecdot_from_f(self, a, b, axes_pair).rstsr_unwrap()
+    }
+
+    /// Vector dot product of two arrays.
+    ///
+    /// See also [`vecdot`].
+    pub fn vecdot_from_f<TA, TB, DA, DB>(
+        &mut self,
+        a: impl TensorViewAPI<Type = TA, Backend = B, Dim = DA>,
+        b: impl TensorViewAPI<Type = TB, Backend = B, Dim = DB>,
+        axes_pair: impl TryInto<AxesPairIndex<isize>, Error: Into<Error>>,
+    ) -> Result<()>
+    where
+        DA: DimAPI,
+        DB: DimAPI,
+        B: DeviceVecdotAPI<TA, TB, T, DA, DB, D> + DeviceAPI<TA> + DeviceAPI<TB>,
+        R: DataMutAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+    {
+        vecdot_from_f(self, a, b, axes_pair)
+    }
 }
 
 #[cfg(test)]
