@@ -229,17 +229,25 @@ where
 impl<R, T, B, D> Display for TensorAny<R, T, B, D>
 where
     T: Clone + Display,
-    B: DeviceAPI<T>,
-    B::Raw: Clone,
+    for<'a> B: DeviceAPI<T, Raw: 'a>
+        + DeviceChangeAPI<
+            'a,
+            DeviceCpuSerial,
+            DataRef<'a, <B as DeviceRawAPI<T>>::Raw>,
+            T,
+            D,
+            Repr: DataAPI<Data = Vec<T>>,
+        >,
     D: DimAPI,
-    R: DataCloneAPI<Data = B::Raw>,
+    R: DataAPI<Data = B::Raw>,
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        let vec = self.storage().to_cpu_vec().unwrap();
-        let layout = &self.layout();
+        let tsr = self.view().change_device(&DeviceCpuSerial::default());
+        let slc = tsr.raw();
+        let layout = &tsr.layout();
         let max_print = MAX_PRINT.load(Ordering::Relaxed);
         let min_print = MIN_PRINT.load(Ordering::Relaxed);
-        print_vec_with_layout(f, &vec, layout, max_print, min_print)
+        print_vec_with_layout(f, slc, layout, max_print, min_print)
     }
 }
 
