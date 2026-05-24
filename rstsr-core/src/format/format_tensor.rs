@@ -256,11 +256,19 @@ where
     print_vec_with_layout_generic(fmt, vec, layout, max_print, min_print, Debug::fmt)
 }
 
+/// Debug print for TensorAny (more expansive than Display print).
+///
+/// Please note, for debug print, we force tensor to be copied. Debug print will compliy less trait
+/// bounds, so debugging in other devices can be somehow convenient.
+///
+/// So debug print a very large tensor can be very costly.
+///
+/// For CPU devices, the more appropriate way is to display print; the tensor is not cloned while
+/// printing.
 impl<R, T, B, D> Debug for TensorAny<R, T, B, D>
 where
     T: Clone + Debug,
-    B: DeviceAPI<T> + Debug,
-    B::Raw: Clone,
+    B: DeviceAPI<T, Raw: Clone> + Debug,
     D: DimAPI,
     R: DataCloneAPI<Data = B::Raw>,
 {
