@@ -316,7 +316,9 @@ mod test {
 
     #[test]
     fn test_matmul() {
-        let device = DeviceFaer::default();
+        let mut device = DeviceFaer::default();
+        device.set_default_order(RowMajor);
+
         let a = linspace((0.0, 14.0, 15, &device)).into_shape([3, 5]);
         let b = linspace((0.0, 14.0, 15, &device)).into_shape([5, 3]);
 
@@ -327,23 +329,61 @@ mod test {
         let b = linspace((0.0, 14.0, 15, &device));
         println!("{:}", &a % &b);
 
-        #[cfg(not(feature = "col_major"))]
-        {
-            let a = linspace((0.0, 2.0, 3, &device));
-            let b = linspace((0.0, 29.0, 30, &device)).into_shape([2, 3, 5]);
-            println!("{:}", &a % &b);
+        // check broadcasting in row-major
 
-            let a = linspace((0.0, 29.0, 30, &device)).into_shape([2, 3, 5]);
-            let b = linspace((0.0, 4.0, 5, &device));
-            println!("{:}", &a % &b);
+        println!("check broadcasting in column-major");
 
-            let a = linspace((0.0, 14.0, 15, &device)).into_shape([5, 3]);
-            let b = linspace((0.0, 29.0, 30, &device)).into_shape([2, 3, 5]);
-            println!("{:}", &a % &b);
+        let a = linspace((0.0, 2.0, 3, &device));
+        let b = linspace((0.0, 29.0, 30, &device)).into_shape([2, 3, 5]);
+        let c = &a % &b;
+        println!("{:}", c);
+        assert!(c.shape() == &[2, 5]);
 
-            let a = linspace((0.0, 29.0, 30, &device)).into_shape([2, 3, 5]);
-            let b = linspace((0.0, 14.0, 15, &device)).into_shape([5, 3]);
-            println!("{:}", &a % &b);
-        }
+        let a = linspace((0.0, 29.0, 30, &device)).into_shape([2, 3, 5]);
+        let b = linspace((0.0, 4.0, 5, &device));
+        let c = &a % &b;
+        println!("{:}", c);
+        assert!(c.shape() == &[2, 3]);
+
+        let a = linspace((0.0, 14.0, 15, &device)).into_shape([5, 3]);
+        let b = linspace((0.0, 29.0, 30, &device)).into_shape([2, 3, 5]);
+        let c = &a % &b;
+        println!("{:}", &a % &b);
+        assert!(c.shape() == &[2, 5, 5]);
+
+        let a = linspace((0.0, 29.0, 30, &device)).into_shape([2, 3, 5]);
+        let b = linspace((0.0, 14.0, 15, &device)).into_shape([5, 3]);
+        let c = &a % &b;
+        println!("{:}", c);
+        assert!(c.shape() == &[2, 3, 3]);
+
+        // check broadcasting in column-major
+
+        println!("check broadcasting in column-major");
+        device.set_default_order(ColMajor);
+
+        let a = linspace((0.0, 29.0, 30, &device)).into_shape([5, 3, 2]);
+        let b = linspace((0.0, 2.0, 3, &device));
+        let c = &a % &b;
+        println!("{:}", c);
+        assert!(c.shape() == &[5, 2]);
+
+        let a = linspace((0.0, 4.0, 5, &device));
+        let b = linspace((0.0, 29.0, 30, &device)).into_shape([5, 3, 2]);
+        let c = &a % &b;
+        println!("{:}", c);
+        assert!(c.shape() == &[3, 2]);
+
+        let a = linspace((0.0, 29.0, 30, &device)).into_shape([5, 3, 2]);
+        let b = linspace((0.0, 14.0, 15, &device)).into_shape([3, 5]);
+        let c = &a % &b;
+        println!("{:}", &a % &b);
+        assert!(c.shape() == &[5, 5, 2]);
+
+        let a = linspace((0.0, 14.0, 15, &device)).into_shape([3, 5]);
+        let b = linspace((0.0, 29.0, 30, &device)).into_shape([5, 3, 2]);
+        let c = &a % &b;
+        println!("{:}", c);
+        assert!(c.shape() == &[3, 3, 2]);
     }
 }
