@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.7.6 -- 2026-06-07
+
+Enhancement (also behavior change)
+
+- Supports broadcasted matmul in column major. (RESTGroup/rstsr#81)
+
+Behavior change
+
+- Will not use aligned allocation in any situation when operating system is not Linux/MacOS. (RESTGroup/rstsr#82)
+
 ## v0.7.5 -- 2026-05-24
 
 All changes at RESTGroup/rstsr#80.
