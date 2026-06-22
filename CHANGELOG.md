@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.7.7 -- 2026-06-22
+
+Bug Fix
+
+- Fix matmul with broadcast in multiple-dimensions
+
+  Now `[1, M, K] * [B, K, N] -> [B, M, N]` (the 7th rule of [matmul](https://data-apis.org/array-api/latest/API_specification/generated/array_api.matmul.html) with better broadcast support) now works.
+
 ## v0.7.6 -- 2026-06-07
 
 Enhancement (also behavior change)
