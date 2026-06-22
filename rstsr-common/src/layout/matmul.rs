@@ -271,6 +271,155 @@ fn layout_matmul_dyn_row_major(la: &Layout<IxD>, lb: &Layout<IxD>) -> Result<Lay
     }
 }
 
+/// Resolve matmul layouts against a caller-provided `lc`.
+///
+/// Unlike [`layout_matmul_dyn_row_major`], which *constructs* `lc` from `la`
+/// and `lb`, this function takes the real `lc` as the source of truth for the
+/// batch shape (it comes from the caller and may be strided / non-zero-offset)
+/// and derives `la_rest` / `lb_rest` by broadcasting them **to** `lc_rest`.
+/// All returned layouts are split from the real `la` / `lb` / `lc`, so their
+/// strides and offsets are valid for indexing into the actual operand buffers.
+///
+/// This is the canonical entry point used by the `DeviceMatMulAPI`
+/// implementations (faer, BLAS backends, naive CPU); it centralizes the rule
+/// table and the batch-broadcasting so the device drivers only have to dispatch
+/// on [`MatMulType`] and iterate the rest layouts.
+pub fn layout_matmul_dyn_row_major_with_lc(
+    la: &Layout<IxD>,
+    lb: &Layout<IxD>,
+    lc: &Layout<IxD>,
+) -> Result<LayoutMatMulConfig<IxD, IxD>> {
+    let na = la.ndim();
+    let nb = lb.ndim();
+    let nc = lc.ndim();
+    match (na, nb) {
+        (1, 1) => {
+            // rule 1: vector inner dot
+            rstsr_assert_eq!(la.shape(), lb.shape(), InvalidLayout)?;
+            rstsr_assert_eq!(nc, 0, InvalidLayout)?;
+            Ok(LayoutMatMulConfig {
+                matmul_type: MatMulType::InnerDot,
+                lc: lc.clone(),
+                la_rest: None,
+                lb_rest: None,
+                lc_rest: None,
+                la_matmul: la.clone(),
+                lb_matmul: lb.clone(),
+                lc_matmul: lc.clone(),
+            })
+        },
+        (2, 2) => {
+            // rule 2: matrix multiplication
+            rstsr_assert_eq!(nc, 2, InvalidLayout)?;
+            rstsr_assert_eq!(la.shape()[1], lb.shape()[0], InvalidLayout)?;
+            Ok(LayoutMatMulConfig {
+                matmul_type: MatMulType::GEMM22,
+                lc: lc.clone(),
+                la_rest: None,
+                lb_rest: None,
+                lc_rest: None,
+                la_matmul: la.clone(),
+                lb_matmul: lb.clone(),
+                lc_matmul: lc.clone(),
+            })
+        },
+        (1, 2..) => {
+            // rule 3: | `        K` | `..., K, N` | `   ..., N` |
+            rstsr_assert_eq!(nb, nc + 1, InvalidLayout)?;
+            let (la_r, la_m) = la.dim_split_at(-1)?;
+            let (lb_r, lb_m) = lb.dim_split_at(-2)?;
+            let (lc_r, lc_m) = lc.dim_split_at(-1)?;
+            let la_rest = broadcast_layout_to_first(&lc_r, &la_r, RowMajor)?.1;
+            Ok(LayoutMatMulConfig {
+                matmul_type: MatMulType::GEVM,
+                lc: lc.clone(),
+                la_rest: Some(la_rest),
+                lb_rest: Some(lb_r),
+                lc_rest: Some(lc_r),
+                la_matmul: la_m.dim_insert(0)?,
+                lb_matmul: lb_m,
+                lc_matmul: lc_m.dim_insert(0)?,
+            })
+        },
+        (2.., 1) => {
+            // rule 4: | `..., M, K` | `        K` | `   ..., M` |
+            rstsr_assert_eq!(na, nc + 1, InvalidLayout)?;
+            let (la_r, la_m) = la.dim_split_at(-2)?;
+            let (lb_r, lb_m) = lb.dim_split_at(-1)?;
+            let (lc_r, lc_m) = lc.dim_split_at(-1)?;
+            let lb_rest = broadcast_layout_to_first(&lc_r, &lb_r, RowMajor)?.1;
+            Ok(LayoutMatMulConfig {
+                matmul_type: MatMulType::GEMV,
+                lc: lc.clone(),
+                la_rest: Some(la_r),
+                lb_rest: Some(lb_rest),
+                lc_rest: Some(lc_r),
+                la_matmul: la_m,
+                lb_matmul: lb_m.dim_insert(1)?,
+                lc_matmul: lc_m.dim_insert(1)?,
+            })
+        },
+        (2, 3..) => {
+            // rule 5: | `     M, K` | `..., K, N` | `..., M, N` |
+            rstsr_assert_eq!(nb, nc, InvalidLayout)?;
+            let (la_r, la_m) = la.dim_split_at(-2)?;
+            let (lb_r, lb_m) = lb.dim_split_at(-2)?;
+            let (lc_r, lc_m) = lc.dim_split_at(-2)?;
+            let la_rest = broadcast_layout_to_first(&lc_r, &la_r, RowMajor)?.1;
+            Ok(LayoutMatMulConfig {
+                matmul_type: MatMulType::GEMM2X,
+                lc: lc.clone(),
+                la_rest: Some(la_rest),
+                lb_rest: Some(lb_r),
+                lc_rest: Some(lc_r),
+                la_matmul: la_m,
+                lb_matmul: lb_m,
+                lc_matmul: lc_m,
+            })
+        },
+        (3.., 2) => {
+            // rule 6: | `..., M, K` | `     K, N` | `..., M, N` |
+            rstsr_assert_eq!(na, nc, InvalidLayout)?;
+            let (la_r, la_m) = la.dim_split_at(-2)?;
+            let (lb_r, lb_m) = lb.dim_split_at(-2)?;
+            let (lc_r, lc_m) = lc.dim_split_at(-2)?;
+            let lb_rest = broadcast_layout_to_first(&lc_r, &lb_r, RowMajor)?.1;
+            Ok(LayoutMatMulConfig {
+                matmul_type: MatMulType::GEMMX2,
+                lc: lc.clone(),
+                la_rest: Some(la_r),
+                lb_rest: Some(lb_rest),
+                lc_rest: Some(lc_r),
+                la_matmul: la_m,
+                lb_matmul: lb_m,
+                lc_matmul: lc_m,
+            })
+        },
+        (3.., 3..) => {
+            // rule 7: | `..., M, K` | `..., K, N` | `..., M, N` |
+            rstsr_assert_eq!(na, nc, InvalidLayout)?;
+            rstsr_assert_eq!(nb, nc, InvalidLayout)?;
+            let (la_r, la_m) = la.dim_split_at(-2)?;
+            let (lb_r, lb_m) = lb.dim_split_at(-2)?;
+            let (lc_r, lc_m) = lc.dim_split_at(-2)?;
+            // both A and B batch dims broadcast against C's batch dims
+            let la_rest = broadcast_layout_to_first(&lc_r, &la_r, RowMajor)?.1;
+            let lb_rest = broadcast_layout_to_first(&lc_r, &lb_r, RowMajor)?.1;
+            Ok(LayoutMatMulConfig {
+                matmul_type: MatMulType::GEMMXX,
+                lc: lc.clone(),
+                la_rest: Some(la_rest),
+                lb_rest: Some(lb_rest),
+                lc_rest: Some(lc_r),
+                la_matmul: la_m,
+                lb_matmul: lb_m,
+                lc_matmul: lc_m,
+            })
+        },
+        (0, _) | (_, 0) => rstsr_invalid!((na, nb), "In matmul, 0-dim is not allowed."),
+    }
+}
+
 fn layout_matmul_dyn_col_major(la: &Layout<IxD>, lb: &Layout<IxD>) -> Result<LayoutMatMulConfig<IxD, IxD>> {
     // For col-major, we re-use the row-major implementation via the identity
     //     C[t, m, n] = A[t, m, k] @ B[t, k, n]   (row-major)
