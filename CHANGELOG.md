@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.7.8 -- 2026-06-25
+
+Bug Fix
+
+- Fix thread oversubscription of broadcast matmul (BLAS devices) (RESTGroup/rstsr#85)
+
 ## v0.7.7 -- 2026-06-22
 
 Bug Fix
