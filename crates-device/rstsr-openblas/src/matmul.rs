@@ -155,37 +155,37 @@ where
     let itc_rest = IterLayoutColMajor::new(&lc_rest)?;
     if n_task >= 4 * nthreads {
         // parallel outer, sequential matmul
-        with_num_threads(1, || {
-            let task = || {
-                ita_rest.into_par_iter().zip(itb_rest).zip(itc_rest).try_for_each(
-                    |((ia_rest, ib_rest), ic_rest)| -> Result<()> {
-                        // prepare layout
-                        let mut la_m = la_matmul.clone();
-                        let mut lb_m = lb_matmul.clone();
-                        let mut lc_m = lc_matmul.clone();
-                        unsafe {
-                            la_m.set_offset(ia_rest);
-                            lb_m.set_offset(ib_rest);
-                            lc_m.set_offset(ic_rest);
-                        }
-                        // move mutable reference into parallel closure
-                        let c = unsafe {
-                            let c_ptr = c.as_ptr() as *mut TC;
-                            let c_len = c.len();
-                            from_raw_parts_mut(c_ptr, c_len)
-                        };
-                        // clone alpha and beta
-                        let alpha = alpha.clone();
-                        let beta = beta.clone();
+        let task = || {
+            ita_rest.into_par_iter().zip(itb_rest).zip(itc_rest).try_for_each(
+                |((ia_rest, ib_rest), ic_rest)| -> Result<()> {
+                    // prepare layout
+                    let mut la_m = la_matmul.clone();
+                    let mut lb_m = lb_matmul.clone();
+                    let mut lc_m = lc_matmul.clone();
+                    unsafe {
+                        la_m.set_offset(ia_rest);
+                        lb_m.set_offset(ib_rest);
+                        lc_m.set_offset(ic_rest);
+                    }
+                    // move mutable reference into parallel closure
+                    let c = unsafe {
+                        let c_ptr = c.as_ptr() as *mut TC;
+                        let c_len = c.len();
+                        from_raw_parts_mut(c_ptr, c_len)
+                    };
+                    // clone alpha and beta
+                    let alpha = alpha.clone();
+                    let beta = beta.clone();
+                    with_num_threads(1, || {
                         gemm_blas_ix2_no_conj_dispatch(c, &lc_m, a, &la_m, b, &lb_m, alpha, beta, None)
-                    },
-                )
-            };
-            match pool {
-                Some(pool) => pool.install(task),
-                None => task(),
-            }
-        })
+                    })
+                },
+            )
+        };
+        match pool {
+            Some(pool) => pool.install(task),
+            None => task(),
+        }
     } else {
         // sequential outer, parallel matmul
         with_num_threads(nthreads, || -> Result<()> {
