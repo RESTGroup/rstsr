@@ -152,5 +152,9 @@ You are welcomed to raise problems or suggestions in github repo issues or discu
 
 ## For AI Code Agents
 
-Shared coding-agent instructions live in `.claude.rstsr/` (`CLAUDE.md`, with `AGENTS.md` symlinked to it). Local agent state and per-developer configs are gitignored; see `.claude.rstsr/README.md` for details. You can symlink `.claude.rstsr` to `.claude` or `.agents` for your need.
+Shared coding-agent instructions live in `.claude.rstsr/` (`CLAUDE.md`, with `AGENTS.md` symlinked to it). Local agent state and per-developer configs are gitignored; see `.claude.rstsr/README.md` for details.
+
+Following tasks are important for code-agent setup, and these will not git tracked.
+- You can symlink `.claude.rstsr` to `.claude` or `.agents` for your need.
+- You can symlink `.claude.rstsr/CLAUDE.md` to `AGENTS.md` at project root for your need.
 

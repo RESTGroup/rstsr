@@ -35,5 +35,5 @@ The user may use other languages (Chinese, English, for example) to interact wit
 
 ## Rules and important skills
 
-@rules/agent-and-maintaince.md
+@skills/git-commit-coauthor/SKILL.md
 @skills/cargo-inst/SKILL.md

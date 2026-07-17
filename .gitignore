@@ -30,6 +30,11 @@ repomix-output*
 # Catch-all for local-only files (e.g. *.local.toml, *.local.md)
 *.local*
 
+# CLAUDE.md or AGENTS.md at root directory
+# Developer should customize their own file, and `.claude.rstsr/CLAUDE.md` serves as template
+/CLAUDE.md
+/AGENTS.md
+
 # bindgen
 blas_bindgen.h
 
