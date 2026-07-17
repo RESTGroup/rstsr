@@ -15,11 +15,24 @@ use core::ptr::NonNull;
 /// This is not a very good function, since `set_len` on uninitialized memory is
 /// undefined-behavior (UB).
 /// Nevertheless, if `T` is some type of `MaybeUninit`, then this will not UB.
+///
+/// # OS system dependent
+///
+/// Current implementation of aligned allocation may be UB on Windows. We will disable aligned
+/// allocation on platforms other than Linux and MacOS until we find a better solution.
+///
+/// See also <https://gitee.com/restgroup/rest_libcint/pulls/6>.
 pub unsafe fn uninitialized_vec<T>(size: usize) -> Result<Vec<T>> {
-    #[cfg(not(feature = "aligned_alloc"))]
+    #[cfg(all(not(target_os = "linux"), not(target_os = "macos")))]
     return unaligned_uninitialized_vec(size);
-    #[cfg(feature = "aligned_alloc")]
-    return aligned_uninitialized_vec::<T, 128>(size, 64);
+
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    {
+        #[cfg(not(feature = "aligned_alloc"))]
+        return unaligned_uninitialized_vec(size);
+        #[cfg(feature = "aligned_alloc")]
+        return aligned_uninitialized_vec::<T, 128>(size, 64);
+    }
 }
 
 /// Create an unaligned uninitialized vector with the given size.
@@ -56,8 +69,6 @@ pub fn aligned_alloc(numbytes: usize, alignment: usize) -> Result<Option<NonNull
 }
 
 /// Create an conditionally aligned uninitialized vector with the given size.
-///
-/// The alignment is always 64 bytes.
 ///
 /// - `N`: condition for alignment; if `N < size`, then this function will not allocate aligned
 ///   vector.

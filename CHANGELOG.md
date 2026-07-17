@@ -1,5 +1,43 @@
 # Changelog
 
+## v0.7.8 -- 2026-06-25
+
+Bug Fix
+
+- Fix thread oversubscription of broadcast matmul (BLAS devices) (RESTGroup/rstsr#85)
+
+## v0.7.7 -- 2026-06-22
+
+Bug Fix
+
+- Fix matmul with broadcast in multiple-dimensions
+
+  Now `[1, M, K] * [B, K, N] -> [B, M, N]` (the 7th rule of [matmul](https://data-apis.org/array-api/latest/API_specification/generated/array_api.matmul.html) with better broadcast support) now works.
+
+## v0.7.6 -- 2026-06-07
+
+Enhancement (also behavior change)
+
+- Supports broadcasted matmul in column major. (RESTGroup/rstsr#81)
+
+Behavior change
+
+- Will not use aligned allocation in any situation when operating system is not Linux/MacOS. (RESTGroup/rstsr#82)
+
+## v0.7.5 -- 2026-05-24
+
+All changes at RESTGroup/rstsr#80.
+
+Enhancement
+
+- Allow LowerExp/UpperExp (scientific float print).
+
+API breaking changes (user should not feel that)
+
+- Changes the behavior of Display print, now the tensor will only be referenced when printing at least for CPU devices.
+
+We still make Debug print to copy the whole tensor. In this way, the debug print uses minimal trait bounds, easier for debugging in other devices. This behavior may also change if necessary.
+
 ## v0.7.4 -- 2026-05-21
 
 All changes at RESTGroup/rstsr#79

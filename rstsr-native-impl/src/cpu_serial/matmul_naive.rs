@@ -30,152 +30,47 @@ where
     // for column-major layout, we need to transpose the input:
     // C = A * B  =>  C^T = B^T * A^T
     match (la.ndim(), lb.ndim(), lc.ndim()) {
-            (1, 1, 0) => {
-                // rule 1: vector inner dot
-                let la = &la.clone().into_dim::<Ix1>().unwrap();
-                let lb = &lb.clone().into_dim::<Ix1>().unwrap();
-                let lc = &lc.clone().into_dim::<Ix0>().unwrap();
-                inner_dot_naive_cpu_serial(c, lc, a, la, b, lb, alpha, beta)?;
-            },
-            (2, 2, 2) => {
-                // rule 2: matrix multiplication
-                let la = &la.clone().into_dim::<Ix2>().unwrap();
-                let lb = &lb.clone().into_dim::<Ix2>().unwrap();
-                let lc = &lc.clone().into_dim::<Ix2>().unwrap();
-                gemm_naive_cpu_serial(c, lc, a, la, b, lb, alpha, beta)?;
-            },
-            (2, 1, 1) => {
-                // rule 4 special: 2 x 1
-                let la = &la.clone().into_dim::<Ix2>().unwrap();
-                let lb = &lb.clone().into_dim::<Ix1>().unwrap();
-                let lc = &lc.clone().into_dim::<Ix1>().unwrap();
-                gemv_naive_cpu_serial(c, lc, a, la, b, lb, alpha, beta)?;
-            },
-            (1, 2, 1) => {
-                // rule 3 special: 1 x 2
-                let la = &la.clone().into_dim::<Ix1>().unwrap();
-                let lb = &lb.clone().into_dim::<Ix2>().unwrap();
-                let lc = &lc.clone().into_dim::<Ix1>().unwrap();
-                gevm_naive_cpu_serial(c, lc, a, la, b, lb, alpha, beta)?;
-            },
-            (1, 2.., _) => {
-                // rule 3: | `        K` | `..., K, N` | `   ..., N` |
-                rstsr_assert_eq!(lb.ndim(), lc.ndim() + 1, InvalidLayout)?;
-                let la = &la.clone().into_dim::<Ix1>().unwrap();
-                let (lb_rest, lb_matmul) = lb.dim_split_at(-2)?;
-                let (lc_rest, lc_matmul) = lc.dim_split_at(-1)?;
-                let lb_matmul = &mut lb_matmul.into_dim::<Ix2>()?;
-                let lc_matmul = &mut lc_matmul.into_dim::<Ix1>()?;
-                let l_rest = translate_to_col_major(&[&lc_rest, &lb_rest], TensorIterOrder::K)?;
-                let (lc_rest, lb_rest) = (&l_rest[0], &l_rest[1]);
-                let itb_rest = IterLayoutColMajor::new(lb_rest)?;
-                let itc_rest = IterLayoutColMajor::new(lc_rest)?;
-                for (ib_rest, ic_rest) in izip!(itb_rest, itc_rest) {
-                    unsafe { lb_matmul.set_offset(ib_rest) };
-                    unsafe { lc_matmul.set_offset(ic_rest) };
-                    gevm_naive_cpu_serial(c, lc_matmul, a, la, b, lb_matmul, alpha.clone(), beta.clone())?;
+        (1, 1, 0) => {
+            // rule 1: vector inner dot
+            let la = &la.clone().into_dim::<Ix1>().unwrap();
+            let lb = &lb.clone().into_dim::<Ix1>().unwrap();
+            let lc = &lc.clone().into_dim::<Ix0>().unwrap();
+            inner_dot_naive_cpu_serial(c, lc, a, la, b, lb, alpha, beta)?;
+        },
+        (2, 2, 2) => {
+            // rule 2: matrix multiplication
+            let la = &la.clone().into_dim::<Ix2>().unwrap();
+            let lb = &lb.clone().into_dim::<Ix2>().unwrap();
+            let lc = &lc.clone().into_dim::<Ix2>().unwrap();
+            gemm_naive_cpu_serial(c, lc, a, la, b, lb, alpha, beta)?;
+        },
+        _ => {
+            // broadcasted rules 3..7: the config resolves the rule, broadcasts
+            // the batch (`rest`) dims against `lc`, and hands us 2-D matmul
+            // layouts (via `dim_insert` for the vector rules).
+            let cfg = layout_matmul_dyn_row_major_with_lc(&la.to_dim()?, &lb.to_dim()?, &lc.to_dim()?)?;
+            let la_matmul = cfg.la_matmul.into_dim::<Ix2>()?;
+            let lb_matmul = cfg.lb_matmul.into_dim::<Ix2>()?;
+            let lc_matmul = cfg.lc_matmul.into_dim::<Ix2>()?;
+            let la_rest = cfg.la_rest.unwrap();
+            let lb_rest = cfg.lb_rest.unwrap();
+            let lc_rest = cfg.lc_rest.unwrap();
+            let ita_rest = IterLayoutColMajor::new(&la_rest)?;
+            let itb_rest = IterLayoutColMajor::new(&lb_rest)?;
+            let itc_rest = IterLayoutColMajor::new(&lc_rest)?;
+            for (ia_rest, ib_rest, ic_rest) in izip!(ita_rest, itb_rest, itc_rest) {
+                let mut la_m = la_matmul.clone();
+                let mut lb_m = lb_matmul.clone();
+                let mut lc_m = lc_matmul.clone();
+                unsafe {
+                    la_m.set_offset(ia_rest);
+                    lb_m.set_offset(ib_rest);
+                    lc_m.set_offset(ic_rest);
                 }
-            },
-            (2.., 1, _) => {
-                // rule 4: | `..., M, K` | `        K` | `   ..., M` |
-                rstsr_assert_eq!(la.ndim(), lc.ndim() + 1, InvalidLayout)?;
-                let lb = &lb.clone().into_dim::<Ix1>().unwrap();
-                let (la_rest, la_matmul) = la.dim_split_at(-2)?;
-                let (lc_rest, lc_matmul) = lc.dim_split_at(-1)?;
-                let la_matmul = &mut la_matmul.into_dim::<Ix2>()?;
-                let lc_matmul = &mut lc_matmul.into_dim::<Ix1>()?;
-                let l_rest = translate_to_col_major(&[&lc_rest, &la_rest], TensorIterOrder::K)?;
-                let (lc_rest, la_rest) = (&l_rest[0], &l_rest[1]);
-                let ita_rest = IterLayoutColMajor::new(la_rest)?;
-                let itc_rest = IterLayoutColMajor::new(lc_rest)?;
-                for (ib_rest, ic_rest) in izip!(ita_rest, itc_rest) {
-                    unsafe { la_matmul.set_offset(ib_rest) };
-                    unsafe { lc_matmul.set_offset(ic_rest) };
-                    gemv_naive_cpu_serial(c, lc_matmul, a, la_matmul, b, lb, alpha.clone(), beta.clone())?;
-                }
-            },
-            (2, 3.., _) => {
-                // rule 5: | `     M, K` | `..., K, N` | `..., M, N` |
-                rstsr_assert_eq!(lb.ndim(), lc.ndim(), InvalidLayout)?;
-                let la = &la.clone().into_dim::<Ix2>().unwrap();
-                let (lb_rest, lb_matmul) = lb.dim_split_at(-2)?;
-                let (lc_rest, lc_matmul) = lc.dim_split_at(-2)?;
-                let lb_matmul = &mut lb_matmul.into_dim::<Ix2>()?;
-                let lc_matmul = &mut lc_matmul.into_dim::<Ix2>()?;
-                let l_rest = translate_to_col_major(&[&lc_rest, &lb_rest], TensorIterOrder::K)?;
-                let (lc_rest, lb_rest) = (&l_rest[0], &l_rest[1]);
-                let itb_rest = IterLayoutColMajor::new(lb_rest)?;
-                let itc_rest = IterLayoutColMajor::new(lc_rest)?;
-                for (ib_rest, ic_rest) in izip!(itb_rest, itc_rest) {
-                    unsafe { lb_matmul.set_offset(ib_rest) };
-                    unsafe { lc_matmul.set_offset(ic_rest) };
-                    gemm_naive_cpu_serial(c, lc_matmul, a, la, b, lb_matmul, alpha.clone(), beta.clone())?;
-                }
-            },
-            (3.., 2, _) => {
-                // rule 6: | `..., M, K` | `     K, N` | `..., M, N` |
-                rstsr_assert_eq!(la.ndim(), lc.ndim(), InvalidLayout)?;
-                let lb = &lb.clone().into_dim::<Ix2>().unwrap();
-                let (la_rest, la_matmul) = la.dim_split_at(-2)?;
-                let (lc_rest, lc_matmul) = lc.dim_split_at(-2)?;
-                let la_matmul = &mut la_matmul.into_dim::<Ix2>()?;
-                let lc_matmul = &mut lc_matmul.into_dim::<Ix2>()?;
-                let l_rest = translate_to_col_major(&[&lc_rest, &la_rest], TensorIterOrder::K)?;
-                let (lc_rest, la_rest) = (&l_rest[0], &l_rest[1]);
-                let ita_rest = IterLayoutColMajor::new(la_rest)?;
-                let itc_rest = IterLayoutColMajor::new(lc_rest)?;
-                for (ib_rest, ic_rest) in izip!(ita_rest, itc_rest) {
-                    unsafe { la_matmul.set_offset(ib_rest) };
-                    unsafe { lc_matmul.set_offset(ic_rest) };
-                    gemm_naive_cpu_serial(c, lc_matmul, a, la_matmul, b, lb, alpha.clone(), beta.clone())?;
-                }
-            },
-            (3.., 3.., _) => {
-                // rule 7: | `..., M, K` | `..., K, N` | `..., M, N` |
-                rstsr_assert_eq!(la.ndim(), lc.ndim(), InvalidLayout)?;
-                rstsr_assert_eq!(lb.ndim(), lc.ndim(), InvalidLayout)?;
-                let (la_rest, la_matmul) = la.dim_split_at(-2)?;
-                let (lb_rest, lb_matmul) = lb.dim_split_at(-2)?;
-                let (lc_rest, lc_matmul) = lc.dim_split_at(-2)?;
-                let la_matmul = &mut la_matmul.into_dim::<Ix2>()?;
-                let lb_matmul = &mut lb_matmul.into_dim::<Ix2>()?;
-                let lc_matmul = &mut lc_matmul.into_dim::<Ix2>()?;
-                let l_rest =
-                    translate_to_col_major(&[&lc_rest, &la_rest, &lb_rest], TensorIterOrder::K)?;
-                let (lc_rest, la_rest, lb_rest) = (&l_rest[0], &l_rest[1], &l_rest[2]);
-                let ita_rest = IterLayoutColMajor::new(la_rest)?;
-                let itb_rest = IterLayoutColMajor::new(lb_rest)?;
-                let itc_rest = IterLayoutColMajor::new(lc_rest)?;
-                for (ia_rest, ib_rest, ic_rest) in izip!(ita_rest, itb_rest, itc_rest) {
-                    unsafe { la_matmul.set_offset(ia_rest) };
-                    unsafe { lb_matmul.set_offset(ib_rest) };
-                    unsafe { lc_matmul.set_offset(ic_rest) };
-                    gemm_naive_cpu_serial(
-                        c,
-                        lc_matmul,
-                        a,
-                        la_matmul,
-                        b,
-                        lb_matmul,
-                        alpha.clone(),
-                        beta.clone(),
-                    )?;
-                }
-            },
-            // handle other cases
-            (0, _, _) | (_, 0, _) // zero-dimension input
-            | (1, 1, 1..) // rule 1 invalid
-            | (2, 2, 3..) | (2, 2, 0..2) // rule 2 invalid
-            => {
-                rstsr_raise!(
-                    InvalidLayout,
-                    "Invalid ndim for matmul: {}, {}, {}",
-                    la.ndim(),
-                    lb.ndim(),
-                    lc.ndim()
-                )?;
-            },
-        }
+                gemm_naive_cpu_serial(c, &lc_m, a, &la_m, b, &lb_m, alpha.clone(), beta.clone())?;
+            }
+        },
+    }
     Ok(())
 }
 

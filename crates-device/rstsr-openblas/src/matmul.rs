@@ -136,131 +136,56 @@ where
     };
 
     // handle broadcasted cases
-    // temporary variables
-    let la_matmul;
-    let lb_matmul;
-    let lc_matmul;
-    let la_rest;
-    let lb_rest;
-    let lc_rest;
-
-    match (la.ndim(), lb.ndim(), lc.ndim()) {
-        // we have already handled these cases
-        (1, 1, 0) | (2, 2, 2) => unreachable!(),
-        (1, 2.., _) => {
-            // rule 3: | `        K` | `..., K, N` | `   ..., N` |
-            rstsr_assert_eq!(lb.ndim(), lc.ndim() + 1, InvalidLayout)?;
-            let (la_r, la_m) = la.dim_split_at(-1)?;
-            let (lb_r, lb_m) = lb.dim_split_at(-2)?;
-            let (lc_r, lc_m) = lc.dim_split_at(-1)?;
-            la_rest = broadcast_layout_to_first(&lc_r, &la_r, RowMajor)?.1;
-            lb_rest = lb_r;
-            lc_rest = lc_r;
-            la_matmul = la_m.dim_insert(0)?.into_dim::<Ix2>()?;
-            lb_matmul = lb_m.into_dim::<Ix2>()?;
-            lc_matmul = lc_m.dim_insert(0)?.into_dim::<Ix2>()?;
-        },
-        (2.., 1, _) => {
-            // rule 4: | `..., M, K` | `        K` | `   ..., M` |
-            rstsr_assert_eq!(la.ndim(), lc.ndim() + 1, InvalidLayout)?;
-            let (la_r, la_m) = la.dim_split_at(-2)?;
-            let (lb_r, lb_m) = lb.dim_split_at(-1)?;
-            let (lc_r, lc_m) = lc.dim_split_at(-1)?;
-            la_rest = la_r;
-            lb_rest = broadcast_layout_to_first(&lc_r, &lb_r, RowMajor)?.1;
-            lc_rest = lc_r;
-            la_matmul = la_m.into_dim::<Ix2>()?;
-            lb_matmul = lb_m.dim_insert(1)?.into_dim::<Ix2>()?;
-            lc_matmul = lc_m.dim_insert(1)?.into_dim::<Ix2>()?;
-        },
-        (2, 3.., _) => {
-            // rule 5: | `     M, K` | `..., K, N` | `..., M, N` |
-            rstsr_assert_eq!(lb.ndim(), lc.ndim(), InvalidLayout)?;
-            let (la_r, la_m) = la.dim_split_at(-2)?;
-            let (lb_r, lb_m) = lb.dim_split_at(-2)?;
-            let (lc_r, lc_m) = lc.dim_split_at(-2)?;
-            la_rest = broadcast_layout_to_first(&lc_r, &la_r, RowMajor)?.1;
-            lb_rest = lb_r;
-            lc_rest = lc_r;
-            la_matmul = la_m.into_dim::<Ix2>()?;
-            lb_matmul = lb_m.into_dim::<Ix2>()?;
-            lc_matmul = lc_m.into_dim::<Ix2>()?;
-        },
-        (3.., 2, _) => {
-            // rule 6: | `..., M, K` | `     K, N` | `..., M, N` |
-            rstsr_assert_eq!(la.ndim(), lc.ndim(), InvalidLayout)?;
-            let (la_r, la_m) = la.dim_split_at(-2)?;
-            let (lb_r, lb_m) = lb.dim_split_at(-2)?;
-            let (lc_r, lc_m) = lc.dim_split_at(-2)?;
-            la_rest = la_r;
-            lb_rest = broadcast_layout_to_first(&lc_r, &lb_r, RowMajor)?.1;
-            lc_rest = lc_r;
-            la_matmul = la_m.into_dim::<Ix2>()?;
-            lb_matmul = lb_m.into_dim::<Ix2>()?;
-            lc_matmul = lc_m.into_dim::<Ix2>()?;
-        },
-        (3.., 3.., _) => {
-            // rule 7: | `..., M, K` | `..., K, N` | `..., M, N` |
-            rstsr_assert_eq!(la.ndim(), lc.ndim(), InvalidLayout)?;
-            rstsr_assert_eq!(lb.ndim(), lc.ndim(), InvalidLayout)?;
-            let (la_r, la_m) = la.dim_split_at(-2)?;
-            let (lb_r, lb_m) = lb.dim_split_at(-2)?;
-            let (lc_r, lc_m) = lc.dim_split_at(-2)?;
-            la_rest = la_r;
-            lb_rest = lb_r;
-            lc_rest = lc_r;
-            la_matmul = la_m.into_dim::<Ix2>()?;
-            lb_matmul = lb_m.into_dim::<Ix2>()?;
-            lc_matmul = lc_m.into_dim::<Ix2>()?;
-        },
-        _ => {
-            rstsr_raise!(InvalidLayout, "This is not valid layout for matmul broadcasting.")?;
-            unreachable!()
-        },
-    }
+    let cfg = layout_matmul_dyn_row_major_with_lc(&la.to_dim()?, &lb.to_dim()?, &lc.to_dim()?)?;
+    // rules 1 and 2 are handled above as fast paths; only the broadcasted
+    // rules (3..7) reach here.
+    let la_matmul = cfg.la_matmul.into_dim::<Ix2>()?;
+    let lb_matmul = cfg.lb_matmul.into_dim::<Ix2>()?;
+    let lc_matmul = cfg.lc_matmul.into_dim::<Ix2>()?;
+    let la_rest = cfg.la_rest.unwrap();
+    let lb_rest = cfg.lb_rest.unwrap();
+    let lc_rest = cfg.lc_rest.unwrap();
     // now, lx_rest should have the same shape, while lx_matmul
     // should be matmulable
     // only parallel matmul when lx_rest is small (larger than
     // 2*nthreads), otherwise parallel matmul anyway
-    rstsr_assert_eq!(la_rest.shape(), lb_rest.shape(), InvalidLayout)?;
-    rstsr_assert_eq!(lb_rest.shape(), lc_rest.shape(), InvalidLayout)?;
     let n_task = la_rest.size();
     let ita_rest = IterLayoutColMajor::new(&la_rest)?;
     let itb_rest = IterLayoutColMajor::new(&lb_rest)?;
     let itc_rest = IterLayoutColMajor::new(&lc_rest)?;
     if n_task >= 4 * nthreads {
         // parallel outer, sequential matmul
-        with_num_threads(1, || {
-            let task = || {
-                ita_rest.into_par_iter().zip(itb_rest).zip(itc_rest).try_for_each(
-                    |((ia_rest, ib_rest), ic_rest)| -> Result<()> {
-                        // prepare layout
-                        let mut la_m = la_matmul.clone();
-                        let mut lb_m = lb_matmul.clone();
-                        let mut lc_m = lc_matmul.clone();
-                        unsafe {
-                            la_m.set_offset(ia_rest);
-                            lb_m.set_offset(ib_rest);
-                            lc_m.set_offset(ic_rest);
-                        }
-                        // move mutable reference into parallel closure
-                        let c = unsafe {
-                            let c_ptr = c.as_ptr() as *mut TC;
-                            let c_len = c.len();
-                            from_raw_parts_mut(c_ptr, c_len)
-                        };
-                        // clone alpha and beta
-                        let alpha = alpha.clone();
-                        let beta = beta.clone();
+        let task = || {
+            ita_rest.into_par_iter().zip(itb_rest).zip(itc_rest).try_for_each(
+                |((ia_rest, ib_rest), ic_rest)| -> Result<()> {
+                    // prepare layout
+                    let mut la_m = la_matmul.clone();
+                    let mut lb_m = lb_matmul.clone();
+                    let mut lc_m = lc_matmul.clone();
+                    unsafe {
+                        la_m.set_offset(ia_rest);
+                        lb_m.set_offset(ib_rest);
+                        lc_m.set_offset(ic_rest);
+                    }
+                    // move mutable reference into parallel closure
+                    let c = unsafe {
+                        let c_ptr = c.as_ptr() as *mut TC;
+                        let c_len = c.len();
+                        from_raw_parts_mut(c_ptr, c_len)
+                    };
+                    // clone alpha and beta
+                    let alpha = alpha.clone();
+                    let beta = beta.clone();
+                    with_num_threads(1, || {
                         gemm_blas_ix2_no_conj_dispatch(c, &lc_m, a, &la_m, b, &lb_m, alpha, beta, None)
-                    },
-                )
-            };
-            match pool {
-                Some(pool) => pool.install(task),
-                None => task(),
-            }
-        })
+                    })
+                },
+            )
+        };
+        match pool {
+            Some(pool) => pool.install(task),
+            None => task(),
+        }
     } else {
         // sequential outer, parallel matmul
         with_num_threads(nthreads, || -> Result<()> {
@@ -446,6 +371,33 @@ mod test {
         let c = &a % &a.swapaxes(-1, -2);
         let d = &a % &b.swapaxes(-1, -2);
         assert!(allclose_f64(&c, &d));
+    }
+
+    #[test]
+    fn test_matmul_rule7_broadcast() {
+        // rule 7 with batch broadcasting: the batch (`rest`) dims of A and B
+        // must broadcast against C's batch dims. Previously A/B batch layouts
+        // were not broadcast, so e.g. `[1, M, K] @ [B, K, N]` panicked instead
+        // of producing `[B, M, N]`.
+        let device = DeviceBLAS::default();
+
+        // A broadcasts on the batch axis: [1, M, K] @ [B, K, N] -> [B, M, N]
+        let a = linspace((0.0, 14.0, 15, &device)).into_shape([1, 3, 5]);
+        let b = linspace((0.0, 29.0, 30, &device)).into_shape([2, 5, 3]);
+        let c = &a % &b;
+        assert_eq!(c.shape(), &[2, 3, 3]);
+        let a_big = a.to_broadcast(vec![2, 3, 5]);
+        let c_ref = &a_big % &b;
+        assert!(allclose_f64(&c, &c_ref));
+
+        // B broadcasts on the batch axis: [B, M, K] @ [1, K, N] -> [B, M, N]
+        let a = linspace((0.0, 29.0, 30, &device)).into_shape([2, 3, 5]);
+        let b = linspace((0.0, 14.0, 15, &device)).into_shape([1, 5, 3]);
+        let c = &a % &b;
+        assert_eq!(c.shape(), &[2, 3, 3]);
+        let b_big = b.to_broadcast(vec![2, 5, 3]);
+        let c_ref = &a % &b_big;
+        assert!(allclose_f64(&c, &c_ref));
     }
 
     #[test]
