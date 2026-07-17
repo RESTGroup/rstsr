@@ -149,3 +149,8 @@ Current MSRV (minimal supported rust version) is
 - 1.82.0: other cases (due to crate `half` and rust language usage of `unsafe extern "C"`).
 
 You are welcomed to raise problems or suggestions in github repo issues or discussions.
+
+## For AI Code Agents
+
+Shared coding-agent instructions live in `.claude.rstsr/` (`CLAUDE.md`, with `AGENTS.md` symlinked to it). Local agent state and per-developer configs are gitignored; see `.claude.rstsr/README.md` for details. You can symlink `.claude.rstsr` to `.claude` or `.agents` for your need.
+

@@ -9,7 +9,25 @@ tarpaulin-report.html
 book
 *.npy
 repomix-output*
+
+# Code Agent
+# Shared agent instructions are tracked under `.claude.rstsr`.
+# Symlink `.claude` (or `.agents`) to it for your agent; the symlink and any
+# local-only agent state / caches / per-developer configs below are ignored.
 .claude
+.agents
+.claude.json
+.codex/
+
+# Aider chat history & caches
+.aider*
+
+# Cursor / Continue / Roo local state (shared rules are committed separately)
+.cursor/
+.continue/
+.roo/
+
+# Catch-all for local-only files (e.g. *.local.toml, *.local.md)
 *.local*
 
 # bindgen
