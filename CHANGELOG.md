@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.7.9 -- 2026-07-22
+
+Bug Fix
+
+- Fix index_select/bool_select with zero-size mask (RESTGroup/rstsr#86)
+
 ## v0.7.8 -- 2026-06-25
 
 Bug Fix
