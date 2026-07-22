@@ -145,7 +145,7 @@ where
         let (data, device) = storage.into_raw_parts();
         let data = data.pack_array_f::<N>()?;
         let storage = Storage::new(data, device);
-        let layout = layout.dim_select(axis as isize, 0)?;
+        let layout = layout.dim_chop(axis as isize)?;
         let stride = layout
             .stride()
             .as_ref()

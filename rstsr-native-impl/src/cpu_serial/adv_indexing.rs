@@ -36,8 +36,8 @@ where
     let size_indices = indices.len();
 
     if axis_contig_c {
-        let lc_rest = lc.clone().dim_select(axis as isize, 0)?;
-        let la_rest = la.clone().dim_select(axis as isize, 0)?;
+        let lc_rest = lc.clone().dim_chop(axis as isize)?;
+        let la_rest = la.clone().dim_chop(axis as isize)?;
         let layouts_rest = translate_to_col_major(&[&lc_rest, &la_rest], TensorIterOrder::K)?;
         let lc_rest = &layouts_rest[0];
         let la_rest = &layouts_rest[1];

@@ -231,6 +231,13 @@ mod test {
             let b = a.index_select(0, [0, 0, 1, -1]);
             assert!(fingerprint(&b) - -25.648600916145096 < 1e-8);
         }
+
+        // 1-dim select with empty index
+        let device = DeviceCpuSerial::default();
+        let a = linspace((1.0, 4.0, 4, &device));
+        let mask: Vec<usize> = vec![];
+        let b = a.index_select(0, &mask);
+        assert_eq!(b.raw(), &[]);
     }
 
     #[test]
