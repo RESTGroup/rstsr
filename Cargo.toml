@@ -82,9 +82,10 @@ tblis-src = { version = "0.2" }
 
 [profile.coverage]
 inherits = "dev"
-opt-level = 0
 
-[profile.dev]
+[profile.dev-profile]
+# Optimized dev level (with debug, boundary checks)
+inherits = "dev"
 opt-level = 2
 
 [profile.dev.package.rstsr-openblas-ffi]
