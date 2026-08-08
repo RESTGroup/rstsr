@@ -4,9 +4,9 @@ use super::CATEGORY;
 use crate::TESTCFG;
 
 #[cfg(test)]
-mod docs_into_dim {
+mod doc_into_dim {
     use super::*;
-    static FUNC: &str = "docs_into_dim";
+    static FUNC: &str = "doc_into_dim";
 
     #[test]
     fn doc_to_dim() {

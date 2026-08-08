@@ -4,9 +4,9 @@ use super::CATEGORY;
 use crate::TESTCFG;
 
 #[cfg(test)]
-mod docs_into_compatible_shape {
+mod doc_into_compatible_shape {
     use super::*;
-    static FUNC: &str = "docs_into_compatible_shape";
+    static FUNC: &str = "doc_into_compatible_shape";
 
     #[test]
     fn compatible_reshape() {

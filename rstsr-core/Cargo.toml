@@ -58,6 +58,14 @@ aligned_alloc = ["rstsr-common/aligned_alloc"]
 # And more importantly, this feature will hugely increase compile time.
 dispatch_dim_layout_iter = ["rstsr-common/dispatch_dim_layout_iter"]
 
+# Integration test binaries. See ADR-0002 (entry-binary test matrix).
+# row_major / col_major are compile-time mutually exclusive, so gating each entry
+# binary on its feature keeps row/col entries from colliding.
+# Only DeviceCpuSerial row-major is wired now; entry_row_faer / entry_col_cpu follow.
+[[test]]
+name = "entry_row_cpu"
+required-features = ["row_major"]
+
 [package.metadata.docs.rs]
 features = ["default"]
 rustdoc-args = ["--cfg", "docsrs", "--document-private-items", "--html-in-header", "katex-header.html"]

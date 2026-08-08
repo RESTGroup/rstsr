@@ -1,4 +1,9 @@
+// Entry binary: row-major, DeviceCpuSerial.
+// See ADR-0002 (entry-binary test matrix) and skill `test-conventions`.
+// Gated to `row_major` via [[test]] required-features in rstsr-core/Cargo.toml.
 mod core_func;
+mod doc_draft;
+mod test_issues;
 mod test_utils;
 
 pub use rstsr::prelude::*;
