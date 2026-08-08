@@ -61,5 +61,17 @@ skips without recompilation.
 
 **rstsr-test-manifest**:
 A workspace crate holding NumPy-generated `.npy` golden arrays and loaders
-(`get_vec::<T>(c)`). Already a dependency of device crates; not yet wired into
-rstsr-core.
+(`get_vec::<T>(c)`), used by device crates for large reference data. **Out of scope
+for rstsr-core**: core parity tests use `tensor_from_nested!` for small tensors and
+`rt::asarray` with a Rust `Vec` otherwise. No `.npy`, no python regen step in core.
+
+**rstest**:
+The chosen Rust fixture/parametrization framework if a core test needs setup/teardown
+or data reuse. Not adopted blanketly - only when a test genuinely needs it.
+
+### Helpers & gotchas
+
+**allclose broadcast gotcha**:
+`rt::allclose` is broadcast-permissive - two tensors of *different* shapes can be
+"allclose." `assert_equal` is safe (it `assert_eq!`s shapes first); raw `rt::allclose`
+is not. Document wherever raw `allclose` is used.
