@@ -12,7 +12,7 @@ mod numpy_broadcast_to {
 
     #[test]
     fn test_broadcast_to_succeeds() {
-        // NumPy v2.4.2, lib/tests/test_stride_tricks.py, test_broadcast_to_succeeds (line 242)
+        // NumPy v2.5.2, lib/tests/test_stride_tricks.py, test_broadcast_to_succeeds (line 242)
         crate::specify_test!("test_broadcast_to_succeeds");
 
         let mut device = TESTCFG.device.clone();
@@ -100,7 +100,7 @@ mod numpy_broadcast_to {
 
     #[test]
     fn test_broadcast_to_raises() {
-        // NumPy v2.4.2, lib/tests/test_stride_tricks.py, test_broadcast_to_raises (line 268)
+        // NumPy v2.5.2, lib/tests/test_stride_tricks.py, test_broadcast_to_raises (line 268)
         crate::specify_test!("test_broadcast_to_raises");
 
         let mut device = TESTCFG.device.clone();
@@ -152,7 +152,7 @@ mod numpy_broadcast_arrays {
 
     #[test]
     fn test_broadcast_arrays_basic() {
-        // NumPy v2.4.2, lib/tests/test_stride_tricks.py, test_broadcast_shape (line 287)
+        // NumPy v2.5.2, lib/tests/test_stride_tricks.py, test_broadcast_shape (line 287)
         crate::specify_test!("test_broadcast_arrays_basic");
 
         let mut device = TESTCFG.device.clone();

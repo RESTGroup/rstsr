@@ -10,7 +10,7 @@ mod numpy_broadcast_shapes {
 
     #[test]
     fn test_broadcast_shapes_succeeds() {
-        // NumPy v2.4.2, lib/tests/test_stride_tricks.py, test_broadcast_shapes_succeeds (line 304)
+        // NumPy v2.5.2, lib/tests/test_stride_tricks.py, test_broadcast_shapes_succeeds (line 304)
         crate::specify_test!("test_broadcast_shapes_succeeds");
 
         // Data format: (input_shapes, target_shape)
@@ -99,7 +99,7 @@ mod numpy_broadcast_shapes {
 
     #[test]
     fn test_broadcast_shapes_raises() {
-        // NumPy v2.4.2, lib/tests/test_stride_tricks.py, test_broadcast_shapes_raises (line 345)
+        // NumPy v2.5.2, lib/tests/test_stride_tricks.py, test_broadcast_shapes_raises (line 345)
         crate::specify_test!("test_broadcast_shapes_raises");
 
         // Data format: list of input shapes that should fail
@@ -132,7 +132,7 @@ mod numpy_broadcast_shapes {
 
     #[test]
     fn test_broadcast_shape_internal() {
-        // NumPy v2.4.2, lib/tests/test_stride_tricks.py, test_broadcast_shape (line 287)
+        // NumPy v2.5.2, lib/tests/test_stride_tricks.py, test_broadcast_shape (line 287)
         // Tests internal _broadcast_shape which is equivalent to broadcast_shapes
         crate::specify_test!("test_broadcast_shape_internal");
 

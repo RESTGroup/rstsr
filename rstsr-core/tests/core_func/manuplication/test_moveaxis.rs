@@ -10,7 +10,7 @@ mod numpy_moveaxis {
 
     #[test]
     fn test_basic() {
-        // NumPy v2.4.2, _core/numeric.py, moveaxis docstring examples
+        // NumPy v2.5.2, _core/numeric.py, moveaxis docstring examples
         crate::specify_test!("test_basic");
 
         let mut device = TESTCFG.device.clone();
@@ -33,7 +33,7 @@ mod numpy_moveaxis {
 
     #[test]
     fn test_equivalent_operations() {
-        // NumPy v2.4.2, _core/numeric.py, moveaxis docstring examples
+        // NumPy v2.5.2, _core/numeric.py, moveaxis docstring examples
         // These all achieve the same result for a (3, 4, 5) tensor -> (5, 4, 3)
         crate::specify_test!("test_equivalent_operations");
 

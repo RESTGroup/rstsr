@@ -11,7 +11,7 @@ mod numpy_flip {
     static FUNC: &str = "numpy_flip";
 
     fn get_mat(n: usize) -> Tensor<usize, DeviceType> {
-        // NumPy v2.4.2, lib/tests/test_function_base.py, get_mat (line 68)
+        // NumPy v2.5.2, lib/tests/test_function_base.py, get_mat (line 68)
 
         let mut device = TESTCFG.device.clone();
         device.set_default_order(RowMajor);
@@ -25,7 +25,7 @@ mod numpy_flip {
 
     #[test]
     fn test_axes() {
-        // NumPy v2.4.2, lib/tests/test_function_base.py, TestFlip::test_axes (line 155)
+        // NumPy v2.5.2, lib/tests/test_function_base.py, TestFlip::test_axes (line 163)
         crate::specify_test!("test_axes");
 
         let mut device = TESTCFG.device.clone();
@@ -48,7 +48,7 @@ mod numpy_flip {
 
     #[test]
     fn test_basic_lr() {
-        // NumPy v2.4.2, lib/tests/test_function_base.py, TestFlip::test_basic_lr (line 161)
+        // NumPy v2.5.2, lib/tests/test_function_base.py, TestFlip::test_basic_lr (line 169)
         crate::specify_test!("test_basic_lr");
 
         let mut device = TESTCFG.device.clone();
@@ -71,7 +71,7 @@ mod numpy_flip {
 
     #[test]
     fn test_basic_ud() {
-        // NumPy v2.4.2, lib/tests/test_function_base.py, TestFlip::test_basic_ud (line 171)
+        // NumPy v2.5.2, lib/tests/test_function_base.py, TestFlip::test_basic_ud (line 179)
         crate::specify_test!("test_basic_ud");
 
         let mut device = TESTCFG.device.clone();
@@ -94,7 +94,7 @@ mod numpy_flip {
 
     #[test]
     fn test_3d_swap_axis0() {
-        // NumPy v2.4.2, lib/tests/test_function_base.py, TestFlip::test_3d_swap_axis0 (line 181)
+        // NumPy v2.5.2, lib/tests/test_function_base.py, TestFlip::test_3d_swap_axis0 (line 189)
         crate::specify_test!("test_3d_swap_axis0");
 
         let mut device = TESTCFG.device.clone();
@@ -112,7 +112,7 @@ mod numpy_flip {
 
     #[test]
     fn test_3d_swap_axis1() {
-        // NumPy v2.4.2, lib/tests/test_function_base.py, TestFlip::test_3d_swap_axis1 (line 194)
+        // NumPy v2.5.2, lib/tests/test_function_base.py, TestFlip::test_3d_swap_axis1 (line 202)
         crate::specify_test!("test_3d_swap_axis1");
 
         let mut device = TESTCFG.device.clone();
@@ -125,7 +125,7 @@ mod numpy_flip {
 
     #[test]
     fn test_3d_swap_axis2() {
-        // NumPy v2.4.2, lib/tests/test_function_base.py, TestFlip::test_3d_swap_axis2 (line 207)
+        // NumPy v2.5.2, lib/tests/test_function_base.py, TestFlip::test_3d_swap_axis2 (line 215)
         crate::specify_test!("test_3d_swap_axis2");
 
         let mut device = TESTCFG.device.clone();
@@ -138,7 +138,7 @@ mod numpy_flip {
 
     #[test]
     fn test_default_axis() {
-        // NumPy v2.4.2, lib/tests/test_function_base.py, TestFlip::test_default_axis (line 226)
+        // NumPy v2.5.2, lib/tests/test_function_base.py, TestFlip::test_default_axis (line 234)
         crate::specify_test!("test_default_axis");
 
         let mut device = TESTCFG.device.clone();
@@ -156,7 +156,7 @@ mod numpy_flip {
 
     #[test]
     fn test_multiple_axes() {
-        // NumPy v2.4.2, lib/tests/test_function_base.py, TestFlip::test_multiple_axes (line 233)
+        // NumPy v2.5.2, lib/tests/test_function_base.py, TestFlip::test_multiple_axes (line 241)
         crate::specify_test!("test_multiple_axes");
 
         let mut device = TESTCFG.device.clone();

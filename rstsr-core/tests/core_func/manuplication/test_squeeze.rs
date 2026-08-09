@@ -10,7 +10,7 @@ mod numpy_squeeze {
 
     #[test]
     fn test_basic() {
-        // NumPy v2.4.2, _core/tests/test_numeric.py, TestBool::test_squeeze (line 292)
+        // NumPy v2.5.2, _core/tests/test_numeric.py, TestNonarrayArgs::test_squeeze (line 291)
         crate::specify_test!("test_basic");
 
         let mut device = TESTCFG.device.clone();

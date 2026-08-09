@@ -12,7 +12,7 @@ mod numpy_reshape {
 
     #[test]
     fn multiarray() {
-        // NumPy v2.4.2, _core/tests/test_multiarray.py, TestMethods::test_reshape (line 2167)
+        // NumPy v2.5.2, _core/tests/test_multiarray.py, TestMethods::test_reshape (line 2206)
         crate::specify_test!("multiarray_reshape");
 
         let mut device = TESTCFG.device.clone();
@@ -44,13 +44,13 @@ mod numpy_reshape {
 
     #[test]
     fn regression() {
-        // NumPy v2.4.2, _core/tests/test_regression.py, TestRegression::test_reshape*
+        // NumPy v2.5.2, _core/tests/test_regression.py, TestRegression::test_reshape*
         crate::specify_test!("regression_reshape");
 
         let mut device = TESTCFG.device.clone();
         device.set_default_order(RowMajor);
 
-        // CASE test_reshape_order (line 635)
+        // CASE test_reshape_order (line 642)
 
         // a = np.arange(6).reshape(2, 3, order='F')
         // assert_equal(a, [[0, 2, 4], [1, 3, 5]])
@@ -66,7 +66,7 @@ mod numpy_reshape {
         let tgt = rt::tensor_from_nested!([[2, 6], [4, 8]], &device);
         assert_equal(b.reshape_with_args([2, 2], ColMajor), &tgt, None);
 
-        // CASE test_reshape_zero_strides (line 643)
+        // CASE test_reshape_zero_strides (line 650)
 
         // a = np.ones(1)
         // a = as_strided(a, shape=(5,), strides=(0,))
@@ -75,14 +75,14 @@ mod numpy_reshape {
         let a = rt::asarray((vec![1], layout, &device));
         assert!(a.reshape([5, 1]).stride()[0] == 0);
 
-        // CASE test_reshape_zero_size (line 649)
+        // CASE test_reshape_zero_size (line 656)
 
         // a = np.ones((0, 2))
         // a.shape = (-1, 2)
         let a: Tensor<i32, _> = rt::ones(([0, 2], &device));
         let _a_reshaped = a.reshape([-1, 2]);
 
-        // CASE test_reshape_trailing_ones_strides (line 654)
+        // CASE test_reshape_trailing_ones_strides (line 662)
 
         // a = np.zeros(12, dtype=np.int32)[::2]  # not contiguous
         // strides_c = (16, 8, 8, 8)
@@ -98,7 +98,7 @@ mod numpy_reshape {
         let a: Tensor<i32, _> = rt::asarray((0, &device));
         assert_eq!(a.reshape([1, 1]).stride(), &[1, 1]);
 
-        // CASE test_reshape_size_overflow (line 2278)
+        // CASE test_reshape_size_overflow (line 2275)
         // please note in this case, panic occurs on rust-side, not from RSTSR (i.e., not coverable)
 
         // a = np.ones(20)[::2]
@@ -125,12 +125,12 @@ mod numpy_reshape {
 
     #[test]
     fn numeric() {
-        // NumPy v2.4.2, _core/tests/test_numeric.py, TestNonarrayArgs::test_reshape*
+        // NumPy v2.5.2, _core/tests/test_numeric.py, TestNonarrayArgs::test_reshape*
 
         let mut device = TESTCFG.device.clone();
         device.set_default_order(RowMajor);
 
-        // CASE test_reshape (line 178)
+        // CASE test_reshape (line 177)
 
         // arr = [[1, 2, 3], [4, 5, 6], [7, 8, 9], [10, 11, 12]]
         // tgt = [[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12]]
@@ -139,7 +139,7 @@ mod numpy_reshape {
         let tgt = rt::tensor_from_nested!([[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12]], &device);
         assert_equal(arr.reshape([2, 6]), &tgt, None);
 
-        // CASE test_reshape_shape_arg (line 183)
+        // CASE test_reshape_shape_arg (line 182)
 
         // arr = np.arange(12)
         // shape = (3, 4)
@@ -156,7 +156,7 @@ mod numpy_reshape {
         assert_equal(arr.reshape_with_args(shape, RowMajor), &expected, None);
         assert_equal(arr.reshape_with_args(shape, ReshapeArgs { order: Some(RowMajor), copy: None }), &expected, None);
 
-        // CASE test_reshape_copy_arg (line 201)
+        // CASE test_reshape_copy_arg (line 200)
 
         // arr = np.arange(24).reshape(2, 3, 4)
         // arr_f_ord = np.array(arr, order="F")

@@ -12,7 +12,7 @@ mod numpy_transpose {
 
     #[test]
     fn test_multiarray() {
-        // NumPy v2.4.2, _core/tests/test_multiarray.py, TestMethods::test_transpose (line 2221)
+        // NumPy v2.5.2, _core/tests/test_multiarray.py, TestMethods::test_transpose (line 2260)
         crate::specify_test!("test_multiarray");
 
         let mut device = TESTCFG.device.clone();
@@ -37,7 +37,7 @@ mod numpy_transpose {
 
     #[test]
     fn test_numeric() {
-        // NumPy v2.4.2, _core/tests/test_numeric.py, TestNonarrayArgs::test_transpose (line 354)
+        // NumPy v2.5.2, _core/tests/test_numeric.py, TestNonarrayArgs::test_transpose (line 353)
         crate::specify_test!("test_numeric");
 
         let mut device = TESTCFG.device.clone();
@@ -56,7 +56,7 @@ mod numpy_transpose {
 
     #[test]
     fn test_regression_arr_transpose() {
-        // NumPy v2.4.2, _core/tests/test_regression.py, TestRegression::test_arr_transpose (line 778)
+        // NumPy v2.5.2, _core/tests/test_regression.py, TestRegression::test_arr_transpose (line 786)
         // Ticket #516 - High dimensional transpose
         crate::specify_test!("test_regression_arr_transpose");
 
@@ -79,7 +79,7 @@ mod numpy_swapaxes {
 
     #[test]
     fn test_numeric() {
-        // NumPy v2.4.2, _core/tests/test_numeric.py, TestNonarrayArgs::test_swapaxes (line 315)
+        // NumPy v2.5.2, _core/tests/test_numeric.py, TestNonarrayArgs::test_swapaxes (line 314)
         crate::specify_test!("test_numeric");
 
         let mut device = TESTCFG.device.clone();
@@ -97,7 +97,7 @@ mod numpy_swapaxes {
 
     #[test]
     fn test_multiarray() {
-        // NumPy v2.4.2, _core/tests/test_multiarray.py, TestMethods::test_swapaxes (line 3850)
+        // NumPy v2.5.2, _core/tests/test_multiarray.py, TestMethods::test_swapaxes (line 4205)
         crate::specify_test!("test_multiarray");
 
         let mut device = TESTCFG.device.clone();
