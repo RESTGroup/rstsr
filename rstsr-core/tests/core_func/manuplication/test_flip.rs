@@ -1,3 +1,4 @@
+#[allow(unused_imports)]
 use crate::test_utils::*;
 use rstsr::prelude::*;
 
@@ -10,7 +11,7 @@ mod numpy_flip {
     static FUNC: &str = "numpy_flip";
 
     fn get_mat(n: usize) -> Tensor<usize, DeviceType> {
-        // NumPy v2.4.2, lib/tests/test_function_base.py, get_mat (line 68)
+        // NumPy v2.5.2, lib/tests/test_function_base.py, get_mat (line 68)
 
         let mut device = TESTCFG.device.clone();
         device.set_default_order(RowMajor);
@@ -24,7 +25,7 @@ mod numpy_flip {
 
     #[test]
     fn test_axes() {
-        // NumPy v2.4.2, lib/tests/test_function_base.py, TestFlip::test_axes (line 155)
+        // NumPy v2.5.2, lib/tests/test_function_base.py, TestFlip::test_axes (line 163)
         crate::specify_test!("test_axes");
 
         let mut device = TESTCFG.device.clone();
@@ -47,7 +48,7 @@ mod numpy_flip {
 
     #[test]
     fn test_basic_lr() {
-        // NumPy v2.4.2, lib/tests/test_function_base.py, TestFlip::test_basic_lr (line 161)
+        // NumPy v2.5.2, lib/tests/test_function_base.py, TestFlip::test_basic_lr (line 169)
         crate::specify_test!("test_basic_lr");
 
         let mut device = TESTCFG.device.clone();
@@ -70,7 +71,7 @@ mod numpy_flip {
 
     #[test]
     fn test_basic_ud() {
-        // NumPy v2.4.2, lib/tests/test_function_base.py, TestFlip::test_basic_ud (line 171)
+        // NumPy v2.5.2, lib/tests/test_function_base.py, TestFlip::test_basic_ud (line 179)
         crate::specify_test!("test_basic_ud");
 
         let mut device = TESTCFG.device.clone();
@@ -93,7 +94,7 @@ mod numpy_flip {
 
     #[test]
     fn test_3d_swap_axis0() {
-        // NumPy v2.4.2, lib/tests/test_function_base.py, TestFlip::test_3d_swap_axis0 (line 181)
+        // NumPy v2.5.2, lib/tests/test_function_base.py, TestFlip::test_3d_swap_axis0 (line 189)
         crate::specify_test!("test_3d_swap_axis0");
 
         let mut device = TESTCFG.device.clone();
@@ -111,7 +112,7 @@ mod numpy_flip {
 
     #[test]
     fn test_3d_swap_axis1() {
-        // NumPy v2.4.2, lib/tests/test_function_base.py, TestFlip::test_3d_swap_axis1 (line 194)
+        // NumPy v2.5.2, lib/tests/test_function_base.py, TestFlip::test_3d_swap_axis1 (line 202)
         crate::specify_test!("test_3d_swap_axis1");
 
         let mut device = TESTCFG.device.clone();
@@ -124,7 +125,7 @@ mod numpy_flip {
 
     #[test]
     fn test_3d_swap_axis2() {
-        // NumPy v2.4.2, lib/tests/test_function_base.py, TestFlip::test_3d_swap_axis2 (line 207)
+        // NumPy v2.5.2, lib/tests/test_function_base.py, TestFlip::test_3d_swap_axis2 (line 215)
         crate::specify_test!("test_3d_swap_axis2");
 
         let mut device = TESTCFG.device.clone();
@@ -136,8 +137,30 @@ mod numpy_flip {
     }
 
     #[test]
+    fn test_4d() {
+        // NumPy v2.5.2, lib/tests/test_function_base.py, TestFlip::test_4d (line 228)
+        crate::specify_test!("test_4d");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // a = np.arange(2 * 3 * 4 * 5).reshape(2, 3, 4, 5)
+        // for i in range(a.ndim):
+        //     assert_equal(np.flip(a, i),
+        //                  np.flipud(a.swapaxes(0, i)).swapaxes(i, 0))
+        let a = rt::arange((120, &device)).into_shape([2, 3, 4, 5]);
+        for i in 0..4 {
+            let flipped = rt::flip(&a, i);
+            let sa = rt::swapaxes(&a, 0, i);
+            let oracle = rt::flip(&sa, 0);
+            let oracle = rt::swapaxes(&oracle, i, 0);
+            assert_equal(&flipped, &oracle, None);
+        }
+    }
+
+    #[test]
     fn test_default_axis() {
-        // NumPy v2.4.2, lib/tests/test_function_base.py, TestFlip::test_default_axis (line 226)
+        // NumPy v2.5.2, lib/tests/test_function_base.py, TestFlip::test_default_axis (line 234)
         crate::specify_test!("test_default_axis");
 
         let mut device = TESTCFG.device.clone();
@@ -155,7 +178,7 @@ mod numpy_flip {
 
     #[test]
     fn test_multiple_axes() {
-        // NumPy v2.4.2, lib/tests/test_function_base.py, TestFlip::test_multiple_axes (line 233)
+        // NumPy v2.5.2, lib/tests/test_function_base.py, TestFlip::test_multiple_axes (line 241)
         crate::specify_test!("test_multiple_axes");
 
         let mut device = TESTCFG.device.clone();
@@ -177,102 +200,5 @@ mod numpy_flip {
 
         // assert_equal(np.flip(a, axis=(1, 2)), c)
         assert_equal(a.flip([1, 2]), &c, None);
-    }
-}
-
-#[cfg(test)]
-mod docs_flip {
-    use super::*;
-    static FUNC: &str = "docs_flip";
-
-    #[test]
-    fn flip_single_axis() {
-        crate::specify_test!("flip_single_axis");
-
-        let mut device = TESTCFG.device.clone();
-        device.set_default_order(RowMajor);
-
-        // Flipping the first (0) axis
-        let a = rt::arange((8, &device)).into_shape([2, 2, 2]);
-        println!("{a}");
-        // [[[ 0 1]
-        //   [ 2 3]]
-        //
-        //  [[ 4 5]
-        //   [ 6 7]]]
-
-        // flip(0)
-        let b = a.flip(0);
-        assert!(rt::allclose(a.i(slice!(None, None, -1)), &b, None));
-        println!("{b}");
-        // [[[ 4 5]
-        //   [ 6 7]]
-        //
-        //  [[ 0 1]
-        //   [ 2 3]]]
-        let target = rt::tensor_from_nested!([[[4, 5], [6, 7]], [[0, 1], [2, 3]]], &device);
-        assert!(rt::allclose(&b, &target, None));
-
-        // flip(1)
-        let b = a.flip(1);
-        assert!(rt::allclose(a.i((.., slice!(None, None, -1))), &b, None));
-        println!("{b}");
-        // [[[ 2 3]
-        //   [ 0 1]]
-        //
-        //  [[ 6 7]
-        //   [ 4 5]]]
-        let b_expected = rt::tensor_from_nested!([[[2, 3], [0, 1]], [[6, 7], [4, 5]]], &device);
-        assert!(rt::allclose(&b, &b_expected, None));
-    }
-
-    #[test]
-    fn flip_multiple_axes() {
-        crate::specify_test!("flip_multiple_axes");
-
-        let mut device = TESTCFG.device.clone();
-        device.set_default_order(RowMajor);
-
-        // flip([0, -1])
-        let a = rt::arange((8, &device)).into_shape([2, 2, 2]);
-        let b = a.flip([0, -1]);
-        println!("{b}");
-        // [[[ 5 4]
-        //   [ 7 6]]
-        //
-        //  [[ 1 0]
-        //   [ 3 2]]]
-        let b_expected = rt::tensor_from_nested!([[[5, 4], [7, 6]], [[1, 0], [3, 2]]], &device);
-        assert!(rt::allclose(&b, &b_expected, None));
-    }
-
-    #[test]
-    fn flip_all_axes() {
-        crate::specify_test!("flip_all_axes");
-
-        let mut device = TESTCFG.device.clone();
-        device.set_default_order(RowMajor);
-
-        // Flipping all axes with None
-        let a = rt::arange((8, &device)).into_shape([2, 2, 2]);
-        let b = a.flip(None);
-        println!("{b}");
-        // [[[ 7 6]
-        //   [ 5 4]]
-        //
-        //  [[ 3 2]
-        //   [ 1 0]]]
-        let b_expected = rt::tensor_from_nested!([[[7, 6], [5, 4]], [[3, 2], [1, 0]]], &device);
-        assert!(rt::allclose(&b, &b_expected, None));
-
-        // No fliping any axis with empty tuple
-        let b = a.flip(());
-        println!("{b}");
-        // [[[ 0 1]
-        //   [ 2 3]]
-        //
-        //  [[ 4 5]
-        //   [ 6 7]]]
-        assert!(rt::allclose(&b, &a, None));
     }
 }

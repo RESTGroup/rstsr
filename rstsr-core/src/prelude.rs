@@ -58,8 +58,10 @@ pub mod rstsr_funcs {
         triu_f, uninit, uninit_f, zeros, zeros_f, zeros_like, zeros_like_f,
     };
     pub use crate::tensor::creation_from_tensor::{
-        concat, concat_f, concatenate, concatenate_f, diag, diag_f, hstack, hstack_f, meshgrid, meshgrid_f, stack,
-        stack_f, unstack, unstack_f, vstack, vstack_f,
+        atleast_1d, atleast_1d_f, atleast_2d, atleast_2d_f, atleast_3d, atleast_3d_f, concat, concat_f, concatenate,
+        concatenate_f, diag, diag_f, hstack, hstack_f, into_atleast_1d, into_atleast_1d_f, into_atleast_2d,
+        into_atleast_2d_f, into_atleast_3d, into_atleast_3d_f, meshgrid, meshgrid_f, stack, stack_f, unstack,
+        unstack_f, vstack, vstack_f,
     };
     pub use crate::tensor::indexing::{
         diagonal, diagonal_f, diagonal_mut, diagonal_mut_f, into_diagonal, into_diagonal_f, into_diagonal_mut,

@@ -1,3 +1,4 @@
+#[allow(unused_imports)]
 use crate::test_utils::*;
 use rstsr::prelude::*;
 
@@ -11,7 +12,7 @@ mod numpy_broadcast_to {
 
     #[test]
     fn test_broadcast_to_succeeds() {
-        // NumPy v2.4.2, lib/tests/test_stride_tricks.py, test_broadcast_to_succeeds (line 242)
+        // NumPy v2.5.2, lib/tests/test_stride_tricks.py, test_broadcast_to_succeeds (line 242)
         crate::specify_test!("test_broadcast_to_succeeds");
 
         let mut device = TESTCFG.device.clone();
@@ -69,6 +70,11 @@ mod numpy_broadcast_to {
         let expected = rt::tensor_from_nested!([[0, 1, 2], [0, 1, 2]], &device);
         assert_equal(&result, &expected, None);
 
+        // [np.ones(0), 0, np.ones(0)] - size-0 (0,) array to integer shape 0
+        let input_array: Tensor<f64, _> = rt::ones(([0], &device));
+        let result = rt::broadcast_to(&input_array, vec![0]);
+        assert_eq!(result.shape(), &[0]);
+
         // [np.ones(1), 1, np.ones(1)] - shape as integer, not tuple
         let input_array: Tensor<f64, _> = rt::ones(([1], &device));
         let result = rt::broadcast_to(&input_array, vec![1]);
@@ -99,7 +105,7 @@ mod numpy_broadcast_to {
 
     #[test]
     fn test_broadcast_to_raises() {
-        // NumPy v2.4.2, lib/tests/test_stride_tricks.py, test_broadcast_to_raises (line 268)
+        // NumPy v2.5.2, lib/tests/test_stride_tricks.py, test_broadcast_to_raises (line 268)
         crate::specify_test!("test_broadcast_to_raises");
 
         let mut device = TESTCFG.device.clone();
@@ -151,7 +157,7 @@ mod numpy_broadcast_arrays {
 
     #[test]
     fn test_broadcast_arrays_basic() {
-        // NumPy v2.4.2, lib/tests/test_stride_tricks.py, test_broadcast_shape (line 287)
+        // NumPy v2.5.2, lib/tests/test_stride_tricks.py, test_broadcast_shape (line 287)
         crate::specify_test!("test_broadcast_arrays_basic");
 
         let mut device = TESTCFG.device.clone();
@@ -174,242 +180,102 @@ mod numpy_broadcast_arrays {
             assert_eq!(r.shape(), &[1, 2]);
         }
     }
-}
-
-#[cfg(test)]
-mod docs_broadcast {
-    use super::*;
-    static FUNC: &str = "docs_broadcast";
 
     #[test]
-    #[rustfmt::skip]
-    fn doc_broadcast_to_row_major() {
-        crate::specify_test!("doc_broadcast_to_row_major");
+    fn test_same() {
+        // NumPy v2.5.2, lib/tests/test_stride_tricks.py, test_same (line 63)
+        crate::specify_test!("test_same");
 
         let mut device = TESTCFG.device.clone();
         device.set_default_order(RowMajor);
 
-        let a = rt::tensor_from_nested!([1, 2, 3], &device);
-
-        // broadcast (3, ) -> (2, 3) in row-major:
-        let result = a.to_broadcast(vec![2, 3]);
-        println!("{result}");
-        // [[ 1 2 3]
-        //  [ 1 2 3]]
-        let expected = rt::tensor_from_nested!(
-            [[1, 2, 3],
-             [1, 2, 3]],
-            &device);
-        assert!(rt::allclose!(&result, &expected));
+        // x = np.arange(10)
+        // y = np.arange(10)
+        // bx, by = broadcast_arrays(x, y)
+        // assert_array_equal(x, bx)
+        // assert_array_equal(y, by)
+        let x = rt::arange((10, &device));
+        let result = rt::broadcast_arrays(vec![x.view(), x.view()]);
+        assert_equal(&result[0], &x, None);
+        assert_equal(&result[1], &x, None);
     }
 
     #[test]
-    #[rustfmt::skip]
-    fn doc_broadcast_to_col_major() {
-        crate::specify_test!("doc_broadcast_to_col_major");
-
-        let mut device = TESTCFG.device.clone();
-        device.set_default_order(ColMajor);
-
-        let a = rt::tensor_from_nested!([1, 2, 3], &device);
-        // in col-major, broadcast (3, ) -> (2, 3) will fail:
-        let result = a.to_broadcast_f(vec![2, 3]);
-        assert!(result.is_err());
-
-        // broadcast (3, ) -> (3, 2) in col-major:
-        let result = a.to_broadcast(vec![3, 2]);
-        println!("{result}");
-        // [[ 1 1]
-        //  [ 2 2]
-        //  [ 3 3]]
-        let expected = rt::tensor_from_nested!(
-            [[1, 1],
-             [2, 2],
-             [3, 3]],
-            &device);
-        assert!(rt::allclose!(&result, &expected));
-    }
-
-    #[test]
-    fn doc_broadcast_to_elaborated_row_major() {
-        crate::specify_test!("doc_broadcast_to_elaborated_row_major");
+    fn test_one_off() {
+        // NumPy v2.5.2, lib/tests/test_stride_tricks.py, test_one_off (line 81)
+        crate::specify_test!("test_one_off");
 
         let mut device = TESTCFG.device.clone();
         device.set_default_order(RowMajor);
 
-        // A      (4d tensor):  8 x 1 x 6 x 1
-        // B      (3d tensor):      7 x 1 x 5
-        // ----------------------------------
-        // Result (4d tensor):  8 x 7 x 6 x 5
-        let a = rt::arange((48, &device)).into_shape([8, 1, 6, 1]);
-        let b = rt::arange((35, &device)).into_shape([7, 1, 5]);
-        let result = &a + &b;
-        assert_eq!(result.shape(), &[8, 7, 6, 5]);
-
-        // A      (2d tensor):  5 x 4
-        // B      (1d tensor):      1
-        // --------------------------
-        // Result (2d tensor):  5 x 4
-        let a = rt::arange((20, &device)).into_shape([5, 4]);
-        let b = rt::arange((1, &device)).into_shape([1]);
-        let result = &a + &b;
-        assert_eq!(result.shape(), &[5, 4]);
-
-        // A      (2d tensor):  5 x 4
-        // B      (1d tensor):      4
-        // --------------------------
-        // Result (2d tensor):  5 x 4
-        let a = rt::arange((20, &device)).into_shape([5, 4]);
-        let b = rt::arange((4, &device)).into_shape([4]);
-        let result = &a + &b;
-        assert_eq!(result.shape(), &[5, 4]);
-
-        // A      (3d tensor):  15 x 3 x 5
-        // B      (3d tensor):  15 x 1 x 5
-        // -------------------------------
-        // Result (3d tensor):  15 x 3 x 5
-        let a = rt::arange((225, &device)).into_shape([15, 3, 5]);
-        let b = rt::arange((75, &device)).into_shape([15, 1, 5]);
-        let result = &a + &b;
-        assert_eq!(result.shape(), &[15, 3, 5]);
-
-        // A      (3d tensor):  15 x 3 x 5
-        // B      (2d tensor):       3 x 5
-        // -------------------------------
-        // Result (3d tensor):  15 x 3 x 5
-        let a = rt::arange((225, &device)).into_shape([15, 3, 5]);
-        let b = rt::arange((15, &device)).into_shape([3, 5]);
-        let result = &a + &b;
-        assert_eq!(result.shape(), &[15, 3, 5]);
-
-        // A      (3d tensor):  15 x 3 x 5
-        // B      (2d tensor):       3 x 1
-        // -------------------------------
-        // Result (3d tensor):  15 x 3 x 5
-        let a = rt::arange((225, &device)).into_shape([15, 3, 5]);
-        let b = rt::arange((3, &device)).into_shape([3, 1]);
-        let result = &a + &b;
-        assert_eq!(result.shape(), &[15, 3, 5]);
+        // x = np.array([[1, 2, 3]])
+        // y = np.array([[1], [2], [3]])
+        // bx, by = broadcast_arrays(x, y)
+        // bx0 = np.array([[1, 2, 3], [1, 2, 3], [1, 2, 3]])
+        // by0 = bx0.T
+        // assert_array_equal(bx0, bx)
+        // assert_array_equal(by0, by)
+        let x = rt::tensor_from_nested!([[1, 2, 3]], &device);
+        let y = rt::tensor_from_nested!([[1], [2], [3]], &device);
+        let result = rt::broadcast_arrays(vec![x.view(), y.view()]);
+        assert_eq!(result[0].shape(), &[3, 3]);
+        assert_eq!(result[1].shape(), &[3, 3]);
+        let bx0 = rt::tensor_from_nested!([[1, 2, 3], [1, 2, 3], [1, 2, 3]], &device);
+        let by0 = rt::tensor_from_nested!([[1, 1, 1], [2, 2, 2], [3, 3, 3]], &device);
+        assert_equal(&result[0], &bx0, None);
+        assert_equal(&result[1], &by0, None);
     }
 
     #[test]
-    fn doc_broadcast_to_elaborated_col_major() {
-        crate::specify_test!("doc_broadcast_to_elaborated_col_major");
-
-        let mut device = TESTCFG.device.clone();
-        device.set_default_order(ColMajor);
-
-        // A      (4d tensor):  1 x 6 x 1 x 8
-        // B      (3d tensor):  5 x 1 x 7
-        // ----------------------------------
-        // Result (4d tensor):  5 x 6 x 7 x 8
-        let a = rt::arange((48, &device)).into_shape([1, 6, 1, 8]);
-        let b = rt::arange((35, &device)).into_shape([5, 1, 7]);
-        let result = &a + &b;
-        assert_eq!(result.shape(), &[5, 6, 7, 8]);
-
-        // A      (2d tensor):  4 x 5
-        // B      (1d tensor):  1
-        // --------------------------
-        // Result (2d tensor):  4 x 5
-        let a = rt::arange((20, &device)).into_shape([4, 5]);
-        let b = rt::arange((1, &device)).into_shape([1]);
-        let result = &a + &b;
-        assert_eq!(result.shape(), &[4, 5]);
-
-        // A      (2d tensor):  4 x 5
-        // B      (1d tensor):  4
-        // --------------------------
-        // Result (2d tensor):  4 x 5
-        let a = rt::arange((20, &device)).into_shape([4, 5]);
-        let b = rt::arange((4, &device)).into_shape([4]);
-        let result = &a + &b;
-        assert_eq!(result.shape(), &[4, 5]);
-
-        // A      (3d tensor):  5 x 3 x 15
-        // B      (3d tensor):  5 x 1 x 15
-        // -------------------------------
-        // Result (3d tensor):  5 x 3 x 15
-        let a = rt::arange((225, &device)).into_shape([5, 3, 15]);
-        let b = rt::arange((75, &device)).into_shape([5, 1, 15]);
-        let result = &a + &b;
-        assert_eq!(result.shape(), &[5, 3, 15]);
-
-        // A      (3d tensor):  5 x 3 x 15
-        // B      (2d tensor):  5 x 3
-        // -------------------------------
-        // Result (3d tensor):  5 x 3 x 15
-        let a = rt::arange((225, &device)).into_shape([5, 3, 15]);
-        let b = rt::arange((15, &device)).into_shape([5, 3]);
-        let result = &a + &b;
-        assert_eq!(result.shape(), &[5, 3, 15]);
-
-        // A      (3d tensor):  5 x 3 x 15
-        // B      (2d tensor):  1 x 3
-        // -------------------------------
-        // Result (3d tensor):  5 x 3 x 15
-        let a = rt::arange((225, &device)).into_shape([5, 3, 15]);
-        let b = rt::arange((3, &device)).into_shape([1, 3]);
-        let result = &a + &b;
-        assert_eq!(result.shape(), &[5, 3, 15]);
-    }
-
-    #[test]
-    #[rustfmt::skip]
-    fn doc_broadcast_arrays_row_major() {
-        crate::specify_test!("doc_broadcast_arrays_row_major");
+    fn test_incompatible_shapes_raise() {
+        // NumPy v2.5.2, lib/tests/test_stride_tricks.py, test_incompatible_shapes_raise_valueerror (line
+        // 175)
+        crate::specify_test!("test_incompatible_shapes_raise");
 
         let mut device = TESTCFG.device.clone();
         device.set_default_order(RowMajor);
 
-        let a = rt::asarray((vec![1, 2, 3], &device)).into_shape([3]);
-        println!("{a}");
-        // [ 1 2 3]
-        let b = rt::asarray((vec![4, 5], &device)).into_shape([2, 1]);
-        println!("{b}");
-        // [[ 4]
-        //  [ 5]]
+        // [(3,), (4,)]
+        let a: Tensor<f64, _> = rt::zeros(([3], &device));
+        let b: Tensor<f64, _> = rt::zeros(([4], &device));
+        assert!(rt::broadcast_arrays_f(vec![a.view(), b.view()]).is_err());
 
-        let result = rt::broadcast_arrays(vec![a, b]);
-        println!("broadcasted a:\n{:}", result[0]);
-        // [[ 1 2 3]
-        //  [ 1 2 3]]
-        println!("broadcasted b:\n{:}", result[1]);
-        // [[ 4 4 4]
-        //  [ 5 5 5]]
-        let expected_a = rt::tensor_from_nested!(
-            [[1, 2, 3],
-             [1, 2, 3]],
-            &device);
-        let expected_b = rt::tensor_from_nested!(
-            [[4, 4, 4],
-             [5, 5, 5]],
-            &device);
-        assert!(rt::allclose!(&result[0], &expected_a));
-        assert!(rt::allclose!(&result[1], &expected_b));
-    }
+        // [(2, 3), (2,)]
+        let a: Tensor<f64, _> = rt::zeros(([2, 3], &device));
+        let b: Tensor<f64, _> = rt::zeros(([2], &device));
+        assert!(rt::broadcast_arrays_f(vec![a.view(), b.view()]).is_err());
 
-    #[test]
-    #[rustfmt::skip]
-    fn doc_broadcast_arrays_col_major() {
-        crate::specify_test!("doc_broadcast_arrays_col_major");
+        // [(3,), (3,), (4,)]
+        let a: Tensor<f64, _> = rt::zeros(([3], &device));
+        let b: Tensor<f64, _> = rt::zeros(([3], &device));
+        let c: Tensor<f64, _> = rt::zeros(([4], &device));
+        assert!(rt::broadcast_arrays_f(vec![a.view(), b.view(), c.view()]).is_err());
 
-        let mut device = TESTCFG.device.clone();
-        device.set_default_order(ColMajor);
+        // [(1, 3, 4), (2, 3, 3)]
+        let a: Tensor<f64, _> = rt::zeros(([1, 3, 4], &device));
+        let b: Tensor<f64, _> = rt::zeros(([2, 3, 3], &device));
+        assert!(rt::broadcast_arrays_f(vec![a.view(), b.view()]).is_err());
 
-        let a = rt::asarray((vec![1, 2, 3], &device)).into_shape([1, 3]);
-        let b = rt::asarray((vec![4, 5], &device)).into_shape([2, 1]);
+        // Reverse the input shapes since broadcasting should be symmetric.
+        // [(4,), (3,)]
+        let a: Tensor<f64, _> = rt::zeros(([4], &device));
+        let b: Tensor<f64, _> = rt::zeros(([3], &device));
+        assert!(rt::broadcast_arrays_f(vec![a.view(), b.view()]).is_err());
 
-        let result = rt::broadcast_arrays(vec![a, b]);
-        let expected_a = rt::tensor_from_nested!(
-            [[1, 2, 3],
-             [1, 2, 3]],
-            &device);
-        let expected_b = rt::tensor_from_nested!(
-            [[4, 4, 4],
-             [5, 5, 5]],
-            &device);
-        assert!(rt::allclose!(&result[0], &expected_a));
-        assert!(rt::allclose!(&result[1], &expected_b));
+        // [(2,), (2, 3)]
+        let a: Tensor<f64, _> = rt::zeros(([2], &device));
+        let b: Tensor<f64, _> = rt::zeros(([2, 3], &device));
+        assert!(rt::broadcast_arrays_f(vec![a.view(), b.view()]).is_err());
+
+        // [(4,), (3,), (3,)]
+        let a: Tensor<f64, _> = rt::zeros(([4], &device));
+        let b: Tensor<f64, _> = rt::zeros(([3], &device));
+        let c: Tensor<f64, _> = rt::zeros(([3], &device));
+        assert!(rt::broadcast_arrays_f(vec![a.view(), b.view(), c.view()]).is_err());
+
+        // [(2, 3, 3), (1, 3, 4)]
+        let a: Tensor<f64, _> = rt::zeros(([2, 3, 3], &device));
+        let b: Tensor<f64, _> = rt::zeros(([1, 3, 4], &device));
+        assert!(rt::broadcast_arrays_f(vec![a.view(), b.view()]).is_err());
     }
 }

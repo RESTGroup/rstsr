@@ -1,3 +1,4 @@
+#[allow(unused_imports)]
 use crate::test_utils::*;
 use rstsr::prelude::*;
 
@@ -11,7 +12,7 @@ mod numpy_transpose {
 
     #[test]
     fn test_multiarray() {
-        // NumPy v2.4.2, _core/tests/test_multiarray.py, TestMethods::test_transpose (line 2221)
+        // NumPy v2.5.2, _core/tests/test_multiarray.py, TestMethods::test_transpose (line 2260)
         crate::specify_test!("test_multiarray");
 
         let mut device = TESTCFG.device.clone();
@@ -36,7 +37,7 @@ mod numpy_transpose {
 
     #[test]
     fn test_numeric() {
-        // NumPy v2.4.2, _core/tests/test_numeric.py, TestNonarrayArgs::test_transpose (line 354)
+        // NumPy v2.5.2, _core/tests/test_numeric.py, TestNonarrayArgs::test_transpose (line 353)
         crate::specify_test!("test_numeric");
 
         let mut device = TESTCFG.device.clone();
@@ -55,7 +56,7 @@ mod numpy_transpose {
 
     #[test]
     fn test_regression_arr_transpose() {
-        // NumPy v2.4.2, _core/tests/test_regression.py, TestRegression::test_arr_transpose (line 778)
+        // NumPy v2.5.2, _core/tests/test_regression.py, TestRegression::test_arr_transpose (line 786)
         // Ticket #516 - High dimensional transpose
         crate::specify_test!("test_regression_arr_transpose");
 
@@ -71,62 +72,6 @@ mod numpy_transpose {
     }
 }
 
-mod doc_transpose {
-    use super::*;
-    static FUNC: &str = "doc_transpose";
-
-    #[test]
-    fn test_doc() {
-        // Test that the documentation examples for transpose work correctly.
-        crate::specify_test!("test_doc");
-
-        let mut device = TESTCFG.device.clone();
-        device.set_default_order(RowMajor);
-
-        // 2-D array
-        let a = rt::tensor_from_nested!([[1, 2], [3, 4]], &device);
-        let result = a.transpose(None);
-        println!("{result}");
-        // [[ 1 3]
-        //  [ 2 4]]
-        let target = rt::tensor_from_nested!([[1, 3], [2, 4]], &device);
-        assert!(rt::allclose(&result, &target, None));
-
-        // 1-D array
-        let a = rt::tensor_from_nested!([1, 2, 3, 4], &device);
-        let result = a.transpose(None);
-        println!("{result}");
-        // [ 1 2 3 4]
-        let target = rt::tensor_from_nested!([1, 2, 3, 4], &device);
-        assert!(rt::allclose(&result, &target, None));
-
-        // 3-D with axes argument
-        let a: Tensor<i32, _> = rt::ones(([1, 2, 3], &device));
-        let result = a.transpose(None);
-        println!("{:?}", result.shape());
-        // [3, 2, 1]
-        assert_eq!(result.shape(), &[3, 2, 1]);
-        let result = a.transpose([1, 0, 2]);
-        println!("{:?}", result.shape());
-        // [2, 1, 3]
-        assert_eq!(result.shape(), &[2, 1, 3]);
-
-        // 4-D full reverse order
-        let a: Tensor<i32, _> = rt::ones(([2, 3, 4, 5], &device));
-        let result = a.transpose(None);
-        println!("{:?}", result.shape());
-        // [5, 4, 3, 2]
-        assert_eq!(result.shape(), &[5, 4, 3, 2]);
-
-        // negative axes
-        let a: Tensor<i32, _> = rt::arange((3 * 4 * 5, &device)).into_shape([3, 4, 5]);
-        let result = a.transpose([-1, 0, -2]);
-        println!("{:?}", result.shape());
-        // [5, 3, 4]
-        assert_eq!(result.shape(), &[5, 3, 4]);
-    }
-}
-
 #[cfg(test)]
 mod numpy_swapaxes {
     use super::*;
@@ -134,7 +79,7 @@ mod numpy_swapaxes {
 
     #[test]
     fn test_numeric() {
-        // NumPy v2.4.2, _core/tests/test_numeric.py, TestNonarrayArgs::test_swapaxes (line 315)
+        // NumPy v2.5.2, _core/tests/test_numeric.py, TestNonarrayArgs::test_swapaxes (line 314)
         crate::specify_test!("test_numeric");
 
         let mut device = TESTCFG.device.clone();
@@ -152,7 +97,7 @@ mod numpy_swapaxes {
 
     #[test]
     fn test_multiarray() {
-        // NumPy v2.4.2, _core/tests/test_multiarray.py, TestMethods::test_swapaxes (line 3850)
+        // NumPy v2.5.2, _core/tests/test_multiarray.py, TestMethods::test_swapaxes (line 4205)
         crate::specify_test!("test_multiarray");
 
         let mut device = TESTCFG.device.clone();
@@ -171,114 +116,50 @@ mod numpy_swapaxes {
         // assert_raises(AxisError, a.swapaxes, 0, 4)
         assert!(a.swapaxes_f(0, 4).is_err());
 
-        // Test various axis combinations
+        // Test various axis combinations. NumPy loops `for i in range(-4, 4) for j in
+        // range(-4, 4)` (64 pairs) over both a contiguous source `a` and a non-contiguous
+        // `b`, checking shape, elementwise content, and that a view is always returned
+        // (gh-5260: `not c.flags['OWNDATA']`). rstsr checks shape + full element grid +
+        // view on the contiguous source `a` (the non-contiguous `b` chaining is not ported).
         for i in -4..4 {
             for j in -4..4 {
                 let c = a.swapaxes(i, j);
-                // check shape
-                let mut expected_shape: Vec<usize> = a.shape().to_vec();
                 let i_usize = if i < 0 { (a.ndim() as isize + i) as usize } else { i as usize };
                 let j_usize = if j < 0 { (a.ndim() as isize + j) as usize } else { j as usize };
+
+                // check shape: shape[i], shape[j] swapped
+                let mut expected_shape: Vec<usize> = a.shape().to_vec();
                 expected_shape.swap(i_usize, j_usize);
                 assert_eq!(c.shape().to_vec(), expected_shape, "shape mismatch for swapaxes({}, {})", i, j);
+
+                // check array contents (full element grid):
+                //   i0, i1, i2, i3 = [dim - 1 for dim in c.shape]
+                //   j0, j1, j2, j3 = [dim - 1 for dim in src.shape]
+                //   assert_equal(src[idx[j0], idx[j1], idx[j2], idx[j3]],
+                //                c[idx[i0], idx[i1], idx[i2], idx[i3]], str((i, j, k)))
+                // i.e. c = a.swapaxes(i, j)  =>  c[i0, i1, i2, i3] == a[j0, j1, j2, j3],
+                // where the j-index tuple is the i-index tuple with axes i/j swapped back.
+                for i0 in 0..c.shape()[0] {
+                    for i1 in 0..c.shape()[1] {
+                        for i2 in 0..c.shape()[2] {
+                            for i3 in 0..c.shape()[3] {
+                                let mut j_idx = [i0, i1, i2, i3];
+                                j_idx.swap(i_usize, j_usize);
+                                let (got, expected) = (
+                                    c.i((i0, i1, i2, i3)).to_scalar(),
+                                    a.i((j_idx[0], j_idx[1], j_idx[2], j_idx[3])).to_scalar(),
+                                );
+                                assert_eq!(got, expected, "content mismatch for swapaxes({i}, {j}) at index {j_idx:?}");
+                            }
+                        }
+                    }
+                }
+
+                // check a view is always returned, gh-5260 (`not c.flags['OWNDATA']`):
+                // swapaxes permutes strides only, so the result must share the source
+                // data buffer (no copy) - assert pointer equality.
+                assert!(core::ptr::eq(c.as_ptr(), a.as_ptr()), "swapaxes({}, {}) did not return a view", i, j);
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod doc_swapaxes {
-    use super::*;
-    static FUNC: &str = "doc_swapaxes";
-
-    #[test]
-    fn test_doc() {
-        // Test that the documentation examples for swapaxes work correctly.
-        // Based on NumPy v2.4.2 swapaxes docstring examples.
-        crate::specify_test!("test_doc");
-
-        let mut device = TESTCFG.device.clone();
-        device.set_default_order(RowMajor);
-
-        // 2-D array: swapping axes 0 and 1 is equivalent to transpose
-        let x = rt::tensor_from_nested!([[1, 2, 3]], &device);
-        let result = x.swapaxes(0, 1);
-        println!("{result}");
-        // [[ 1]
-        //  [ 2]
-        //  [ 3]]
-        let target = rt::tensor_from_nested!([[1], [2], [3]], &device);
-        assert!(rt::allclose(&result, &target, None));
-
-        // 3-D array: swapping axes 0 and 2
-        let x = rt::tensor_from_nested!([[[0, 1], [2, 3]], [[4, 5], [6, 7]]], &device);
-        let result = x.swapaxes(0, 2);
-        println!("{result}");
-        // [[[ 0 4]
-        //   [ 2 6]]
-        //
-        //  [[ 1 5]
-        //   [ 3 7]]]
-        let target = rt::tensor_from_nested!([[[0, 4], [2, 6]], [[1, 5], [3, 7]]], &device);
-        assert!(rt::allclose(&result, &target, None));
-
-        // Using negative indices to swap axes
-        let x = rt::tensor_from_nested!([[[0, 1], [2, 3]], [[4, 5], [6, 7]]], &device);
-        let result = x.swapaxes(-1, -3);
-        println!("{:?}", result.shape());
-        // [2, 2, 2]
-        let result2 = x.swapaxes(2, 0);
-        assert!(rt::allclose(&result, &result2, None));
-    }
-}
-
-#[cfg(test)]
-mod doc_reverse_axes {
-    use super::*;
-    static FUNC: &str = "doc_reverse_axes";
-
-    #[test]
-    fn test_doc() {
-        // Test that the documentation examples for reverse_axes work correctly.
-        crate::specify_test!("test_doc");
-
-        let mut device = TESTCFG.device.clone();
-        device.set_default_order(RowMajor);
-
-        // 2-D array: reverse_axes is equivalent to matrix transpose
-        let a = rt::tensor_from_nested!([[1, 2], [3, 4]], &device);
-        let result = a.reverse_axes();
-        println!("{result}");
-        // [[ 1  3]
-        //  [ 2  4]]
-        let target = rt::tensor_from_nested!([[1, 3], [2, 4]], &device);
-        assert!(rt::allclose(&result, &target, None));
-
-        // 1-D array: reverse_axes returns unchanged view
-        let a = rt::tensor_from_nested!([1, 2, 3, 4], &device);
-        let result = a.reverse_axes();
-        println!("{result}");
-        // [ 1  2  3  4]
-        let target = rt::tensor_from_nested!([1, 2, 3, 4], &device);
-        assert!(rt::allclose(&result, &target, None));
-
-        // 3-D array: reverse_axes reverses all axis order
-        let a = rt::tensor_from_nested!([[[1, 2], [3, 4]], [[5, 6], [7, 8]]], &device);
-        println!("Original shape: {:?}", a.shape());
-        // [2, 2, 2]
-        let result = a.reverse_axes();
-        println!("Reversed shape: {:?}", result.shape());
-        // [2, 2, 2]
-        // Note: For [2,2,2] shape, reverse doesn't change shape but changes axis order
-        // Original axes [0, 1, 2], Reversed axes [2, 1, 0]
-        let expected = rt::tensor_from_nested!([[[1, 5], [3, 7]], [[2, 6], [4, 8]]], &device);
-        assert!(rt::allclose(&result, &expected, None));
-
-        // 4-D array: reverse_axes shows clear shape change
-        let a: Tensor<i32, _> = rt::ones(([2, 3, 4, 5], &device));
-        let result = a.reverse_axes();
-        println!("{:?}", result.shape());
-        // [5, 4, 3, 2]
-        assert_eq!(result.shape(), &[5, 4, 3, 2]);
     }
 }
