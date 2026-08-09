@@ -70,6 +70,11 @@ mod numpy_broadcast_to {
         let expected = rt::tensor_from_nested!([[0, 1, 2], [0, 1, 2]], &device);
         assert_equal(&result, &expected, None);
 
+        // [np.ones(0), 0, np.ones(0)] - size-0 (0,) array to integer shape 0
+        let input_array: Tensor<f64, _> = rt::ones(([0], &device));
+        let result = rt::broadcast_to(&input_array, vec![0]);
+        assert_eq!(result.shape(), &[0]);
+
         // [np.ones(1), 1, np.ones(1)] - shape as integer, not tuple
         let input_array: Tensor<f64, _> = rt::ones(([1], &device));
         let result = rt::broadcast_to(&input_array, vec![1]);
@@ -174,5 +179,81 @@ mod numpy_broadcast_arrays {
         for r in &result {
             assert_eq!(r.shape(), &[1, 2]);
         }
+    }
+
+    #[test]
+    fn test_same() {
+        // NumPy v2.5.2, lib/tests/test_stride_tricks.py, test_same (line 63)
+        crate::specify_test!("test_same");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // x = np.arange(10)
+        // y = np.arange(10)
+        // bx, by = broadcast_arrays(x, y)
+        // assert_array_equal(x, bx)
+        // assert_array_equal(y, by)
+        let x = rt::arange((10, &device));
+        let result = rt::broadcast_arrays(vec![x.view(), x.view()]);
+        assert_equal(&result[0], &x, None);
+        assert_equal(&result[1], &x, None);
+    }
+
+    #[test]
+    fn test_one_off() {
+        // NumPy v2.5.2, lib/tests/test_stride_tricks.py, test_one_off (line 81)
+        crate::specify_test!("test_one_off");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // x = np.array([[1, 2, 3]])
+        // y = np.array([[1], [2], [3]])
+        // bx, by = broadcast_arrays(x, y)
+        // bx0 = np.array([[1, 2, 3], [1, 2, 3], [1, 2, 3]])
+        // by0 = bx0.T
+        // assert_array_equal(bx0, bx)
+        // assert_array_equal(by0, by)
+        let x = rt::tensor_from_nested!([[1, 2, 3]], &device);
+        let y = rt::tensor_from_nested!([[1], [2], [3]], &device);
+        let result = rt::broadcast_arrays(vec![x.view(), y.view()]);
+        assert_eq!(result[0].shape(), &[3, 3]);
+        assert_eq!(result[1].shape(), &[3, 3]);
+        let bx0 = rt::tensor_from_nested!([[1, 2, 3], [1, 2, 3], [1, 2, 3]], &device);
+        let by0 = rt::tensor_from_nested!([[1, 1, 1], [2, 2, 2], [3, 3, 3]], &device);
+        assert_equal(&result[0], &bx0, None);
+        assert_equal(&result[1], &by0, None);
+    }
+
+    #[test]
+    fn test_incompatible_shapes_raise() {
+        // NumPy v2.5.2, lib/tests/test_stride_tricks.py, test_incompatible_shapes_raise_valueerror (line
+        // 175)
+        crate::specify_test!("test_incompatible_shapes_raise");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // [(3,), (4,)]
+        let a: Tensor<f64, _> = rt::zeros(([3], &device));
+        let b: Tensor<f64, _> = rt::zeros(([4], &device));
+        assert!(rt::broadcast_arrays_f(vec![a.view(), b.view()]).is_err());
+
+        // [(2, 3), (2,)]
+        let a: Tensor<f64, _> = rt::zeros(([2, 3], &device));
+        let b: Tensor<f64, _> = rt::zeros(([2], &device));
+        assert!(rt::broadcast_arrays_f(vec![a.view(), b.view()]).is_err());
+
+        // [(3,), (3,), (4,)]
+        let a: Tensor<f64, _> = rt::zeros(([3], &device));
+        let b: Tensor<f64, _> = rt::zeros(([3], &device));
+        let c: Tensor<f64, _> = rt::zeros(([4], &device));
+        assert!(rt::broadcast_arrays_f(vec![a.view(), b.view(), c.view()]).is_err());
+
+        // [(1, 3, 4), (2, 3, 3)]
+        let a: Tensor<f64, _> = rt::zeros(([1, 3, 4], &device));
+        let b: Tensor<f64, _> = rt::zeros(([2, 3, 3], &device));
+        assert!(rt::broadcast_arrays_f(vec![a.view(), b.view()]).is_err());
     }
 }

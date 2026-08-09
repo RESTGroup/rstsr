@@ -195,4 +195,98 @@ mod numpy_reshape {
         assert!(arr.reshape_with_args_f(shape, (ColMajor, false)).is_err());
         assert!(arr_f_ord.reshape_with_args_f(shape, (RowMajor, false)).is_err());
     }
+
+    #[test]
+    fn test_ravel() {
+        // NumPy v2.5.2, _core/tests/test_multiarray.py, TestMethods::test_ravel (line 4088)
+        crate::specify_test!("test_ravel");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // rstsr has no dedicated ravel; ravel maps to reshape(-1):
+        //   ravel(order='C') == reshape(-1), ravel(order='F') == reshape_with_args(-1, ColMajor)
+        // N/A: order A/K unsupported (intentional, see numpy_differences.md)
+
+        // a = np.array([[0, 1], [2, 3]])
+        // assert_equal(a.ravel(), [0, 1, 2, 3])
+        // assert_equal(a.ravel(order='F'), [0, 2, 1, 3])
+        let a = rt::tensor_from_nested!([[0, 1], [2, 3]], &device);
+        let ravel_c = rt::tensor_from_nested!([0, 1, 2, 3], &device);
+        let ravel_f = rt::tensor_from_nested!([0, 2, 1, 3], &device);
+        assert_equal(rt::reshape(&a, &[-1]), &ravel_c, None);
+        assert_equal(rt::reshape_with_args(&a, &[-1], ColMajor), &ravel_f, None);
+
+        // a = np.array([[0, 1], [2, 3]], order='F')  # F-contiguous
+        // assert_equal(a.ravel(), [0, 1, 2, 3])
+        // assert_equal(a.ravel(order='A'), [0, 2, 1, 3])   # 'A' == 'F' for F-contiguous input
+        // N/A: order 'A' unsupported
+        let a = rt::asarray((vec![0, 2, 1, 3], [2, 2].f(), &device));
+        assert_equal(rt::reshape(&a, &[-1]), &ravel_c, None);
+        assert_equal(rt::reshape_with_args(&a, &[-1], ColMajor), &ravel_f, None);
+
+        // a = np.array([[0, 1], [2, 3]])[::-1, :]  # negative-stride (flipped) input
+        // assert_equal(a.ravel(), [2, 3, 0, 1])
+        // assert_equal(a.ravel(order='F'), [2, 0, 3, 1])
+        let a = rt::tensor_from_nested!([[0, 1], [2, 3]], &device).into_flip(0);
+        let ravel_c = rt::tensor_from_nested!([2, 3, 0, 1], &device);
+        let ravel_f = rt::tensor_from_nested!([2, 0, 3, 1], &device);
+        assert_equal(rt::reshape(&a, &[-1]), &ravel_c, None);
+        assert_equal(rt::reshape_with_args(&a, &[-1], ColMajor), &ravel_f, None);
+    }
+
+    #[test]
+    fn test_flatten() {
+        // NumPy v2.5.2, _core/tests/test_multiarray.py, TestMethods::test_flatten (line 3717)
+        crate::specify_test!("test_flatten");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // rstsr has no dedicated flatten; flatten == reshape(-1):
+        //   flatten() == reshape(-1), flatten('F') == reshape_with_args(-1, ColMajor)
+        // NOTE: numpy flatten always copies, while rstsr reshape(-1) returns a view when
+        // possible (matching ravel, not flatten) - intentional difference, see numpy_differences.md
+
+        // x0 = np.array([[1, 2, 3], [4, 5, 6]], np.int32)
+        // y0 = np.array([1, 2, 3, 4, 5, 6], np.int32)
+        // y0f = np.array([1, 4, 2, 5, 3, 6], np.int32)
+        // assert_equal(x0.flatten(), y0)
+        // assert_equal(x0.flatten('F'), y0f)
+        // assert_equal(x0.flatten('F'), x0.T.flatten())
+        let x0 = rt::tensor_from_nested!([[1, 2, 3], [4, 5, 6]], &device);
+        let y0 = rt::tensor_from_nested!([1, 2, 3, 4, 5, 6], &device);
+        let y0f = rt::tensor_from_nested!([1, 4, 2, 5, 3, 6], &device);
+        assert_equal(rt::reshape(&x0, &[-1]), &y0, None);
+        assert_equal(rt::reshape_with_args(&x0, &[-1], ColMajor), &y0f, None);
+        assert_equal(rt::reshape_with_args(&x0, &[-1], ColMajor), x0.t().reshape(&[-1]), None);
+
+        // x1 = np.array([[[1, 2], [3, 4]], [[5, 6], [7, 8]]], np.int32)
+        // y1 = np.array([1, 2, 3, 4, 5, 6, 7, 8], np.int32)
+        // y1f = np.array([1, 5, 3, 7, 2, 6, 4, 8], np.int32)
+        // assert_equal(x1.flatten(), y1)
+        // assert_equal(x1.flatten('F'), y1f)
+        // assert_equal(x1.flatten('F'), x1.T.flatten())
+        let x1 = rt::tensor_from_nested!([[[1, 2], [3, 4]], [[5, 6], [7, 8]]], &device);
+        let y1 = rt::tensor_from_nested!([1, 2, 3, 4, 5, 6, 7, 8], &device);
+        let y1f = rt::tensor_from_nested!([1, 5, 3, 7, 2, 6, 4, 8], &device);
+        assert_equal(rt::reshape(&x1, &[-1]), &y1, None);
+        assert_equal(rt::reshape_with_args(&x1, &[-1], ColMajor), &y1f, None);
+        assert_equal(rt::reshape_with_args(&x1, &[-1], ColMajor), x1.t().reshape(&[-1]), None);
+    }
+
+    #[test]
+    fn test_ravel_with_order() {
+        // NumPy v2.5.2, _core/tests/test_regression.py, TestRegression::test_ravel_with_order (line 80)
+        crate::specify_test!("test_ravel_with_order");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // a = np.ones(2)
+        // assert_(not a.ravel('F').flags.owndata)   # F-ravel of a C-contiguous 1-D array is a view
+        let a: Tensor<i32, _> = rt::ones(([2], &device));
+        let r = rt::reshape_with_args(&a, &[-1], ColMajor);
+        assert!(core::ptr::eq(a.as_ptr(), r.as_ptr()));
+    }
 }

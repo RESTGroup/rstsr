@@ -137,6 +137,28 @@ mod numpy_flip {
     }
 
     #[test]
+    fn test_4d() {
+        // NumPy v2.5.2, lib/tests/test_function_base.py, TestFlip::test_4d (line 228)
+        crate::specify_test!("test_4d");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // a = np.arange(2 * 3 * 4 * 5).reshape(2, 3, 4, 5)
+        // for i in range(a.ndim):
+        //     assert_equal(np.flip(a, i),
+        //                  np.flipud(a.swapaxes(0, i)).swapaxes(i, 0))
+        let a = rt::arange((120, &device)).into_shape([2, 3, 4, 5]);
+        for i in 0..4 {
+            let flipped = rt::flip(&a, i);
+            let sa = rt::swapaxes(&a, 0, i);
+            let oracle = rt::flip(&sa, 0);
+            let oracle = rt::swapaxes(&oracle, i, 0);
+            assert_equal(&flipped, &oracle, None);
+        }
+    }
+
+    #[test]
     fn test_default_axis() {
         // NumPy v2.5.2, lib/tests/test_function_base.py, TestFlip::test_default_axis (line 234)
         crate::specify_test!("test_default_axis");

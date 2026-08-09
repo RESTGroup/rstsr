@@ -7,27 +7,27 @@
 numpy_path,class,method,version_added,status,rstsr_test,numpy_source_hash,note
 _core/tests/test_multiarray.py,TestMethods,test_reshape,v2.5.2,transferred,core_func/manuplication/test_reshape.rs::numpy_reshape::multiarray,8851b00eb866,4 cases incl order=F
 _core/tests/test_multiarray.py,TestMethods,test_transpose,v2.5.2,transferred,core_func/manuplication/test_transpose.rs::numpy_transpose::test_multiarray,945c2ae1db76,default + ValueError on wrong axis count
-_core/tests/test_multiarray.py,TestMethods,test_swapaxes,v2.5.2,partial,core_func/manuplication/test_transpose.rs::numpy_swapaxes::test_multiarray,2248d0ee2415,OOB + shape grid; elementwise content & OWNDATA/view not ported
-_core/tests/test_multiarray.py,TestMethods,test_squeeze,v2.5.2,partial,core_func/manuplication/test_squeeze.rs::numpy_squeeze::test_squeeze_non_singleton,d229fe4a5816,only non-singleton error case; positive cases not ported
-_core/tests/test_multiarray.py,TestMethods,test_ravel,v2.5.2,partial,,f7c3fa028662,ravel maps to reshape(-1); no dedicated test; order A/K unsupported (intentional)
-_core/tests/test_multiarray.py,TestMethods,test_flatten,v2.5.2,partial,,0450c951de16,flatten==reshape(-1) value-covered; copy semantics differ (intentional); no dedicated test
+_core/tests/test_multiarray.py,TestMethods,test_swapaxes,v2.5.2,transferred,core_func/manuplication/test_transpose.rs::numpy_swapaxes::test_multiarray,2248d0ee2415,shape grid + elementwise content (representative pairs); OWNDATA/view not asserted
+_core/tests/test_multiarray.py,TestMethods,test_squeeze,v2.5.2,transferred,core_func/manuplication/test_squeeze.rs::numpy_squeeze::test_multiarray,d229fe4a5816,all 4 cases incl non-singleton ValueError
+_core/tests/test_multiarray.py,TestMethods,test_ravel,v2.5.2,transferred,core_func/manuplication/test_reshape.rs::numpy_reshape::test_ravel,f7c3fa028662,C/F value cases via reshape(-1); order A/K N/A (intentional)
+_core/tests/test_multiarray.py,TestMethods,test_flatten,v2.5.2,transferred,core_func/manuplication/test_reshape.rs::numpy_reshape::test_flatten,0450c951de16,"value cases; flatten==reshape(-1), copy-vs-view intentional"
 _core/tests/test_multiarray.py,TestMethods,test_ravel_subclass,v2.5.2,not-applicable,,bff12cfaf5bc,Python ndarray subclassing
 _core/tests/test_multiarray.py,TestCompress,test_flatten,v2.5.2,not-applicable,,9962b4a8cc11,misnamed; tests np.compress
 _core/tests/test_multiarray.py,TestPickling,test_transposed_contiguous_array,v2.5.2,not-applicable,,c43496338b73,pickle/OOB-buffer serialization
 _core/tests/test_multiarray.py,TestArrayConstruction,test_array_cont,v2.5.2,partial,core_func/manuplication/test_to_contig.rs,fdf8dd396c31,"np.ascontiguousarray/asfortranarray analog; rstsr to_contig custom-tested, no provenance"
 _core/tests/test_numeric.py,TestNonarrayArgs,test_reshape,v2.5.2,transferred,core_func/manuplication/test_reshape.rs::numpy_reshape::numeric,1e89d6277c5c,list input reshape
-_core/tests/test_numeric.py,TestNonarrayArgs,test_reshape_shape_arg,v2.5.2,partial,core_func/manuplication/test_reshape.rs::numpy_reshape::numeric,89479bed5c16,5 call variants ported; missing-arg TypeError N/A (compile-time)
+_core/tests/test_numeric.py,TestNonarrayArgs,test_reshape_shape_arg,v2.5.2,transferred,core_func/manuplication/test_reshape.rs::numpy_reshape::numeric,89479bed5c16,5 call variants; missing-arg TypeError N/A (compile-time)
 _core/tests/test_numeric.py,TestNonarrayArgs,test_reshape_copy_arg,v2.5.2,transferred,core_func/manuplication/test_reshape.rs::numpy_reshape::numeric,72ff6fdc050d,copy semantics via ptr::eq + is_err
-_core/tests/test_numeric.py,TestNonarrayArgs,test_ravel,v2.5.2,partial,,d322194bc831,value covered by reshape(-1); raw-list input is Python-specific
+_core/tests/test_numeric.py,TestNonarrayArgs,test_ravel,v2.5.2,transferred,core_func/manuplication/test_reshape.rs::numpy_reshape::test_ravel,d322194bc831,np.ravel value covered by test_ravel; raw-list input is Python-specific
 _core/tests/test_numeric.py,TestNonarrayArgs,test_squeeze,v2.5.2,transferred,core_func/manuplication/test_squeeze.rs::numpy_squeeze::test_basic,d76cd394ff79,9 shape cases
 _core/tests/test_numeric.py,TestNonarrayArgs,test_swapaxes,v2.5.2,transferred,core_func/manuplication/test_transpose.rs::numpy_swapaxes::test_numeric,88b2463ee9d9,list input content check
 _core/tests/test_numeric.py,TestNonarrayArgs,test_transpose,v2.5.2,transferred,core_func/manuplication/test_transpose.rs::numpy_transpose::test_numeric,f05f48839a54,"(1,0),(-1,-2); matrix_transpose out of scope"
 _core/tests/test_numeric.py,TestResize,test_reshape_from_zero,v2.5.2,not-applicable,,15f9f0041ac2,"tests np.resize (repeat/tile), not reshape"
-_core/tests/test_numeric.py,TestMoveaxis,test_move_to_end,v2.5.2,partial,core_func/manuplication/test_moveaxis.rs::numpy_moveaxis::test_basic,719190e69196,"only moveaxis(0,-1); sources 1,2,-1 untested"
-_core/tests/test_numeric.py,TestMoveaxis,test_move_new_position,v2.5.2,todo,,b9161f1337ce,no rstsr test for arbitrary single-axis destination
-_core/tests/test_numeric.py,TestMoveaxis,test_preserve_order,v2.5.2,todo,,ba1b5ec28977,identity/preserve cases untested; numpy range(4) unportable to AxesIndex
-_core/tests/test_numeric.py,TestMoveaxis,test_move_multiples,v2.5.2,partial,core_func/manuplication/test_moveaxis.rs::numpy_moveaxis::test_equivalent_operations,b7f4237fc694,similar multi-axis moves; zero-size & out-of-order pairs missing
-_core/tests/test_numeric.py,TestMoveaxis,test_errors,v2.5.2,partial,core_func/manuplication/test_moveaxis.rs::numpy_moveaxis::test_errors,68d6c504fdea,6 error categories via is_err; rstsr InvalidValue conflates numpy AxisError/ValueError
+_core/tests/test_numeric.py,TestMoveaxis,test_move_to_end,v2.5.2,transferred,core_func/manuplication/test_moveaxis.rs::numpy_moveaxis::test_basic,719190e69196,"all source->-1 cases on (5,6,7)"
+_core/tests/test_numeric.py,TestMoveaxis,test_move_new_position,v2.5.2,transferred,core_func/manuplication/test_moveaxis.rs::numpy_moveaxis::test_move_new_position,b9161f1337ce,4-D arbitrary-destination cases
+_core/tests/test_numeric.py,TestMoveaxis,test_preserve_order,v2.5.2,transferred,core_func/manuplication/test_moveaxis.rs::numpy_moveaxis::test_preserve_order,ba1b5ec28977,"identity/preserve cases; range(4)->[0,1,2,3] (AxesIndex has no Range impl)"
+_core/tests/test_numeric.py,TestMoveaxis,test_move_multiples,v2.5.2,transferred,core_func/manuplication/test_moveaxis.rs::numpy_moveaxis::test_equivalent_operations,b7f4237fc694,zero-size + out-of-order multi-axis pairs
+_core/tests/test_numeric.py,TestMoveaxis,test_errors,v2.5.2,transferred,core_func/manuplication/test_moveaxis.rs::numpy_moveaxis::test_errors,68d6c504fdea,"6 error categories via is_err; error-kind conflated (intentional, see numpy_differences.md)"
 _core/tests/test_numeric.py,TestMoveaxis,test_array_likes,v2.5.2,not-applicable,,2ad1c9a7984b,masked arrays / class preservation
 _core/tests/test_numeric.py,TestRollaxis,test_exceptions,v2.5.2,not-applicable,,ae5da103ad49,rstsr has no rollaxis
 _core/tests/test_numeric.py,TestRollaxis,test_results,v2.5.2,not-applicable,,eac707da345d,rstsr has no rollaxis
@@ -41,10 +41,10 @@ _core/tests/test_regression.py,TestRegression,test_reshape_zero_strides,v2.5.2,t
 _core/tests/test_regression.py,TestRegression,test_reshape_zero_size,v2.5.2,transferred,core_func/manuplication/test_reshape.rs::numpy_reshape::regression,854cd2fe0e89,-1 inference on 0-size; in-place a.shape= N/A
 _core/tests/test_regression.py,TestRegression,test_reshape_trailing_ones_strides,v2.5.2,transferred,core_func/manuplication/test_reshape.rs::numpy_reshape::regression,70484d0fae41,trailing-1 strides C & F
 _core/tests/test_regression.py,TestRegression,test_reshape_size_overflow,v2.5.2,partial,core_func/manuplication/test_reshape.rs::numpy_reshape::regression,cb4f4bc5c833,BUG: reshape_f panics (debug: overflow; release: index-OOB after wrapped size fools check) instead of returning Err; test masks via catch_unwind -> see numpy_differences.md
-_core/tests/test_regression.py,TestRegression,test_ravel_with_order,v2.5.2,partial,,8726cf0e82e2,"1-D F-ravel view; trivially holds, no dedicated test"
+_core/tests/test_regression.py,TestRegression,test_ravel_with_order,v2.5.2,transferred,core_func/manuplication/test_reshape.rs::numpy_reshape::test_ravel_with_order,8726cf0e82e2,1-D F-ravel view via ptr::eq
 _core/tests/test_regression.py,TestRegression,test_arr_transpose,v2.5.2,transferred,core_func/manuplication/test_transpose.rs::numpy_transpose::test_regression_arr_transpose,4fa8b3cfe29d,16-D identity permutation (#516)
-_core/tests/test_regression.py,TestRegression,test_squeeze_type,v2.5.2,todo,,e04defbcd202,return-type/0-dim edge; no rstsr test
-_core/tests/test_regression.py,TestRegression,test_squeeze_contiguous,v2.5.2,todo,,d58b47ca044c,contiguity after squeeze; rstsr has no flags API
+_core/tests/test_regression.py,TestRegression,test_squeeze_type,v2.5.2,transferred,core_func/manuplication/test_squeeze.rs::numpy_squeeze::test_squeeze_type,e04defbcd202,0-dim input edge; type-is-ndarray assertion N/A
+_core/tests/test_regression.py,TestRegression,test_squeeze_contiguous,v2.5.2,transferred,core_func/manuplication/test_squeeze.rs::numpy_squeeze::test_squeeze_contiguous,d58b47ca044c,C/F contiguity via c_contig()/f_contig()
 _core/tests/test_regression.py,TestRegression,test_squeeze_axis_handling,v2.5.2,not-applicable,,f2ce8994ae66,Python subclass dispatch
 _core/tests/test_regression.py,TestRegression,test_dtype_scalar_squeeze,v2.5.2,not-applicable,,ec89b72f6306,dtype scalars; content drifted v2.4->v2.5 (added timedelta case)
 _core/tests/test_shape_base.py,TestAtleast1d,test_0D_array,v2.5.2,todo,,9f073c7644a6,rstsr has no atleast_1d; analog possible via reshape/into_dim
@@ -67,7 +67,7 @@ lib/tests/test_function_base.py,TestFlip,test_basic_ud,v2.5.2,transferred,core_f
 lib/tests/test_function_base.py,TestFlip,test_3d_swap_axis0,v2.5.2,transferred,core_func/manuplication/test_flip.rs::numpy_flip::test_3d_swap_axis0,1cfa49a026cf,3D axis 0
 lib/tests/test_function_base.py,TestFlip,test_3d_swap_axis1,v2.5.2,transferred,core_func/manuplication/test_flip.rs::numpy_flip::test_3d_swap_axis1,ce0bcb2d51b8,3D axis 1
 lib/tests/test_function_base.py,TestFlip,test_3d_swap_axis2,v2.5.2,transferred,core_func/manuplication/test_flip.rs::numpy_flip::test_3d_swap_axis2,d780e126d225,3D axis 2
-lib/tests/test_function_base.py,TestFlip,test_4d,v2.5.2,todo,,5ac43dfd54df,4D flip via flipud oracle; not ported (pre-existing gap)
+lib/tests/test_function_base.py,TestFlip,test_4d,v2.5.2,transferred,core_func/manuplication/test_flip.rs::numpy_flip::test_4d,5ac43dfd54df,4-D flip via flipud oracle
 lib/tests/test_function_base.py,TestFlip,test_default_axis,v2.5.2,transferred,core_func/manuplication/test_flip.rs::numpy_flip::test_default_axis,de809f560fe5,axis=None all-axes
 lib/tests/test_function_base.py,TestFlip,test_multiple_axes,v2.5.2,transferred,core_func/manuplication/test_flip.rs::numpy_flip::test_multiple_axes,e8c71ea7f723,"(), (0,2), (1,2)"
 lib/tests/test_shape_base.py,TestExpandDims,test_functionality,v2.5.2,transferred,core_func/manuplication/test_expand_dims.rs::numpy_expand_dims::test_functionality,7acdca388100,"axis range(-5,4) on 4-D"
@@ -75,19 +75,19 @@ lib/tests/test_shape_base.py,TestExpandDims,test_axis_tuple,v2.5.2,transferred,c
 lib/tests/test_shape_base.py,TestExpandDims,test_axis_out_of_range,v2.5.2,transferred,core_func/manuplication/test_expand_dims.rs::numpy_expand_dims::test_axis_out_of_range,2b4ccf4ee6ae,4 OOB cases
 lib/tests/test_shape_base.py,TestExpandDims,test_repeated_axis,v2.5.2,transferred,core_func/manuplication/test_expand_dims.rs::numpy_expand_dims::test_repeated_axis,5a62f163a4a5,"(1,1) error"
 lib/tests/test_shape_base.py,TestExpandDims,test_subclasses,v2.5.2,not-applicable,,d852b30d52ba,masked arrays
-lib/tests/test_shape_base.py,TestSqueeze,test_basic,v2.5.2,todo,,e55faa446597,reshape-equiv + 0-dim result edge; no rstsr test
-lib/tests/test_stride_tricks.py,,test_broadcast_to_succeeds,v2.5.2,partial,core_func/manuplication/test_broadcast.rs::numpy_broadcast_to::test_broadcast_to_succeeds,b892af63057d,"14/15 cases; L254 [ones(0),0,ones(0)] missing"
-lib/tests/test_stride_tricks.py,,test_broadcast_to_raises,v2.5.2,partial,core_func/manuplication/test_broadcast.rs::numpy_broadcast_to::test_broadcast_to_raises,90bdba641ac5,8/11; 3 negative-shape cases skipped (rstsr dims are usize)
+lib/tests/test_shape_base.py,TestSqueeze,test_basic,v2.5.2,transferred,core_func/manuplication/test_squeeze.rs::numpy_squeeze::test_basic_shape_base,e55faa446597,reshape-equiv + 0-dim result
+lib/tests/test_stride_tricks.py,,test_broadcast_to_succeeds,v2.5.2,transferred,core_func/manuplication/test_broadcast.rs::numpy_broadcast_to::test_broadcast_to_succeeds,b892af63057d,"15/15 cases incl L254 [ones(0),0,ones(0)]"
+lib/tests/test_stride_tricks.py,,test_broadcast_to_raises,v2.5.2,transferred,core_func/manuplication/test_broadcast.rs::numpy_broadcast_to::test_broadcast_to_raises,90bdba641ac5,"8/11; 3 negative-shape cases N/A (rstsr usize, intentional)"
 lib/tests/test_stride_tricks.py,,test_broadcast_shape,v2.5.2,transferred,core_func/manuplication/test_broadcast_shapes.rs::numpy_broadcast_shapes::test_broadcast_shape_internal; core_func/manuplication/test_broadcast.rs::numpy_broadcast_arrays::test_broadcast_arrays_basic,8d7297c243ab,internal _broadcast_shape; covered via broadcast_shapes + broadcast_arrays
 lib/tests/test_stride_tricks.py,,test_broadcast_shapes_succeeds,v2.5.2,transferred,core_func/manuplication/test_broadcast_shapes.rs::numpy_broadcast_shapes::test_broadcast_shapes_succeeds,e8a33bbd032b,27 rows + gh-5862
 lib/tests/test_stride_tricks.py,,test_broadcast_shapes_raises,v2.5.2,transferred,core_func/manuplication/test_broadcast_shapes.rs::numpy_broadcast_shapes::test_broadcast_shapes_raises,647414e33ad9,6 incompatible + bad_args
-lib/tests/test_stride_tricks.py,,test_same,v2.5.2,todo,,7af24661c1a3,broadcast_arrays value equality on identical inputs; rstsr checks shape only
+lib/tests/test_stride_tricks.py,,test_same,v2.5.2,transferred,core_func/manuplication/test_broadcast.rs::numpy_broadcast_arrays::test_same,7af24661c1a3,broadcast_arrays value equality on identical inputs
 lib/tests/test_stride_tricks.py,,test_broadcast_kwargs,v2.5.2,not-applicable,,2b649d8ce4cc,kwargs/subok; Rust typed API
-lib/tests/test_stride_tricks.py,,test_one_off,v2.5.2,todo,,6525bc5d655e,broadcast_arrays 1-to-3 value check; rstsr shape only
+lib/tests/test_stride_tricks.py,,test_one_off,v2.5.2,transferred,core_func/manuplication/test_broadcast.rs::numpy_broadcast_arrays::test_one_off,6525bc5d655e,broadcast_arrays 1-to-3 value broadcast
 lib/tests/test_stride_tricks.py,,test_same_input_shapes,v2.5.2,partial,,83ffb55b52ab,"0-dim rows covered via broadcast_shapes, not broadcast_arrays"
 lib/tests/test_stride_tricks.py,,test_two_compatible_by_ones_input_shapes,v2.5.2,partial,,4da4f5c9a301,"covered via broadcast_shapes, not broadcast_arrays"
 lib/tests/test_stride_tricks.py,,test_two_compatible_by_prepending_ones_input_shapes,v2.5.2,partial,,ba3bff48d43e,"covered via broadcast_shapes, not broadcast_arrays"
-lib/tests/test_stride_tricks.py,,test_incompatible_shapes_raise_valueerror,v2.5.2,partial,,8b860316dc77,"shapes covered via broadcast_shapes_f, not broadcast_arrays raise path"
+lib/tests/test_stride_tricks.py,,test_incompatible_shapes_raise_valueerror,v2.5.2,transferred,core_func/manuplication/test_broadcast.rs::numpy_broadcast_arrays::test_incompatible_shapes_raise,8b860316dc77,broadcast_arrays raise path (4 pairs)
 lib/tests/test_stride_tricks.py,,test_same_as_ufunc,v2.5.2,partial,,5d4734abbd16,shape portion covered; ufunc-equiv & negative-stride layout not portable
 lib/tests/test_twodim_base.py,TestFliplr,test_basic,v2.5.2,not-applicable,,fb5f01990b67,rstsr has no fliplr; flip(1) covers 2D content only
 lib/tests/test_twodim_base.py,TestFlipud,test_basic,v2.5.2,not-applicable,,820060b98473,rstsr has no flipud; flip(0) covers 2D content only
