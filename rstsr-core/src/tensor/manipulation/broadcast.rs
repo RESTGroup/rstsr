@@ -396,7 +396,7 @@ where
 ///     = note: expected array `[usize; 1]`
 ///               found struct `std::vec::Vec<usize>`
 /// note: required by a bound in `rstsr_core::prelude_dev::to_broadcast`
-///    --> rstsr-core/src/tensor/manuplication/broadcast.rs:427:31
+///    --> rstsr-core/src/tensor/manipulation/broadcast.rs:427:31
 ///     |
 /// 425 | pub fn to_broadcast<R, T, B, D, D2>(tensor: &TensorAny<R, T, B, D>, shape: D2) -> TensorView<'_, T, B, D2>
 ///     |        ------------ required by a bound in this function

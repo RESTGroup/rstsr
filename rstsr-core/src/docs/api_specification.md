@@ -180,9 +180,9 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 | enum | [`FlagSymm`] | Symmetric of matrix operation. |
 | enum | [`TensorIterOrder`] | The policy of tensor iterator. |
 
-## Tensor Manuplication
+## Tensor Manipulation
 
-### Storage-irrelevent manuplication
+### Storage-irrelevent manipulation
 
 | Type | Identifier | Minimal Description |
 |--|--|--|
@@ -200,7 +200,7 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 | assoc/fn | [`to_compatible_shape`] | Reshapes the given tensor to the specified shape if the layout is compatible. |
 | assoc/fn | [`to_dim`] <br/> [`to_dyn`] | Convert layout to the other dimension. |
 
-### Storage-dependent manuplication
+### Storage-dependent manipulation
 
 | Type | Identifier | Minimal Description |
 |--|--|--|
@@ -209,7 +209,7 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 | assoc/fn | [`to_contig`] <br/> [`into_contig`] <br/> [`change_contig`] | Convert tensor to contiguous layout (C or F order). |
 | assoc/fn | [`to_prefer`] <br/> [`into_prefer`] <br/> [`change_prefer`] | Convert tensor to preferred layout only if not already contiguous. |
 
-### Storage-creation manuplication
+### Storage-creation manipulation
 
 | Type | Identifier | Minimal Description |
 |--|--|--|

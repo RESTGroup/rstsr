@@ -1,2 +1,2 @@
 pub mod linalg;
-pub mod manuplication;
+pub mod manipulation;

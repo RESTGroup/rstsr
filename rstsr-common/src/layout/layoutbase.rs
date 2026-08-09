@@ -433,7 +433,7 @@ where
     }
 }
 
-/// Manuplation of layout.
+/// Manipulation of layout.
 impl<D> Layout<D>
 where
     D: DimBaseAPI + DimShapeAPI,
