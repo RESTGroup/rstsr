@@ -255,5 +255,27 @@ mod numpy_broadcast_arrays {
         let a: Tensor<f64, _> = rt::zeros(([1, 3, 4], &device));
         let b: Tensor<f64, _> = rt::zeros(([2, 3, 3], &device));
         assert!(rt::broadcast_arrays_f(vec![a.view(), b.view()]).is_err());
+
+        // Reverse the input shapes since broadcasting should be symmetric.
+        // [(4,), (3,)]
+        let a: Tensor<f64, _> = rt::zeros(([4], &device));
+        let b: Tensor<f64, _> = rt::zeros(([3], &device));
+        assert!(rt::broadcast_arrays_f(vec![a.view(), b.view()]).is_err());
+
+        // [(2,), (2, 3)]
+        let a: Tensor<f64, _> = rt::zeros(([2], &device));
+        let b: Tensor<f64, _> = rt::zeros(([2, 3], &device));
+        assert!(rt::broadcast_arrays_f(vec![a.view(), b.view()]).is_err());
+
+        // [(4,), (3,), (3,)]
+        let a: Tensor<f64, _> = rt::zeros(([4], &device));
+        let b: Tensor<f64, _> = rt::zeros(([3], &device));
+        let c: Tensor<f64, _> = rt::zeros(([3], &device));
+        assert!(rt::broadcast_arrays_f(vec![a.view(), b.view(), c.view()]).is_err());
+
+        // [(2, 3, 3), (1, 3, 4)]
+        let a: Tensor<f64, _> = rt::zeros(([2, 3, 3], &device));
+        let b: Tensor<f64, _> = rt::zeros(([1, 3, 4], &device));
+        assert!(rt::broadcast_arrays_f(vec![a.view(), b.view()]).is_err());
     }
 }

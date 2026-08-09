@@ -81,10 +81,9 @@ reshape docstring's Row/Column Major Notice.
 - **tag:** intentional
 - **status:** open
 
-rstsr has no `'A'` (any) or `'K'` (keep) order concept. This is the main reason the
-large multiarray `test_ravel` cannot be fully transferred (see `numpy_coverage.csv`,
-status `partial`). The C/F value cases it exercises are covered by rstsr reshape
-semantics.
+rstsr has no `'A'` (any) or `'K'` (keep) order concept. The A/K cases of
+`test_ravel` are therefore not-applicable; the C/F value cases are covered by
+`numpy_reshape::test_ravel` (see `numpy_coverage.csv`, status `transferred`).
 
 ## `flatten()` always-copies vs `reshape(-1)` view-when-possible
 
@@ -96,8 +95,9 @@ semantics.
 - **status:** open
 
 rstsr's `reshape(-1)` matches NumPy's `ravel` (view when possible), not `flatten`
-(always copy). No `flatten` API exists; the equivalence is documented only in the
-cheatsheet. Value results match for all orders rstsr supports.
+(always copy). No `flatten` API exists; the equivalence is documented in the
+cheatsheet and exercised by `numpy_reshape::test_flatten` (C/F value cases via
+`reshape(-1)`). Value results match for all orders rstsr supports.
 
 ## Error taxonomy: unified `InvalidValue` vs NumPy's `AxisError`/`ValueError` split
 

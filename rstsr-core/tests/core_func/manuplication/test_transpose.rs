@@ -116,45 +116,49 @@ mod numpy_swapaxes {
         // assert_raises(AxisError, a.swapaxes, 0, 4)
         assert!(a.swapaxes_f(0, 4).is_err());
 
-        // Test various axis combinations
+        // Test various axis combinations. NumPy loops `for i in range(-4, 4) for j in
+        // range(-4, 4)` (64 pairs) over both a contiguous source `a` and a non-contiguous
+        // `b`, checking shape, elementwise content, and that a view is always returned
+        // (gh-5260: `not c.flags['OWNDATA']`). rstsr checks shape + full element grid +
+        // view on the contiguous source `a` (the non-contiguous `b` chaining is not ported).
         for i in -4..4 {
             for j in -4..4 {
                 let c = a.swapaxes(i, j);
-                // check shape
-                let mut expected_shape: Vec<usize> = a.shape().to_vec();
                 let i_usize = if i < 0 { (a.ndim() as isize + i) as usize } else { i as usize };
                 let j_usize = if j < 0 { (a.ndim() as isize + j) as usize } else { j as usize };
+
+                // check shape: shape[i], shape[j] swapped
+                let mut expected_shape: Vec<usize> = a.shape().to_vec();
                 expected_shape.swap(i_usize, j_usize);
                 assert_eq!(c.shape().to_vec(), expected_shape, "shape mismatch for swapaxes({}, {})", i, j);
-            }
-        }
 
-        // check elementwise content, following numpy's fancy-index content check:
-        //   i0, i1, i2, i3 = [dim - 1 for dim in c.shape]
-        //   j0, j1, j2, j3 = [dim - 1 for dim in src.shape]
-        //   assert_equal(src[idx[j0], idx[j1], idx[j2], idx[j3]],
-        //                c[idx[i0], idx[i1], idx[i2], idx[i3]], str((i, j, k)))
-        // i.e. c = a.swapaxes(i, j)  =>  c[i0, i1, i2, i3] == a[j0, j1, j2, j3], where the
-        // j-index tuple is the i-index tuple with axes i/j swapped back. numpy loops all
-        // 64 (i, j) pairs; here we check a few representative pairs, full-grid.
-        for (i, j) in [(0isize, 3isize), (1isize, 2isize), (0isize, 2isize), (-1isize, -2isize), (0isize, -1isize)] {
-            let c = a.swapaxes(i, j);
-            let i_usize = if i < 0 { (a.ndim() as isize + i) as usize } else { i as usize };
-            let j_usize = if j < 0 { (a.ndim() as isize + j) as usize } else { j as usize };
-            for i0 in 0..c.shape()[0] {
-                for i1 in 0..c.shape()[1] {
-                    for i2 in 0..c.shape()[2] {
-                        for i3 in 0..c.shape()[3] {
-                            let mut j_idx = [i0, i1, i2, i3];
-                            j_idx.swap(i_usize, j_usize);
-                            let (got, expected) = (
-                                c.i((i0, i1, i2, i3)).to_scalar(),
-                                a.i((j_idx[0], j_idx[1], j_idx[2], j_idx[3])).to_scalar(),
-                            );
-                            assert_eq!(got, expected, "content mismatch for swapaxes({i}, {j}) at index {j_idx:?}");
+                // check array contents (full element grid):
+                //   i0, i1, i2, i3 = [dim - 1 for dim in c.shape]
+                //   j0, j1, j2, j3 = [dim - 1 for dim in src.shape]
+                //   assert_equal(src[idx[j0], idx[j1], idx[j2], idx[j3]],
+                //                c[idx[i0], idx[i1], idx[i2], idx[i3]], str((i, j, k)))
+                // i.e. c = a.swapaxes(i, j)  =>  c[i0, i1, i2, i3] == a[j0, j1, j2, j3],
+                // where the j-index tuple is the i-index tuple with axes i/j swapped back.
+                for i0 in 0..c.shape()[0] {
+                    for i1 in 0..c.shape()[1] {
+                        for i2 in 0..c.shape()[2] {
+                            for i3 in 0..c.shape()[3] {
+                                let mut j_idx = [i0, i1, i2, i3];
+                                j_idx.swap(i_usize, j_usize);
+                                let (got, expected) = (
+                                    c.i((i0, i1, i2, i3)).to_scalar(),
+                                    a.i((j_idx[0], j_idx[1], j_idx[2], j_idx[3])).to_scalar(),
+                                );
+                                assert_eq!(got, expected, "content mismatch for swapaxes({i}, {j}) at index {j_idx:?}");
+                            }
                         }
                     }
                 }
+
+                // check a view is always returned, gh-5260 (`not c.flags['OWNDATA']`):
+                // swapaxes permutes strides only, so the result must share the source
+                // data buffer (no copy) - assert pointer equality.
+                assert!(core::ptr::eq(c.as_ptr(), a.as_ptr()), "swapaxes({}, {}) did not return a view", i, j);
             }
         }
     }

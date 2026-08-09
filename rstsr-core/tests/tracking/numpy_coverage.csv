@@ -7,7 +7,7 @@
 numpy_path,class,method,version_added,status,rstsr_test,numpy_source_hash,note
 _core/tests/test_multiarray.py,TestMethods,test_reshape,v2.5.2,transferred,core_func/manuplication/test_reshape.rs::numpy_reshape::multiarray,8851b00eb866,4 cases incl order=F
 _core/tests/test_multiarray.py,TestMethods,test_transpose,v2.5.2,transferred,core_func/manuplication/test_transpose.rs::numpy_transpose::test_multiarray,945c2ae1db76,default + ValueError on wrong axis count
-_core/tests/test_multiarray.py,TestMethods,test_swapaxes,v2.5.2,transferred,core_func/manuplication/test_transpose.rs::numpy_swapaxes::test_multiarray,2248d0ee2415,shape grid + elementwise content (representative pairs); OWNDATA/view not asserted
+_core/tests/test_multiarray.py,TestMethods,test_swapaxes,v2.5.2,transferred,core_func/manuplication/test_transpose.rs::numpy_swapaxes::test_multiarray,2248d0ee2415,shape + elementwise content all 64 (i,j) pairs; view (gh-5260) asserted via ptr::eq; non-contiguous b source not ported
 _core/tests/test_multiarray.py,TestMethods,test_squeeze,v2.5.2,transferred,core_func/manuplication/test_squeeze.rs::numpy_squeeze::test_multiarray,d229fe4a5816,all 4 cases incl non-singleton ValueError
 _core/tests/test_multiarray.py,TestMethods,test_ravel,v2.5.2,transferred,core_func/manuplication/test_reshape.rs::numpy_reshape::test_ravel,f7c3fa028662,C/F value cases via reshape(-1); order A/K N/A (intentional)
 _core/tests/test_multiarray.py,TestMethods,test_flatten,v2.5.2,transferred,core_func/manuplication/test_reshape.rs::numpy_reshape::test_flatten,0450c951de16,"value cases; flatten==reshape(-1), copy-vs-view intentional"
@@ -87,7 +87,7 @@ lib/tests/test_stride_tricks.py,,test_one_off,v2.5.2,transferred,core_func/manup
 lib/tests/test_stride_tricks.py,,test_same_input_shapes,v2.5.2,partial,,83ffb55b52ab,"0-dim rows covered via broadcast_shapes, not broadcast_arrays"
 lib/tests/test_stride_tricks.py,,test_two_compatible_by_ones_input_shapes,v2.5.2,partial,,4da4f5c9a301,"covered via broadcast_shapes, not broadcast_arrays"
 lib/tests/test_stride_tricks.py,,test_two_compatible_by_prepending_ones_input_shapes,v2.5.2,partial,,ba3bff48d43e,"covered via broadcast_shapes, not broadcast_arrays"
-lib/tests/test_stride_tricks.py,,test_incompatible_shapes_raise_valueerror,v2.5.2,transferred,core_func/manuplication/test_broadcast.rs::numpy_broadcast_arrays::test_incompatible_shapes_raise,8b860316dc77,broadcast_arrays raise path (4 pairs)
+lib/tests/test_stride_tricks.py,,test_incompatible_shapes_raise_valueerror,v2.5.2,transferred,core_func/manuplication/test_broadcast.rs::numpy_broadcast_arrays::test_incompatible_shapes_raise,8b860316dc77,broadcast_arrays raise path, 4 pairs + reverses (8 invocations)
 lib/tests/test_stride_tricks.py,,test_same_as_ufunc,v2.5.2,partial,,5d4734abbd16,shape portion covered; ufunc-equiv & negative-stride layout not portable
 lib/tests/test_twodim_base.py,TestFliplr,test_basic,v2.5.2,not-applicable,,fb5f01990b67,rstsr has no fliplr; flip(1) covers 2D content only
 lib/tests/test_twodim_base.py,TestFlipud,test_basic,v2.5.2,not-applicable,,820060b98473,rstsr has no flipud; flip(0) covers 2D content only
