@@ -348,7 +348,12 @@ where
         let t2 = self.stride()[axis2];
 
         // number of elements in diagonal, and starting offset
-        let (offset_diag, d_diag) = if (-d2 + 1..0).contains(&offset) {
+        //
+        // For a negative offset (sub-diagonal) the element is A[i + |k|, i], valid
+        // while i + |k| < d1 (rows), i.e. |k| < d1, i.e. offset in (-d1, 0). Use
+        // (-d1 + 1..0) so a non-square matrix with more rows than cols reaches its
+        // lower sub-diagonals (square matrices are unaffected, d1 == d2).
+        let (offset_diag, d_diag) = if (-d1 + 1..0).contains(&offset) {
             let offset = -offset;
             let offset_diag = (self.offset() as isize + t1 * offset) as usize;
             let d_diag = (d1 - offset).min(d2) as usize;

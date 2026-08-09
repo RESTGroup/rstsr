@@ -471,6 +471,9 @@ pub trait HStackAPI<Inp> {
 
 /// Stack tensors in sequence horizontally (column-wise).
 ///
+/// Equivalent to NumPy `hstack`: each input is promoted with [`atleast_1d`] (0-D ->
+/// 1-D), then concatenated along axis 0 for 1-D inputs, or along axis 1 otherwise.
+///
 /// # See also
 ///
 /// [NumPy `hstack`](https://numpy.org/doc/stable/reference/generated/numpy.hstack.html)
@@ -513,6 +516,9 @@ where
             return rstsr_raise!(InvalidValue, "hstack requires at least one tensor.");
         }
 
+        // NumPy hstack: promote each input with `atleast_1d` (0-D -> (1,)), then
+        // concatenate along axis 0 for 1-D inputs, else along axis 1. See [`atleast_1d`].
+        let tensors = tensors.iter().map(|t| into_atleast_1d_f(t.view())).collect::<Result<Vec<_>>>()?;
         if tensors[0].ndim() == 1 {
             ConcatAPI::concat_f((tensors, 0))
         } else {
@@ -537,7 +543,11 @@ pub trait VStackAPI<Inp> {
     }
 }
 
-/// Stack tensors in sequence horizontally (row-wise).
+/// Stack tensors in sequence vertically (row-wise).
+///
+/// Equivalent to NumPy `vstack`: each input is promoted with [`atleast_2d`] (0-D ->
+/// `(1, 1)`, 1-D `(N,)` -> `(1, N)`) and concatenated along axis 0, so the result is
+/// always at least 2-D.
 ///
 /// # See also
 ///
@@ -581,6 +591,10 @@ where
             return rstsr_raise!(InvalidValue, "vstack requires at least one tensor.");
         }
 
+        // NumPy vstack: promote each input with `atleast_2d` (0-D -> (1, 1),
+        // 1-D (N,) -> (1, N)), then concatenate along axis 0. The result is at
+        // least 2-D. See [`atleast_2d`].
+        let tensors = tensors.iter().map(|t| into_atleast_2d_f(t.view())).collect::<Result<Vec<_>>>()?;
         ConcatAPI::concat_f((tensors, 0))
     }
 }
@@ -602,6 +616,10 @@ pub trait StackAPI<Inp> {
 }
 
 /// Joins a sequence of arrays along a new axis.
+///
+/// Equivalent to NumPy `stack`: a new axis of size one is inserted at `axis` in each
+/// input, then the results are concatenated along that axis. 0-D inputs are supported
+/// (they stack into a 1-D array).
 ///
 /// # See also
 ///
@@ -640,7 +658,8 @@ where
         let ndim = tensors[0].ndim();
         let shape_orig = tensors[0].shape();
 
-        rstsr_assert!(ndim > 0, InvalidLayout, "All tensors must have ndim > 0 in stack.")?;
+        // NumPy allows 0-D inputs to `stack` (they stack into a 1-D array); the
+        // `into_expand_dims_f` path below handles 0-D by inserting the new axis.
         tensors.iter().try_for_each(|tensor| -> Result<()> {
             rstsr_assert_eq!(tensor.shape(), shape_orig, InvalidLayout, "All tensors must have the same shape.")?;
             rstsr_assert!(
@@ -840,6 +859,182 @@ where
 
     fn unstack_f(self) -> Result<Self::Out> {
         UnstackAPI::unstack_f((self, 0))
+    }
+}
+
+/* #endregion */
+
+/* #region atleast */
+
+/// View inputs as arrays with at least one dimension.
+///
+/// Equivalent to NumPy `atleast_1d`: a 0-D (scalar) tensor is reshaped to `(1,)`;
+/// tensors with `ndim >= 1` are returned unchanged. The result is a view (no copy).
+///
+/// # See also
+///
+/// - [numpy.atleast_1d](https://numpy.org/doc/stable/reference/generated/numpy.atleast_1d.html)
+pub fn into_atleast_1d_f<S, D>(tensor: TensorBase<S, D>) -> Result<TensorBase<S, IxD>>
+where
+    D: DimAPI,
+{
+    match tensor.ndim() {
+        // 0-D -> (1,): insert a new axis 0
+        0 => into_expand_dims_f(tensor, vec![0]),
+        _ => into_dim_f::<_, _, IxD>(tensor),
+    }
+}
+
+/// View inputs as arrays with at least two dimensions.
+///
+/// Equivalent to NumPy `atleast_2d`: a 0-D tensor becomes `(1, 1)`, a 1-D tensor
+/// `(N,)` becomes `(1, N)`, and tensors with `ndim >= 2` are returned unchanged.
+/// The result is a view (no copy). This is the promotion `vstack` applies.
+///
+/// # See also
+///
+/// - [numpy.atleast_2d](https://numpy.org/doc/stable/reference/generated/numpy.atleast_2d.html)
+pub fn into_atleast_2d_f<S, D>(tensor: TensorBase<S, D>) -> Result<TensorBase<S, IxD>>
+where
+    D: DimAPI,
+{
+    match tensor.ndim() {
+        // 0-D -> (1, 1)
+        0 => into_expand_dims_f(tensor, vec![0, 1]),
+        // 1-D (N,) -> (1, N): insert a new axis 0
+        1 => into_expand_dims_f(tensor, vec![0]),
+        _ => into_dim_f::<_, _, IxD>(tensor),
+    }
+}
+
+/// View inputs as arrays with at least three dimensions.
+///
+/// Equivalent to NumPy `atleast_3d`: a 0-D tensor becomes `(1, 1, 1)`, a 1-D tensor
+/// `(N,)` becomes `(1, N, 1)`, a 2-D tensor `(M, N)` becomes `(M, N, 1)`, and tensors
+/// with `ndim >= 3` are returned unchanged. The result is a view (no copy).
+///
+/// # See also
+///
+/// - [numpy.atleast_3d](https://numpy.org/doc/stable/reference/generated/numpy.atleast_3d.html)
+pub fn into_atleast_3d_f<S, D>(tensor: TensorBase<S, D>) -> Result<TensorBase<S, IxD>>
+where
+    D: DimAPI,
+{
+    match tensor.ndim() {
+        // 0-D -> (1, 1, 1)
+        0 => into_expand_dims_f(tensor, vec![0, 1, 2]),
+        // 1-D (N,) -> (1, N, 1): insert axis 0, then axis 2
+        1 => into_expand_dims_f(tensor, vec![0, 2]),
+        // 2-D (M, N) -> (M, N, 1): insert axis 2
+        2 => into_expand_dims_f(tensor, vec![2]),
+        _ => into_dim_f::<_, _, IxD>(tensor),
+    }
+}
+
+pub fn into_atleast_1d<S, D>(tensor: TensorBase<S, D>) -> TensorBase<S, IxD>
+where
+    D: DimAPI,
+{
+    into_atleast_1d_f(tensor).rstsr_unwrap()
+}
+
+pub fn into_atleast_2d<S, D>(tensor: TensorBase<S, D>) -> TensorBase<S, IxD>
+where
+    D: DimAPI,
+{
+    into_atleast_2d_f(tensor).rstsr_unwrap()
+}
+
+pub fn into_atleast_3d<S, D>(tensor: TensorBase<S, D>) -> TensorBase<S, IxD>
+where
+    D: DimAPI,
+{
+    into_atleast_3d_f(tensor).rstsr_unwrap()
+}
+
+pub fn atleast_1d_f<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> Result<TensorView<'_, T, B, IxD>>
+where
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+    B: DeviceAPI<T>,
+    D: DimAPI,
+{
+    into_atleast_1d_f(tensor.view())
+}
+
+pub fn atleast_1d<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> TensorView<'_, T, B, IxD>
+where
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+    B: DeviceAPI<T>,
+    D: DimAPI,
+{
+    atleast_1d_f(tensor).rstsr_unwrap()
+}
+
+pub fn atleast_2d_f<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> Result<TensorView<'_, T, B, IxD>>
+where
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+    B: DeviceAPI<T>,
+    D: DimAPI,
+{
+    into_atleast_2d_f(tensor.view())
+}
+
+pub fn atleast_2d<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> TensorView<'_, T, B, IxD>
+where
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+    B: DeviceAPI<T>,
+    D: DimAPI,
+{
+    atleast_2d_f(tensor).rstsr_unwrap()
+}
+
+pub fn atleast_3d_f<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> Result<TensorView<'_, T, B, IxD>>
+where
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+    B: DeviceAPI<T>,
+    D: DimAPI,
+{
+    into_atleast_3d_f(tensor.view())
+}
+
+pub fn atleast_3d<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> TensorView<'_, T, B, IxD>
+where
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+    B: DeviceAPI<T>,
+    D: DimAPI,
+{
+    atleast_3d_f(tensor).rstsr_unwrap()
+}
+
+impl<R, T, B, D> TensorAny<R, T, B, D>
+where
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+    B: DeviceAPI<T>,
+    D: DimAPI,
+{
+    /// View as an array with at least one dimension. See [`atleast_1d`].
+    pub fn atleast_1d(&self) -> TensorView<'_, T, B, IxD> {
+        atleast_1d(self)
+    }
+    /// Fallible variant of [`atleast_1d`](Self::atleast_1d).
+    pub fn atleast_1d_f(&self) -> Result<TensorView<'_, T, B, IxD>> {
+        atleast_1d_f(self)
+    }
+    /// View as an array with at least two dimensions. See [`atleast_2d`].
+    pub fn atleast_2d(&self) -> TensorView<'_, T, B, IxD> {
+        atleast_2d(self)
+    }
+    /// Fallible variant of [`atleast_2d`](Self::atleast_2d).
+    pub fn atleast_2d_f(&self) -> Result<TensorView<'_, T, B, IxD>> {
+        atleast_2d_f(self)
+    }
+    /// View as an array with at least three dimensions. See [`atleast_3d`].
+    pub fn atleast_3d(&self) -> TensorView<'_, T, B, IxD> {
+        atleast_3d(self)
+    }
+    /// Fallible variant of [`atleast_3d`](Self::atleast_3d).
+    pub fn atleast_3d_f(&self) -> Result<TensorView<'_, T, B, IxD>> {
+        atleast_3d_f(self)
     }
 }
 

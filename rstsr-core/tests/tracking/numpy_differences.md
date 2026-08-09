@@ -5,6 +5,9 @@ the coverage checklist `numpy_coverage.csv`. See ADR-0003.
 
 **Pinned NumPy:** v2.5.2 · **Checkout:** tag v2.5.2
 
+This file holds **open** divergences. Fixed/resolved divergences are archived in
+`numpy_differences_resolved.md`.
+
 ## Tags
 
 - `intentional` - rstsr deliberately differs (ownership semantics, no `out=`, trait
@@ -28,7 +31,8 @@ One section per divergence. Cite the NumPy identifier and the rstsr test:
 <what differs and why>
 ```
 
-<!-- Entries below. Append new divergences here as parity tests are authored. -->
+<!-- Entries below. Append new divergences here as parity tests are authored.
+     When a divergence is fixed, move it to numpy_differences_resolved.md. -->
 
 ## Reshape on an overflowing/incompatible shape panics instead of returning `Err`
 
@@ -198,3 +202,46 @@ documenting or aligning `to_contig` with `c_contig()`.
 
 rstsr `flip(tensor, axes)` requires an explicit `None` to flip all axes; there is no
 default. Behavior is identical when `None` is passed (the parity test does so).
+
+## `concat` has no `axis=None` (flatten-concat) mode
+
+- **numpy:** `_core/tests/test_shape_base.py::TestConcatenate::test_concatenate_axis_None` (L311)
+- **rstsr:** entry_row_cpu::core_func::creation_from_tensor::test_concat::numpy_concatenate
+- **tag:** intentional
+- **status:** open
+
+NumPy `concatenate(..., axis=None)` flattens all inputs and concatenates into 1-D.
+rstsr `concat` takes an explicit integer axis only - there is no `axis=None` mode.
+The `axis=None` cases are not-applicable; to flatten-and-concat, chain
+`reshape(-1)` / `concat` manually.
+
+## `meshgrid` has no `sparse=` parameter
+
+- **numpy:** `lib/tests/test_function_base.py::TestMeshgrid::test_sparse` (L2809)
+- **rstsr:** (no rstsr equivalent)
+- **tag:** intentional
+- **status:** open
+
+NumPy `meshgrid(..., sparse=True)` returns stride-0 broadcasted views. rstsr `meshgrid`
+has no `sparse` parameter; it always returns dense broadcasts.
+
+## `meshgrid` is homogeneous-dtype (no per-input dtype preservation)
+
+- **numpy:** `lib/tests/test_function_base.py::TestMeshgrid::test_return_type` (L2827)
+- **rstsr:** (no rstsr equivalent)
+- **tag:** intentional
+- **status:** open
+
+NumPy `meshgrid` preserves each input's dtype (x=f32 -> X=f32, y=f64 -> Y=f64). rstsr
+`meshgrid` is generic over a single `T`; all inputs must share one dtype. The
+mixed-dtype `test_return_type` case is therefore not-applicable.
+
+## `unstack` returns `Vec`, not a tuple
+
+- **numpy:** `_core/tests/test_shape_base.py::test_unstack` (L531)
+- **rstsr:** entry_row_cpu::core_func::creation_from_tensor::test_unstack::numpy_unstack::test_unstack
+- **tag:** intentional
+- **status:** open
+
+API-shape difference; values match. rstsr `unstack` returns `Vec<TensorView>`; NumPy
+returns a tuple.
