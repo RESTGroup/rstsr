@@ -214,6 +214,10 @@ SURFACE = [
     ("_core/tests/test_arrayobject.py", "", "test_matrix_transpose_raises_error_for_1d"),
     ("_core/tests/test_arrayobject.py", "", "test_matrix_transpose_equals_transpose_2d"),
     ("_core/tests/test_arrayobject.py", "", "test_matrix_transpose_equals_swapaxes"),
+    # --- linalg: vecdot ---
+    ("_core/tests/test_ufunc.py", "TestUfunc", "test_vecdot"),
+    ("_core/tests/test_ufunc.py", "TestUfunc", "test_broadcast"),
+    ("_core/tests/test_ufunc.py", "TestUfunc", "test_vecdot_matvec_vecmat_complex"),
     # --- indexing (basic indexing via Tensor::i) ---
     ("_core/tests/test_indexing.py", "TestIndexing", "test_single_int_index"),
     ("_core/tests/test_indexing.py", "TestIndexing", "test_ellipsis_index"),

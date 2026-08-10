@@ -12,7 +12,7 @@ mod numpy_vecdot {
 
     #[test]
     fn test_vecdot_basic() {
-        // NumPy v2.4.2, _core/tests/test_ufunc.py, TestUfuncs::test_vecdot (line 814)
+        // NumPy v2.5.2, _core/tests/test_ufunc.py, TestUfunc::test_vecdot (line 812)
         crate::specify_test!("test_vecdot_basic");
 
         let mut device = TESTCFG.device.clone();
@@ -36,7 +36,7 @@ mod numpy_vecdot {
 
     #[test]
     fn test_vecdot_broadcast() {
-        // NumPy v2.4.2, _core/tests/test_ufunc.py, TestUfuncs::test_broadcast (line 924)
+        // NumPy v2.5.2, _core/tests/test_ufunc.py, TestUfunc::test_broadcast (line 942)
         crate::specify_test!("test_vecdot_broadcast");
 
         let mut device = TESTCFG.device.clone();
@@ -63,7 +63,7 @@ mod numpy_vecdot {
 
     #[test]
     fn test_vecdot_broadcast_fails() {
-        // NumPy v2.4.2, _core/tests/test_ufunc.py, TestUfuncs::test_broadcast (line 932)
+        // NumPy v2.5.2, _core/tests/test_ufunc.py, TestUfunc::test_broadcast (line 942)
         crate::specify_test!("test_vecdot_broadcast_fails");
 
         let mut device = TESTCFG.device.clone();
@@ -95,7 +95,7 @@ mod numpy_vecdot {
 
     #[test]
     fn test_vecdot_complex() {
-        // NumPy v2.4.2, _core/tests/test_ufunc.py, TestUfuncs::test_vecdot_matvec_vecmat_complex (line 877)
+        // NumPy v2.5.2, _core/tests/test_ufunc.py, TestUfunc::test_vecdot_matvec_vecmat_complex (line 875)
         crate::specify_test!("test_vecdot_complex");
 
         let mut device = TESTCFG.device.clone();
