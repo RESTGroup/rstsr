@@ -192,4 +192,7 @@ _core/tests/test_multiarray.py,MatmulCommon,test_matrix_matrix_values,v2.5.2,tra
 _core/tests/test_arrayobject.py,,test_matrix_transpose_raises_error_for_1d,v2.5.2,transferred,core_func/linalg/test_matrix_transpose.rs::numpy_matrix_transpose::test_raises_error_for_1d,1baf442fcd55,1-D mT -> is_err
 _core/tests/test_arrayobject.py,,test_matrix_transpose_equals_transpose_2d,v2.5.2,transferred,core_func/linalg/test_matrix_transpose.rs::numpy_matrix_transpose::test_equals_transpose_2d,906cf29cb089,arr.T == arr.mT for 2-D
 _core/tests/test_arrayobject.py,,test_matrix_transpose_equals_swapaxes,v2.5.2,transferred,core_func/linalg/test_matrix_transpose.rs::numpy_matrix_transpose::test_equals_swapaxes,238c2706f9d1,mT == swapaxes(-2,-1); 3 shapes
+# --- core_func/indexing (basic indexing via Tensor::i) ---
+_core/tests/test_indexing.py,TestIndexing,test_single_int_index,v2.5.2,partial,core_func/indexing/test_indexing.rs::numpy_indexing::test_single_int_index,b56b5b700a3b,"BUG: .i(int)->0-d scalar returns wrong element; value verified via 1-element slice; see numpy_differences.md"
+_core/tests/test_indexing.py,TestIndexing,test_ellipsis_index,v2.5.2,transferred,core_func/indexing/test_indexing.rs::numpy_indexing::test_ellipsis_index,2ce6cc7a982a,"a[...,1] + a[0,...,1]; sub-tensor/ellipsis indexing works"
 

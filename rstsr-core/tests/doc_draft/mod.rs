@@ -1,4 +1,5 @@
 pub mod creation;
+pub mod indexing;
 pub mod linalg;
 pub mod manipulation;
 pub mod math;

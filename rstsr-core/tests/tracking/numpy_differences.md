@@ -360,3 +360,21 @@ yields `0 / 0`); `sign` of nonzero values is correct (`sign([-2, 3]) == [-1, 1]`
 rstsr `sign` also requires a `Float` input (NumPy `sign` accepts integers). The
 parity test avoids `0.0`; when the bug is fixed, restore a `0.0` case asserting
 `sign(0.0) == 0.0`.
+
+## `Tensor::i(int...)` reducing to a 0-d scalar returns the wrong element
+
+- **numpy:** `_core/tests/test_indexing.py::TestIndexing::test_single_int_index`
+  (L201) — `np.arange(10)[-1] == 9`.
+- **rstsr:** entry_row_cpu::core_func::indexing::test_indexing::numpy_indexing::test_single_int_index
+- **tag:** bug
+- **status:** open
+
+Integer indexing via `Tensor::i` that fully reduces the result to a **0-d**
+(scalar) view returns the wrong element — it reads at offset 0, so e.g.
+`arange(10).i(9).to_scalar() == 0` (not 9) and `m.i((1, 2)).to_scalar() == 0`
+(not 6). Sub-tensor indexing (integer that drops one axis but leaves rank ≥ 1,
+slices, `..`, `Ellipsis`, `None`/newaxis) reads correctly, as does 1-D
+`index_select` gather. The parity test verifies element values via 1-element
+slices (e.g. `a.i(slice!(9, None)) == [9]`) instead of the 0-d scalar form.
+Note: the pre-existing `vecdot` swapaxes test masks this bug because both sides
+of its `assert_eq!` use `.i((...)).to_scalar()`, so `0 == 0` passes trivially.
