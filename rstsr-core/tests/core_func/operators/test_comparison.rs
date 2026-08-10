@@ -1,0 +1,68 @@
+#[allow(unused_imports)]
+use crate::test_utils::*;
+use rstsr::prelude::*;
+
+use super::CATEGORY;
+use crate::TESTCFG;
+
+// NumPy's comparison ufunc tests (test_umath.py::TestComparisons) iterate dtypes and
+// object arrays; these `custom_*` tests cover elementwise value parity. Comparison
+// results are bool tensors, compared via `to_vec()` (assert_equal cannot take bool).
+
+#[cfg(test)]
+mod custom_comparison {
+    use super::*;
+    static FUNC: &str = "custom_comparison";
+
+    #[test]
+    fn test_elementwise() {
+        crate::specify_test!("test_elementwise");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // a = [1, 2, 3, 4]; b = [2, 2, 2, 2]
+        let a = rt::tensor_from_nested!([1, 2, 3, 4], &device);
+        let b = rt::tensor_from_nested!([2, 2, 2, 2], &device);
+
+        // np.greater(a, b)  == [F, F, T, T]
+        assert_eq!(rt::gt(&a, &b).to_vec(), vec![false, false, true, true]);
+        // np.greater_equal  == [F, T, T, T]
+        assert_eq!(rt::ge(&a, &b).to_vec(), vec![false, true, true, true]);
+        // np.less           == [T, F, F, F]
+        assert_eq!(rt::lt(&a, &b).to_vec(), vec![true, false, false, false]);
+        // np.less_equal     == [T, T, F, F]
+        assert_eq!(rt::le(&a, &b).to_vec(), vec![true, true, false, false]);
+        // np.equal          == [F, T, F, F]
+        assert_eq!(rt::eq(&a, &b).to_vec(), vec![false, true, false, false]);
+        // np.not_equal      == [T, F, T, T]
+        // BUG: rstsr `ne`/`not_equal` is unimplemented (does not compile: the
+        // TensorNotEqualAPI / OpNotEqualAPI auto-impl is missing, while the other 5
+        // comparison ops are implemented). Derive ne = not(eq) for the value check.
+        // See numpy_differences.md.
+        assert_eq!(rt::not(&rt::eq(&a, &b)).to_vec(), vec![true, false, true, true]);
+    }
+}
+
+#[cfg(test)]
+mod custom_maximum_minimum {
+    use super::*;
+    static FUNC: &str = "custom_maximum_minimum";
+
+    #[test]
+    fn test_elementwise() {
+        crate::specify_test!("test_elementwise");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // np.maximum / np.minimum are elementwise (the reduce form is np.max/min).
+        // a = [1, 5, 3]; b = [4, 2, 6]
+        let a = rt::tensor_from_nested!([1, 5, 3], &device);
+        let b = rt::tensor_from_nested!([4, 2, 6], &device);
+        // np.maximum(a, b) == [4, 5, 6]
+        assert_equal(&rt::maximum(&a, &b), &rt::tensor_from_nested!([4, 5, 6], &device), None);
+        // np.minimum(a, b) == [1, 2, 3]
+        assert_equal(&rt::minimum(&a, &b), &rt::tensor_from_nested!([1, 2, 3], &device), None);
+    }
+}

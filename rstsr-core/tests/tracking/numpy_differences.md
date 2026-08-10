@@ -319,3 +319,31 @@ rstsr `linspace` has no `num` default — the call forms are
 tests pass `num` explicitly. Consequently `linspace(0, 10, num=-1)` (NumPy raises
 `ValueError`) is not expressible — `num` is `usize`, so a negative count is a
 compile-time type error rather than a runtime error. Output values match NumPy.
+
+## `ne` / `not_equal` is unimplemented
+
+- **numpy:** `np.not_equal` (covered by `test_umath.py::TestComparisons`).
+- **rstsr:** entry_row_cpu::core_func::operators::test_comparison::custom_comparison
+- **tag:** bug
+- **status:** open
+
+The other five elementwise comparisons (`eq`, `lt`, `le`, `gt`, `ge` — free
+functions `rt::eq/lt/le/gt/ge`) compile and work on `&Tensor`. `rt::ne` /
+`rt::not_equal` does **not compile**: the `TensorNotEqualAPI` / `OpNotEqualAPI`
+auto-impl is missing (no impl for `&Tensor`, owned `Tensor`, or
+`DeviceCpuSerial`). The parity test derives `ne = not(eq)` for the value check.
+When implemented, replace that with `rt::ne(&a, &b)`.
+
+## The `%` (`Rem`) operator returns garbage; `rt::rem` is correct
+
+- **numpy:** `np.remainder` / Python `%`.
+- **rstsr:** entry_row_cpu::core_func::operators::test_arithmetic::custom_rem
+- **tag:** bug
+- **status:** open
+
+The free function `rt::rem(&a, &b)` returns the correct remainder for both 1-D
+and 2-D integer tensors (`[1, 1, 3, 2]` / `[[1, 1], [3, 2]]`). The overloaded
+`%` operator (`&a % &b`) returns **garbage** — e.g. `[135, 187, 319, 440]`
+instead of `[1, 1, 3, 2]` for the same inputs — so the `Rem` tensor impl is
+wired incorrectly (the `+ - * /` operators are all correct). The parity test
+asserts `rt::rem` only and does not assert the `%` operator.
