@@ -1,0 +1,101 @@
+#[allow(unused_imports)]
+use crate::test_utils::*;
+use rstsr::prelude::*;
+
+use super::CATEGORY;
+use crate::TESTCFG;
+
+// NumPy's unary-ufunc tests (test_umath.py::TestSpecialFloats / TestExp / TestLog /
+// TestRoundingFunctions / TestSign / TestFPClass) are FP-special-value and dtype
+// oriented. These `custom_*` tests cover representative value parity for the main
+// unary math functions (they share the same elementwise map code path).
+
+#[cfg(test)]
+mod custom_math_basic {
+    use super::*;
+    static FUNC: &str = "custom_math_basic";
+
+    #[test]
+    fn test_abs_sqrt_sign_rounding() {
+        crate::specify_test!("test_abs_sqrt_sign_rounding");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // np.abs([-1, 2, -3]) == [1, 2, 3]
+        let a = rt::tensor_from_nested!([-1, 2, -3], &device);
+        assert_equal(&rt::abs(&a), &rt::tensor_from_nested!([1, 2, 3], &device), None);
+
+        // np.sqrt([0, 1, 4, 9]) == [0, 1, 2, 3]
+        let s = rt::tensor_from_nested!([0.0, 1.0, 4.0, 9.0], &device);
+        assert_equal(&rt::sqrt(&s), &rt::tensor_from_nested!([0.0, 1.0, 2.0, 3.0], &device), None);
+
+        // np.sign([-2, 3]) == [-1, 1]; rstsr sign requires a Float input.
+        // BUG: rstsr sign(0.0) returns NaN (not 0); 0.0 is therefore avoided here.
+        // See numpy_differences.md.
+        let g = rt::tensor_from_nested!([-2.0, 3.0], &device);
+        assert_equal(&rt::sign(&g), &rt::tensor_from_nested!([-1.0, 1.0], &device), None);
+
+        // np.floor / np.ceil / np.trunc on [-1.5, 0.5, 2.4]
+        let f = rt::tensor_from_nested!([-1.5, 0.5, 2.4], &device);
+        assert_equal(&rt::floor(&f), &rt::tensor_from_nested!([-2.0, 0.0, 2.0], &device), None);
+        assert_equal(&rt::ceil(&f), &rt::tensor_from_nested!([-1.0, 1.0, 3.0], &device), None);
+        assert_equal(&rt::trunc(&f), &rt::tensor_from_nested!([-1.0, 0.0, 2.0], &device), None);
+    }
+}
+
+#[cfg(test)]
+mod custom_math_transcendental {
+    use super::*;
+    static FUNC: &str = "custom_math_transcendental";
+
+    #[test]
+    fn test_exp_log_trig() {
+        crate::specify_test!("test_exp_log_trig");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+        use std::f64::consts::PI;
+
+        // exp([0, 1, 2]) == [1, e, e^2]; log is its inverse.
+        let x = rt::tensor_from_nested!([0.0, 1.0, 2.0], &device);
+        let ex = rt::exp(&x);
+        assert_equal(
+            &ex,
+            &rt::tensor_from_nested!([1.0, std::f64::consts::E, std::f64::consts::E * std::f64::consts::E]),
+            None,
+        );
+        // log(exp(x)) == x
+        assert_equal(&rt::log(&ex), &x, None);
+
+        // sin / cos at 0, pi/2, pi
+        let ang = rt::tensor_from_nested!([0.0, PI / 2.0, PI], &device);
+        assert_equal(&rt::sin(&ang), &rt::tensor_from_nested!([0.0, 1.0, 0.0]), None);
+        assert_equal(&rt::cos(&ang), &rt::tensor_from_nested!([1.0, 0.0, -1.0]), None);
+
+        // tanh([-1, 0, 1]) == [-tanh(1), 0, tanh(1)]
+        let t = rt::tensor_from_nested!([-1.0, 0.0, 1.0], &device);
+        let th1 = 1.0_f64.tanh();
+        assert_equal(&rt::tanh(&t), &rt::tensor_from_nested!([-th1, 0.0, th1]), None);
+    }
+}
+
+#[cfg(test)]
+mod custom_math_classify {
+    use super::*;
+    static FUNC: &str = "custom_math_classify";
+
+    #[test]
+    fn test_is_nan_is_finite_is_inf() {
+        crate::specify_test!("test_is_nan_is_finite_is_inf");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // a = [0, nan, inf, -inf]; nan/finite/inf classification (bool -> to_vec).
+        let a: Tensor<f64, _> = rt::asarray((vec![0.0, f64::NAN, f64::INFINITY, f64::NEG_INFINITY], &device));
+        assert_eq!(rt::is_nan(&a).to_vec(), vec![false, true, false, false]);
+        assert_eq!(rt::is_finite(&a).to_vec(), vec![true, false, false, false]);
+        assert_eq!(rt::is_inf(&a).to_vec(), vec![false, false, true, true]);
+    }
+}

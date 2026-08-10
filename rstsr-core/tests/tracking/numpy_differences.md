@@ -347,3 +347,16 @@ and 2-D integer tensors (`[1, 1, 3, 2]` / `[[1, 1], [3, 2]]`). The overloaded
 instead of `[1, 1, 3, 2]` for the same inputs — so the `Rem` tensor impl is
 wired incorrectly (the `+ - * /` operators are all correct). The parity test
 asserts `rt::rem` only and does not assert the `%` operator.
+
+## `sign(0.0)` returns NaN instead of 0
+
+- **numpy:** `np.sign(0.0) == 0` (and `np.sign` works on integers).
+- **rstsr:** entry_row_cpu::core_func::math::test_unary_math::custom_math_basic
+- **tag:** bug
+- **status:** open
+
+rstsr `rt::sign(0.0)` returns **NaN** (likely an `x / x.abs()`-style impl that
+yields `0 / 0`); `sign` of nonzero values is correct (`sign([-2, 3]) == [-1, 1]`).
+rstsr `sign` also requires a `Float` input (NumPy `sign` accepts integers). The
+parity test avoids `0.0`; when the bug is fixed, restore a `0.0` case asserting
+`sign(0.0) == 0.0`.
