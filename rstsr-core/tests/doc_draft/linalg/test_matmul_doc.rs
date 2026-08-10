@@ -1,0 +1,42 @@
+use rstsr::prelude::*;
+
+use super::CATEGORY;
+use crate::TESTCFG;
+
+mod doc_matmul {
+    use super::*;
+    static FUNC: &str = "doc_matmul";
+
+    #[test]
+    fn test_doc() {
+        crate::specify_test!("test_doc");
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        let a = rt::tensor_from_nested!([[1, 2], [3, 4]], &device);
+        let b = rt::tensor_from_nested!([[1, 0], [1, 1]], &device);
+        println!("{}", rt::matmul(&a, &b));
+        // [[ 3 2]
+        //  [ 7 4]]
+        let v = rt::tensor_from_nested!([1, 2], &device);
+        println!("{}", rt::matmul(&a, &v));
+        // [ 5 11]
+    }
+}
+
+mod doc_matrix_transpose {
+    use super::*;
+    static FUNC: &str = "doc_matrix_transpose";
+
+    #[test]
+    fn test_doc() {
+        crate::specify_test!("test_doc");
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        let a = rt::arange((12, &device)).into_shape([2, 3, 2]);
+        println!("{:?}", a.matrix_transpose().shape());
+        // [2, 2, 3]
+        assert_eq!(a.matrix_transpose().shape(), &[2, 2, 3]);
+    }
+}

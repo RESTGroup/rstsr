@@ -195,6 +195,25 @@ SURFACE = [
     ("lib/tests/test_function_base.py", "TestAll", "test_nd"),
     ("lib/tests/test_function_base.py", "TestAny", "test_basic"),
     ("lib/tests/test_function_base.py", "TestAny", "test_nd"),
+    # --- creation (arange/linspace/zeros/ones/full/eye/tril/triu) ---
+    ("_core/tests/test_multiarray.py", "TestArange", "test_start_stop_kwarg"),
+    ("_core/tests/test_multiarray.py", "TestArange", "test_zero_step"),
+    ("_core/tests/test_function_base.py", "TestLinspace", "test_basic"),
+    ("_core/tests/test_function_base.py", "TestLinspace", "test_corner"),
+    ("_core/tests/test_numeric.py", "TestCreationFuncs", "test_zeros"),
+    ("_core/tests/test_numeric.py", "TestCreationFuncs", "test_ones"),
+    ("_core/tests/test_numeric.py", "TestCreationFuncs", "test_full"),
+    ("lib/tests/test_twodim_base.py", "TestEye", "test_basic"),
+    ("lib/tests/test_twodim_base.py", "", "test_tril_triu_ndim2"),
+    ("lib/tests/test_twodim_base.py", "", "test_tril_triu_ndim3"),
+    # --- linalg (matmul, matrix_transpose) ---
+    ("_core/tests/test_multiarray.py", "MatmulCommon", "test_vector_vector_values"),
+    ("_core/tests/test_multiarray.py", "MatmulCommon", "test_vector_matrix_values"),
+    ("_core/tests/test_multiarray.py", "MatmulCommon", "test_matrix_vector_values"),
+    ("_core/tests/test_multiarray.py", "MatmulCommon", "test_matrix_matrix_values"),
+    ("_core/tests/test_arrayobject.py", "", "test_matrix_transpose_raises_error_for_1d"),
+    ("_core/tests/test_arrayobject.py", "", "test_matrix_transpose_equals_transpose_2d"),
+    ("_core/tests/test_arrayobject.py", "", "test_matrix_transpose_equals_swapaxes"),
     # --- gap functions (rstsr has no analog): one representative method per NumPy
     #     test class, status `todo` in numpy_coverage.csv. The note cites the full
     #     class + method count; only the representative is hashed here. ---

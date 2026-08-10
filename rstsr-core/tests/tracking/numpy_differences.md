@@ -305,3 +305,17 @@ which maps each unraveled index through `pseudo_layout.index_uncheck`. The parit
 test documents the current behavior with `catch_unwind` (asserts the panic); when
 the bug is fixed it should assert success. 2-D value parity is covered by the
 `custom_argmax`/`custom_argmin` 2-D cases.
+
+## `linspace` requires an explicit `num` (NumPy defaults to 50)
+
+- **numpy:** `_core/tests/test_function_base.py::TestLinspace::test_basic` (L322)
+  calls `linspace(0, 10)` with no `num`.
+- **rstsr:** entry_row_cpu::core_func::creation::test_linspace::numpy_linspace::test_basic
+- **tag:** intentional
+- **status:** open
+
+rstsr `linspace` has no `num` default — the call forms are
+`(start, stop, num, &device)` and `(start, stop, num, endpoint, &device)`. Parity
+tests pass `num` explicitly. Consequently `linspace(0, 10, num=-1)` (NumPy raises
+`ValueError`) is not expressible — `num` is `usize`, so a negative count is a
+compile-time type error rather than a runtime error. Output values match NumPy.

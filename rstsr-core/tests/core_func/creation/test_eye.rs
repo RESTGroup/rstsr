@@ -1,0 +1,52 @@
+#[allow(unused_imports)]
+use crate::test_utils::*;
+use rstsr::prelude::*;
+
+use super::CATEGORY;
+use crate::TESTCFG;
+
+#[cfg(test)]
+mod numpy_eye {
+    use super::*;
+    static FUNC: &str = "numpy_eye";
+
+    #[test]
+    fn test_basic() {
+        // NumPy v2.5.2, lib/tests/test_twodim_base.py, TestEye::test_basic (line 43)
+        crate::specify_test!("test_basic");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // assert_equal(eye(4), [[1,0,0,0],[0,1,0,0],[0,0,1,0],[0,0,0,1]])
+        let e: Tensor<i32, _> = rt::eye((4, &device));
+        let expected = rt::tensor_from_nested!([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], &device);
+        assert_equal(&e, &expected, None);
+
+        // assert_equal(eye(4, dtype='f'), ... 'f')  -> f32 identity
+        let ef: Tensor<f32, _> = rt::eye((4, &device));
+        assert_equal(&ef, &expected, None);
+    }
+}
+
+#[cfg(test)]
+mod custom_eye {
+    use super::*;
+    static FUNC: &str = "custom_eye";
+
+    #[test]
+    fn test_eye_rect_offset() {
+        crate::specify_test!("test_eye_rect_offset");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // eye(3, 4, k=1): 3x4 with 1s on the first superdiagonal
+        // [[0, 1, 0, 0],
+        //  [0, 0, 1, 0],
+        //  [0, 0, 0, 1]]
+        let e: Tensor<i32, _> = rt::eye((3, 4, 1, &device));
+        let expected = rt::tensor_from_nested!([[0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], &device);
+        assert_equal(&e, &expected, None);
+    }
+}

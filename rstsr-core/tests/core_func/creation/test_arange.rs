@@ -1,0 +1,70 @@
+#[allow(unused_imports)]
+use crate::test_utils::*;
+use rstsr::prelude::*;
+
+use super::CATEGORY;
+use crate::TESTCFG;
+
+#[cfg(test)]
+mod numpy_arange {
+    use super::*;
+    static FUNC: &str = "numpy_arange";
+
+    #[test]
+    fn test_start_stop_kwarg() {
+        // NumPy v2.5.2, _core/tests/test_multiarray.py, TestArange::test_start_stop_kwarg (line 10580)
+        // (value portion; Python keyword-call variants are compile-time typed in Rust)
+        crate::specify_test!("test_start_stop_kwarg");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // keyword_stop = np.arange(stop=3)            -> len 3
+        // keyword_zerotostop = np.arange(0, stop=3)   -> len 3, equal to above
+        // keyword_start_stop = np.arange(start=3, stop=9) -> len 6
+        let a = rt::arange((3, &device));
+        let b = rt::arange((0, 3, &device));
+        assert_eq!(a.shape()[0], 3);
+        assert_eq!(b.shape()[0], 3);
+        assert_equal(&a, &b, None);
+        let c = rt::arange((3, 9, &device));
+        assert_eq!(c.shape()[0], 6);
+    }
+
+    #[test]
+    fn test_zero_step() {
+        // NumPy v2.5.2, _core/tests/test_multiarray.py, TestArange::test_zero_step (line 10566)
+        crate::specify_test!("test_zero_step");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // assert_raises(ZeroDivisionError, np.arange, 0, 10, 0)
+        // assert_raises(ZeroDivisionError, np.arange, 0.0, 10.0, 0.0)
+        assert!(rt::arange_f((0, 10, 0, &device)).is_err());
+        assert!(rt::arange_f((0.0, 10.0, 0.0, &device)).is_err());
+    }
+}
+
+#[cfg(test)]
+mod custom_arange {
+    use super::*;
+    static FUNC: &str = "custom_arange";
+
+    #[test]
+    fn test_values() {
+        crate::specify_test!("test_values");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // np.arange(2, 10) -> [2, 3, 4, 5, 6, 7, 8, 9]
+        assert_equal(&rt::arange((2, 10, &device)), &rt::tensor_from_nested!([2, 3, 4, 5, 6, 7, 8, 9], &device), None);
+
+        // np.arange(1, 10, 3) -> [1, 4, 7]
+        assert_equal(&rt::arange((1, 10, 3, &device)), &rt::tensor_from_nested!([1, 4, 7], &device), None);
+
+        // np.arange(10, 0, -2) -> [10, 8, 6, 4, 2]
+        assert_equal(&rt::arange((10, 0, -2, &device)), &rt::tensor_from_nested!([10, 8, 6, 4, 2], &device), None);
+    }
+}

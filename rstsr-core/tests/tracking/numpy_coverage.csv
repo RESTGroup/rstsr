@@ -173,4 +173,23 @@ lib/tests/test_function_base.py,TestAll,test_basic,v2.5.2,transferred,core_func/
 lib/tests/test_function_base.py,TestAll,test_nd,v2.5.2,transferred,core_func/reduction/test_all.rs::numpy_all::test_nd,5bee0e544c7b,axis 0/1 bool values
 lib/tests/test_function_base.py,TestAny,test_basic,v2.5.2,transferred,core_func/reduction/test_any.rs::numpy_any::test_basic,beb8a357681a,bool input
 lib/tests/test_function_base.py,TestAny,test_nd,v2.5.2,transferred,core_func/reduction/test_any.rs::numpy_any::test_nd,86c30dc92987,axis 0/1 bool values
+# --- core_func/creation ---
+_core/tests/test_multiarray.py,TestArange,test_start_stop_kwarg,v2.5.2,transferred,core_func/creation/test_arange.rs::numpy_arange::test_start_stop_kwarg,b8d32f6da456,"value portion; Python keyword-call variants compile-time typed (N/A)"
+_core/tests/test_multiarray.py,TestArange,test_zero_step,v2.5.2,transferred,core_func/creation/test_arange.rs::numpy_arange::test_zero_step,2d2f8be1eee3,zero step -> is_err (NumPy ZeroDivisionError)
+_core/tests/test_function_base.py,TestLinspace,test_basic,v2.5.2,transferred,core_func/creation/test_linspace.rs::numpy_linspace::test_basic,4452729fbaa6,"rstsr requires explicit num (NumPy defaults 50; see numpy_differences.md); num=-1 N/A (usize)"
+_core/tests/test_function_base.py,TestLinspace,test_corner,v2.5.2,transferred,core_func/creation/test_linspace.rs::numpy_linspace::test_corner,9987bbce3928,num=1 -> [0.0]
+_core/tests/test_numeric.py,TestCreationFuncs,test_zeros,v2.5.2,transferred,core_func/creation/test_zeros.rs::numpy_zeros::test_numeric,38f251404082,"value cases; check_function dtype/order loop N/A"
+_core/tests/test_numeric.py,TestCreationFuncs,test_ones,v2.5.2,transferred,core_func/creation/test_ones.rs::numpy_ones::test_numeric,0da01688db03,"value cases; check_function dtype/order loop N/A"
+_core/tests/test_numeric.py,TestCreationFuncs,test_full,v2.5.2,transferred,core_func/creation/test_full.rs::numpy_full::test_numeric,4a2afd641cdc,"fill 0/1/7 value cases; check_function dtype/order loop N/A"
+lib/tests/test_twodim_base.py,TestEye,test_basic,v2.5.2,transferred,core_func/creation/test_eye.rs::numpy_eye::test_basic,5421f706c8e1,"eye(4) identity (i32 + f32); bool case N/A"
+lib/tests/test_twodim_base.py,,test_tril_triu_ndim2,v2.5.2,transferred,core_func/creation/test_tril_triu.rs::numpy_tril_triu::test_ndim2,9707d2c45990,"ones(2,2) tril/triu; dtype loop collapsed"
+lib/tests/test_twodim_base.py,,test_tril_triu_ndim3,v2.5.2,transferred,core_func/creation/test_tril_triu.rs::numpy_tril_triu::test_ndim3,99d8de8fdf4d,3-D tril/triu on last two axes
+# --- core_func/linalg (matmul, matrix_transpose) ---
+_core/tests/test_multiarray.py,MatmulCommon,test_vector_vector_values,v2.5.2,transferred,core_func/linalg/test_matmul.rs::numpy_matmul::test_vector_vector_values,32dbcdf00fd9,"i32 value cases; dtype loop + bool N/A"
+_core/tests/test_multiarray.py,MatmulCommon,test_vector_matrix_values,v2.5.2,transferred,core_func/linalg/test_matmul.rs::numpy_matmul::test_vector_matrix_values,0f5f7991da12,i32 value cases
+_core/tests/test_multiarray.py,MatmulCommon,test_matrix_vector_values,v2.5.2,transferred,core_func/linalg/test_matmul.rs::numpy_matmul::test_matrix_vector_values,7a70069cbbff,i32 value cases
+_core/tests/test_multiarray.py,MatmulCommon,test_matrix_matrix_values,v2.5.2,transferred,core_func/linalg/test_matmul.rs::numpy_matmul::test_matrix_matrix_values,3ba7f669aeea,matrix@matrix value cases + custom batched
+_core/tests/test_arrayobject.py,,test_matrix_transpose_raises_error_for_1d,v2.5.2,transferred,core_func/linalg/test_matrix_transpose.rs::numpy_matrix_transpose::test_raises_error_for_1d,1baf442fcd55,1-D mT -> is_err
+_core/tests/test_arrayobject.py,,test_matrix_transpose_equals_transpose_2d,v2.5.2,transferred,core_func/linalg/test_matrix_transpose.rs::numpy_matrix_transpose::test_equals_transpose_2d,906cf29cb089,arr.T == arr.mT for 2-D
+_core/tests/test_arrayobject.py,,test_matrix_transpose_equals_swapaxes,v2.5.2,transferred,core_func/linalg/test_matrix_transpose.rs::numpy_matrix_transpose::test_equals_swapaxes,238c2706f9d1,mT == swapaxes(-2,-1); 3 shapes
 

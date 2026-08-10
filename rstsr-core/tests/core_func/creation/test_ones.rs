@@ -1,0 +1,45 @@
+#[allow(unused_imports)]
+use crate::test_utils::*;
+use rstsr::prelude::*;
+
+use super::CATEGORY;
+use crate::TESTCFG;
+
+#[cfg(test)]
+mod numpy_ones {
+    use super::*;
+    static FUNC: &str = "numpy_ones";
+
+    #[test]
+    fn test_numeric() {
+        // NumPy v2.5.2, _core/tests/test_numeric.py, TestCreationFuncs::test_ones (line 3387)
+        // NumPy's check_function iterates dtype/order; rstsr checks shape + fill value.
+        crate::specify_test!("test_numeric");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        let o: Tensor<i32, _> = rt::ones(([2, 3], &device));
+        assert_eq!(o.shape(), &[2, 3]);
+        assert_equal(&o, &rt::tensor_from_nested!([[1, 1, 1], [1, 1, 1]], &device), None);
+    }
+}
+
+#[cfg(test)]
+mod custom_ones {
+    use super::*;
+    static FUNC: &str = "custom_ones";
+
+    #[test]
+    fn test_ones_like() {
+        crate::specify_test!("test_ones_like");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        let a = rt::arange((6, &device)).into_shape([2, 3]);
+        let o: Tensor<i32, _> = a.ones_like();
+        assert_eq!(o.shape(), &[2, 3]);
+        assert_equal(&o, &rt::tensor_from_nested!([[1, 1, 1], [1, 1, 1]], &device), None);
+    }
+}
