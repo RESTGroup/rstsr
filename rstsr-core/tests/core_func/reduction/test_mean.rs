@@ -1,0 +1,55 @@
+#[allow(unused_imports)]
+use crate::test_utils::*;
+use rstsr::prelude::*;
+
+use super::CATEGORY;
+use crate::TESTCFG;
+
+#[cfg(test)]
+mod numpy_mean {
+    use super::*;
+    static FUNC: &str = "numpy_mean";
+
+    #[test]
+    fn test_numeric() {
+        // NumPy v2.5.2, _core/tests/test_numeric.py, TestNonarrayArgs::test_mean (line 142)
+        crate::specify_test!("test_numeric");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // A = [[1, 2, 3], [4, 5, 6]]
+        // assert_(np.mean(A) == 3.5)
+        // assert_(np.all(np.mean(A, 0) == np.array([2.5, 3.5, 4.5])))
+        // assert_(np.all(np.mean(A, 1) == np.array([2., 5.])))
+        // rstsr mean requires a Float input (NumPy promotes int -> float); use f64.
+        let a: Tensor<f64, _> = rt::tensor_from_nested!([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], &device);
+        assert_eq!(a.mean_all(), 3.5);
+        assert_equal(&a.mean_axes(0), &rt::tensor_from_nested!([2.5, 3.5, 4.5], &device), None);
+        assert_equal(&a.mean_axes(1), &rt::tensor_from_nested!([2.0, 5.0], &device), None);
+
+        // NumPy also asserts np.mean([]) is nan with a RuntimeWarning; rstsr's
+        // empty-mean behavior is not part of this case (see numpy_differences.md
+        // if it diverges). Not ported: Python warnings machinery is N/A.
+    }
+}
+
+#[cfg(test)]
+mod custom_mean {
+    use super::*;
+    static FUNC: &str = "custom_mean";
+
+    #[test]
+    fn test_mean_axis_none() {
+        crate::specify_test!("test_mean_axis_none");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // mean_axes(None) reduces over all axes -> 0-d tensor (f64).
+        let a: Tensor<f64, _> = rt::tensor_from_nested!([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], &device);
+        let out = a.mean_axes(None);
+        let expected: Tensor<f64, _> = rt::asarray((3.5, &device));
+        assert_equal(&out, &expected, None);
+    }
+}

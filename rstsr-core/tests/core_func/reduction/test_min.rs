@@ -1,0 +1,34 @@
+#[allow(unused_imports)]
+use crate::test_utils::*;
+use rstsr::prelude::*;
+
+use super::CATEGORY;
+use crate::TESTCFG;
+
+#[cfg(test)]
+mod numpy_min {
+    use super::*;
+    static FUNC: &str = "numpy_min";
+
+    #[test]
+    fn test_basic() {
+        // NumPy v2.5.2, lib/tests/test_function_base.py, TestAmin::test_basic (line 721)
+        // np.amin -> rstsr min.
+        crate::specify_test!("test_basic");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // a = [3, 4, 5, 10, -3, -5, 6.0]
+        // assert_equal(np.amin(a), -5.0)
+        let a = rt::tensor_from_nested!([3.0, 4.0, 5.0, 10.0, -3.0, -5.0, 6.0], &device);
+        assert_eq!(a.min_all(), -5.0);
+
+        // b = [[3, 6.0, 9.0], [4, 10.0, 5.0], [8, 3.0, 2.0]]
+        // assert_equal(np.amin(b, axis=0), [3.0, 3.0, 2.0])
+        // assert_equal(np.amin(b, axis=1), [3.0, 4.0, 2.0])
+        let b = rt::tensor_from_nested!([[3.0, 6.0, 9.0], [4.0, 10.0, 5.0], [8.0, 3.0, 2.0]], &device);
+        assert_equal(&b.min_axes(0), &rt::tensor_from_nested!([3.0, 3.0, 2.0], &device), None);
+        assert_equal(&b.min_axes(1), &rt::tensor_from_nested!([3.0, 4.0, 2.0], &device), None);
+    }
+}

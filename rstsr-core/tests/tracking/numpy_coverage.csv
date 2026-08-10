@@ -1,13 +1,17 @@
-# NumPy coverage checklist (rstsr-core) — manipulation + creation_from_tensor surface.
+# NumPy coverage checklist (rstsr-core) — full core_func surface.
 # Pinned NumPy: v2.5.2 · Checkout: ../other-repos/numpy (tag v2.5.2)
 # status: transferred | partial | todo | not-applicable
 # numpy_source_hash = sha256[:12] of the NumPy test function source at the pinned
 #   version (recompute via `python3 sync_numpy.py <numpy_root>`). Changed hash on a
 #   transferred/partial row => the rstsr translation may be stale (see core-numpy-sync).
-# Scope: `core_func/manipulation/` (layout/shape change) + `core_func/creation_from_tensor/`
-#   (concat/stack/hstack/vstack/diag/meshgrid/unstack). Gap functions rstsr does not
-#   implement (split/dstack/column_stack/block/tile/...) are recorded as `todo` rows,
-#   one representative method per NumPy test class (note cites the full method count).
+# Scope: `core_func/` categories — manipulation (layout/shape change),
+#   creation_from_tensor (concat/stack/hstack/vstack/diag/meshgrid/unstack),
+#   reduction (sum/prod/mean/std/var/min/max/argmin/argmax/all/any/count_nonzero),
+#   creation (arange/linspace/zeros/ones/full/eye/tril/triu), linalg (matmul/vecdot),
+#   and unary/binary math + comparison + basic indexing (in progress).
+#   Gap functions rstsr does not implement (split/dstack/column_stack/block/tile/...)
+#   are recorded as `todo` rows, one representative method per NumPy test class
+#   (note cites the full method count).
 numpy_path,class,method,version_added,status,rstsr_test,numpy_source_hash,note
 _core/tests/test_multiarray.py,TestMethods,test_reshape,v2.5.2,transferred,core_func/manipulation/test_reshape.rs::numpy_reshape::multiarray,8851b00eb866,4 cases incl order=F
 _core/tests/test_multiarray.py,TestMethods,test_transpose,v2.5.2,transferred,core_func/manipulation/test_transpose.rs::numpy_transpose::test_multiarray,945c2ae1db76,default + ValueError on wrong axis count
@@ -153,4 +157,20 @@ lib/tests/test_shape_base.py,TestHsplit,test_2D_array,v2.5.2,todo,,25baf0aa4181,
 lib/tests/test_shape_base.py,TestVsplit,test_2D_array,v2.5.2,todo,,6ec470002bf5,rstsr has no vsplit; 4 methods (representative)
 lib/tests/test_shape_base.py,TestDsplit,test_2D_array,v2.5.2,todo,,37104399225a,rstsr has no dsplit; 5 methods (representative)
 lib/tests/test_shape_base.py,TestTile,test_basic,v2.5.2,todo,,1528134d1518,rstsr has no tile; 4 methods (representative)
+# --- core_func/reduction ---
+_core/tests/test_numeric.py,TestNonarrayArgs,test_sum,v2.5.2,transferred,core_func/reduction/test_sum.rs::numpy_sum::test_numeric,5b4513c503cd,"keepdims emulated as axis-dropped (rstsr has no keepdims; see numpy_differences.md)"
+_core/tests/test_numeric.py,TestNonarrayArgs,test_prod,v2.5.2,transferred,core_func/reduction/test_prod.rs::numpy_prod::test_numeric;test_basic,e3312864895c,"axis=-1 values + TestProd::test_basic values (dtype loop N/A)"
+_core/tests/test_numeric.py,TestNonarrayArgs,test_mean,v2.5.2,transferred,core_func/reduction/test_mean.rs::numpy_mean::test_numeric,bfcab2024a80,"all/axes values; rstsr requires Float input (NumPy promotes int; see numpy_differences.md); np.mean([]) nan+warning N/A"
+_core/tests/test_numeric.py,TestNonarrayArgs,test_std,v2.5.2,transferred,core_func/reduction/test_std.rs::numpy_std::test_numeric,0ae4888c9258,ddof=0; Float input required
+_core/tests/test_numeric.py,TestNonarrayArgs,test_var,v2.5.2,transferred,core_func/reduction/test_var.rs::numpy_var::test_numeric,b7860e06335b,ddof=0; Float input required
+_core/tests/test_numeric.py,TestNonarrayArgs,test_count_nonzero,v2.5.2,transferred,core_func/reduction/test_count_nonzero.rs::numpy_count_nonzero::test_numeric,a287a7d15976,axis=1 values
+lib/tests/test_function_base.py,TestAmax,test_basic,v2.5.2,transferred,core_func/reduction/test_max.rs::numpy_max::test_basic,22ca67eb1f0a,"np.amax -> max; all-reduce + axes values"
+lib/tests/test_function_base.py,TestAmin,test_basic,v2.5.2,transferred,core_func/reduction/test_min.rs::numpy_min::test_basic,38f70a205f1b,"np.amin -> min; all-reduce + axes values"
+_core/tests/test_multiarray.py,TestArgmax,test_combinations,v2.5.2,partial,core_func/reduction/test_argmax.rs::numpy_argmax::test_combinations,12905a848696,"4 usg value cases via argmax_all; nan/datetime/complex table N/A"
+_core/tests/test_regression.py,TestRegression,test_argmax,v2.5.2,partial,core_func/reduction/test_argmax.rs::numpy_argmax::test_regression,52f12c23896e,"BUG: argmax_axes panics for ndim>=3; test asserts current panic via catch_unwind; see numpy_differences.md"
+_core/tests/test_multiarray.py,TestArgmin,test_combinations,v2.5.2,partial,core_func/reduction/test_argmin.rs::numpy_argmin::test_combinations,3cab546709a9,"4 usg value cases via argmin_all; argmin_axes ndim>=3 panics (same bug as argmax; see numpy_differences.md)"
+lib/tests/test_function_base.py,TestAll,test_basic,v2.5.2,transferred,core_func/reduction/test_all.rs::numpy_all::test_basic,e6f065c5b310,"bool input (NumPy uses int 0/1 truthy; see numpy_differences.md)"
+lib/tests/test_function_base.py,TestAll,test_nd,v2.5.2,transferred,core_func/reduction/test_all.rs::numpy_all::test_nd,5bee0e544c7b,axis 0/1 bool values
+lib/tests/test_function_base.py,TestAny,test_basic,v2.5.2,transferred,core_func/reduction/test_any.rs::numpy_any::test_basic,beb8a357681a,bool input
+lib/tests/test_function_base.py,TestAny,test_nd,v2.5.2,transferred,core_func/reduction/test_any.rs::numpy_any::test_nd,86c30dc92987,axis 0/1 bool values
 

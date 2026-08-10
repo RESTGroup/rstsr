@@ -245,3 +245,63 @@ mixed-dtype `test_return_type` case is therefore not-applicable.
 
 API-shape difference; values match. rstsr `unstack` returns `Vec<TensorView>`; NumPy
 returns a tuple.
+
+## Reductions have no `keepdims` parameter
+
+- **numpy:** `_core/tests/test_numeric.py::TestNonarrayArgs::test_sum` (L320) uses
+  `np.sum(m, axis=1, keepdims=True)`; reductions across NumPy support `keepdims=`.
+- **rstsr:** entry_row_cpu::core_func::reduction::test_sum::numpy_sum::test_numeric
+- **tag:** intentional
+- **status:** open
+
+rstsr `sum_axes`/`mean_axes`/etc. always **drop** the reduced axes (output rank =
+input rank − #axes); there is no `keepdims` argument. The `None`-axis form
+(`xxx_axes(None)`) reduces all axes to a 0-d tensor. Parity tests assert the
+axis-dropped result; the NumPy `keepdims` shape is reached by a follow-up
+`expand_dims`/`reshape` if needed. Reduction **values** match NumPy exactly.
+
+## Statistical reductions require a `Float` input (no int→float promotion)
+
+- **numpy:** `test_mean`/`test_std`/`test_var` (TestNonarrayArgs L142/303/360) call
+  `np.mean/std/var` on integer lists; NumPy promotes int → float internally.
+- **rstsr:** entry_row_cpu::core_func::reduction::{test_mean,test_std,test_var}
+- **tag:** intentional
+- **status:** open
+
+rstsr `mean`/`std`/`var` require the element type to satisfy `num::Float +
+FloatConst`; an integer tensor does not compile. Parity tests therefore build the
+input as `f64` (e.g. `[[1.0, 2.0, 3.0], ...]`) rather than `i32`. Output values
+match NumPy (population statistics, ddof = 0). `sum`/`prod`/`min`/`max`/`argmin`/
+`argmax` do accept integers.
+
+## `all`/`any` require a `bool` tensor (NumPy accepts truthy int)
+
+- **numpy:** `lib/tests/test_function_base.py::TestAll::test_basic` (L283) /
+  `TestAny::test_basic` (L266) pass Python int lists (`[0, 1, 1, 0]`), treating
+  nonzero as True.
+- **rstsr:** entry_row_cpu::core_func::reduction::{test_all,test_any}
+- **tag:** intentional
+- **status:** open
+
+rstsr `all`/`any` operate on `Tensor<bool>`; there is no implicit truthiness for
+integer tensors. Parity tests use bool tensors (`[false, true, true, false]`).
+Also, `bool` result tensors cannot be compared with `assert_equal` (`bool:
+ExtNum` unsatisfied), so the axes results are compared via `to_vec()`.
+
+## `argmax_axes`/`argmin_axes` panic for tensors of rank ≥ 3
+
+- **numpy:** `_core/tests/test_regression.py::TestRegression::test_argmax` (L268)
+  expects high-dimensional argmax along each axis to succeed.
+- **rstsr:** entry_row_cpu::core_func::reduction::test_argmax::numpy_argmax::test_regression
+- **tag:** bug
+- **status:** open
+
+`argmax_all`/`argmin_all` (1-D, scalar) and `argmax_axes`/`argmin_axes` on rank-1
+and rank-2 tensors work correctly. For **rank ≥ 3**, `argmax_axes`/`argmin_axes`
+**panic** with `index out of bounds: the len is 1 but the index is 1` at
+`rstsr-common/src/layout/layoutbase.rs:543`, reached via
+`reduce_axes_arg_cpu_serial` (`rstsr-native-impl/src/cpu_serial/reduction.rs:569`)
+which maps each unraveled index through `pseudo_layout.index_uncheck`. The parity
+test documents the current behavior with `catch_unwind` (asserts the panic); when
+the bug is fixed it should assert success. 2-D value parity is covered by the
+`custom_argmax`/`custom_argmin` 2-D cases.

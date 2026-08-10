@@ -1,0 +1,14 @@
+pub mod test_all;
+pub mod test_any;
+pub mod test_argmax;
+pub mod test_argmin;
+pub mod test_count_nonzero;
+pub mod test_max;
+pub mod test_mean;
+pub mod test_min;
+pub mod test_prod;
+pub mod test_std;
+pub mod test_sum;
+pub mod test_var;
+
+pub static CATEGORY: &str = "reduction";
