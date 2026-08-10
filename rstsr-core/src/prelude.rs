@@ -46,7 +46,7 @@ pub mod rstsr_structs {
         TensorViewMut,
     };
 
-    pub use crate::tensor::manuplication::exports::ReshapeArgs;
+    pub use crate::tensor::manipulation::exports::ReshapeArgs;
 }
 
 pub mod rstsr_funcs {
@@ -67,7 +67,7 @@ pub mod rstsr_funcs {
         diagonal, diagonal_f, diagonal_mut, diagonal_mut_f, into_diagonal, into_diagonal_f, into_diagonal_mut,
         into_diagonal_mut_f, into_slice, into_slice_f, slice, slice_f, slice_mut, slice_mut_f,
     };
-    pub use crate::tensor::manuplication::exports::{
+    pub use crate::tensor::manipulation::exports::{
         broadcast_arrays, broadcast_arrays_f, broadcast_into, broadcast_into_f, broadcast_shapes, broadcast_shapes_f,
         broadcast_to, broadcast_to_f, change_contig, change_contig_f, change_layout, change_layout_f, change_prefer,
         change_prefer_f, change_shape, change_shape_f, change_shape_with_args, change_shape_with_args_f, expand_dims,

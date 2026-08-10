@@ -1,4 +1,4 @@
-//! Advanced indexing related tensor manuplications.
+//! Advanced indexing related tensor manipulations.
 //!
 //! Currently, full support of advanced indexing is not available. However, it
 //! is still possible to index one axis by list.

@@ -11,7 +11,7 @@ where
     B: DeviceAPI<T> + OpPackTriAPI<T> + DeviceCreationAnyAPI<T>,
 {
     pub fn pack_tri_f(&self, uplo: FlagUpLo) -> Result<Tensor<T, B, D::SmallerOne>> {
-        // layouts manuplication
+        // layouts manipulation
         let lb = self.layout().to_dim::<IxD>()?;
 
         // generate layout for output
@@ -103,7 +103,7 @@ where
     B: DeviceAPI<T> + OpUnpackTriAPI<T> + DeviceCreationAnyAPI<T>,
 {
     pub fn unpack_tri_f(&self, uplo: FlagUpLo, symm: FlagSymm) -> Result<Tensor<T, B, D::LargerOne>> {
-        // layouts manuplication
+        // layouts manipulation
         let lb = self.layout().to_dim::<IxD>()?;
 
         let default_order = self.device().default_order();

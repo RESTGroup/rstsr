@@ -37,7 +37,7 @@ One section per divergence. Cite the NumPy identifier and the rstsr test:
 ## Reshape on an overflowing/incompatible shape panics instead of returning `Err`
 
 - **numpy:** _core/tests/test_regression.py::TestRegression::test_reshape_size_overflow (L2275)
-- **rstsr:** entry_row_cpu::core_func::manuplication::test_reshape::numpy_reshape::regression
+- **rstsr:** entry_row_cpu::core_func::manipulation::test_reshape::numpy_reshape::regression
 - **tag:** bug
 - **status:** open
 
@@ -68,7 +68,7 @@ panicking. Then the test should assert `reshape_f(new_shape).is_err()`, not
 ## Default order is `device.default_order()`, not C
 
 - **numpy:** `np.reshape` / `np.ravel` default `order='C'` (C-order).
-- **rstsr:** core_func::manuplication::test_reshape (all `numpy_reshape` cases)
+- **rstsr:** core_func::manipulation::test_reshape (all `numpy_reshape` cases)
 - **tag:** intentional
 - **status:** open
 
@@ -109,7 +109,7 @@ cheatsheet and exercised by `numpy_reshape::test_flatten` (C/F value cases via
   swapaxes (`test_swapaxes` L4205, OOB -> `AxisError`), moveaxis (`test_errors` L3937:
   `AxisError` for OOB source/destination; `ValueError` for duplicates / length mismatch),
   squeeze/expand_dims/flip (similar split).
-- **rstsr:** core_func::manuplication::{test_transpose, test_moveaxis, test_squeeze,
+- **rstsr:** core_func::manipulation::{test_transpose, test_moveaxis, test_squeeze,
   test_expand_dims, test_flip}
 - **tag:** intentional
 - **status:** open
@@ -136,7 +136,7 @@ Parity tests assert element-unit strides.
 
 - **numpy:** `test_broadcast_to_raises` (L268) includes negative-shape ->
   negative-stride readonly-view cases.
-- **rstsr:** core_func::manuplication::test_broadcast::numpy_broadcast_to::test_broadcast_to_raises
+- **rstsr:** core_func::manipulation::test_broadcast::numpy_broadcast_to::test_broadcast_to_raises
 - **tag:** intentional
 - **status:** open
 
@@ -158,7 +158,7 @@ behavior matches NumPy exactly.
 ## `broadcast_arrays` returns owned stride-0 tensors, not writeable views
 
 - **numpy:** `broadcast_arrays` returns writeable views.
-- **rstsr:** core_func::manuplication::test_broadcast::numpy_broadcast_arrays
+- **rstsr:** core_func::manipulation::test_broadcast::numpy_broadcast_arrays
 - **tag:** intentional
 - **status:** open
 
@@ -180,7 +180,7 @@ API-shape difference; results are identical for the row-major cases.
 - **numpy:** `np.ascontiguousarray` uses the C_CONTIGUOUS flag, which ignores
   size-1 dimensions, so a padded-singleton C-contiguous array (e.g. shape `[3,1]`
   stride `[1,5]`) is returned as a **view**.
-- **rstsr:** core_func::manuplication::test_to_contig (custom)
+- **rstsr:** core_func::manipulation::test_to_contig (custom)
 - **tag:** intentional
 - **status:** open
 
@@ -196,7 +196,7 @@ documenting or aligning `to_contig` with `c_contig()`.
 
 - **numpy:** `lib/tests/test_function_base.py::TestFlip::test_default_axis` (L234);
   `np.flip(a)` has an implicit `axis=None` default.
-- **rstsr:** core_func::manuplication::test_flip::numpy_flip::test_default_axis
+- **rstsr:** core_func::manipulation::test_flip::numpy_flip::test_default_axis
 - **tag:** intentional
 - **status:** open
 

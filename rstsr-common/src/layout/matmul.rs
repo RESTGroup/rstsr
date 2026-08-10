@@ -1,6 +1,6 @@
 /*!
 
-Layout manuplication for matmul and other linalg operations
+Layout manipulation for matmul and other linalg operations
 
 # Rules for matmul
 

@@ -111,7 +111,7 @@ This crate gets inspire from [NumPy](https://github.com/data-apis/array-api/), [
 - `rstsr-sci-traits`: Optimization, ODE, special functions
 - `rstsr-core`: Full support of [Python array API standard](https://data-apis.org/array-api/latest/) (in native rust instead of python binding)
     - searching functions
-    - manuplication functions (tile, roll, moveaxis)
+    - manipulation functions (tile, roll, moveaxis)
 
 > **What's RSTSR meaning?**
 

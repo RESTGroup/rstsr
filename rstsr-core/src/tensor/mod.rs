@@ -9,7 +9,7 @@ pub mod indexing;
 pub mod iterator_axes;
 pub mod iterator_elem;
 pub mod linalg;
-pub mod manuplication;
+pub mod manipulation;
 pub mod map_elementwise;
 pub mod operators;
 pub mod ownership_conversion;
@@ -34,7 +34,7 @@ pub mod exports {
     pub use iterator_axes::*;
     pub use iterator_elem::*;
     pub use linalg::exports::*;
-    pub use manuplication::exports::*;
+    pub use manipulation::exports::*;
     pub use map_elementwise::*;
     pub use operators::exports::*;
     pub use ownership_conversion::*;
