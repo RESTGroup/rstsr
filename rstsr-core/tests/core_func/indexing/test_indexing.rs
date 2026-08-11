@@ -76,7 +76,7 @@ mod custom_indexing {
         assert_equal(m.i((.., slice!(1, 3))), &rt::tensor_from_nested!([[1, 2], [5, 6], [9, 10]], &device), None);
         // m[::2, :] == every other row
         assert_equal(
-            &m.i((slice!(None, None, 2), ..)),
+            m.i((slice!(None, None, 2), ..)),
             &rt::tensor_from_nested!([[0, 1, 2, 3], [8, 9, 10, 11]], &device),
             None,
         );

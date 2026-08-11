@@ -41,7 +41,7 @@ mod custom_comparison {
         // TensorNotEqualAPI / OpNotEqualAPI auto-impl is missing, while the other 5
         // comparison ops are implemented). Derive ne = not(eq) for the value check.
         // See numpy_differences.md.
-        assert_eq!(rt::not(&rt::eq(&a, &b)).to_vec(), vec![true, false, true, true]);
+        assert_eq!(rt::not(rt::eq(&a, &b)).to_vec(), vec![true, false, true, true]);
     }
 }
 
