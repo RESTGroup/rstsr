@@ -22,8 +22,8 @@ mod doc_matmul {
         let v = rt::tensor_from_nested!([1, 2], &device);
         println!("{}", rt::matmul(&a, &v));
         // [ 5 11]
-        crate::test_utils::assert_equal(&rt::matmul(&a, &b), &rt::tensor_from_nested!([[3, 2], [7, 4]], &device), None);
-        crate::test_utils::assert_equal(&rt::matmul(&a, &v), &rt::tensor_from_nested!([5, 11], &device), None);
+        crate::test_utils::assert_equal(rt::matmul(&a, &b), &rt::tensor_from_nested!([[3, 2], [7, 4]], &device), None);
+        crate::test_utils::assert_equal(rt::matmul(&a, &v), &rt::tensor_from_nested!([5, 11], &device), None);
     }
 }
 

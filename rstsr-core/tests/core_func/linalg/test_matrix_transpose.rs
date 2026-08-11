@@ -36,7 +36,7 @@ mod numpy_matrix_transpose {
 
         // arr = np.arange(48).reshape((6, 8)); assert_array_equal(arr.T, arr.mT)
         let arr = rt::arange((48, &device)).into_shape([6, 8]);
-        assert_equal(&arr.t(), &arr.matrix_transpose(), None);
+        assert_equal(arr.t(), &arr.matrix_transpose(), None);
     }
 
     #[test]

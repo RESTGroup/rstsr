@@ -31,9 +31,9 @@ mod numpy_var {
         let expected_all: Tensor<f64, _> = rt::asarray((2.9166666666666665, &device));
         assert_equal(&out_all, &expected_all, None);
 
-        assert_equal(&a.var_axes(0), &rt::tensor_from_nested!([2.25, 2.25, 2.25], &device), None);
+        assert_equal(a.var_axes(0), &rt::tensor_from_nested!([2.25, 2.25, 2.25], &device), None);
 
         // exact 2/3 = 0.6666666666666666; NumPy rounds to 0.66666667.
-        assert_equal(&a.var_axes(1), &rt::tensor_from_nested!([0.6666666666666666, 0.6666666666666666], &device), None);
+        assert_equal(a.var_axes(1), &rt::tensor_from_nested!([0.6666666666666666, 0.6666666666666666], &device), None);
     }
 }

@@ -29,7 +29,7 @@ mod numpy_indexing {
         // views read correctly). See numpy_differences.md.
         let a = rt::arange((10, &device));
         assert_eq!(a.i(-1).shape(), &[] as &[usize]);
-        assert_equal(&a.i(slice!(9, None)), &rt::tensor_from_nested!([9], &device), None);
+        assert_equal(a.i(slice!(9, None)), &rt::tensor_from_nested!([9], &device), None);
     }
 
     #[test]
@@ -45,7 +45,7 @@ mod numpy_indexing {
         let out = a.i((Ellipsis, 1));
         assert_eq!(out.shape(), &[2, 3]);
         // a[0, ..., 1] == a[0, :, 1] == [1, 5, 9]
-        assert_equal(&a.i((0, Ellipsis, 1)), &rt::tensor_from_nested!([1, 5, 9], &device), None);
+        assert_equal(a.i((0, Ellipsis, 1)), &rt::tensor_from_nested!([1, 5, 9], &device), None);
     }
 }
 
@@ -65,15 +65,15 @@ mod custom_indexing {
         let m = rt::arange((12, &device)).into_shape([3, 4]);
 
         // m[1] == [4, 5, 6, 7]   (integer index drops the axis)
-        assert_equal(&m.i(1), &rt::tensor_from_nested!([4, 5, 6, 7], &device), None);
+        assert_equal(m.i(1), &rt::tensor_from_nested!([4, 5, 6, 7], &device), None);
         // m[-1] == last row
-        assert_equal(&m.i(-1), &rt::tensor_from_nested!([8, 9, 10, 11], &device), None);
+        assert_equal(m.i(-1), &rt::tensor_from_nested!([8, 9, 10, 11], &device), None);
         // m[1, 2] == 6 (scalar; use a 1-element slice because 0-d .i() is buggy)
-        assert_equal(&m.i((1, slice!(2, 3))), &rt::tensor_from_nested!([6], &device), None);
+        assert_equal(m.i((1, slice!(2, 3))), &rt::tensor_from_nested!([6], &device), None);
         // m[:, 1] == column 1
-        assert_equal(&m.i((.., 1)), &rt::tensor_from_nested!([1, 5, 9], &device), None);
+        assert_equal(m.i((.., 1)), &rt::tensor_from_nested!([1, 5, 9], &device), None);
         // m[:, 1:3] == columns 1..3
-        assert_equal(&m.i((.., slice!(1, 3))), &rt::tensor_from_nested!([[1, 2], [5, 6], [9, 10]], &device), None);
+        assert_equal(m.i((.., slice!(1, 3))), &rt::tensor_from_nested!([[1, 2], [5, 6], [9, 10]], &device), None);
         // m[::2, :] == every other row
         assert_equal(
             &m.i((slice!(None, None, 2), ..)),

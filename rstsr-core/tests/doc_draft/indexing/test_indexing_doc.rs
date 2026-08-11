@@ -26,9 +26,17 @@ mod doc_indexing {
         let v = rt::arange((6, &device));
         println!("{:?}", rt::index_select(&v, 0, [1, 3, 5]));
         // [1, 3, 5]
-        crate::test_utils::assert_equal(&m.i(1), &rt::tensor_from_nested!([4, 5, 6, 7], &device), None);
-        crate::test_utils::assert_equal(&m.i((.., slice!(1, 3))), &rt::tensor_from_nested!([[1, 2], [5, 6], [9, 10]], &device), None);
+        crate::test_utils::assert_equal(m.i(1), &rt::tensor_from_nested!([4, 5, 6, 7], &device), None);
+        crate::test_utils::assert_equal(
+            m.i((.., slice!(1, 3))),
+            &rt::tensor_from_nested!([[1, 2], [5, 6], [9, 10]], &device),
+            None,
+        );
         assert_eq!(m.i((.., None)).shape(), &[3, 1, 4]);
-        crate::test_utils::assert_equal(&rt::index_select(&v, 0, [1, 3, 5]), &rt::tensor_from_nested!([1, 3, 5], &device), None);
+        crate::test_utils::assert_equal(
+            rt::index_select(&v, 0, [1, 3, 5]),
+            &rt::tensor_from_nested!([1, 3, 5], &device),
+            None,
+        );
     }
 }

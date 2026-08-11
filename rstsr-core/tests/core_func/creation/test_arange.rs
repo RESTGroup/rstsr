@@ -60,12 +60,12 @@ mod custom_arange {
         device.set_default_order(RowMajor);
 
         // np.arange(2, 10) -> [2, 3, 4, 5, 6, 7, 8, 9]
-        assert_equal(&rt::arange((2, 10, &device)), &rt::tensor_from_nested!([2, 3, 4, 5, 6, 7, 8, 9], &device), None);
+        assert_equal(rt::arange((2, 10, &device)), &rt::tensor_from_nested!([2, 3, 4, 5, 6, 7, 8, 9], &device), None);
 
         // np.arange(1, 10, 3) -> [1, 4, 7]
-        assert_equal(&rt::arange((1, 10, 3, &device)), &rt::tensor_from_nested!([1, 4, 7], &device), None);
+        assert_equal(rt::arange((1, 10, 3, &device)), &rt::tensor_from_nested!([1, 4, 7], &device), None);
 
         // np.arange(10, 0, -2) -> [10, 8, 6, 4, 2]
-        assert_equal(&rt::arange((10, 0, -2, &device)), &rt::tensor_from_nested!([10, 8, 6, 4, 2], &device), None);
+        assert_equal(rt::arange((10, 0, -2, &device)), &rt::tensor_from_nested!([10, 8, 6, 4, 2], &device), None);
     }
 }

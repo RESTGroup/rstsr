@@ -29,7 +29,11 @@ mod doc_arithmetic {
         //  [ 6 5]]
         crate::test_utils::assert_equal(&(&a + &b), &rt::tensor_from_nested!([[11, 22], [33, 44]], &device), None);
         crate::test_utils::assert_equal(&(&a * &b), &rt::tensor_from_nested!([[10, 40], [90, 160]], &device), None);
-        crate::test_utils::assert_equal(&(&af / &bf), &rt::tensor_from_nested!([[5.0, 5.0], [6.0, 5.0]], &device), None);
+        crate::test_utils::assert_equal(
+            &(&af / &bf),
+            &rt::tensor_from_nested!([[5.0, 5.0], [6.0, 5.0]], &device),
+            None,
+        );
     }
 }
 

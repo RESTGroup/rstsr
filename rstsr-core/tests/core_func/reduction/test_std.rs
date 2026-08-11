@@ -31,9 +31,9 @@ mod numpy_std {
         let expected_all: Tensor<f64, _> = rt::asarray((1.707825127659933, &device));
         assert_equal(&out_all, &expected_all, None);
 
-        assert_equal(&a.std_axes(0), &rt::tensor_from_nested!([1.5, 1.5, 1.5], &device), None);
+        assert_equal(a.std_axes(0), &rt::tensor_from_nested!([1.5, 1.5, 1.5], &device), None);
 
         // exact sqrt(2/3) = 0.8164965809277260; NumPy rounds to 0.81649658.
-        assert_equal(&a.std_axes(1), &rt::tensor_from_nested!([0.816496580927726, 0.816496580927726], &device), None);
+        assert_equal(a.std_axes(1), &rt::tensor_from_nested!([0.816496580927726, 0.816496580927726], &device), None);
     }
 }

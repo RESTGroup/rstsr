@@ -62,8 +62,8 @@ mod custom_maximum_minimum {
         let a = rt::tensor_from_nested!([1, 5, 3], &device);
         let b = rt::tensor_from_nested!([4, 2, 6], &device);
         // np.maximum(a, b) == [4, 5, 6]
-        assert_equal(&rt::maximum(&a, &b), &rt::tensor_from_nested!([4, 5, 6], &device), None);
+        assert_equal(rt::maximum(&a, &b), &rt::tensor_from_nested!([4, 5, 6], &device), None);
         // np.minimum(a, b) == [1, 2, 3]
-        assert_equal(&rt::minimum(&a, &b), &rt::tensor_from_nested!([1, 2, 3], &device), None);
+        assert_equal(rt::minimum(&a, &b), &rt::tensor_from_nested!([1, 2, 3], &device), None);
     }
 }

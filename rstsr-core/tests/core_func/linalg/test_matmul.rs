@@ -24,11 +24,11 @@ mod numpy_matmul {
         // matmul(vec1, vec2) == [11]   ((2,) @ (2,1) -> (1,))
         let v1 = rt::tensor_from_nested!([1, 2], &device);
         let v2 = rt::tensor_from_nested!([[3], [4]], &device);
-        assert_equal(&rt::matmul(&v1, &v2), &rt::tensor_from_nested!([11], &device), None);
+        assert_equal(rt::matmul(&v1, &v2), &rt::tensor_from_nested!([11], &device), None);
 
         // matmul(vec2, vec1.reshape(1,-1)) == [[3, 6], [4, 8]]  ((2,1) @ (1,2) -> (2,2))
         let v1r = rt::tensor_from_nested!([[1, 2]], &device);
-        assert_equal(&rt::matmul(&v2, &v1r), &rt::tensor_from_nested!([[3, 6], [4, 8]], &device), None);
+        assert_equal(rt::matmul(&v2, &v1r), &rt::tensor_from_nested!([[3, 6], [4, 8]], &device), None);
     }
 
     #[test]
@@ -43,7 +43,7 @@ mod numpy_matmul {
         // matmul(vec, mat1) == [7, 10]
         let v = rt::tensor_from_nested!([1, 2], &device);
         let m1 = rt::tensor_from_nested!([[1, 2], [3, 4]], &device);
-        assert_equal(&rt::matmul(&v, &m1), &rt::tensor_from_nested!([7, 10], &device), None);
+        assert_equal(rt::matmul(&v, &m1), &rt::tensor_from_nested!([7, 10], &device), None);
     }
 
     #[test]
@@ -58,7 +58,7 @@ mod numpy_matmul {
         // matmul(mat1, vec) == [5, 11]
         let m1 = rt::tensor_from_nested!([[1, 2], [3, 4]], &device);
         let v = rt::tensor_from_nested!([1, 2], &device);
-        assert_equal(&rt::matmul(&m1, &v), &rt::tensor_from_nested!([5, 11], &device), None);
+        assert_equal(rt::matmul(&m1, &v), &rt::tensor_from_nested!([5, 11], &device), None);
     }
 
     #[test]
@@ -74,9 +74,9 @@ mod numpy_matmul {
         let m2 = rt::tensor_from_nested!([[1, 0], [1, 1]], &device);
 
         // matmul(m1, m2) == [[3, 2], [7, 4]]
-        assert_equal(&rt::matmul(&m1, &m2), &rt::tensor_from_nested!([[3, 2], [7, 4]], &device), None);
+        assert_equal(rt::matmul(&m1, &m2), &rt::tensor_from_nested!([[3, 2], [7, 4]], &device), None);
         // matmul(m2, m1) == [[1, 2], [4, 6]]
-        assert_equal(&rt::matmul(&m2, &m1), &rt::tensor_from_nested!([[1, 2], [4, 6]], &device), None);
+        assert_equal(rt::matmul(&m2, &m1), &rt::tensor_from_nested!([[1, 2], [4, 6]], &device), None);
     }
 }
 

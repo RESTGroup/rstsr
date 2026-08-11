@@ -118,7 +118,15 @@ mod doc_tril_triu {
         // [[ 1 1 1]
         //  [ 0 1 1]
         //  [ 0 0 1]]
-        crate::test_utils::assert_equal(&rt::tril((&a, 0)), &rt::tensor_from_nested!([[1, 0, 0], [1, 1, 0], [1, 1, 1]], &device), None);
-        crate::test_utils::assert_equal(&rt::triu((&a, 0)), &rt::tensor_from_nested!([[1, 1, 1], [0, 1, 1], [0, 0, 1]], &device), None);
+        crate::test_utils::assert_equal(
+            rt::tril((&a, 0)),
+            &rt::tensor_from_nested!([[1, 0, 0], [1, 1, 0], [1, 1, 1]], &device),
+            None,
+        );
+        crate::test_utils::assert_equal(
+            rt::triu((&a, 0)),
+            &rt::tensor_from_nested!([[1, 1, 1], [0, 1, 1], [0, 0, 1]], &device),
+            None,
+        );
     }
 }

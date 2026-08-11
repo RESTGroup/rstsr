@@ -29,7 +29,7 @@ mod numpy_max {
         // assert_equal(np.amax(b, axis=0), [8.0, 10.0, 9.0])
         // assert_equal(np.amax(b, axis=1), [9.0, 10.0, 8.0])
         let b = rt::tensor_from_nested!([[3.0, 6.0, 9.0], [4.0, 10.0, 5.0], [8.0, 3.0, 2.0]], &device);
-        assert_equal(&b.max_axes(0), &rt::tensor_from_nested!([8.0, 10.0, 9.0], &device), None);
-        assert_equal(&b.max_axes(1), &rt::tensor_from_nested!([9.0, 10.0, 8.0], &device), None);
+        assert_equal(b.max_axes(0), &rt::tensor_from_nested!([8.0, 10.0, 9.0], &device), None);
+        assert_equal(b.max_axes(1), &rt::tensor_from_nested!([9.0, 10.0, 8.0], &device), None);
     }
 }

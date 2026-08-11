@@ -44,8 +44,8 @@ mod numpy_tril_triu {
         let tril_desired = rt::tensor_from_nested!([[[1, 0], [1, 1]], [[1, 0], [1, 0]], [[1, 0], [0, 0]]], &device);
         // a_triu_desired = [[[1,1],[0,1]], [[1,1],[0,0]], [[1,1],[0,0]]]
         let triu_desired = rt::tensor_from_nested!([[[1, 1], [0, 1]], [[1, 1], [0, 0]], [[1, 1], [0, 0]]], &device);
-        assert_equal(&rt::tril((&a, 0)), &tril_desired, None);
-        assert_equal(&rt::triu((&a, 0)), &triu_desired, None);
+        assert_equal(rt::tril((&a, 0)), &tril_desired, None);
+        assert_equal(rt::triu((&a, 0)), &triu_desired, None);
     }
 
     #[test]

@@ -25,23 +25,23 @@ mod custom_math_basic {
 
         // np.abs([-1, 2, -3]) == [1, 2, 3]
         let a = rt::tensor_from_nested!([-1, 2, -3], &device);
-        assert_equal(&rt::abs(&a), &rt::tensor_from_nested!([1, 2, 3], &device), None);
+        assert_equal(rt::abs(&a), &rt::tensor_from_nested!([1, 2, 3], &device), None);
 
         // np.sqrt([0, 1, 4, 9]) == [0, 1, 2, 3]
         let s = rt::tensor_from_nested!([0.0, 1.0, 4.0, 9.0], &device);
-        assert_equal(&rt::sqrt(&s), &rt::tensor_from_nested!([0.0, 1.0, 2.0, 3.0], &device), None);
+        assert_equal(rt::sqrt(&s), &rt::tensor_from_nested!([0.0, 1.0, 2.0, 3.0], &device), None);
 
         // np.sign([-2, 3]) == [-1, 1]; rstsr sign requires a Float input.
         // BUG: rstsr sign(0.0) returns NaN (not 0); 0.0 is therefore avoided here.
         // See numpy_differences.md.
         let g = rt::tensor_from_nested!([-2.0, 3.0], &device);
-        assert_equal(&rt::sign(&g), &rt::tensor_from_nested!([-1.0, 1.0], &device), None);
+        assert_equal(rt::sign(&g), &rt::tensor_from_nested!([-1.0, 1.0], &device), None);
 
         // np.floor / np.ceil / np.trunc on [-1.5, 0.5, 2.4]
         let f = rt::tensor_from_nested!([-1.5, 0.5, 2.4], &device);
-        assert_equal(&rt::floor(&f), &rt::tensor_from_nested!([-2.0, 0.0, 2.0], &device), None);
-        assert_equal(&rt::ceil(&f), &rt::tensor_from_nested!([-1.0, 1.0, 3.0], &device), None);
-        assert_equal(&rt::trunc(&f), &rt::tensor_from_nested!([-1.0, 0.0, 2.0], &device), None);
+        assert_equal(rt::floor(&f), &rt::tensor_from_nested!([-2.0, 0.0, 2.0], &device), None);
+        assert_equal(rt::ceil(&f), &rt::tensor_from_nested!([-1.0, 1.0, 3.0], &device), None);
+        assert_equal(rt::trunc(&f), &rt::tensor_from_nested!([-1.0, 0.0, 2.0], &device), None);
     }
 }
 
@@ -67,17 +67,17 @@ mod custom_math_transcendental {
             None,
         );
         // log(exp(x)) == x
-        assert_equal(&rt::log(&ex), &x, None);
+        assert_equal(rt::log(&ex), &x, None);
 
         // sin / cos at 0, pi/2, pi
         let ang = rt::tensor_from_nested!([0.0, PI / 2.0, PI], &device);
-        assert_equal(&rt::sin(&ang), &rt::tensor_from_nested!([0.0, 1.0, 0.0], &device), None);
-        assert_equal(&rt::cos(&ang), &rt::tensor_from_nested!([1.0, 0.0, -1.0], &device), None);
+        assert_equal(rt::sin(&ang), &rt::tensor_from_nested!([0.0, 1.0, 0.0], &device), None);
+        assert_equal(rt::cos(&ang), &rt::tensor_from_nested!([1.0, 0.0, -1.0], &device), None);
 
         // tanh([-1, 0, 1]) == [-tanh(1), 0, tanh(1)]
         let t = rt::tensor_from_nested!([-1.0, 0.0, 1.0], &device);
         let th1 = 1.0_f64.tanh();
-        assert_equal(&rt::tanh(&t), &rt::tensor_from_nested!([-th1, 0.0, th1], &device), None);
+        assert_equal(rt::tanh(&t), &rt::tensor_from_nested!([-th1, 0.0, th1], &device), None);
     }
 }
 
