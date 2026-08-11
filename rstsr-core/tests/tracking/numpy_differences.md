@@ -376,5 +376,3 @@ Integer indexing via `Tensor::i` that fully reduces the result to a **0-d**
 slices, `..`, `Ellipsis`, `None`/newaxis) reads correctly, as does 1-D
 `index_select` gather. The parity test verifies element values via 1-element
 slices (e.g. `a.i(slice!(9, None)) == [9]`) instead of the 0-d scalar form.
-Note: the pre-existing `vecdot` swapaxes test masks this bug because both sides
-of its `assert_eq!` use `.i((...)).to_scalar()`, so `0 == 0` passes trivially.

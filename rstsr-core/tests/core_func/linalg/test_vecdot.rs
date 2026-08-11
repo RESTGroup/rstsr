@@ -105,7 +105,8 @@ mod numpy_vecdot {
 
         // arr1 = np.array([1, 2j, 3])
         // arr2 = np.array([1, 2, 3])
-        // For vecdot without conjugation: 1*1 + 2j*2 + 3*3 = 1 + 4j + 9 = 10 + 4j
+        // np.vecdot conjugates the first argument (Frobenius inner product):
+        //   conj(arr1) . arr2 = 1*1 + conj(2j)*2 + 3*3 = 1 + (-2j)*2 + 9 = 10 - 4j
         let arr1: Tensor<Complex<f64>, _> = rt::asarray((vec![c64(1.0, 0.0), c64(0.0, 2.0), c64(3.0, 0.0)], &device));
         let arr2: Tensor<Complex<f64>, _> = rt::asarray((vec![c64(1.0, 0.0), c64(2.0, 0.0), c64(3.0, 0.0)], &device));
 
