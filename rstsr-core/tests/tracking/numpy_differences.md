@@ -245,3 +245,134 @@ mixed-dtype `test_return_type` case is therefore not-applicable.
 
 API-shape difference; values match. rstsr `unstack` returns `Vec<TensorView>`; NumPy
 returns a tuple.
+
+## Reductions have no `keepdims` parameter
+
+- **numpy:** `_core/tests/test_numeric.py::TestNonarrayArgs::test_sum` (L320) uses
+  `np.sum(m, axis=1, keepdims=True)`; reductions across NumPy support `keepdims=`.
+- **rstsr:** entry_row_cpu::core_func::reduction::test_sum::numpy_sum::test_numeric
+- **tag:** intentional
+- **status:** open
+
+rstsr `sum_axes`/`mean_axes`/etc. always **drop** the reduced axes (output rank =
+input rank − #axes); there is no `keepdims` argument. The `None`-axis form
+(`xxx_axes(None)`) reduces all axes to a 0-d tensor. Parity tests assert the
+axis-dropped result; the NumPy `keepdims` shape is reached by a follow-up
+`expand_dims`/`reshape` if needed. Reduction **values** match NumPy exactly.
+
+## Statistical reductions require a `Float` input (no int→float promotion)
+
+- **numpy:** `test_mean`/`test_std`/`test_var` (TestNonarrayArgs L142/303/360) call
+  `np.mean/std/var` on integer lists; NumPy promotes int → float internally.
+- **rstsr:** entry_row_cpu::core_func::reduction::{test_mean,test_std,test_var}
+- **tag:** intentional
+- **status:** open
+
+rstsr `mean`/`std`/`var` require the element type to satisfy `num::Float +
+FloatConst`; an integer tensor does not compile. Parity tests therefore build the
+input as `f64` (e.g. `[[1.0, 2.0, 3.0], ...]`) rather than `i32`. Output values
+match NumPy (population statistics, ddof = 0). `sum`/`prod`/`min`/`max`/`argmin`/
+`argmax` do accept integers.
+
+## `all`/`any` require a `bool` tensor (NumPy accepts truthy int)
+
+- **numpy:** `lib/tests/test_function_base.py::TestAll::test_basic` (L283) /
+  `TestAny::test_basic` (L266) pass Python int lists (`[0, 1, 1, 0]`), treating
+  nonzero as True.
+- **rstsr:** entry_row_cpu::core_func::reduction::{test_all,test_any}
+- **tag:** intentional
+- **status:** open
+
+rstsr `all`/`any` operate on `Tensor<bool>`; there is no implicit truthiness for
+integer tensors. Parity tests use bool tensors (`[false, true, true, false]`).
+Also, `bool` result tensors cannot be compared with `assert_equal` (`bool:
+ExtNum` unsatisfied), so the axes results are compared via `to_vec()`.
+
+## `argmax_axes`/`argmin_axes` panic for tensors of rank ≥ 3
+
+- **numpy:** `_core/tests/test_regression.py::TestRegression::test_argmax` (L268)
+  expects high-dimensional argmax along each axis to succeed.
+- **rstsr:** entry_row_cpu::core_func::reduction::test_argmax::numpy_argmax::test_regression
+- **tag:** bug
+- **status:** open
+
+`argmax_all`/`argmin_all` (1-D, scalar) and `argmax_axes`/`argmin_axes` on rank-1
+and rank-2 tensors work correctly. For **rank ≥ 3**, `argmax_axes`/`argmin_axes`
+**panic** with `index out of bounds: the len is 1 but the index is 1` at
+`rstsr-common/src/layout/layoutbase.rs:543`, reached via
+`reduce_axes_arg_cpu_serial` (`rstsr-native-impl/src/cpu_serial/reduction.rs:569`)
+which maps each unraveled index through `pseudo_layout.index_uncheck`. The parity
+test documents the current behavior with `catch_unwind` (asserts the panic); when
+the bug is fixed it should assert success. 2-D value parity is covered by the
+`custom_argmax`/`custom_argmin` 2-D cases.
+
+## `linspace` requires an explicit `num` (NumPy defaults to 50)
+
+- **numpy:** `_core/tests/test_function_base.py::TestLinspace::test_basic` (L322)
+  calls `linspace(0, 10)` with no `num`.
+- **rstsr:** entry_row_cpu::core_func::creation::test_linspace::numpy_linspace::test_basic
+- **tag:** intentional
+- **status:** open
+
+rstsr `linspace` has no `num` default — the call forms are
+`(start, stop, num, &device)` and `(start, stop, num, endpoint, &device)`. Parity
+tests pass `num` explicitly. Consequently `linspace(0, 10, num=-1)` (NumPy raises
+`ValueError`) is not expressible — `num` is `usize`, so a negative count is a
+compile-time type error rather than a runtime error. Output values match NumPy.
+
+## `ne` / `not_equal` is unimplemented
+
+- **numpy:** `np.not_equal` (covered by `test_umath.py::TestComparisons`).
+- **rstsr:** entry_row_cpu::core_func::operators::test_comparison::custom_comparison
+- **tag:** bug
+- **status:** open
+
+The other five elementwise comparisons (`eq`, `lt`, `le`, `gt`, `ge` — free
+functions `rt::eq/lt/le/gt/ge`) compile and work on `&Tensor`. `rt::ne` /
+`rt::not_equal` does **not compile**: the `TensorNotEqualAPI` / `OpNotEqualAPI`
+auto-impl is missing (no impl for `&Tensor`, owned `Tensor`, or
+`DeviceCpuSerial`). The parity test derives `ne = not(eq)` for the value check.
+When implemented, replace that with `rt::ne(&a, &b)`.
+
+## The `%` (`Rem`) operator returns garbage; `rt::rem` is correct
+
+- **numpy:** `np.remainder` / Python `%`.
+- **rstsr:** entry_row_cpu::core_func::operators::test_arithmetic::custom_rem
+- **tag:** bug
+- **status:** open
+
+The free function `rt::rem(&a, &b)` returns the correct remainder for both 1-D
+and 2-D integer tensors (`[1, 1, 3, 2]` / `[[1, 1], [3, 2]]`). The overloaded
+`%` operator (`&a % &b`) returns **garbage** — e.g. `[135, 187, 319, 440]`
+instead of `[1, 1, 3, 2]` for the same inputs — so the `Rem` tensor impl is
+wired incorrectly (the `+ - * /` operators are all correct). The parity test
+asserts `rt::rem` only and does not assert the `%` operator.
+
+## `sign(0.0)` returns NaN instead of 0
+
+- **numpy:** `np.sign(0.0) == 0` (and `np.sign` works on integers).
+- **rstsr:** entry_row_cpu::core_func::math::test_unary_math::custom_math_basic
+- **tag:** bug
+- **status:** open
+
+rstsr `rt::sign(0.0)` returns **NaN** (likely an `x / x.abs()`-style impl that
+yields `0 / 0`); `sign` of nonzero values is correct (`sign([-2, 3]) == [-1, 1]`).
+rstsr `sign` also requires a `Float` input (NumPy `sign` accepts integers). The
+parity test avoids `0.0`; when the bug is fixed, restore a `0.0` case asserting
+`sign(0.0) == 0.0`.
+
+## `Tensor::i(int...)` reducing to a 0-d scalar returns the wrong element
+
+- **numpy:** `_core/tests/test_indexing.py::TestIndexing::test_single_int_index`
+  (L201) — `np.arange(10)[-1] == 9`.
+- **rstsr:** entry_row_cpu::core_func::indexing::test_indexing::numpy_indexing::test_single_int_index
+- **tag:** bug
+- **status:** open
+
+Integer indexing via `Tensor::i` that fully reduces the result to a **0-d**
+(scalar) view returns the wrong element — it reads at offset 0, so e.g.
+`arange(10).i(9).to_scalar() == 0` (not 9) and `m.i((1, 2)).to_scalar() == 0`
+(not 6). Sub-tensor indexing (integer that drops one axis but leaves rank ≥ 1,
+slices, `..`, `Ellipsis`, `None`/newaxis) reads correctly, as does 1-D
+`index_select` gather. The parity test verifies element values via 1-element
+slices (e.g. `a.i(slice!(9, None)) == [9]`) instead of the 0-d scalar form.

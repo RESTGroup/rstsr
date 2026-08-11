@@ -27,8 +27,8 @@ mod numpy_atleast_1d {
         // res = [atleast_1d(a), atleast_1d(b)]; desired = [array([1]), array([2])]
         let a: Tensor<i32, _> = rt::asarray((1, &device));
         let b: Tensor<i32, _> = rt::asarray((2, &device));
-        assert_equal(rt::atleast_1d(&a), &rt::tensor_from_nested!([1], &device), None);
-        assert_equal(rt::atleast_1d(&b), &rt::tensor_from_nested!([2], &device), None);
+        assert_equal(rt::atleast_1d(&a), rt::tensor_from_nested!([1], &device), None);
+        assert_equal(rt::atleast_1d(&b), rt::tensor_from_nested!([2], &device), None);
     }
 
     #[test]
@@ -98,8 +98,8 @@ mod numpy_atleast_2d {
         let a: Tensor<i32, _> = rt::asarray((1, &device));
         let b: Tensor<i32, _> = rt::asarray((2, &device));
         assert_eq!(rt::atleast_2d(&a).shape(), &[1, 1]);
-        assert_equal(rt::atleast_2d(&a), &rt::tensor_from_nested!([[1]], &device), None);
-        assert_equal(rt::atleast_2d(&b), &rt::tensor_from_nested!([[2]], &device), None);
+        assert_equal(rt::atleast_2d(&a), rt::tensor_from_nested!([[1]], &device), None);
+        assert_equal(rt::atleast_2d(&b), rt::tensor_from_nested!([[2]], &device), None);
     }
 
     #[test]
@@ -112,8 +112,8 @@ mod numpy_atleast_2d {
         let a = rt::tensor_from_nested!([1, 2], &device);
         let b = rt::tensor_from_nested!([2, 3], &device);
         assert_eq!(rt::atleast_2d(&a).shape(), &[1, 2]);
-        assert_equal(rt::atleast_2d(&a), &rt::tensor_from_nested!([[1, 2]], &device), None);
-        assert_equal(rt::atleast_2d(&b), &rt::tensor_from_nested!([[2, 3]], &device), None);
+        assert_equal(rt::atleast_2d(&a), rt::tensor_from_nested!([[1, 2]], &device), None);
+        assert_equal(rt::atleast_2d(&b), rt::tensor_from_nested!([[2, 3]], &device), None);
     }
 
     #[test]
@@ -171,8 +171,8 @@ mod numpy_atleast_3d {
         let a: Tensor<i32, _> = rt::asarray((1, &device));
         let b: Tensor<i32, _> = rt::asarray((2, &device));
         assert_eq!(rt::atleast_3d(&a).shape(), &[1, 1, 1]);
-        assert_equal(rt::atleast_3d(&a), &rt::tensor_from_nested!([[[1]]], &device), None);
-        assert_equal(rt::atleast_3d(&b), &rt::tensor_from_nested!([[[2]]], &device), None);
+        assert_equal(rt::atleast_3d(&a), rt::tensor_from_nested!([[[1]]], &device), None);
+        assert_equal(rt::atleast_3d(&b), rt::tensor_from_nested!([[[2]]], &device), None);
     }
 
     #[test]
@@ -186,8 +186,8 @@ mod numpy_atleast_3d {
         let a = rt::tensor_from_nested!([1, 2], &device);
         let b = rt::tensor_from_nested!([2, 3], &device);
         assert_eq!(rt::atleast_3d(&a).shape(), &[1, 2, 1]);
-        assert_equal(rt::atleast_3d(&a), &rt::tensor_from_nested!([[[1], [2]]], &device), None);
-        assert_equal(rt::atleast_3d(&b), &rt::tensor_from_nested!([[[2], [3]]], &device), None);
+        assert_equal(rt::atleast_3d(&a), rt::tensor_from_nested!([[[1], [2]]], &device), None);
+        assert_equal(rt::atleast_3d(&b), rt::tensor_from_nested!([[[2], [3]]], &device), None);
     }
 
     #[test]
@@ -200,8 +200,8 @@ mod numpy_atleast_3d {
         let a = rt::tensor_from_nested!([[1, 2], [1, 2]], &device);
         let b = rt::tensor_from_nested!([[2, 3], [2, 3]], &device);
         assert_eq!(rt::atleast_3d(&a).shape(), &[2, 2, 1]);
-        assert_equal(rt::atleast_3d(&a), &rt::tensor_from_nested!([[[1], [2]], [[1], [2]]], &device), None);
-        assert_equal(rt::atleast_3d(&b), &rt::tensor_from_nested!([[[2], [3]], [[2], [3]]], &device), None);
+        assert_equal(rt::atleast_3d(&a), rt::tensor_from_nested!([[[1], [2]], [[1], [2]]], &device), None);
+        assert_equal(rt::atleast_3d(&b), rt::tensor_from_nested!([[[2], [3]], [[2], [3]]], &device), None);
     }
 
     #[test]

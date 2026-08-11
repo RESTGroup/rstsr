@@ -179,6 +179,48 @@ SURFACE = [
     ("lib/tests/test_function_base.py", "TestMeshgrid", "test_nd_shape"),
     ("lib/tests/test_function_base.py", "TestMeshgrid", "test_nd_values"),
     ("lib/tests/test_function_base.py", "TestMeshgrid", "test_nd_indexing"),
+    # --- reductions (sum/prod/mean/std/var/min/max/argmin/argmax/all/any/count_nonzero) ---
+    ("_core/tests/test_numeric.py", "TestNonarrayArgs", "test_sum"),
+    ("_core/tests/test_numeric.py", "TestNonarrayArgs", "test_prod"),
+    ("_core/tests/test_numeric.py", "TestNonarrayArgs", "test_mean"),
+    ("_core/tests/test_numeric.py", "TestNonarrayArgs", "test_std"),
+    ("_core/tests/test_numeric.py", "TestNonarrayArgs", "test_var"),
+    ("_core/tests/test_numeric.py", "TestNonarrayArgs", "test_count_nonzero"),
+    ("lib/tests/test_function_base.py", "TestAmax", "test_basic"),
+    ("lib/tests/test_function_base.py", "TestAmin", "test_basic"),
+    ("_core/tests/test_multiarray.py", "TestArgmax", "test_combinations"),
+    ("_core/tests/test_multiarray.py", "TestArgmin", "test_combinations"),
+    ("_core/tests/test_regression.py", "TestRegression", "test_argmax"),
+    ("lib/tests/test_function_base.py", "TestAll", "test_basic"),
+    ("lib/tests/test_function_base.py", "TestAll", "test_nd"),
+    ("lib/tests/test_function_base.py", "TestAny", "test_basic"),
+    ("lib/tests/test_function_base.py", "TestAny", "test_nd"),
+    # --- creation (arange/linspace/zeros/ones/full/eye/tril/triu) ---
+    ("_core/tests/test_multiarray.py", "TestArange", "test_start_stop_kwarg"),
+    ("_core/tests/test_multiarray.py", "TestArange", "test_zero_step"),
+    ("_core/tests/test_function_base.py", "TestLinspace", "test_basic"),
+    ("_core/tests/test_function_base.py", "TestLinspace", "test_corner"),
+    ("_core/tests/test_numeric.py", "TestCreationFuncs", "test_zeros"),
+    ("_core/tests/test_numeric.py", "TestCreationFuncs", "test_ones"),
+    ("_core/tests/test_numeric.py", "TestCreationFuncs", "test_full"),
+    ("lib/tests/test_twodim_base.py", "TestEye", "test_basic"),
+    ("lib/tests/test_twodim_base.py", "", "test_tril_triu_ndim2"),
+    ("lib/tests/test_twodim_base.py", "", "test_tril_triu_ndim3"),
+    # --- linalg (matmul, matrix_transpose) ---
+    ("_core/tests/test_multiarray.py", "MatmulCommon", "test_vector_vector_values"),
+    ("_core/tests/test_multiarray.py", "MatmulCommon", "test_vector_matrix_values"),
+    ("_core/tests/test_multiarray.py", "MatmulCommon", "test_matrix_vector_values"),
+    ("_core/tests/test_multiarray.py", "MatmulCommon", "test_matrix_matrix_values"),
+    ("_core/tests/test_arrayobject.py", "", "test_matrix_transpose_raises_error_for_1d"),
+    ("_core/tests/test_arrayobject.py", "", "test_matrix_transpose_equals_transpose_2d"),
+    ("_core/tests/test_arrayobject.py", "", "test_matrix_transpose_equals_swapaxes"),
+    # --- linalg: vecdot ---
+    ("_core/tests/test_ufunc.py", "TestUfunc", "test_vecdot"),
+    ("_core/tests/test_ufunc.py", "TestUfunc", "test_broadcast"),
+    ("_core/tests/test_ufunc.py", "TestUfunc", "test_vecdot_matvec_vecmat_complex"),
+    # --- indexing (basic indexing via Tensor::i) ---
+    ("_core/tests/test_indexing.py", "TestIndexing", "test_single_int_index"),
+    ("_core/tests/test_indexing.py", "TestIndexing", "test_ellipsis_index"),
     # --- gap functions (rstsr has no analog): one representative method per NumPy
     #     test class, status `todo` in numpy_coverage.csv. The note cites the full
     #     class + method count; only the representative is hashed here. ---
