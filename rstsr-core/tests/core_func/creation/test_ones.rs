@@ -22,7 +22,7 @@ mod numpy_ones {
 
         let o: Tensor<i32, _> = rt::ones(([2, 3], &device));
         assert_eq!(o.shape(), &[2, 3]);
-        assert_equal(&o, &rt::tensor_from_nested!([[1, 1, 1], [1, 1, 1]], &device), None);
+        assert_equal(&o, rt::tensor_from_nested!([[1, 1, 1], [1, 1, 1]], &device), None);
     }
 }
 
@@ -41,6 +41,6 @@ mod custom_ones {
         let a = rt::arange((6, &device)).into_shape([2, 3]);
         let o: Tensor<i32, _> = a.ones_like();
         assert_eq!(o.shape(), &[2, 3]);
-        assert_equal(&o, &rt::tensor_from_nested!([[1, 1, 1], [1, 1, 1]], &device), None);
+        assert_equal(&o, rt::tensor_from_nested!([[1, 1, 1], [1, 1, 1]], &device), None);
     }
 }

@@ -57,7 +57,7 @@ mod numpy_meshgrid {
         let x = rt::tensor_from_nested!([1, 2, 3, 4], &device);
         let r = rt::meshgrid((&vec![&x], "xy", true));
         assert_eq!(r.len(), 1);
-        assert_equal(&r[0], &rt::tensor_from_nested!([1, 2, 3, 4], &device), None);
+        assert_equal(&r[0], rt::tensor_from_nested!([1, 2, 3, 4], &device), None);
     }
 
     #[test]

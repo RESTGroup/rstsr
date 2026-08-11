@@ -26,8 +26,8 @@ mod numpy_mean {
         // rstsr mean requires a Float input (NumPy promotes int -> float); use f64.
         let a: Tensor<f64, _> = rt::tensor_from_nested!([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], &device);
         assert_eq!(a.mean_all(), 3.5);
-        assert_equal(a.mean_axes(0), &rt::tensor_from_nested!([2.5, 3.5, 4.5], &device), None);
-        assert_equal(a.mean_axes(1), &rt::tensor_from_nested!([2.0, 5.0], &device), None);
+        assert_equal(a.mean_axes(0), rt::tensor_from_nested!([2.5, 3.5, 4.5], &device), None);
+        assert_equal(a.mean_axes(1), rt::tensor_from_nested!([2.0, 5.0], &device), None);
 
         // NumPy also asserts np.mean([]) is nan with a RuntimeWarning; rstsr's
         // empty-mean behavior is not part of this case (see numpy_differences.md

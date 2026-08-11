@@ -147,13 +147,13 @@ mod numpy_diag {
         // diag(A, k=2) == []  (out of bounds)
         assert_eq!(rt::diag((&a, 2)).shape(), &[0]);
         // diag(A, k=1) == [2]
-        assert_equal(rt::diag((&a, 1)), &rt::tensor_from_nested!([2], &device), None);
+        assert_equal(rt::diag((&a, 1)), rt::tensor_from_nested!([2], &device), None);
         // diag(A, k=0) == [1, 4]
-        assert_equal(rt::diag(&a), &rt::tensor_from_nested!([1, 4], &device), None);
+        assert_equal(rt::diag(&a), rt::tensor_from_nested!([1, 4], &device), None);
         // diag(A, k=-1) == [3, 6]
-        assert_equal(rt::diag((&a, -1)), &rt::tensor_from_nested!([3, 6], &device), None);
+        assert_equal(rt::diag((&a, -1)), rt::tensor_from_nested!([3, 6], &device), None);
         // diag(A, k=-2) == [5]
-        assert_equal(rt::diag((&a, -2)), &rt::tensor_from_nested!([5], &device), None);
+        assert_equal(rt::diag((&a, -2)), rt::tensor_from_nested!([5], &device), None);
         // diag(A, k=-3) == []
         assert_eq!(rt::diag((&a, -3)).shape(), &[0]);
     }

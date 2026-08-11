@@ -29,7 +29,7 @@ mod numpy_min {
         // assert_equal(np.amin(b, axis=0), [3.0, 3.0, 2.0])
         // assert_equal(np.amin(b, axis=1), [3.0, 4.0, 2.0])
         let b = rt::tensor_from_nested!([[3.0, 6.0, 9.0], [4.0, 10.0, 5.0], [8.0, 3.0, 2.0]], &device);
-        assert_equal(b.min_axes(0), &rt::tensor_from_nested!([3.0, 3.0, 2.0], &device), None);
-        assert_equal(b.min_axes(1), &rt::tensor_from_nested!([3.0, 4.0, 2.0], &device), None);
+        assert_equal(b.min_axes(0), rt::tensor_from_nested!([3.0, 3.0, 2.0], &device), None);
+        assert_equal(b.min_axes(1), rt::tensor_from_nested!([3.0, 4.0, 2.0], &device), None);
     }
 }

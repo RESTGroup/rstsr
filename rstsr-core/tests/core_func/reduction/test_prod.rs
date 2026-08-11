@@ -45,8 +45,8 @@ mod numpy_prod {
         assert_eq!(a.prod_all(), 26400);
 
         let a2 = rt::tensor_from_nested!([[1, 2, 3, 4], [5, 6, 7, 9], [10, 3, 4, 5]], &device);
-        assert_equal(a2.prod_axes(0), &rt::tensor_from_nested!([50, 36, 84, 180], &device), None);
-        assert_equal(a2.prod_axes(-1), &rt::tensor_from_nested!([24, 1890, 600], &device), None);
+        assert_equal(a2.prod_axes(0), rt::tensor_from_nested!([50, 36, 84, 180], &device), None);
+        assert_equal(a2.prod_axes(-1), rt::tensor_from_nested!([24, 1890, 600], &device), None);
     }
 }
 

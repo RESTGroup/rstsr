@@ -25,9 +25,9 @@ mod numpy_tril_triu {
         // assert_array_equal(c, b.T)  i.e. [[1, 1], [0, 1]]
         let a: Tensor<i32, _> = rt::ones(([2, 2], &device));
         let b = rt::tril((&a, 0));
-        assert_equal(&b, &rt::tensor_from_nested!([[1, 0], [1, 1]], &device), None);
+        assert_equal(&b, rt::tensor_from_nested!([[1, 0], [1, 1]], &device), None);
         let c = rt::triu((&a, 0));
-        assert_equal(&c, &rt::tensor_from_nested!([[1, 1], [0, 1]], &device), None);
+        assert_equal(&c, rt::tensor_from_nested!([[1, 1], [0, 1]], &device), None);
     }
 
     #[test]
@@ -59,10 +59,10 @@ mod numpy_tril_triu {
         // [[1,1,0],[1,1,1],[1,1,1]] (k=1 lower-includes the superdiagonal)
         let a: Tensor<i32, _> = rt::ones(([3, 3], &device));
         let tril1 = rt::tril((&a, 1));
-        assert_equal(&tril1, &rt::tensor_from_nested!([[1, 1, 0], [1, 1, 1], [1, 1, 1]], &device), None);
+        assert_equal(&tril1, rt::tensor_from_nested!([[1, 1, 0], [1, 1, 1], [1, 1, 1]], &device), None);
         // np.triu(ones((3,3)), k=-1):
         // [[1,1,1],[1,1,1],[0,1,1]]
         let triu_neg1 = rt::triu((&a, -1));
-        assert_equal(&triu_neg1, &rt::tensor_from_nested!([[1, 1, 1], [1, 1, 1], [0, 1, 1]], &device), None);
+        assert_equal(&triu_neg1, rt::tensor_from_nested!([[1, 1, 1], [1, 1, 1], [0, 1, 1]], &device), None);
     }
 }

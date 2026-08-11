@@ -68,9 +68,9 @@ mod doc_zeros_ones_full {
         // [[ 7 7]
         //  [ 7 7]]
         assert_eq!(f.shape(), &[2, 2]);
-        crate::test_utils::assert_equal(&z, &rt::tensor_from_nested!([[0, 0, 0], [0, 0, 0]], &device), None);
-        crate::test_utils::assert_equal(&o, &rt::tensor_from_nested!([[1, 1], [1, 1]], &device), None);
-        crate::test_utils::assert_equal(&f, &rt::tensor_from_nested!([[7, 7], [7, 7]], &device), None);
+        crate::test_utils::assert_equal(&z, rt::tensor_from_nested!([[0, 0, 0], [0, 0, 0]], &device), None);
+        crate::test_utils::assert_equal(&o, rt::tensor_from_nested!([[1, 1], [1, 1]], &device), None);
+        crate::test_utils::assert_equal(&f, rt::tensor_from_nested!([[7, 7], [7, 7]], &device), None);
     }
 }
 
@@ -93,7 +93,7 @@ mod doc_eye {
         assert_eq!(e.shape(), &[4, 4]);
         crate::test_utils::assert_equal(
             &e,
-            &rt::tensor_from_nested!([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], &device),
+            rt::tensor_from_nested!([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], &device),
             None,
         );
     }
@@ -120,12 +120,12 @@ mod doc_tril_triu {
         //  [ 0 0 1]]
         crate::test_utils::assert_equal(
             rt::tril((&a, 0)),
-            &rt::tensor_from_nested!([[1, 0, 0], [1, 1, 0], [1, 1, 1]], &device),
+            rt::tensor_from_nested!([[1, 0, 0], [1, 1, 0], [1, 1, 1]], &device),
             None,
         );
         crate::test_utils::assert_equal(
             rt::triu((&a, 0)),
-            &rt::tensor_from_nested!([[1, 1, 1], [0, 1, 1], [0, 0, 1]], &device),
+            rt::tensor_from_nested!([[1, 1, 1], [0, 1, 1], [0, 0, 1]], &device),
             None,
         );
     }

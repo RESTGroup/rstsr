@@ -22,7 +22,7 @@ mod numpy_zeros {
 
         let z: Tensor<i32, _> = rt::zeros(([2, 3], &device));
         assert_eq!(z.shape(), &[2, 3]);
-        assert_equal(&z, &rt::tensor_from_nested!([[0, 0, 0], [0, 0, 0]], &device), None);
+        assert_equal(&z, rt::tensor_from_nested!([[0, 0, 0], [0, 0, 0]], &device), None);
     }
 }
 
@@ -41,6 +41,6 @@ mod custom_zeros {
         let a = rt::arange((6, &device)).into_shape([2, 3]);
         let z: Tensor<i32, _> = a.zeros_like();
         assert_eq!(z.shape(), &[2, 3]);
-        assert_equal(&z, &rt::tensor_from_nested!([[0, 0, 0], [0, 0, 0]], &device), None);
+        assert_equal(&z, rt::tensor_from_nested!([[0, 0, 0], [0, 0, 0]], &device), None);
     }
 }

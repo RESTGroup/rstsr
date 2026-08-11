@@ -25,8 +25,8 @@ mod custom_add {
         let a = rt::tensor_from_nested!([[1, 2], [3, 4]], &device);
         let b = rt::tensor_from_nested!([[10, 20], [30, 40]], &device);
         // np.add(a, b) == [[11, 22], [33, 44]]
-        assert_equal(rt::add(&a, &b), &rt::tensor_from_nested!([[11, 22], [33, 44]], &device), None);
-        assert_equal(&(&a + &b), &rt::tensor_from_nested!([[11, 22], [33, 44]], &device), None);
+        assert_equal(rt::add(&a, &b), rt::tensor_from_nested!([[11, 22], [33, 44]], &device), None);
+        assert_equal(&(&a + &b), rt::tensor_from_nested!([[11, 22], [33, 44]], &device), None);
     }
 
     #[test]
@@ -39,7 +39,7 @@ mod custom_add {
         // a (2,3) + b (3,) broadcasts the row across both rows.
         let a = rt::tensor_from_nested!([[1, 2, 3], [4, 5, 6]], &device);
         let b = rt::tensor_from_nested!([10, 20, 30], &device);
-        assert_equal(rt::add(&a, &b), &rt::tensor_from_nested!([[11, 22, 33], [14, 25, 36]], &device), None);
+        assert_equal(rt::add(&a, &b), rt::tensor_from_nested!([[11, 22, 33], [14, 25, 36]], &device), None);
     }
 }
 
@@ -57,8 +57,8 @@ mod custom_sub {
 
         let a = rt::tensor_from_nested!([[10, 20], [30, 40]], &device);
         let b = rt::tensor_from_nested!([[1, 2], [3, 4]], &device);
-        assert_equal(rt::sub(&a, &b), &rt::tensor_from_nested!([[9, 18], [27, 36]], &device), None);
-        assert_equal(&(&a - &b), &rt::tensor_from_nested!([[9, 18], [27, 36]], &device), None);
+        assert_equal(rt::sub(&a, &b), rt::tensor_from_nested!([[9, 18], [27, 36]], &device), None);
+        assert_equal(&(&a - &b), rt::tensor_from_nested!([[9, 18], [27, 36]], &device), None);
     }
 }
 
@@ -77,8 +77,8 @@ mod custom_mul {
         let a = rt::tensor_from_nested!([[1, 2], [3, 4]], &device);
         let b = rt::tensor_from_nested!([10, 100], &device);
         // np.multiply(a, b) broadcasts (2,2)*(2,) -> [[10,200],[30,400]]
-        assert_equal(rt::mul(&a, &b), &rt::tensor_from_nested!([[10, 200], [30, 400]], &device), None);
-        assert_equal(&(&a * &b), &rt::tensor_from_nested!([[10, 200], [30, 400]], &device), None);
+        assert_equal(rt::mul(&a, &b), rt::tensor_from_nested!([[10, 200], [30, 400]], &device), None);
+        assert_equal(&(&a * &b), rt::tensor_from_nested!([[10, 200], [30, 400]], &device), None);
     }
 }
 
@@ -98,8 +98,8 @@ mod custom_div {
         // truncation ambiguity.
         let a = rt::tensor_from_nested!([[10.0, 20.0], [30.0, 40.0]], &device);
         let b = rt::tensor_from_nested!([[2.0, 4.0], [5.0, 8.0]], &device);
-        assert_equal(rt::div(&a, &b), &rt::tensor_from_nested!([[5.0, 5.0], [6.0, 5.0]], &device), None);
-        assert_equal(&(&a / &b), &rt::tensor_from_nested!([[5.0, 5.0], [6.0, 5.0]], &device), None);
+        assert_equal(rt::div(&a, &b), rt::tensor_from_nested!([[5.0, 5.0], [6.0, 5.0]], &device), None);
+        assert_equal(&(&a / &b), rt::tensor_from_nested!([[5.0, 5.0], [6.0, 5.0]], &device), None);
     }
 }
 
@@ -119,7 +119,7 @@ mod custom_rem {
         let a = rt::tensor_from_nested!([[10, 21], [33, 44]], &device);
         let b = rt::tensor_from_nested!([[3, 4], [5, 7]], &device);
         // rt::rem (free function) is correct for 1-D and 2-D.
-        assert_equal(rt::rem(&a, &b), &rt::tensor_from_nested!([[1, 1], [3, 2]], &device), None);
+        assert_equal(rt::rem(&a, &b), rt::tensor_from_nested!([[1, 1], [3, 2]], &device), None);
         // BUG: the `%` (Rem) operator returns garbage ([135, 187, 319, 440]) instead of
         // [[1,1],[3,2]], while the `+ - * /` operators and rt::rem are correct.
         // See numpy_differences.md; the operator is therefore not asserted here.

@@ -23,7 +23,7 @@ mod numpy_full {
         // np.full((2, 2), 7) -> all 7
         let f: Tensor<i32, _> = rt::full(([2, 2], 7, &device));
         assert_eq!(f.shape(), &[2, 2]);
-        assert_equal(&f, &rt::tensor_from_nested!([[7, 7], [7, 7]], &device), None);
+        assert_equal(&f, rt::tensor_from_nested!([[7, 7], [7, 7]], &device), None);
 
         // np.full((3,), 0) and np.full((3,), 1) (fill_value 0 / 1)
         let f0: Tensor<i32, _> = rt::full(([3], 0, &device));
@@ -48,6 +48,6 @@ mod custom_full {
         let a = rt::arange((6, &device)).into_shape([2, 3]);
         let f: Tensor<i32, _> = a.full_like(9);
         assert_eq!(f.shape(), &[2, 3]);
-        assert_equal(&f, &rt::tensor_from_nested!([[9, 9, 9], [9, 9, 9]], &device), None);
+        assert_equal(&f, rt::tensor_from_nested!([[9, 9, 9], [9, 9, 9]], &device), None);
     }
 }
