@@ -48,15 +48,15 @@ pub fn tensordot_to_einsum_str(
         },
     };
 
-    assert_eq!(axes_a.len(), axes_b.len(), "axes must have same length");
-
-    // Validate axis indices
-    for &i in &axes_a {
-        assert!(i < dim_a, "axis {} out of bounds for tensor A", i);
-    }
-    for &j in &axes_b {
-        assert!(j < dim_b, "axis {} out of bounds for tensor B", j);
-    }
+    // Axis bounds are already guaranteed by the branches above:
+    //  - `Pair` runs each side through `normalize_axes_index(.., dim, ..)`, which folds negative axes
+    //    and rejects any out-of-range axis with `AxisError`.
+    //  - `Val(n)` constructs `(dim_a - n..dim_a)` / `(0..n)`, both in-bounds because the `n > dim_a ||
+    //    n > dim_b` check above returns `InvalidLayout` first.
+    // The `assert_eq!(axes_a.len(), axes_b.len(), …)` and per-axis bounds asserts
+    // that previously lived here were dead defensive code (they could never fire
+    // after the validation above) *and* they panicked inside a `Result`-returning
+    // function, masking a genuine axis error behind a crash. Removed.
 
     // Label generator: a..z then A..Z (enough for most practical uses)
     let mut label_gen = (b'a'..=b'z').chain(b'A'..=b'Z').map(|c| c as char);

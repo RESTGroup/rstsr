@@ -386,26 +386,14 @@ pub fn normalize_axes_index(
     let vec = match axes {
         AxesIndex::None => rstsr_raise!(InvalidValue, "Axes argument cannot be None for this operation.")?,
         AxesIndex::Val(axis) => {
-            let axis = if axis < 0 { (ndim as isize) + axis } else { axis };
-            rstsr_pattern!(
-                axis,
-                0..(ndim as isize),
-                InvalidValue,
-                "Axis index {axis} is out of bounds for tensor with {ndim} dimensions."
-            )?;
-            vec![axis]
+            let axis = rstsr_check_axis!(axis, ndim)?;
+            vec![axis as isize]
         },
         AxesIndex::Vec(axes) => {
             let mut normalized_axes = Vec::with_capacity(axes.len());
             for &axis in axes.iter() {
-                let norm_axis = if axis < 0 { (ndim as isize) + axis } else { axis };
-                rstsr_pattern!(
-                    norm_axis,
-                    0..(ndim as isize),
-                    InvalidValue,
-                    "Axis index {axis} is out of bounds for tensor with {ndim} dimensions."
-                )?;
-                normalized_axes.push(norm_axis);
+                let norm_axis = rstsr_check_axis!(axis, ndim)?;
+                normalized_axes.push(norm_axis as isize);
             }
             if sort {
                 normalized_axes.sort();

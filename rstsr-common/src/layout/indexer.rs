@@ -119,9 +119,7 @@ where
 {
     fn dim_narrow(&self, axis: isize, slice: SliceI) -> Result<Self> {
         // dimension check
-        let axis = if axis < 0 { self.ndim() as isize + axis } else { axis };
-        rstsr_pattern!(axis, 0..self.ndim() as isize, ValueOutOfRange)?;
-        let axis = axis as usize;
+        let axis = rstsr_check_axis!(axis, self.ndim())?;
 
         // get essential information
         let mut shape = self.shape().clone();
@@ -227,9 +225,7 @@ where
 
     fn dim_select(&self, axis: isize, index: isize) -> Result<Layout<Self::DOut>> {
         // dimension check
-        let axis = if axis < 0 { self.ndim() as isize + axis } else { axis };
-        rstsr_pattern!(axis, 0..self.ndim() as isize, ValueOutOfRange)?;
-        let axis = axis as usize;
+        let axis = rstsr_check_axis!(axis, self.ndim())?;
 
         // get essential information
         let shape = self.shape();
@@ -243,7 +239,7 @@ where
             if i == axis {
                 // dimension to be selected
                 let idx = if index < 0 { d as isize + index } else { index };
-                rstsr_pattern!(idx, 0..d as isize, ValueOutOfRange)?;
+                rstsr_pattern!(idx, 0..d as isize, IndexError)?;
                 offset += s * idx;
             } else {
                 // other dimensions
@@ -259,9 +255,7 @@ where
 
     fn dim_eliminate(&self, axis: isize) -> Result<Layout<Self::DOut>> {
         // dimension check
-        let axis = if axis < 0 { self.ndim() as isize + axis } else { axis };
-        rstsr_pattern!(axis, 0..self.ndim() as isize, ValueOutOfRange)?;
-        let axis = axis as usize;
+        let axis = rstsr_check_axis!(axis, self.ndim())?;
 
         // get essential information
         let mut shape = self.shape().as_ref().to_vec();
@@ -281,9 +275,7 @@ where
 
     fn dim_chop(&self, axis: isize) -> Result<Layout<Self::DOut>> {
         // dimension check
-        let axis = if axis < 0 { self.ndim() as isize + axis } else { axis };
-        rstsr_pattern!(axis, 0..self.ndim() as isize, ValueOutOfRange)?;
-        let axis = axis as usize;
+        let axis = rstsr_check_axis!(axis, self.ndim())?;
 
         // get essential information
         let mut shape = self.shape().as_ref().to_vec();
@@ -314,10 +306,8 @@ where
     type DOut = <D as DimLargerOneAPI>::LargerOne;
 
     fn dim_insert(&self, axis: isize) -> Result<Layout<Self::DOut>> {
-        // dimension check
-        let axis = if axis < 0 { self.ndim() as isize + axis + 1 } else { axis };
-        rstsr_pattern!(axis, 0..(self.ndim() + 1) as isize, ValueOutOfRange)?;
-        let axis = axis as usize;
+        // dimension check (insert positions accept 0..=ndim, i.e. one past the last axis)
+        let axis = rstsr_check_axis_insert!(axis, self.ndim())?;
 
         // get essential information
         let is_f_prefer = self.f_prefer();
@@ -441,9 +431,11 @@ where
     fn dim_split_at(&self, axis: isize) -> Result<(Layout<IxD>, Layout<IxD>)> {
         // dimension check
         // this functions allows [-n, n], not previous functions [-n, n)
-        let axis = if axis < 0 { self.ndim() as isize + axis } else { axis };
-        rstsr_pattern!(axis, 0..=self.ndim() as isize, ValueOutOfRange)?;
-        let axis = axis as usize;
+        let norm = if axis < 0 { self.ndim() as isize + axis } else { axis };
+        if !(norm >= 0 && norm <= self.ndim() as isize) {
+            return Err(rstsr_axis_error!(axis, self.ndim()));
+        }
+        let axis = norm as usize;
 
         // split layouts
         let shape = self.shape().as_ref().to_vec();

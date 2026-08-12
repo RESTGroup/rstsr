@@ -349,9 +349,7 @@ where
         })?;
 
         // check and make axis positive
-        let axis = if axis < 0 { ndim as isize + axis } else { axis };
-        rstsr_pattern!(axis, 0..ndim as isize, InvalidLayout, "axis out of bounds")?;
-        let axis = axis as usize;
+        let axis = rstsr_check_axis!(axis, ndim)?;
 
         // - check shape compatibility (dimension other than axis must match)
         // - calculate the new shape
@@ -670,10 +668,8 @@ where
             Ok(())
         })?;
 
-        // check and make axis positive
-        let axis = if axis < 0 { ndim as isize + axis + 1 } else { axis };
-        rstsr_pattern!(axis, 0..=ndim as isize, InvalidLayout, "axis out of bounds")?;
-        let axis = axis as usize;
+        // check and make axis positive (stack inserts a new axis, so 0..=ndim is valid)
+        let axis = rstsr_check_axis_insert!(axis, ndim)?;
 
         // expand the shape of each tensor
         let tensors = tensors.into_iter().map(|tensor| tensor.into_expand_dims_f(axis)).collect::<Result<Vec<_>>>()?;
@@ -800,9 +796,7 @@ where
 
         // check axis
         let ndim = tensor.ndim();
-        let axis = if axis < 0 { ndim as isize + axis } else { axis };
-        rstsr_pattern!(axis, 0..ndim as isize, InvalidLayout, "axis out of bounds")?;
-        let axis = axis as usize;
+        let axis = rstsr_check_axis!(axis, ndim)?;
 
         (0..tensor.layout().shape()[axis])
             .map(|i| {

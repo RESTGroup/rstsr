@@ -214,7 +214,7 @@ where
 
         for (&idx, &shp, &strd) in izip!(index.iter(), shape.iter(), stride.iter()) {
             let idx = if idx < 0 { idx + shp as isize } else { idx };
-            rstsr_pattern!(idx, 0..(shp as isize), ValueOutOfRange)?;
+            rstsr_pattern!(idx, 0..(shp as isize), IndexError)?;
             pos += strd * idx;
         }
         rstsr_pattern!(pos, 0.., ValueOutOfRange)?;
@@ -334,12 +334,8 @@ where
         let offset = offset.unwrap_or(0);
         let axis1 = axis1.unwrap_or(0);
         let axis2 = axis2.unwrap_or(1);
-        let axis1 = if axis1 < 0 { self.ndim() as isize + axis1 } else { axis1 };
-        let axis2 = if axis2 < 0 { self.ndim() as isize + axis2 } else { axis2 };
-        rstsr_pattern!(axis1, 0..self.ndim() as isize, ValueOutOfRange)?;
-        rstsr_pattern!(axis2, 0..self.ndim() as isize, ValueOutOfRange)?;
-        let axis1 = axis1 as usize;
-        let axis2 = axis2 as usize;
+        let axis1 = rstsr_check_axis!(axis1, self.ndim())?;
+        let axis2 = rstsr_check_axis!(axis2, self.ndim())?;
 
         // shape and strides of last two dimensions
         let d1 = self.shape()[axis1] as isize;
@@ -491,13 +487,8 @@ where
 
     /// Swap axes of layout.
     pub fn swapaxes(&self, axis1: isize, axis2: isize) -> Result<Self> {
-        let axis1 = if axis1 < 0 { self.ndim() as isize + axis1 } else { axis1 };
-        rstsr_pattern!(axis1, 0..self.ndim() as isize, ValueOutOfRange)?;
-        let axis1 = axis1 as usize;
-
-        let axis2 = if axis2 < 0 { self.ndim() as isize + axis2 } else { axis2 };
-        rstsr_pattern!(axis2, 0..self.ndim() as isize, ValueOutOfRange)?;
-        let axis2 = axis2 as usize;
+        let axis1 = rstsr_check_axis!(axis1, self.ndim())?;
+        let axis2 = rstsr_check_axis!(axis2, self.ndim())?;
 
         let mut shape = self.shape().clone();
         let mut stride = self.stride().clone();
