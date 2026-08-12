@@ -20,7 +20,10 @@ pub enum RSTSRError {
     /// An axis argument is out of bounds for a tensor's number of dimensions.
     /// Structured (NumPy `AxisError`-like) so a caller may match and recover.
     /// `axis` keeps the original, possibly-negative input the caller passed.
-    AxisError { axis: isize, ndim: usize },
+    AxisError {
+        axis: isize,
+        ndim: usize,
+    },
 
     /// An element index (or slice bound) is out of range along an axis.
     /// Message-only (Python `IndexError`-like): a programmer bug, not recoverable.

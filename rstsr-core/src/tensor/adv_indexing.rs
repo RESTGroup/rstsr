@@ -28,7 +28,13 @@ where
         .iter()
         .map(|&i| -> Result<usize> {
             let i = if i < 0 { nshape as isize + i } else { i };
-            rstsr_pattern!(i, 0..nshape as isize, IndexError, "Invalid index that exceeds shape length at axis {}.", axis)?;
+            rstsr_pattern!(
+                i,
+                0..nshape as isize,
+                IndexError,
+                "Invalid index that exceeds shape length at axis {}.",
+                axis
+            )?;
             Ok(i as usize)
         })
         .collect::<Result<Vec<usize>>>()?;

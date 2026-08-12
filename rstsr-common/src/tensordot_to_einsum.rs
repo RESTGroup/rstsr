@@ -49,10 +49,10 @@ pub fn tensordot_to_einsum_str(
     };
 
     // Axis bounds are already guaranteed by the branches above:
-    //  - `Pair` runs each side through `normalize_axes_index(.., dim, ..)`, which
-    //    folds negative axes and rejects any out-of-range axis with `AxisError`.
-    //  - `Val(n)` constructs `(dim_a - n..dim_a)` / `(0..n)`, both in-bounds because
-    //    the `n > dim_a || n > dim_b` check above returns `InvalidLayout` first.
+    //  - `Pair` runs each side through `normalize_axes_index(.., dim, ..)`, which folds negative axes
+    //    and rejects any out-of-range axis with `AxisError`.
+    //  - `Val(n)` constructs `(dim_a - n..dim_a)` / `(0..n)`, both in-bounds because the `n > dim_a ||
+    //    n > dim_b` check above returns `InvalidLayout` first.
     // The `assert_eq!(axes_a.len(), axes_b.len(), …)` and per-axis bounds asserts
     // that previously lived here were dead defensive code (they could never fire
     // after the validation above) *and* they panicked inside a `Result`-returning
