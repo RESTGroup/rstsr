@@ -134,9 +134,7 @@ where
     {
         // check if the axis is valid
         // dimension check
-        let axis = if axis < 0 { self.ndim() as isize + axis } else { axis };
-        rstsr_pattern!(axis, 0..self.ndim() as isize, ValueOutOfRange)?;
-        let axis = axis as usize;
+        let axis = rstsr_check_axis!(axis, self.ndim())?;
         rstsr_assert_eq!(self.layout().stride()[axis], 1, InvalidLayout, "The axis must be contiguous")?;
         rstsr_assert_eq!(self.layout().shape()[axis], N, InvalidLayout, "The axis length must be a exactly {N}")?;
         rstsr_assert!(self.layout().offset() % N == 0, InvalidLayout, "The offset must be a multiple of {N}")?;
@@ -193,10 +191,8 @@ where
         ROut: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
         B: DeviceAPI<T>,
     {
-        // dimension check
-        let axis = if axis < 0 { self.ndim() as isize + axis + 1 } else { axis };
-        rstsr_pattern!(axis, 0..(self.ndim() + 1) as isize, ValueOutOfRange)?;
-        let axis = axis as usize;
+        // dimension check (insert positions accept 0..=ndim)
+        let axis = rstsr_check_axis_insert!(axis, self.ndim())?;
 
         let (storage, layout) = self.into_raw_parts();
         let (data, device) = storage.into_raw_parts();

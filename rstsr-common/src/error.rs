@@ -16,6 +16,16 @@ pub enum RSTSRError {
     ValueOutOfRange(String),
     InvalidValue(String),
     InvalidLayout(String),
+
+    /// An axis argument is out of bounds for a tensor's number of dimensions.
+    /// Structured (NumPy `AxisError`-like) so a caller may match and recover.
+    /// `axis` keeps the original, possibly-negative input the caller passed.
+    AxisError { axis: isize, ndim: usize },
+
+    /// An element index (or slice bound) is out of range along an axis.
+    /// Message-only (Python `IndexError`-like): a programmer bug, not recoverable.
+    IndexError(String),
+
     RuntimeError(String),
     DeviceMismatch(String),
     UnImplemented(String),
@@ -323,6 +333,66 @@ macro_rules! rstsr_raise {
         write!(s, " : ").unwrap();
         write!(s, $($arg)*).unwrap();
         Err(Error{ inner: RSTSRError::$errtype(s), backtrace: rstsr_backtrace() })
+    }};
+}
+
+/// Validate an axis argument against a tensor's `ndim`, folding a negative axis
+/// (counted from the end, `-1` == last axis) before the bounds check.
+///
+/// Returns the normalized non-negative axis (`Ok(usize)`), or
+/// `Err(AxisError { axis: <original>, ndim })` when out of range. The `axis`
+/// field preserves the original (possibly negative) input so a caller can match
+/// and recover. Collapses the negative-fold-plus-bounds-check that was
+/// copy-pasted across the layout code.
+#[macro_export]
+macro_rules! rstsr_check_axis {
+    ($axis:expr, $ndim:expr) => {{
+        let axis: isize = $axis;
+        let ndim: usize = $ndim;
+        let norm = if axis < 0 { (ndim as isize) + axis } else { axis };
+        if norm >= 0 && (norm as usize) < ndim {
+            core::result::Result::Ok(norm as usize)
+        } else {
+            core::result::Result::Err($crate::error::Error {
+                inner: $crate::error::RSTSRError::AxisError { axis, ndim },
+                backtrace: $crate::error::rstsr_backtrace(),
+            })
+        }
+    }};
+}
+
+/// Like [`rstsr_check_axis!`], but the upper bound is `0..=ndim` (inclusive)
+/// rather than `0..ndim`. Used by operations that *insert* a new axis and so
+/// accept an axis position one beyond the current last: `dim_insert`, `stack`,
+/// `into_unpack_array`.
+#[macro_export]
+macro_rules! rstsr_check_axis_insert {
+    ($axis:expr, $ndim:expr) => {{
+        let axis: isize = $axis;
+        let ndim: usize = $ndim;
+        // insert positions fold as `ndim + axis + 1` so that `-1` inserts at the end.
+        let norm = if axis < 0 { (ndim as isize) + axis + 1 } else { axis };
+        if norm >= 0 && (norm as usize) <= ndim {
+            core::result::Result::Ok(norm as usize)
+        } else {
+            core::result::Result::Err($crate::error::Error {
+                inner: $crate::error::RSTSRError::AxisError { axis, ndim },
+                backtrace: $crate::error::rstsr_backtrace(),
+            })
+        }
+    }};
+}
+
+/// Construct an `AxisError` unconditionally (without validating). Use when a
+/// site has already determined the axis is invalid, or when raising for a
+/// related reason where the `(axis, ndim)` pair is still the right payload.
+#[macro_export]
+macro_rules! rstsr_axis_error {
+    ($axis:expr, $ndim:expr) => {{
+        $crate::error::Error {
+            inner: $crate::error::RSTSRError::AxisError { axis: $axis, ndim: $ndim },
+            backtrace: $crate::error::rstsr_backtrace(),
+        }
     }};
 }
 

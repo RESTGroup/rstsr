@@ -20,9 +20,7 @@ where
     let tensor_layout = tensor.layout();
     let ndim = tensor_layout.ndim();
     // check axis and index
-    let axis = if axis < 0 { ndim as isize + axis } else { axis };
-    rstsr_pattern!(axis, 0..ndim as isize, InvalidLayout, "Invalid axis that exceeds ndim.")?;
-    let axis = axis as usize;
+    let axis = rstsr_check_axis!(axis, ndim)?;
     let nshape: usize = tensor_layout.shape()[axis];
     let indices = indices.try_into().map_err(Into::into)?;
     let indices = indices
@@ -30,13 +28,7 @@ where
         .iter()
         .map(|&i| -> Result<usize> {
             let i = if i < 0 { nshape as isize + i } else { i };
-            rstsr_pattern!(
-                i,
-                0..nshape as isize,
-                InvalidLayout,
-                "Invalid index that exceeds shape length at axis {}.",
-                axis
-            )?;
+            rstsr_pattern!(i, 0..nshape as isize, IndexError, "Invalid index that exceeds shape length at axis {}.", axis)?;
             Ok(i as usize)
         })
         .collect::<Result<Vec<usize>>>()?;

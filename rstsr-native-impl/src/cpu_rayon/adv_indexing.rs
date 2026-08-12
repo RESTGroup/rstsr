@@ -22,9 +22,9 @@ where
     // basic check
     let ndim = lc.ndim();
     rstsr_assert_eq!(ndim, la.ndim(), InvalidLayout, "Input and output ndim should same.")?;
-    rstsr_pattern!(axis, 0..ndim, InvalidLayout, "Invalid axis that exceeds ndim.")?;
+    rstsr_check_axis!(axis as isize, ndim)?;
     rstsr_assert_eq!(lc.shape()[axis], indices.len(), InvalidLayout, "Invalid index length.")?;
-    rstsr_pattern!(*indices.iter().max().unwrap_or(&0), 0..la.shape()[axis], InvalidLayout, "Index out of range.",)?;
+    rstsr_pattern!(*indices.iter().max().unwrap_or(&0), 0..la.shape()[axis], IndexError, "Index out of range.")?;
 
     // determine how iteration should be performed
     let axis_contig_c = lc.stride()[axis] == 1;
