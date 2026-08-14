@@ -9,6 +9,25 @@ tags/format convention.
 Each entry here has `status: fixed`. Kept for history / regression context - the
 parity test that surfaced it now asserts the correct NumPy behavior.
 
+## `ne` / `not_equal` implemented (FIXED)
+
+- **numpy:** `np.not_equal` (covered by `test_umath.py::TestComparisons`).
+- **rstsr:** entry_row_cpu::core_func::operators::test_comparison::custom_comparison
+- **tag:** bug
+- **status:** fixed
+
+The five elementwise comparisons `eq`/`lt`/`le`/`gt`/`ge` worked, but `rt::ne` /
+`rt::not_equal` did not compile. The tensor-level `TensorNotEqualAPI` trait and
+impls were already generated (they delegate to `B: OpNotEqualAPI<...>`), and the
+`OpNotEqualAPI` device trait was defined, but the **device impl was missing** -
+the comparison `#[duplicate_item]` macro in `op_ternary_common.rs` listed
+`OpEqualAPI`/`OpGreaterAPI`/.../`OpLessEqualAPI` but omitted `OpNotEqualAPI`, so
+the `B: OpNotEqualAPI` bound could never be satisfied. Fixed by adding
+`[OpNotEqualAPI] [bool] [PartialEq] [a != b]` to the device macro for both
+`DeviceCpuSerial` and `DeviceRayonAutoImpl` (the latter is aliased to
+`DeviceFaer`, so faer is covered too). The parity test now uses `rt::ne(&a, &b)`
+instead of the `not(eq)` workaround.
+
 ## `Tensor::i(int...)` 0-d scalar reads the correct element (FIXED)
 
 - **numpy:** `_core/tests/test_indexing.py::TestIndexing::test_single_int_index`

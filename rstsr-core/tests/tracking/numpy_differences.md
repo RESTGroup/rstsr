@@ -271,20 +271,6 @@ tests pass `num` explicitly. Consequently `linspace(0, 10, num=-1)` (NumPy raise
 `ValueError`) is not expressible — `num` is `usize`, so a negative count is a
 compile-time type error rather than a runtime error. Output values match NumPy.
 
-## `ne` / `not_equal` is unimplemented
-
-- **numpy:** `np.not_equal` (covered by `test_umath.py::TestComparisons`).
-- **rstsr:** entry_row_cpu::core_func::operators::test_comparison::custom_comparison
-- **tag:** bug
-- **status:** open
-
-The other five elementwise comparisons (`eq`, `lt`, `le`, `gt`, `ge` — free
-functions `rt::eq/lt/le/gt/ge`) compile and work on `&Tensor`. `rt::ne` /
-`rt::not_equal` does **not compile**: the `TensorNotEqualAPI` / `OpNotEqualAPI`
-auto-impl is missing (no impl for `&Tensor`, owned `Tensor`, or
-`DeviceCpuSerial`). The parity test derives `ne = not(eq)` for the value check.
-When implemented, replace that with `rt::ne(&a, &b)`.
-
 ## The `%` operator is matrix multiplication, not remainder
 
 - **numpy:** `np.remainder` / Python `%` (elementwise remainder).

@@ -37,11 +37,7 @@ mod custom_comparison {
         // np.equal          == [F, T, F, F]
         assert_eq!(rt::eq(&a, &b).to_vec(), vec![false, true, false, false]);
         // np.not_equal      == [T, F, T, T]
-        // BUG: rstsr `ne`/`not_equal` is unimplemented (does not compile: the
-        // TensorNotEqualAPI / OpNotEqualAPI auto-impl is missing, while the other 5
-        // comparison ops are implemented). Derive ne = not(eq) for the value check.
-        // See numpy_differences.md.
-        assert_eq!(rt::not(rt::eq(&a, &b)).to_vec(), vec![true, false, true, true]);
+        assert_eq!(rt::ne(&a, &b).to_vec(), vec![true, false, true, true]);
     }
 }
 
