@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.7.10](https://github.com/RESTGroup/rstsr/compare/rstsr-v0.7.9...rstsr-v0.7.10) - 2026-08-14
+
+### Other
+
+- correct "manuplication"/"manuplation" typo to "manipulation" ([#89](https://github.com/RESTGroup/rstsr/pull/89))
+
 ## v0.7.9 -- 2026-07-22
 
 Bug Fix
