@@ -1,7 +1,7 @@
 use crate::prelude_dev::*;
 use core::ops::Div;
 use num::complex::ComplexFloat;
-use num::{Float, Signed};
+use num::{Float, Signed, Zero};
 use rstsr_dtype_traits::{DTypeIntoFloatAPI, ExtNum};
 
 // TODO: log1p
@@ -223,13 +223,26 @@ where
 
     fn op_muta_refb(&self, a: &mut Vec<MaybeUninit<T>>, la: &Layout<D>, b: &Vec<T>, lb: &Layout<D>) -> Result<()> {
         self.op_muta_refb_func(a, la, b, lb, &mut |a, b| {
-            a.write(*b / b.abs());
+            // sign(x) = x / |x|, but 0 / 0 yields NaN, so a zero magnitude maps to
+            // 0 (preserving the sign of -0.0 and complex zero, matching NumPy).
+            let abs = b.abs();
+            if abs.is_zero() {
+                a.write(*b);
+            } else {
+                a.write(*b / abs);
+            }
         })
     }
 
     fn op_muta(&self, a: &mut Vec<MaybeUninit<T>>, la: &Layout<D>) -> Result<()> {
         self.op_muta_func(a, la, &mut |a| unsafe {
-            a.write(a.assume_init_read() / a.assume_init_read().abs());
+            let b = a.assume_init_read();
+            let abs = b.abs();
+            if abs.is_zero() {
+                a.write(b);
+            } else {
+                a.write(b / abs);
+            }
         })
     }
 }

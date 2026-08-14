@@ -167,8 +167,8 @@ _core/tests/test_numeric.py,TestNonarrayArgs,test_count_nonzero,v2.5.2,transferr
 lib/tests/test_function_base.py,TestAmax,test_basic,v2.5.2,transferred,core_func/reduction/test_max.rs::numpy_max::test_basic,22ca67eb1f0a,"np.amax -> max; all-reduce + axes values"
 lib/tests/test_function_base.py,TestAmin,test_basic,v2.5.2,transferred,core_func/reduction/test_min.rs::numpy_min::test_basic,38f70a205f1b,"np.amin -> min; all-reduce + axes values"
 _core/tests/test_multiarray.py,TestArgmax,test_combinations,v2.5.2,partial,core_func/reduction/test_argmax.rs::numpy_argmax::test_combinations,12905a848696,"4 usg value cases via argmax_all; nan/datetime/complex table N/A"
-_core/tests/test_regression.py,TestRegression,test_argmax,v2.5.2,partial,core_func/reduction/test_argmax.rs::numpy_argmax::test_regression,52f12c23896e,"BUG: argmax_axes panics for ndim>=3; test asserts current panic via catch_unwind; see numpy_differences.md"
-_core/tests/test_multiarray.py,TestArgmin,test_combinations,v2.5.2,partial,core_func/reduction/test_argmin.rs::numpy_argmin::test_combinations,3cab546709a9,"4 usg value cases via argmin_all; argmin_axes ndim>=3 panics (same bug as argmax; see numpy_differences.md)"
+_core/tests/test_regression.py,TestRegression,test_argmax,v2.5.2,transferred,core_func/reduction/test_argmax.rs::numpy_argmax::test_regression,52f12c23896e,"high-dim argmax along each axis succeeds; for arange the max sits at each axis' last index, asserted by shape + values"
+_core/tests/test_multiarray.py,TestArgmin,test_combinations,v2.5.2,partial,core_func/reduction/test_argmin.rs::numpy_argmin::test_combinations,3cab546709a9,"4 usg value cases via argmin_all; nan/datetime/complex table N/A. argmin_axes ndim>=3 verified by custom_argmin::test_argmin_axes_high_rank"
 lib/tests/test_function_base.py,TestAll,test_basic,v2.5.2,transferred,core_func/reduction/test_all.rs::numpy_all::test_basic,e6f065c5b310,"bool input (NumPy uses int 0/1 truthy; see numpy_differences.md)"
 lib/tests/test_function_base.py,TestAll,test_nd,v2.5.2,transferred,core_func/reduction/test_all.rs::numpy_all::test_nd,5bee0e544c7b,axis 0/1 bool values
 lib/tests/test_function_base.py,TestAny,test_basic,v2.5.2,transferred,core_func/reduction/test_any.rs::numpy_any::test_basic,beb8a357681a,bool input
@@ -196,6 +196,6 @@ _core/tests/test_ufunc.py,TestUfunc,test_vecdot,v2.5.2,transferred,core_func/lin
 _core/tests/test_ufunc.py,TestUfunc,test_broadcast,v2.5.2,transferred,core_func/linalg/test_vecdot.rs::numpy_vecdot::test_vecdot_broadcast;test_vecdot_broadcast_fails,cfecb630648e,"broadcast value + core-dim mismatch is_err"
 _core/tests/test_ufunc.py,TestUfunc,test_vecdot_matvec_vecmat_complex,v2.5.2,transferred,core_func/linalg/test_vecdot.rs::numpy_vecdot::test_vecdot_complex,2b25cdb6d022,complex conjugate vecdot
 # --- core_func/indexing (basic indexing via Tensor::i) ---
-_core/tests/test_indexing.py,TestIndexing,test_single_int_index,v2.5.2,partial,core_func/indexing/test_indexing.rs::numpy_indexing::test_single_int_index,b56b5b700a3b,"BUG: .i(int)->0-d scalar returns wrong element; value verified via 1-element slice; see numpy_differences.md"
+_core/tests/test_indexing.py,TestIndexing,test_single_int_index,v2.5.2,transferred,core_func/indexing/test_indexing.rs::numpy_indexing::test_single_int_index,b56b5b700a3b,"a[-1]==9 and m[1,2]==6 read via 0-d .i().to_scalar()"
 _core/tests/test_indexing.py,TestIndexing,test_ellipsis_index,v2.5.2,transferred,core_func/indexing/test_indexing.rs::numpy_indexing::test_ellipsis_index,2ce6cc7a982a,"a[...,1] + a[0,...,1]; sub-tensor/ellipsis indexing works"
 

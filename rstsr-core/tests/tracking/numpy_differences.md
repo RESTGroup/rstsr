@@ -34,37 +34,6 @@ One section per divergence. Cite the NumPy identifier and the rstsr test:
 <!-- Entries below. Append new divergences here as parity tests are authored.
      When a divergence is fixed, move it to numpy_differences_resolved.md. -->
 
-## Reshape on an overflowing/incompatible shape panics instead of returning `Err`
-
-- **numpy:** _core/tests/test_regression.py::TestRegression::test_reshape_size_overflow (L2275)
-- **rstsr:** entry_row_cpu::core_func::manipulation::test_reshape::numpy_reshape::regression
-- **tag:** bug
-- **status:** open
-
-NumPy raises `ValueError` when the shape product overflows (gh-7455). rstsr's fallible
-`reshape_f` does **not** return a clean `Err` for this case - it **panics**, and the
-parity test masks the panic with `catch_unwind` (its own comment admits "panic occurs
-on rust-side, not from RSTSR (i.e., not coverable)"). Two unchecked sites combine:
-
-1. The size product `shape_out.iter().product()`
-   (`rstsr-common/src/layout/reshape.rs:157`) is a plain `usize` multiply with no
-   `checked_mul`. The gh-7455 factors multiply to `2**64 + 10`, so **in a release build
-   the product wraps to 10 == `size_in`** - the `size_in == size_out` mismatch check is
-   fooled and the overflow goes undetected. (In a debug build this very multiply panics
-   on arithmetic overflow, which is the panic the test currently "catches".)
-2. With the size check fooled in release, execution reaches `attempt_nocopy_reshape`,
-   which indexes `olddims[oj]` / `newdims[nj]` without bounds-checking against
-   `oldnd` / `newnd`; for this incompatible shape `oj` runs past `oldnd` and the index
-   is out of bounds -> **panic**.
-
-Net: `reshape_f` panics (debug: overflow panic; release: index-OOB panic) where NumPy
-raises `ValueError`. Verified empirically - the test passes in **both** profiles, but
-for different panic reasons, never via a clean `Err`. Fix: (a) compute the product with
-`checked_mul` and return `Err(InvalidValue)` on overflow; (b) bounds-check `oj`/`nj`
-in `attempt_nocopy_reshape` and return `None` (fall through to copy) instead of
-panicking. Then the test should assert `reshape_f(new_shape).is_err()`, not
-`catch_unwind`.
-
 ## Default order is `device.default_order()`, not C
 
 - **numpy:** `np.reshape` / `np.ravel` default `order='C'` (C-order).
@@ -288,24 +257,6 @@ integer tensors. Parity tests use bool tensors (`[false, true, true, false]`).
 Also, `bool` result tensors cannot be compared with `assert_equal` (`bool:
 ExtNum` unsatisfied), so the axes results are compared via `to_vec()`.
 
-## `argmax_axes`/`argmin_axes` panic for tensors of rank ≥ 3
-
-- **numpy:** `_core/tests/test_regression.py::TestRegression::test_argmax` (L268)
-  expects high-dimensional argmax along each axis to succeed.
-- **rstsr:** entry_row_cpu::core_func::reduction::test_argmax::numpy_argmax::test_regression
-- **tag:** bug
-- **status:** open
-
-`argmax_all`/`argmin_all` (1-D, scalar) and `argmax_axes`/`argmin_axes` on rank-1
-and rank-2 tensors work correctly. For **rank ≥ 3**, `argmax_axes`/`argmin_axes`
-**panic** with `index out of bounds: the len is 1 but the index is 1` at
-`rstsr-common/src/layout/layoutbase.rs:543`, reached via
-`reduce_axes_arg_cpu_serial` (`rstsr-native-impl/src/cpu_serial/reduction.rs:569`)
-which maps each unraveled index through `pseudo_layout.index_uncheck`. The parity
-test documents the current behavior with `catch_unwind` (asserts the panic); when
-the bug is fixed it should assert success. 2-D value parity is covered by the
-`custom_argmax`/`custom_argmin` 2-D cases.
-
 ## `linspace` requires an explicit `num` (NumPy defaults to 50)
 
 - **numpy:** `_core/tests/test_function_base.py::TestLinspace::test_basic` (L322)
@@ -320,59 +271,19 @@ tests pass `num` explicitly. Consequently `linspace(0, 10, num=-1)` (NumPy raise
 `ValueError`) is not expressible — `num` is `usize`, so a negative count is a
 compile-time type error rather than a runtime error. Output values match NumPy.
 
-## `ne` / `not_equal` is unimplemented
+## The `%` operator is matrix multiplication, not remainder
 
-- **numpy:** `np.not_equal` (covered by `test_umath.py::TestComparisons`).
-- **rstsr:** entry_row_cpu::core_func::operators::test_comparison::custom_comparison
-- **tag:** bug
-- **status:** open
-
-The other five elementwise comparisons (`eq`, `lt`, `le`, `gt`, `ge` — free
-functions `rt::eq/lt/le/gt/ge`) compile and work on `&Tensor`. `rt::ne` /
-`rt::not_equal` does **not compile**: the `TensorNotEqualAPI` / `OpNotEqualAPI`
-auto-impl is missing (no impl for `&Tensor`, owned `Tensor`, or
-`DeviceCpuSerial`). The parity test derives `ne = not(eq)` for the value check.
-When implemented, replace that with `rt::ne(&a, &b)`.
-
-## The `%` (`Rem`) operator returns garbage; `rt::rem` is correct
-
-- **numpy:** `np.remainder` / Python `%`.
+- **numpy:** `np.remainder` / Python `%` (elementwise remainder).
 - **rstsr:** entry_row_cpu::core_func::operators::test_arithmetic::custom_rem
-- **tag:** bug
+- **tag:** intentional
 - **status:** open
 
-The free function `rt::rem(&a, &b)` returns the correct remainder for both 1-D
-and 2-D integer tensors (`[1, 1, 3, 2]` / `[[1, 1], [3, 2]]`). The overloaded
-`%` operator (`&a % &b`) returns **garbage** — e.g. `[135, 187, 319, 440]`
-instead of `[1, 1, 3, 2]` for the same inputs — so the `Rem` tensor impl is
-wired incorrectly (the `+ - * /` operators are all correct). The parity test
-asserts `rt::rem` only and does not assert the `%` operator.
-
-## `sign(0.0)` returns NaN instead of 0
-
-- **numpy:** `np.sign(0.0) == 0` (and `np.sign` works on integers).
-- **rstsr:** entry_row_cpu::core_func::math::test_unary_math::custom_math_basic
-- **tag:** bug
-- **status:** open
-
-rstsr `rt::sign(0.0)` returns **NaN** (likely an `x / x.abs()`-style impl that
-yields `0 / 0`); `sign` of nonzero values is correct (`sign([-2, 3]) == [-1, 1]`).
-rstsr `sign` also requires a `Float` input (NumPy `sign` accepts integers). The
-parity test avoids `0.0`; when the bug is fixed, restore a `0.0` case asserting
-`sign(0.0) == 0.0`.
-
-## `Tensor::i(int...)` reducing to a 0-d scalar returns the wrong element
-
-- **numpy:** `_core/tests/test_indexing.py::TestIndexing::test_single_int_index`
-  (L201) — `np.arange(10)[-1] == 9`.
-- **rstsr:** entry_row_cpu::core_func::indexing::test_indexing::numpy_indexing::test_single_int_index
-- **tag:** bug
-- **status:** open
-
-Integer indexing via `Tensor::i` that fully reduces the result to a **0-d**
-(scalar) view returns the wrong element — it reads at offset 0, so e.g.
-`arange(10).i(9).to_scalar() == 0` (not 9) and `m.i((1, 2)).to_scalar() == 0`
-(not 6). Sub-tensor indexing (integer that drops one axis but leaves rank ≥ 1,
-slices, `..`, `Ellipsis`, `None`/newaxis) reads correctly, as does 1-D
-`index_select` gather. The parity test verifies element values via 1-element
-slices (e.g. `a.i(slice!(9, None)) == [9]`) instead of the 0-d scalar form.
+In RSTSR the `%` (`Rem`) operator is bound to **matrix multiplication**
+(`a % b == a.matmul(b)`), not elementwise remainder. The elementwise
+`rem`→`Rem` binding is deliberately commented out in the core-ops module
+(`op_binary_arithmetic.rs`), so the matmul `Rem` impl (`linalg/matmul.rs`)
+applies instead. For example, with `a = [[10, 21], [33, 44]]` and
+`b = [[3, 4], [5, 7]]`, `a % b` returns the matrix product `[[135, 187], [319, 440]]`
+(not the elementwise remainder `[[1, 1], [3, 2]]`). The free function
+`rt::rem(&a, &b)` provides the NumPy-compatible elementwise remainder; the
+parity test asserts both `rt::rem` (remainder) and `a % b` (matmul) accordingly.

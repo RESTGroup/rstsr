@@ -77,6 +77,7 @@ where
     [OpMinimumAPI     ] [TA::Res] [ExtReal       ] [ExtReal::ext_min(a, b)         ];
     [OpFloorDivideAPI ] [TA::Res] [ExtReal       ] [ExtReal::ext_floor_divide(a, b)];
     [OpEqualAPI       ] [bool   ] [PartialEq     ] [a == b                         ];
+    [OpNotEqualAPI    ] [bool   ] [PartialEq     ] [a != b                         ];
     [OpGreaterAPI     ] [bool   ] [PartialOrd    ] [a > b                          ];
     [OpGreaterEqualAPI] [bool   ] [PartialOrd    ] [a >= b                         ];
     [OpLessAPI        ] [bool   ] [PartialOrd    ] [a < b                          ];

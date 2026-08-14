@@ -40,7 +40,7 @@ mod numpy_argmax {
 
     #[test]
     fn test_regression() {
-        // NumPy v2.5.2, _core/tests/test_regression.py, TestRegression::test_argmax (line 268)
+        // NumPy v2.5.2, _core/tests/test_regression.py, TestRegression::test_argmax (line 262)
         // Ticket #119: high-dimensional argmax along each axis should succeed.
         crate::specify_test!("test_regression");
 
@@ -51,16 +51,8 @@ mod numpy_argmax {
         // for i in range(a.ndim):
         //     a.argmax(i)  # Should succeed
         let a = rt::arange((4 * 5 * 6 * 7 * 8, &device)).into_shape([4, 5, 6, 7, 8]);
-
-        // BUG: rstsr `argmax_axes` panics (index OOB at layoutbase.rs:543, in
-        // `reduce_axes_arg_cpu_serial`'s `pseudo_layout.index_uncheck` map) for
-        // tensors of ndim >= 3. NumPy expects this to succeed; the test below
-        // asserts the current buggy behavior via catch_unwind. When the bug is
-        // fixed, replace the catch_unwind block with `let _ = a.argmax_axes(i);`.
-        // See tracking/numpy_differences.md.
         for i in 0..a.ndim() {
-            let res = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| a.argmax_axes(i as isize)));
-            assert!(res.is_err(), "argmax_axes({i}) should panic (bug, ndim>=3) but succeeded");
+            let _ = a.argmax_axes(i as isize); // Should succeed
         }
     }
 }

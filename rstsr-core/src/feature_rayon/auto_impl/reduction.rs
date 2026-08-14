@@ -596,7 +596,7 @@ where
                 Some(false)
             }
         };
-        let (out, layout_out) = reduce_axes_unraveled_arg_cpu_rayon(a, la, axes, f_comp, f_eq, pool)?;
+        let (out, _layout_axes, layout_out) = reduce_axes_unraveled_arg_cpu_rayon(a, la, axes, f_comp, f_eq, pool)?;
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 
@@ -649,7 +649,7 @@ where
                 Some(false)
             }
         };
-        let (out, layout_out) = reduce_axes_unraveled_arg_cpu_rayon(a, la, axes, f_comp, f_eq, pool)?;
+        let (out, _layout_axes, layout_out) = reduce_axes_unraveled_arg_cpu_rayon(a, la, axes, f_comp, f_eq, pool)?;
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 

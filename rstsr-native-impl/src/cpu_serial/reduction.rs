@@ -482,7 +482,7 @@ pub fn reduce_axes_unraveled_arg_cpu_serial<T, D, Fcomp, Feq>(
     axes: &[isize],
     f_comp: Fcomp,
     f_eq: Feq,
-) -> Result<(Vec<IxD>, Layout<IxD>)>
+) -> Result<(Vec<IxD>, Layout<IxD>, Layout<IxD>)>
 where
     T: Clone,
     D: DimAPI,
@@ -521,7 +521,11 @@ where
         Ok(())
     })?;
     let out = unsafe { transmute::<Vec<MaybeUninit<IxD>>, Vec<IxD>>(out) };
-    Ok((out, layout_out))
+    // returns (indices, layout_axes, layout_out): each index in `out` is an
+    // unraveled position within `layout_axes` (the reduced-axes space), *not*
+    // within `layout_out`. Callers that ravel the indices must use
+    // `layout_axes.shape()`.
+    Ok((out, layout_axes, layout_out))
 }
 
 pub fn reduce_all_arg_cpu_serial<T, D, Fcomp, Feq>(
@@ -560,8 +564,13 @@ where
     Fcomp: Fn(Option<T>, T) -> Option<bool>,
     Feq: Fn(Option<T>, T) -> Option<bool>,
 {
-    let (idx, layout) = reduce_axes_unraveled_arg_cpu_serial(a, la, axes, f_comp, f_eq)?;
-    let pseudo_shape = layout.shape();
+    let (idx, layout_axes, layout) = reduce_axes_unraveled_arg_cpu_serial(a, la, axes, f_comp, f_eq)?;
+    // each index in `idx` is an unraveled position within the reduced-axes space
+    // (`layout_axes`), so the raveling pseudo-layout must use `layout_axes.shape()`,
+    // not the output layout's shape. Using the output shape here indexed out of
+    // bounds for ndim >= 3 (the reduced space has rank 1 but the output has rank
+    // ndim - 1).
+    let pseudo_shape = layout_axes.shape();
     let pseudo_layout = match order {
         RowMajor => pseudo_shape.c(),
         ColMajor => pseudo_shape.f(),
