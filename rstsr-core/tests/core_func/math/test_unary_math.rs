@@ -31,15 +31,42 @@ mod custom_math_basic {
         let s = rt::tensor_from_nested!([0.0, 1.0, 4.0, 9.0], &device);
         assert_equal(rt::sqrt(&s), rt::tensor_from_nested!([0.0, 1.0, 2.0, 3.0], &device), None);
 
-        // np.sign([-2, 0, 3]) == [-1, 0, 1]; rstsr sign requires a Float input.
+        // np.sign([-2, 0, 3]) == [-1, 0, 1]; sign accepts any ExtNum dtype (floats and integers).
         let g = rt::tensor_from_nested!([-2.0, 0.0, 3.0], &device);
         assert_equal(rt::sign(&g), rt::tensor_from_nested!([-1.0, 0.0, 1.0], &device), None);
+
+        // np.sign(np.array([-2, 0, 3])) == array([-1, 0, 1]); integer dtypes stay integers
+        let gi = rt::tensor_from_nested!([-2, 0, 3], &device);
+        assert_eq!(rt::sign(&gi).to_vec(), vec![-1, 0, 1]);
+
+        // np.sign(np.array([0, 5], dtype=np.uint8)) == array([0, 1], dtype=uint8)
+        let gu: Tensor<u8, _> = rt::tensor_from_nested!([0, 5], &device);
+        assert_eq!(rt::sign(&gu).to_vec(), vec![0u8, 1u8]);
 
         // np.floor / np.ceil / np.trunc on [-1.5, 0.5, 2.4]
         let f = rt::tensor_from_nested!([-1.5, 0.5, 2.4], &device);
         assert_equal(rt::floor(&f), rt::tensor_from_nested!([-2.0, 0.0, 2.0], &device), None);
         assert_equal(rt::ceil(&f), rt::tensor_from_nested!([-1.0, 1.0, 3.0], &device), None);
         assert_equal(rt::trunc(&f), rt::tensor_from_nested!([-1.0, 0.0, 2.0], &device), None);
+    }
+
+    #[test]
+    fn test_sign_special_values() {
+        crate::specify_test!("test_sign_special_values");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // np.sign([nan, inf, -inf, -0.0, 0.0]) == [nan, 1.0, -1.0, 0.0, 0.0];
+        // infinities map to ±1.0, and both signed zeros map to +0.0.
+        let a: Tensor<f64, _> = rt::asarray((vec![f64::NAN, f64::INFINITY, f64::NEG_INFINITY, -0.0, 0.0], &device));
+        let s = rt::sign(&a).to_vec();
+        assert!(s[0].is_nan());
+        assert_eq!(s[1], 1.0);
+        assert_eq!(s[2], -1.0);
+        assert_eq!(s[3], 0.0);
+        assert!(!s[3].is_sign_negative());
+        assert_eq!(s[4], 0.0);
     }
 }
 
