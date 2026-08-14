@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.7.10 -- 2026-08-14
+
+API breaking changes (user should not feel that)
+
+- Rename module `manuplication` to `manipulation` (rstsr-core). (RESTGroup/rstsr#89)
+  Only direct `rstsr_core::tensor::manuplication` import paths move; the `rstsr`
+  facade prelude is unaffected.
+
+Enhancement
+
+- Introduce `AxisError` and `IndexError` error types in rstsr-common, replacing
+  generic errors raised on axis/index misuse. (RESTGroup/rstsr#91)
+
+Bug Fix
+
+- Fix NumPy-parity bugs in reshape, argmax/argmin, sign, indexing and
+  not-equal comparisons. (RESTGroup/rstsr#92)
+- Fix dynamic-linking setup of rstsr-openblas for development on macOS. (RESTGroup/rstsr#88)
+
 ## v0.7.9 -- 2026-07-22
 
 Bug Fix
