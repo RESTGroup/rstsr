@@ -10,9 +10,7 @@ Most unary functions are of the same type. However, there are some exceptions, a
 - `Imag, Real, Abs`:
     - complex: generalized, not for inplace.
     - real: specialized, for inplace.
-- `Sign`:
-    - complex: generalized, for inplace.
-    - real: specialized, for inplace.
+- `Sign`: any `ExtNum` dtype (integers, floats, complex), same-type output, for inplace.
 
 */
 

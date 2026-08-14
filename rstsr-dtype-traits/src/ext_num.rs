@@ -25,6 +25,19 @@ pub trait ExtNum: Clone {
 
     /* #endregion */
 
+    /* #region sign */
+
+    /// Computes the sign of the number, with the same output type as the input.
+    ///
+    /// This follows NumPy's `np.sign` conventions:
+    /// - signed integers: `-1`, `0` or `1` (no overflow at the type's minimum);
+    /// - unsigned integers: `0` or `1`;
+    /// - floats: `-1.0`, `0.0` or `1.0`; infinities map to `±1.0`, NaN maps to NaN;
+    /// - complex: `z / |z|`, and complex zero maps to zero.
+    fn ext_sign(self) -> Self;
+
+    /* #endregion */
+
     /* #region real-imag */
 
     /// Returns the real part of the number.
@@ -65,6 +78,17 @@ impl ExtNum for T {
     }
     /* #endregion */
 
+    /* #region sign */
+    #[inline]
+    fn ext_sign(self) -> Self {
+        if self == 0 {
+            0
+        } else {
+            1
+        }
+    }
+    /* #endregion */
+
     /* #region real-imag */
     #[inline]
     fn ext_real(self) -> Self {
@@ -96,6 +120,20 @@ impl ExtNum for T {
     }
     /* #endregion */
 
+    /* #region sign */
+    #[inline]
+    fn ext_sign(self) -> Self {
+        // comparison form avoids overflow at the type's minimum (e.g. i8::MIN)
+        if self > 0 {
+            1
+        } else if self < 0 {
+            -1
+        } else {
+            0
+        }
+    }
+    /* #endregion */
+
     /* #region real-imag */
     #[inline]
     fn ext_real(self) -> Self {
@@ -121,6 +159,22 @@ impl ExtNum for T {
     #[inline]
     fn ext_abs_diff(self, other: Self) -> Self {
         (self - other).abs()
+    }
+    /* #endregion */
+
+    /* #region sign */
+    #[inline]
+    fn ext_sign(self) -> Self {
+        // NaN maps to NaN; infinities map to ±1; both zeros map to 0 (NumPy convention)
+        if self.is_nan() {
+            self
+        } else if self > 0.0 {
+            1.0
+        } else if self < 0.0 {
+            -1.0
+        } else {
+            0.0
+        }
     }
     /* #endregion */
 
@@ -160,6 +214,22 @@ impl ExtNum for T {
     }
     /* #endregion */
 
+    /* #region sign */
+    #[inline]
+    fn ext_sign(self) -> Self {
+        // NaN maps to NaN; infinities map to ±1; both zeros map to 0 (NumPy convention)
+        if self.is_nan() {
+            self
+        } else if self > Self::ZERO {
+            Self::ONE
+        } else if self < Self::ZERO {
+            Self::NEG_ONE
+        } else {
+            Self::ZERO
+        }
+    }
+    /* #endregion */
+
     /* #region real-imag */
     #[inline]
     fn ext_real(self) -> Self {
@@ -193,6 +263,20 @@ impl ExtNum for T {
     #[inline]
     fn ext_abs_diff(self, other: Self) -> Self::AbsOut {
         (self - other).norm()
+    }
+    /* #endregion */
+
+    /* #region sign */
+    #[inline]
+    fn ext_sign(self) -> Self {
+        // sign(z) = z / |z|, but 0 / 0 yields NaN, so a zero magnitude maps to
+        // 0 (matching NumPy)
+        let abs = self.norm();
+        if abs == 0.0 {
+            Self::ZERO
+        } else {
+            self / abs
+        }
     }
     /* #endregion */
 

@@ -1,7 +1,6 @@
 use crate::prelude_dev::*;
-use core::ops::Div;
 use num::complex::ComplexFloat;
-use num::{Float, Signed, Zero};
+use num::{Float, Signed};
 use rstsr_dtype_traits::{DTypeIntoFloatAPI, ExtNum};
 
 // TODO: log1p
@@ -216,33 +215,20 @@ where
 
 impl<T, D> OpSignAPI<T, D> for DeviceCpuSerial
 where
-    T: Clone + ComplexFloat + Div<T::Real, Output = T>,
+    T: ExtNum,
     D: DimAPI,
 {
     type TOut = T;
 
     fn op_muta_refb(&self, a: &mut Vec<MaybeUninit<T>>, la: &Layout<D>, b: &Vec<T>, lb: &Layout<D>) -> Result<()> {
         self.op_muta_refb_func(a, la, b, lb, &mut |a, b| {
-            // sign(x) = x / |x|, but 0 / 0 yields NaN, so a zero magnitude maps to
-            // 0 (preserving the sign of -0.0 and complex zero, matching NumPy).
-            let abs = b.abs();
-            if abs.is_zero() {
-                a.write(*b);
-            } else {
-                a.write(*b / abs);
-            }
+            a.write(b.clone().ext_sign());
         })
     }
 
     fn op_muta(&self, a: &mut Vec<MaybeUninit<T>>, la: &Layout<D>) -> Result<()> {
         self.op_muta_func(a, la, &mut |a| unsafe {
-            let b = a.assume_init_read();
-            let abs = b.abs();
-            if abs.is_zero() {
-                a.write(b);
-            } else {
-                a.write(b / abs);
-            }
+            a.write(a.assume_init_read().ext_sign());
         })
     }
 }
