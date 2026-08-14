@@ -9,6 +9,21 @@ tags/format convention.
 Each entry here has `status: fixed`. Kept for history / regression context - the
 parity test that surfaced it now asserts the correct NumPy behavior.
 
+## `sign(0.0)` returns 0 instead of NaN (FIXED)
+
+- **numpy:** `np.sign(0.0) == 0` (and `np.sign` works on integers).
+- **rstsr:** entry_row_cpu::core_func::math::test_unary_math::custom_math_basic
+- **tag:** bug
+- **status:** fixed
+
+rstsr `rt::sign` was implemented as `x / x.abs()`, so `sign(0.0)` computed
+`0 / 0 = NaN` (nonzero values were correct). Fixed in both the serial and rayon
+`OpSignAPI` impls: a zero magnitude now maps to 0 (preserving the sign of `-0.0`
+and complex zero, matching NumPy); otherwise `x / |x|` as before. The parity test
+restores a `0.0` case asserting `sign([-2, 0, 3]) == [-1, 0, 1]`. Note rstsr
+`sign` still requires a `Float` input (NumPy `sign` also accepts integers) - that
+type-system difference remains intentional and is not covered here.
+
 ## `argmax_axes`/`argmin_axes` no longer panic for tensors of rank ≥ 3 (FIXED)
 
 - **numpy:** `_core/tests/test_regression.py::TestRegression::test_argmax` (L268)

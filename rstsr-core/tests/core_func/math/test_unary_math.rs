@@ -31,11 +31,9 @@ mod custom_math_basic {
         let s = rt::tensor_from_nested!([0.0, 1.0, 4.0, 9.0], &device);
         assert_equal(rt::sqrt(&s), rt::tensor_from_nested!([0.0, 1.0, 2.0, 3.0], &device), None);
 
-        // np.sign([-2, 3]) == [-1, 1]; rstsr sign requires a Float input.
-        // BUG: rstsr sign(0.0) returns NaN (not 0); 0.0 is therefore avoided here.
-        // See numpy_differences.md.
-        let g = rt::tensor_from_nested!([-2.0, 3.0], &device);
-        assert_equal(rt::sign(&g), rt::tensor_from_nested!([-1.0, 1.0], &device), None);
+        // np.sign([-2, 0, 3]) == [-1, 0, 1]; rstsr sign requires a Float input.
+        let g = rt::tensor_from_nested!([-2.0, 0.0, 3.0], &device);
+        assert_equal(rt::sign(&g), rt::tensor_from_nested!([-1.0, 0.0, 1.0], &device), None);
 
         // np.floor / np.ceil / np.trunc on [-1.5, 0.5, 2.4]
         let f = rt::tensor_from_nested!([-1.5, 0.5, 2.4], &device);
