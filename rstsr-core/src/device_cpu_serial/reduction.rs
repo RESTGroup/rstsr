@@ -541,7 +541,7 @@ where
                 Some(false)
             }
         };
-        let (out, layout_out) = reduce_axes_unraveled_arg_cpu_serial(a, la, axes, f_comp, f_eq)?;
+        let (out, _layout_axes, layout_out) = reduce_axes_unraveled_arg_cpu_serial(a, la, axes, f_comp, f_eq)?;
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 
@@ -590,7 +590,7 @@ where
                 Some(false)
             }
         };
-        let (out, layout_out) = reduce_axes_unraveled_arg_cpu_serial(a, la, axes, f_comp, f_eq)?;
+        let (out, _layout_axes, layout_out) = reduce_axes_unraveled_arg_cpu_serial(a, la, axes, f_comp, f_eq)?;
         Ok((Storage::new(out.into(), self.clone()), layout_out))
     }
 

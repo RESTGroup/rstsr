@@ -9,6 +9,29 @@ tags/format convention.
 Each entry here has `status: fixed`. Kept for history / regression context - the
 parity test that surfaced it now asserts the correct NumPy behavior.
 
+## `argmax_axes`/`argmin_axes` no longer panic for tensors of rank ≥ 3 (FIXED)
+
+- **numpy:** `_core/tests/test_regression.py::TestRegression::test_argmax` (L268)
+  expects high-dimensional argmax along each axis to succeed.
+- **rstsr:** entry_row_cpu::core_func::reduction::test_argmax::numpy_argmax::test_regression
+- **tag:** bug
+- **status:** fixed
+
+`argmax_all`/`argmin_all` and `argmax_axes`/`argmin_axes` on rank-1/2 tensors worked,
+but for **rank ≥ 3** `argmax_axes`/`argmin_axes` panicked with `index out of bounds:
+the len is 1 but the index is 1` at `rstsr-common/src/layout/layoutbase.rs:543`
+(`index_uncheck`). Root cause: `reduce_axes_arg_cpu_serial`/`_cpu_rayon` raveled each
+unraveled index through a `pseudo_layout` built from the **output** shape
+(`layout_out`), but those indices live in the **reduced-axes** space (`layout_axes`).
+For single-axis reduction the index is rank 1 while the output is rank `ndim - 1`,
+so `index_uncheck` read past the 1-element index. Fixed: the `reduce_axes_unraveled_arg_*`
+functions now return the axes layout (`layout_axes`) alongside the indices, and the arg
+functions build `pseudo_layout` from `layout_axes.shape()` - the shape the indices
+actually reference. This also keeps the rayon path correct, where `layout_axes` is
+greedy-reordered before iteration. The parity test now asserts success (shape + values)
+instead of `catch_unwind`; a parallel `custom_argmin::test_argmin_axes_high_rank` covers
+the same shared code path.
+
 ## `reshape_f` on an overflowing/incompatible shape returns `Err` (FIXED)
 
 - **numpy:** _core/tests/test_regression.py::TestRegression::test_reshape_size_overflow (L2275)

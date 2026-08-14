@@ -57,4 +57,23 @@ mod custom_argmin {
 
         assert_eq!(b.argmin_axes(1).to_vec(), vec![0, 0, 2]);
     }
+
+    #[test]
+    fn test_argmin_axes_high_rank() {
+        // rstsr-side regression for the same rank>=3 panic that affected
+        // `argmax_axes` (numpy_argmax::test_regression): `argmin_axes` shares the
+        // `reduce_axes_arg_*` code path, so it must also succeed for ndim >= 3.
+        crate::specify_test!("test_argmin_axes_high_rank");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // a = arange(4*5*6*7*8).reshape(4, 5, 6, 7, 8)
+        // for i in range(a.ndim):
+        //     a.argmin(i)  # Should succeed
+        let a = rt::arange((4 * 5 * 6 * 7 * 8, &device)).into_shape([4, 5, 6, 7, 8]);
+        for i in 0..a.ndim() {
+            let _ = a.argmin_axes(i as isize); // Should succeed
+        }
+    }
 }

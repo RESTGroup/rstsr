@@ -257,24 +257,6 @@ integer tensors. Parity tests use bool tensors (`[false, true, true, false]`).
 Also, `bool` result tensors cannot be compared with `assert_equal` (`bool:
 ExtNum` unsatisfied), so the axes results are compared via `to_vec()`.
 
-## `argmax_axes`/`argmin_axes` panic for tensors of rank ≥ 3
-
-- **numpy:** `_core/tests/test_regression.py::TestRegression::test_argmax` (L268)
-  expects high-dimensional argmax along each axis to succeed.
-- **rstsr:** entry_row_cpu::core_func::reduction::test_argmax::numpy_argmax::test_regression
-- **tag:** bug
-- **status:** open
-
-`argmax_all`/`argmin_all` (1-D, scalar) and `argmax_axes`/`argmin_axes` on rank-1
-and rank-2 tensors work correctly. For **rank ≥ 3**, `argmax_axes`/`argmin_axes`
-**panic** with `index out of bounds: the len is 1 but the index is 1` at
-`rstsr-common/src/layout/layoutbase.rs:543`, reached via
-`reduce_axes_arg_cpu_serial` (`rstsr-native-impl/src/cpu_serial/reduction.rs:569`)
-which maps each unraveled index through `pseudo_layout.index_uncheck`. The parity
-test documents the current behavior with `catch_unwind` (asserts the panic); when
-the bug is fixed it should assert success. 2-D value parity is covered by the
-`custom_argmax`/`custom_argmin` 2-D cases.
-
 ## `linspace` requires an explicit `num` (NumPy defaults to 50)
 
 - **numpy:** `_core/tests/test_function_base.py::TestLinspace::test_basic` (L322)
