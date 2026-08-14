@@ -9,6 +9,31 @@ tags/format convention.
 Each entry here has `status: fixed`. Kept for history / regression context - the
 parity test that surfaced it now asserts the correct NumPy behavior.
 
+## `reshape_f` on an overflowing/incompatible shape returns `Err` (FIXED)
+
+- **numpy:** _core/tests/test_regression.py::TestRegression::test_reshape_size_overflow (L2275)
+- **rstsr:** entry_row_cpu::core_func::manipulation::test_reshape::numpy_reshape::regression
+- **tag:** bug
+- **status:** fixed
+
+NumPy raises `ValueError` when the shape product overflows (gh-7455). rstsr's fallible
+`reshape_f` previously **panicked** instead of returning a clean `Err`, and the parity
+test masked the panic with `catch_unwind`. Two unchecked sites combined:
+
+1. The size product `shape_out.iter().product()` (`rstsr-common/src/layout/reshape.rs`,
+   `quick_check`) was a plain `usize` multiply with no `checked_mul`. The gh-7455 factors
+   multiply to `2**64 + 10`, so **in a release build the product wrapped to 10 ==
+   `size_in`**, fooling the `size_in == size_out` mismatch check (and in a debug build
+   this very multiply panicked on arithmetic overflow).
+2. With the size check fooled in release, execution reached `attempt_nocopy_reshape`,
+   which indexed `olddims[oj]` / `newdims[nj]` without bounds-checking against
+   `oldnd` / `newnd`; `oj` ran past `oldnd` -> index-out-of-bounds panic.
+
+Fixed: (a) `quick_check` computes the product with `try_fold`/`checked_mul` and returns
+`Err(InvalidValue)` on overflow; (b) `attempt_nocopy_reshape` bounds-checks `oj`/`nj`
+and returns `None` (fall through to copy) instead of panicking. The parity test now
+asserts `reshape_f(new_shape).is_err()`.
+
 ## `stack` / `hstack` now accept 0-D inputs (FIXED)
 
 - **numpy:** `_core/tests/test_shape_base.py::test_stack` (L463, 0d input);

@@ -40,9 +40,19 @@ fn attempt_nocopy_reshape(
         while np != op {
             if np < op {
                 // Misses trailing 1s, these are handled later
+                if nj >= newnd {
+                    // ran out of new dimensions without matching the old product;
+                    // the shapes are incompatible for a no-copy reshape
+                    return None;
+                }
                 np *= newdims[nj];
                 nj += 1;
             } else {
+                if oj >= oldnd {
+                    // ran out of old dimensions without matching the new product;
+                    // the shapes are incompatible for a no-copy reshape
+                    return None;
+                }
                 op *= olddims[oj];
                 oj += 1;
             }
@@ -154,7 +164,15 @@ pub fn reshape_substitute_negatives(shape_out: &[isize], size_in: usize) -> Resu
 fn quick_check(shape_out: &Vec<usize>, layout_in: &Layout<IxD>, order: FlagOrder) -> Result<Option<Layout<IxD>>> {
     // check if size is the same
     let size_in = layout_in.size();
-    let size_out = shape_out.iter().product();
+    // compute the output size with overflow checking. A plain `product()` would
+    // wrap silently in release (fooling the size check below) and panic on
+    // arithmetic overflow in debug. Use `checked_mul` so an overflowing shape
+    // product yields a clean `Err(InvalidValue)` instead of a panic (gh-7455).
+    let size_out = shape_out.iter().try_fold(1usize, |acc, &v| acc.checked_mul(v));
+    let size_out = match size_out {
+        Some(size_out) => size_out,
+        None => rstsr_raise!(InvalidValue, "Output shape {:?} product overflows usize.", shape_out)?,
+    };
     rstsr_assert_eq!(size_in, size_out, InvalidValue, "Size mismatch between input tensor and output tensor.",)?;
 
     // if size is zero or one, return immediately

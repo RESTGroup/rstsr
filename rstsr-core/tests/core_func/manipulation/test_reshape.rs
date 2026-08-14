@@ -99,7 +99,9 @@ mod numpy_reshape {
         assert_eq!(a.reshape([1, 1]).stride(), &[1, 1]);
 
         // CASE test_reshape_size_overflow (line 2275)
-        // please note in this case, panic occurs on rust-side, not from RSTSR (i.e., not coverable)
+        // NumPy raises `ValueError` when the shape product overflows (gh-7455); the prime
+        // factors multiply to `2**64 + 10`, so the product overflows to 10 == size_in.
+        // rstsr's fallible `reshape_f` returns a clean `Err(InvalidValue)` for this case.
 
         // a = np.ones(20)[::2]
         let a: Tensor<i32, _> = rt::ones(([20], &device)).into_slice(slice!(None, None, 2));
@@ -119,8 +121,7 @@ mod numpy_reshape {
             vec![2, 7, 7, 43826197]
         };
         // assert_raises(ValueError, a.reshape, new_shape)
-        let panics = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| a.reshape_f(new_shape)));
-        assert!(panics.is_err());
+        assert!(a.reshape_f(new_shape).is_err());
     }
 
     #[test]

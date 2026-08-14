@@ -34,37 +34,6 @@ One section per divergence. Cite the NumPy identifier and the rstsr test:
 <!-- Entries below. Append new divergences here as parity tests are authored.
      When a divergence is fixed, move it to numpy_differences_resolved.md. -->
 
-## Reshape on an overflowing/incompatible shape panics instead of returning `Err`
-
-- **numpy:** _core/tests/test_regression.py::TestRegression::test_reshape_size_overflow (L2275)
-- **rstsr:** entry_row_cpu::core_func::manipulation::test_reshape::numpy_reshape::regression
-- **tag:** bug
-- **status:** open
-
-NumPy raises `ValueError` when the shape product overflows (gh-7455). rstsr's fallible
-`reshape_f` does **not** return a clean `Err` for this case - it **panics**, and the
-parity test masks the panic with `catch_unwind` (its own comment admits "panic occurs
-on rust-side, not from RSTSR (i.e., not coverable)"). Two unchecked sites combine:
-
-1. The size product `shape_out.iter().product()`
-   (`rstsr-common/src/layout/reshape.rs:157`) is a plain `usize` multiply with no
-   `checked_mul`. The gh-7455 factors multiply to `2**64 + 10`, so **in a release build
-   the product wraps to 10 == `size_in`** - the `size_in == size_out` mismatch check is
-   fooled and the overflow goes undetected. (In a debug build this very multiply panics
-   on arithmetic overflow, which is the panic the test currently "catches".)
-2. With the size check fooled in release, execution reaches `attempt_nocopy_reshape`,
-   which indexes `olddims[oj]` / `newdims[nj]` without bounds-checking against
-   `oldnd` / `newnd`; for this incompatible shape `oj` runs past `oldnd` and the index
-   is out of bounds -> **panic**.
-
-Net: `reshape_f` panics (debug: overflow panic; release: index-OOB panic) where NumPy
-raises `ValueError`. Verified empirically - the test passes in **both** profiles, but
-for different panic reasons, never via a clean `Err`. Fix: (a) compute the product with
-`checked_mul` and return `Err(InvalidValue)` on overflow; (b) bounds-check `oj`/`nj`
-in `attempt_nocopy_reshape` and return `None` (fall through to copy) instead of
-panicking. Then the test should assert `reshape_f(new_shape).is_err()`, not
-`catch_unwind`.
-
 ## Default order is `device.default_order()`, not C
 
 - **numpy:** `np.reshape` / `np.ravel` default `order='C'` (C-order).
