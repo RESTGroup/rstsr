@@ -196,6 +196,6 @@ _core/tests/test_ufunc.py,TestUfunc,test_vecdot,v2.5.2,transferred,core_func/lin
 _core/tests/test_ufunc.py,TestUfunc,test_broadcast,v2.5.2,transferred,core_func/linalg/test_vecdot.rs::numpy_vecdot::test_vecdot_broadcast;test_vecdot_broadcast_fails,cfecb630648e,"broadcast value + core-dim mismatch is_err"
 _core/tests/test_ufunc.py,TestUfunc,test_vecdot_matvec_vecmat_complex,v2.5.2,transferred,core_func/linalg/test_vecdot.rs::numpy_vecdot::test_vecdot_complex,2b25cdb6d022,complex conjugate vecdot
 # --- core_func/indexing (basic indexing via Tensor::i) ---
-_core/tests/test_indexing.py,TestIndexing,test_single_int_index,v2.5.2,partial,core_func/indexing/test_indexing.rs::numpy_indexing::test_single_int_index,b56b5b700a3b,"BUG: .i(int)->0-d scalar returns wrong element; value verified via 1-element slice; see numpy_differences.md"
+_core/tests/test_indexing.py,TestIndexing,test_single_int_index,v2.5.2,transferred,core_func/indexing/test_indexing.rs::numpy_indexing::test_single_int_index,b56b5b700a3b,"a[-1]==9 and m[1,2]==6 read via 0-d .i().to_scalar()"
 _core/tests/test_indexing.py,TestIndexing,test_ellipsis_index,v2.5.2,transferred,core_func/indexing/test_indexing.rs::numpy_indexing::test_ellipsis_index,2ce6cc7a982a,"a[...,1] + a[0,...,1]; sub-tensor/ellipsis indexing works"
 

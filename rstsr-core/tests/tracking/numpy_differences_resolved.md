@@ -9,6 +9,26 @@ tags/format convention.
 Each entry here has `status: fixed`. Kept for history / regression context - the
 parity test that surfaced it now asserts the correct NumPy behavior.
 
+## `Tensor::i(int...)` 0-d scalar reads the correct element (FIXED)
+
+- **numpy:** `_core/tests/test_indexing.py::TestIndexing::test_single_int_index`
+  (L201) — `np.arange(10)[-1] == 9`.
+- **rstsr:** entry_row_cpu::core_func::indexing::test_indexing::numpy_indexing::test_single_int_index
+- **tag:** bug
+- **status:** fixed
+
+Integer indexing via `Tensor::i` that fully reduces the result to a **0-d**
+(scalar) view returned the wrong element — it read offset 0, so e.g.
+`arange(10).i(9).to_scalar() == 0` (not 9). The indexing itself (`dim_select`)
+computed the layout offset correctly; the bug was in `TensorAny::to_scalar_f`,
+which read `vec[0]` from the raw buffer returned by `to_cpu_vec` instead of
+`vec[layout.offset()]`. Fixed: `to_scalar_f` now reads at the layout offset, so a
+size-1 view reports its actual element regardless of where it slices into the
+buffer. (This also makes the `.i(...).to_scalar()` checks in
+`test_transpose::numpy_swapaxes` meaningful - they previously compared offset 0
+against offset 0.) The parity test restores the 0-d scalar form
+(`a.i(-1).to_scalar() == 9`, `m.i((1, 2)).to_scalar() == 6`).
+
 ## `sign(0.0)` returns 0 instead of NaN (FIXED)
 
 - **numpy:** `np.sign(0.0) == 0` (and `np.sign` works on integers).

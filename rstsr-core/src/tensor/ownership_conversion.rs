@@ -258,7 +258,11 @@ where
         rstsr_assert_eq!(layout.size(), 1, InvalidLayout)?;
         let storage = self.storage();
         let vec = storage.to_cpu_vec()?;
-        Ok(vec[0].clone())
+        // `to_cpu_vec` returns the raw underlying buffer (not a materialized copy),
+        // so the single element lives at the layout's offset - not index 0. Reading
+        // index 0 ignored slicing/indexing offsets, so e.g. `arange(10).i(9)` (a
+        // 0-d view at offset 9) wrongly returned 0 instead of 9.
+        Ok(vec[layout.offset()].clone())
     }
 
     pub fn to_scalar(&self) -> T {

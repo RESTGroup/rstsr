@@ -298,19 +298,3 @@ and 2-D integer tensors (`[1, 1, 3, 2]` / `[[1, 1], [3, 2]]`). The overloaded
 instead of `[1, 1, 3, 2]` for the same inputs — so the `Rem` tensor impl is
 wired incorrectly (the `+ - * /` operators are all correct). The parity test
 asserts `rt::rem` only and does not assert the `%` operator.
-
-## `Tensor::i(int...)` reducing to a 0-d scalar returns the wrong element
-
-- **numpy:** `_core/tests/test_indexing.py::TestIndexing::test_single_int_index`
-  (L201) — `np.arange(10)[-1] == 9`.
-- **rstsr:** entry_row_cpu::core_func::indexing::test_indexing::numpy_indexing::test_single_int_index
-- **tag:** bug
-- **status:** open
-
-Integer indexing via `Tensor::i` that fully reduces the result to a **0-d**
-(scalar) view returns the wrong element — it reads at offset 0, so e.g.
-`arange(10).i(9).to_scalar() == 0` (not 9) and `m.i((1, 2)).to_scalar() == 0`
-(not 6). Sub-tensor indexing (integer that drops one axis but leaves rank ≥ 1,
-slices, `..`, `Ellipsis`, `None`/newaxis) reads correctly, as does 1-D
-`index_select` gather. The parity test verifies element values via 1-element
-slices (e.g. `a.i(slice!(9, None)) == [9]`) instead of the 0-d scalar form.

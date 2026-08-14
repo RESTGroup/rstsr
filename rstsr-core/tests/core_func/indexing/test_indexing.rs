@@ -24,12 +24,9 @@ mod numpy_indexing {
         device.set_default_order(RowMajor);
 
         // a = np.arange(10); assert_equal(a[-1], 9)
-        // BUG: `a.i(-1)` (a 0-d scalar view) returns the wrong element (offset 0 -> 0,
-        // not 9); verify the last element via a 1-element slice instead (sub-tensor
-        // views read correctly). See numpy_differences.md.
         let a = rt::arange((10, &device));
         assert_eq!(a.i(-1).shape(), &[] as &[usize]);
-        assert_equal(a.i(slice!(9, None)), rt::tensor_from_nested!([9], &device), None);
+        assert_eq!(a.i(-1).to_scalar(), 9);
     }
 
     #[test]
@@ -68,8 +65,8 @@ mod custom_indexing {
         assert_equal(m.i(1), rt::tensor_from_nested!([4, 5, 6, 7], &device), None);
         // m[-1] == last row
         assert_equal(m.i(-1), rt::tensor_from_nested!([8, 9, 10, 11], &device), None);
-        // m[1, 2] == 6 (scalar; use a 1-element slice because 0-d .i() is buggy)
-        assert_equal(m.i((1, slice!(2, 3))), rt::tensor_from_nested!([6], &device), None);
+        // m[1, 2] == 6 (0-d scalar view)
+        assert_eq!(m.i((1, 2)).to_scalar(), 6);
         // m[:, 1] == column 1
         assert_equal(m.i((.., 1)), rt::tensor_from_nested!([1, 5, 9], &device), None);
         // m[:, 1:3] == columns 1..3
