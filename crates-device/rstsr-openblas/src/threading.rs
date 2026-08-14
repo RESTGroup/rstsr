@@ -31,11 +31,11 @@ pub fn get_parallel() -> OpenBLASParallel {
                     OpenBLASParallel::OpenMP
                 } else {
                     panic!(concat!(
-                        "OpenMP is not enabled in `rstsr-openblas-ffi`, but detected using shared library `libopenblas` compiled with OpenMP.\n",
+                        "OpenMP-built `libopenblas` detected, but this crate was built without features `openmp` or `dynamic_loading`.\n",
                         "Please either\n",
+                        "- enable feature `openmp` of `rstsr-openblas` (a default feature of this crate; the integration crate `rstsr` also enables it by default whenever its `openblas` feature is on — with non-default `rstsr` features, add it via a direct `rstsr-openblas` dependency), and link the OpenMP runtime (e.g. `gomp` on Linux, `omp` on macOS) in build.rs or `RUSTFLAGS`;\n",
                         "- enable feature `dynamic_loading` when building `rstsr-openblas` and rebuild this crate, and everything will be determined at runtime;\n",
-                        "- enable feature `openmp` when building `rstsr-openblas` and rebuild this crate, with OpenMP library linked;\n",
-                        "- run with libopenblas compiled with pthread (rebuild `rstsr-openblas-ffi` is not required in this case).",
+                        "- run with libopenblas compiled with pthread, and no OpenMP runtime is needed.",
                     ))
                 }
             },
@@ -80,16 +80,16 @@ impl OpenBLASConfig {
             Some(p) => p,
             None => {
                 let p = unsafe { rstsr_openblas_ffi::cblas::openblas_get_parallel() } as u32;
-                if cfg!(any(feature = "openmp", feature = "dynamic_loading")) {
+                if cfg!(any(feature = "openmp", feature = "dynamic_loading")) || p != OPENBLAS_OPENMP {
                     self.parallel = Some(p);
                     p
                 } else {
                     panic!(concat!(
-                        "OpenMP is not enabled in `rstsr-openblas-ffi`, but detected using shared library `libopenblas` compiled with OpenMP.\n",
+                        "OpenMP-built `libopenblas` detected, but this crate was built without features `openmp` or `dynamic_loading`.\n",
                         "Please either\n",
+                        "- enable feature `openmp` of `rstsr-openblas` (a default feature of this crate; the integration crate `rstsr` also enables it by default whenever its `openblas` feature is on — with non-default `rstsr` features, add it via a direct `rstsr-openblas` dependency), and link the OpenMP runtime (e.g. `gomp` on Linux, `omp` on macOS) in build.rs or `RUSTFLAGS`;\n",
                         "- enable feature `dynamic_loading` when building `rstsr-openblas` and rebuild this crate, and everything will be determined at runtime;\n",
-                        "- enable feature `openmp` when building `rstsr-openblas` and rebuild this crate, with OpenMP library linked;\n",
-                        "- run with libopenblas compiled with pthread (rebuild `rstsr-openblas-ffi` is not required in this case).",
+                        "- run with libopenblas compiled with pthread, and no OpenMP runtime is needed.",
                     ))
                 }
             },

@@ -31,7 +31,7 @@ rstsr-tblis = { workspace = true, optional = true }
 [dev-dependencies]
 
 [features]
-default = ["std", "backtrace", "rstsr-core/default", "faer", "faer_as_default"]
+default = ["std", "backtrace", "rstsr-core/default", "faer", "faer_as_default", "rstsr-openblas?/openmp"]
 
 # rstsr-core features
 std = ["rstsr-core/std"]

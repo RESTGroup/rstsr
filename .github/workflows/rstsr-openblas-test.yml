@@ -37,3 +37,37 @@ jobs:
         python func_validation_f64.py
     - name: test
       run: RSTSR_DEV=1 cargo test -p rstsr-openblas --release --features="openmp linalg"
+
+  # Default features of `rstsr-openblas` are `linalg` + `openmp`; this job runs
+  # them against a pthread-built OpenBLAS, which takes the `OPENBLAS_THREAD`
+  # runtime path (the OpenMP runtime is still linked, but unused by OpenBLAS).
+  unittests-pthread:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: conda-incubator/setup-miniconda@v2
+      with:
+        miniconda-version: "latest"
+    - name: install dependencies
+      run: sudo apt-get install -y libopenblas-pthread-dev
+    - name: conda environment setup
+      run: |
+        conda init; source $HOME/.bashrc; conda activate
+        conda install -y numpy scipy
+    - name: manifest initialization
+      run: |
+        conda init; source $HOME/.bashrc; conda activate
+        cd rstsr-test-manifest/resources
+        python gen_rand_vec.py
+    - name: validate manifest (driver_validation_f64)
+      run: |
+        conda init; source $HOME/.bashrc; conda activate
+        cd crates-device/rstsr-openblas/tests/driver_impl
+        python driver_validation_f64.py
+    - name: validate manifest (func_validation_f64)
+      run: |
+        conda init; source $HOME/.bashrc; conda activate
+        cd crates-device/rstsr-openblas/tests/linalg_func
+        python func_validation_f64.py
+    - name: test
+      run: RSTSR_DEV=1 cargo test -p rstsr-openblas --release -- --test-threads=1
