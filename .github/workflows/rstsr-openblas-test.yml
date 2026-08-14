@@ -71,3 +71,9 @@ jobs:
         python func_validation_f64.py
     - name: test
       run: RSTSR_DEV=1 cargo test -p rstsr-openblas --release -- --test-threads=1
+      env:
+        # Ubuntu noble's libopenblas0-pthread (0.3.26) overflows libtest's default
+        # 2 MiB test-thread stack in driver_impl LAPACK tests (pthread builds run
+        # parallel LAPACK work on the calling thread's stack). Local 0.3.34 pthread
+        # builds pass even with 512 KiB, so this is specific to the distro build.
+        RUST_MIN_STACK: 16777216
