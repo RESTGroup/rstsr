@@ -247,8 +247,7 @@ where
 
 impl<R, T, B, D> TensorAny<R, T, B, D>
 where
-    R: DataCloneAPI<Data = B::Raw>,
-    B::Raw: Clone,
+    R: DataAPI<Data = B::Raw>,
     T: Clone,
     D: DimAPI,
     B: DeviceAPI<T>,
@@ -256,13 +255,13 @@ where
     pub fn to_scalar_f(&self) -> Result<T> {
         let layout = self.layout();
         rstsr_assert_eq!(layout.size(), 1, InvalidLayout)?;
-        let storage = self.storage();
-        let vec = storage.to_cpu_vec()?;
-        // `to_cpu_vec` returns the raw underlying buffer (not a materialized copy),
-        // so the single element lives at the layout's offset - not index 0. Reading
-        // index 0 ignored slicing/indexing offsets, so e.g. `arange(10).i(9)` (a
-        // 0-d view at offset 9) wrongly returned 0 instead of 9.
-        Ok(vec[layout.offset()].clone())
+        // Read the single element at the layout offset directly via `get_index`,
+        // rather than materializing the whole buffer with `to_cpu_vec`. This avoids
+        // a full storage clone for a one-element read and works for non-CPU devices
+        // (which may not expose a cheap CPU `Vec`). Index 0 was previously read,
+        // ignoring slicing/indexing offsets, so e.g. `arange(10).i(9)` (a 0-d view
+        // at offset 9) wrongly returned 0 instead of 9.
+        Ok(self.storage().get_index(layout.offset()))
     }
 
     pub fn to_scalar(&self) -> T {
