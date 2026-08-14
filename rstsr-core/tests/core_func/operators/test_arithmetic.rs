@@ -118,10 +118,11 @@ mod custom_rem {
         // np.remainder(a, b)
         let a = rt::tensor_from_nested!([[10, 21], [33, 44]], &device);
         let b = rt::tensor_from_nested!([[3, 4], [5, 7]], &device);
-        // rt::rem (free function) is correct for 1-D and 2-D.
+        // rt::rem is the NumPy-compatible elementwise remainder.
         assert_equal(rt::rem(&a, &b), rt::tensor_from_nested!([[1, 1], [3, 2]], &device), None);
-        // BUG: the `%` (Rem) operator returns garbage ([135, 187, 319, 440]) instead of
-        // [[1,1],[3,2]], while the `+ - * /` operators and rt::rem are correct.
-        // See numpy_differences.md; the operator is therefore not asserted here.
+        // RSTSR's `%` (Rem) operator is intentionally matrix multiplication, not
+        // remainder (the elementwise rem binding is commented out so the matmul Rem
+        // impl in linalg/matmul.rs applies). a % b == a.matmul(b) == [[135, 187], [319, 440]].
+        assert_equal(&a % &b, rt::tensor_from_nested!([[135, 187], [319, 440]], &device), None);
     }
 }

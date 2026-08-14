@@ -285,16 +285,19 @@ auto-impl is missing (no impl for `&Tensor`, owned `Tensor`, or
 `DeviceCpuSerial`). The parity test derives `ne = not(eq)` for the value check.
 When implemented, replace that with `rt::ne(&a, &b)`.
 
-## The `%` (`Rem`) operator returns garbage; `rt::rem` is correct
+## The `%` operator is matrix multiplication, not remainder
 
-- **numpy:** `np.remainder` / Python `%`.
+- **numpy:** `np.remainder` / Python `%` (elementwise remainder).
 - **rstsr:** entry_row_cpu::core_func::operators::test_arithmetic::custom_rem
-- **tag:** bug
+- **tag:** intentional
 - **status:** open
 
-The free function `rt::rem(&a, &b)` returns the correct remainder for both 1-D
-and 2-D integer tensors (`[1, 1, 3, 2]` / `[[1, 1], [3, 2]]`). The overloaded
-`%` operator (`&a % &b`) returns **garbage** — e.g. `[135, 187, 319, 440]`
-instead of `[1, 1, 3, 2]` for the same inputs — so the `Rem` tensor impl is
-wired incorrectly (the `+ - * /` operators are all correct). The parity test
-asserts `rt::rem` only and does not assert the `%` operator.
+In RSTSR the `%` (`Rem`) operator is bound to **matrix multiplication**
+(`a % b == a.matmul(b)`), not elementwise remainder. The elementwise
+`rem`→`Rem` binding is deliberately commented out in the core-ops module
+(`op_binary_arithmetic.rs`), so the matmul `Rem` impl (`linalg/matmul.rs`)
+applies instead. For example, with `a = [[10, 21], [33, 44]]` and
+`b = [[3, 4], [5, 7]]`, `a % b` returns the matrix product `[[135, 187], [319, 440]]`
+(not the elementwise remainder `[[1, 1], [3, 2]]`). The free function
+`rt::rem(&a, &b)` provides the NumPy-compatible elementwise remainder; the
+parity test asserts both `rt::rem` (remainder) and `a % b` (matmul) accordingly.
