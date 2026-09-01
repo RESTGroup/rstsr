@@ -280,7 +280,8 @@ where
             // initialize sequential parts
             let mut vacc = vec![init(); size_mc];
             // iterate the reduction parts
-            // - chunk to contiguous output (current chunk size is small, but applicable to most situations)
+            // - chunk to contiguous output (current chunk size is small, but applicable to most
+            //   situations)
             const CHUNK: usize = 48;
             vacc.chunks_mut(CHUNK).enumerate().for_each(|(i_chunk, vacc_chunk)| {
                 let start = i_chunk * CHUNK;
@@ -341,15 +342,16 @@ where
             it_ocd.clone().for_each(|idx_ocd| {
                 let idx_o0 = idx_o0 + idx_ocd - offset; // double-counted offset
 
-                // Safety: the c/d part without broadcast should have been initialized by reduced value
+                // Safety: the c/d part without broadcast should have been initialized by reduced
+                // value
                 let val = unsafe { out[idx_ocd].assume_init_read().clone() };
                 out[idx_o0].write(val);
             });
         });
     }
 
-    // Safety: all broadcast, discontiguous, contiguous parts have been handled, the `out` is now fully
-    // initialized, transmute it to the output type
+    // Safety: all broadcast, discontiguous, contiguous parts have been handled, the `out` is now
+    // fully initialized, transmute it to the output type
     let mut out = unsafe { transmute::<Vec<MaybeUninit<TO>>, Vec<TO>>(out) };
 
     // handle tensor iter order

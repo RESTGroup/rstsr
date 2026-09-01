@@ -70,8 +70,9 @@ mod impl_half {
             ux_i += 1;
         }
 
-        let e = ux_i & 0x7C00_u16; // Exponent mask for f16 (5 exponent bits)
-                                   // raise overflow if ux_f is infinite and x is finite
+        // Exponent mask for f16 (5 exponent bits)
+        // raise overflow if ux_f is infinite and x is finite
+        let e = ux_i & 0x7C00_u16;
         if e == 0x7C00_u16 {
             force_eval!(x + x);
         }
@@ -110,8 +111,9 @@ mod impl_half {
             ux_i += 1;
         }
 
-        let e = ux_i & 0x7F80_u16; // Exponent mask for bf16 (8 exponent bits)
-                                   // raise overflow if ux_f is infinite and x is finite
+        // Exponent mask for bf16 (8 exponent bits)
+        // raise overflow if ux_f is infinite and x is finite
+        let e = ux_i & 0x7F80_u16;
         if e == 0x7F80_u16 {
             force_eval!(x + x);
         }

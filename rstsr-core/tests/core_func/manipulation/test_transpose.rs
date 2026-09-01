@@ -56,8 +56,8 @@ mod numpy_transpose {
 
     #[test]
     fn test_regression_arr_transpose() {
-        // NumPy v2.5.2, _core/tests/test_regression.py, TestRegression::test_arr_transpose (line 786)
-        // Ticket #516 - High dimensional transpose
+        // NumPy v2.5.2, _core/tests/test_regression.py, TestRegression::test_arr_transpose (line
+        // 786) Ticket #516 - High dimensional transpose
         crate::specify_test!("test_regression_arr_transpose");
 
         let mut device = TESTCFG.device.clone();

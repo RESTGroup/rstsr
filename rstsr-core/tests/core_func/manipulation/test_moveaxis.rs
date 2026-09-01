@@ -33,7 +33,8 @@ mod numpy_moveaxis {
 
     #[test]
     fn test_move_new_position() {
-        // NumPy v2.5.2, _core/tests/test_numeric.py, TestMoveaxis::test_move_new_position (line 3902)
+        // NumPy v2.5.2, _core/tests/test_numeric.py, TestMoveaxis::test_move_new_position (line
+        // 3902)
         crate::specify_test!("test_move_new_position");
 
         let mut device = TESTCFG.device.clone();

@@ -26,17 +26,18 @@ where
     // However, it only works for types that from/to primitives implemented.
     // Also, it only works for integer types because of the precision issue.
 
-    // We just try to convert to isize. We believe it's really rare case that usize is used in arange;
-    // and anyway, fallback is always available with efficiency loss.
+    // We just try to convert to isize. We believe it's really rare case that usize is used in
+    // arange; and anyway, fallback is always available with efficiency loss.
     let (start_, end_, step_) = (start.to_isize()?, end.to_isize()?, step.to_isize()?);
     let n = Float::ceil((end_ - start_) as f64 / step_ as f64).to_isize()?;
 
     // The unwrap here is probably safe, since start/end/nstep are all checked.
-    // `Some(map(option.unwrap).collect())` is much faster than `map(option).collect()` in this case, so
-    // decided unwrap here.
+    // `Some(map(option.unwrap).collect())` is much faster than `map(option).collect()` in this
+    // case, so decided unwrap here.
     let mut result: Vec<T> = (0..n).map(|i| T::from_isize(start_ + i * step_).unwrap()).collect();
 
-    // the interval may be open on the right, so we need to pop the last element if it's out of range.
+    // the interval may be open on the right, so we need to pop the last element if it's out of
+    // range.
     let last_val = result.last().cloned();
     if (step_ > 0 && last_val.as_ref().is_some_and(|x| *x >= end))
         || (step_ < 0 && last_val.as_ref().is_some_and(|x| *x <= end))
@@ -54,7 +55,8 @@ where
     let n = Float::ceil((end_ - start_) / step_).to_usize()?;
     let mut result: Vec<T> = (0..n).map(|i| T::from_f64(start_ + i as f64 * step_).unwrap()).collect();
 
-    // the interval may be open on the right, so we need to pop the last element if it's out of range.
+    // the interval may be open on the right, so we need to pop the last element if it's out of
+    // range.
     let last_val = result.last().cloned();
     if (step_ > 0.0 && last_val.as_ref().is_some_and(|x| *x >= end))
         || (step_ < 0.0 && last_val.as_ref().is_some_and(|x| *x <= end))

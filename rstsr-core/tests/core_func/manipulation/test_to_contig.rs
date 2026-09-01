@@ -92,7 +92,8 @@ mod test_to_contig_behavior {
         device.set_default_order(RowMajor);
 
         let a = rt::arange((24, &device)).into_shape([4, 6]);
-        let sliced = a.i((slice!(None, None, 2), slice!(None, None, 2))); // Every other row and column
+        // Every other row and column
+        let sliced = a.i((slice!(None, None, 2), slice!(None, None, 2)));
 
         println!("Sliced shape: {:?}", sliced.shape());
         println!("Sliced stride: {:?}", sliced.stride());

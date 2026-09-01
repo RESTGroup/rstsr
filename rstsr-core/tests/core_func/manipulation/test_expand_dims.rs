@@ -62,7 +62,8 @@ mod numpy_expand_dims {
 
     #[test]
     fn test_axis_out_of_range() {
-        // NumPy v2.5.2, lib/tests/test_shape_base.py, TestExpandDims::test_axis_out_of_range (line 325)
+        // NumPy v2.5.2, lib/tests/test_shape_base.py, TestExpandDims::test_axis_out_of_range (line
+        // 325)
         crate::specify_test!("test_axis_out_of_range");
 
         let mut device = TESTCFG.device.clone();

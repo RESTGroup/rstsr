@@ -13,7 +13,8 @@ mod numpy_count_nonzero {
 
     #[test]
     fn test_numeric() {
-        // NumPy v2.5.2, _core/tests/test_numeric.py, TestNonarrayArgs::test_count_nonzero (line 126)
+        // NumPy v2.5.2, _core/tests/test_numeric.py, TestNonarrayArgs::test_count_nonzero (line
+        // 126)
         crate::specify_test!("test_numeric");
 
         let mut device = TESTCFG.device.clone();

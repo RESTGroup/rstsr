@@ -85,8 +85,8 @@ fn link_openblas(dirs: &[PathBuf]) {
     }
 
     // 2) versioned, e.g. libopenblas.0.dylib / libopenblas.so.0. Skip arch-tagged variants
-    //    (libopenblasp-r0.3.33.dylib, libopenblas_armv8p-r0.3.33.dylib, ...) by requiring a digit right
-    //    after `libopenblas.`.
+    //    (libopenblasp-r0.3.33.dylib, libopenblas_armv8p-r0.3.33.dylib, ...) by requiring a digit
+    //    right after `libopenblas.`.
     for d in dirs {
         let Ok(entries) = std::fs::read_dir(d) else {
             continue;

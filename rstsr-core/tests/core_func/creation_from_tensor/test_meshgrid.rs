@@ -47,7 +47,8 @@ mod numpy_meshgrid {
 
     #[test]
     fn test_single_input() {
-        // NumPy v2.5.2, lib/tests/test_function_base.py, TestMeshgrid::test_single_input (line 2780)
+        // NumPy v2.5.2, lib/tests/test_function_base.py, TestMeshgrid::test_single_input (line
+        // 2780)
         crate::specify_test!("test_single_input");
 
         let mut device = TESTCFG.device.clone();

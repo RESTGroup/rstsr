@@ -13,8 +13,9 @@ mod numpy_matmul {
 
     #[test]
     fn test_vector_vector_values() {
-        // NumPy v2.5.2, _core/tests/test_multiarray.py, MatmulCommon::test_vector_vector_values (line 7869)
-        // NumPy iterates dtypes + a bool case; rstsr transfers the i32 value cases.
+        // NumPy v2.5.2, _core/tests/test_multiarray.py, MatmulCommon::test_vector_vector_values
+        // (line 7869) NumPy iterates dtypes + a bool case; rstsr transfers the i32 value
+        // cases.
         crate::specify_test!("test_vector_vector_values");
 
         let mut device = TESTCFG.device.clone();
@@ -33,7 +34,8 @@ mod numpy_matmul {
 
     #[test]
     fn test_vector_matrix_values() {
-        // NumPy v2.5.2, _core/tests/test_multiarray.py, MatmulCommon::test_vector_matrix_values (line 7888)
+        // NumPy v2.5.2, _core/tests/test_multiarray.py, MatmulCommon::test_vector_matrix_values
+        // (line 7888)
         crate::specify_test!("test_vector_matrix_values");
 
         let mut device = TESTCFG.device.clone();
@@ -48,7 +50,8 @@ mod numpy_matmul {
 
     #[test]
     fn test_matrix_vector_values() {
-        // NumPy v2.5.2, _core/tests/test_multiarray.py, MatmulCommon::test_matrix_vector_values (line 7915)
+        // NumPy v2.5.2, _core/tests/test_multiarray.py, MatmulCommon::test_matrix_vector_values
+        // (line 7915)
         crate::specify_test!("test_matrix_vector_values");
 
         let mut device = TESTCFG.device.clone();
@@ -63,7 +66,8 @@ mod numpy_matmul {
 
     #[test]
     fn test_matrix_matrix_values() {
-        // NumPy v2.5.2, _core/tests/test_multiarray.py, MatmulCommon::test_matrix_matrix_values (line 7942)
+        // NumPy v2.5.2, _core/tests/test_multiarray.py, MatmulCommon::test_matrix_matrix_values
+        // (line 7942)
         crate::specify_test!("test_matrix_matrix_values");
 
         let mut device = TESTCFG.device.clone();

@@ -133,7 +133,8 @@ mod numpy_squeeze {
 
     #[test]
     fn test_squeeze_type() {
-        // NumPy v2.5.2, _core/tests/test_regression.py, TestRegression::test_squeeze_type (line 285)
+        // NumPy v2.5.2, _core/tests/test_regression.py, TestRegression::test_squeeze_type (line
+        // 285)
         crate::specify_test!("test_squeeze_type");
 
         let mut device = TESTCFG.device.clone();
@@ -159,7 +160,8 @@ mod numpy_squeeze {
 
     #[test]
     fn test_squeeze_contiguous() {
-        // NumPy v2.5.2, _core/tests/test_regression.py, TestRegression::test_squeeze_contiguous (line 1695)
+        // NumPy v2.5.2, _core/tests/test_regression.py, TestRegression::test_squeeze_contiguous
+        // (line 1695)
         crate::specify_test!("test_squeeze_contiguous");
 
         let mut device = TESTCFG.device.clone();

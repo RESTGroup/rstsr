@@ -32,7 +32,8 @@ mod numpy_concatenate {
 
     #[test]
     fn test_returns_copy() {
-        // NumPy v2.5.2, _core/tests/test_shape_base.py, TestConcatenate::test_returns_copy (line 249)
+        // NumPy v2.5.2, _core/tests/test_shape_base.py, TestConcatenate::test_returns_copy (line
+        // 249)
         crate::specify_test!("test_returns_copy");
 
         let mut device = TESTCFG.device.clone();
@@ -115,7 +116,8 @@ mod numpy_concatenate {
 
     #[test]
     fn test_concatenate() {
-        // NumPy v2.5.2, _core/tests/test_shape_base.py, TestConcatenate::test_concatenate (line 344)
+        // NumPy v2.5.2, _core/tests/test_shape_base.py, TestConcatenate::test_concatenate (line
+        // 344)
         crate::specify_test!("test_concatenate");
 
         let mut device = TESTCFG.device.clone();

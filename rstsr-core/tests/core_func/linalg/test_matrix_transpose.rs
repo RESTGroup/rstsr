@@ -13,8 +13,8 @@ mod numpy_matrix_transpose {
 
     #[test]
     fn test_raises_error_for_1d() {
-        // NumPy v2.5.2, _core/tests/test_arrayobject.py, test_matrix_transpose_raises_error_for_1d (line
-        // 10)
+        // NumPy v2.5.2, _core/tests/test_arrayobject.py, test_matrix_transpose_raises_error_for_1d
+        // (line 10)
         crate::specify_test!("test_raises_error_for_1d");
 
         let mut device = TESTCFG.device.clone();
@@ -27,8 +27,8 @@ mod numpy_matrix_transpose {
 
     #[test]
     fn test_equals_transpose_2d() {
-        // NumPy v2.5.2, _core/tests/test_arrayobject.py, test_matrix_transpose_equals_transpose_2d (line
-        // 17)
+        // NumPy v2.5.2, _core/tests/test_arrayobject.py, test_matrix_transpose_equals_transpose_2d
+        // (line 17)
         crate::specify_test!("test_equals_transpose_2d");
 
         let mut device = TESTCFG.device.clone();
@@ -41,9 +41,9 @@ mod numpy_matrix_transpose {
 
     #[test]
     fn test_equals_swapaxes() {
-        // NumPy v2.5.2, _core/tests/test_arrayobject.py, test_matrix_transpose_equals_swapaxes (line 30)
-        // mT swaps the last two axes; equivalent to swapaxes(-2, -1). Parametrized over
-        // (5,2), (5,2,3), (5,2,3,4) in NumPy.
+        // NumPy v2.5.2, _core/tests/test_arrayobject.py, test_matrix_transpose_equals_swapaxes
+        // (line 30) mT swaps the last two axes; equivalent to swapaxes(-2, -1).
+        // Parametrized over (5,2), (5,2,3), (5,2,3,4) in NumPy.
         crate::specify_test!("test_equals_swapaxes");
 
         let mut device = TESTCFG.device.clone();

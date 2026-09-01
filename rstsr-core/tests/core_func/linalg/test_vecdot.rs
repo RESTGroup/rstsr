@@ -95,7 +95,8 @@ mod numpy_vecdot {
 
     #[test]
     fn test_vecdot_complex() {
-        // NumPy v2.5.2, _core/tests/test_ufunc.py, TestUfunc::test_vecdot_matvec_vecmat_complex (line 875)
+        // NumPy v2.5.2, _core/tests/test_ufunc.py, TestUfunc::test_vecdot_matvec_vecmat_complex
+        // (line 875)
         crate::specify_test!("test_vecdot_complex");
 
         let mut device = TESTCFG.device.clone();

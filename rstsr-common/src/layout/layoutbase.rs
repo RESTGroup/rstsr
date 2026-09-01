@@ -449,8 +449,8 @@ where
             InvalidLayout,
             "number of elements in axes should be the same to number of dimensions."
         )?;
-        // normalize axes; since we have checked number of elements, and not allowed duplicate, so no other
-        // check is needed for axes
+        // normalize axes; since we have checked number of elements, and not allowed duplicate, so
+        // no other check is needed for axes
         let axes = normalize_axes_index(axes.into(), n, false, false)?;
         let axes = axes.into_iter().map(|a| a as usize).collect::<Vec<usize>>();
 

@@ -63,7 +63,8 @@ where
         // sort shape and strides if keep shape
         // - (shape = 1 / stride = 0) the smallest (pointer not moving for these cases)
         // - if (shape = 1 / stride = 0, broadcastable axes) preserve order
-        // - (larger shape first) if not broadcastable axes, then compare stride size (smaller stride first)
+        // - (larger shape first) if not broadcastable axes, then compare stride size (smaller
+        //   stride first)
         index.sort_by(|&i1, &i2| {
             let d1 = shape_old[i1 as usize];
             let d2 = shape_old[i2 as usize];

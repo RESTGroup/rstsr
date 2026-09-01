@@ -40,7 +40,8 @@ impl<B> TestCfg<B> {
             return false;
         }
         // Only the sequence that starts with the prefix of test_name is allowed.
-        // For example, test_name `A::B::C::D`, then `A::B` will allow the test, but `B::C` will not.
+        // For example, test_name `A::B::C::D`, then `A::B` will allow the test, but `B::C` will
+        // not.
         if let Some(allow) = &self.allow {
             if !allow.iter().any(|allow| test_name.starts_with(allow)) {
                 if self.verbose {

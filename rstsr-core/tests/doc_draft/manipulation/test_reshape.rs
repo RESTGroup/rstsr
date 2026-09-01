@@ -46,7 +46,8 @@ mod doc_reshape {
         let b = a.reshape([3, 2]);
         let a_vec = a.iter().collect::<Vec<_>>();
         let b_vec = b.iter().collect::<Vec<_>>();
-        assert_eq!(a_vec, b_vec); // iterated sequence is the same
+        // iterated sequence is the same
+        assert_eq!(a_vec, b_vec);
 
         let mut device = DeviceCpu::default();
         device.set_default_order(ColMajor);
@@ -54,8 +55,10 @@ mod doc_reshape {
         let b = a.reshape([3, 2]);
         let a_c_vec = a.iter().collect::<Vec<_>>();
         let b_c_vec = b.iter().collect::<Vec<_>>();
-        assert_eq!(a_c_vec, b_c_vec); // iterated sequence is the same
-        assert_ne!(a_c_vec, a_vec); // iterated sequence is different from row-major
+        // iterated sequence is the same
+        assert_eq!(a_c_vec, b_c_vec);
+        // iterated sequence is different from row-major
+        assert_ne!(a_c_vec, a_vec);
 
         // Row-major reshape
         let mut device = DeviceCpu::default();
@@ -82,7 +85,8 @@ mod doc_reshape {
         let b_vec = b.iter().cloned().collect::<Vec<_>>();
         println!("{b_vec:?}");
         // [0, 1, 2, 3, 4, 5]
-        assert_eq!(a_vec, b_vec); // iterated sequence is the same
+        // iterated sequence is the same
+        assert_eq!(a_vec, b_vec);
         assert_eq!(a_vec, vec![0, 1, 2, 3, 4, 5]);
 
         // Column-major reshape
@@ -110,7 +114,8 @@ mod doc_reshape {
         let b_vec = b.iter().cloned().collect::<Vec<_>>();
         println!("{b_vec:?}");
         // [0, 3, 1, 4, 2, 5]
-        assert_eq!(a_vec, b_vec); // iterated sequence is the same
+        // iterated sequence is the same
+        assert_eq!(a_vec, b_vec);
         assert_eq!(a_vec, vec![0, 3, 1, 4, 2, 5]);
     }
 
@@ -134,22 +139,30 @@ mod doc_reshape {
         // reshape that does not require clone (outputs tensor view)
 
         // split a single dimension into multiple dimensions
-        assert!(!a.reshape([2, 2, 6, 9]).is_owned()); // (4, 6, 9) -> ([2, 2], 6, 9)
-        assert!(!a.reshape([4, 3, 2, 9]).is_owned()); // (4, 6, 9) -> (4, [3, 2], 9)
-        assert!(!a.reshape([4, 2, 3, 3, 3]).is_owned()); // (4, 6, 9) -> (4, [2, 3], [3, 3])
+        // (4, 6, 9) -> ([2, 2], 6, 9)
+        assert!(!a.reshape([2, 2, 6, 9]).is_owned());
+        // (4, 6, 9) -> (4, [3, 2], 9)
+        assert!(!a.reshape([4, 3, 2, 9]).is_owned());
+        // (4, 6, 9) -> (4, [2, 3], [3, 3])
+        assert!(!a.reshape([4, 2, 3, 3, 3]).is_owned());
 
         // merge contiguous dimensions into a single dimension
-        assert!(!a.reshape([4, 54]).is_owned()); // (4, 6, 9) -> (4, 6 * 9)
+        // (4, 6, 9) -> (4, 6 * 9)
+        assert!(!a.reshape([4, 54]).is_owned());
 
         // merge contiguous dimensions and then split
-        assert!(!a.reshape([4, 3, 6, 3]).is_owned()); // (4, [6, 9]) -> (4, [3, 6, 3])
+        // (4, [6, 9]) -> (4, [3, 6, 3])
+        assert!(!a.reshape([4, 3, 6, 3]).is_owned());
 
         // reshape that requires clone (outputs owned tensor)
 
         // merge non-contiguous dimensions
-        assert!(a.reshape([24, 9]).is_owned()); // (4, 6, 9) -> (4 * 6, 9)
-        assert!(a.reshape(-1).is_owned()); // (4, 6, 9) -> (4 * 6 * 9)
-        assert!(a.reshape([12, 2, 9]).is_owned()); // (4, 6, 9) -> (4 * [3, 2], 9)
+        // (4, 6, 9) -> (4 * 6, 9)
+        assert!(a.reshape([24, 9]).is_owned());
+        // (4, 6, 9) -> (4 * 6 * 9)
+        assert!(a.reshape(-1).is_owned());
+        // (4, 6, 9) -> (4 * [3, 2], 9)
+        assert!(a.reshape([12, 2, 9]).is_owned());
     }
 
     #[test]
@@ -168,8 +181,10 @@ mod doc_reshape {
         // shape: [4, 6, 9], stride: [1, 4, 32], offset: 0
 
         // merge contiguous dimensions into a single dimension
-        assert!(a.reshape([4, 54]).is_owned()); // (4, 6, 9) -> (4, 6 * 9)
-        assert!(!a.reshape([24, 9]).is_owned()); // ([4, 6], 9) -> (4 * 6, 9)
+        // (4, 6, 9) -> (4, 6 * 9)
+        assert!(a.reshape([4, 54]).is_owned());
+        // ([4, 6], 9) -> (4 * 6, 9)
+        assert!(!a.reshape([24, 9]).is_owned());
     }
 
     #[test]
@@ -217,22 +232,30 @@ mod doc_reshape {
         // reshape that does not require clone (outputs tensor view)
 
         // split a single dimension into multiple dimensions
-        assert!(a.reshape_with_args_f([2, 2, 6, 9], false).is_ok()); // (4, 6, 9) -> ([2, 2], 6, 9)
-        assert!(a.reshape_with_args_f([4, 3, 2, 9], false).is_ok()); // (4, 6, 9) -> (4, [3, 2], 9)
-        assert!(a.reshape_with_args_f([4, 2, 3, 3, 3], false).is_ok()); // (4, 6, 9) -> (4, [2, 3], [3, 3])
+        // (4, 6, 9) -> ([2, 2], 6, 9)
+        assert!(a.reshape_with_args_f([2, 2, 6, 9], false).is_ok());
+        // (4, 6, 9) -> (4, [3, 2], 9)
+        assert!(a.reshape_with_args_f([4, 3, 2, 9], false).is_ok());
+        // (4, 6, 9) -> (4, [2, 3], [3, 3])
+        assert!(a.reshape_with_args_f([4, 2, 3, 3, 3], false).is_ok());
 
         // merge contiguous dimensions into a single dimension
-        assert!(a.reshape_with_args_f([4, 54], false).is_ok()); // (4, 6, 9) -> (4, 6 * 9)
+        // (4, 6, 9) -> (4, 6 * 9)
+        assert!(a.reshape_with_args_f([4, 54], false).is_ok());
 
         // merge contiguous dimensions and then split
-        assert!(a.reshape_with_args_f([4, 3, 6, 3], false).is_ok()); // (4, [6, 9]) -> (4, [3, 6, 3])
+        // (4, [6, 9]) -> (4, [3, 6, 3])
+        assert!(a.reshape_with_args_f([4, 3, 6, 3], false).is_ok());
 
         // reshape that requires clone (outputs owned tensor)
 
         // merge non-contiguous dimensions
-        assert!(a.reshape_with_args_f([24, 9], false).is_err()); // (4, 6, 9) -> (4 * 6, 9)
-        assert!(a.reshape_with_args_f([-1], false).is_err()); // (4, 6, 9) -> (4 * 6 * 9)
-        assert!(a.reshape_with_args_f([12, 2, 9], false).is_err()); // (4, 6, 9) -> (4 * [3, 2], 9)
+        // (4, 6, 9) -> (4 * 6, 9)
+        assert!(a.reshape_with_args_f([24, 9], false).is_err());
+        // (4, 6, 9) -> (4 * 6 * 9)
+        assert!(a.reshape_with_args_f([-1], false).is_err());
+        // (4, 6, 9) -> (4 * [3, 2], 9)
+        assert!(a.reshape_with_args_f([12, 2, 9], false).is_err());
     }
 
     #[test]
@@ -251,7 +274,8 @@ mod doc_reshape {
         let a_ptr = a.raw().as_ptr();
         let b = a.into_shape([4, 54]);
         let b_ptr = b.raw().as_ptr();
-        assert_eq!(a_ptr, b_ptr); // contiguous dims merged, no data clone happened
+        // contiguous dims merged, no data clone happened
+        assert_eq!(a_ptr, b_ptr);
 
         // shape: (4, 6, 9), stride: (-54, 9, 1), not c-contiguous
         // contiguous situation: (4, [6, 9]); the first dimension is reversed
@@ -259,7 +283,8 @@ mod doc_reshape {
         let a_ptr = a.raw().as_ptr();
         let b = a.into_shape([24, 9]);
         let b_ptr = b.raw().as_ptr();
-        assert_ne!(a_ptr, b_ptr); // layout not compatible, data clone happened
+        // layout not compatible, data clone happened
+        assert_ne!(a_ptr, b_ptr);
 
         // shape: (4, 6, 9), stride: (72, 9, 1), not c-contiguous
         // contiguous situation: (4, [6, 9]), or say the last two dimensions are contiguous
@@ -267,6 +292,7 @@ mod doc_reshape {
         let a_ptr = a.raw().as_ptr();
         let b = a.into_shape([4, 54]);
         let b_ptr = b.raw().as_ptr();
-        assert_ne!(a_ptr, b_ptr); // layout-compatible, but input tensor is not compact (216 < 288)
+        // layout-compatible, but input tensor is not compact (216 < 288)
+        assert_ne!(a_ptr, b_ptr);
     }
 }

@@ -228,8 +228,8 @@ mod numpy_broadcast_arrays {
 
     #[test]
     fn test_incompatible_shapes_raise() {
-        // NumPy v2.5.2, lib/tests/test_stride_tricks.py, test_incompatible_shapes_raise_valueerror (line
-        // 175)
+        // NumPy v2.5.2, lib/tests/test_stride_tricks.py, test_incompatible_shapes_raise_valueerror
+        // (line 175)
         crate::specify_test!("test_incompatible_shapes_raise");
 
         let mut device = TESTCFG.device.clone();

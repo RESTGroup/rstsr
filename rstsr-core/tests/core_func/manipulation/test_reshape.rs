@@ -278,7 +278,8 @@ mod numpy_reshape {
 
     #[test]
     fn test_ravel_with_order() {
-        // NumPy v2.5.2, _core/tests/test_regression.py, TestRegression::test_ravel_with_order (line 80)
+        // NumPy v2.5.2, _core/tests/test_regression.py, TestRegression::test_ravel_with_order (line
+        // 80)
         crate::specify_test!("test_ravel_with_order");
 
         let mut device = TESTCFG.device.clone();

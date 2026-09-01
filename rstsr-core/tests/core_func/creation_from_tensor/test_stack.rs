@@ -61,7 +61,8 @@ mod numpy_stack {
 
         // all shapes for 2d input (10 arrays of shape (3, 4))
         // axes = [0, 1, 2, -1, -2, -3]
-        // expected_shapes = [(10, 3, 4), (3, 10, 4), (3, 4, 10), (3, 4, 10), (3, 10, 4), (10, 3, 4)]
+        // expected_shapes = [(10, 3, 4), (3, 10, 4), (3, 4, 10), (3, 4, 10), (3, 10, 4), (10, 3,
+        // 4)]
         let arrays2: Vec<Tensor<i64, _>> = (0..10).map(|_| rt::arange((12, &device)).into_shape([3, 4])).collect();
         for (axis, expected_shape) in [
             (0isize, vec![10, 3, 4]),

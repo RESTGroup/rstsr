@@ -17,7 +17,8 @@ mod numpy_indexing {
 
     #[test]
     fn test_single_int_index() {
-        // NumPy v2.5.2, _core/tests/test_indexing.py, TestIndexing::test_single_int_index (line 201)
+        // NumPy v2.5.2, _core/tests/test_indexing.py, TestIndexing::test_single_int_index (line
+        // 201)
         crate::specify_test!("test_single_int_index");
 
         let mut device = TESTCFG.device.clone();

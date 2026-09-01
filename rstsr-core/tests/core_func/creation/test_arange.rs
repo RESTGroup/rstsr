@@ -13,8 +13,9 @@ mod numpy_arange {
 
     #[test]
     fn test_start_stop_kwarg() {
-        // NumPy v2.5.2, _core/tests/test_multiarray.py, TestArange::test_start_stop_kwarg (line 10580)
-        // (value portion; Python keyword-call variants are compile-time typed in Rust)
+        // NumPy v2.5.2, _core/tests/test_multiarray.py, TestArange::test_start_stop_kwarg (line
+        // 10580) (value portion; Python keyword-call variants are compile-time typed in
+        // Rust)
         crate::specify_test!("test_start_stop_kwarg");
 
         let mut device = TESTCFG.device.clone();
