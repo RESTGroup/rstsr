@@ -215,16 +215,16 @@ mod numpy_reshape {
         let a = rt::tensor_from_nested!([[0, 1], [2, 3]], &device);
         let ravel_c = rt::tensor_from_nested!([0, 1, 2, 3], &device);
         let ravel_f = rt::tensor_from_nested!([0, 2, 1, 3], &device);
-        assert_equal(rt::reshape(&a, &[-1]), &ravel_c, None);
-        assert_equal(rt::reshape_with_args(&a, &[-1], ColMajor), &ravel_f, None);
+        assert_equal(rt::reshape(&a, [-1]), &ravel_c, None);
+        assert_equal(rt::reshape_with_args(&a, [-1], ColMajor), &ravel_f, None);
 
         // a = np.array([[0, 1], [2, 3]], order='F')  # F-contiguous
         // assert_equal(a.ravel(), [0, 1, 2, 3])
         // assert_equal(a.ravel(order='A'), [0, 2, 1, 3])   # 'A' == 'F' for F-contiguous input
         // N/A: order 'A' unsupported
         let a = rt::asarray((vec![0, 2, 1, 3], [2, 2].f(), &device));
-        assert_equal(rt::reshape(&a, &[-1]), &ravel_c, None);
-        assert_equal(rt::reshape_with_args(&a, &[-1], ColMajor), &ravel_f, None);
+        assert_equal(rt::reshape(&a, [-1]), &ravel_c, None);
+        assert_equal(rt::reshape_with_args(&a, [-1], ColMajor), &ravel_f, None);
 
         // a = np.array([[0, 1], [2, 3]])[::-1, :]  # negative-stride (flipped) input
         // assert_equal(a.ravel(), [2, 3, 0, 1])
@@ -232,8 +232,8 @@ mod numpy_reshape {
         let a = rt::tensor_from_nested!([[0, 1], [2, 3]], &device).into_flip(0);
         let ravel_c = rt::tensor_from_nested!([2, 3, 0, 1], &device);
         let ravel_f = rt::tensor_from_nested!([2, 0, 3, 1], &device);
-        assert_equal(rt::reshape(&a, &[-1]), &ravel_c, None);
-        assert_equal(rt::reshape_with_args(&a, &[-1], ColMajor), &ravel_f, None);
+        assert_equal(rt::reshape(&a, [-1]), &ravel_c, None);
+        assert_equal(rt::reshape_with_args(&a, [-1], ColMajor), &ravel_f, None);
     }
 
     #[test]
@@ -258,9 +258,9 @@ mod numpy_reshape {
         let x0 = rt::tensor_from_nested!([[1, 2, 3], [4, 5, 6]], &device);
         let y0 = rt::tensor_from_nested!([1, 2, 3, 4, 5, 6], &device);
         let y0f = rt::tensor_from_nested!([1, 4, 2, 5, 3, 6], &device);
-        assert_equal(rt::reshape(&x0, &[-1]), &y0, None);
-        assert_equal(rt::reshape_with_args(&x0, &[-1], ColMajor), &y0f, None);
-        assert_equal(rt::reshape_with_args(&x0, &[-1], ColMajor), x0.t().reshape(&[-1]), None);
+        assert_equal(rt::reshape(&x0, [-1]), &y0, None);
+        assert_equal(rt::reshape_with_args(&x0, [-1], ColMajor), &y0f, None);
+        assert_equal(rt::reshape_with_args(&x0, [-1], ColMajor), x0.t().reshape([-1]), None);
 
         // x1 = np.array([[[1, 2], [3, 4]], [[5, 6], [7, 8]]], np.int32)
         // y1 = np.array([1, 2, 3, 4, 5, 6, 7, 8], np.int32)
@@ -271,9 +271,9 @@ mod numpy_reshape {
         let x1 = rt::tensor_from_nested!([[[1, 2], [3, 4]], [[5, 6], [7, 8]]], &device);
         let y1 = rt::tensor_from_nested!([1, 2, 3, 4, 5, 6, 7, 8], &device);
         let y1f = rt::tensor_from_nested!([1, 5, 3, 7, 2, 6, 4, 8], &device);
-        assert_equal(rt::reshape(&x1, &[-1]), &y1, None);
-        assert_equal(rt::reshape_with_args(&x1, &[-1], ColMajor), &y1f, None);
-        assert_equal(rt::reshape_with_args(&x1, &[-1], ColMajor), x1.t().reshape(&[-1]), None);
+        assert_equal(rt::reshape(&x1, [-1]), &y1, None);
+        assert_equal(rt::reshape_with_args(&x1, [-1], ColMajor), &y1f, None);
+        assert_equal(rt::reshape_with_args(&x1, [-1], ColMajor), x1.t().reshape([-1]), None);
     }
 
     #[test]
@@ -288,7 +288,7 @@ mod numpy_reshape {
         // a = np.ones(2)
         // assert_(not a.ravel('F').flags.owndata)   # F-ravel of a C-contiguous 1-D array is a view
         let a: Tensor<i32, _> = rt::ones(([2], &device));
-        let r = rt::reshape_with_args(&a, &[-1], ColMajor);
+        let r = rt::reshape_with_args(&a, [-1], ColMajor);
         assert!(core::ptr::eq(a.as_ptr(), r.as_ptr()));
     }
 }
