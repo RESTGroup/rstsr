@@ -105,7 +105,7 @@ use core::mem::transmute;
 ///
 /// For a fallible version, use [`vecdot_f`].
 ///
-/// # See Also
+/// # See also
 ///
 /// ## Related functions in RSTSR
 ///

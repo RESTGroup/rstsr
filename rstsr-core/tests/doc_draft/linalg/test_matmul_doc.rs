@@ -24,6 +24,89 @@ mod doc_matmul {
         // [ 5 11]
         crate::test_utils::assert_equal(rt::matmul(&a, &b), rt::tensor_from_nested!([[3, 2], [7, 4]], &device), None);
         crate::test_utils::assert_equal(rt::matmul(&a, &v), rt::tensor_from_nested!([5, 11], &device), None);
+
+        // %-operator is matrix multiplication
+        println!("{}", &a % &b);
+        // [[ 3 2]
+        //  [ 7 4]]
+        assert_eq!(format!("{}", &a % &b), "[[ 3 2]\n [ 7 4]]");
+
+        // 1-D @ 1-D: inner product (scalar tensor)
+        let x = rt::tensor_from_nested!([1, 2, 3], &device);
+        let y = rt::tensor_from_nested!([4, 5, 6], &device);
+        let d = rt::matmul(&x, &y);
+        println!("{}", d);
+        // 32
+        assert_eq!(format!("{d}"), "32");
+    }
+}
+
+mod doc_matmul_batch {
+    use super::*;
+    static FUNC: &str = "doc_matmul_batch";
+
+    #[test]
+    fn test_doc() {
+        crate::specify_test!("test_doc");
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // batched: (2, 2, 3) @ (2, 3, 2) -> (2, 2, 2)
+        let a = rt::arange((12, &device)).into_shape([2, 2, 3]);
+        let b = rt::arange((12, &device)).into_shape([2, 3, 2]);
+        let c = rt::matmul(&a, &b);
+        println!("{c}");
+        // [[[ 10 13]
+        //   [ 28 40]]
+        //
+        //  [[ 172 193]
+        //   [ 244 274]]]
+        assert_eq!(format!("{c}"), "[[[ 10 13]\n  [ 28 40]]\n\n [[ 172 193]\n  [ 244 274]]]");
+
+        // broadcast batch dimensions: (2, 2, 3) @ (3, 2) -> (2, 2, 2)
+        let b = rt::arange((6, &device)).into_shape([3, 2]);
+        let c = rt::matmul(&a, &b);
+        println!("{c}");
+        // [[[ 10 13]
+        //   [ 28 40]]
+        //
+        //  [[ 46 67]
+        //   [ 64 94]]]
+        assert_eq!(format!("{c}"), "[[[ 10 13]\n  [ 28 40]]\n\n [[ 46 67]\n  [ 64 94]]]");
+    }
+}
+
+mod doc_matmul_from {
+    use super::*;
+    static FUNC: &str = "doc_matmul_from";
+
+    #[test]
+    fn test_doc() {
+        crate::specify_test!("test_doc");
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // c = beta * c + alpha * (a @ b)
+        let a = rt::tensor_from_nested!([[0.0, 1.0, 2.0], [3.0, 4.0, 5.0]], &device);
+        let b = rt::tensor_from_nested!([[0.0, 1.0], [2.0, 3.0], [4.0, 5.0]], &device);
+        let mut c: Tensor<f64, _> = rt::ones(([2, 2], &device));
+        rt::matmul_from(&mut c, &a, &b, 2.0, 1.5);
+        println!("{c}");
+        // [[ 21.5 27.5]
+        //  [ 57.5 81.5]]
+        assert_eq!(format!("{c}"), "[[ 21.5 27.5]\n [ 57.5 81.5]]");
+
+        let plain = a.matmul(&b);
+        // a @ b = [[ 10 13], [ 28 40]]
+        assert_eq!(format!("{plain}"), "[[ 10 13]\n [ 28 40]]");
+
+        // matmul_with_output writes the plain product into d
+        let mut d: Tensor<f64, _> = rt::zeros(([2, 2], &device));
+        rt::matmul_with_output(&a, &b, &mut d);
+        println!("{d}");
+        // [[ 10 13]
+        //  [ 28 40]]
+        assert_eq!(format!("{d}"), "[[ 10 13]\n [ 28 40]]");
     }
 }
 

@@ -26,7 +26,7 @@ tensor/manipulation/to_layout.rs,manipulation,full,postfix,P,legacy drift: # Arg
 tensor/asarray.rs,creation,full,postfix,P,Overloads Table exemplar
 tensor/linalg/vecdot.rs,linalg,full,postfix,P,legacy drift: # See Also capital-A
 tensor/linalg/matrix_transpose.rs,linalg,full,postfix,P,
-tensor/linalg/matmul.rs,linalg,full,todo,3,flagship; 0/14 documented
+tensor/linalg/matmul.rs,linalg,full,done,3,matmul/matmul_from/matmul_with_output full; %-as-matmul documented; _f and methods minimal; vecdot See-Also drift fixed
 tensor/creation.rs,creation,full,done,1,uplifted (anchors+overloads+row/col notices+examples+accordance); eye col-major shape divergence recorded in numpy_differences.md
 tensor/creation_from_tensor.rs,creation,full,done,1,uplifted; concat link typo fixed; API traits documented minimally
 tensor/indexing.rs,indexing,full,done,2,anchors slice/diagonal (+DiagonalArgs floor); variants and i/i_mut minimal; twins in doc_draft/indexing
