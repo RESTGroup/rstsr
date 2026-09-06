@@ -1,6 +1,15 @@
+//! Device conversion for tensors: transfer a tensor's data to another device
+//! (see [`TensorDeviceChangeAPI`]).
+
 use crate::prelude_dev::*;
 
 #[allow(clippy::type_complexity)]
+/// API trait for changing the device of a tensor.
+///
+/// - [`TensorDeviceChangeAPI::change_device`]: convert keeping the storage representation kind;
+/// - [`TensorDeviceChangeAPI::to_device`]: borrowing form (clone to the target device);
+/// - [`TensorDeviceChangeAPI::into_device`]: consuming form producing an owned tensor on the target
+///   device.
 pub trait TensorDeviceChangeAPI<'l, BOut>
 where
     BOut: DeviceRawAPI<Self::Type>,

@@ -1,8 +1,15 @@
+//! Element-wise iteration over tensors: [`TensorAny::iter`],
+//! [`TensorAny::iter_mut`], and their indexed variants.
+//!
+//! Iteration order follows the device default order ([`RowMajor`] iterates
+//! C-like, [`ColMajor`] F-like); see [`order_semantics`](crate::order_semantics).
+
 use crate::prelude_dev::*;
 use core::mem::transmute;
 
 /* #region elem view iterator */
 
+/// Iterator yielding element references of a tensor, in layout traversal order.
 pub struct IterVecView<'a, T, D>
 where
     D: DimDevAPI,
@@ -81,6 +88,41 @@ where
         self.iter_with_order_f(order)
     }
 
+    /// Iterate over the elements of the tensor by reference.
+    ///
+    /// Elements are yielded following the device default order: C-like
+    /// (row-major) sequence under [`RowMajor`], F-like (column-major) under
+    /// [`ColMajor`]; see [`order_semantics`](crate::order_semantics). Use
+    /// [`TensorAny::iter_with_order`] to pin the traversal order explicitly.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use rstsr::prelude::*;
+    /// # let mut device = DeviceCpu::default();
+    /// # device.set_default_order(RowMajor);
+    /// let a = rt::arange((6, &device)).into_shape([2, 3]);
+    /// let collected: Vec<i32> = a.iter().cloned().collect();
+    /// println!("{collected:?}");
+    /// // [0, 1, 2, 3, 4, 5]
+    /// # assert_eq!(collected, vec![0, 1, 2, 3, 4, 5]);
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// - Panics if the iterator cannot be constructed for the given layout.
+    ///
+    /// For a fallible version, use [`TensorAny::iter_f`].
+    ///
+    /// # See also
+    ///
+    /// ## Variants of this function
+    ///
+    /// - [`TensorAny::iter_f`]: fallible version.
+    /// - [`TensorAny::iter_with_order`] / [`TensorAny::iter_with_order_f`]: explicit traversal
+    ///   order.
+    /// - [`TensorAny::iter_mut`]: mutable element iteration.
+    /// - [`TensorAny::indexed_iter`]: iteration with logical indices.
     pub fn iter(&self) -> IterVecView<'a, T, D> {
         self.iter_f().rstsr_unwrap()
     }
@@ -90,6 +132,7 @@ where
 
 /* #region elem mut iterator */
 
+/// Iterator yielding mutable element references of a tensor.
 pub struct IterVecMut<'a, T, D>
 where
     D: DimDevAPI,
@@ -172,6 +215,32 @@ where
         self.iter_mut_with_order_f(order)
     }
 
+    /// Iterate over the elements of the tensor by mutable reference; see
+    /// [`TensorAny::iter`] for the traversal order.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use rstsr::prelude::*;
+    /// # let mut device = DeviceCpu::default();
+    /// # device.set_default_order(RowMajor);
+    /// let mut b: Tensor<i32, _> = rt::zeros(([2, 2], &device));
+    /// for (i, x) in b.iter_mut().enumerate() {
+    ///     *x = i as i32;
+    /// }
+    /// println!("{b}");
+    /// // [[ 0 1]
+    /// //  [ 2 3]]
+    /// # assert_eq!(format!("{b}"), "[[ 0 1]\n [ 2 3]]");
+    /// ```
+    ///
+    /// # See also
+    ///
+    /// ## Variants of this function
+    ///
+    /// - [`TensorAny::iter_mut_f`]: fallible version.
+    /// - [`TensorAny::iter_mut_with_order`]: explicit traversal order.
+    /// - [`TensorAny::iter`]: immutable element iteration.
     pub fn iter_mut(&'a mut self) -> IterVecMut<'a, T, D> {
         self.iter_mut_f().rstsr_unwrap()
     }
@@ -181,6 +250,7 @@ where
 
 /* #region elem view indexed iterator */
 
+/// Iterator yielding (logical index, element reference) pairs.
 pub struct IndexedIterVecView<'a, T, D>
 where
     D: DimDevAPI,
@@ -273,6 +343,24 @@ where
         self.indexed_iter_with_order_f(order)
     }
 
+    /// Iterate over (index, element) pairs; see [`TensorAny::iter`] for the
+    /// traversal order.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use rstsr::prelude::*;
+    /// # let mut device = DeviceCpu::default();
+    /// # device.set_default_order(RowMajor);
+    /// let a = rt::arange((6, &device)).into_shape([2, 3]);
+    /// let pairs: Vec<_> = a.indexed_iter().map(|(idx, v)| (idx.to_vec(), *v)).collect();
+    /// println!("{pairs:?}");
+    /// // [([0, 0], 0), ([0, 1], 1), ([0, 2], 2), ([1, 0], 3), ([1, 1], 4), ([1, 2], 5)]
+    /// ```
+    ///
+    /// # See also
+    ///
+    /// [`TensorAny::iter`].
     pub fn indexed_iter(&self) -> IndexedIterVecView<'a, T, D> {
         self.indexed_iter_f().rstsr_unwrap()
     }
@@ -281,6 +369,7 @@ where
 /* #endregion */
 
 /* #region elem mut col iterator */
+/// Iterator yielding (logical index, mutable element reference) pairs.
 pub struct IndexedIterVecMut<'a, T, D>
 where
     D: DimDevAPI,
@@ -378,6 +467,12 @@ where
         self.indexed_iter_mut_with_order_f(order)
     }
 
+    /// Mutable iteration over (index, element) pairs; see
+    /// [`TensorAny::indexed_iter`] and [`TensorAny::iter`].
+    ///
+    /// # See also
+    ///
+    /// [`TensorAny::indexed_iter`].
     pub fn indexed_iter_mut(&'a mut self) -> IndexedIterVecMut<'a, T, D> {
         self.indexed_iter_mut_f().rstsr_unwrap()
     }

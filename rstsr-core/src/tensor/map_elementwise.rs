@@ -1,3 +1,12 @@
+//! Element-wise mapping over tensors: [`TensorAny::map`], [`TensorAny::mapv`],
+//! [`TensorAny::mapi`], [`TensorAny::mapvi`], and their binary counterparts
+//! [`TensorAny::mapb`] / [`TensorAny::mapvb`], plus `*_fnmut` variants for
+//! non-`Send` closures.
+//!
+//! Naming: `mapv` passes elements by value (cloned), `mapi`/`mapvi` modify the
+//! tensor in place, and `mapb`/`mapvb` map two tensors (broadcast against each
+//! other) into a new one.
+
 use crate::prelude_dev::*;
 use core::mem::transmute;
 
@@ -32,6 +41,15 @@ where
 
     /// Call `f` by reference on each element and create a new tensor with the
     /// new values.
+    /// Map a `FnMut` function over every element, producing a new tensor.
+    ///
+    /// Non-`Send` (`FnMut`) counterpart of [`TensorAny::map`], for
+    /// closures that capture non-thread-safe state; single-threaded devices
+    /// only.
+    ///
+    /// # See also
+    ///
+    /// [`TensorAny::map`].
     pub fn map_fnmut<'f, TOut>(&self, f: impl FnMut(&T) -> TOut + 'f) -> Tensor<TOut, B, D>
     where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
@@ -53,6 +71,15 @@ where
 
     /// Call `f` by value on each element and create a new tensor with the new
     /// values.
+    /// Map a by-value `FnMut` function over every element.
+    ///
+    /// Non-`Send` (`FnMut`) counterpart of [`TensorAny::mapv`], for
+    /// closures that capture non-thread-safe state; single-threaded devices
+    /// only.
+    ///
+    /// # See also
+    ///
+    /// [`TensorAny::mapv`].
     pub fn mapv_fnmut<'f, TOut>(&self, mut f: impl FnMut(T) -> TOut + 'f) -> Tensor<TOut, B, D>
     where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
@@ -83,6 +110,15 @@ where
 
     /// Modify the tensor in place by calling `f` by mutable reference on each
     /// element.
+    /// Modify the tensor in place with a `FnMut` function.
+    ///
+    /// Non-`Send` (`FnMut`) counterpart of [`TensorAny::mapi`], for
+    /// closures that capture non-thread-safe state; single-threaded devices
+    /// only.
+    ///
+    /// # See also
+    ///
+    /// [`TensorAny::mapi`].
     pub fn mapi_fnmut<'f>(&mut self, f: impl FnMut(&mut T) + 'f)
     where
         R: DataMutAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
@@ -104,6 +140,15 @@ where
 
     /// Modify the tensor in place by calling `f` by value on each
     /// element.
+    /// Modify the tensor in place with a by-value `FnMut` function.
+    ///
+    /// Non-`Send` (`FnMut`) counterpart of [`TensorAny::mapvi`], for
+    /// closures that capture non-thread-safe state; single-threaded devices
+    /// only.
+    ///
+    /// # See also
+    ///
+    /// [`TensorAny::mapvi`].
     pub fn mapvi_fnmut<'f>(&mut self, f: impl FnMut(T) -> T + 'f)
     where
         R: DataMutAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
@@ -162,6 +207,15 @@ where
         Tensor::new_f(storage_c, lc)
     }
 
+    /// Map a two-argument `FnMut` function over two tensors.
+    ///
+    /// Non-`Send` (`FnMut`) counterpart of [`TensorAny::mapb`], for
+    /// closures that capture non-thread-safe state; single-threaded devices
+    /// only.
+    ///
+    /// # See also
+    ///
+    /// [`TensorAny::mapb`].
     pub fn mapb_fnmut<'f, R2, T2, D2, DOut, TOut>(
         &self,
         other: &TensorAny<R2, T2, B, D2>,
@@ -196,6 +250,15 @@ where
         self.mapb_fnmut_f(other, move |x, y| f(x.clone(), y.clone()))
     }
 
+    /// Map a by-value two-argument `FnMut` function over two tensors.
+    ///
+    /// Non-`Send` (`FnMut`) counterpart of [`TensorAny::mapvb`], for
+    /// closures that capture non-thread-safe state; single-threaded devices
+    /// only.
+    ///
+    /// # See also
+    ///
+    /// [`TensorAny::mapvb`].
     pub fn mapvb_fnmut<'f, R2, T2, D2, DOut, TOut>(
         &self,
         other: &TensorAny<R2, T2, B, D2>,
@@ -248,6 +311,55 @@ where
 
     /// Call `f` by reference on each element and create a new tensor with the
     /// new values.
+    /// Map a function over every element, producing a new tensor.
+    ///
+    /// The closure takes each element by reference and returns the mapped
+    /// value; the output dtype follows the closure's return type. The closure
+    /// must be `Send + Sync` (for parallel devices); for `FnMut` closures see
+    /// [`TensorAny::map_fnmut`].
+    ///
+    /// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
+    ///
+    /// # Parameters
+    ///
+    /// - `f`: the element-wise mapping function.
+    ///
+    /// # Returns
+    ///
+    /// - [`Tensor<TOut, B, D>`][`Tensor`]: the mapped tensor (same shape).
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use rstsr::prelude::*;
+    /// # let mut device = DeviceCpu::default();
+    /// # device.set_default_order(RowMajor);
+    /// let a = rt::arange((6, &device)).into_shape([2, 3]);
+    /// let b = a.map(|x| x * 2);
+    /// println!("{b}");
+    /// // [[ 0 2 4]
+    /// //  [ 6 8 10]]
+    /// # assert_eq!(format!("{b}"), "[[ 0 2 4]\n [ 6 8 10]]");
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// - Panics if the output storage cannot be allocated or written.
+    ///
+    /// For a fallible version, use [`TensorAny::map_f`].
+    ///
+    /// # See also
+    ///
+    /// ## Related functions in RSTSR
+    ///
+    /// - [`TensorAny::mapv`]: elements passed by value.
+    /// - [`TensorAny::mapi`]: in-place modification.
+    /// - [`TensorAny::mapb`]: two-tensor mapping.
+    /// - [`TensorAny::map_fnmut`]: `FnMut` (non-`Send`) closures.
+    ///
+    /// ## Variants of this function
+    ///
+    /// - [`TensorAny::map_f`]: fallible version.
     pub fn map<'f, TOut>(&self, f: impl Fn(&T) -> TOut + Send + Sync + 'f) -> Tensor<TOut, B, D>
     where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
@@ -269,6 +381,26 @@ where
 
     /// Call `f` by value on each element and create a new tensor with the new
     /// values.
+    /// Map a function over every element by value, producing a new tensor;
+    /// see [`TensorAny::map`].
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use rstsr::prelude::*;
+    /// # let mut device = DeviceCpu::default();
+    /// # device.set_default_order(RowMajor);
+    /// let a = rt::arange((6, &device)).into_shape([2, 3]);
+    /// let c = a.mapv(|x| x as f64 / 2.0);
+    /// println!("{c}");
+    /// // [[ 0 0.5 1]
+    /// //  [ 1.5 2 2.5]]
+    /// # assert_eq!(format!("{c}"), "[[ 0 0.5 1]\n [ 1.5 2 2.5]]");
+    /// ```
+    ///
+    /// # See also
+    ///
+    /// [`TensorAny::map`].
     pub fn mapv<'f, TOut>(&self, f: impl Fn(T) -> TOut + Send + Sync + 'f) -> Tensor<TOut, B, D>
     where
         B: DeviceAPI<TOut> + DeviceCreationAnyAPI<TOut>,
@@ -299,6 +431,26 @@ where
 
     /// Modify the tensor in place by calling `f` by mutable reference on each
     /// element.
+    /// Modify the tensor in place by mapping a function over every element;
+    /// see [`TensorAny::map`].
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use rstsr::prelude::*;
+    /// # let mut device = DeviceCpu::default();
+    /// # device.set_default_order(RowMajor);
+    /// let mut d = rt::arange((6, &device)).into_shape([2, 3]);
+    /// d.mapi(|x| *x += 1);
+    /// println!("{d}");
+    /// // [[ 1 2 3]
+    /// //  [ 4 5 6]]
+    /// # assert_eq!(format!("{d}"), "[[ 1 2 3]\n [ 4 5 6]]");
+    /// ```
+    ///
+    /// # See also
+    ///
+    /// [`TensorAny::map`].
     pub fn mapi<'f>(&mut self, f: impl Fn(&mut T) + Send + Sync + 'f)
     where
         R: DataMutAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
@@ -320,6 +472,12 @@ where
 
     /// Modify the tensor in place by calling `f` by value on each
     /// element.
+    /// Modify the tensor in place by mapping a by-value function over every
+    /// element; see [`TensorAny::map`] and [`TensorAny::mapi`].
+    ///
+    /// # See also
+    ///
+    /// [`TensorAny::map`].
     pub fn mapvi<'f>(&mut self, f: impl Fn(T) -> T + Send + Sync + 'f)
     where
         R: DataMutAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
@@ -378,6 +536,13 @@ where
         Tensor::new_f(storage_c, lc)
     }
 
+    /// Map a two-argument function over the elements of two tensors
+    /// (broadcast against each other), producing a new tensor; see
+    /// [`TensorAny::map`].
+    ///
+    /// # See also
+    ///
+    /// [`TensorAny::map`].
     pub fn mapb<'f, R2, T2, D2, DOut, TOut>(
         &self,
         other: &TensorAny<R2, T2, B, D2>,
@@ -412,6 +577,12 @@ where
         self.mapb_f(other, move |x, y| f(x.clone(), y.clone()))
     }
 
+    /// Map a by-value two-argument function over the elements of two tensors;
+    /// see [`TensorAny::map`] and [`TensorAny::mapb`].
+    ///
+    /// # See also
+    ///
+    /// [`TensorAny::map`].
     pub fn mapvb<'f, R2, T2, D2, DOut, TOut>(
         &self,
         other: &TensorAny<R2, T2, B, D2>,

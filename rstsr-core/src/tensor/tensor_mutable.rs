@@ -17,8 +17,12 @@ where
     B: DeviceRawAPI<T>,
     D: DimAPI,
 {
+    /// Owned tensor.
     Owned(Tensor<T, B, D>),
+    /// Mutable view of borrowed data.
     Mut(TensorMut<'a, T, B, D>),
+    /// Mutable view of non-compact data, paired with a pre-allocated compact
+    /// owned tensor to gather into when ownership is required.
     ToBeCloned(TensorMut<'a, T, B, D>, Tensor<T, B, D>),
 }
 

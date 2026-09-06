@@ -1,3 +1,11 @@
+//! Ownership conversions between tensor kinds: views ([`TensorAny::view`],
+//! [`TensorAny::view_mut`]), owned ([`TensorAny::into_owned`]), shared
+//! ([`TensorAny::into_shared`]), copy-on-write ([`TensorAny::into_cow`]), and
+//! scalar/buffer extraction ([`TensorAny::to_scalar`], [`TensorAny::to_vec`]).
+//!
+//! All conversions keep the layout unchanged; only the data ownership (or the
+//! gathered elements) differs.
+
 use crate::prelude_dev::*;
 
 /* #region basic conversion */
@@ -9,7 +17,42 @@ where
     B: DeviceAPI<T>,
     R: DataAPI<Data = B::Raw>,
 {
-    /// Get a view of tensor.
+    /// Get an immutable view of the tensor.
+    ///
+    /// The view shares the underlying data: reading through it always reflects
+    /// the original tensor, and no data is copied. This is the cheapest way to
+    /// pass a tensor to functions that only read it.
+    ///
+    /// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
+    ///
+    /// # Returns
+    ///
+    /// - [`TensorView<'_, T, B, D>`][`TensorView`]: a view sharing the data.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use rstsr::prelude::*;
+    /// # let mut device = DeviceCpu::default();
+    /// # device.set_default_order(RowMajor);
+    /// let a = rt::arange((6, &device)).into_shape([2, 3]);
+    /// let view = a.view();
+    /// println!("{view}");
+    /// // [[ 0 1 2]
+    /// //  [ 3 4 5]]
+    /// # assert_eq!(format!("{view}"), "[[ 0 1 2]\n [ 3 4 5]]");
+    /// ```
+    ///
+    /// # See also
+    ///
+    /// ## Related functions in RSTSR
+    ///
+    /// - [`TensorAny::view_mut`]: mutable view.
+    /// - [`TensorAny::to_owned`]: independent copy of the visible elements.
+    ///
+    /// ## Variants of this function
+    ///
+    /// - [`TensorViewAPI::view`]: trait form accepting `&Tensor` and views.
     pub fn view(&self) -> TensorView<'_, T, B, D> {
         let layout = self.layout().clone();
         let data = self.data().as_ref();
@@ -17,7 +60,43 @@ where
         unsafe { TensorBase::new_unchecked(storage, layout) }
     }
 
-    /// Get a mutable view of tensor.
+    /// Get a mutable view of the tensor.
+    ///
+    /// Writes through the view directly modify the original tensor; no data is
+    /// copied.
+    ///
+    /// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
+    ///
+    /// # Returns
+    ///
+    /// - [`TensorMut<'_, T, B, D>`][`TensorMut`]: a mutable view sharing the data.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use rstsr::prelude::*;
+    /// # let mut device = DeviceCpu::default();
+    /// # device.set_default_order(RowMajor);
+    /// let mut a: Tensor<i32, _> = rt::arange((6, &device)).into_shape([2, 3]);
+    /// let mut v = a.view_mut();
+    /// v += 10;
+    /// drop(v);
+    /// println!("{a}");
+    /// // [[ 10 11 12]
+    /// //  [ 13 14 15]]
+    /// # assert_eq!(format!("{a}"), "[[ 10 11 12]\n [ 13 14 15]]");
+    /// ```
+    ///
+    /// # See also
+    ///
+    /// ## Related functions in RSTSR
+    ///
+    /// - [`TensorAny::view`]: immutable view.
+    /// - [`slice_mut`](crate::tensor::indexing::slice_mut()): mutable view of a subsection.
+    ///
+    /// ## Variants of this function
+    ///
+    /// - [`TensorViewMutAPI::view_mut`]: trait form accepting `&mut Tensor`.
     pub fn view_mut(&mut self) -> TensorMut<'_, T, B, D>
     where
         R: DataMutAPI,
@@ -29,7 +108,36 @@ where
         unsafe { TensorBase::new_unchecked(storage, layout) }
     }
 
-    /// Convert current tensor into copy-on-write.
+    /// Convert the tensor into copy-on-write.
+    ///
+    /// No data is copied: an owned tensor keeps its buffer, and a view becomes
+    /// a view-backed [`TensorCow`]. The data is cloned only later, if a
+    /// mutation or [`TensorAny::into_owned`] requires it.
+    ///
+    /// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
+    ///
+    /// # Returns
+    ///
+    /// - [`TensorCow<'a, T, B, D>`][`TensorCow`]: copy-on-write tensor.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use rstsr::prelude::*;
+    /// # let mut device = DeviceCpu::default();
+    /// # device.set_default_order(RowMajor);
+    /// let a = rt::arange((6, &device));
+    /// let cow = a.into_cow();
+    /// println!("{cow}");
+    /// // [ 0 1 2 3 4 5]
+    /// # assert_eq!(format!("{cow}"), "[ 0 1 2 3 4 5]");
+    /// ```
+    ///
+    /// # See also
+    ///
+    /// ## Related functions in RSTSR
+    ///
+    /// - [`reshape`]/[`to_shape`]: conditional-copy conversions returning [`TensorCow`].
     pub fn into_cow<'a>(self) -> TensorCow<'a, T, B, D>
     where
         R: DataIntoCowAPI<'a>,
@@ -40,17 +148,16 @@ where
         unsafe { TensorBase::new_unchecked(storage, layout) }
     }
 
-    /// Convert tensor into owned tensor.
+    /// Convert the tensor into an owned tensor, keeping the layout unchanged.
     ///
-    /// Data is either moved or fully cloned.
-    /// Layout is not involved; i.e. all underlying data is moved or cloned
-    /// without changing layout.
+    /// The whole underlying buffer is moved if possible, or fully cloned; the
+    /// visible layout is never re-gathered.
     ///
     /// # See also
     ///
-    /// [`Tensor::into_owned`] keep data in some conditions, otherwise clone.
-    /// This function can avoid cases where data memory bulk is large, but
-    /// tensor view is small.
+    /// [`TensorAny::into_owned`] additionally handles non-compact layouts by
+    /// gathering the visible elements. Prefer this function when the memory
+    /// bulk is large but the visible tensor is small.
     pub fn into_owned_keep_layout(self) -> Tensor<T, B, D>
     where
         R::Data: Clone,
@@ -62,17 +169,17 @@ where
         unsafe { TensorBase::new_unchecked(storage, layout) }
     }
 
-    /// Convert tensor into shared tensor.
+    /// Convert the tensor into a shared ([`TensorArc`]) tensor, keeping the
+    /// layout unchanged.
     ///
-    /// Data is either moved or cloned.
-    /// Layout is not involved; i.e. all underlying data is moved or cloned
-    /// without changing layout.
+    /// The whole underlying buffer is moved if possible, or fully cloned; the
+    /// visible layout is never re-gathered.
     ///
     /// # See also
     ///
-    /// [`Tensor::into_shared`] keep data in some conditions, otherwise clone.
-    /// This function can avoid cases where data memory bulk is large, but
-    /// tensor view is small.
+    /// [`TensorAny::into_shared`] additionally handles non-compact layouts by
+    /// gathering the visible elements. Prefer this function when the memory
+    /// bulk is large but the visible tensor is small.
     pub fn into_shared_keep_layout(self) -> TensorArc<T, B, D>
     where
         R::Data: Clone,
@@ -93,6 +200,57 @@ where
     T: Clone,
     B: DeviceAPI<T> + DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, D>,
 {
+    /// Convert the tensor into an owned tensor.
+    ///
+    /// If the layout covers the whole underlying buffer (compact), the buffer is
+    /// moved; otherwise the visible elements are gathered (in
+    /// [`TensorIterOrder::K`] arrangement) into a fresh owned tensor. In both
+    /// cases the returned tensor owns its data and the logical content is
+    /// unchanged.
+    ///
+    /// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
+    ///
+    /// # Returns
+    ///
+    /// - [`Tensor<T, B, D>`][`Tensor`]: owned tensor with the same logical content.
+    ///
+    /// # Examples
+    ///
+    /// A sliced (non-compact) view is gathered into a fresh owned tensor:
+    ///
+    /// ```rust
+    /// # use rstsr::prelude::*;
+    /// # let mut device = DeviceCpu::default();
+    /// # device.set_default_order(RowMajor);
+    /// let a = rt::arange((24, &device)).into_shape([2, 3, 4]);
+    /// let v = a.into_slice((.., .., 0..2));
+    /// let o = v.into_owned();
+    /// println!("{o}");
+    /// // [[[ 0 1]
+    /// //   [ 4 5]
+    /// //   [ 8 9]]
+    /// //
+    /// //  [[ 12 13]
+    /// //   [ 16 17]
+    /// //   [ 20 21]]]
+    /// # assert_eq!(format!("{o}"), "[[[ 0 1]\n  [ 4 5]\n  [ 8 9]]\n\n [[ 12 13]\n  [ 16 17]\n  [ 20 21]]]");
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// - Panics if the layout is invalid (out-of-bound bounds).
+    ///
+    /// # See also
+    ///
+    /// ## Related functions in RSTSR
+    ///
+    /// - [`TensorAny::to_owned`]: same result from a borrowed tensor.
+    /// - [`TensorAny::into_owned_keep_layout`]: move or clone the whole buffer without gathering.
+    /// - [`TensorAny::into_shared`]: shared ownership instead of owned.
+    ///
+    /// ## Variants of this function
+    ///
+    /// - [`TensorIntoOwnedAPI::into_owned`]: trait form.
     pub fn into_owned(self) -> Tensor<T, B, D> {
         let (idx_min, idx_max) = self.layout().bounds_index().rstsr_unwrap();
         if idx_min == 0 && idx_max == self.storage().len() && idx_max == self.layout().size() {
@@ -102,6 +260,44 @@ where
         }
     }
 
+    /// Convert the tensor into a shared ([`TensorArc`]) tensor.
+    ///
+    /// The buffer is moved when the layout covers it entirely; otherwise the
+    /// visible elements are gathered into a fresh buffer first (see
+    /// [`TensorAny::into_owned`] for the same move-or-gather semantics).
+    /// Sharing itself is cheap, and the data is cloned only when a mutable view
+    /// of shared data is requested.
+    ///
+    /// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
+    ///
+    /// # Returns
+    ///
+    /// - [`TensorArc<T, B, D>`][`TensorArc`]: shared-ownership tensor.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use rstsr::prelude::*;
+    /// # let mut device = DeviceCpu::default();
+    /// # device.set_default_order(RowMajor);
+    /// let a = rt::arange((6, &device));
+    /// let shared = a.into_shared();
+    /// let v1 = shared.view();
+    /// println!("{v1}");
+    /// // [ 0 1 2 3 4 5]
+    /// # assert_eq!(format!("{v1}"), "[ 0 1 2 3 4 5]");
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// - Panics if the layout is invalid (out-of-bound bounds).
+    ///
+    /// # See also
+    ///
+    /// ## Related functions in RSTSR
+    ///
+    /// - [`TensorAny::into_owned`]: owned instead of shared.
+    /// - [`TensorAny::into_shared_keep_layout`]: move or clone the whole buffer without gathering.
     pub fn into_shared(self) -> TensorArc<T, B, D> {
         let (idx_min, idx_max) = self.layout().bounds_index().rstsr_unwrap();
         if idx_min == 0 && idx_max == self.storage().len() && idx_max == self.layout().size() {
@@ -111,6 +307,37 @@ where
         }
     }
 
+    /// Clone the visible elements into a new owned tensor.
+    ///
+    /// The original tensor is only borrowed; the result always owns freshly
+    /// gathered data ([`TensorIterOrder::K`] arrangement).
+    ///
+    /// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
+    ///
+    /// # Returns
+    ///
+    /// - [`Tensor<T, B, D>`][`Tensor`]: independent owned copy.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use rstsr::prelude::*;
+    /// # let mut device = DeviceCpu::default();
+    /// # device.set_default_order(RowMajor);
+    /// let a = rt::arange((6, &device)).into_shape([2, 3]);
+    /// let b = a.to_owned();
+    /// println!("{b}");
+    /// // [[ 0 1 2]
+    /// //  [ 3 4 5]]
+    /// # assert_eq!(format!("{b}"), "[[ 0 1 2]\n [ 3 4 5]]");
+    /// ```
+    ///
+    /// # See also
+    ///
+    /// ## Related functions in RSTSR
+    ///
+    /// - [`TensorAny::into_owned`]: consuming form (may move instead of copy).
+    /// - [`Clone`]: `Tensor` implements `Clone` by this operation.
     pub fn to_owned(&self) -> Tensor<T, B, D> {
         self.view().into_owned()
     }
@@ -186,6 +413,40 @@ where
         Ok(data.into_raw())
     }
 
+    /// Copy the elements of a one-dimensional tensor into a raw buffer
+    /// (`Vec<T>` for CPU devices).
+    ///
+    /// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
+    ///
+    /// # Returns
+    ///
+    /// - `<B as DeviceRawAPI<T>>::Raw`: the gathered elements.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use rstsr::prelude::*;
+    /// # let mut device = DeviceCpu::default();
+    /// # device.set_default_order(RowMajor);
+    /// let a = rt::arange((6, &device));
+    /// let v: Vec<i32> = a.to_vec();
+    /// println!("{v:?}");
+    /// // [0, 1, 2, 3, 4, 5]
+    /// # assert_eq!(v, vec![0, 1, 2, 3, 4, 5]);
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// - Panics if the tensor is not one-dimensional.
+    ///
+    /// For a fallible version, use [`TensorAny::to_raw_f`].
+    ///
+    /// # See also
+    ///
+    /// ## Related functions in RSTSR
+    ///
+    /// - [`Tensor::into_vec`]: consuming form returning `Vec<T>`.
+    /// - [`asarray`](crate::tensor::asarray::asarray()): the inverse direction (buffer to tensor).
     pub fn to_vec(&self) -> <B as DeviceRawAPI<T>>::Raw {
         self.to_raw_f().rstsr_unwrap()
     }
@@ -236,6 +497,40 @@ where
         }
     }
 
+    /// Convert a one-dimensional owned tensor into `Vec<T>`, moving the buffer
+    /// when possible.
+    ///
+    /// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
+    ///
+    /// # Returns
+    ///
+    /// - `Vec<T>`: the elements, moved or gathered.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use rstsr::prelude::*;
+    /// # let mut device = DeviceCpu::default();
+    /// # device.set_default_order(RowMajor);
+    /// let a = rt::arange((6, &device));
+    /// let v: Vec<i32> = a.into_vec();
+    /// println!("{v:?}");
+    /// // [0, 1, 2, 3, 4, 5]
+    /// # assert_eq!(v, vec![0, 1, 2, 3, 4, 5]);
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// - Panics if the tensor is not one-dimensional.
+    ///
+    /// For a fallible version, use [`Tensor::into_vec_f`].
+    ///
+    /// # See also
+    ///
+    /// ## Related functions in RSTSR
+    ///
+    /// - [`TensorAny::to_vec`]: borrowing form.
+    /// - [`Tensor::into_raw`]: keep the device-specific raw buffer type.
     pub fn into_vec(self) -> Vec<T> {
         self.into_vec_f().rstsr_unwrap()
     }
@@ -264,6 +559,41 @@ where
         Ok(self.storage().get_index(layout.offset()))
     }
 
+    /// Extract the single element of a size-one tensor as a scalar.
+    ///
+    /// The element is read at the layout offset, so a sliced 0-D view returns
+    /// the value it points to, not the first buffer element.
+    ///
+    /// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
+    ///
+    /// # Returns
+    ///
+    /// - `T`: the scalar value.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use rstsr::prelude::*;
+    /// # let mut device = DeviceCpu::default();
+    /// # device.set_default_order(RowMajor);
+    /// let a = rt::arange((10, &device));
+    /// println!("{}", a.i(9).to_scalar());
+    /// // 9
+    /// # assert_eq!(a.i(9).to_scalar(), 9);
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// - Panics if the tensor has more than one element.
+    ///
+    /// For a fallible version, use [`TensorAny::to_scalar_f`].
+    ///
+    /// # See also
+    ///
+    /// ## Related functions in RSTSR
+    ///
+    /// - [`Index`] operator `[]`: scalar access by index (boundary-checked).
+    /// - [`TensorAny::to_vec`]: extract all elements of a 1-D tensor.
     pub fn to_scalar(&self) -> T {
         self.to_scalar_f().rstsr_unwrap()
     }

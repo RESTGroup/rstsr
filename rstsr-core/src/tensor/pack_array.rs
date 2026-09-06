@@ -123,6 +123,12 @@ where
         ArrayType [<R as PackableArrayAPI<T, N>>::Array];
     )]
     #[allow(clippy::type_complexity)]
+    /// Pack the most contiguous axis into fixed-size arrays, reducing
+    /// dimensionality by one; see the module documentation.
+    ///
+    /// # See also
+    ///
+    /// [`TensorAny::into_pack_array`].
     pub fn into_pack_array_f<const N: usize>(
         self,
         axis: isize,
@@ -163,6 +169,8 @@ where
         ArrayType [<R as PackableArrayAPI<T, N>>::Array];
     )]
     #[allow(clippy::type_complexity)]
+    /// Pack the most contiguous axis into fixed-size arrays, reducing
+    /// dimensionality by one; see the module documentation.
     pub fn into_pack_array<const N: usize>(self, axis: isize) -> TensorAny<ArrayData, ArrayType, B, D::SmallerOne>
     where
         B: DeviceAPI<ArrayType>,
@@ -185,6 +193,12 @@ where
     D::LargerOne: DimAPI,
 {
     #[substitute_item(ROut [<R as UnpackArrayAPI>::Output])]
+    /// Unpack a fixed-size-array axis back into a flat axis; see the module
+    /// documentation.
+    ///
+    /// # See also
+    ///
+    /// [`TensorAny::into_unpack_array`].
     pub fn into_unpack_array_f(self, axis: isize) -> Result<TensorAny<ROut, T, B, D::LargerOne>>
     where
         R: UnpackArrayAPI,
@@ -214,6 +228,8 @@ where
     }
 
     #[substitute_item(ROut [<R as UnpackArrayAPI>::Output])]
+    /// Unpack a fixed-size-array axis back into a flat axis; see the module
+    /// documentation.
     pub fn into_unpack_array(self, axis: isize) -> TensorAny<ROut, T, B, D::LargerOne>
     where
         R: UnpackArrayAPI,

@@ -1,3 +1,11 @@
+//! Axis-wise iteration over tensors: [`TensorAny::axes_iter`],
+//! [`TensorAny::axes_iter_mut`], and their indexed variants.
+//!
+//! Each step yields a view of the tensor with the iterated axes removed, so
+//! iteration along axis `i` of an N-D tensor yields views of dimensionality
+//! N-1. Traversal order follows the device default order; see
+//! [`order_semantics`](crate::order_semantics).
+
 #![allow(clippy::missing_transmute_annotations)]
 
 use crate::prelude_dev::*;
@@ -5,6 +13,7 @@ use core::mem::transmute;
 
 /* #region axes iter view iterator */
 
+/// Iterator yielding immutable views along an axis of a tensor.
 pub struct IterAxesView<'a, T, B>
 where
     B: DeviceAPI<T>,
@@ -148,6 +157,55 @@ where
         self.axes_iter_with_order_f(axes, order).rstsr_unwrap()
     }
 
+    /// Iterate over views of the tensor along the given axis.
+    ///
+    /// Each step yields a view of dimensionality N-1 (the iterated axis is
+    /// removed), sharing the original data. The number of steps equals the
+    /// length of `axes`; iteration order follows the device default order (see
+    /// [`order_semantics`](crate::order_semantics)).
+    ///
+    /// # Parameters
+    ///
+    /// - `axes`: the axis to iterate along; negative values count from the back. Anything that
+    ///   converts into [`AxesIndex<isize>`][AxesIndex].
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use rstsr::prelude::*;
+    /// # let mut device = DeviceCpu::default();
+    /// # device.set_default_order(RowMajor);
+    /// let a = rt::arange((6, &device)).into_shape([2, 3]);
+    /// for v in a.axes_iter(0) {
+    ///     println!("{v}");
+    /// }
+    /// // [ 0 1 2]
+    /// // [ 3 4 5]
+    /// for v in a.axes_iter(-1) {
+    ///     println!("{v}");
+    /// }
+    /// // [ 0 3]
+    /// // [ 1 4]
+    /// // [ 2 5]
+    /// # let rows: Vec<_> = a.axes_iter(0).map(|v| v.to_vec()).collect();
+    /// # assert_eq!(rows, vec![vec![0, 1, 2], vec![3, 4, 5]]);
+    /// ```
+    ///
+    /// # Panics
+    ///
+    /// - Panics if `axes` is out of range.
+    ///
+    /// For a fallible version, use [`TensorAny::axes_iter_f`].
+    ///
+    /// # See also
+    ///
+    /// ## Variants of this function
+    ///
+    /// - [`TensorAny::axes_iter_f`]: fallible version.
+    /// - [`TensorAny::axes_iter_with_order`]: explicit traversal order.
+    /// - [`TensorAny::axes_iter_mut`]: mutable views.
+    /// - [`TensorAny::indexed_axes_iter`]: iteration with the axis position.
+    /// - [`TensorAny::iter`]: element-wise iteration.
     pub fn axes_iter<I>(&self, axes: I) -> IterAxesView<'a, T, B>
     where
         I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -160,6 +218,7 @@ where
 
 /* #region axes iter mut iterator */
 
+/// Iterator yielding mutable views along an axis of a tensor.
 pub struct IterAxesMut<'a, T, B>
 where
     B: DeviceAPI<T>,
@@ -303,6 +362,28 @@ where
         self.axes_iter_mut_with_order_f(axes, order).rstsr_unwrap()
     }
 
+    /// Iterate over mutable views of the tensor along the given axis; see
+    /// [`TensorAny::axes_iter`].
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use rstsr::prelude::*;
+    /// # let mut device = DeviceCpu::default();
+    /// # device.set_default_order(RowMajor);
+    /// let mut b: Tensor<i32, _> = rt::zeros(([2, 3], &device));
+    /// for mut v in b.axes_iter_mut(0) {
+    ///     v += 1;
+    /// }
+    /// println!("{b}");
+    /// // [[ 1 1 1]
+    /// //  [ 1 1 1]]
+    /// # assert_eq!(format!("{b}"), "[[ 1 1 1]\n [ 1 1 1]]");
+    /// ```
+    ///
+    /// # See also
+    ///
+    /// [`TensorAny::axes_iter`].
     pub fn axes_iter_mut<I>(&'a mut self, axes: I) -> IterAxesMut<'a, T, B>
     where
         I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -315,6 +396,7 @@ where
 
 /* #region indexed axes iter view iterator */
 
+/// Iterator yielding (position, immutable view) pairs along an axis.
 pub struct IndexedIterAxesView<'a, T, B>
 where
     B: DeviceAPI<T>,
@@ -481,6 +563,12 @@ where
         self.indexed_axes_iter_with_order_f(axes, order).rstsr_unwrap()
     }
 
+    /// Iterate over (position, view) pairs along the given axis; see
+    /// [`TensorAny::axes_iter`].
+    ///
+    /// # See also
+    ///
+    /// [`TensorAny::axes_iter`].
     pub fn indexed_axes_iter<I>(&self, axes: I) -> IndexedIterAxesView<'a, T, B>
     where
         I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -493,6 +581,7 @@ where
 
 /* #region axes iter mut iterator */
 
+/// Iterator yielding (position, mutable view) pairs along an axis.
 pub struct IndexedIterAxesMut<'a, T, B>
 where
     B: DeviceAPI<T>,

@@ -1,10 +1,17 @@
+//! Matrix-oriented helpers on 2-D tensors: shape accessors ([`TensorBase::nrow`],
+//! [`TensorBase::ncol`]) and leading-dimension queries ([`TensorBase::ld`],
+//! [`TensorBase::ld_row`], [`TensorBase::ld_col`]) used by BLAS-style
+//! interfaces.
+
 use crate::prelude_dev::*;
 
 impl<S> TensorBase<S, Ix2> {
+    /// Number of rows (first dimension of the 2-D shape).
     pub fn nrow(&self) -> usize {
         self.shape()[0]
     }
 
+    /// Number of columns (second dimension of the 2-D shape).
     pub fn ncol(&self) -> usize {
         self.shape()[1]
     }
@@ -42,7 +49,8 @@ impl<S> TensorBase<S, Ix2> {
         }
     }
 
-    /// Leading dimension by order.
+    /// Leading dimension under the given order; see [`TensorBase::ld_row`] and
+    /// [`TensorBase::ld_col`].
     pub fn ld(&self, order: FlagOrder) -> Option<usize> {
         match order {
             ColMajor => self.ld_col(),

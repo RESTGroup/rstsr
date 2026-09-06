@@ -33,17 +33,17 @@ tensor/indexing.rs,indexing,full,done,2,anchors slice/diagonal (+DiagonalArgs fl
 tensor/adv_indexing.rs,indexing,full,done,2,index_select/take/bool_select full tier; _f and method forms minimal
 tensor/reduction.rs,reduction,full,todo,6,0 docs; trait_reduction! families
 tensor/operators/,operators,full,todo,5,rt:: anchors across op_* files; 0 docs
-tensor/map_elementwise.rs,utility,full,partial,4,16 near-identical one-liners
-tensor/ownership_conversion.rs,utility,full,partial,4,6/24 one-liners; ownership-semantics section warranted
-tensor/iterator_axes.rs,utility,full,todo,4,0 docs
-tensor/iterator_elem.rs,utility,full,todo,4,0 docs
-tensor/assignment.rs,utility,full,todo,4,0 docs
-tensor/tensor2_impl.rs,utility,full,partial,4,ld_row/ld_col/ld one-liners
-tensor/tensor_mutable.rs,utility,full,todo,4,1/10 (enum only)
+tensor/map_elementwise.rs,utility,full,done,4,map anchor full; mapv/mapi minimal-plus; mapb/mapvi/mapvb and *_fnmut minimal with see-alsos
+tensor/ownership_conversion.rs,utility,full,done,4,view/view_mut/into_cow/into_owned/into_shared/to_owned/to_vec/into_vec/to_scalar full or full-lite; keep_layout and force_mut minimal-plus
+tensor/iterator_axes.rs,utility,full,done,4,axes_iter anchor + axes_iter_mut minimal-plus; indexed variants and iterator types floored; order notice
+tensor/iterator_elem.rs,utility,full,done,4,iter anchor full; iter_mut/indexed_iter minimal-plus; with_order variants minimal; order notice
+tensor/assignment.rs,utility,full,done,4,assign (b, broadcast) and fill (a) full; traits and methods minimal
+tensor/tensor2_impl.rs,utility,full,done,4,module //! + nrow/ncol/ld docs
+tensor/tensor_mutable.rs,utility,full,done,4,module + enum + variant docs (utility surface is small)
 tensor/tensor_view_list.rs,utility,full,partial,4,minimal but ok
-tensor/device_conversion.rs,utility,full,todo,4,
-tensor/ext_conversion.rs,utility,full,todo,4,
-tensor/pack_array.rs,utility,full,todo,4,
+tensor/device_conversion.rs,utility,full,done,4,module //! + TensorDeviceChangeAPI trait/method docs
+tensor/ext_conversion.rs,utility,full,done,4,module //! pre-existed; IntoRSTSR trait doc
+tensor/pack_array.rs,utility,full,done,4,module //! + into_pack_array/into_unpack_array method docs
 tensorbase.rs,types,na,done,0,type floor done (module //! + TensorBase/TensorAny/aliases); Layout lives in rstsr-common, out of scope
 tensor/mod.rs,modules,na,done,0,//! added
 tensor/reduction.rs#mod,modules,na,done,0,//! added (same file as reduction row above)
