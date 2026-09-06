@@ -1,3 +1,7 @@
+//! Device-level triangular-matrix pack/unpack operations (`trf`-style, used
+//! by LAPACK-backed solvers); backing [`TensorAny::pack_tri`] and
+//! [`TensorAny::unpack_tri`].
+
 use crate::prelude_dev::*;
 use num::{Float as NumFloat, ToPrimitive};
 

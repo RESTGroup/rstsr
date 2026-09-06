@@ -30,6 +30,44 @@ mod doc_arithmetic {
         crate::test_utils::assert_equal(&(&a + &b), rt::tensor_from_nested!([[11, 22], [33, 44]], &device), None);
         crate::test_utils::assert_equal(&(&a * &b), rt::tensor_from_nested!([[10, 40], [90, 160]], &device), None);
         crate::test_utils::assert_equal(&(&af / &bf), rt::tensor_from_nested!([[5.0, 5.0], [6.0, 5.0]], &device), None);
+        assert_eq!(format!("{}", &a + &b), "[[ 11 22]\n [ 33 44]]");
+
+        // sub, div, rem (free functions)
+        println!("{}", rt::sub(&b, &a));
+        // [[ 9 18]
+        //  [ 27 36]]
+        println!("{}", rt::div(&b, &a));
+        // [[ 10 10]
+        //  [ 10 10]]
+        println!("{}", rt::rem(&b, &a));
+        // [[ 0 0]
+        //  [ 0 0]]
+        assert_eq!(format!("{}", rt::sub(&b, &a)), "[[ 9 18]\n [ 27 36]]");
+        assert_eq!(format!("{}", rt::div(&b, &a)), "[[ 10 10]\n [ 10 10]]");
+        assert_eq!(format!("{}", rt::rem(&b, &a)), "[[ 0 0]\n [ 0 0]]");
+
+        // broadcasting: (2, 2) op (2,)
+        let row = rt::tensor_from_nested!([1, 2], &device);
+        println!("{}", rt::add(&a, &row));
+        // [[ 2 4]
+        //  [ 4 6]]
+        assert_eq!(format!("{}", rt::add(&a, &row)), "[[ 2 4]\n [ 4 6]]");
+
+        // element-wise remainder is the FUNCTION rt::rem ...
+        println!("{}", rt::rem(&b, &a));
+        // [[ 0 0]
+        //  [ 0 0]]
+        assert_eq!(format!("{}", rt::rem(&b, &a)), "[[ 0 0]\n [ 0 0]]");
+
+        // ... while the OPERATOR % is matrix multiplication (same as rt::matmul)
+        println!("{}", &b % &a);
+        // [[ 70 100]
+        //  [ 150 220]]
+        println!("{}", rt::matmul(&b, &a));
+        // [[ 70 100]
+        //  [ 150 220]]
+        assert_eq!(format!("{}", &b % &a), "[[ 70 100]\n [ 150 220]]");
+        assert_eq!(format!("{}", rt::matmul(&b, &a)), "[[ 70 100]\n [ 150 220]]");
     }
 }
 
@@ -72,5 +110,95 @@ mod doc_maximum_minimum {
         // [ 1 2 3]
         assert_eq!(rt::maximum(&a, &b).to_vec(), vec![4, 5, 6]);
         assert_eq!(rt::minimum(&a, &b).to_vec(), vec![1, 2, 3]);
+    }
+}
+
+mod doc_unary {
+    use super::*;
+    static FUNC: &str = "doc_unary";
+
+    #[test]
+    fn test_doc() {
+        crate::specify_test!("test_doc");
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        let a = rt::tensor_from_nested!([-1, 2, -3], &device);
+        println!("{}", rt::abs(&a));
+        // [ 1 2 3]
+        println!("{}", rt::square(&a));
+        // [ 1 4 9]
+        println!("{}", rt::sign(&a));
+        // [ -1 1 -1]
+        assert_eq!(format!("{}", rt::abs(&a)), "[ 1 2 3]");
+        assert_eq!(format!("{}", rt::square(&a)), "[ 1 4 9]");
+        assert_eq!(format!("{}", rt::sign(&a)), "[ -1 1 -1]");
+
+        // float unary math
+        let x = rt::linspace((0.0, 1.0, 3, &device));
+        println!("{}", rt::exp(&x));
+        // [ 1 1.6487212707001282 2.718281828459045]
+        println!("{}", rt::sin(&x));
+        // [ 0 0.479425538604203 0.8414709848078965]
+        assert_eq!(format!("{}", rt::exp(&x)), "[ 1 1.6487212707001282 2.718281828459045]");
+
+        // neg operator
+        println!("{}", rt::neg(&a));
+        // [ 1 -2 3]
+        assert_eq!(format!("{}", rt::neg(&a)), "[ 1 -2 3]");
+    }
+}
+
+mod doc_assign_forms {
+    use super::*;
+    static FUNC: &str = "doc_assign_forms";
+
+    #[test]
+    fn test_doc() {
+        crate::specify_test!("test_doc");
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        let a = rt::tensor_from_nested!([[1, 2], [3, 4]], &device);
+        let b = rt::tensor_from_nested!([[10, 20], [30, 40]], &device);
+
+        let mut c = a.clone();
+        rt::add_assign(&mut c, &b);
+        println!("{c}");
+        // [[ 11 22]
+        //  [ 33 44]]
+        assert_eq!(format!("{c}"), "[[ 11 22]\n [ 33 44]]");
+
+        let mut d = a.clone();
+        d += &b;
+        println!("{d}");
+        // [[ 11 22]
+        //  [ 33 44]]
+        assert_eq!(format!("{d}"), "[[ 11 22]\n [ 33 44]]");
+
+        let mut e = a.clone();
+        rt::mul_assign(&mut e, &b);
+        println!("{e}");
+        // [[ 10 40]
+        //  [ 90 160]]
+        assert_eq!(format!("{e}"), "[[ 10 40]\n [ 90 160]]");
+    }
+}
+
+mod doc_pow {
+    use super::*;
+    static FUNC: &str = "doc_pow";
+
+    #[test]
+    fn test_doc() {
+        crate::specify_test!("test_doc");
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        let a = rt::tensor_from_nested!([[1.0, 2.0], [3.0, 4.0]], &device);
+        println!("{}", rt::pow(&a, 2));
+        // [[ 1 4]
+        //  [ 9 16]]
+        assert_eq!(format!("{}", rt::pow(&a, 2)), "[[ 1 4]\n [ 9 16]]");
     }
 }

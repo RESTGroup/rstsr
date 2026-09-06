@@ -1,3 +1,6 @@
+//! Device-level element-wise function application drivers; backing the map
+//! functions of [`crate::tensor::map_elementwise`].
+
 use crate::prelude_dev::*;
 use core::mem::transmute;
 

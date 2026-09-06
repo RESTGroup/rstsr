@@ -1,3 +1,44 @@
+//! In-place binary operators: [`add_assign`](add_assign()),
+//! [`sub_assign`](sub_assign()), [`mul_assign`](mul_assign()),
+//! [`div_assign`](div_assign()), [`rem_assign`](rem_assign()), and the
+//! bitwise assign families - the function counterparts of rust's `+=`, `-=`,
+//! `*=`, `/=`, `%=` and friends on tensors.
+//!
+//! All of them broadcast the right-hand operand against the destination (see
+//! [`order_semantics`](crate::order_semantics) for the two orders).
+//!
+//! # Examples
+//!
+//! ```rust
+//! # use rstsr::prelude::*;
+//! # let mut device = DeviceCpu::default();
+//! # device.set_default_order(RowMajor);
+//! let a = rt::tensor_from_nested!([[1, 2], [3, 4]], &device);
+//! let b = rt::tensor_from_nested!([[10, 20], [30, 40]], &device);
+//!
+//! let mut c = a.clone();
+//! rt::add_assign(&mut c, &b);
+//! println!("{c}");
+//! // [[ 11 22]
+//! //  [ 33 44]]
+//! # assert_eq!(format!("{c}"), "[[ 11 22]\n [ 33 44]]");
+//!
+//! // the rust operator form
+//! let mut d = a.clone();
+//! d += &b;
+//! println!("{d}");
+//! // [[ 11 22]
+//! //  [ 33 44]]
+//! # assert_eq!(format!("{d}"), "[[ 11 22]\n [ 33 44]]");
+//!
+//! let mut e = a.clone();
+//! rt::mul_assign(&mut e, &b);
+//! println!("{e}");
+//! // [[ 10 40]
+//! //  [ 90 160]]
+//! # assert_eq!(format!("{e}"), "[[ 10 40]\n [ 90 160]]");
+//! ```
+
 use crate::prelude_dev::*;
 
 #[duplicate_item(

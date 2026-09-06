@@ -1,3 +1,88 @@
+//! Element-wise binary arithmetic and bitwise operators: [`add`](add()),
+//! [`sub`](sub()), [`mul`](mul()), [`div`](div()), [`rem`](rem()), and the
+//! bitwise [`bitand`](bitand()), [`bitor`](bitor()), [`bitxor`](bitxor()),
+//! [`shl`](shl()), [`shr`](shr()) families.
+//!
+//! All of them broadcast their operands against each other (NumPy-style
+//! trailing-axis alignment under [`RowMajor`]; leading-axis under
+//! [`ColMajor`], see [`order_semantics`](crate::order_semantics)) and accept
+//! tensors on either side. Each family provides:
+//!
+//! - a free function `rt::<op>(&a, &b)` and a fallible `rt::<op>_f`;
+//! - a method `a.<op>(&b)` and `a.<op>_f(&b)`;
+//! - `_with_output` variants writing into a provided output tensor;
+//! - rust operators (`+`, `-`, `*`, `/`, `%`, `&`, `|`, `^`, `<<`, `>>`) between tensors.
+//!
+//! <div class="warning">
+//!
+//! **`%` is matrix multiplication, not remainder**
+//!
+//! Between two tensors, the `%` operator is matrix multiplication (see
+//! [`matmul`](crate::tensor::linalg::matmul::matmul())), mirroring `@`-style
+//! semantics from array languages. The element-wise remainder is the
+//! function [`rem`](rem()).
+//!
+//! </div>
+//!
+//! # Examples
+//!
+//! ```rust
+//! # use rstsr::prelude::*;
+//! # let mut device = DeviceCpu::default();
+//! # device.set_default_order(RowMajor);
+//! let a = rt::tensor_from_nested!([[1, 2], [3, 4]], &device);
+//! let b = rt::tensor_from_nested!([[10, 20], [30, 40]], &device);
+//! println!("{}", rt::add(&a, &b));
+//! // [[ 11 22]
+//! //  [ 33 44]]
+//! println!("{}", rt::sub(&b, &a));
+//! // [[ 9 18]
+//! //  [ 27 36]]
+//! println!("{}", rt::mul(&a, &b));
+//! // [[ 10 40]
+//! //  [ 90 160]]
+//! println!("{}", rt::div(&b, &a));
+//! // [[ 10 10]
+//! //  [ 10 10]]
+//! println!("{}", rt::rem(&b, &a));
+//! // [[ 0 0]
+//! //  [ 0 0]]
+//! # assert_eq!(format!("{}", rt::add(&a, &b)), "[[ 11 22]\n [ 33 44]]");
+//! ```
+//!
+//! Broadcast a `(2,)` row against a `(2, 2)` matrix (the `(2,)` aligns with
+//! the last axis under [`RowMajor`]):
+//!
+//! ```rust
+//! # use rstsr::prelude::*;
+//! # let mut device = DeviceCpu::default();
+//! # device.set_default_order(RowMajor);
+//! let a = rt::tensor_from_nested!([[1, 2], [3, 4]], &device);
+//! let row = rt::tensor_from_nested!([1, 2], &device);
+//! println!("{}", rt::add(&a, &row));
+//! // [[ 2 4]
+//! //  [ 4 6]]
+//! # assert_eq!(format!("{}", rt::add(&a, &row)), "[[ 2 4]\n [ 4 6]]");
+//! ```
+//!
+//! The `%` operator between two tensors is matrix multiplication; the
+//! element-wise remainder is the function [`rem`](rem()):
+//!
+//! ```rust
+//! # use rstsr::prelude::*;
+//! # let mut device = DeviceCpu::default();
+//! # device.set_default_order(RowMajor);
+//! let a = rt::tensor_from_nested!([[1, 2], [3, 4]], &device);
+//! let b = rt::tensor_from_nested!([[10, 20], [30, 40]], &device);
+//! println!("{}", &b % &a);
+//! // [[ 70 100]
+//! //  [ 150 220]]
+//! println!("{}", rt::matmul(&b, &a));
+//! // [[ 70 100]
+//! //  [ 150 220]]
+//! # assert_eq!(format!("{}", &b % &a), "[[ 70 100]\n [ 150 220]]");
+//! ```
+
 use crate::prelude_dev::*;
 use core::mem::transmute;
 
@@ -40,6 +125,12 @@ pub trait TensorOpAPI<TrB> {
    [shl   ] [shl_f   ] [TensorShlAPI   ];
    [shr   ] [shr_f   ] [TensorShrAPI   ];
 )]
+/// Element-wise binary operation (one of [`add`](add()), [`sub`](sub()),
+/// [`mul`](mul()), [`div`](div()), [`rem`](rem()), [`bitand`](bitand()),
+/// [`bitor`](bitor()), [`bitxor`](bitxor()), [`shl`](shl()), [`shr`](shr());
+/// see the module documentation).
+///
+/// See also the matching panicking form.
 pub fn op_f<TrA, TrB>(a: TrA, b: TrB) -> Result<TrA::Output>
 where
     TrA: TensorOpAPI<TrB>,
@@ -60,6 +151,10 @@ where
    [shl   ] [shl_f   ] [TensorShlAPI   ];
    [shr   ] [shr_f   ] [TensorShrAPI   ];
 )]
+/// Element-wise binary operation (one of [`add`](add()), [`sub`](sub()),
+/// [`mul`](mul()), [`div`](div()), [`rem`](rem()), [`bitand`](bitand()),
+/// [`bitor`](bitor()), [`bitxor`](bitxor()), [`shl`](shl()), [`shr`](shr());
+/// see the module documentation for broadcasting and the `%` note).
 pub fn op<TrA, TrB>(a: TrA, b: TrB) -> TrA::Output
 where
     TrA: TensorOpAPI<TrB>,

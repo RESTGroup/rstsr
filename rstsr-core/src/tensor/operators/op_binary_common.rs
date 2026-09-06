@@ -1,3 +1,50 @@
+//! Element-wise binary "common" functions: two-argument math
+//! ([`atan2`](atan2()), [`copysign`](copysign()), [`hypot`](hypot()),
+//! [`log_add_exp`](log_add_exp()), [`nextafter`](nextafter()),
+//! [`floor_divide`](floor_divide()), [`pow`](pow()),
+//! [`maximum`](maximum())/[`minimum`](minimum())) and comparisons
+//! ([`equal`](equal()), [`not_equal`](not_equal()), [`greater`](greater()),
+//! [`greater_equal`](greater_equal()), [`less`](less()),
+//! [`less_equal`](less_equal()) and their alias forms [`eq`](eq()),
+//! [`ne`](ne()), [`gt`](gt()), [`ge`](ge()), [`lt`](lt()), [`le`](le())).
+//!
+//! Comparison functions return boolean tensors; comparison *operators*
+//! (`==`, `<`, ...) between tensors are not overloaded, so use these
+//! functions.
+//!
+//! # Examples
+//!
+//! ```rust
+//! # use rstsr::prelude::*;
+//! # let mut device = DeviceCpu::default();
+//! # device.set_default_order(RowMajor);
+//! let a = rt::tensor_from_nested!([1, 5, 3], &device);
+//! let b = rt::tensor_from_nested!([4, 2, 6], &device);
+//! println!("{}", rt::maximum(&a, &b));
+//! // [ 4 5 6]
+//! println!("{}", rt::minimum(&a, &b));
+//! // [ 1 2 3]
+//! println!("{}", rt::gt(&a, &b));
+//! // [ false true false]
+//! println!("{}", rt::eq(&a, &b));
+//! // [ false false false]
+//! # assert_eq!(format!("{}", rt::maximum(&a, &b)), "[ 4 5 6]");
+//! # assert_eq!(format!("{}", rt::gt(&a, &b)), "[ false true false]");
+//! ```
+//!
+//! [`pow`](pow()) raises each element to a power:
+//!
+//! ```rust
+//! # use rstsr::prelude::*;
+//! # let mut device = DeviceCpu::default();
+//! # device.set_default_order(RowMajor);
+//! let a = rt::tensor_from_nested!([[1.0, 2.0], [3.0, 4.0]], &device);
+//! println!("{}", rt::pow(&a, 2));
+//! // [[ 1 4]
+//! //  [ 9 16]]
+//! # assert_eq!(format!("{}", rt::pow(&a, 2)), "[[ 1 4]\n [ 9 16]]");
+//! ```
+
 use crate::prelude_dev::*;
 
 /* Structure of implementation

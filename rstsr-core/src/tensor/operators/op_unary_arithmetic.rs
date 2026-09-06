@@ -1,3 +1,19 @@
+//! Unary arithmetic operators with rust-operator counterparts:
+//! [`neg`](neg()) (operator `-`, arithmetic negation) and [`not`](not())
+//! (operator `!`, logical/bitwise not for boolean and integer tensors).
+//!
+//! # Examples
+//!
+//! ```rust
+//! # use rstsr::prelude::*;
+//! # let mut device = DeviceCpu::default();
+//! # device.set_default_order(RowMajor);
+//! let a = rt::tensor_from_nested!([-1, 2, -3], &device);
+//! println!("{}", rt::neg(&a));
+//! // [ 1 -2 3]
+//! # assert_eq!(format!("{}", rt::neg(&a)), "[ 1 -2 3]");
+//! ```
+
 use crate::prelude_dev::*;
 
 #[duplicate_item(
