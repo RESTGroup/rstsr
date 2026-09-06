@@ -52,6 +52,11 @@ mod doc_meshgrid {
         println!("{}", grids[1]);
         assert_eq!(format!("{}", grids[0]), "[[ 0 0]\n [ 1 1]\n [ 2 2]]");
         assert_eq!(format!("{}", grids[1]), "[[ 0 1]\n [ 0 1]\n [ 0 1]]");
+
+        // copy = false: still owned tensors (only skips the extra contiguity pass)
+        let grids_v = rt::meshgrid(([&x, &y], "ij", false));
+        println!("{}", grids_v[0]);
+        assert_eq!(format!("{}", grids_v[0]), "[[ 0 0]\n [ 1 1]\n [ 2 2]]");
     }
 }
 

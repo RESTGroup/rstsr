@@ -301,3 +301,15 @@ arguments are interpreted as (second dim, first dim). NumPy keeps the requested
 shape `(N, M)` and only changes the memory order. Documented as actual behavior in
 the `eye` docstring; whether to preserve NumPy's shape semantics is pending
 maintainer decision.
+
+## `meshgrid` `copy = false` still returns owned tensors
+
+- **numpy:** `np.meshgrid(*xi, indexing=..., copy=False)` returns broadcast *views* sharing the inputs' memory.
+- **rstsr:** entry_row_cpu::doc_draft::creation::test_creation::doc_meshgrid (copy = false case)
+- **tag:** bug
+- **status:** open
+
+With `copy = false`, rstsr's `meshgrid` still returns owned tensors: the grids are built by
+`into_shape` (which clones when the broadcast layout cannot be viewed), and the flag only skips an
+extra contiguity pass. The docstring now documents the actual behavior; whether to implement true
+view semantics is pending maintainer decision.

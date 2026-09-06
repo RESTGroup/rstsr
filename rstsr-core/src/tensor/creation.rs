@@ -321,6 +321,26 @@ pub trait EmptyAPI<Inp> {
 /// # assert_eq!(format!("{a}"), "[[ 0 0]\n [ 0 0]]");
 /// ```
 ///
+/// ## Difference between [`RowMajor`] and [`ColMajor`]
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let a: Tensor<i32, _> = unsafe { rt::empty(([2, 3], &device)) };
+/// println!("{:?}", a.layout());
+/// // 2-Dim (dyn), contiguous: Cc
+/// // shape: [2, 3], stride: [3, 1], offset: 0
+/// # assert_eq!(format!("{:?}", a.layout()), "2-Dim (dyn), contiguous: Cc\nshape: [2, 3], stride: [3, 1], offset: 0");
+///
+/// device.set_default_order(ColMajor);
+/// let a: Tensor<i32, _> = unsafe { rt::empty(([2, 3], &device)) };
+/// println!("{:?}", a.layout());
+/// // 2-Dim (dyn), contiguous: Ff
+/// // shape: [2, 3], stride: [1, 2], offset: 0
+/// # assert_eq!(format!("{:?}", a.layout()), "2-Dim (dyn), contiguous: Ff\nshape: [2, 3], stride: [1, 2], offset: 0");
+/// ```
+///
 /// # Notes of API accordance
 ///
 /// - Array-API: `empty(shape, /, *, dtype=None, device=None)` ([`empty`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.empty.html))
@@ -334,6 +354,12 @@ pub trait EmptyAPI<Inp> {
 /// underlying data. Reading elements before writing them is undefined behavior.
 ///
 /// For a safe alternative, use [`zeros`].
+///
+/// # Panics
+///
+/// - Panics if the provided [`Layout`] is invalid (out-of-bound bounds).
+///
+/// For a fallible version, use [`empty_f`].
 ///
 /// # See also
 ///
@@ -476,8 +502,8 @@ pub trait EmptyLikeAPI<Inp> {
 ///
 /// Output is [`Tensor<T, B, D>`][`Tensor`] (same shape as the input tensor).
 ///
-/// - `empty_like((tensor: &TensorAny<R, T, B, D>)) -> Tensor<T, B, D>` (implicit `order = K`,
-///   device of input)
+/// - `empty_like(tensor: &TensorAny<R, T, B, D>) -> Tensor<T, B, D>` (implicit `order = K`, device
+///   of input)
 /// - `empty_like((tensor: &TensorAny<R, T, B, D>, order: TensorIterOrder)) -> Tensor<T, B, D>`
 /// - `empty_like((tensor: &TensorAny<R, T, B, D>, device: &B)) -> Tensor<T, B, D>`
 /// - `empty_like((tensor: &TensorAny<R, T, B, D>, order: TensorIterOrder, device: &B)) -> Tensor<T,
@@ -520,6 +546,13 @@ pub trait EmptyLikeAPI<Inp> {
 ///
 /// This function is unsafe because it creates a tensor with uninitialized
 /// underlying data. Reading elements before writing them is undefined behavior.
+///
+/// # Panics
+///
+/// - Panics if `order` is not one of the copy-supported iteration orders ([`TensorIterOrder::C`],
+///   [`TensorIterOrder::F`], [`TensorIterOrder::A`], [`TensorIterOrder::K`]).
+///
+/// For a fallible version, use [`empty_like_f`].
 ///
 /// # See also
 ///
@@ -647,7 +680,8 @@ pub trait EyeAPI<Inp> {
 ///
 /// Under [`RowMajor`], the result has shape `(n_rows, n_cols)` and C-contiguous
 /// layout. Under [`ColMajor`], the result is the transposed counterpart: shape
-/// `(n_cols, n_rows)` with F-contiguous layout. Please note this differs from
+/// `(n_cols, n_rows)` with F-contiguous layout; see also
+/// [`order_semantics`](crate::order_semantics). Please note this differs from
 /// NumPy, where `numpy.eye(n, m, order='F')` keeps shape `(n, m)`; see the
 /// [differences report](https://github.com/RestGroup/rstsr/blob/main/rstsr-core/tests/tracking/numpy_differences.md)
 /// for details.
@@ -744,6 +778,13 @@ pub trait EyeAPI<Inp> {
 ///   overload instead of a keyword argument.
 ///
 /// Please note the col-major shape difference to NumPy stated above.
+///
+/// # Panics
+///
+/// - Panics if the resulting layout cannot be constructed (invalid `order` argument or overflowing
+///   sizes).
+///
+/// For a fallible version, use [`eye_f`].
 ///
 /// # See also
 ///
@@ -944,12 +985,31 @@ pub trait FullAPI<Inp> {
 /// # assert_eq!(f.shape(), &[2, 2]);
 /// ```
 ///
+/// ## Difference between [`RowMajor`] and [`ColMajor`]
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(ColMajor);
+/// let f: Tensor<i32, _> = rt::full(([2, 3], 7, &device));
+/// println!("{:?}", f.layout());
+/// // 2-Dim (dyn), contiguous: Ff
+/// // shape: [2, 3], stride: [1, 2], offset: 0
+/// # assert_eq!(format!("{:?}", f.layout()), "2-Dim (dyn), contiguous: Ff\nshape: [2, 3], stride: [1, 2], offset: 0");
+/// ```
+///
 /// # Notes of API accordance
 ///
 /// - Array-API: `full(shape, fill_value, /, *, dtype=None, device=None)` ([`full`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.full.html))
 /// - NumPy: `numpy.full(shape, fill_value, dtype=None, order='C')` ([`numpy.full`](https://numpy.org/doc/stable/reference/generated/numpy.full.html))
 /// - RSTSR: `rt::full((shape, fill_value, order, &device))`; the dtype follows `fill_value` (or the
 ///   type annotation), and `order` participates in the tuple overload.
+///
+/// # Panics
+///
+/// - Panics if the provided [`Layout`] is invalid (out-of-bound bounds).
+///
+/// For a fallible version, use [`full_f`].
 ///
 /// # See also
 ///
@@ -1131,6 +1191,13 @@ pub trait FullLikeAPI<Inp> {
 ///   ([`numpy.full_like`](https://numpy.org/doc/stable/reference/generated/numpy.full_like.html))
 /// - RSTSR: `rt::full_like((tensor, fill_value, order, &device))`; the dtype is always kept from
 ///   the input tensor, and `order` participates in the tuple overload.
+///
+/// # Panics
+///
+/// - Panics if `order` is not one of the copy-supported iteration orders ([`TensorIterOrder::C`],
+///   [`TensorIterOrder::F`], [`TensorIterOrder::A`], [`TensorIterOrder::K`]).
+///
+/// For a fallible version, use [`full_like_f`].
 ///
 /// # See also
 ///
@@ -1332,6 +1399,12 @@ pub trait LinspaceAPI<Inp> {
 /// - RSTSR: `rt::linspace((start, stop, num, endpoint, &device))`; the arguments are grouped into
 ///   one tuple.
 ///
+/// # Panics
+///
+/// This function does not panic for any valid input.
+///
+/// For a fallible version, use [`linspace_f`].
+///
 /// # See also
 ///
 /// ## Similar function from other crates/libraries
@@ -1493,12 +1566,31 @@ pub trait OnesAPI<Inp> {
 /// # assert_eq!(o.shape(), &[2, 2]);
 /// ```
 ///
+/// ## Difference between [`RowMajor`] and [`ColMajor`]
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(ColMajor);
+/// let o: Tensor<i32, _> = rt::ones(([2, 3], &device));
+/// println!("{:?}", o.layout());
+/// // 2-Dim (dyn), contiguous: Ff
+/// // shape: [2, 3], stride: [1, 2], offset: 0
+/// # assert_eq!(format!("{:?}", o.layout()), "2-Dim (dyn), contiguous: Ff\nshape: [2, 3], stride: [1, 2], offset: 0");
+/// ```
+///
 /// # Notes of API accordance
 ///
 /// - Array-API: `ones(shape, /, *, dtype=None, device=None)` ([`ones`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.ones.html))
 /// - NumPy: `numpy.ones(shape, dtype=None, order='C')` ([`numpy.ones`](https://numpy.org/doc/stable/reference/generated/numpy.ones.html))
 /// - RSTSR: `rt::ones((shape, order, &device))`; the dtype is inferred from the type annotation or
 ///   usage, and `order` participates in the tuple overload.
+///
+/// # Panics
+///
+/// - Panics if the provided [`Layout`] is invalid (out-of-bound bounds).
+///
+/// For a fallible version, use [`ones_f`].
 ///
 /// # See also
 ///
@@ -1677,6 +1769,13 @@ pub trait OnesLikeAPI<Inp> {
 /// - NumPy: `numpy.ones_like(prototype, dtype=None, order='K', subok=True, shape=None)` ([`numpy.ones_like`](https://numpy.org/doc/stable/reference/generated/numpy.ones_like.html))
 /// - RSTSR: `rt::ones_like((tensor, order, &device))`; the dtype is always kept from the input
 ///   tensor, and `order` participates in the tuple overload.
+///
+/// # Panics
+///
+/// - Panics if `order` is not one of the copy-supported iteration orders ([`TensorIterOrder::C`],
+///   [`TensorIterOrder::F`], [`TensorIterOrder::A`], [`TensorIterOrder::K`]).
+///
+/// For a fallible version, use [`ones_like_f`].
 ///
 /// # See also
 ///
@@ -2004,6 +2103,8 @@ where
 
 /// Converts a tensor with uninitialized values into a tensor with initialized values.
 ///
+/// See also [`uninit`].
+///
 /// # Safety
 ///
 /// This function is unsafe because it assumes that all elements in the input tensor are properly
@@ -2024,6 +2125,8 @@ where
 ///
 /// This function is unsafe because it assumes that all elements in the input tensor are properly
 /// initialized.
+///
+/// See also [`uninit`].
 pub unsafe fn assume_init<T, B, D>(tensor: Tensor<MaybeUninit<T>, B, D>) -> Tensor<T, B, D>
 where
     D: DimAPI,
@@ -2133,6 +2236,12 @@ pub trait ZerosAPI<Inp> {
 /// - NumPy: `numpy.zeros(shape, dtype=float, order='C')` ([`numpy.zeros`](https://numpy.org/doc/stable/reference/generated/numpy.zeros.html))
 /// - RSTSR: `rt::zeros((shape, order, &device))`; the dtype is inferred from the type annotation or
 ///   usage, and `order` participates in the tuple overload.
+///
+/// # Panics
+///
+/// - Panics if the provided [`Layout`] is invalid (out-of-bound bounds).
+///
+/// For a fallible version, use [`zeros_f`].
 ///
 /// # See also
 ///
@@ -2322,6 +2431,13 @@ pub trait ZerosLikeAPI<Inp> {
 /// - RSTSR: `rt::zeros_like((tensor, order, &device))`; the dtype is always kept from the input
 ///   tensor, and `order` participates in the tuple overload.
 ///
+/// # Panics
+///
+/// - Panics if `order` is not one of the copy-supported iteration orders ([`TensorIterOrder::C`],
+///   [`TensorIterOrder::F`], [`TensorIterOrder::A`], [`TensorIterOrder::K`]).
+///
+/// For a fallible version, use [`zeros_like_f`].
+///
 /// # See also
 ///
 /// ## Similar function from other crates/libraries
@@ -2466,12 +2582,11 @@ pub trait TrilAPI<Inp> {
 ///
 /// Elements at or above the k-th diagonal are zeroed, where `k = 0` selects the
 /// main diagonal, positive `k` is above it, and negative `k` is below it. The
-/// other elements are kept unchanged.
+/// other elements are kept unchanged. For [`TensorView`] input, the result is
+/// an owned tensor, contiguous in the device default order; the logical
+/// content does not depend on the order.
 ///
 /// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
-///
-/// Note for [`TensorView`] input: the result is an owned tensor, contiguous in
-/// the device default order; the logical content is order-independent.
 ///
 /// # Overloads Table
 ///
@@ -2492,9 +2607,10 @@ pub trait TrilAPI<Inp> {
 ///
 /// # Returns
 ///
-/// - `Tensor<T, B, D>`: tensor with the lower triangular part of `x` (elements above the k-th
-///   diagonal are replaced by zero). Whether the result is a new tensor or the mutated input
-///   depends on the ownership form of `x` (see the table below).
+/// - `Tensor<T, B, D>` (or [`TensorMut<'_, T, B, D>`][`TensorMut`] for the mutable-input
+///   overloads): tensor with the lower triangular part of `x` (elements above the k-th diagonal are
+///   replaced by zero). Whether the result is a new tensor or the mutated input depends on the
+///   ownership form of `x` (see the table below).
 ///
 /// # Examples
 ///
@@ -2518,11 +2634,11 @@ pub trait TrilAPI<Inp> {
 /// # let mut device = DeviceCpu::default();
 /// # device.set_default_order(RowMajor);
 /// # let a = rt::arange((1, 10, &device)).into_shape([3, 3]);
-/// println!("{}", rt::triu((&a, 1)));
-/// // [[ 0 2 3]
-/// //  [ 0 0 6]
-/// //  [ 0 0 0]]
-/// # assert_eq!(format!("{}", rt::triu((&a, 1))), "[[ 0 2 3]\n [ 0 0 6]\n [ 0 0 0]]");
+/// println!("{}", rt::tril((&a, 1)));
+/// // [[ 1 2 0]
+/// //  [ 4 5 6]
+/// //  [ 7 8 9]]
+/// # assert_eq!(format!("{}", rt::tril((&a, 1))), "[[ 1 2 0]\n [ 4 5 6]\n [ 7 8 9]]");
 /// ```
 ///
 /// # Ownership Semantics between `tril` / `triu` and the input tensor
@@ -2539,6 +2655,12 @@ pub trait TrilAPI<Inp> {
 /// - NumPy: `numpy.tril(m, k=0)` ([`numpy.tril`](https://numpy.org/doc/stable/reference/generated/numpy.tril.html))
 /// - RSTSR: `rt::tril((x, k))`; ownership forms are overloaded instead of always returning a new
 ///   tensor.
+///
+/// # Panics
+///
+/// - Panics if the input has fewer than 2 dimensions.
+///
+/// For a fallible version, use [`tril_f`].
 ///
 /// # See also
 ///
@@ -2747,12 +2869,11 @@ pub trait TriuAPI<Inp> {
 ///
 /// Elements below the k-th diagonal are zeroed, where `k = 0` selects the
 /// main diagonal, positive `k` is above it, and negative `k` is below it. The
-/// other elements are kept unchanged.
+/// other elements are kept unchanged. For [`TensorView`] input, the result is
+/// an owned tensor, contiguous in the device default order; the logical
+/// content does not depend on the order.
 ///
 /// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
-///
-/// Note for [`TensorView`] input: the result is an owned tensor, contiguous in
-/// the device default order; the logical content is order-independent.
 ///
 /// # Overloads Table
 ///
@@ -2773,9 +2894,10 @@ pub trait TriuAPI<Inp> {
 ///
 /// # Returns
 ///
-/// - `Tensor<T, B, D>`: tensor with the upper triangular part of `x` (elements below the k-th
-///   diagonal are replaced by zero). Whether the result is a new tensor or the mutated input
-///   depends on the ownership form of `x`, as for [`tril`].
+/// - `Tensor<T, B, D>` (or [`TensorMut<'_, T, B, D>`][`TensorMut`] for the mutable-input
+///   overloads): tensor with the upper triangular part of `x` (elements below the k-th diagonal are
+///   replaced by zero). Whether the result is a new tensor or the mutated input depends on the
+///   ownership form of `x`, as for [`tril`].
 ///
 /// # Examples
 ///
@@ -2797,6 +2919,12 @@ pub trait TriuAPI<Inp> {
 /// - NumPy: `numpy.triu(m, k=0)` ([`numpy.triu`](https://numpy.org/doc/stable/reference/generated/numpy.triu.html))
 /// - RSTSR: `rt::triu((x, k))`; ownership forms are overloaded instead of always returning a new
 ///   tensor.
+///
+/// # Panics
+///
+/// - Panics if the input has fewer than 2 dimensions.
+///
+/// For a fallible version, use [`triu_f`].
 ///
 /// # See also
 ///

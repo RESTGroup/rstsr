@@ -148,6 +148,10 @@ mod doc_eye {
         println!("{e}");
         println!("{:?}", e.layout());
         assert_eq!(e.shape(), &[5, 3]);
+        assert_eq!(
+            format!("{:?}", e.layout()),
+            "2-Dim (dyn), contiguous: Ff\nshape: [5, 3], stride: [1, 5], offset: 0"
+        );
         assert_eq!(format!("{e}"), "[[ 1 0 0]\n [ 0 1 0]\n [ 0 0 1]\n [ 0 0 0]\n [ 0 0 0]]");
     }
 }
@@ -192,6 +196,7 @@ mod doc_tril_triu {
         //  [ 0 0 6]
         //  [ 0 0 0]]
         assert_eq!(format!("{}", rt::tril((&a, 0))), "[[ 1 0 0]\n [ 4 5 0]\n [ 7 8 9]]");
+        assert_eq!(format!("{}", rt::tril((&a, 1))), "[[ 1 2 0]\n [ 4 5 6]\n [ 7 8 9]]");
         assert_eq!(format!("{}", rt::triu((&a, 1))), "[[ 0 2 3]\n [ 0 0 6]\n [ 0 0 0]]");
         crate::test_utils::assert_equal(
             rt::tril((&a, 0)),
@@ -249,17 +254,25 @@ mod doc_like_family {
 
         let a = rt::arange((24, &device)).into_shape([2, 3, 4]).into_transpose([2, 0, 1]);
         println!("{:?}", a.layout());
-        // 3-Dim (dyn), contiguous: (empty)
+        // 3-Dim (dyn), contiguous: Custom
         // shape: [4, 2, 3], stride: [1, 12, 4], offset: 0
 
         // default (TensorIterOrder::K): keeps the axis order of the input
         let z = rt::zeros_like(&a);
         println!("{:?}", z.layout());
         assert_eq!(z.shape(), a.shape());
+        assert_eq!(
+            format!("{:?}", z.layout()),
+            "3-Dim (dyn), contiguous: Custom\nshape: [4, 2, 3], stride: [1, 12, 4], offset: 0"
+        );
 
         // explicit row-major (C): C-contiguous result
         let z = rt::zeros_like((&a, TensorIterOrder::C));
         println!("{:?}", z.layout());
         assert_eq!(z.shape(), a.shape());
+        assert_eq!(
+            format!("{:?}", z.layout()),
+            "3-Dim (dyn), contiguous: Cc\nshape: [4, 2, 3], stride: [6, 3, 1], offset: 0"
+        );
     }
 }

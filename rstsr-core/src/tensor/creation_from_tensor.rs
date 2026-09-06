@@ -194,16 +194,18 @@ pub trait MeshgridAPI<Inp> {
 
 /// Returns coordinate matrices from coordinate vectors.
 ///
-/// Makes N-D grid arrays for vectorized evaluation of functions on a grid. For
+/// Makes N-D grid tensors for vectorized evaluation of functions on a grid. For
 /// `N` one-dimensional input tensors of lengths `n0, ..., nN-1`, returns `N`
 /// tensors of shape `(n0, ..., nN-1)` such that `grids[i][idx] == tensors[i]`
 /// broadcast along the grid.
 ///
-/// With `indexing = "xy"`, the first two grid dimensions are swapped compared
-/// to `"ij"` (cartesian convention, NumPy's default). With `copy = false`, the
-/// returned grids are broadcast views of the inputs; with `copy = true` (the
-/// default when omitted), they are owned tensors contiguous in the device
-/// default order.
+/// With `indexing = "xy"` (cartesian convention, NumPy's default), the first
+/// two grid dimensions are swapped compared to `"ij"`. The returned grids are
+/// always owned tensors; `copy = true` (the default) additionally makes them
+/// contiguous in the device default order, while `copy = false` keeps the
+/// broadcast-strided arrangement of the intermediate result. Please note this
+/// differs from NumPy, where `copy = False` returns views sharing the inputs'
+/// memory.
 ///
 /// This function behaves identically under [`RowMajor`] and [`ColMajor`] device
 /// default orders. (Only the memory arrangement of copied grids follows the
@@ -219,8 +221,8 @@ pub trait MeshgridAPI<Inp> {
 /// - `meshgrid((tensors, copy: bool)) -> Vec<Tensor<T, B, IxD>>` (implicit `"xy"`)
 /// - `meshgrid((tensors, indexing: &str, copy: bool)) -> Vec<Tensor<T, B, IxD>>`
 ///
-/// `tensors` also accepts `&Vec<...>` and `[&TensorAny; N]` forms, and owned /
-/// `Vec<TensorAny>` forms of the same shapes.
+/// `tensors` also accepts `&Vec<...>` and `[&TensorAny; N]` forms, and owned
+/// `Vec<TensorAny>` / `[TensorAny; N]` forms of the same shapes.
 ///
 /// # Parameters
 ///
@@ -275,8 +277,8 @@ pub trait MeshgridAPI<Inp> {
 ///
 /// ## Related functions in RSTSR
 ///
-/// - [`broadcast_arrays`]: broadcast tensors against each other (the `copy = false` grids are
-///   broadcast views).
+/// - [`broadcast_arrays`](crate::tensor::manipulation::exports::broadcast_arrays()): broadcast
+///   tensors against each other (the intermediate step of the `copy = false` path).
 ///
 /// ## Variants of this function
 ///
@@ -1521,7 +1523,7 @@ where
 /// # Panics
 ///
 /// This function does not panic; layout conversions are always valid. For a
-/// fallible version, use [atleast_1d_f].
+/// fallible version, use [`atleast_1d_f`].
 ///
 /// # See also
 ///
@@ -1536,7 +1538,7 @@ where
 ///
 /// ## Variants of this function
 ///
-/// - [atleast_1d_f]: fallible version.
+/// - [`atleast_1d_f`]: fallible version.
 /// - [`into_atleast_1d`] / [`into_atleast_1d_f`]: ownership-consuming forms.
 /// - Associated methods on [`TensorAny`]: [`TensorAny::atleast_1d`] / [`TensorAny::atleast_1d_f`].
 pub fn atleast_1d<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> TensorView<'_, T, B, IxD>
@@ -1606,7 +1608,7 @@ where
 /// # Panics
 ///
 /// This function does not panic; layout conversions are always valid. For a
-/// fallible version, use [atleast_2d_f].
+/// fallible version, use [`atleast_2d_f`].
 ///
 /// # See also
 ///
@@ -1621,7 +1623,7 @@ where
 ///
 /// ## Variants of this function
 ///
-/// - [atleast_2d_f]: fallible version.
+/// - [`atleast_2d_f`]: fallible version.
 /// - [`into_atleast_2d`] / [`into_atleast_2d_f`]: ownership-consuming forms.
 /// - Associated methods on [`TensorAny`]: [`TensorAny::atleast_2d`] / [`TensorAny::atleast_2d_f`].
 pub fn atleast_2d<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> TensorView<'_, T, B, IxD>
@@ -1693,7 +1695,7 @@ where
 /// # Panics
 ///
 /// This function does not panic; layout conversions are always valid. For a
-/// fallible version, use [atleast_3d_f].
+/// fallible version, use [`atleast_3d_f`].
 ///
 /// # See also
 ///
@@ -1708,7 +1710,7 @@ where
 ///
 /// ## Variants of this function
 ///
-/// - [atleast_3d_f]: fallible version.
+/// - [`atleast_3d_f`]: fallible version.
 /// - [`into_atleast_3d`] / [`into_atleast_3d_f`]: ownership-consuming forms.
 /// - Associated methods on [`TensorAny`]: [`TensorAny::atleast_3d`] / [`TensorAny::atleast_3d_f`].
 pub fn atleast_3d<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> TensorView<'_, T, B, IxD>
@@ -1726,7 +1728,7 @@ where
     B: DeviceAPI<T>,
     D: DimAPI,
 {
-    /// View as an array with at least one dimension. See [`atleast_1d`].
+    /// View the tensor as having at least one dimension. See also [`atleast_1d`].
     pub fn atleast_1d(&self) -> TensorView<'_, T, B, IxD> {
         atleast_1d(self)
     }
@@ -1734,7 +1736,7 @@ where
     pub fn atleast_1d_f(&self) -> Result<TensorView<'_, T, B, IxD>> {
         atleast_1d_f(self)
     }
-    /// View as an array with at least two dimensions. See [`atleast_2d`].
+    /// View the tensor as having at least two dimensions. See also [`atleast_2d`].
     pub fn atleast_2d(&self) -> TensorView<'_, T, B, IxD> {
         atleast_2d(self)
     }
@@ -1742,7 +1744,7 @@ where
     pub fn atleast_2d_f(&self) -> Result<TensorView<'_, T, B, IxD>> {
         atleast_2d_f(self)
     }
-    /// View as an array with at least three dimensions. See [`atleast_3d`].
+    /// View the tensor as having at least three dimensions. See also [`atleast_3d`].
     pub fn atleast_3d(&self) -> TensorView<'_, T, B, IxD> {
         atleast_3d(self)
     }
