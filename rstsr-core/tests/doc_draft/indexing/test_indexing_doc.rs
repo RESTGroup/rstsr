@@ -40,3 +40,152 @@ mod doc_indexing {
         );
     }
 }
+
+mod doc_slice {
+    use super::*;
+    static FUNC: &str = "doc_slice";
+
+    #[test]
+    fn test_doc() {
+        crate::specify_test!("test_doc");
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        let a = rt::arange((10, &device));
+        println!("{}", a.slice(s![1..4]));
+        // [ 1 2 3]
+        assert_eq!(format!("{}", a.slice(s![1..4])), "[ 1 2 3]");
+
+        println!("{}", a.slice(slice!(2, 7, 2)));
+        // [ 2 4 6]
+        assert_eq!(format!("{}", a.slice(slice!(2, 7, 2))), "[ 2 4 6]");
+
+        // negative bounds count from the back
+        println!("{}", a.slice(s![-3..]));
+        // [ 7 8 9]
+        assert_eq!(format!("{}", a.slice(s![-3..])), "[ 7 8 9]");
+
+        // None inserts a new axis
+        println!("{:?}", a.slice(s![None, 1..4]).shape());
+        // [1, 3]
+        assert_eq!(a.slice(s![None, 1..4]).shape(), &[1, 3]);
+    }
+}
+
+mod doc_slice_nd {
+    use super::*;
+    static FUNC: &str = "doc_slice_nd";
+
+    #[test]
+    fn test_doc() {
+        crate::specify_test!("test_doc");
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        let b = rt::arange((24, &device)).into_shape([2, 3, 4]);
+        println!("{}", b.slice(s![1..2, 1..3, 1..4]));
+        // [[[ 17 18 19]
+        //   [ 21 22 23]]]
+        assert_eq!(format!("{}", b.slice(s![1..2, 1..3, 1..4])), "[[[ 17 18 19]\n  [ 21 22 23]]]");
+
+        // integer selects one position and drops the axis
+        println!("{}", b.slice(s![1]));
+        // [[ 12 13 14 15]
+        //  [ 16 17 18 19]
+        //  [ 20 21 22 23]]
+        assert_eq!(format!("{}", b.slice(s![1])), "[[ 12 13 14 15]\n [ 16 17 18 19]\n [ 20 21 22 23]]");
+
+        // scalar access by the [] operator (boundary-checked)
+        println!("{}", b[[1, 2, 3]]);
+        // 23
+        assert_eq!(b[[1, 2, 3]], 23);
+
+        // mutable slice, written in place
+        let mut a: Tensor<i32, _> = rt::arange((5, &device));
+        let mut v = a.slice_mut(s![1..4]);
+        v += 10;
+        println!("{a}");
+        // [ 0 11 12 13 4]
+        assert_eq!(format!("{a}"), "[ 0 11 12 13 4]");
+    }
+}
+
+mod doc_diagonal {
+    use super::*;
+    static FUNC: &str = "doc_diagonal";
+
+    #[test]
+    fn test_doc() {
+        crate::specify_test!("test_doc");
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        let a = rt::arange((9, &device)).into_shape([3, 3]);
+        println!("{}", a.diagonal(()));
+        // [ 0 4 8]
+        assert_eq!(format!("{}", a.diagonal(())), "[ 0 4 8]");
+        println!("{}", a.diagonal(1));
+        // [ 1 5]
+        assert_eq!(format!("{}", a.diagonal(1)), "[ 1 5]");
+
+        // 3-D: diagonal over axes (0, 1), one remaining axis
+        let b = rt::arange((24, &device)).into_shape([2, 3, 4]);
+        let d = b.diagonal((0, 0, 1));
+        println!("{}", d);
+        println!("{:?}", d.shape());
+        assert_eq!(d.shape(), &[4, 2]);
+
+        // mutable diagonal, written in place
+        let mut c: Tensor<i32, _> = rt::zeros(([3, 3], &device));
+        let mut d = c.diagonal_mut(());
+        d += 2;
+        println!("{c}");
+        // [[ 2 0 0]
+        //  [ 0 2 0]
+        //  [ 0 0 2]]
+        assert_eq!(format!("{c}"), "[[ 2 0 0]\n [ 0 2 0]\n [ 0 0 2]]");
+    }
+}
+
+mod doc_adv_indexing {
+    use super::*;
+    static FUNC: &str = "doc_adv_indexing";
+
+    #[test]
+    fn test_doc() {
+        crate::specify_test!("test_doc");
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        let a = rt::arange((12, &device)).into_shape([3, 4]);
+
+        println!("{}", rt::index_select(&a, 0, [0, 2]));
+        // [[ 0 1 2 3]
+        //  [ 8 9 10 11]]
+        assert_eq!(format!("{}", rt::index_select(&a, 0, [0, 2])), "[[ 0 1 2 3]\n [ 8 9 10 11]]");
+
+        println!("{}", rt::index_select(&a, 1, vec![3, 1]));
+        // [[ 3 1]
+        //  [ 7 5]
+        //  [ 11 9]]
+        assert_eq!(format!("{}", rt::index_select(&a, 1, vec![3, 1])), "[[ 3 1]\n [ 7 5]\n [ 11 9]]");
+
+        // negative indices count from the back
+        println!("{}", rt::index_select(&a, 0, [-1]));
+        // [[ 8 9 10 11]]
+        assert_eq!(format!("{}", rt::index_select(&a, 0, [-1])), "[[ 8 9 10 11]]");
+
+        // take: same operation as index_select, NumPy argument order
+        println!("{}", rt::take(&a, [0, 2], 0));
+        // [[ 0 1 2 3]
+        //  [ 8 9 10 11]]
+        assert_eq!(format!("{}", rt::take(&a, [0, 2], 0)), "[[ 0 1 2 3]\n [ 8 9 10 11]]");
+
+        // bool_select: mask of the same length as the axis
+        println!("{}", rt::bool_select(&a, 1, [true, false, true, false]));
+        // [[ 0 2]
+        //  [ 4 6]
+        //  [ 8 10]]
+        assert_eq!(format!("{}", rt::bool_select(&a, 1, [true, false, true, false])), "[[ 0 2]\n [ 4 6]\n [ 8 10]]");
+    }
+}

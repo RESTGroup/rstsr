@@ -7,6 +7,10 @@ use crate::prelude_dev::*;
 
 /* #region index_select */
 
+/// Returns a new tensor, which indexes the input tensor along dimension `axis` using the entries in
+/// `indices`.
+///
+/// See also [`index_select`].
 pub fn index_select_f<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, axis: isize, indices: I) -> Result<Tensor<T, B, D>>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
@@ -50,9 +54,87 @@ where
 /// Returns a new tensor, which indexes the input tensor along dimension `axis`
 /// using the entries in `indices`.
 ///
+/// The output has the same shape as the input except on `axis`, whose length
+/// becomes `indices.len()`. Entries may repeat, and negative values count from
+/// the back. The output is an owned tensor, contiguous in the device default
+/// order.
+///
+/// This function behaves identically under [`RowMajor`] and [`ColMajor`] device
+/// default orders. (Only the memory arrangement of the new tensor follows the
+/// device default order.)
+///
+/// # Parameters
+///
+/// - `tensor`: [`&TensorAny<R, T, B, D>`](TensorAny): the input tensor.
+/// - `axis`: the axis to index along; negative values count from the back.
+/// - `indices`: the indices to select, anything that converts into [`AxesIndex<isize>`][AxesIndex]
+///   (array, vector, or slice of integers).
+///
+/// # Returns
+///
+/// - [`Tensor<T, B, D>`][`Tensor`]: the gathered tensor, owning its data.
+///
+/// # Examples
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let a = rt::arange((12, &device)).into_shape([3, 4]);
+/// println!("{}", rt::index_select(&a, 0, [0, 2]));
+/// // [[ 0 1 2 3]
+/// //  [ 8 9 10 11]]
+/// println!("{}", rt::index_select(&a, 1, vec![3, 1]));
+/// // [[ 3 1]
+/// //  [ 7 5]
+/// //  [ 11 9]]
+/// # assert_eq!(format!("{}", rt::index_select(&a, 1, vec![3, 1])), "[[ 3 1]\n [ 7 5]\n [ 11 9]]");
+/// ```
+///
+/// Negative indices count from the back:
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// # let a = rt::arange((12, &device)).into_shape([3, 4]);
+/// println!("{}", rt::index_select(&a, 0, [-1]));
+/// // [[ 8 9 10 11]]
+/// # assert_eq!(format!("{}", rt::index_select(&a, 0, [-1])), "[[ 8 9 10 11]]");
+/// ```
+///
+/// # Notes of API accordance
+///
+/// - PyTorch: `torch.index_select(input, dim, index)` ([`torch.index_select`](https://docs.pytorch.org/docs/stable/generated/torch.index_select.html))
+/// - RSTSR: `rt::index_select(&tensor, axis, indices)`; indices are integers (negative allowed),
+///   not a tensor.
+///
+/// # Panics
+///
+/// - Panics if `axis` is out of range, or if any index (after resolving negative values) is out of
+///   bound on `axis`.
+///
+/// For a fallible version, use [`index_select_f`].
+///
 /// # See also
 ///
-/// This function should be similar to PyTorch's [`torch.index_select`](https://docs.pytorch.org/docs/stable/generated/torch.index_select.html).
+/// ## Similar function from other crates/libraries
+///
+/// - PyTorch: [`torch.index_select`](https://docs.pytorch.org/docs/stable/generated/torch.index_select.html)
+/// - NumPy: [`numpy.take`](https://numpy.org/doc/stable/reference/generated/numpy.take.html) (see
+///   also [`take`])
+///
+/// ## Related functions in RSTSR
+///
+/// - [`take`]: the same operation with NumPy's argument order.
+/// - [`bool_select`]: select by boolean mask.
+/// - [`slice`](slice()): basic indexing (views).
+///
+/// ## Variants of this function
+///
+/// - [`index_select_f`]: fallible version.
+/// - Associated methods on [`TensorAny`]: [`TensorAny::index_select`] /
+///   [`TensorAny::index_select_f`].
 pub fn index_select<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, axis: isize, indices: I) -> Tensor<T, B, D>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
@@ -64,6 +146,9 @@ where
     index_select_f(tensor, axis, indices).rstsr_unwrap()
 }
 
+/// Take elements from a tensor along an axis.
+///
+/// See also [`take`].
 pub fn take_f<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, indices: I, axis: isize) -> Result<Tensor<T, B, D>>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
@@ -75,11 +160,69 @@ where
     index_select_f(tensor, axis, indices)
 }
 
-/// Take elements from an array along an axis.
+/// Take elements from a tensor along an axis.
+///
+/// The same operation as [`index_select`] (indices may repeat, negative values
+/// count from the back), with NumPy's argument order: `indices` before `axis`.
+///
+/// This function behaves identically under [`RowMajor`] and [`ColMajor`] device
+/// default orders. (Only the memory arrangement of the new tensor follows the
+/// device default order.)
+///
+/// # Parameters
+///
+/// - `tensor`: [`&TensorAny<R, T, B, D>`](TensorAny): the input tensor.
+/// - `indices`: the indices to take, anything that converts into [`AxesIndex<isize>`][AxesIndex]
+///   (array, vector, or slice of integers).
+/// - `axis`: the axis to take along; negative values count from the back.
+///
+/// # Returns
+///
+/// - [`Tensor<T, B, D>`][`Tensor`]: the gathered tensor, owning its data.
+///
+/// # Examples
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let a = rt::arange((12, &device)).into_shape([3, 4]);
+/// println!("{}", rt::take(&a, [0, 2], 0));
+/// // [[ 0 1 2 3]
+/// //  [ 8 9 10 11]]
+/// # assert_eq!(format!("{}", rt::take(&a, [0, 2], 0)), "[[ 0 1 2 3]\n [ 8 9 10 11]]");
+/// ```
+///
+/// # Notes of API accordance
+///
+/// - Array-API: `take(x, indices, /, *, axis=None)` ([`take`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.take.html))
+/// - NumPy: `numpy.take(a, indices, axis=None)` ([`numpy.take`](https://numpy.org/doc/stable/reference/generated/numpy.take.html))
+/// - RSTSR: `rt::take(&tensor, indices, axis)`; `axis` is mandatory (no flattened whole-tensor
+///   form), and `mode`/`out` are not supported.
+///
+/// # Panics
+///
+/// - Panics if `axis` is out of range, or if any index (after resolving negative values) is out of
+///   bound on `axis`.
+///
+/// For a fallible version, use [`take_f`].
 ///
 /// # See also
 ///
-/// [Python Array API standard: take](https://data-apis.org/array-api/latest/API_specification/generated/array_api.take.html#array_api.take)
+/// ## Similar function from other crates/libraries
+///
+/// - Python Array API standard: [`take`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.take.html)
+/// - NumPy: [`numpy.take`](https://numpy.org/doc/stable/reference/generated/numpy.take.html)
+///
+/// ## Related functions in RSTSR
+///
+/// - [`index_select`]: the same operation with PyTorch's argument order.
+/// - [`bool_select`]: select by boolean mask.
+///
+/// ## Variants of this function
+///
+/// - [`take_f`]: fallible version.
+/// - Associated methods on [`TensorAny`]: [`TensorAny::take`] / [`TensorAny::take_f`].
 pub fn take<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, indices: I, axis: isize) -> Tensor<T, B, D>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
@@ -98,6 +241,7 @@ where
     D::SmallerOne: DimAPI,
     B: DeviceAPI<T> + DeviceIndexSelectAPI<T, D> + DeviceCreationAnyAPI<T>,
 {
+    /// See also [`index_select`].
     pub fn index_select_f<I>(&self, axis: isize, indices: I) -> Result<Tensor<T, B, D>>
     where
         I: TryInto<AxesIndex<isize>, Error: Into<Error>>,
@@ -142,6 +286,10 @@ where
 
 /* #region bool_select */
 
+/// Returns a new tensor, which indexes the input tensor along dimension `axis` using the boolean
+/// entries in `mask`.
+///
+/// See also [`bool_select`].
 pub fn bool_select_f<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, axis: isize, mask: I) -> Result<Tensor<T, B, D>>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
@@ -164,6 +312,64 @@ where
 
 /// Returns a new tensor, which indexes the input tensor along dimension `axis`
 /// using the boolean entries in `mask`.
+///
+/// Positions where `mask` is true are selected along `axis`; the output length
+/// on `axis` equals the number of true entries. The output is an owned tensor,
+/// contiguous in the device default order.
+///
+/// This function behaves identically under [`RowMajor`] and [`ColMajor`] device
+/// default orders. (Only the memory arrangement of the new tensor follows the
+/// device default order.)
+///
+/// # Parameters
+///
+/// - `tensor`: [`&TensorAny<R, T, B, D>`](TensorAny): the input tensor.
+/// - `axis`: the axis to select along; negative values count from the back.
+/// - `mask`: boolean flags, anything that converts into [`AxesIndex<bool>`][AxesIndex] (array,
+///   vector, or slice of `bool`), one entry per position on `axis`.
+///
+/// # Returns
+///
+/// - [`Tensor<T, B, D>`][`Tensor`]: the selected tensor, owning its data.
+///
+/// # Examples
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let a = rt::arange((12, &device)).into_shape([3, 4]);
+/// println!("{}", rt::bool_select(&a, 1, [true, false, true, false]));
+/// // [[ 0 2]
+/// //  [ 4 6]
+/// //  [ 8 10]]
+/// # assert_eq!(format!("{}", rt::bool_select(&a, 1, [true, false, true, false])), "[[ 0 2]\n [ 4 6]\n [ 8 10]]");
+/// ```
+///
+/// # Notes of API accordance
+///
+/// - PyTorch: `torch.index_select` applied on a boolean mask's positions ([`torch.masked_select`](https://docs.pytorch.org/docs/stable/generated/torch.masked_select.html)
+///   flattens instead; rstsr selects along one axis)
+/// - RSTSR: `rt::bool_select(&tensor, axis, mask)`; the mask must match the length of `axis`.
+///
+/// # Panics
+///
+/// - Panics if `axis` is out of range, or if the number of selected positions exceeds the length of
+///   `axis` (mask longer than the axis with trailing true entries).
+///
+/// For a fallible version, use [`bool_select_f`].
+///
+/// # See also
+///
+/// ## Related functions in RSTSR
+///
+/// - [`index_select`] / [`take`]: select by integer indices.
+///
+/// ## Variants of this function
+///
+/// - [`bool_select_f`]: fallible version.
+/// - Associated methods on [`TensorAny`]: [`TensorAny::bool_select`] /
+///   [`TensorAny::bool_select_f`].
 pub fn bool_select<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, axis: isize, mask: I) -> Tensor<T, B, D>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,

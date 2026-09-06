@@ -11,6 +11,9 @@ use crate::prelude_dev::*;
 
 /* #region slice */
 
+/// Basic slicing of a tensor.
+///
+/// See also [`into_slice`].
 pub fn into_slice_f<S, D, I>(tensor: TensorBase<S, D>, index: I) -> Result<TensorBase<S, IxD>>
 where
     D: DimAPI,
@@ -22,6 +25,9 @@ where
     return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
 }
 
+/// Basic slicing of a tensor.
+///
+/// See also [`slice`](slice()).
 pub fn into_slice<S, D, I>(tensor: TensorBase<S, D>, index: I) -> TensorBase<S, IxD>
 where
     D: DimAPI,
@@ -30,6 +36,9 @@ where
     into_slice_f(tensor, index).rstsr_unwrap()
 }
 
+/// Basic slicing of a tensor, returning a view.
+///
+/// See also [`slice`](slice()).
 pub fn slice_f<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, index: I) -> Result<TensorView<'_, T, B, IxD>>
 where
     D: DimAPI,
@@ -40,6 +49,117 @@ where
     into_slice_f(tensor.view(), index)
 }
 
+/// Basic slicing of a tensor, returning a view.
+///
+/// Each dimension can be indexed by one of the following indexers, typically
+/// written with the [`s!`] macro:
+///
+/// - a range (`1..4`), optionally with step (via the [`slice!`] macro: `slice!(2, 7, 2)`) - keeps
+///   the axis, narrowing it;
+/// - an integer (`2`) - selects one position and drops the axis (like NumPy's `x[2]`); negative
+///   values count from the back;
+/// - `None` - inserts a new axis of size one (like NumPy's `x[:, None]`);
+/// - [`Indexer::Ellipsis`] - expands to as many full ranges as needed.
+///
+/// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
+///
+/// # Parameters
+///
+/// - `tensor`: [`&TensorAny<R, T, B, D>`](TensorAny): the input tensor.
+/// - `index`: the per-axis indexers, anything that converts into [`AxesIndex<Indexer>`][AxesIndex].
+///   - Overloads:
+///     - the result of the [`s!`] macro: a list of indexers, one per axis (shorter lists index the
+///       leading axes);
+///     - a single integer: select the first axis and drop it;
+///     - a single range: slice the first axis.
+///
+/// # Returns
+///
+/// - [`TensorView<'_, T, B, IxD>`][`TensorView`]: a view of the sliced tensor (no data is copied).
+///
+/// # Examples
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let a = rt::arange((10, &device));
+/// println!("{}", a.slice(s![1..4]));
+/// // [ 1 2 3]
+/// println!("{}", a.slice(slice!(2, 7, 2)));
+/// // [ 2 4 6]
+/// println!("{}", a.slice(s![-3..]));
+/// // [ 7 8 9]
+/// # assert_eq!(format!("{}", a.slice(s![-3..])), "[ 7 8 9]");
+/// ```
+///
+/// For n-dimensional tensors, indexers apply per axis; an integer drops the
+/// axis, `None` inserts one:
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let b = rt::arange((24, &device)).into_shape([2, 3, 4]);
+/// println!("{}", b.slice(s![1..2, 1..3, 1..4]));
+/// // [[[ 17 18 19]
+/// //   [ 21 22 23]]]
+/// println!("{}", b.slice(s![1]));
+/// // [[ 12 13 14 15]
+/// //  [ 16 17 18 19]
+/// //  [ 20 21 22 23]]
+/// ```
+///
+/// Mutable slicing writes through to the original tensor:
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let mut a: Tensor<i32, _> = rt::arange((5, &device));
+/// let mut v = a.slice_mut(s![1..4]);
+/// v += 10;
+/// println!("{a}");
+/// // [ 0 11 12 13 4]
+/// # assert_eq!(format!("{a}"), "[ 0 11 12 13 4]");
+/// ```
+///
+/// # Notes of API accordance
+///
+/// - NumPy: basic indexing / slicing, `x[1:4]`, `x[2]`, `x[:, None]` ([`numpy.indexing`](https://numpy.org/doc/stable/user/basics.indexing.html#basic-slicing-and-indexing))
+/// - RSTSR: `rt::slice(&tensor, index)` or `tensor.slice(index)`; indexers are built by the [`s!`]
+///   macro instead of Python's bracket syntax.
+///
+/// # Panics
+///
+/// - Panics if any indexer is invalid for the corresponding axis (for example, out-of-bound range
+///   or integer).
+///
+/// For a fallible version, use [`slice_f`].
+///
+/// # See also
+///
+/// ## Similar function from other crates/libraries
+///
+/// - NumPy: [basic indexing](https://numpy.org/doc/stable/user/basics.indexing.html#basic-slicing-and-indexing)
+/// - rust `ndarray`: [`ArrayBase::slice`](https://docs.rs/ndarray/latest/ndarray/struct.ArrayBase.html#method.slice)
+///
+/// ## Related functions in RSTSR
+///
+/// - [`diagonal`]: diagonal views.
+/// - [`index_select`] / [`take`] / [`bool_select`]: advanced indexing (copies).
+/// - Operator `[]` ([`Index`]) / `[]=` ([`IndexMut`]): scalar element access, e.g. `a[[1, 2]]`.
+///
+/// ## Variants of this function
+///
+/// - [`slice_f`]: fallible version.
+/// - [`slice_mut`] / [`slice_mut_f`]: mutable views.
+/// - [`into_slice`] / [`into_slice_f`]: ownership-consuming forms.
+/// - [`TensorAny::i`] / [`TensorAny::i_mut`]: aliases of [`slice`](slice()) /
+///   [`slice_mut`](slice_mut()).
+/// - Associated methods on [`TensorAny`]: [`TensorAny::slice`] / [`TensorAny::slice_f`] /
+///   [`TensorAny::slice_mut`] / [`TensorAny::slice_mut_f`] / [`TensorAny::into_slice`] /
+///   [`TensorAny::into_slice_f`] / [`TensorAny::i`] / [`TensorAny::i_mut`].
 pub fn slice<R, T, B, D, I>(tensor: &TensorAny<R, T, B, D>, index: I) -> TensorView<'_, T, B, IxD>
 where
     D: DimAPI,
@@ -84,6 +204,9 @@ where
         slice(self, index)
     }
 
+    /// Basic slicing (alias of [`TensorAny::slice`]).
+    ///
+    /// See also [`slice`](slice()).
     pub fn i_f<I>(&self, index: I) -> Result<TensorView<'_, T, B, IxD>>
     where
         I: TryInto<AxesIndex<Indexer>, Error: Into<Error>>,
@@ -91,6 +214,9 @@ where
         slice_f(self, index)
     }
 
+    /// Basic slicing (alias of [`TensorAny::slice`]).
+    ///
+    /// See also [`slice`](slice()).
     pub fn i<I>(&self, index: I) -> TensorView<'_, T, B, IxD>
     where
         I: TryInto<AxesIndex<Indexer>, Error: Into<Error>>,
@@ -103,6 +229,9 @@ where
 
 /* #region slice mut */
 
+/// Mutable basic slicing of a tensor, returning a mutable view.
+///
+/// See also [`slice`](slice()).
 pub fn slice_mut_f<R, T, B, D, I>(tensor: &mut TensorAny<R, T, B, D>, index: I) -> Result<TensorMut<'_, T, B, IxD>>
 where
     D: DimAPI,
@@ -113,6 +242,9 @@ where
     into_slice_f(tensor.view_mut(), index)
 }
 
+/// Mutable basic slicing of a tensor, returning a mutable view.
+///
+/// See also [`slice`](slice()).
 pub fn slice_mut<R, T, B, D, I>(tensor: &mut TensorAny<R, T, B, D>, index: I) -> TensorMut<'_, T, B, IxD>
 where
     D: DimAPI,
@@ -143,6 +275,9 @@ where
         slice_mut(self, index)
     }
 
+    /// Mutable basic slicing (alias of [`TensorAny::slice_mut`]).
+    ///
+    /// See also [`slice_mut`](slice_mut()).
     pub fn i_mut_f<I>(&mut self, index: I) -> Result<TensorMut<'_, T, B, IxD>>
     where
         I: TryInto<AxesIndex<Indexer>, Error: Into<Error>>,
@@ -150,6 +285,9 @@ where
         slice_mut_f(self, index)
     }
 
+    /// Mutable basic slicing (alias of [`TensorAny::slice_mut`]).
+    ///
+    /// See also [`slice_mut`](slice_mut()).
     pub fn i_mut<I>(&mut self, index: I) -> TensorMut<'_, T, B, IxD>
     where
         I: TryInto<AxesIndex<Indexer>, Error: Into<Error>>,
@@ -162,6 +300,17 @@ where
 
 /* #region diagonal */
 
+/// Arguments of the diagonal operation ([`diagonal`], [`diagonal_mut`], and
+/// their variants).
+///
+/// - `offset`: diagonal index: `0` the main diagonal, positive above it, negative below it.
+///   Defaults to `0` if absent.
+/// - `axis1` / `axis2`: the two axes defining the diagonals. Default to the first two axes (`0`,
+///   `1`) if absent.
+///
+/// Constructed by conversion from `()`, a single integer (offset only), or a
+/// tuple `(offset, axis1, axis2)` of integers (any mix of `isize`/`usize`,
+/// `i32`, or `i64`).
 pub struct DiagonalArgs {
     pub offset: Option<isize>,
     pub axis1: Option<isize>,
@@ -204,6 +353,9 @@ impl From<Option<isize>> for DiagonalArgs {
     }
 }
 
+/// Return specified diagonal views of a tensor.
+///
+/// See also [`diagonal`].
 pub fn into_diagonal_f<S, D>(
     tensor: TensorBase<S, D>,
     diagonal_args: impl Into<DiagonalArgs>,
@@ -218,6 +370,9 @@ where
     return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
 }
 
+/// Return specified diagonal views of a tensor.
+///
+/// See also [`diagonal`].
 pub fn into_diagonal<S, D>(
     tensor: TensorBase<S, D>,
     diagonal_args: impl Into<DiagonalArgs>,
@@ -229,6 +384,9 @@ where
     into_diagonal_f(tensor, diagonal_args).rstsr_unwrap()
 }
 
+/// Return specified diagonal views of a tensor.
+///
+/// See also [`diagonal`].
 pub fn diagonal_f<R, T, B, D>(
     tensor: &TensorAny<R, T, B, D>,
     diagonal_args: impl Into<DiagonalArgs>,
@@ -242,6 +400,108 @@ where
     into_diagonal_f(tensor.view(), diagonal_args)
 }
 
+/// Return specified diagonal views of a tensor.
+///
+/// The two axes `axis1` and `axis2` of the input are collapsed into the
+/// diagonal: the returned tensor has these two axes removed, and the diagonal
+/// appended as the **last** axis (NumPy `np.diagonal` convention). For a 2-D
+/// input the result is one-dimensional.
+///
+/// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
+///
+/// # Parameters
+///
+/// - `tensor`: [`&TensorAny<R, T, B, D>`](TensorAny): the input tensor.
+/// - `diagonal_args`: [`DiagonalArgs`]: offset and axes; accepts `()` (main diagonal), a single
+///   integer (offset, default axes), or a tuple `(offset, axis1, axis2)`.
+///
+/// # Returns
+///
+/// - [`TensorView<'_, T, B, D::SmallerOne>`][`TensorView`]: a view of the diagonals (no data is
+///   copied); dimensionality is one less than the input.
+///
+/// # Examples
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let a = rt::arange((9, &device)).into_shape([3, 3]);
+/// println!("{}", a.diagonal(()));
+/// // [ 0 4 8]
+/// println!("{}", a.diagonal(1));
+/// // [ 1 5]
+/// # assert_eq!(format!("{}", a.diagonal(1)), "[ 1 5]");
+/// ```
+///
+/// For a 3-D tensor, the diagonal over axes `(0, 1)` is appended as the last
+/// axis:
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let b = rt::arange((24, &device)).into_shape([2, 3, 4]);
+/// let d = b.diagonal((0, 0, 1));
+/// println!("{d}");
+/// // [[ 0 16]
+/// //  [ 1 17]
+/// //  [ 2 18]
+/// //  [ 3 19]]
+/// # assert_eq!(d.shape(), &[4, 2]);
+/// ```
+///
+/// The mutable form writes through to the original tensor:
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let mut c: Tensor<i32, _> = rt::zeros(([3, 3], &device));
+/// let mut d = c.diagonal_mut(());
+/// d += 2;
+/// println!("{c}");
+/// // [[ 2 0 0]
+/// //  [ 0 2 0]
+/// //  [ 0 0 2]]
+/// # assert_eq!(format!("{c}"), "[[ 2 0 0]\n [ 0 2 0]\n [ 0 0 2]]");
+/// ```
+///
+/// # Notes of API accordance
+///
+/// - NumPy: `numpy.diagonal(a, offset=0, axis1=0, axis2=1)` ([`numpy.diagonal`](https://numpy.org/doc/stable/reference/generated/numpy.diagonal.html))
+/// - RSTSR: `rt::diagonal(&tensor, args)` or `tensor.diagonal(args)`; the diagonal axis is appended
+///   as the last axis, as in NumPy.
+///
+/// # Panics
+///
+/// - Panics if `axis1` / `axis2` are out of range or equal, or if `offset` selects no element.
+///
+/// For a fallible version, use [`diagonal_f`].
+///
+/// # See also
+///
+/// ## Similar function from other crates/libraries
+///
+/// - NumPy: [`numpy.diagonal`](https://numpy.org/doc/stable/reference/generated/numpy.diagonal.html)
+/// - Python Array API standard: `diag` (extract, via `__getitem__`)
+///
+/// ## Related functions in RSTSR
+///
+/// - [`diag`]: extract a diagonal as an owned tensor, or construct a diagonal matrix from a 1-D
+///   tensor.
+/// - [`slice`](slice()): basic slicing views.
+///
+/// ## Variants of this function
+///
+/// - [`diagonal_f`]: fallible version.
+/// - [`diagonal_mut`] / [`diagonal_mut_f`]: mutable views.
+/// - [`into_diagonal`] / [`into_diagonal_f`]: ownership-consuming forms.
+/// - [`into_diagonal_mut`] / [`into_diagonal_mut_f`]: ownership-consuming mutable forms.
+/// - Associated methods on [`TensorAny`]: [`TensorAny::diagonal`] / [`TensorAny::diagonal_f`] /
+///   [`TensorAny::diagonal_mut`] / [`TensorAny::diagonal_mut_f`] / [`TensorAny::into_diagonal`] /
+///   [`TensorAny::into_diagonal_f`] / [`TensorAny::into_diagonal_mut`] /
+///   [`TensorAny::into_diagonal_mut_f`].
 pub fn diagonal<R, T, B, D>(
     tensor: &TensorAny<R, T, B, D>,
     diagonal_args: impl Into<DiagonalArgs>,
@@ -283,6 +543,9 @@ where
 
 /* #region diagonal_mut */
 
+/// Mutable diagonal views of a tensor.
+///
+/// See also [`diagonal`].
 pub fn into_diagonal_mut_f<S, D>(
     tensor: TensorBase<S, D>,
     diagonal_args: impl Into<DiagonalArgs>,
@@ -297,6 +560,9 @@ where
     return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
 }
 
+/// Mutable diagonal views of a tensor.
+///
+/// See also [`diagonal`].
 pub fn into_diagonal_mut<S, D>(
     tensor: TensorBase<S, D>,
     diagonal_args: impl Into<DiagonalArgs>,
@@ -308,6 +574,9 @@ where
     into_diagonal_mut_f(tensor, diagonal_args).rstsr_unwrap()
 }
 
+/// Mutable diagonal views of a tensor.
+///
+/// See also [`diagonal`].
 pub fn diagonal_mut_f<R, T, B, D>(
     tensor: &mut TensorAny<R, T, B, D>,
     diagonal_args: impl Into<DiagonalArgs>,
@@ -321,6 +590,9 @@ where
     into_diagonal_mut_f(tensor.view_mut(), diagonal_args)
 }
 
+/// Mutable diagonal views of a tensor.
+///
+/// See also [`diagonal`].
 pub fn diagonal_mut<R, T, B, D>(
     tensor: &mut TensorAny<R, T, B, D>,
     diagonal_args: impl Into<DiagonalArgs>,
