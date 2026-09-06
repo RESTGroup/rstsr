@@ -32,7 +32,7 @@ tensor/creation_from_tensor.rs,creation,full,done,1,uplifted; concat link typo f
 tensor/indexing.rs,indexing,full,done,2,anchors slice/diagonal (+DiagonalArgs floor); variants and i/i_mut minimal; twins in doc_draft/indexing
 tensor/adv_indexing.rs,indexing,full,done,2,index_select/take/bool_select full tier; _f and method forms minimal
 tensor/reduction.rs,reduction,full,done,6,module docs carry family table + order notice + examples; allclose anchor full; twins extended (argmax/allclose/count_nonzero)
-tensor/operators/,operators,full,todo,5,rt:: anchors across op_* files; 0 docs
+tensor/operators/,operators,full,done,5,documented via module docs per policy §9 (macro-generated surface); % -as-matmul warning; op_* module floors; twins extended
 tensor/map_elementwise.rs,utility,full,done,4,map anchor full; mapv/mapi minimal-plus; mapb/mapvi/mapvb and *_fnmut minimal with see-alsos
 tensor/ownership_conversion.rs,utility,full,done,4,view/view_mut/into_cow/into_owned/into_shared/to_owned/to_vec/into_vec/to_scalar full or full-lite; keep_layout and force_mut minimal-plus
 tensor/iterator_axes.rs,utility,full,done,4,axes_iter anchor + axes_iter_mut minimal-plus; indexed variants and iterator types floored; order notice
@@ -40,7 +40,7 @@ tensor/iterator_elem.rs,utility,full,done,4,iter anchor full; iter_mut/indexed_i
 tensor/assignment.rs,utility,full,done,4,assign (b, broadcast) and fill (a) full; traits and methods minimal
 tensor/tensor2_impl.rs,utility,full,done,4,module //! + nrow/ncol/ld docs
 tensor/tensor_mutable.rs,utility,full,done,4,module + enum + variant docs (utility surface is small)
-tensor/tensor_view_list.rs,utility,full,partial,4,minimal but ok
+tensor/tensor_view_list.rs,utility,full,done,4,module + trait docs pre-exist (floor satisfied)
 tensor/device_conversion.rs,utility,full,done,4,module //! + TensorDeviceChangeAPI trait/method docs
 tensor/ext_conversion.rs,utility,full,done,4,module //! pre-existed; IntoRSTSR trait doc
 tensor/pack_array.rs,utility,full,done,4,module //! + into_pack_array/into_unpack_array method docs
