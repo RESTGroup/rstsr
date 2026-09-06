@@ -59,7 +59,7 @@ where
 ///
 /// # Panics
 ///
-/// Returns an error if the layout size doesn't match the tensor size.
+/// Panics if the layout size doesn't match the tensor size.
 /// Use [`to_layout_f`] for the fallible version.
 ///
 /// # Examples

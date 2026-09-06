@@ -2,7 +2,7 @@
 # (rstsr-agents/plans/2026-09-api-doc-campaign.md). Policy: skill api-doc-conventions (rstsr-agents/skills/api-doc-conventions/SKILL.md).
 # Granularity: module-level; per-item rows may be added inside a batch.
 # tier:   full | minimal | na      (policy §1; minimal = summary + see-also only)
-# status: done    — complies with the policy (nothing is at this level yet)
+# status: done    — complies with the policy
 #         postfix — documented before the policy existed: substantive content exists,
 #                   but a policy-compliance pass is pending (row/col one-liners on
 #                   order-independent functions, heading/link/section-order drift,

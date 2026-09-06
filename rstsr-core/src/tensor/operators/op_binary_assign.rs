@@ -7,6 +7,16 @@
 //! All of them broadcast the right-hand operand against the destination (see
 //! [`order_semantics`](crate::order_semantics) for the two orders).
 //!
+//! <div class="warning">
+//!
+//! **`%=` is element-wise, while `%` is matrix multiplication**
+//!
+//! Unlike the binary `%` operator (which is matrix multiplication, see
+//! [`matmul`](crate::tensor::linalg::matmul::matmul())), the in-place
+//! [`rem_assign`](rem_assign()) applies the element-wise remainder.
+//!
+//! </div>
+//!
 //! # Examples
 //!
 //! ```rust

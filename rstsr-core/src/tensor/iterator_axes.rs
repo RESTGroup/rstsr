@@ -3,7 +3,9 @@
 //!
 //! Each step yields a view of the tensor with the iterated axes removed, so
 //! iteration along axis `i` of an N-D tensor yields views of dimensionality
-//! N-1. Traversal order follows the device default order; see
+//! N-1. `axes_iter` traverses in the iterated axis's own (K) order;
+//! [`TensorAny::axes_iter_with_order`] pins the order explicitly, and the
+//! `indexed_*` variants follow the device default order. See
 //! [`order_semantics`](crate::order_semantics).
 
 #![allow(clippy::missing_transmute_annotations)]
@@ -161,7 +163,8 @@ where
     ///
     /// Each step yields a view of dimensionality N-1 (the iterated axis is
     /// removed), sharing the original data. The number of steps equals the
-    /// length of `axes`; iteration order follows the device default order (see
+    /// length of `axes`; traversal follows the iterated axis's own (K) order,
+    /// which for the usual layouts matches the device default order (see
     /// [`order_semantics`](crate::order_semantics)).
     ///
     /// # Parameters

@@ -354,8 +354,8 @@ where
 ///
 /// # Panics
 ///
-/// - Panics if `axis` is out of range, or if the number of selected positions exceeds the length of
-///   `axis` (mask longer than the axis with trailing true entries).
+/// - Panics if `axis` is out of range, or if any selected position exceeds the length of `axis`
+///   (possible only when the mask is longer than the axis).
 ///
 /// For a fallible version, use [`bool_select_f`].
 ///

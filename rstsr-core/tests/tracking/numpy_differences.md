@@ -309,7 +309,7 @@ maintainer decision.
 - **tag:** bug
 - **status:** open
 
-With `copy = false`, rstsr's `meshgrid` still returns owned tensors: the grids are built by
-`into_shape` (which clones when the broadcast layout cannot be viewed), and the flag only skips an
-extra contiguity pass. The docstring now documents the actual behavior; whether to implement true
+With `copy = false`, rstsr's `meshgrid` still returns owned tensors: each grid is materialized by
+`into_shape_f` on a view (always an owned copy), then broadcast by `broadcast_arrays_f` into owned
+stride-0 grids; the flag only skips an extra contiguity pass. The docstring now documents the actual behavior; whether to implement true
 view semantics is pending maintainer decision.

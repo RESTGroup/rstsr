@@ -78,6 +78,7 @@ where
 ///   - If `axes` is an empty tuple `()`, no axes are squeezed.
 ///   - Negative values are supported and indicate counting dimensions from the back.
 ///   - Each axis in `axes` must have size 1; otherwise an error is raised.
+///
 /// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
 ///
 /// # Returns

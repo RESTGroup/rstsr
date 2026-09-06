@@ -132,8 +132,8 @@ where
 ///
 /// # Panics
 ///
-/// - Panics if any indexer is invalid for the corresponding axis (for example, out-of-bound range
-///   or integer).
+/// - Panics if any integer indexer is out of bound; range ends are clamped to the axis bounds (as
+///   in Python), which yields an empty slice rather than an error.
 ///
 /// For a fallible version, use [`slice_f`].
 ///
@@ -475,7 +475,8 @@ where
 ///
 /// # Panics
 ///
-/// - Panics if `axis1` / `axis2` are out of range or equal, or if `offset` selects no element.
+/// - Panics if `axis1` / `axis2` are out of range or equal. An `offset` that selects no element
+///   yields a zero-length diagonal (as in NumPy).
 ///
 /// For a fallible version, use [`diagonal_f`].
 ///

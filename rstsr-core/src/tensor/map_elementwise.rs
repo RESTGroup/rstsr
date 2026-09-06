@@ -39,8 +39,6 @@ where
         return Tensor::new_f(storage_c, lc);
     }
 
-    /// Call `f` by reference on each element and create a new tensor with the
-    /// new values.
     /// Map a `FnMut` function over every element, producing a new tensor.
     ///
     /// Non-`Send` (`FnMut`) counterpart of [`TensorAny::map`], for
@@ -69,8 +67,6 @@ where
         self.map_fnmut_f(move |x| f(x.clone()))
     }
 
-    /// Call `f` by value on each element and create a new tensor with the new
-    /// values.
     /// Map a by-value `FnMut` function over every element.
     ///
     /// Non-`Send` (`FnMut`) counterpart of [`TensorAny::mapv`], for
@@ -108,8 +104,6 @@ where
         device.op_muta_func(self_raw_mut, &la, &mut f_inner)
     }
 
-    /// Modify the tensor in place by calling `f` by mutable reference on each
-    /// element.
     /// Modify the tensor in place with a `FnMut` function.
     ///
     /// Non-`Send` (`FnMut`) counterpart of [`TensorAny::mapi`], for
@@ -138,8 +132,6 @@ where
         self.mapi_fnmut_f(move |x| *x = f(x.clone()))
     }
 
-    /// Modify the tensor in place by calling `f` by value on each
-    /// element.
     /// Modify the tensor in place with a by-value `FnMut` function.
     ///
     /// Non-`Send` (`FnMut`) counterpart of [`TensorAny::mapvi`], for
@@ -309,8 +301,6 @@ where
         return Tensor::new_f(storage_c, lc);
     }
 
-    /// Call `f` by reference on each element and create a new tensor with the
-    /// new values.
     /// Map a function over every element, producing a new tensor.
     ///
     /// The closure takes each element by reference and returns the mapped

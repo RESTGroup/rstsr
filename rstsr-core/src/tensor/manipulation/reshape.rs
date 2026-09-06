@@ -601,7 +601,7 @@ where
 ///
 /// - `shape`: TryInto [`AxesIndex<isize>`]
 ///
-///   - Position in the expanded axes where the new axis (or axes) is placed.
+///   - The new shape of the tensor.
 ///   - Can be a single integer, or a list/tuple of integers.
 ///   - Negative values are supported and indicate counting dimensions from the back.
 ///

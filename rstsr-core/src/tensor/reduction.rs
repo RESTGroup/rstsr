@@ -24,11 +24,13 @@
 //!
 //! </div>
 //!
-//! The note above applies to the arg* families and `_axes` results only:
-//! value aggregations (`sum`, `mean`, `max`, ...) produce the same values
-//! under both orders, but `_axes` outputs are laid out contiguously in the
-//! device default order, and arg* functions break ties following the
-//! traversal order of the device default order. See
+//! The note above applies to the arg* families and `_axes` result layouts
+//! only: value aggregations (`sum`, `mean`, `max`, ...) produce the same
+//! values under both orders, and `_axes` outputs keep the input's axis
+//! arrangement ([`TensorIterOrder::K`]) regardless of the device default
+//! order. The arg* functions are order-independent: ties resolve to the first
+//! occurrence in row-major order, and the all-element forms return a
+//! row-major flat index even on a [`ColMajor`] device. See
 //! [`order_semantics`](crate::order_semantics).
 //!
 //! # Examples
