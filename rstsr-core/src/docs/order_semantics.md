@@ -15,14 +15,16 @@ Which family is used by default is a property of the **device**, called the
 ```rust
 # use rstsr::prelude::*;
 let mut device = DeviceCpu::default();
-device.set_default_order(ColMajor); // or RowMajor; this is the default
+device.set_default_order(ColMajor); // or RowMajor; RowMajor is the default
+                                   // under this crate's default features
 ```
 
-This page explains what the default order affects. Every documented function
-also states its own behavior: order-independent functions carry the
+This page explains what the default order affects. Functions also state their
+own order behavior in their docstrings: order-independent ones carry the
 one-line notice "This function behaves identically under [`RowMajor`] and
-[`ColMajor`] device default orders", and order-dependent functions carry the
-**Row/Column Major Notice** warning.
+[`ColMajor`] device default orders", and order-dependent ones carry the
+**Row/Column Major Notice** warning. (Functions documented before this
+convention are being retrofitted.)
 
 ## What the default order controls
 
@@ -31,16 +33,17 @@ not pin an order themselves:
 
 | Situation | Row-major default | Column-major default |
 |--|--|--|
-| Creation with shape input ([`zeros`], [`ones`], [`empty`], [`full`], [`arange`] with shape, [`eye`], and [`asarray`] with shape) | C-contiguous result | F-contiguous result |
+| Creation with shape input ([`zeros`], [`ones`], [`empty`], [`full`], [`eye`], and [`asarray`] with shape) | C-contiguous result | F-contiguous result |
 | [`reshape`] family, when a copy is required | copy into C-contiguous | copy into F-contiguous |
 | Broadcasting (element-wise operators, [`assign`](crate::tensor::assignment::assign()), [`broadcast_to`], ...) | shapes align from the last axis (NumPy rule) | shapes align from the first axis (Fortran/Julia rule) |
-| [`to_contig`] / [`to_prefer`] / [`to_layout`] without explicit order | C-contiguity is preferred | F-contiguity is preferred |
+| [`to_contig`] / [`to_prefer`] with the device default order passed as `order` | C-contiguous result | F-contiguous result |
 | Axis iteration | row-major traversal | column-major traversal |
 
-Layout-only manipulations ([`transpose`], slicing, [`flip`], ...) and
-element-wise computations between same-shape tensors are not affected: they
-neither construct new layouts nor choose traversal orders. For every other
-function, consult its own docstring notice rather than assuming.
+Layout-only manipulations ([`transpose`], slicing, [`flip`], ...) are not
+affected at all. Element-wise computations are unaffected in their results;
+only the memory arrangement of newly allocated results follows the default
+order. For every other function, consult its own docstring notice rather than
+assuming.
 
 The rest of this page demonstrates the three cases worth understanding in
 depth: creation, broadcasting, and reshape.
@@ -48,8 +51,9 @@ depth: creation, broadcasting, and reshape.
 ## Creation: same shape, different memory arrangement
 
 Creating by shape under the two orders produces tensors with identical
-logical shapes but different strides (the value at a logical index stays the
-function of that index; only the memory arrangement differs):
+logical shapes but different strides (the same linear sequence fills the
+tensor; only the mapping between logical indices and memory positions
+differs):
 
 ```rust
 # use rstsr::prelude::*;
@@ -126,8 +130,8 @@ shapes are written Fortran-style (dimensions pre-padded on the other side).
 (the device default order, unless specified) and writes the values into the
 output in that same order: the i-th element in reading order of the input
 becomes the i-th element in reading order of the output. Reshaping never
-changes *which* value sits at a logical position - only the shape, and (when
-layouts are incompatible) the memory arrangement:
+changes the values, nor their order in the reading sequence - only the shape,
+and (when layouts are incompatible) the memory arrangement:
 
 ```rust
 # use rstsr::prelude::*;
@@ -143,12 +147,14 @@ println!("{}", b.reshape([6]));
 # assert_eq!(format!("{}", b.reshape([6])), "[ 0 1 2 3 4 5]");
 ```
 
-Which reshapes avoid a copy depends on the order: the contiguous run of
-axes is the *trailing* axes under [`RowMajor`] and the *leading* axes under
-[`ColMajor`]. Under [`ColMajor`], the same slice that was
-`(4, [6, 9])`-contiguous in the row-major discussion of
-[`reshape`] merges its leading dimensions for free, while
-merging across the boundary requires a copy:
+Which reshapes avoid a copy depends on the order: for a tensor that is
+C-contiguous under [`RowMajor`] (or F-contiguous under [`ColMajor`]), the
+contiguous run of axes is the *trailing* axes in the row-major case and the
+*leading* axes in the column-major case. In the notation `(4, [6, 9])` used
+by [`reshape`], the bracketed axes form one contiguous run. Under
+[`ColMajor`], the same slice that was `(4, [6, 9])`-contiguous in the
+row-major discussion of [`reshape`] merges its leading dimensions for free,
+while merging across the boundary requires a copy:
 
 ```rust
 # use rstsr::prelude::*;

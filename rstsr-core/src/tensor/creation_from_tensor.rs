@@ -1,9 +1,10 @@
-//! Creation methods for `Tensor` struct from other tensors.
+//! Creation functions that take other tensors as input: [`diag`],
+//! [`meshgrid`], joining functions ([`concat`](concat()), [`stack`], [`hstack`],
+//! [`vstack`], [`unstack`]), and dimension promotions ([`atleast_1d`],
+//! [`atleast_2d`], [`atleast_3d`]).
 //!
-//! Todo list:
-//! - [ ] `diag`
-//! - [ ] `tril`
-//! - [ ] `triu`
+//! This module partly relates to the [Python array API standard
+//! v2024.12](https://data-apis.org/array-api/2024.12/API_specification/creation_functions.html).
 
 use core::mem::transmute;
 
@@ -11,6 +12,7 @@ use crate::prelude_dev::*;
 
 /* #region diag */
 
+/// API trait backing [`diag`].
 pub trait DiagAPI<Inp> {
     type Out;
 
@@ -25,12 +27,89 @@ pub trait DiagAPI<Inp> {
 
 /// Extract a diagonal or construct a diagonal tensor.
 ///
-/// - If input is a 2-D tensor, return a copy of its diagonal (with offset).
-/// - If input is a 1-D tensor, construct a 2-D tensor with the input as its diagonal.
+/// - If the input is a 2-D tensor, return a copy of its k-th diagonal as a one-dimensional tensor.
+/// - If the input is a 1-D tensor, return a new two-dimensional tensor with the input on its k-th
+///   diagonal (the rest is filled with `T::default()`).
+///
+/// This function behaves identically under [`RowMajor`] and [`ColMajor`] device
+/// default orders. (A constructed diagonal matrix is contiguous in the device
+/// default order; its logical content does not depend on the order.)
+///
+/// # Overloads Table
+///
+/// Output is [`Tensor<T, B, IxD>`][`Tensor`].
+///
+/// - `diag((tensor: &TensorAny<R, T, B, D>, offset: isize)) -> Tensor<T, B, IxD>`
+/// - `diag(tensor: &TensorAny<R, T, B, D>) -> Tensor<T, B, IxD>` (implicit `offset = 0`)
+///
+/// # Parameters
+///
+/// - `tensor`: input tensor; must be 1-D or 2-D.
+/// - `offset`: diagonal index: `0` the main diagonal, positive above it, negative below it.
+///   Defaults to `0` if omitted.
+///
+/// # Returns
+///
+/// - [`Tensor<T, B, IxD>`][`Tensor`]: the extracted diagonal (2-D input), or the constructed
+///   diagonal matrix (1-D input). The result always owns its data.
+///
+/// # Examples
+///
+/// Extracting the diagonal of a 2-D tensor:
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let a = rt::arange((9, &device)).into_shape([3, 3]);
+/// println!("{}", rt::diag(&a));
+/// // [ 0 4 8]
+/// println!("{}", rt::diag((&a, 1)));
+/// // [ 1 5]
+/// # assert_eq!(format!("{}", rt::diag((&a, 1))), "[ 1 5]");
+/// ```
+///
+/// Constructing a diagonal matrix from a 1-D tensor:
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let v = rt::arange((3, &device));
+/// println!("{}", rt::diag((&v, -1)));
+/// // [[ 0 0 0 0]
+/// //  [ 0 0 0 0]
+/// //  [ 0 1 0 0]
+/// //  [ 0 0 2 0]]
+/// # assert_eq!(format!("{}", rt::diag((&v, -1))), "[[ 0 0 0 0]\n [ 0 0 0 0]\n [ 0 1 0 0]\n [ 0 0 2 0]]");
+/// ```
+///
+/// # Notes of API accordance
+///
+/// - NumPy: `numpy.diag(v, k=0)` ([`numpy.diag`](https://numpy.org/doc/stable/reference/generated/numpy.diag.html))
+/// - RSTSR: `rt::diag((tensor, offset))`; the two NumPy behaviors (extract / construct) are
+///   dispatched by the dimensionality of the input.
+///
+/// # Panics
+///
+/// - Panics if the input tensor is neither 1-D nor 2-D.
+///
+/// For a fallible version, use [`diag_f`].
 ///
 /// # See also
 ///
-/// - [numpy.diag](https://numpy.org/doc/stable/reference/generated/numpy.diag.html)
+/// ## Similar function from other crates/libraries
+///
+/// - NumPy: [`numpy.diag`](https://numpy.org/doc/stable/reference/generated/numpy.diag.html)
+///
+/// ## Related functions in RSTSR
+///
+/// - [`diagonal`]: layout-level diagonal view (no copy).
+/// - [`eye`]: identity-like matrix with ones on the k-th diagonal.
+///
+/// ## Variants of this function
+///
+/// - [`diag_f`]: fallible version.
 pub fn diag<Args, Inp>(param: Args) -> Args::Out
 where
     Args: DiagAPI<Inp>,
@@ -38,6 +117,9 @@ where
     Args::diag(param)
 }
 
+/// Extract a diagonal or construct a diagonal tensor.
+///
+/// See also [`diag`].
 pub fn diag_f<Args, Inp>(param: Args) -> Result<Args::Out>
 where
     Args: DiagAPI<Inp>,
@@ -97,6 +179,7 @@ where
 
 /* #region meshgrid */
 
+/// API trait backing [`meshgrid`].
 pub trait MeshgridAPI<Inp> {
     type Out;
 
@@ -111,9 +194,93 @@ pub trait MeshgridAPI<Inp> {
 
 /// Returns coordinate matrices from coordinate vectors.
 ///
+/// Makes N-D grid arrays for vectorized evaluation of functions on a grid. For
+/// `N` one-dimensional input tensors of lengths `n0, ..., nN-1`, returns `N`
+/// tensors of shape `(n0, ..., nN-1)` such that `grids[i][idx] == tensors[i]`
+/// broadcast along the grid.
+///
+/// With `indexing = "xy"`, the first two grid dimensions are swapped compared
+/// to `"ij"` (cartesian convention, NumPy's default). With `copy = false`, the
+/// returned grids are broadcast views of the inputs; with `copy = true` (the
+/// default when omitted), they are owned tensors contiguous in the device
+/// default order.
+///
+/// This function behaves identically under [`RowMajor`] and [`ColMajor`] device
+/// default orders. (Only the memory arrangement of copied grids follows the
+/// device default order.)
+///
+/// # Overloads Table
+///
+/// Output is [`Vec<Tensor<T, B, IxD>>`][`Tensor`].
+///
+/// - `meshgrid(tensors: Vec<&TensorAny<R, T, B, D>>) -> Vec<Tensor<T, B, IxD>>` (implicit `"xy"`,
+///   `copy = true`)
+/// - `meshgrid((tensors, indexing: &str)) -> Vec<Tensor<T, B, IxD>>` (implicit `copy = true`)
+/// - `meshgrid((tensors, copy: bool)) -> Vec<Tensor<T, B, IxD>>` (implicit `"xy"`)
+/// - `meshgrid((tensors, indexing: &str, copy: bool)) -> Vec<Tensor<T, B, IxD>>`
+///
+/// `tensors` also accepts `&Vec<...>` and `[&TensorAny; N]` forms, and owned /
+/// `Vec<TensorAny>` forms of the same shapes.
+///
+/// # Parameters
+///
+/// - `tensors`: one-dimensional input tensors.
+/// - `indexing`: `"ij"` (matrix convention) or `"xy"` (cartesian convention); defaults to `"xy"` if
+///   omitted.
+/// - `copy`: whether the returned grids own their data; defaults to `true` if omitted.
+///
+/// # Returns
+///
+/// - `Vec<Tensor<T, B, IxD>>`: one grid tensor per input.
+///
+/// # Examples
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let x = rt::arange((3, &device));
+/// let y = rt::arange((2, &device));
+/// let grids = rt::meshgrid(([&x, &y], "ij"));
+/// println!("{}", grids[0]);
+/// // [[ 0 0]
+/// //  [ 1 1]
+/// //  [ 2 2]]
+/// println!("{}", grids[1]);
+/// // [[ 0 1]
+/// //  [ 0 1]
+/// //  [ 0 1]]
+/// # assert_eq!(format!("{}", grids[1]), "[[ 0 1]\n [ 0 1]\n [ 0 1]]");
+/// ```
+///
+/// # Notes of API accordance
+///
+/// - Array-API: `meshgrid(*arrays, indexing='xy')` ([`meshgrid`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.meshgrid.html))
+/// - NumPy: `numpy.meshgrid(*xi, indexing='xy', sparse=False, copy=True)` ([`numpy.meshgrid`](https://numpy.org/doc/stable/reference/generated/numpy.meshgrid.html))
+/// - RSTSR: `rt::meshgrid((tensors, indexing, copy))`; `sparse` is not supported.
+///
+/// # Panics
+///
+/// - Panics if `indexing` is neither `"ij"` nor `"xy"`.
+/// - Panics if any input tensor is not 1-D, or if inputs are on different devices.
+///
+/// For a fallible version, use [`meshgrid_f`].
+///
 /// # See also
 ///
-/// - [Python Array Standard `meshgrid`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.meshgrid.html)
+/// ## Similar function from other crates/libraries
+///
+/// - Python Array API standard: [`meshgrid`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.meshgrid.html)
+/// - NumPy: [`numpy.meshgrid`](https://numpy.org/doc/stable/reference/generated/numpy.meshgrid.html)
+///
+/// ## Related functions in RSTSR
+///
+/// - [`broadcast_arrays`]: broadcast tensors against each other (the `copy = false` grids are
+///   broadcast views).
+///
+/// ## Variants of this function
+///
+/// - [`meshgrid_f`]: fallible version.
 pub fn meshgrid<Args, Inp>(args: Args) -> Args::Out
 where
     Args: MeshgridAPI<Inp>,
@@ -121,6 +288,9 @@ where
     Args::meshgrid(args)
 }
 
+/// Returns coordinate matrices from coordinate vectors.
+///
+/// See also [`meshgrid`].
 pub fn meshgrid_f<Args, Inp>(args: Args) -> Result<Args::Out>
 where
     Args: MeshgridAPI<Inp>,
@@ -284,6 +454,7 @@ where
 
 /* #region concat */
 
+/// API trait backing [`concat`](concat()) and [`concatenate`](concatenate()).
 pub trait ConcatAPI<Inp> {
     type Out;
 
@@ -296,11 +467,93 @@ pub trait ConcatAPI<Inp> {
     }
 }
 
-/// Join a sequence of arrays along an existing axis.
+/// Join a sequence of tensors along an existing axis.
+///
+/// All inputs must have the same shape except on the concatenation axis, and
+/// live on the same device. The result is an owned tensor, contiguous in the
+/// device default order.
+///
+/// This function behaves identically under [`RowMajor`] and [`ColMajor`] device
+/// default orders. (Only the memory arrangement of the new tensor follows the
+/// device default order.)
+///
+/// # Overloads Table
+///
+/// Output is [`Tensor<T, B, IxD>`][`Tensor`]; `tensors` also accepts owned
+/// `Vec<TensorAny>` / `[TensorAny; N]` forms.
+///
+/// - `concat(tensors: Vec<&TensorAny<R, T, B, D>>) -> Tensor<T, B, IxD>` (implicit `axis = 0`)
+/// - `concat((tensors, axis)) -> Tensor<T, B, IxD>` where `axis` is `isize`, `usize`, or `i32`
+///
+/// # Parameters
+///
+/// - `tensors`: the tensors to join; at least one is required.
+/// - `axis`: the axis along which to join; negative values count from the back. Defaults to `0` if
+///   omitted.
+///
+/// # Returns
+///
+/// - [`Tensor<T, B, IxD>`][`Tensor`]: the joined tensor, owning its data.
+///
+/// # Examples
+///
+/// Joining along the default axis (0):
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let a = rt::arange((3, &device));
+/// let b = rt::arange((3, 6, &device));
+/// println!("{}", rt::concat([&a, &b]));
+/// // [ 0 1 2 3 4 5]
+/// # assert_eq!(format!("{}", rt::concat([&a, &b])), "[ 0 1 2 3 4 5]");
+/// ```
+///
+/// Joining 2-D tensors along axis 1:
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let a = rt::arange((6, &device)).into_shape([2, 3]);
+/// let b = rt::full(([2, 2], 9, &device));
+/// println!("{}", rt::concat(([a, b], 1)));
+/// // [[ 0 1 2 9 9]
+/// //  [ 3 4 5 9 9]]
+/// ```
+///
+/// # Notes of API accordance
+///
+/// - Array-API: `concat(arrays, /, *, axis=0)` ([`concat`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.concat.html))
+/// - NumPy: `numpy.concatenate(arrays, axis=0, out=None)` ([`numpy.concatenate`](https://numpy.org/doc/stable/reference/generated/numpy.concatenate.html))
+/// - RSTSR: `rt::concat((tensors, axis))`; `out` is not supported.
+///
+/// # Panics
+///
+/// - Panics if `tensors` is empty, or if the inputs have mismatching ndim, shape (outside `axis`),
+///   or device.
+///
+/// For a fallible version, use [`concat_f`].
 ///
 /// # See also
 ///
-/// - [Python Array Standard `concatnate`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.concat.html)
+/// ## Similar function from other crates/libraries
+///
+/// - Python Array API standard: [`concat`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.concat.html)
+/// - NumPy: [`numpy.concatenate`](https://numpy.org/doc/stable/reference/generated/numpy.concatenate.html)
+///
+/// ## Related functions in RSTSR
+///
+/// - [`stack`]: join along a new axis.
+/// - [`hstack`] / [`vstack`]: horizontal / vertical joining conventions.
+/// - [`unstack`]: split along an axis (reverse operation).
+///
+/// ## Variants of this function
+///
+/// - [`concat_f`]: fallible version.
+/// - [`concatenate`](concatenate()) / [`concatenate_f`]: aliases of [`concat`](concat()) /
+///   [`concat_f`].
 pub fn concat<Args, Inp>(args: Args) -> Args::Out
 where
     Args: ConcatAPI<Inp>,
@@ -308,6 +561,9 @@ where
     Args::concat(args)
 }
 
+/// Join a sequence of tensors along an existing axis.
+///
+/// See also [`concat`](concat()).
 pub fn concat_f<Args, Inp>(args: Args) -> Result<Args::Out>
 where
     Args: ConcatAPI<Inp>,
@@ -455,6 +711,7 @@ where
 
 /* #region hstack */
 
+/// API trait backing [`hstack`].
 pub trait HStackAPI<Inp> {
     type Out;
 
@@ -472,9 +729,78 @@ pub trait HStackAPI<Inp> {
 /// Equivalent to NumPy `hstack`: each input is promoted with [`atleast_1d`] (0-D ->
 /// 1-D), then concatenated along axis 0 for 1-D inputs, or along axis 1 otherwise.
 ///
+/// This function behaves identically under [`RowMajor`] and [`ColMajor`] device
+/// default orders. (Only the memory arrangement of the new tensor follows the
+/// device default order.)
+///
+/// # Overloads Table
+///
+/// Output is [`Tensor<T, B, IxD>`][`Tensor`]; `tensors` also accepts owned
+/// `Vec<TensorAny>` / `[TensorAny; N]` forms.
+///
+/// - `hstack(tensors: Vec<&TensorAny<R, T, B, D>>) -> Tensor<T, B, IxD>`
+///
+/// # Parameters
+///
+/// - `tensors`: the tensors to join; at least one is required.
+///
+/// # Returns
+///
+/// - [`Tensor<T, B, IxD>`][`Tensor`]: the joined tensor, owning its data.
+///
+/// # Examples
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let a = rt::arange((3, &device));
+/// let b = rt::arange((3, 6, &device));
+/// println!("{}", rt::hstack([&a, &b]));
+/// // [ 0 1 2 3 4 5]
+/// # assert_eq!(format!("{}", rt::hstack([&a, &b])), "[ 0 1 2 3 4 5]");
+/// ```
+///
+/// For 2-D inputs, joining happens along axis 1:
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let a = rt::arange((4, &device)).into_shape([2, 2]);
+/// let b = rt::full(([2, 1], 9, &device));
+/// println!("{}", rt::hstack([&a, &b]));
+/// // [[ 0 1 9]
+/// //  [ 2 3 9]]
+/// # assert_eq!(format!("{}", rt::hstack([&a, &b])), "[[ 0 1 9]\n [ 2 3 9]]");
+/// ```
+///
+/// # Notes of API accordance
+///
+/// - NumPy: `numpy.hstack(tup)` ([`numpy.hstack`](https://numpy.org/doc/stable/reference/generated/numpy.hstack.html))
+/// - RSTSR: `rt::hstack(tensors)`.
+///
+/// # Panics
+///
+/// - Panics if `tensors` is empty, or if the promoted inputs are not concatenable (mismatching
+///   ndim, shape, or device).
+///
+/// For a fallible version, use [`hstack_f`].
+///
 /// # See also
 ///
-/// [NumPy `hstack`](https://numpy.org/doc/stable/reference/generated/numpy.hstack.html)
+/// ## Similar function from other crates/libraries
+///
+/// - NumPy: [`numpy.hstack`](https://numpy.org/doc/stable/reference/generated/numpy.hstack.html)
+///
+/// ## Related functions in RSTSR
+///
+/// - [`vstack`]: vertical joining.
+/// - [`concat`](concat()): joining along an explicit axis.
+///
+/// ## Variants of this function
+///
+/// - [`hstack_f`]: fallible version.
 pub fn hstack<Args, Inp>(args: Args) -> Args::Out
 where
     Args: HStackAPI<Inp>,
@@ -482,6 +808,9 @@ where
     Args::hstack(args)
 }
 
+/// Stack tensors in sequence horizontally (column-wise).
+///
+/// See also [`hstack`].
 pub fn hstack_f<Args, Inp>(args: Args) -> Result<Args::Out>
 where
     Args: HStackAPI<Inp>,
@@ -529,6 +858,7 @@ where
 
 /* #region vstack */
 
+/// API trait backing [`vstack`].
 pub trait VStackAPI<Inp> {
     type Out;
 
@@ -547,9 +877,65 @@ pub trait VStackAPI<Inp> {
 /// `(1, 1)`, 1-D `(N,)` -> `(1, N)`) and concatenated along axis 0, so the result is
 /// always at least 2-D.
 ///
+/// This function behaves identically under [`RowMajor`] and [`ColMajor`] device
+/// default orders. (Only the memory arrangement of the new tensor follows the
+/// device default order.)
+///
+/// # Overloads Table
+///
+/// Output is [`Tensor<T, B, IxD>`][`Tensor`]; `tensors` also accepts owned
+/// `Vec<TensorAny>` / `[TensorAny; N]` forms.
+///
+/// - `vstack(tensors: Vec<&TensorAny<R, T, B, D>>) -> Tensor<T, B, IxD>`
+///
+/// # Parameters
+///
+/// - `tensors`: the tensors to join; at least one is required.
+///
+/// # Returns
+///
+/// - [`Tensor<T, B, IxD>`][`Tensor`]: the joined tensor (at least 2-D), owning its data.
+///
+/// # Examples
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let a = rt::arange((3, &device));
+/// let b = rt::arange((3, 6, &device));
+/// println!("{}", rt::vstack([&a, &b]));
+/// // [[ 0 1 2]
+/// //  [ 3 4 5]]
+/// # assert_eq!(format!("{}", rt::vstack([&a, &b])), "[[ 0 1 2]\n [ 3 4 5]]");
+/// ```
+///
+/// # Notes of API accordance
+///
+/// - NumPy: `numpy.vstack(tup)` ([`numpy.vstack`](https://numpy.org/doc/stable/reference/generated/numpy.vstack.html))
+/// - RSTSR: `rt::vstack(tensors)`.
+///
+/// # Panics
+///
+/// - Panics if `tensors` is empty, or if the promoted inputs are not concatenable (mismatching
+///   shape or device).
+///
+/// For a fallible version, use [`vstack_f`].
+///
 /// # See also
 ///
-/// [NumPy `vstack`](https://numpy.org/doc/stable/reference/generated/numpy.vstack.html)
+/// ## Similar function from other crates/libraries
+///
+/// - NumPy: [`numpy.vstack`](https://numpy.org/doc/stable/reference/generated/numpy.vstack.html)
+///
+/// ## Related functions in RSTSR
+///
+/// - [`hstack`]: horizontal joining.
+/// - [`concat`](concat()): joining along an explicit axis.
+///
+/// ## Variants of this function
+///
+/// - [`vstack_f`]: fallible version.
 pub fn vstack<Args, Inp>(args: Args) -> Args::Out
 where
     Args: VStackAPI<Inp>,
@@ -557,6 +943,9 @@ where
     Args::vstack(args)
 }
 
+/// Stack tensors in sequence vertically (row-wise).
+///
+/// See also [`vstack`].
 pub fn vstack_f<Args, Inp>(args: Args) -> Result<Args::Out>
 where
     Args: VStackAPI<Inp>,
@@ -601,6 +990,7 @@ where
 
 /* #region stack */
 
+/// API trait backing [`stack`].
 pub trait StackAPI<Inp> {
     type Out;
 
@@ -613,15 +1003,76 @@ pub trait StackAPI<Inp> {
     }
 }
 
-/// Joins a sequence of arrays along a new axis.
+/// Joins a sequence of tensors along a new axis.
 ///
 /// Equivalent to NumPy `stack`: a new axis of size one is inserted at `axis` in each
 /// input, then the results are concatenated along that axis. 0-D inputs are supported
-/// (they stack into a 1-D array).
+/// (they stack into a 1-D tensor). All inputs must have the same shape and device.
+///
+/// This function behaves identically under [`RowMajor`] and [`ColMajor`] device
+/// default orders. (Only the memory arrangement of the new tensor follows the
+/// device default order.)
+///
+/// # Overloads Table
+///
+/// Output is [`Tensor<T, B, IxD>`][`Tensor`]; `tensors` also accepts owned
+/// `Vec<TensorAny>` / `[TensorAny; N]` forms.
+///
+/// - `stack(tensors: Vec<&TensorAny<R, T, B, D>>) -> Tensor<T, B, IxD>` (implicit `axis = 0`)
+/// - `stack((tensors, axis)) -> Tensor<T, B, IxD>` where `axis` is `isize`, `usize`, or `i32`
+///
+/// # Parameters
+///
+/// - `tensors`: the tensors to join; at least one is required.
+/// - `axis`: the position of the new axis; valid range is `0..=ndim` (negative values count from
+///   the back). Defaults to `0` if omitted.
+///
+/// # Returns
+///
+/// - [`Tensor<T, B, IxD>`][`Tensor`]: the stacked tensor, owning its data.
+///
+/// # Examples
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let a = rt::arange((4, &device));
+/// let b = rt::full(([4], 9, &device));
+/// println!("{}", rt::stack([&a, &b]));
+/// // [[ 0 1 2 3]
+/// //  [ 9 9 9 9]]
+/// # assert_eq!(format!("{}", rt::stack([&a, &b])), "[[ 0 1 2 3]\n [ 9 9 9 9]]");
+/// ```
+///
+/// # Notes of API accordance
+///
+/// - Array-API: `stack(arrays, /, *, axis=0)` ([`stack`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.stack.html))
+/// - NumPy: `numpy.stack(arrays, axis=0, out=None)` ([`numpy.stack`](https://numpy.org/doc/stable/reference/generated/numpy.stack.html))
+/// - RSTSR: `rt::stack((tensors, axis))`; `out` is not supported.
+///
+/// # Panics
+///
+/// - Panics if `tensors` is empty, if the inputs have mismatching shape or device, or if `axis` is
+///   out of range.
+///
+/// For a fallible version, use [`stack_f`].
 ///
 /// # See also
 ///
-/// [Python Array Standard `stack`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.stack.html)
+/// ## Similar function from other crates/libraries
+///
+/// - Python Array API standard: [`stack`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.stack.html)
+/// - NumPy: [`numpy.stack`](https://numpy.org/doc/stable/reference/generated/numpy.stack.html)
+///
+/// ## Related functions in RSTSR
+///
+/// - [`concat`](concat()): join along an existing axis.
+/// - [`unstack`]: split along an axis (reverse operation).
+///
+/// ## Variants of this function
+///
+/// - [`stack_f`]: fallible version.
 pub fn stack<Args, Inp>(args: Args) -> Args::Out
 where
     Args: StackAPI<Inp>,
@@ -629,6 +1080,9 @@ where
     Args::stack(args)
 }
 
+/// Joins a sequence of tensors along a new axis.
+///
+/// See also [`stack`].
 pub fn stack_f<Args, Inp>(args: Args) -> Result<Args::Out>
 where
     Args: StackAPI<Inp>,
@@ -748,6 +1202,7 @@ where
 
 /* #region unstack */
 
+/// API trait backing [`unstack`].
 pub trait UnstackAPI<Inp> {
     type Out;
 
@@ -760,11 +1215,78 @@ pub trait UnstackAPI<Inp> {
     }
 }
 
-/// Splits an array into a sequence of arrays along the given axis.
+/// Splits a tensor into a sequence of views along the given axis.
+///
+/// The reverse of [`stack`]: a tensor of shape `(n0, ..., nk, ..., nN-1)` is
+/// split into `nk` views of shape `(n0, ..., n_k_removed, ..., nN-1)`. The
+/// returned tensors are views sharing the input's data (no copy).
+///
+/// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
+///
+/// # Overloads Table
+///
+/// Output is [`Vec<TensorView<'a, T, B, D::SmallerOne>>`][`TensorView`] (one
+/// view per slice along `axis`; the output dimensionality is one less than the
+/// input's).
+///
+/// - `unstack(tensor: &'a TensorAny<R, T, B, D>) -> Vec<TensorView<...>>` (implicit `axis = 0`)
+/// - `unstack((tensor: &'a TensorAny<R, T, B, D>, axis: isize)) -> Vec<TensorView<...>>`
+/// - `unstack(tensor: TensorView<'a, T, B, D>) -> Vec<TensorView<...>>` / `unstack((view, axis))`
+///
+/// # Parameters
+///
+/// - `tensor`: the tensor to split; must have `ndim > 0`.
+/// - `axis`: the axis to split along; negative values count from the back. Defaults to `0` if
+///   omitted.
+///
+/// # Returns
+///
+/// - A vector of [`TensorView`] slices along `axis`, sharing the input's data.
+///
+/// # Examples
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let a = rt::arange((6, &device)).into_shape([2, 3]);
+/// let v = rt::unstack(&a);
+/// println!("{}", v.len());
+/// // 2
+/// println!("{}", v[0]);
+/// // [ 0 1 2]
+/// println!("{}", v[1]);
+/// // [ 3 4 5]
+/// # assert_eq!(format!("{}", v[1]), "[ 3 4 5]");
+/// ```
+///
+/// # Notes of API accordance
+///
+/// - Array-API: `unstack(x, /, *, axis=0)` ([`unstack`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.unstack.html))
+/// - PyTorch: `torch.unstack(input, dim=0)` ([`torch.unstack`](https://docs.pytorch.org/docs/stable/generated/torch.unstack.html))
+/// - RSTSR: `rt::unstack((tensor, axis))`; the results are views, not copies.
+///
+/// # Panics
+///
+/// - Panics if the input has `ndim == 0`, or if `axis` is out of range.
+///
+/// For a fallible version, use [`unstack_f`].
 ///
 /// # See also
 ///
-/// [Python Array Standard `unstack`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.unstack.html)
+/// ## Similar function from other crates/libraries
+///
+/// - Python Array API standard: [`unstack`](https://data-apis.org/array-api/2024.12/API_specification/generated/array_api.unstack.html)
+/// - PyTorch: [`torch.unstack`](https://docs.pytorch.org/docs/stable/generated/torch.unstack.html)
+///
+/// ## Related functions in RSTSR
+///
+/// - [`stack`]: join along a new axis (reverse operation).
+/// - [`diagonal`]: extract diagonal views.
+///
+/// ## Variants of this function
+///
+/// - [`unstack_f`]: fallible version.
 pub fn unstack<Args, Inp>(args: Args) -> Args::Out
 where
     Args: UnstackAPI<Inp>,
@@ -772,6 +1294,9 @@ where
     Args::unstack(args)
 }
 
+/// Splits a tensor into a sequence of views along the given axis.
+///
+/// See also [`unstack`].
 pub fn unstack_f<Args, Inp>(args: Args) -> Result<Args::Out>
 where
     Args: UnstackAPI<Inp>,
@@ -860,14 +1385,9 @@ where
 
 /* #region atleast */
 
-/// View inputs as arrays with at least one dimension.
+/// View a tensor as having at least one dimension.
 ///
-/// Equivalent to NumPy `atleast_1d`: a 0-D (scalar) tensor is reshaped to `(1,)`;
-/// tensors with `ndim >= 1` are returned unchanged. The result is a view (no copy).
-///
-/// # See also
-///
-/// - [numpy.atleast_1d](https://numpy.org/doc/stable/reference/generated/numpy.atleast_1d.html)
+/// See also [`atleast_1d`].
 pub fn into_atleast_1d_f<S, D>(tensor: TensorBase<S, D>) -> Result<TensorBase<S, IxD>>
 where
     D: DimAPI,
@@ -879,15 +1399,9 @@ where
     }
 }
 
-/// View inputs as arrays with at least two dimensions.
+/// View a tensor as having at least two dimensions.
 ///
-/// Equivalent to NumPy `atleast_2d`: a 0-D tensor becomes `(1, 1)`, a 1-D tensor
-/// `(N,)` becomes `(1, N)`, and tensors with `ndim >= 2` are returned unchanged.
-/// The result is a view (no copy). This is the promotion `vstack` applies.
-///
-/// # See also
-///
-/// - [numpy.atleast_2d](https://numpy.org/doc/stable/reference/generated/numpy.atleast_2d.html)
+/// See also [`atleast_2d`].
 pub fn into_atleast_2d_f<S, D>(tensor: TensorBase<S, D>) -> Result<TensorBase<S, IxD>>
 where
     D: DimAPI,
@@ -901,15 +1415,9 @@ where
     }
 }
 
-/// View inputs as arrays with at least three dimensions.
+/// View a tensor as having at least three dimensions.
 ///
-/// Equivalent to NumPy `atleast_3d`: a 0-D tensor becomes `(1, 1, 1)`, a 1-D tensor
-/// `(N,)` becomes `(1, N, 1)`, a 2-D tensor `(M, N)` becomes `(M, N, 1)`, and tensors
-/// with `ndim >= 3` are returned unchanged. The result is a view (no copy).
-///
-/// # See also
-///
-/// - [numpy.atleast_3d](https://numpy.org/doc/stable/reference/generated/numpy.atleast_3d.html)
+/// See also [`atleast_3d`].
 pub fn into_atleast_3d_f<S, D>(tensor: TensorBase<S, D>) -> Result<TensorBase<S, IxD>>
 where
     D: DimAPI,
@@ -925,6 +1433,9 @@ where
     }
 }
 
+/// View a tensor as having at least one dimension.
+///
+/// See also [`atleast_1d`].
 pub fn into_atleast_1d<S, D>(tensor: TensorBase<S, D>) -> TensorBase<S, IxD>
 where
     D: DimAPI,
@@ -932,6 +1443,9 @@ where
     into_atleast_1d_f(tensor).rstsr_unwrap()
 }
 
+/// View a tensor as having at least two dimensions.
+///
+/// See also [`atleast_2d`].
 pub fn into_atleast_2d<S, D>(tensor: TensorBase<S, D>) -> TensorBase<S, IxD>
 where
     D: DimAPI,
@@ -939,6 +1453,9 @@ where
     into_atleast_2d_f(tensor).rstsr_unwrap()
 }
 
+/// View a tensor as having at least three dimensions.
+///
+/// See also [`atleast_3d`].
 pub fn into_atleast_3d<S, D>(tensor: TensorBase<S, D>) -> TensorBase<S, IxD>
 where
     D: DimAPI,
@@ -946,6 +1463,9 @@ where
     into_atleast_3d_f(tensor).rstsr_unwrap()
 }
 
+/// View a tensor as having at least one dimension.
+///
+/// See also [`atleast_1d`].
 pub fn atleast_1d_f<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> Result<TensorView<'_, T, B, IxD>>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
@@ -955,6 +1475,70 @@ where
     into_atleast_1d_f(tensor.view())
 }
 
+/// View a tensor as having at least 1 dimension.
+///
+/// Equivalent to NumPy `atleast_1d`: a 0-D (scalar) tensor is reshaped to `(1,)`.
+/// Tensors with `ndim >= 1` are returned unchanged. The result is a view
+/// (no copy).
+///
+/// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
+///
+/// # Overloads Table
+///
+/// Output is [`TensorView<'_, T, B, IxD>`][`TensorView`].
+///
+/// - `atleast_1d(tensor: &TensorAny<R, T, B, D>) -> TensorView<'_, T, B, IxD>`
+///
+/// Also, ownership-consuming forms [`into_atleast_1d`] / [`into_atleast_1d_f`] behave
+/// the same for any [`TensorBase`] input and preserve its ownership.
+///
+/// # Parameters
+///
+/// - `tensor`: the input tensor.
+///
+/// # Returns
+///
+/// - [`TensorView<'_, T, B, IxD>`][`TensorView`]: view of the input with at least 1 dimension.
+///
+/// # Examples
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let a = rt::arange((3, &device));
+/// println!("{}", rt::atleast_1d(&a));
+/// // [ 0 1 2]
+/// # assert_eq!(format!("{}", rt::atleast_1d(&a)), "[ 0 1 2]");
+/// ```
+///
+/// # Notes of API accordance
+///
+/// - NumPy: `numpy.atleast_1d(x)` ([`numpy.atleast_1d`](https://numpy.org/doc/stable/reference/generated/numpy.atleast_1d.html))
+/// - RSTSR: `rt::atleast_1d(tensor)`; dimension promotion follows NumPy's convention, and the
+///   result is always a view with dynamic dimensionality.
+///
+/// # Panics
+///
+/// This function does not panic; layout conversions are always valid. For a
+/// fallible version, use [atleast_1d_f].
+///
+/// # See also
+///
+/// ## Similar function from other crates/libraries
+///
+/// - NumPy: [`numpy.atleast_1d`](https://numpy.org/doc/stable/reference/generated/numpy.atleast_1d.html)
+///
+/// ## Related functions in RSTSR
+///
+/// - [`expand_dims`]: insert axes at arbitrary positions.
+/// - [`squeeze`]: remove size-one axes.
+///
+/// ## Variants of this function
+///
+/// - [atleast_1d_f]: fallible version.
+/// - [`into_atleast_1d`] / [`into_atleast_1d_f`]: ownership-consuming forms.
+/// - Associated methods on [`TensorAny`]: [`TensorAny::atleast_1d`] / [`TensorAny::atleast_1d_f`].
 pub fn atleast_1d<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> TensorView<'_, T, B, IxD>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
@@ -964,6 +1548,9 @@ where
     atleast_1d_f(tensor).rstsr_unwrap()
 }
 
+/// View a tensor as having at least two dimensions.
+///
+/// See also [`atleast_2d`].
 pub fn atleast_2d_f<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> Result<TensorView<'_, T, B, IxD>>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
@@ -973,6 +1560,70 @@ where
     into_atleast_2d_f(tensor.view())
 }
 
+/// View a tensor as having at least 2 dimensions.
+///
+/// Equivalent to NumPy `atleast_2d`: a 0-D tensor becomes `(1, 1)`, and a 1-D tensor `(N,)` becomes
+/// `(1, N)`. Tensors with `ndim >= 2` are returned unchanged. The result is a view
+/// (no copy).
+///
+/// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
+///
+/// # Overloads Table
+///
+/// Output is [`TensorView<'_, T, B, IxD>`][`TensorView`].
+///
+/// - `atleast_2d(tensor: &TensorAny<R, T, B, D>) -> TensorView<'_, T, B, IxD>`
+///
+/// Also, ownership-consuming forms [`into_atleast_2d`] / [`into_atleast_2d_f`] behave
+/// the same for any [`TensorBase`] input and preserve its ownership.
+///
+/// # Parameters
+///
+/// - `tensor`: the input tensor.
+///
+/// # Returns
+///
+/// - [`TensorView<'_, T, B, IxD>`][`TensorView`]: view of the input with at least 2 dimensions.
+///
+/// # Examples
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let a = rt::arange((3, &device));
+/// println!("{}", rt::atleast_2d(&a));
+/// // [[ 0 1 2]]
+/// # assert_eq!(format!("{}", rt::atleast_2d(&a)), "[[ 0 1 2]]");
+/// ```
+///
+/// # Notes of API accordance
+///
+/// - NumPy: `numpy.atleast_2d(x)` ([`numpy.atleast_2d`](https://numpy.org/doc/stable/reference/generated/numpy.atleast_2d.html))
+/// - RSTSR: `rt::atleast_2d(tensor)`; dimension promotion follows NumPy's convention, and the
+///   result is always a view with dynamic dimensionality.
+///
+/// # Panics
+///
+/// This function does not panic; layout conversions are always valid. For a
+/// fallible version, use [atleast_2d_f].
+///
+/// # See also
+///
+/// ## Similar function from other crates/libraries
+///
+/// - NumPy: [`numpy.atleast_2d`](https://numpy.org/doc/stable/reference/generated/numpy.atleast_2d.html)
+///
+/// ## Related functions in RSTSR
+///
+/// - [`expand_dims`]: insert axes at arbitrary positions.
+/// - [`squeeze`]: remove size-one axes.
+///
+/// ## Variants of this function
+///
+/// - [atleast_2d_f]: fallible version.
+/// - [`into_atleast_2d`] / [`into_atleast_2d_f`]: ownership-consuming forms.
+/// - Associated methods on [`TensorAny`]: [`TensorAny::atleast_2d`] / [`TensorAny::atleast_2d_f`].
 pub fn atleast_2d<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> TensorView<'_, T, B, IxD>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
@@ -982,6 +1633,9 @@ where
     atleast_2d_f(tensor).rstsr_unwrap()
 }
 
+/// View a tensor as having at least three dimensions.
+///
+/// See also [`atleast_3d`].
 pub fn atleast_3d_f<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> Result<TensorView<'_, T, B, IxD>>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
@@ -991,6 +1645,72 @@ where
     into_atleast_3d_f(tensor.view())
 }
 
+/// View a tensor as having at least 3 dimensions.
+///
+/// Equivalent to NumPy `atleast_3d`: a 0-D tensor becomes `(1, 1, 1)`, a 1-D tensor `(N,)` becomes
+/// `(1, N, 1)`, and a 2-D tensor `(M, N)` becomes `(M, N, 1)`. Tensors with `ndim >= 3` are
+/// returned unchanged. The result is a view (no copy).
+///
+/// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
+///
+/// # Overloads Table
+///
+/// Output is [`TensorView<'_, T, B, IxD>`][`TensorView`].
+///
+/// - `atleast_3d(tensor: &TensorAny<R, T, B, D>) -> TensorView<'_, T, B, IxD>`
+///
+/// Also, ownership-consuming forms [`into_atleast_3d`] / [`into_atleast_3d_f`] behave
+/// the same for any [`TensorBase`] input and preserve its ownership.
+///
+/// # Parameters
+///
+/// - `tensor`: the input tensor.
+///
+/// # Returns
+///
+/// - [`TensorView<'_, T, B, IxD>`][`TensorView`]: view of the input with at least 3 dimensions.
+///
+/// # Examples
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let a = rt::arange((3, &device));
+/// println!("{}", rt::atleast_3d(&a));
+/// // [[[ 0]
+/// //   [ 1]
+/// //   [ 2]]]
+/// # assert_eq!(format!("{}", rt::atleast_3d(&a)), "[[[ 0]\n  [ 1]\n  [ 2]]]");
+/// ```
+///
+/// # Notes of API accordance
+///
+/// - NumPy: `numpy.atleast_3d(x)` ([`numpy.atleast_3d`](https://numpy.org/doc/stable/reference/generated/numpy.atleast_3d.html))
+/// - RSTSR: `rt::atleast_3d(tensor)`; dimension promotion follows NumPy's convention, and the
+///   result is always a view with dynamic dimensionality.
+///
+/// # Panics
+///
+/// This function does not panic; layout conversions are always valid. For a
+/// fallible version, use [atleast_3d_f].
+///
+/// # See also
+///
+/// ## Similar function from other crates/libraries
+///
+/// - NumPy: [`numpy.atleast_3d`](https://numpy.org/doc/stable/reference/generated/numpy.atleast_3d.html)
+///
+/// ## Related functions in RSTSR
+///
+/// - [`expand_dims`]: insert axes at arbitrary positions.
+/// - [`squeeze`]: remove size-one axes.
+///
+/// ## Variants of this function
+///
+/// - [atleast_3d_f]: fallible version.
+/// - [`into_atleast_3d`] / [`into_atleast_3d_f`]: ownership-consuming forms.
+/// - Associated methods on [`TensorAny`]: [`TensorAny::atleast_3d`] / [`TensorAny::atleast_3d_f`].
 pub fn atleast_3d<R, T, B, D>(tensor: &TensorAny<R, T, B, D>) -> TensorView<'_, T, B, IxD>
 where
     R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,

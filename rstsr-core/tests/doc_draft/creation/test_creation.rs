@@ -20,10 +20,16 @@ mod doc_arange {
         // [ 2 3 4 5 6 7 8 9]
         println!("{}", rt::arange((10, 0, -3, &device)));
         // [ 10 7 4 1]
+        println!("{}", rt::arange(5));
+        // [ 0 1 2 3 4]
         assert_eq!(rt::arange((5, &device)).shape()[0], 5);
         assert_eq!(rt::arange((5, &device)).to_vec(), vec![0, 1, 2, 3, 4]);
         assert_eq!(rt::arange((2, 10, &device)).to_vec(), vec![2, 3, 4, 5, 6, 7, 8, 9]);
         assert_eq!(rt::arange((10, 0, -3, &device)).to_vec(), vec![10, 7, 4, 1]);
+        assert_eq!(format!("{}", rt::arange((5, &device))), "[ 0 1 2 3 4]");
+        assert_eq!(format!("{}", rt::arange((2, 10, &device))), "[ 2 3 4 5 6 7 8 9]");
+        assert_eq!(format!("{}", rt::arange((10, 0, -3, &device))), "[ 10 7 4 1]");
+        assert_eq!(format!("{}", rt::arange(5)), "[ 0 1 2 3 4]");
     }
 }
 
@@ -42,6 +48,13 @@ mod doc_linspace {
         // [ 0 0.25 0.5 0.75 1]
         assert_eq!(y.shape()[0], 5);
         assert_eq!(y.to_vec(), vec![0.0, 0.25, 0.5, 0.75, 1.0]);
+        assert_eq!(format!("{y}"), "[ 0 0.25 0.5 0.75 1]");
+
+        let y: Tensor<f64, _> = rt::linspace((0.0, 10.0, 5, false, &device));
+        println!("{y}");
+        // [ 0 2 4 6 8]
+        assert_eq!(y.to_vec(), vec![0.0, 2.0, 4.0, 6.0, 8.0]);
+        assert_eq!(format!("{y}"), "[ 0 2 4 6 8]");
     }
 }
 
@@ -71,6 +84,25 @@ mod doc_zeros_ones_full {
         crate::test_utils::assert_equal(&z, rt::tensor_from_nested!([[0, 0, 0], [0, 0, 0]], &device), None);
         crate::test_utils::assert_equal(&o, rt::tensor_from_nested!([[1, 1], [1, 1]], &device), None);
         crate::test_utils::assert_equal(&f, rt::tensor_from_nested!([[7, 7], [7, 7]], &device), None);
+
+        // row-major default: C-contiguous result
+        println!("{:?}", z.layout());
+        // 2-Dim (dyn), contiguous: Cc
+        // shape: [2, 3], stride: [3, 1], offset: 0
+        assert_eq!(
+            format!("{:?}", z.layout()),
+            "2-Dim (dyn), contiguous: Cc\nshape: [2, 3], stride: [3, 1], offset: 0"
+        );
+
+        // explicit ColMajor: F-contiguous result
+        let zf: Tensor<i32, _> = rt::zeros(([2, 3], ColMajor, &device));
+        println!("{:?}", zf.layout());
+        // 2-Dim (dyn), contiguous: Ff
+        // shape: [2, 3], stride: [1, 2], offset: 0
+        assert_eq!(
+            format!("{:?}", zf.layout()),
+            "2-Dim (dyn), contiguous: Ff\nshape: [2, 3], stride: [1, 2], offset: 0"
+        );
     }
 }
 
@@ -96,6 +128,27 @@ mod doc_eye {
             rt::tensor_from_nested!([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], &device),
             None,
         );
+
+        // non-square with off-diagonal
+        let e: Tensor<i32, _> = rt::eye((3, 5, 1, &device));
+        println!("{e}");
+        // [[ 0 1 0 0 0]
+        //  [ 0 0 1 0 0]
+        //  [ 0 0 0 1 0]]
+        assert_eq!(e.shape(), &[3, 5]);
+        assert_eq!(format!("{e}"), "[[ 0 1 0 0 0]\n [ 0 0 1 0 0]\n [ 0 0 0 1 0]]");
+
+        // column-major default order: the shape comes out as (n_cols, n_rows),
+        // i.e. TRANSPOSED relative to NumPy's np.eye(n, m, order='F') which
+        // keeps shape (n, m). Recorded in tracking/numpy_differences.md (#eye);
+        // shown here as the actual behavior, pending maintainer decision.
+        let mut device_c = TESTCFG.device.clone();
+        device_c.set_default_order(ColMajor);
+        let e: Tensor<i32, _> = rt::eye((3usize, 5usize, 0isize, &device_c));
+        println!("{e}");
+        println!("{:?}", e.layout());
+        assert_eq!(e.shape(), &[5, 3]);
+        assert_eq!(format!("{e}"), "[[ 1 0 0]\n [ 0 1 0]\n [ 0 0 1]\n [ 0 0 0]\n [ 0 0 0]]");
     }
 }
 
@@ -128,5 +181,85 @@ mod doc_tril_triu {
             rt::tensor_from_nested!([[1, 1, 1], [0, 1, 1], [0, 0, 1]], &device),
             None,
         );
+
+        let a: Tensor<i32, _> = rt::arange((1, 10, &device)).into_shape([3, 3]);
+        println!("{}", rt::tril((&a, 0)));
+        // [[ 1 0 0]
+        //  [ 4 5 0]
+        //  [ 7 8 9]]
+        println!("{}", rt::triu((&a, 1)));
+        // [[ 0 2 3]
+        //  [ 0 0 6]
+        //  [ 0 0 0]]
+        assert_eq!(format!("{}", rt::tril((&a, 0))), "[[ 1 0 0]\n [ 4 5 0]\n [ 7 8 9]]");
+        assert_eq!(format!("{}", rt::triu((&a, 1))), "[[ 0 2 3]\n [ 0 0 6]\n [ 0 0 0]]");
+        crate::test_utils::assert_equal(
+            rt::tril((&a, 0)),
+            rt::tensor_from_nested!([[1, 0, 0], [4, 5, 0], [7, 8, 9]], &device),
+            None,
+        );
+        crate::test_utils::assert_equal(
+            rt::triu((&a, 1)),
+            rt::tensor_from_nested!([[0, 2, 3], [0, 0, 6], [0, 0, 0]], &device),
+            None,
+        );
+    }
+}
+
+mod doc_empty_uninit {
+    use super::*;
+    static FUNC: &str = "doc_empty_uninit";
+
+    #[test]
+    fn test_doc() {
+        crate::specify_test!("test_doc");
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // empty: uninitialized memory, then fill by assignment
+        let mut a: Tensor<i32, _> = unsafe { rt::empty(([2, 2], &device)) };
+        a.fill(0);
+        println!("{a}");
+        // [[ 0 0]
+        //  [ 0 0]]
+        assert_eq!(format!("{a}"), "[[ 0 0]\n [ 0 0]]");
+
+        // uninit: uninitialized tensor of MaybeUninit, write, then assume_init
+        let mut a: Tensor<core::mem::MaybeUninit<i32>, _> = rt::uninit(([2, 2], &device));
+        for (i, x) in a.raw_mut().iter_mut().enumerate() {
+            *x = core::mem::MaybeUninit::new(i as i32);
+        }
+        let a = unsafe { rt::assume_init(a) };
+        println!("{a}");
+        // [[ 0 1]
+        //  [ 2 3]]
+        assert_eq!(format!("{a}"), "[[ 0 1]\n [ 2 3]]");
+    }
+}
+
+mod doc_like_family {
+    use super::*;
+    static FUNC: &str = "doc_like_family";
+
+    #[test]
+    fn test_doc() {
+        crate::specify_test!("test_doc");
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        let a = rt::arange((24, &device)).into_shape([2, 3, 4]).into_transpose([2, 0, 1]);
+        println!("{:?}", a.layout());
+        // 3-Dim (dyn), contiguous: (empty)
+        // shape: [4, 2, 3], stride: [1, 12, 4], offset: 0
+
+        // default (TensorIterOrder::K): keeps the axis order of the input
+        let z = rt::zeros_like(&a);
+        println!("{:?}", z.layout());
+        assert_eq!(z.shape(), a.shape());
+
+        // explicit row-major (C): C-contiguous result
+        let z = rt::zeros_like((&a, TensorIterOrder::C));
+        println!("{:?}", z.layout());
+        assert_eq!(z.shape(), a.shape());
     }
 }

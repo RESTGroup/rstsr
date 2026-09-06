@@ -54,6 +54,7 @@ mod doc_order_semantics {
         let result = rt::broadcast_shapes(&[shape1, shape2], RowMajor);
         println!("{result:?}");
         assert_eq!(result, vec![8, 7, 6, 5]);
+        assert_eq!(format!("{result:?}"), "[8, 7, 6, 5]");
 
         // column-major: shapes align from the first axis (Fortran/Julia rule)
         let shape1 = vec![1, 6, 1, 8];
@@ -61,6 +62,17 @@ mod doc_order_semantics {
         let result = rt::broadcast_shapes(&[shape1, shape2], ColMajor);
         println!("{result:?}");
         assert_eq!(result, vec![5, 6, 7, 8]);
+        assert_eq!(format!("{result:?}"), "[5, 6, 7, 8]");
+    }
+
+    #[test]
+    fn default_order_setup() {
+        crate::specify_test!("default_order_setup");
+
+        // twin of the page's opening snippet
+        let mut device = DeviceType::default();
+        device.set_default_order(ColMajor); // or RowMajor; RowMajor is the default
+        assert_eq!(device.default_order(), ColMajor);
     }
 
     #[test]

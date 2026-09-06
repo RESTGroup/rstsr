@@ -287,3 +287,17 @@ applies instead. For example, with `a = [[10, 21], [33, 44]]` and
 (not the elementwise remainder `[[1, 1], [3, 2]]`). The free function
 `rt::rem(&a, &b)` provides the NumPy-compatible elementwise remainder; the
 parity test asserts both `rt::rem` (remainder) and `a % b` (matmul) accordingly.
+
+## `eye` under ColMajor returns the transposed shape
+
+- **numpy:** `np.eye(N, M, k, order='F')` keeps shape `(N, M)`; only the storage order changes.
+- **rstsr:** entry_row_cpu::doc_draft::creation::test_creation::doc_eye (col-major case)
+- **tag:** col-major-transfer
+- **status:** open
+
+With a device whose default order is `ColMajor`, `rt::eye((n_rows, n_cols, k, &device))`
+returns a tensor of shape `(n_cols, n_rows)` with F-contiguous layout - the input
+arguments are interpreted as (second dim, first dim). NumPy keeps the requested
+shape `(N, M)` and only changes the memory order. Documented as actual behavior in
+the `eye` docstring; whether to preserve NumPy's shape semantics is pending
+maintainer decision.

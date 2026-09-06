@@ -66,22 +66,23 @@ pub type TensorViewMut<'a, T, B = DeviceCpu, D = IxD> =
 /// refers to copy-on-write.
 ///
 /// Returned by conditional-copy conversions such as [`reshape`]/[`to_shape`]:
-/// no data is copied while the requested layout can be served by a view, and
-/// the necessary parts are cloned only when a mutation or ownership transfer
-/// requires it. Also created by [`TensorAny::into_cow`].
+/// no data is copied while the requested layout can be served by a view;
+/// otherwise the buffer is cloned immediately and an owned result is returned.
+/// A view-backed result is cloned later only when converted to an owned tensor
+/// ([`TensorAny::into_owned`]). Also created by [`TensorAny::into_cow`].
 pub type TensorCow<'a, T, B = DeviceCpu, D = IxD> =
     TensorBase<Storage<DataCow<'a, <B as DeviceRawAPI<T>>::Raw>, T, B>, D>;
 
 /// Tensor whose raw data is wrapped in an atomically reference-counted
 /// pointer (shared ownership).
 ///
-/// Created by [`TensorAny::into_shared`]. Cloning a [`TensorArc`] tensor only
-/// increments the reference count; the data itself is copied lazily when a
-/// mutable view of shared data is requested (copy-on-write).
+/// Created by [`TensorAny::into_shared`]. Sharing is cheap (no data is moved
+/// or copied), and a mutable view of shared data clones the buffer only when
+/// the data is actually shared (copy-on-write).
 pub type TensorArc<T, B = DeviceCpu, D = IxD> = TensorBase<Storage<DataArc<<B as DeviceRawAPI<T>>::Raw>, T, B>, D>;
 
-/// Tensor that references raw data by an enum of immutable or mutable
-/// reference; an internal type backing iteration utilities.
+/// Tensor that holds raw data by an enum of immutable or mutable reference;
+/// an internal type used by device-level operation parameter structs.
 pub type TensorReference<'a, T, B = DeviceCpu, D = IxD> =
     TensorBase<Storage<DataReference<'a, <B as DeviceRawAPI<T>>::Raw>, T, B>, D>;
 
