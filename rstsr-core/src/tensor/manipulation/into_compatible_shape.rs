@@ -71,6 +71,9 @@ where
 ///
 /// </div>
 ///
+///
+/// See [`order_semantics`](crate::order_semantics) for the two device default orders.
+
 /// <div class="warning">
 ///
 /// **Different Signature Convention to [`reshape`]**
@@ -80,6 +83,9 @@ where
 ///
 /// </div>
 ///
+///
+/// See [`order_semantics`](crate::order_semantics) for the two device default orders.
+
 /// # Parameters
 ///
 /// - `tensor`: [`&TensorAny<R, T, B, D>`](TensorAny)
@@ -287,6 +293,9 @@ where
 ///
 /// </div>
 ///
+///
+/// See [`order_semantics`](crate::order_semantics) for the two device default orders.
+
 /// # Parameters
 ///
 /// - `tensor`: [`&TensorAny<R, T, B, D>`](TensorAny)

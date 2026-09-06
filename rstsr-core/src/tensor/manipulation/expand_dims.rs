@@ -26,6 +26,7 @@ where
 
 /// Expands the shape of an array by inserting a new axis (dimension) of size one at the position
 /// specified by `axis`.
+/// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
 ///
 /// # Parameters
 ///

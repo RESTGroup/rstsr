@@ -25,6 +25,7 @@ where
 /// Reverses the order of elements in an array along the given axis.
 ///
 /// The shape of the array will be preserved after flipping.
+/// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
 ///
 /// # Parameters
 ///

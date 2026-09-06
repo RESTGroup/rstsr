@@ -21,6 +21,7 @@ mod doc_transpose {
         println!("{result}");
         // [[ 1 3]
         //  [ 2 4]]
+        assert_eq!(format!("{result}"), "[[ 1 3]\n [ 2 4]]");
         let target = rt::tensor_from_nested!([[1, 3], [2, 4]], &device);
         assert!(rt::allclose(&result, &target, None));
 

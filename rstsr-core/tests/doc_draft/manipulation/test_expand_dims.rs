@@ -19,6 +19,7 @@ mod doc_expand_dims {
         let y = x.expand_dims(0);
         println!("{y}");
         // [[ 0 1]]
+        assert_eq!(format!("{y}"), "[[ 0 1]]");
         println!("y shape: {:?}", y.shape());
         // y shape: [1, 2]
         let y_expected = rt::tensor_from_nested!([[0, 1]], &device);

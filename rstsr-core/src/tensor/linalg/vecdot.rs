@@ -11,6 +11,7 @@ use core::mem::transmute;
 /// where the sum is over the dimension specified by `axis` (default: last axis)
 /// and where $\overline{a_i}$ denotes the complex conjugate if $a_i$
 /// is complex and the identity otherwise.
+/// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
 ///
 /// # Parameters
 ///

@@ -445,8 +445,7 @@ where
 ///
 /// - [`allclose_f`]: fallible version.
 /// - [`allclose_all`] / [`allclose_all_f`]: explicit all-element form.
-/// - Macro: `allclose!(&a, &b)` (crate-level exported, same name as the
-///   function).
+/// - Macro: `allclose!(&a, &b)` (crate-level exported, same name as the function).
 pub fn allclose_all_f<TA, TB, TE, B, DA, DB>(
     tensor_a: impl TensorViewAPI<Type = TA, Backend = B, Dim = DA>,
     tensor_b: impl TensorViewAPI<Type = TB, Backend = B, Dim = DB>,

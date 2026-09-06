@@ -45,8 +45,9 @@ where
 ///
 /// The layout can differ from the original in shape, strides, or even dimensionality,
 /// as long as the total number of elements remains the same.
+/// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
 ///
-/// # Arguments
+/// # Parameters
 ///
 /// - `tensor`: A reference to the input tensor.
 /// - `layout`: The target [`Layout`] for the output tensor.
@@ -56,7 +57,7 @@ where
 /// A [`TensorCow`] containing either a view (if no copy needed) or an owned tensor with the
 /// specified layout.
 ///
-/// # Errors
+/// # Panics
 ///
 /// Returns an error if the layout size doesn't match the tensor size.
 /// Use [`to_layout_f`] for the fallible version.
@@ -77,7 +78,7 @@ where
 /// let layout_f = [3, 4].f();
 /// let b = a.to_layout(layout_f);
 /// println!("b layout: {:?}", b.layout());
-/// // 2-Dim (dyn), contiguous: Fc
+/// // 2-Dim, contiguous: Ff
 /// // shape: [3, 4], stride: [1, 3], offset: 0
 /// assert!(b.f_contig());
 /// ```

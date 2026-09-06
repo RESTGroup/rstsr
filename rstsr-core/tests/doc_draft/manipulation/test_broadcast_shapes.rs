@@ -22,6 +22,7 @@ mod doc_broadcast_shapes {
         println!("{:?}", result);
         // [8, 7, 6, 5]
         assert_eq!(result, vec![8, 7, 6, 5]);
+        assert_eq!(format!("{result:?}"), "[8, 7, 6, 5]");
     }
 
     #[test]

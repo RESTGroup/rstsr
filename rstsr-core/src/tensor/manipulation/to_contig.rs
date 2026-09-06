@@ -27,8 +27,9 @@ where
 /// This function takes a reference to a tensor and returns a [`TensorCow`] that is
 /// either a view (if the tensor is already contiguous with the requested order) or
 /// a newly allocated contiguous copy.
+/// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
 ///
-/// # Arguments
+/// # Parameters
 ///
 /// - `tensor`: A reference to the input tensor.
 /// - `order`: The memory layout order ([`RowMajor`] or [`ColMajor`]).
@@ -248,7 +249,7 @@ where
 /// If it is, a view is returned without copying data. Otherwise, data is copied to
 /// a new contiguous layout.
 ///
-/// # Arguments
+/// # Parameters
 ///
 /// - `tensor`: A reference to the input tensor.
 /// - `order`: The memory layout order ([`RowMajor`] or [`ColMajor`]).

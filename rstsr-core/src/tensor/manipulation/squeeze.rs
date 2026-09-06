@@ -78,6 +78,7 @@ where
 ///   - If `axes` is an empty tuple `()`, no axes are squeezed.
 ///   - Negative values are supported and indicate counting dimensions from the back.
 ///   - Each axis in `axes` must have size 1; otherwise an error is raised.
+/// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
 ///
 /// # Returns
 ///
@@ -87,12 +88,6 @@ where
 ///   - The underlying data is not copied; only the layout of the view is modified.
 ///   - If you want to convert the tensor itself (taking the ownership instead of returning view),
 ///     use [`into_squeeze`] instead.
-///
-/// # Panics
-///
-/// - If an axis specified does not have size 1.
-/// - If an axis is out of bounds.
-/// - If `axes` has duplicated values.
 ///
 /// # Examples
 ///
@@ -190,6 +185,12 @@ where
 /// RSTSR's behavior matches NumPy and Array-API:
 /// - `a.squeeze(None)` squeezes all axes with size 1
 /// - `a.squeeze(())` squeezes no axes (returns a view of the original tensor)
+///
+/// # Panics
+///
+/// - If an axis specified does not have size 1.
+/// - If an axis is out of bounds.
+/// - If `axes` has duplicated values.
 ///
 /// # See also
 ///

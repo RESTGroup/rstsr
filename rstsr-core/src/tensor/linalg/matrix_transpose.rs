@@ -21,6 +21,7 @@ where
 /// For a 2-D array, this is equivalent to the standard matrix transpose.
 /// For higher-dimensional arrays, this transposes each matrix in a stack of
 /// matrices, leaving other axes unchanged.
+/// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
 ///
 /// # Examples
 ///

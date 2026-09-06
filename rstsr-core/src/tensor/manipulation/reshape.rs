@@ -258,6 +258,9 @@ where
 ///
 /// </div>
 ///
+///
+/// See [`order_semantics`](crate::order_semantics) for the two device default orders.
+
 /// # Parameters
 ///
 /// - `tensor`: [`TensorAny<R, T, B, D>`]
@@ -586,6 +589,9 @@ where
 ///
 /// </div>
 ///
+///
+/// See [`order_semantics`](crate::order_semantics) for the two device default orders.
+
 /// # Parameters
 ///
 /// - `tensor`: [`TensorAny<R, T, B, D>`]
@@ -663,6 +669,9 @@ where
 ///
 /// </div>
 ///
+///
+/// See [`order_semantics`](crate::order_semantics) for the two device default orders.
+
 /// # Parameters
 ///
 /// - `tensor`: [`TensorAny<R, T, B, D>`]
@@ -804,6 +813,9 @@ where
 ///
 /// </div>
 ///
+///
+/// See [`order_semantics`](crate::order_semantics) for the two device default orders.
+
 /// # Parameters
 ///
 /// - `tensor`: [`&TensorAny<R, T, B, D>`](TensorAny)
@@ -928,7 +940,7 @@ where
 ///
 /// # Elaborated examples
 ///
-/// ## Difference between [RowMajor] and [ColMajor]
+/// ## Difference between [`RowMajor`] and [`ColMajor`]
 ///
 /// Tensor can be uniquely iterated (into a 1-dimension vector), for either row-major or
 /// column-major order.

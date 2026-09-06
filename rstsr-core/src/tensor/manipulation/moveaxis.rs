@@ -51,6 +51,7 @@ where
 ///
 /// Returns an array with axes moved to new positions. Other axes remain in their
 /// original order. This is a view operation; no data is copied.
+/// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
 ///
 /// # Parameters
 ///

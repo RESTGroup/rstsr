@@ -21,13 +21,18 @@ mod doc_to_layout {
         println!("a layout: {:?}", a.layout());
         // 2-Dim (dyn), contiguous: Cc
         // shape: [3, 4], stride: [4, 1], offset: 0
+        assert_eq!(
+            format!("{:?}", a.layout()),
+            "2-Dim (dyn), contiguous: Cc\nshape: [3, 4], stride: [4, 1], offset: 0"
+        );
 
         // Convert to F-contiguous layout
         let layout_f = [3, 4].f();
         let b = a.to_layout(layout_f);
         println!("b layout: {:?}", b.layout());
-        // 2-Dim (dyn), contiguous: Fc
+        // 2-Dim, contiguous: Ff
         // shape: [3, 4], stride: [1, 3], offset: 0
+        assert_eq!(format!("{:?}", b.layout()), "2-Dim, contiguous: Ff\nshape: [3, 4], stride: [1, 3], offset: 0");
         assert!(b.f_contig());
         assert_eq!(b.shape(), &[3, 4]);
 

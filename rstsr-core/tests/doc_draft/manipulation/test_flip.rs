@@ -25,6 +25,7 @@ mod doc_flip {
         //
         //  [[ 4 5]
         //   [ 6 7]]]
+        assert_eq!(format!("{a}"), "[[[ 0 1]\n  [ 2 3]]\n\n [[ 4 5]\n  [ 6 7]]]");
 
         // flip(0)
         let b = a.flip(0);

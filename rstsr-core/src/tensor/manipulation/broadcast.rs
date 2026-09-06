@@ -16,6 +16,9 @@ use crate::prelude_dev::*;
 ///
 /// </div>
 ///
+///
+/// See [`order_semantics`](crate::order_semantics) for the two device default orders.
+
 /// # Parameters
 ///
 /// - `shapes`: A slice of shapes, where each shape is [`IxD`] (`Vec<usize>`).
@@ -133,6 +136,9 @@ pub fn broadcast_shapes_f(shapes: &[IxD], order: FlagOrder) -> Result<IxD> {
 ///
 /// </div>
 ///
+///
+/// See [`order_semantics`](crate::order_semantics) for the two device default orders.
+
 /// # Parameters
 ///
 /// - `tensors`: [`Vec<TensorAny<R, T, B, IxD>>`](TensorAny)
@@ -178,9 +184,9 @@ pub fn broadcast_shapes_f(shapes: &[IxD], order: FlagOrder) -> Result<IxD> {
 /// //  [ 5 5 5]]
 /// ```
 ///
-/// Please note that the above code only works in [RowMajor].
+/// Please note that the above code only works in [`RowMajor`].
 ///
-/// For [ColMajor] order, the broadcasting will fail, because the broadcasting rules are applied
+/// For [`ColMajor`] order, the broadcasting will fail, because the broadcasting rules are applied
 /// differently, shapes are incompatible (for col-major, broadcast comparison starts from left
 /// instead of row-major's right):
 ///
@@ -193,7 +199,7 @@ pub fn broadcast_shapes_f(shapes: &[IxD], order: FlagOrder) -> Result<IxD> {
 /// let result = rt::broadcast_arrays(vec![a, b]);
 /// ```
 ///
-/// You need to make the following changes to let [ColMajor] case work:
+/// You need to make the following changes to let [`ColMajor`] case work:
 ///
 /// ```rust
 /// # use rstsr::prelude::*;
@@ -303,6 +309,9 @@ where
 ///
 /// </div>
 ///
+///
+/// See [`order_semantics`](crate::order_semantics) for the two device default orders.
+
 /// # Parameters
 ///
 /// - `tensor`: [`&TensorAny<R, T, B, D>`](TensorAny)

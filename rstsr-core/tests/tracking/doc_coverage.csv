@@ -12,20 +12,20 @@
 #         na      — out of campaign scope
 # batch:  campaign batch number (plan §Batches), 0 for foundations, P for the postfix pass, na for out-of-campaign
 module,category,tier,status,batch,notes
-tensor/manipulation/transpose.rs,manipulation,full,postfix,P,anchor exemplar (policy §0); add row/col one-liners
-tensor/manipulation/reshape.rs,manipulation,full,postfix,P,fullest exemplar; multiple full-tier members by §2 exception; bare [RowMajor] links
-tensor/manipulation/broadcast.rs,manipulation,full,postfix,P,detailed broadcast rules live here until order_semantics page exists; bare [RowMajor] links
-tensor/manipulation/expand_dims.rs,manipulation,full,postfix,P,add row/col one-liners
-tensor/manipulation/flip.rs,manipulation,full,postfix,P,legacy drift: Panics before Examples
-tensor/manipulation/into_compatible_shape.rs,manipulation,full,postfix,P,
-tensor/manipulation/into_dim.rs,manipulation,full,postfix,P,
-tensor/manipulation/moveaxis.rs,manipulation,full,postfix,P,
-tensor/manipulation/squeeze.rs,manipulation,full,postfix,P,legacy drift: Panics before Examples
-tensor/manipulation/to_contig.rs,manipulation,full,postfix,P,legacy drift: # Arguments/# Errors
-tensor/manipulation/to_layout.rs,manipulation,full,postfix,P,legacy drift: # Arguments/# Errors
-tensor/asarray.rs,creation,full,postfix,P,Overloads Table exemplar
-tensor/linalg/vecdot.rs,linalg,full,postfix,P,legacy drift: # See Also capital-A
-tensor/linalg/matrix_transpose.rs,linalg,full,postfix,P,
+tensor/manipulation/transpose.rs,manipulation,full,done,P,order one-liner added (postfix)
+tensor/manipulation/reshape.rs,manipulation,full,done,P,bare links fixed; order_semantics linked (postfix)
+tensor/manipulation/broadcast.rs,manipulation,full,done,P,bare links fixed; order_semantics linked (postfix)
+tensor/manipulation/expand_dims.rs,manipulation,full,done,P,order one-liner added (postfix)
+tensor/manipulation/flip.rs,manipulation,full,done,P,order one-liner added; Panics placement verified after Examples (postfix)
+tensor/manipulation/into_compatible_shape.rs,manipulation,full,done,P,order_semantics linked (postfix)
+tensor/manipulation/into_dim.rs,manipulation,full,done,P,variants remain minimal per §2 (postfix)
+tensor/manipulation/moveaxis.rs,manipulation,full,done,P,order one-liner added (postfix)
+tensor/manipulation/squeeze.rs,manipulation,full,done,P,order one-liner added; Panics moved after Examples (postfix)
+tensor/manipulation/to_contig.rs,manipulation,full,done,P,# Arguments renamed; order one-liner added (postfix)
+tensor/manipulation/to_layout.rs,manipulation,full,done,P,headings renamed; stale example output corrected; order one-liner added (postfix)
+tensor/asarray.rs,creation,full,done,P,order_semantics linked (postfix)
+tensor/linalg/vecdot.rs,linalg,full,done,P,See also fixed (batch 3); order one-liner added (postfix)
+tensor/linalg/matrix_transpose.rs,linalg,full,done,P,order one-liner added (postfix)
 tensor/linalg/matmul.rs,linalg,full,done,3,matmul/matmul_from/matmul_with_output full; %-as-matmul documented; _f and methods minimal; vecdot See-Also drift fixed
 tensor/creation.rs,creation,full,done,1,uplifted (anchors+overloads+row/col notices+examples+accordance); eye col-major shape divergence recorded in numpy_differences.md
 tensor/creation_from_tensor.rs,creation,full,done,1,uplifted; concat link typo fixed; API traits documented minimally
