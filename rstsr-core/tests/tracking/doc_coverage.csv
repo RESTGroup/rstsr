@@ -1,0 +1,64 @@
+# Doc coverage checklist (rstsr-core API docstrings) — drives the API doc campaign
+# (rstsr-agents/plans/2026-09-api-doc-campaign.md). Policy: skill api-doc-conventions (rstsr-agents/skills/api-doc-conventions/SKILL.md).
+# Granularity: module-level; per-item rows may be added inside a batch.
+# tier:   full | minimal | na      (policy §1; minimal = summary + see-also only)
+# status: done    — complies with the policy (nothing is at this level yet)
+#         postfix — documented before the policy existed: substantive content exists,
+#                   but a policy-compliance pass is pending (row/col one-liners on
+#                   order-independent functions, heading/link/section-order drift,
+#                   output-string assertions in doc_draft twins)
+#         partial — some content, below full-tier shape (uplift needed)
+#         todo    — (near-)zero documentation
+#         na      — out of campaign scope
+# batch:  campaign batch number (plan §Batches), 0 for foundations, P for the postfix pass, na for out-of-campaign
+module,category,tier,status,batch,notes
+tensor/manipulation/transpose.rs,manipulation,full,postfix,P,anchor exemplar (policy §0); add row/col one-liners
+tensor/manipulation/reshape.rs,manipulation,full,postfix,P,fullest exemplar; multiple full-tier members by §2 exception; bare [RowMajor] links
+tensor/manipulation/broadcast.rs,manipulation,full,postfix,P,detailed broadcast rules live here until order_semantics page exists; bare [RowMajor] links
+tensor/manipulation/expand_dims.rs,manipulation,full,postfix,P,add row/col one-liners
+tensor/manipulation/flip.rs,manipulation,full,postfix,P,legacy drift: Panics before Examples
+tensor/manipulation/into_compatible_shape.rs,manipulation,full,postfix,P,
+tensor/manipulation/into_dim.rs,manipulation,full,postfix,P,
+tensor/manipulation/moveaxis.rs,manipulation,full,postfix,P,
+tensor/manipulation/squeeze.rs,manipulation,full,postfix,P,legacy drift: Panics before Examples
+tensor/manipulation/to_contig.rs,manipulation,full,postfix,P,legacy drift: # Arguments/# Errors
+tensor/manipulation/to_layout.rs,manipulation,full,postfix,P,legacy drift: # Arguments/# Errors
+tensor/asarray.rs,creation,full,postfix,P,Overloads Table exemplar
+tensor/linalg/vecdot.rs,linalg,full,postfix,P,legacy drift: # See Also capital-A
+tensor/linalg/matrix_transpose.rs,linalg,full,postfix,P,
+tensor/linalg/matmul.rs,linalg,full,todo,3,flagship; 0/14 documented
+tensor/creation.rs,creation,full,partial,1,light style; uplift (params/returns/overloads/examples/accordance); _f variants bare
+tensor/creation_from_tensor.rs,creation,full,partial,1,light style; uplift; concat link typo
+tensor/indexing.rs,indexing,full,todo,2,0/35 documented (2 # Safety only)
+tensor/adv_indexing.rs,indexing,full,partial,2,light style; bool_select + _f missing
+tensor/reduction.rs,reduction,full,todo,6,0 docs; trait_reduction! families
+tensor/operators/,operators,full,todo,5,rt:: anchors across op_* files; 0 docs
+tensor/map_elementwise.rs,utility,full,partial,4,16 near-identical one-liners
+tensor/ownership_conversion.rs,utility,full,partial,4,6/24 one-liners; ownership-semantics section warranted
+tensor/iterator_axes.rs,utility,full,todo,4,0 docs
+tensor/iterator_elem.rs,utility,full,todo,4,0 docs
+tensor/assignment.rs,utility,full,todo,4,0 docs
+tensor/tensor2_impl.rs,utility,full,partial,4,ld_row/ld_col/ld one-liners
+tensor/tensor_mutable.rs,utility,full,todo,4,1/10 (enum only)
+tensor/tensor_view_list.rs,utility,full,partial,4,minimal but ok
+tensor/device_conversion.rs,utility,full,todo,4,
+tensor/ext_conversion.rs,utility,full,todo,4,
+tensor/pack_array.rs,utility,full,todo,4,
+tensorbase.rs,types,na,todo,0,type floor: TensorBase/TensorAny/aliases/Layout summaries; free-form
+tensor/mod.rs,modules,na,todo,0,//! missing
+tensor/reduction.rs#mod,modules,na,todo,0,//! missing (same file as reduction row above)
+tensor/indexing.rs#mod,modules,na,todo,0,//! missing
+tensor/linalg/mod.rs,modules,na,todo,0,//! missing
+tensor/operators/mod.rs,modules,na,todo,0,//! missing (generation-pattern doc, batch 5 scope)
+operators/ops/mod.rs,modules,na,todo,0,//! missing (generation-pattern doc, batch 5 scope)
+format/mod.rs,modules,na,todo,0,//! missing
+prelude.rs,modules,na,todo,0,//! missing (describe exports)
+prelude_dev.rs,modules,na,todo,0,//! missing (describe exports)
+src/docs/order_semantics.md,modules,na,todo,0,create + wire as pub mod; link target for row/col notices
+storage/,internals,minimal,todo,na,opportunistic (binding-on-touch); module //! in batch 0
+device_cpu_serial/,internals,minimal,todo,na,opportunistic; some //! exist
+device_faer/,internals,minimal,todo,na,opportunistic; some //! exist
+feature_rayon/,internals,minimal,todo,na,opportunistic
+format/,internals,minimal,todo,na,opportunistic
+src/docs/api_specification.md,docs,na,na,na,API index; maintained on API-surface change only
+src/docs/array_api_standard.md,docs,na,na,na,conformance matrix; maintained on API-surface change only
