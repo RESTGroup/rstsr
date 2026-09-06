@@ -31,7 +31,7 @@ tensor/creation.rs,creation,full,done,1,uplifted (anchors+overloads+row/col noti
 tensor/creation_from_tensor.rs,creation,full,done,1,uplifted; concat link typo fixed; API traits documented minimally
 tensor/indexing.rs,indexing,full,done,2,anchors slice/diagonal (+DiagonalArgs floor); variants and i/i_mut minimal; twins in doc_draft/indexing
 tensor/adv_indexing.rs,indexing,full,done,2,index_select/take/bool_select full tier; _f and method forms minimal
-tensor/reduction.rs,reduction,full,todo,6,0 docs; trait_reduction! families
+tensor/reduction.rs,reduction,full,done,6,module docs carry family table + order notice + examples; allclose anchor full; twins extended (argmax/allclose/count_nonzero)
 tensor/operators/,operators,full,todo,5,rt:: anchors across op_* files; 0 docs
 tensor/map_elementwise.rs,utility,full,done,4,map anchor full; mapv/mapi minimal-plus; mapb/mapvi/mapvb and *_fnmut minimal with see-alsos
 tensor/ownership_conversion.rs,utility,full,done,4,view/view_mut/into_cow/into_owned/into_shared/to_owned/to_vec/into_vec/to_scalar full or full-lite; keep_layout and force_mut minimal-plus

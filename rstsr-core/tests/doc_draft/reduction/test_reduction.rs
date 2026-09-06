@@ -18,9 +18,23 @@ mod doc_sum {
         println!("{}", a.sum_axes(1));
         // [ 6 15]
         assert_eq!(a.sum_axes(1).to_vec(), vec![6, 15]);
+        assert_eq!(format!("{}", a.sum_axes(1)), "[ 6 15]");
         println!("{}", a.sum_all());
         // 21
         assert_eq!(a.sum_all(), 21);
+
+        // sum along the first axis
+        println!("{}", rt::sum_axes(&a, 0));
+        // [ 5 7 9]
+        println!("{}", rt::sum(&a));
+        // 21
+        assert_eq!(rt::sum(&a), 21);
+        assert_eq!(format!("{}", rt::sum_axes(&a, 0)), "[ 5 7 9]");
+
+        // count_nonzero
+        println!("{}", rt::count_nonzero_axes(&a, 0));
+        // [ 2 2 2]
+        assert_eq!(format!("{}", rt::count_nonzero_axes(&a, 0)), "[ 2 2 2]");
     }
 }
 
@@ -133,5 +147,40 @@ mod doc_argmax {
         // 7
         assert_eq!(a.argmax_all(), 7);
         assert_eq!(a.argmin_all(), 0);
+    }
+}
+
+mod doc_argmax_allclose {
+    use super::*;
+    static FUNC: &str = "doc_argmax_allclose";
+
+    #[test]
+    fn test_doc() {
+        crate::specify_test!("test_doc");
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        let a = rt::tensor_from_nested!([[1.0, 5.0, 3.0], [4.0, 5.0, 2.0]], &device);
+
+        // argmax: flat (linear) index of the maximum, first on ties
+        println!("{}", rt::argmax(&a));
+        // 1
+        assert_eq!(rt::argmax(&a), 1);
+
+        // argmax along an axis
+        println!("{}", rt::argmax_axes(&a, 0));
+        // [ 1 0 0]
+        assert_eq!(format!("{}", rt::argmax_axes(&a, 0)), "[ 1 0 0]");
+
+        // allclose with default tolerances
+        let b = rt::tensor_from_nested!([[1.0, 5.0, 3.0], [4.0, 5.0, 2.0]], &device);
+        println!("{}", rt::allclose(&a, &b, None));
+        // true
+        assert!(rt::allclose(&a, &b, None));
+
+        let c = rt::tensor_from_nested!([[1.0, 5.1, 3.0], [4.0, 5.0, 2.0]], &device);
+        println!("{}", rt::allclose(&a, &c, None));
+        // false
+        assert!(!rt::allclose(&a, &c, None));
     }
 }
