@@ -1,4 +1,9 @@
-// Indexing of tensors
+//! Basic indexing of tensors: slicing ([`slice`](slice()),
+//! [`slice_mut`](slice_mut()), operator `[]` for scalar access) and diagonal
+//! extraction ([`diagonal`]).
+//!
+//! For advanced indexing (selecting by boolean masks or integer indices), see
+//! [`adv_indexing`](crate::tensor::adv_indexing).
 
 use core::ops::{Index, IndexMut};
 

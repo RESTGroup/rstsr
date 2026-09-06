@@ -1,7 +1,29 @@
+//! Fundamental tensor types: [`TensorBase`] and the ownership aliases
+//! specialized from it ([`Tensor`], [`TensorView`], [`TensorMut`],
+//! [`TensorCow`], [`TensorArc`]), plus the fully generic alias [`TensorAny`].
+//!
+//! A tensor is a pair of (storage, layout): the storage holds raw data and
+//! the device that owns it; the layout describes shape, stride, and offset.
+//! See [`api_specification`](crate::api_specification) for the complete type
+//! map, and [`Layout`] for layout semantics.
+
 use crate::prelude_dev::*;
 
+/// Marker trait for tensor basic types ([`TensorBase`] and its aliases).
 pub trait TensorBaseAPI {}
 
+/// The basic struct of a tensor: storage (raw data and its device) plus
+/// layout (shape, stride, and offset).
+///
+/// Users rarely name [`TensorBase`] directly; everyday code uses the
+/// ownership aliases specialized from it: [`Tensor`] (owns its data),
+/// [`TensorView`] / [`TensorMut`] (borrow its data), [`TensorCow`]
+/// (copy-on-write), and [`TensorArc`] (shared by atomic reference counting).
+/// Functions of this crate are generic over [`TensorBase`] specializations,
+/// so owned tensors and views share the same API surface.
+///
+/// See also [`api_specification`](crate::api_specification) for the tensor
+/// structure figure and the ownership tables.
 pub struct TensorBase<S, D>
 where
     D: DimAPI,
@@ -10,16 +32,68 @@ where
     pub(crate) layout: Layout<D>,
 }
 
+/// Tensor that owns its raw data (default backend [`DeviceCpu`], dynamic
+/// dimensionality [`IxD`]).
+///
+/// This is the most common tensor kind: creation functions ([`zeros`],
+/// [`arange`], ...) and computations return it. Conversions that consume or
+/// change ownership ([`TensorAny::into_owned`], [`TensorAny::into_shared`],
+/// [`TensorAny::into_cow`], ...) are listed in
+/// [`ownership_conversion`](crate::tensor::ownership_conversion).
 pub type Tensor<T, B = DeviceCpu, D = IxD> = TensorBase<Storage<DataOwned<<B as DeviceRawAPI<T>>::Raw>, T, B>, D>;
+
+/// Tensor that shares its raw data by immutable reference; also available
+/// under the alias [`TensorRef`].
+///
+/// Views are the cheapest tensor kind: slicing ([`slice`](slice())),
+/// [`TensorAny::view`], and layout-only manipulations return them, and
+/// creating or dropping a view never touches the underlying data. A view
+/// becomes owned data by [`TensorAny::into_owned`], or copies by
+/// [`TensorAny::to_owned`].
 pub type TensorView<'a, T, B = DeviceCpu, D = IxD> =
     TensorBase<Storage<DataRef<'a, <B as DeviceRawAPI<T>>::Raw>, T, B>, D>;
+
+/// Tensor that shares its raw data by mutable reference; also available under
+/// the alias [`TensorMut`].
+///
+/// Created by [`TensorAny::view_mut`], [`slice_mut`], and related functions.
+/// Writing through a mutable view directly modifies the underlying data of
+/// the tensor it was borrowed from.
 pub type TensorViewMut<'a, T, B = DeviceCpu, D = IxD> =
     TensorBase<Storage<DataMut<'a, <B as DeviceRawAPI<T>>::Raw>, T, B>, D>;
+
+/// Tensor that either shares its raw data by reference or owns it; `Cow`
+/// refers to copy-on-write.
+///
+/// Returned by conditional-copy conversions such as [`reshape`]/[`to_shape`]:
+/// no data is copied while the requested layout can be served by a view, and
+/// the necessary parts are cloned only when a mutation or ownership transfer
+/// requires it. Also created by [`TensorAny::into_cow`].
 pub type TensorCow<'a, T, B = DeviceCpu, D = IxD> =
     TensorBase<Storage<DataCow<'a, <B as DeviceRawAPI<T>>::Raw>, T, B>, D>;
+
+/// Tensor whose raw data is wrapped in an atomically reference-counted
+/// pointer (shared ownership).
+///
+/// Created by [`TensorAny::into_shared`]. Cloning a [`TensorArc`] tensor only
+/// increments the reference count; the data itself is copied lazily when a
+/// mutable view of shared data is requested (copy-on-write).
 pub type TensorArc<T, B = DeviceCpu, D = IxD> = TensorBase<Storage<DataArc<<B as DeviceRawAPI<T>>::Raw>, T, B>, D>;
+
+/// Tensor that references raw data by an enum of immutable or mutable
+/// reference; an internal type backing iteration utilities.
 pub type TensorReference<'a, T, B = DeviceCpu, D = IxD> =
     TensorBase<Storage<DataReference<'a, <B as DeviceRawAPI<T>>::Raw>, T, B>, D>;
+
+/// Fully generic tensor alias: [`TensorBase`] specialized by the storage
+/// representation `R` (how raw data is owned), dtype `T`, device `B`, and
+/// dimensionality `D`.
+///
+/// Function signatures are commonly written against [`TensorAny`]; each
+/// ownership alias fixes `R` to one representation: [`Tensor`] uses owned
+/// data, [`TensorView`] an immutable reference, [`TensorMut`] a mutable
+/// reference, [`TensorCow`] copy-on-write data, and [`TensorArc`] an
+/// atomically reference-counted pointer.
 pub type TensorAny<R, T, B, D> = TensorBase<Storage<R, T, B>, D>;
 pub use TensorView as TensorRef;
 pub use TensorViewMut as TensorMut;

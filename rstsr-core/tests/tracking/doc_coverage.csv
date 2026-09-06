@@ -44,21 +44,21 @@ tensor/tensor_view_list.rs,utility,full,partial,4,minimal but ok
 tensor/device_conversion.rs,utility,full,todo,4,
 tensor/ext_conversion.rs,utility,full,todo,4,
 tensor/pack_array.rs,utility,full,todo,4,
-tensorbase.rs,types,na,todo,0,type floor: TensorBase/TensorAny/aliases/Layout summaries; free-form
-tensor/mod.rs,modules,na,todo,0,//! missing
-tensor/reduction.rs#mod,modules,na,todo,0,//! missing (same file as reduction row above)
-tensor/indexing.rs#mod,modules,na,todo,0,//! missing
-tensor/linalg/mod.rs,modules,na,todo,0,//! missing
-tensor/operators/mod.rs,modules,na,todo,0,//! missing (generation-pattern doc, batch 5 scope)
-operators/ops/mod.rs,modules,na,todo,0,//! missing (generation-pattern doc, batch 5 scope)
-format/mod.rs,modules,na,todo,0,//! missing
-prelude.rs,modules,na,todo,0,//! missing (describe exports)
-prelude_dev.rs,modules,na,todo,0,//! missing (describe exports)
-src/docs/order_semantics.md,modules,na,todo,0,create + wire as pub mod; link target for row/col notices
-storage/,internals,minimal,todo,na,opportunistic (binding-on-touch); module //! in batch 0
-device_cpu_serial/,internals,minimal,todo,na,opportunistic; some //! exist
-device_faer/,internals,minimal,todo,na,opportunistic; some //! exist
-feature_rayon/,internals,minimal,todo,na,opportunistic
-format/,internals,minimal,todo,na,opportunistic
+tensorbase.rs,types,na,done,0,type floor done (module //! + TensorBase/TensorAny/aliases); Layout lives in rstsr-common, out of scope
+tensor/mod.rs,modules,na,done,0,//! added
+tensor/reduction.rs#mod,modules,na,done,0,//! added (same file as reduction row above)
+tensor/indexing.rs#mod,modules,na,done,0,//! added
+tensor/linalg/mod.rs,modules,na,done,0,//! added
+tensor/operators/mod.rs,modules,na,done,0,//! added (generation-pattern doc; anchors come in batch 5)
+operators/ops/mod.rs,modules,na,done,0,//! added (generation-pattern doc)
+format/mod.rs,modules,na,done,0,//! added
+prelude.rs,modules,na,done,0,//! added (describes exports)
+prelude_dev.rs,modules,na,done,0,//! added (describes exports)
+src/docs/order_semantics.md,modules,na,done,0,created + wired as pub mod; examples twin-tested in tests/doc_draft/docs/test_order_semantics.rs
+storage/,internals,minimal,done,na,module //! present (batch 0 scope); item docs stay opportunistic (binding-on-touch)
+device_cpu_serial/,internals,minimal,done,na,module //! present; item docs stay opportunistic
+device_faer/,internals,minimal,done,na,module //! present; item docs stay opportunistic
+feature_rayon/,internals,minimal,done,na,module //! present; item docs stay opportunistic
+format/,internals,minimal,done,na,module //! added (format/mod.rs); item docs stay opportunistic
 src/docs/api_specification.md,docs,na,na,na,API index; maintained on API-surface change only
 src/docs/array_api_standard.md,docs,na,na,na,conformance matrix; maintained on API-surface change only

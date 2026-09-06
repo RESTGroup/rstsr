@@ -1,3 +1,13 @@
+//! User-facing prelude of rstsr-core.
+//!
+//! - [`rstsr_traits`]: API traits backing the operations (e.g. `OpAddAPI`).
+//! - [`rstsr_structs`]: tensor and device types ([`Tensor`], [`TensorView`], [`DeviceCpu`], ...).
+//! - [`rstsr_funcs`]: free functions (the `rt::` surface: `arange`, `sin`, `sum`, ...).
+//! - [`rstsr_macros`]: macros ([`tensor_from_nested!`], [`allclose!`]).
+//!
+//! The [`rt`] module re-exports all of the above for one-line access, e.g.
+//! `rt::arange((3, &device))`.
+
 pub mod rstsr_traits {
     pub use rstsr_common::prelude::rstsr_traits::*;
 

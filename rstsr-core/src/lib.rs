@@ -70,3 +70,13 @@ pub mod api_specification {
     extern crate alloc;
     use crate as rstsr_core;
 }
+
+pub mod order_semantics {
+    #![doc = include_str!("docs/order_semantics.md")]
+    #![allow(unused_imports)]
+
+    use crate::prelude::*;
+    use rt::*;
+    extern crate alloc;
+    use crate as rstsr_core;
+}

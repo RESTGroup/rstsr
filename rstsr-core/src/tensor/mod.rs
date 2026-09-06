@@ -1,3 +1,7 @@
+//! Tensor functions organized by category: creation, indexing, manipulation,
+//! element-wise operators, reduction, and linalg, plus ownership, device, and
+//! external-type conversions.
+
 pub mod adv_indexing;
 pub mod asarray;
 pub mod assignment;

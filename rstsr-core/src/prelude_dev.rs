@@ -1,3 +1,8 @@
+//! Developer prelude of rstsr-core: convenience re-exports for writing
+//! device implementations, operators, and tests against rstsr-core internals
+//! (core/alloc utilities, macro tools, and the exports of internal crates).
+//! User code should prefer [`crate::prelude`] instead.
+
 extern crate alloc;
 pub use alloc::boxed::Box;
 pub use alloc::format;
