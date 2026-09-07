@@ -406,7 +406,7 @@ where
             .map(|(i, tensor)| -> Result<TensorCow<'a, T, B, IxD>> {
                 // copy the reference out so the view borrows the input
                 // directly, not the local vector of references
-                let tensor_ref: &'a TensorAny<R, T, B, D> = *tensor;
+                let tensor_ref: &'a TensorAny<R, T, B, D> = tensor;
                 let view: TensorView<'a, T, B, Ix1> = tensor_ref.view().into_dim::<Ix1>();
                 let layout_grid = meshgrid_grid_layout(view.layout(), positions[i], &shape_out)?;
                 let (storage, _) = view.into_raw_parts();

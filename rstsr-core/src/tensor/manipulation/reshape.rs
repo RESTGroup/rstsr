@@ -260,7 +260,6 @@ where
 ///
 ///
 /// See [`order_semantics`](crate::order_semantics) for the two device default orders.
-
 /// # Parameters
 ///
 /// - `tensor`: [`TensorAny<R, T, B, D>`]
@@ -591,7 +590,6 @@ where
 ///
 ///
 /// See [`order_semantics`](crate::order_semantics) for the two device default orders.
-
 /// # Parameters
 ///
 /// - `tensor`: [`TensorAny<R, T, B, D>`]
@@ -671,7 +669,6 @@ where
 ///
 ///
 /// See [`order_semantics`](crate::order_semantics) for the two device default orders.
-
 /// # Parameters
 ///
 /// - `tensor`: [`TensorAny<R, T, B, D>`]
@@ -815,7 +812,6 @@ where
 ///
 ///
 /// See [`order_semantics`](crate::order_semantics) for the two device default orders.
-
 /// # Parameters
 ///
 /// - `tensor`: [`&TensorAny<R, T, B, D>`](TensorAny)

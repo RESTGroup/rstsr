@@ -18,7 +18,6 @@ use crate::prelude_dev::*;
 ///
 ///
 /// See [`order_semantics`](crate::order_semantics) for the two device default orders.
-
 /// # Parameters
 ///
 /// - `shapes`: A slice of shapes, where each shape is [`IxD`] (`Vec<usize>`).
@@ -138,7 +137,6 @@ pub fn broadcast_shapes_f(shapes: &[IxD], order: FlagOrder) -> Result<IxD> {
 ///
 ///
 /// See [`order_semantics`](crate::order_semantics) for the two device default orders.
-
 /// # Overloads Table
 ///
 /// Reference-input forms output views sharing the inputs' memory,
@@ -429,7 +427,6 @@ where
 ///
 ///
 /// See [`order_semantics`](crate::order_semantics) for the two device default orders.
-
 /// # Parameters
 ///
 /// - `tensor`: [`&TensorAny<R, T, B, D>`](TensorAny)

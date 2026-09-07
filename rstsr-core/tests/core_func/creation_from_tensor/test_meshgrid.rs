@@ -190,8 +190,8 @@ mod numpy_meshgrid {
         let grids = rt::meshgrid((&vec![&x_input, &y_input], "xy", true));
         let mut x = grids.into_iter().next().unwrap().into_owned();
         x.i_mut((0, ..)).fill(0.0);
-        assert_equal(&x.i((0, ..)), rt::tensor_from_nested!([0.0, 0.0], &device), None);
-        assert_equal(&x.i((1, ..)), rt::tensor_from_nested!([1.1, 2.2], &device), None);
+        assert_equal(x.i((0, ..)), rt::tensor_from_nested!([0.0, 0.0], &device), None);
+        assert_equal(x.i((1, ..)), rt::tensor_from_nested!([1.1, 2.2], &device), None);
         // the inputs are untouched: `copy = true` grids are fresh copies
         assert_equal(&x_input, rt::tensor_from_nested!([1.1, 2.2], &device), None);
     }

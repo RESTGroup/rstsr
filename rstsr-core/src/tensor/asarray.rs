@@ -36,7 +36,6 @@ pub trait AsArrayAPI<Inp> {
 ///
 ///
 /// See [`order_semantics`](crate::order_semantics) for the two device default orders.
-
 /// Note that this function always returns a dynamic-dimensional ([`IxD`]) tensor. To convert it
 /// into a fixed-dimensional tensor, you can use [`.into_dim::<D>()`](Tensor::into_dim) method on
 /// the output tensor without explicit data copy.
