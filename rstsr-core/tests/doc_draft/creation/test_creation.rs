@@ -212,6 +212,23 @@ mod doc_tril_triu {
             rt::tensor_from_nested!([[0, 2, 3], [0, 0, 6], [0, 0, 0]], &device),
             None,
         );
+
+        // column-major default order: the same logical tensor stored
+        // F-contiguously yields identical tril/triu results
+        let mut device_c = TESTCFG.device.clone();
+        device_c.set_default_order(ColMajor);
+        let reshaped = rt::arange((1, 10, &device_c)).into_shape([3, 3]);
+        let transposed = reshaped.t();
+        let tri_input = transposed.to_contig(ColMajor);
+        assert!(tri_input.f_contig());
+        println!("{}", rt::tril((&tri_input, 0)));
+        assert_eq!(format!("{}", rt::tril((&tri_input, 0))), "[[ 1 0 0]\n [ 4 5 0]\n [ 7 8 9]]");
+        assert_eq!(format!("{}", rt::triu((&tri_input, 1))), "[[ 0 2 3]\n [ 0 0 6]\n [ 0 0 0]]");
+        crate::test_utils::assert_equal(
+            rt::tril((&tri_input, -1)),
+            rt::tensor_from_nested!([[0, 0, 0], [4, 0, 0], [7, 8, 0]], &device_c),
+            None,
+        );
     }
 }
 
