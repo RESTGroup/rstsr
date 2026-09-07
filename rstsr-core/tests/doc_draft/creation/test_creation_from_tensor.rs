@@ -31,6 +31,24 @@ mod doc_diag {
         let v = rt::arange((3, &device));
         println!("{}", rt::diag((&v, -1)));
         assert_eq!(format!("{}", rt::diag((&v, -1))), "[[ 0 0 0 0]\n [ 0 0 0 0]\n [ 0 1 0 0]\n [ 0 0 2 0]]");
+
+        // column-major default order: a constructed diagonal matrix follows the
+        // device default order (F-contiguous) with identical logical content.
+        let mut device_c = TESTCFG.device.clone();
+        device_c.set_default_order(ColMajor);
+
+        let v_c = rt::arange((3, &device_c));
+        let m_c = rt::diag((&v_c, -1));
+        println!("{m_c}");
+        println!("{:?}", m_c.layout());
+        assert_eq!(format!("{m_c}"), "[[ 0 0 0 0]\n [ 0 0 0 0]\n [ 0 1 0 0]\n [ 0 0 2 0]]");
+        assert!(m_c.f_contig());
+
+        // the same logical tensor stored F-contiguously: extraction is unchanged
+        let a_f = a.to_contig(ColMajor);
+        assert!(a_f.f_contig());
+        assert_eq!(format!("{}", rt::diag(&a_f)), "[ 0 4 8]");
+        assert_eq!(format!("{}", rt::diag((&a_f, 1))), "[ 1 5]");
     }
 }
 

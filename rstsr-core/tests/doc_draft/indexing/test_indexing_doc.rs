@@ -144,6 +144,24 @@ mod doc_diagonal {
         //  [ 0 2 0]
         //  [ 0 0 2]]
         assert_eq!(format!("{c}"), "[[ 2 0 0]\n [ 0 2 0]\n [ 0 0 2]]");
+
+        // the same logical tensor stored F-contiguously: diagonal views and
+        // diagonal_mut writes are unchanged
+        let a_f = a.to_contig(ColMajor);
+        assert!(a_f.f_contig());
+        println!("{}", a_f.diagonal(()));
+        assert_eq!(format!("{}", a_f.diagonal(())), "[ 0 4 8]");
+        assert_eq!(format!("{}", a_f.diagonal(1)), "[ 1 5]");
+
+        // on a ColMajor-default device, zeros are F-contiguous; diagonal_mut
+        // writes through identically
+        let mut device_c = TESTCFG.device.clone();
+        device_c.set_default_order(ColMajor);
+        let mut c_c: Tensor<i32, _> = rt::zeros(([3, 3], &device_c));
+        assert!(c_c.f_contig());
+        let mut d_c = c_c.diagonal_mut(());
+        d_c += 2;
+        assert_eq!(format!("{c_c}"), "[[ 2 0 0]\n [ 0 2 0]\n [ 0 0 2]]");
     }
 }
 

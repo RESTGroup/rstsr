@@ -27,7 +27,7 @@ tensor/asarray.rs,creation,full,done,P,order_semantics linked (postfix)
 tensor/linalg/vecdot.rs,linalg,full,done,P,See also fixed (batch 3); order one-liner added (postfix)
 tensor/linalg/matrix_transpose.rs,linalg,full,done,P,order one-liner added (postfix)
 tensor/linalg/matmul.rs,linalg,full,done,3,matmul/matmul_from/matmul_with_output full; %-as-matmul documented; _f and methods minimal; vecdot See-Also drift fixed
-tensor/creation.rs,creation,full,done,1,uplifted (anchors+overloads+row/col notices+examples+accordance); eye col-major shape divergence recorded in numpy_differences.md
+tensor/creation.rs,creation,full,done,1,uplifted (anchors+overloads+row/col notices+examples+accordance); eye col-major shape divergence fixed (see numpy_differences_resolved.md)
 tensor/creation_from_tensor.rs,creation,full,done,1,uplifted; concat link typo fixed; API traits documented minimally
 tensor/indexing.rs,indexing,full,done,2,anchors slice/diagonal (+DiagonalArgs floor); variants and i/i_mut minimal; twins in doc_draft/indexing
 tensor/adv_indexing.rs,indexing,full,done,2,index_select/take/bool_select full tier; _f and method forms minimal

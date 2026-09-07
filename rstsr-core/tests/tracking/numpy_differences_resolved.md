@@ -157,3 +157,23 @@ values - e.g. `diag([[1, 2], [3, 4], [5, 6]], k=-2)` returned `[]` instead of `[
 `d_diag` formula `(d1 - |offset|).min(d2)` was already correct; only the range check
 was wrong. Found by the `test_diag_bounds` parity test; fixed by changing the range
 to `(-d1+1..0)`.
+
+## `eye` under ColMajor returned the transposed shape (FIXED)
+
+- **numpy:** `np.eye(N, M=None, k=0, order='C'/'F')` keeps shape `(N, M)`; only the storage order changes.
+- **rstsr:** entry_row_cpu::doc_draft::creation::test_creation::doc_eye (col-major case)
+- **tag:** col-major-transfer
+- **status:** fixed
+
+With a device whose default order is `ColMajor`, `rt::eye((n_rows, n_cols, k, &device))`
+returned a tensor of shape `(n_cols, n_rows)` with F-contiguous layout: the shape
+arguments were transposed, so the col-major result was a *different function* from the
+row-major one (NumPy's `order='F'` only changes the memory order, never the shape).
+Fixed in `EyeAPI::eye_f` (`rstsr-core/src/tensor/creation.rs`): the layout is now
+`[n_rows, n_cols].f()` under ColMajor, so the logical content (shape `(n_rows, n_cols)`,
+ones on the k-th diagonal) is identical under both orders and only the layout differs -
+matching NumPy. The `eye` docstring and its `doc_eye` twin document/assert the
+same-shape F-contiguous behavior. While verifying the neighborhood, `diag`/`diagonal`
+were checked for the same class of issue and found correct: both route through
+`Layout::diagonal`, which reads axis strides directly and is order-independent
+(twins `doc_diag` / `doc_diagonal` now carry F-contiguous input/output cases).

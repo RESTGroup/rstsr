@@ -138,21 +138,25 @@ mod doc_eye {
         assert_eq!(e.shape(), &[3, 5]);
         assert_eq!(format!("{e}"), "[[ 0 1 0 0 0]\n [ 0 0 1 0 0]\n [ 0 0 0 1 0]]");
 
-        // column-major default order: the shape comes out as (n_cols, n_rows),
-        // i.e. TRANSPOSED relative to NumPy's np.eye(n, m, order='F') which
-        // keeps shape (n, m). Recorded in tracking/numpy_differences.md (#eye);
-        // shown here as the actual behavior, pending maintainer decision.
+        // column-major default order: same logical content (shape (n_rows,
+        // n_cols), ones on the k-th diagonal); only the layout becomes
+        // F-contiguous, matching numpy.eye(n, m, k, order='F').
         let mut device_c = TESTCFG.device.clone();
         device_c.set_default_order(ColMajor);
         let e: Tensor<i32, _> = rt::eye((3usize, 5usize, 0isize, &device_c));
         println!("{e}");
         println!("{:?}", e.layout());
-        assert_eq!(e.shape(), &[5, 3]);
+        assert_eq!(e.shape(), &[3, 5]);
         assert_eq!(
             format!("{:?}", e.layout()),
-            "2-Dim (dyn), contiguous: Ff\nshape: [5, 3], stride: [1, 5], offset: 0"
+            "2-Dim (dyn), contiguous: Ff\nshape: [3, 5], stride: [1, 3], offset: 0"
         );
-        assert_eq!(format!("{e}"), "[[ 1 0 0]\n [ 0 1 0]\n [ 0 0 1]\n [ 0 0 0]\n [ 0 0 0]]");
+        assert_eq!(format!("{e}"), "[[ 1 0 0 0 0]\n [ 0 1 0 0 0]\n [ 0 0 1 0 0]]");
+        crate::test_utils::assert_equal(
+            &e,
+            rt::tensor_from_nested!([[1, 0, 0, 0, 0], [0, 1, 0, 0, 0], [0, 0, 1, 0, 0]], &device_c),
+            None,
+        );
     }
 }
 

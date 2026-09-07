@@ -678,13 +678,10 @@ pub trait EyeAPI<Inp> {
 ///
 /// </div>
 ///
-/// Under [`RowMajor`], the result has shape `(n_rows, n_cols)` and C-contiguous
-/// layout. Under [`ColMajor`], the result is the transposed counterpart: shape
-/// `(n_cols, n_rows)` with F-contiguous layout; see also
-/// [`order_semantics`](crate::order_semantics). Please note this differs from
-/// NumPy, where `numpy.eye(n, m, order='F')` keeps shape `(n, m)`; see the
-/// [differences report](https://github.com/RestGroup/rstsr/blob/main/rstsr-core/tests/tracking/numpy_differences.md)
-/// for details.
+/// Under [`RowMajor`], the result is C-contiguous; under [`ColMajor`], it is
+/// F-contiguous. The logical content does not depend on the order: the shape is
+/// always `(n_rows, n_cols)` with ones on the k-th diagonal; see also
+/// [`order_semantics`](crate::order_semantics).
 ///
 /// # Overloads Table
 ///
@@ -705,10 +702,9 @@ pub trait EyeAPI<Inp> {
 ///
 /// # Parameters
 ///
-/// - `n_rows`: number of rows (under [`RowMajor`]; interpreted as the second dimension under
-///   [`ColMajor`]).
-/// - `n_cols`: number of columns (under [`RowMajor`]; interpreted as the first dimension under
-///   [`ColMajor`]). Defaults to `n_rows` if omitted.
+/// - `n_rows`: number of rows (the first dimension of the result).
+/// - `n_cols`: number of columns (the second dimension of the result). Defaults to `n_rows` if
+///   omitted.
 /// - `k`: index of the diagonal: `0` the main diagonal, positive above, negative below. Defaults to
 ///   `0` if omitted.
 /// - `order`: [`FlagOrder`] ([`RowMajor`] or [`ColMajor`]); defaults to the device default order if
@@ -751,7 +747,7 @@ pub trait EyeAPI<Inp> {
 ///
 /// ## Difference between [`RowMajor`] and [`ColMajor`]
 ///
-/// Under [`ColMajor`], the shape is transposed (F-contiguous storage):
+/// Under [`ColMajor`], the same tensor is stored F-contiguously:
 ///
 /// ```rust
 /// # use rstsr::prelude::*;
@@ -759,15 +755,13 @@ pub trait EyeAPI<Inp> {
 /// # device.set_default_order(ColMajor);
 /// let e: Tensor<i32, _> = rt::eye((3usize, 5usize, 0isize, &device));
 /// println!("{e}");
-/// // [[ 1 0 0]
-/// //  [ 0 1 0]
-/// //  [ 0 0 1]
-/// //  [ 0 0 0]
-/// //  [ 0 0 0]]
+/// // [[ 1 0 0 0 0]
+/// //  [ 0 1 0 0 0]
+/// //  [ 0 0 1 0 0]]
 /// println!("{:?}", e.layout());
 /// // 2-Dim (dyn), contiguous: Ff
-/// // shape: [5, 3], stride: [1, 5], offset: 0
-/// # assert_eq!(e.shape(), &[5, 3]);
+/// // shape: [3, 5], stride: [1, 3], offset: 0
+/// # assert_eq!(e.shape(), &[3, 5]);
 /// ```
 ///
 /// # Notes of API accordance
@@ -776,8 +770,6 @@ pub trait EyeAPI<Inp> {
 /// - NumPy: `numpy.eye(N, M=None, k=0, dtype=float, order='C')` ([`numpy.eye`](https://numpy.org/doc/stable/reference/generated/numpy.eye.html))
 /// - RSTSR: `rt::eye((n_rows, n_cols, k, order, &device))`; the order participates in the tuple
 ///   overload instead of a keyword argument.
-///
-/// Please note the col-major shape difference to NumPy stated above.
 ///
 /// # Panics
 ///
@@ -826,9 +818,11 @@ where
 
     fn eye_f(self) -> Result<Self::Out> {
         let (n_rows, n_cols, k, order, device) = self;
+        // logical content is order-independent: shape is always (n_rows, n_cols)
+        // with ones on the k-th diagonal; only the memory layout follows `order`.
         let layout = match order {
             RowMajor => [n_rows, n_cols].c(),
-            ColMajor => [n_cols, n_rows].f(),
+            ColMajor => [n_rows, n_cols].f(),
         };
         let mut storage = device.zeros_impl(layout.size())?;
         let layout_diag = layout.diagonal(Some(k), Some(0), Some(1))?;
