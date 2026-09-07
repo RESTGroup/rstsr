@@ -5,6 +5,8 @@ For column status:
 - C: Changed feature (**breaking using experience from numpy**);
 - P: Partial implemented in rstsr (not all features in Python array API is implemented);
 - D: Features that would be dropped in rstsr.
+- T: Handled by Rust's type system or external traits, instead of runtime tensor functions.
+- Fixed: Realized as a fixed default in RSTSR, not a runtime-configurable concept.
 - blank: Will be implemented in future version of RSTSR.
 
 ## Operators
@@ -214,16 +216,16 @@ The reference implementation (as in [`DeviceCpuSerial`] and [`DeviceFaer`]), fol
 | Y | [`moveaxis`] | [`moveaxis`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.moveaxis.html) | Moves array axes (dimensions) to new positions, while leaving other axes in their original positions. |
 | Y | [`transpose`], [`permute_dims`] | [`permute_dims`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.permute_dims.html) | Permutes the axes (dimensions) of an array `x`. |
 | | | [`repeat`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.repeat.html) | Repeats each element of an array a specified number of times on a per-element basis. |
-| Y | [`reshape`], [`reshape_with_args`] | [`reshape`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.reshape.html) | Reshapes an array without changing its data. |
+| Y | [`reshape`] | [`reshape`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.reshape.html) | Reshapes an array without changing its data. |
+| Y | [`reshape_with_args`] | [`reshape`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.reshape.html) | Reshapes an array without changing its data, with explicit control of reading order and copy policy (argument type [`ReshapeArgs`]). |
 | | | [`roll`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.roll.html) | Rolls array elements along a specified axis. |
 | Y | [`squeeze`] | [`squeeze`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.squeeze.html) | Removes singleton axes from `x`. |
 | Y | [`stack`] | [`stack`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.stack.html) | Joins a sequence of arrays along a new axis. |
 | | | [`tile`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.tile.html) | Constructs an array by tiling an input array. |
 | Y | [`unstack`] | [`unstack`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.unstack.html) | Splits an array into a sequence of arrays along the given axis. |
 
-**Partial implementation**
-- [`squeeze`] accepts one axis as input, instead of accepting multiple axes. This is mostly because output of smaller dimension tensor can be fixed-dimension array ([`DimSmallerOneAPI::SmallerOne`]) when only one axis is passed as argument.
-- [`reshape`]: Currently reshape is work-in-progress. It does not copy array when c-contiguous. For numpy, much more cases may not invoke explicit copy when reshape.
+**Implementation notes**
+- [`reshape`]: full functionality (explicit reading order and copy policy) is provided by [`reshape_with_args`]. See also [`order_semantics`](crate::order_semantics).
 
 ## Searching Functions
 

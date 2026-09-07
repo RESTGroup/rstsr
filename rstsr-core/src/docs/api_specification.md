@@ -21,6 +21,10 @@
         - Pass-by-value returning [`Tensor`], decorated with `into_` prefix;
         - Pass-by-reference returning [`TensorView`], decorated with `to_` prefix or none;
         - [`reshape`] and [`to_layout`] fits into this category.
+    - With-output variants:
+        - Functions decorated with `_with_output` suffix (e.g. [`add_with_output`]) write the result into caller-provided output tensor, instead of allocating a new one.
+    - Explicit all-element variants:
+        - Reduction families (e.g. [`sum`]) are also decorated with `_all` suffix for explicitly reducing all elements into a scalar, which behaves the same as the undecorated function (e.g. [`sum_all`]).
 
 ## Tensor Structure and Ownership
 
@@ -59,6 +63,7 @@
 | struct | [`DeviceCpuSerial`] | Basic backend that handles computations in single thread. |
 | struct | [`DeviceFaer`] | Backend that applies multi-threaded operations (by [rayon](https://github.com/rayon-rs/rayon/)) and efficient matmul (by [faer](https://github.com/sarah-quinones/faer-rs)). |
 | struct | [`DeviceCpuRayon`][rstsr_core::feature_rayon::DeviceCpuRayon] | Base backend for rayon paralleled devices (device for developer, not user). |
+| alias | [`DeviceCpu`] | Default device alias: [`DeviceFaer`] if cargo feature `faer_as_default` is enabled, otherwise [`DeviceCpuSerial`]. |
 | trait | [`DeviceAPI<T>`] | Main basic interface for device. |
 
 Device is designed to be able extended by other crates. The above devices [`DeviceCpuSerial`] and [`DeviceFaer`] are only special in that they are realized in rstsr-core. We hope that in future, more devices (backends) can be supported.
@@ -92,10 +97,12 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 
 | Type | Identifier | Minimal Description |
 |--|--|--|
+| assoc | [`i`][Tensor::i] <br/> [`i_mut`][Tensor::i_mut] | Alias to [`slice`](slice()) and [`slice_mut`]. Recommended over using [`slice`](slice()) in most cases. |
 | assoc/fn | [`slice`](slice()) <br/> [`slice_mut`] | Basic slicing to tensor, generating view of smaller tensor. |
-| assoc | [`i`][Tensor::i] <br/> [`i_mut`][Tensor::i_mut] | Alias to [`slice`](slice()) and [`slice_mut`]. |
+| macro | [`slice!`] | Construct basic-indexing slice by (`start`, `stop`, `step`), e.g. `slice!(1, -4, 2)`. |
 | core ops | operator `[]` <br/> [`Index`] <br/> [`IndexMut`] | Indexing tensor element, giving reference of scalar value (not efficient due to boundary check). |
 | assoc | [`index_uncheck`][Tensor::index_uncheck] <br/>[`index_mut_uncheck`][Tensor::index_mut_uncheck] | Indexing tensor element, giving reference of scalar value. |
+| assoc/fn | [`diagonal`] <br/> [`diagonal_mut`] | Returns view (or mutable view) of the specified diagonal of a matrix (or a stack of matrices). |
 
 ### Advanced Indexing
 
@@ -131,6 +138,13 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 
 <!-- | assoc | [`into_owned_keep_layout`][TensorAny::into_owned_keep_layout] | Convert tensor into owned tensor ([`Tensor`]). Data is either moved or fully cloned. | -->
 <!-- | assoc | [`into_shared_keep_layout`][TensorAny::into_shared_keep_layout] | Convert tensor into shared tensor ([`TensorArc`]). Data is either moved or fully cloned. | -->
+
+### Device transfer
+
+| Type | Identifier | Minimal Description |
+|--|--|--|
+| module | [device_conversion][rstsr_core::tensor::device_conversion] | Device transfer of tensor. |
+| trait | [`TensorDeviceChangeAPI`] | Change the device of tensor: [`TensorDeviceChangeAPI::to_device`] (borrowing form, cloning to target device), [`TensorDeviceChangeAPI::into_device`] (consuming form, returning owned tensor on target device), [`TensorDeviceChangeAPI::change_device`] (consuming form, keeping storage representation). |
 
 ### Iteration
 
@@ -178,23 +192,25 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 | enum | [`FlagTrans`] | Transposition of matrix operation. |
 | enum | [`FlagUpLo`] | Upper/Lower triangular of matrix operation. |
 | enum | [`FlagSymm`] | Symmetric of matrix operation. |
+| alias | [`TensorOrder`] | Alias to [`FlagOrder`]. |
 | enum | [`TensorIterOrder`] | The policy of tensor iterator. |
 
 ## Tensor Manipulation
 
-### Storage-irrelevent manipulation
+### Storage-irrelevant manipulation
 
 | Type | Identifier | Minimal Description |
 |--|--|--|
 | fn | [`broadcast_arrays`] | Broadcasts any number of arrays against each other. |
 | fn | [`broadcast_shapes`] | Broadcasts shapes against each other and returns the resulting shape. |
-| assoc/fn | [`to_broadcast`] | Broadcasts an array to a specified shape. |
-| assoc/fn | [`expand_dims`] | Expands the shape of an array by inserting a new axis (dimension) of size one at the position specified by `axis`. |
+| assoc/fn | [`to_broadcast`] <br/> [`broadcast_to`][TensorAny::broadcast_to] | Broadcasts an array to a specified shape. |
+| assoc/fn | [`expand_dims`] <br/> [`unsqueeze`][TensorAny::unsqueeze] | Expands the shape of an array by inserting a new axis (dimension) of size one at the position specified by `axis`. |
+| assoc/fn | [`atleast_1d`] <br/> [`atleast_2d`] <br/> [`atleast_3d`] | View the input as a tensor with at least 1 / 2 / 3 dimensions. |
 | assoc/fn | [`flip`] | Reverses the order of elements in an array along the given axis. |
 | assoc/fn | [`moveaxis`] | Moves array axes (dimensions) to new positions, while leaving other axes in their original positions. |
 | assoc/fn | [`permute_dims`] <br/> [`transpose`] <br/> [`matrix_transpose`] | Permutes the axes (dimensions) of an array `x`. |
 | assoc/fn | [`reshape_with_args`] | Reshapes the given tensor to the specified shape, with argument specifying the order and whether to copy data. |
-| assoc/fn | [`reverse_axes`] | Reverse the order of elements in an array along the given axis. |
+| assoc/fn | [`reverse_axes`] | Reverses the order of the axes (dimensions) of an array. |
 | assoc/fn | [`swapaxes`] | Interchange two axes of an array. |
 | assoc/fn | [`squeeze`] | Removes singleton dimensions (axes) from `x`. |
 | assoc/fn | [`to_compatible_shape`] | Reshapes the given tensor to the specified shape if the layout is compatible. |
@@ -204,7 +220,7 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 
 | Type | Identifier | Minimal Description |
 |--|--|--|
-| assoc/fn | [`reshape`] <br/> [`into_shape`] <br/> [`change_shape`] | Reshapes an array without changing its data. |
+| assoc/fn | [`reshape`] <br/> [`to_shape`] <br/> [`into_shape`] <br/> [`change_shape`] | Reshapes an array without changing its data. |
 | assoc/fn | [`to_layout`] <br/> [`into_layout`] <br/> [`change_layout`] | Convert tensor to the other layout. |
 | assoc/fn | [`to_contig`] <br/> [`into_contig`] <br/> [`change_contig`] | Convert tensor to contiguous layout (C or F order). |
 | assoc/fn | [`to_prefer`] <br/> [`into_prefer`] <br/> [`change_prefer`] | Convert tensor to preferred layout only if not already contiguous. |
@@ -213,11 +229,12 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 
 | Type | Identifier | Minimal Description |
 |--|--|--|
-| fn | [`concat`](concat()) |  Join a sequence of arrays along an existing axis. |
+| fn | [`meshgrid`] | Returns coordinate matrices from coordinate vectors. |
+| assoc/fn | [`diag`] | Returns specified diagonal of a matrix (or a stack of matrices), or constructs a diagonal matrix from a 1-D tensor. |
+| fn | [`concat`](concat()) <br/> [`concatenate`](concatenate()) | Join a sequence of arrays along an existing axis. |
 | fn | [`stack`] | Joins a sequence of arrays along a new axis. |
 | fn | [`hstack`] | Stack tensors in sequence horizontally (column-wise). |
-| fn | [`vstack`] | Stack tensors in sequence horizontally (row-wise). |
-| fn | [`vstack`] | Stack tensors in sequence horizontally (row-wise). |
+| fn | [`vstack`] | Stack tensors in sequence vertically (row-wise). |
 | assoc/fn | [`unstack`] | Splits an array into a sequence of arrays along the given axis. |
 
 ## Tensor Creation
@@ -227,12 +244,14 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 | fn | [`asarray`] | Convert input (scalar, `Vec<T>`, `&[T]`, tensor) to an array, optionally with shape/layout specified. |
 | module | [`rstsr_core::tensor::creation`] | Creation methods for tensor. |
 | fn | [`arange`] | Evenly spaced values within the half-open interval `[start, stop)` as one-dimensional array. |
-| fn | [`empty`] | Uninitialized tensor having a specified shape. |
-| fn | [`empty_like`] | Uninitialized tensor with the same shape as an input tensor. |
+| fn | [`assume_init`] | Convert tensor of [`core::mem::MaybeUninit`] elements into initialized tensor (requires `unsafe` at call site). |
+| fn | [`empty`] | Uninitialized tensor having a specified shape (requires `unsafe` at call site). |
+| fn | [`empty_like`] | Uninitialized tensor with the same shape as an input tensor (requires `unsafe` at call site). |
 | fn | [`eye`] | Returns a two-dimensional array with ones on the kth diagonal and zeros elsewhere. |
 | fn | [`full`] | New tensor having a specified shape and filled with given value. |
 | fn | [`full_like`] | New tensor filled with given value and having the same shape as an input tensor. |
 | fn | [`linspace`] | Evenly spaced numbers over a specified interval. |
+| fn | [`uninit`] | Uninitialized tensor of [`core::mem::MaybeUninit`] elements; after initialization, convert into plain tensor by [`assume_init`]. |
 | fn | [`ones`] | New tensor filled with ones and having a specified shape. |
 | fn | [`ones_like`] | New tensor filled with ones and having the same shape as an input tensor. |
 | fn | [`zeros`] | New tensor filled with zeros and having a specified shape. |
@@ -295,21 +314,25 @@ Note we leave einsum and vectordot not implemented. For those functions, current
 
 [`atan2`], [`copysign`], [`eq`]/[`equal`], [`floor_divide`], [`ge`]/[`greater_equal`], [`gt`]/[`greater`], [`hypot`], [`le`]/[`less_equal`], [`lt`]/[`less`], [`log_add_exp`], [`maximum`], [`minimum`], [`ne`]/[`not_equal`], [`nextafter`], [`pow`]
 
+Aliases: [`equal_than`], [`greater_than`], [`less_than`], [`greater_equal_to`], [`less_equal_to`], and [`not_equal_to`] (for [`equal`], [`greater`], [`less`], [`greater_equal`], [`less_equal`], and [`not_equal`], respectively).
+
 ### Statistical functions
 
-[`max`]/[`max_axes`], [`mean`]/[`mean_axes`], [`min`]/[`min_axes`], [`prod`]/[`prod_axes`], [`std`](std())/[`std_axes`], [`sum`]/[`sum_axes`], [`var`]/[`var_axes`]
+[`max`]/[`max_axes`], [`mean`]/[`mean_axes`], [`min`]/[`min_axes`], [`prod`]/[`prod_axes`], [`std`](std())/[`std_axes`], [`sum`]/[`sum_axes`], [`var`]/[`var_axes`], [`l2_norm`]/[`l2_norm_axes`]
+
+Closeness testing: [`allclose`](allclose()) (explicit all-element form [`allclose_all`]), or macro [`allclose!`].
 
 ### Sorting, searching and counting functions
 
 [`argmin`]/[`argmin_axes`], [`argmax`]/[`argmax_axes`], [`count_nonzero`]/[`count_nonzero_axes`], [`unraveled_argmin`]/[`unraveled_argmin_axes`], [`unraveled_argmax`]/[`unraveled_argmax_axes`]
 
-### Utilitiy functions
+### Utility functions
 
 [`all`]/[`all_axes`], [`any`]/[`any_axes`]
 
 ## Developer Area
 
-The above listings of API specifications are mostly for either user usage, or clarafication of most important aspects of the design of RSTSR.
+The above listings of API specifications are mostly for either user usage, or clarification of most important aspects of the design of RSTSR.
 
 However, there still leaves many public APIs not fully documented or not listed above. Some of them are exposed as developer interfaces.
 
