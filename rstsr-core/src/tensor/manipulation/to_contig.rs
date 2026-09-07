@@ -14,7 +14,29 @@ where
     D: DimAPI,
     B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, D, D>,
 {
-    let shape = tensor.shape();
+    // view decision follows the NumPy-style contiguity flags (singleton-axis
+    // strides are irrelevant), not exact layout equality
+    let is_contig = match order {
+        RowMajor => tensor.layout().c_contig(),
+        ColMajor => tensor.layout().f_contig(),
+    };
+    if is_contig {
+        // no copy: return a view with singleton-axis strides reset, so the
+        // layout becomes the usual contiguous one over the same elements
+        let layout_old = tensor.layout().clone();
+        let shape = layout_old.shape().clone();
+        let layout_new = match order {
+            RowMajor => shape.new_c_contig(Some(layout_old.offset())),
+            ColMajor => shape.new_f_contig(Some(layout_old.offset())),
+        };
+        let (storage, _) = tensor.into_raw_parts();
+        // safety: `is_contig` ensures the normalized layout references exactly
+        // the same elements of `storage` as the original layout
+        let tensor = unsafe { TensorBase::new_unchecked(storage, layout_new) };
+        return Ok(tensor.into_cow());
+    }
+    // layout is not contiguous in the requested order; copy data by assign
+    let shape = tensor.shape().clone();
     let layout_new = match order {
         RowMajor => shape.new_c_contig(None),
         ColMajor => shape.new_f_contig(None),
@@ -26,7 +48,10 @@ where
 ///
 /// This function takes a reference to a tensor and returns a [`TensorCow`] that is
 /// either a view (if the tensor is already contiguous with the requested order) or
-/// a newly allocated contiguous copy.
+/// a newly allocated contiguous copy. Contiguity is decided by the NumPy-style
+/// flags ([`TensorBase::c_contig`] / [`TensorBase::f_contig`]), so a
+/// padded-singleton tensor is returned as a view; the singleton-axis strides of
+/// a viewed result are reset, making the layout the usual contiguous one.
 /// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
 ///
 /// # Parameters
@@ -56,6 +81,28 @@ where
 /// println!("Contiguous layout: {:?}", contig.layout());
 /// // 2-Dim (dyn), contiguous: Cc
 /// // shape: [3, 2], stride: [2, 1], offset: 0
+/// ```
+///
+/// A padded-singleton tensor that is already contiguous by the NumPy-style
+/// flags is returned as a view, with the singleton-axis stride reset:
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let reshaped = rt::arange((15, &device)).into_shape([3, 5]);
+/// let parent = reshaped.to_contig(ColMajor);
+/// let a = parent.i((.., 0..1)); // shape [3, 1], stride [1, 3]
+/// println!("a layout: {:?}", a.layout());
+/// // 2-Dim (dyn), contiguous: CcFf
+/// // shape: [3, 1], stride: [1, 3], offset: 0
+///
+/// let b = a.to_contig(RowMajor); // no copy; stride reset to [1, 1]
+/// println!("b layout: {:?}", b.layout());
+/// // 2-Dim (dyn), contiguous: CcFf
+/// // shape: [3, 1], stride: [1, 1], offset: 0
+/// # assert!(!b.is_owned());
+/// # assert_eq!(b.stride(), &[1, 1]);
 /// ```
 ///
 /// # See also

@@ -203,3 +203,25 @@ before. NumPy's `test_writeback` (L2851, `copy = True` grids are writable fresh
 copies, inputs untouched) is now ported; the view-sharing case is covered by a
 custom supplement. Note NumPy's `copy=False` grids are still read-only-shimmed in
 rstsr (immutable views); writing through them requires `into_owned` first.
+
+## `to_contig` no-copy check aligned with the NumPy-style flags (FIXED)
+
+- **numpy:** `np.ascontiguousarray` uses the `C_CONTIGUOUS` flag, which ignores
+  size-1 dimensions, so a padded-singleton contiguous array (e.g. shape `[3,1]`
+  stride `[1,3]` sliced from an F-stored parent) is returned as a **view**.
+- **rstsr:** entry_row_cpu::doc_draft::manipulation::test_to_contig::doc_to_contig::test_doc_padded_singleton
+- **tag:** bug
+- **status:** fixed
+
+rstsr `to_contig` decided view-vs-copy by exact layout equality
+(`to_layout.rs:20`), which was stricter than both NumPy's contiguity flag and
+rstsr's own `c_contig()` (`layoutbase.rs:202`, which agrees with NumPy). A
+padded-singleton contiguous tensor was therefore **copied** by rstsr but
+**viewed** by NumPy; output values were identical, only ownership differed. Fixed
+by maintainer decision: `change_contig_f` now decides the view path via
+`c_contig()`/`f_contig()` (NumPy-style flags), and a viewed result has its
+singleton-axis strides reset so the layout becomes the usual contiguous one over
+the same elements. `to_prefer` already used the flags for its fast path and is
+unchanged; the exact-equality check in `change_layout_f`/`to_layout` (explicit
+target layout) is intentionally kept. The padded-singleton case is now covered by
+a twin (`doc_to_contig::test_doc_padded_singleton`) and a docstring example.

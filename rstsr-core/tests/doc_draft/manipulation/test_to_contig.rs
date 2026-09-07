@@ -59,6 +59,37 @@ mod doc_to_contig {
         assert_eq!(contig.stride(), &[4, 1]);
         assert!(contig.c_contig());
     }
+
+    #[test]
+    fn test_doc_padded_singleton() {
+        // Padded-singleton C-contiguous tensor: returned as a view (NumPy
+        // C_CONTIGUOUS flag semantics), with the singleton-axis stride reset
+        // so the layout becomes the usual C-contiguous one.
+        crate::specify_test!("test_doc_padded_singleton");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // slice a column out of an F-stored parent: shape [3, 1],
+        // stride [1, 3] - contiguous by the NumPy-style flags
+        let reshaped = rt::arange((15, &device)).into_shape([3, 5]);
+        let parent = reshaped.to_contig(ColMajor);
+        let a = parent.i((.., 0..1));
+        println!("a layout: {:?}", a.layout());
+        // 2-Dim (dyn), contiguous: CcFf
+        // shape: [3, 1], stride: [1, 3], offset: 0
+        assert!(a.c_contig());
+
+        // to_contig returns a view (no copy); strides are reset to [1, 1]
+        let b = a.to_contig(RowMajor);
+        println!("b layout: {:?}", b.layout());
+        // 2-Dim (dyn), contiguous: CcFf
+        // shape: [3, 1], stride: [1, 1], offset: 0
+        assert!(!b.is_owned());
+        assert!(b.c_contig());
+        assert_eq!(b.stride(), &[1, 1]);
+        assert_eq!(format!("{b}"), "[[ 0]\n [ 5]\n [ 10]]");
+    }
 }
 
 #[cfg(test)]

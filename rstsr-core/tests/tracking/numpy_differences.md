@@ -144,23 +144,6 @@ Semantically aligned (both "writeable but dangerous"); the API shape differs.
 
 API-shape difference; results are identical for the row-major cases.
 
-## `to_contig` no-copy check is exact-layout-equality (stricter than NumPy flags)
-
-- **numpy:** `np.ascontiguousarray` uses the C_CONTIGUOUS flag, which ignores
-  size-1 dimensions, so a padded-singleton C-contiguous array (e.g. shape `[3,1]`
-  stride `[1,5]`) is returned as a **view**.
-- **rstsr:** core_func::manipulation::test_to_contig (custom)
-- **tag:** intentional
-- **status:** open
-
-rstsr `to_contig` decides view-vs-copy by exact layout equality
-(`to_layout.rs:20`), which is stricter than both NumPy's contiguity flag and rstsr's
-own `c_contig()` (`layoutbase.rs:202`, which agrees with NumPy). A
-padded-singleton C-contiguous tensor is therefore **copied** by rstsr but **viewed**
-by NumPy. Output values are identical; only ownership differs. No existing test
-constructs a padded-singleton case, so this is currently untested. Worth either
-documenting or aligning `to_contig` with `c_contig()`.
-
 ## `np.flip(a)` default `axis=None` vs rstsr explicit-`None` argument
 
 - **numpy:** `lib/tests/test_function_base.py::TestFlip::test_default_axis` (L234);

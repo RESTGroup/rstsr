@@ -21,7 +21,7 @@ tensor/manipulation/into_compatible_shape.rs,manipulation,full,done,P,order_sema
 tensor/manipulation/into_dim.rs,manipulation,full,done,P,variants remain minimal per §2 (postfix)
 tensor/manipulation/moveaxis.rs,manipulation,full,done,P,order one-liner added (postfix)
 tensor/manipulation/squeeze.rs,manipulation,full,done,P,order one-liner added; Panics moved after Examples (postfix)
-tensor/manipulation/to_contig.rs,manipulation,full,done,P,# Arguments renamed; order one-liner added (postfix)
+tensor/manipulation/to_contig.rs,manipulation,full,done,P,# Arguments renamed; order one-liner added (postfix); view check aligned with c_contig()/f_contig() + singleton stride reset (see numpy_differences_resolved.md)
 tensor/manipulation/to_layout.rs,manipulation,full,done,P,headings renamed; stale example output corrected; order one-liner added (postfix)
 tensor/asarray.rs,creation,full,done,P,order_semantics linked (postfix)
 tensor/linalg/vecdot.rs,linalg,full,done,P,See also fixed (batch 3); order one-liner added (postfix)
