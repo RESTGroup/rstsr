@@ -219,6 +219,33 @@ mod doc_broadcast {
     }
 
     #[test]
+    fn doc_broadcast_arrays_views() {
+        // reference inputs: results are broadcast views sharing the inputs'
+        // memory (stride-0 axes), as in NumPy
+        crate::specify_test!("doc_broadcast_arrays_views");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        let a = rt::asarray((vec![1, 2, 3], &device)).into_shape([3]);
+        let b = rt::asarray((vec![4, 5], &device)).into_shape([2, 1]);
+        let result = rt::broadcast_arrays([&a, &b]);
+        println!("broadcasted a:\n{:}", result[0]);
+        // [[ 1 2 3]
+        //  [ 1 2 3]]
+        println!("{:?}", result[0].layout());
+        // 2-Dim (dyn), contiguous: Custom
+        // shape: [2, 3], stride: [0, 1], offset: 0
+        println!("{:?}", result[1].layout());
+        // 2-Dim (dyn), contiguous: Custom
+        // shape: [2, 3], stride: [1, 0], offset: 0
+        assert_eq!(result[0].stride(), &[0, 1]);
+        assert_eq!(result[1].stride(), &[1, 0]);
+        let expected_a = rt::tensor_from_nested!([[1, 2, 3], [1, 2, 3]], &device);
+        assert!(rt::allclose!(&result[0], &expected_a));
+    }
+
+    #[test]
     #[rustfmt::skip]
     fn doc_broadcast_arrays_col_major() {
         crate::specify_test!("doc_broadcast_arrays_col_major");

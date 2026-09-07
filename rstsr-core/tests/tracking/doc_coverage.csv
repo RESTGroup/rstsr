@@ -14,7 +14,7 @@
 module,category,tier,status,batch,notes
 tensor/manipulation/transpose.rs,manipulation,full,done,P,order one-liner added (postfix)
 tensor/manipulation/reshape.rs,manipulation,full,done,P,bare links fixed; order_semantics linked (postfix)
-tensor/manipulation/broadcast.rs,manipulation,full,done,P,bare links fixed; order_semantics linked (postfix)
+tensor/manipulation/broadcast.rs,manipulation,full,done,P,bare links fixed; order_semantics linked (postfix); broadcast_arrays reference overloads return TensorView (see numpy_differences_resolved.md)
 tensor/manipulation/expand_dims.rs,manipulation,full,done,P,order one-liner added (postfix)
 tensor/manipulation/flip.rs,manipulation,full,done,P,order one-liner added; Panics placement verified after Examples (postfix)
 tensor/manipulation/into_compatible_shape.rs,manipulation,full,done,P,order_semantics linked (postfix)

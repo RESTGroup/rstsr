@@ -201,6 +201,35 @@ mod numpy_broadcast_arrays {
     }
 
     #[test]
+    fn test_broadcast_arrays_reference_inputs() {
+        // NumPy broadcast_arrays returns views sharing the inputs' memory;
+        // rstsr reference-input overloads return Vec<TensorView> accordingly.
+        crate::specify_test!("test_broadcast_arrays_reference_inputs");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        let x = rt::arange((10, &device));
+        let y = rt::arange((10, &device));
+        let result = rt::broadcast_arrays(vec![&x, &y]);
+        assert_eq!(result[0].shape(), &[10]);
+        assert_equal(&result[0], &x, None);
+        // views over the inputs' storages (stride of the varying axis kept)
+        assert_eq!(result[0].stride(), &[1]);
+
+        // broadcast against a different shape: stride-0 axes, values match
+        let a = rt::tensor_from_nested!([[1, 2, 3]], &device);
+        let b = rt::tensor_from_nested!([[1], [2], [3]], &device);
+        let result = rt::broadcast_arrays([&a, &b]);
+        assert_eq!(result[0].stride(), &[0, 1]);
+        assert_eq!(result[1].stride(), &[1, 0]);
+        let bx0 = rt::tensor_from_nested!([[1, 2, 3], [1, 2, 3], [1, 2, 3]], &device);
+        let by0 = rt::tensor_from_nested!([[1, 1, 1], [2, 2, 2], [3, 3, 3]], &device);
+        assert_equal(&result[0], &bx0, None);
+        assert_equal(&result[1], &by0, None);
+    }
+
+    #[test]
     fn test_one_off() {
         // NumPy v2.5.2, lib/tests/test_stride_tricks.py, test_one_off (line 81)
         crate::specify_test!("test_one_off");

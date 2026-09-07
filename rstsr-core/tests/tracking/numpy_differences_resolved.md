@@ -225,3 +225,23 @@ the same elements. `to_prefer` already used the flags for its fast path and is
 unchanged; the exact-equality check in `change_layout_f`/`to_layout` (explicit
 target layout) is intentionally kept. The padded-singleton case is now covered by
 a twin (`doc_to_contig::test_doc_padded_singleton`) and a docstring example.
+
+## `broadcast_arrays` now returns views for reference inputs (FIXED)
+
+- **numpy:** `np.broadcast_arrays` returns views sharing the inputs' memory.
+- **rstsr:** entry_row_cpu::core_func::manipulation::test_broadcast::numpy_broadcast_arrays::test_broadcast_arrays_reference_inputs;
+  doc_draft::manipulation::test_broadcast::doc_broadcast::doc_broadcast_arrays_views
+- **tag:** intentional
+- **status:** fixed
+
+rstsr `broadcast_arrays` only accepted consumed tensors
+(`Vec<TensorAny>`) and returned owned stride-0 tensors aliasing the inputs'
+storages; obtaining views required hand-building a vector of views first (the
+docstring even said so). By maintainer decision, reference-input overloads were
+added: `Vec<&'a TensorAny>` (also `&Vec<...>` and `[&TensorAny; N]`) now return
+`Vec<TensorView<'a, T, B, IxD>>` - broadcast views sharing the inputs' memory, as
+in NumPy. `TensorView` was chosen over `TensorCow` because the function has no
+copy flag: the reference-input result is always a view, so the `Cow` owned branch
+would be unreachable (`Cow` remains right for `meshgrid`, whose `copy` flag
+switches at runtime). The by-value form keeps its previous behavior (consumed
+inputs, owned stride-0 outputs, zero copy).

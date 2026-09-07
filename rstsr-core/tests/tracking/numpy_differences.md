@@ -124,17 +124,6 @@ NumPy has no `order` parameter on broadcast. rstsr's ColMajor broadcast is an rs
 extension exercised by the rstsr-only `test_broadcast_shapes_col_major` case. Row-major
 behavior matches NumPy exactly.
 
-## `broadcast_arrays` returns owned stride-0 tensors, not writeable views
-
-- **numpy:** `broadcast_arrays` returns writeable views.
-- **rstsr:** core_func::manipulation::test_broadcast::numpy_broadcast_arrays
-- **tag:** intentional
-- **status:** open
-
-rstsr `broadcast_arrays` takes ownership and returns owned `TensorAny` tensors with
-stride-0 axes (writeable but dangerous, as the docs warn), vs NumPy's writeable views.
-Semantically aligned (both "writeable but dangerous"); the API shape differs.
-
 ## `broadcast_shapes` signature takes `&[IxD], order`, not varargs
 
 - **numpy:** `np.broadcast_shapes(*shapes)` varargs.
