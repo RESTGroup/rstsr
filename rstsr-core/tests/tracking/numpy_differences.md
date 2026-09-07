@@ -215,20 +215,6 @@ mixed-dtype `test_return_type` case is therefore not-applicable.
 API-shape difference; values match. rstsr `unstack` returns `Vec<TensorView>`; NumPy
 returns a tuple.
 
-## Reductions have no `keepdims` parameter
-
-- **numpy:** `_core/tests/test_numeric.py::TestNonarrayArgs::test_sum` (L320) uses
-  `np.sum(m, axis=1, keepdims=True)`; reductions across NumPy support `keepdims=`.
-- **rstsr:** entry_row_cpu::core_func::reduction::test_sum::numpy_sum::test_numeric
-- **tag:** intentional
-- **status:** open
-
-rstsr `sum_axes`/`mean_axes`/etc. always **drop** the reduced axes (output rank =
-input rank − #axes); there is no `keepdims` argument. The `None`-axis form
-(`xxx_axes(None)`) reduces all axes to a 0-d tensor. Parity tests assert the
-axis-dropped result; the NumPy `keepdims` shape is reached by a follow-up
-`expand_dims`/`reshape` if needed. Reduction **values** match NumPy exactly.
-
 ## Statistical reductions require a `Float` input (no int→float promotion)
 
 - **numpy:** `test_mean`/`test_std`/`test_var` (TestNonarrayArgs L142/303/360) call
@@ -287,15 +273,3 @@ applies instead. For example, with `a = [[10, 21], [33, 44]]` and
 (not the elementwise remainder `[[1, 1], [3, 2]]`). The free function
 `rt::rem(&a, &b)` provides the NumPy-compatible elementwise remainder; the
 parity test asserts both `rt::rem` (remainder) and `a % b` (matmul) accordingly.
-
-## `meshgrid` `copy = false` still returns owned tensors
-
-- **numpy:** `np.meshgrid(*xi, indexing=..., copy=False)` returns broadcast *views* sharing the inputs' memory.
-- **rstsr:** entry_row_cpu::doc_draft::creation::test_creation::doc_meshgrid (copy = false case)
-- **tag:** bug
-- **status:** open
-
-With `copy = false`, rstsr's `meshgrid` still returns owned tensors: each grid is materialized by
-`into_shape_f` on a view (always an owned copy), then broadcast by `broadcast_arrays_f` into owned
-stride-0 grids; the flag only skips an extra contiguity pass. The docstring now documents the actual behavior; whether to implement true
-view semantics is pending maintainer decision.

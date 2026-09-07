@@ -9,8 +9,10 @@ use crate::TESTCFG;
 //
 // Source: NumPy v2.5.2, `lib/tests/test_function_base.py::TestMeshgrid`.
 // rstsr `rt::meshgrid((&vec_of_refs, indexing, copy))` mirrors `np.meshgrid` with
-// `indexing` in {"xy", "ij"} (default "xy") and a `copy: bool`. It returns a
-// `Vec<Tensor>` (not a Python tuple). It has NO `sparse=` parameter and is
+// `indexing` in {"xy", "ij"} (default "xy") and a `copy: bool`. With reference
+// inputs it returns a `Vec<TensorCow>` (not a Python tuple): fresh owned copies
+// for `copy = true`, broadcast views sharing the inputs' memory for
+// `copy = false` (as in NumPy). It has NO `sparse=` parameter and is
 // homogeneous-dtype (all inputs must share one `T`).
 //
 // Not ported (N/A, divergence - see numpy_differences.md):
@@ -19,8 +21,9 @@ use crate::TESTCFG;
 //   - test_invalid_arguments   - Python kwargs (`indices='ij'` typo)
 //   - test_return_type         - rstsr is homogeneous-dtype (numpy preserves a per-input dtype:
 //     x=f32 -> X=f32, y=f64 -> Y=f64)
-//   - test_writeback           - Python view-vs-copy mutation semantics; rstsr `copy` controls
-//     contig-copy vs broadcast, both owned
+//
+// `test_writeback` (L2851) is ported below under `numpy_meshgrid`; the
+// `copy = false` view-sharing case is a custom supplement (`custom_meshgrid`).
 
 #[cfg(test)]
 mod numpy_meshgrid {
@@ -169,5 +172,71 @@ mod numpy_meshgrid {
         assert_equal(&r[0], &ea, None);
         assert_equal(&r[1], &eb, None);
         assert_equal(&r[2], &ec, None);
+    }
+
+    #[test]
+    fn test_writeback() {
+        // NumPy v2.5.2, lib/tests/test_function_base.py, TestMeshgrid::test_writeback (line 2851)
+        crate::specify_test!("test_writeback");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // X = np.array([1.1, 2.2]); Y = np.array([3.3, 4.4])
+        // x, y = np.meshgrid(X, Y, sparse=False, copy=True)
+        // x[0, :] = 0; assert_equal(x[0, :], 0); assert_equal(x[1, :], X)
+        let x_input = rt::tensor_from_nested!([1.1, 2.2], &device);
+        let y_input = rt::tensor_from_nested!([3.3, 4.4], &device);
+        let grids = rt::meshgrid((&vec![&x_input, &y_input], "xy", true));
+        let mut x = grids.into_iter().next().unwrap().into_owned();
+        x.i_mut((0, ..)).fill(0.0);
+        assert_equal(&x.i((0, ..)), rt::tensor_from_nested!([0.0, 0.0], &device), None);
+        assert_equal(&x.i((1, ..)), rt::tensor_from_nested!([1.1, 2.2], &device), None);
+        // the inputs are untouched: `copy = true` grids are fresh copies
+        assert_equal(&x_input, rt::tensor_from_nested!([1.1, 2.2], &device), None);
+    }
+}
+
+#[cfg(test)]
+mod custom_meshgrid {
+    use super::*;
+    static FUNC: &str = "custom_meshgrid";
+
+    #[test]
+    fn test_copy_false_shares_memory() {
+        // NumPy `meshgrid(..., copy=False)` returns broadcast views sharing the
+        // inputs' memory. rstsr matches this for reference inputs: the grids
+        // are views (stride-0 axes) over the inputs' own storages.
+        crate::specify_test!("test_copy_false_shares_memory");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        let x = rt::arange((3, &device));
+        let y = rt::arange((2, &device));
+        let grids = rt::meshgrid(([&x, &y], "ij", false));
+        for grid in &grids {
+            assert!(!grid.is_owned());
+        }
+        // X varies along axis 0 (stride 1, stride 0); Y along axis 1
+        assert_eq!(
+            format!("{:?}", grids[0].layout()),
+            "2-Dim (dyn), contiguous: Custom\nshape: [3, 2], stride: [1, 0], offset: 0"
+        );
+        assert_eq!(
+            format!("{:?}", grids[1].layout()),
+            "2-Dim (dyn), contiguous: Custom\nshape: [3, 2], stride: [0, 1], offset: 0"
+        );
+        assert_eq!(format!("{}", grids[0]), "[[ 0 0]\n [ 1 1]\n [ 2 2]]");
+        assert_eq!(format!("{}", grids[1]), "[[ 0 1]\n [ 0 1]\n [ 0 1]]");
+
+        // owned-input overloads: `copy = false` grids are owned tensors with
+        // stride-0 layouts aliasing the inputs' own storage (no copy)
+        let grids_owned = rt::meshgrid((vec![x.clone(), y.clone()], "ij", false));
+        assert_eq!(
+            format!("{:?}", grids_owned[0].layout()),
+            "2-Dim (dyn), contiguous: Custom\nshape: [3, 2], stride: [1, 0], offset: 0"
+        );
+        assert_eq!(format!("{}", grids_owned[0]), "[[ 0 0]\n [ 1 1]\n [ 2 2]]");
     }
 }

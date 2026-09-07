@@ -71,10 +71,27 @@ mod doc_meshgrid {
         assert_eq!(format!("{}", grids[0]), "[[ 0 0]\n [ 1 1]\n [ 2 2]]");
         assert_eq!(format!("{}", grids[1]), "[[ 0 1]\n [ 0 1]\n [ 0 1]]");
 
-        // copy = false: still owned tensors (only skips the extra contiguity pass)
+        // copy = true: grids are owned contiguous copies
+        let grids_c = rt::meshgrid(([&x, &y], "ij", true));
+        assert!(grids_c.iter().all(|grid| grid.is_owned()));
+        assert!(grids_c[0].c_contig());
+
+        // copy = false: broadcast views sharing the inputs' memory (stride-0
+        // axes, not owned), as in NumPy
         let grids_v = rt::meshgrid(([&x, &y], "ij", false));
+        assert!(grids_v.iter().all(|grid| !grid.is_owned()));
         println!("{}", grids_v[0]);
+        println!("{:?}", grids_v[0].layout());
         assert_eq!(format!("{}", grids_v[0]), "[[ 0 0]\n [ 1 1]\n [ 2 2]]");
+        assert_eq!(
+            format!("{:?}", grids_v[0].layout()),
+            "2-Dim (dyn), contiguous: Custom\nshape: [3, 2], stride: [1, 0], offset: 0"
+        );
+        assert_eq!(format!("{}", grids_v[1]), "[[ 0 1]\n [ 0 1]\n [ 0 1]]");
+        assert_eq!(
+            format!("{:?}", grids_v[1].layout()),
+            "2-Dim (dyn), contiguous: Custom\nshape: [3, 2], stride: [0, 1], offset: 0"
+        );
     }
 }
 

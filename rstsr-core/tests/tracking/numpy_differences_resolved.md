@@ -177,3 +177,29 @@ same-shape F-contiguous behavior. While verifying the neighborhood, `diag`/`diag
 were checked for the same class of issue and found correct: both route through
 `Layout::diagonal`, which reads axis strides directly and is order-independent
 (twins `doc_diag` / `doc_diagonal` now carry F-contiguous input/output cases).
+
+## `meshgrid` `copy = false` now returns views (FIXED)
+
+- **numpy:** `np.meshgrid(*xi, indexing=..., copy=False)` returns broadcast *views* sharing the inputs' memory.
+- **rstsr:** entry_row_cpu::doc_draft::creation::test_creation::doc_meshgrid (copy = false case);
+  core_func::creation_from_tensor::test_meshgrid::custom_meshgrid::test_copy_false_shares_memory
+- **tag:** bug
+- **status:** fixed
+
+With `copy = false`, rstsr's `meshgrid` still returned owned tensors: each grid was
+materialized by `into_shape_f` on a view (always an owned copy), then broadcast by
+`broadcast_arrays_f` into owned stride-0 grids; the flag only skipped an extra
+contiguity pass. Fixed by building each grid layout-only from its input: the input's
+own stride is kept on its grid axis and all other axes get stride 0, so no data is
+moved. Because a view cannot borrow from a consumed value, the reference-input
+overloads (`Vec<&TensorAny>`, `[&TensorAny; N]`, ...) now return
+`Vec<TensorCow<'a, T, B, IxD>>` - `copy = true` gives fresh owned contiguous grids
+(as before), `copy = false` gives true NumPy-style views over the inputs' memory.
+The by-value owned overloads (`Vec<Tensor>`, `[Tensor; N]`) keep returning
+`Vec<Tensor<T, B, IxD>>`, whose `copy = false` grids are owned stride-0 tensors
+aliasing the inputs' own storages (also removing the intermediate reshape copy the
+old path made). `&Vec<TensorAny>` forms forward and convert into owned grids as
+before. NumPy's `test_writeback` (L2851, `copy = True` grids are writable fresh
+copies, inputs untouched) is now ported; the view-sharing case is covered by a
+custom supplement. Note NumPy's `copy=False` grids are still read-only-shimmed in
+rstsr (immutable views); writing through them requires `into_owned` first.

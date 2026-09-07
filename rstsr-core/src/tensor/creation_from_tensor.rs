@@ -200,12 +200,16 @@ pub trait MeshgridAPI<Inp> {
 /// broadcast along the grid.
 ///
 /// With `indexing = "xy"` (cartesian convention, NumPy's default), the first
-/// two grid dimensions are swapped compared to `"ij"`. The returned grids are
-/// always owned tensors; `copy = true` (the default) additionally makes them
-/// contiguous in the device default order, while `copy = false` keeps the
-/// broadcast-strided arrangement of the intermediate result. Please note this
-/// differs from NumPy, where `copy = False` returns views sharing the inputs'
-/// memory.
+/// two grid dimensions are swapped compared to `"ij"`.
+///
+/// The `copy` flag controls data sharing:
+///
+/// - `copy = true` (the default): each grid is a fresh owned tensor, contiguous in the device
+///   default order (as in NumPy's `copy = True`).
+/// - `copy = false`: no data is copied. For reference inputs (`Vec<&TensorAny>`, `[&TensorAny; N]`,
+///   ...), the grids are broadcast views sharing the inputs' memory, as in NumPy's `copy = False`.
+///   For consumed owned inputs (`Vec<Tensor>`, ...), the grids are owned tensors whose stride-0
+///   layouts alias the inputs' own storage.
 ///
 /// This function behaves identically under [`RowMajor`] and [`ColMajor`] device
 /// default orders. (Only the memory arrangement of copied grids follows the
@@ -213,27 +217,37 @@ pub trait MeshgridAPI<Inp> {
 ///
 /// # Overloads Table
 ///
-/// Output is [`Vec<Tensor<T, B, IxD>>`][`Tensor`].
+/// Reference-input forms output `Vec<TensorCow<'a, T, B, IxD>>` (one grid per
+/// input):
 ///
-/// - `meshgrid(tensors: Vec<&TensorAny<R, T, B, D>>) -> Vec<Tensor<T, B, IxD>>` (implicit `"xy"`,
-///   `copy = true`)
-/// - `meshgrid((tensors, indexing: &str)) -> Vec<Tensor<T, B, IxD>>` (implicit `copy = true`)
-/// - `meshgrid((tensors, copy: bool)) -> Vec<Tensor<T, B, IxD>>` (implicit `"xy"`)
-/// - `meshgrid((tensors, indexing: &str, copy: bool)) -> Vec<Tensor<T, B, IxD>>`
+/// - `meshgrid(tensors: Vec<&'a TensorAny<R, T, B, D>>) -> Vec<TensorCow<'a, T, B, IxD>>` (implicit
+///   `"xy"`, `copy = true`)
+/// - `meshgrid((tensors, indexing: &str)) -> Vec<TensorCow<'a, T, B, IxD>>` (implicit `copy =
+///   true`)
+/// - `meshgrid((tensors, copy: bool)) -> Vec<TensorCow<'a, T, B, IxD>>` (implicit `"xy"`)
+/// - `meshgrid((tensors, indexing: &str, copy: bool)) -> Vec<TensorCow<'a, T, B, IxD>>`
 ///
-/// `tensors` also accepts `&Vec<...>` and `[&TensorAny; N]` forms, and owned
-/// `Vec<TensorAny>` / `[TensorAny; N]` forms of the same shapes.
+/// Also, overloads of `&Vec<...>` and `[&TensorAny; N]` behave the same.
+/// Consumed owned inputs output `Vec<Tensor<T, B, IxD>>` instead:
+///
+/// - `meshgrid((tensors: Vec<Tensor<T, B, D>>, indexing: &str, copy: bool)) -> Vec<Tensor<T, B,
+///   IxD>>`
+///
+/// and `[Tensor; N]` forms of the same shapes; `&Vec<TensorAny<R, T, B, D>>` forms are also
+/// accepted and return owned grids.
 ///
 /// # Parameters
 ///
 /// - `tensors`: one-dimensional input tensors.
 /// - `indexing`: `"ij"` (matrix convention) or `"xy"` (cartesian convention); defaults to `"xy"` if
 ///   omitted.
-/// - `copy`: whether the returned grids own their data; defaults to `true` if omitted.
+/// - `copy`: whether the returned grids are fresh copies; defaults to `true` if omitted.
 ///
 /// # Returns
 ///
-/// - `Vec<Tensor<T, B, IxD>>`: one grid tensor per input.
+/// - `Vec<TensorCow<'a, T, B, IxD>>` (reference inputs) or `Vec<Tensor<T, B, IxD>>` (owned inputs):
+///   one grid tensor per input. With `copy = true` the grids are owned fresh copies; with `copy =
+///   false` they share the inputs' memory (views for reference inputs).
 ///
 /// # Examples
 ///
@@ -253,6 +267,26 @@ pub trait MeshgridAPI<Inp> {
 /// //  [ 0 1]
 /// //  [ 0 1]]
 /// # assert_eq!(format!("{}", grids[1]), "[[ 0 1]\n [ 0 1]\n [ 0 1]]");
+/// ```
+///
+/// With `copy = false`, the grids are broadcast views over the inputs
+/// (stride-0 axes), as in NumPy:
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let x = rt::arange((3, &device));
+/// let y = rt::arange((2, &device));
+/// let grids = rt::meshgrid(([&x, &y], "ij", false));
+/// println!("{}", grids[0]);
+/// // [[ 0 0]
+/// //  [ 1 1]
+/// //  [ 2 2]]
+/// println!("{:?}", grids[0].layout());
+/// // 2-Dim (dyn), contiguous: Custom
+/// // shape: [3, 2], stride: [1, 0], offset: 0
+/// # assert!(grids.iter().all(|grid| !grid.is_owned()));
 /// ```
 ///
 /// # Notes of API accordance
@@ -278,7 +312,7 @@ pub trait MeshgridAPI<Inp> {
 /// ## Related functions in RSTSR
 ///
 /// - [`broadcast_arrays`](crate::tensor::manipulation::exports::broadcast_arrays()): broadcast
-///   tensors against each other (the intermediate step of the `copy = false` path).
+///   tensors against each other (analogous arrangement of the grids).
 ///
 /// ## Variants of this function
 ///
@@ -300,19 +334,39 @@ where
     Args::meshgrid_f(args)
 }
 
-impl<R, T, B, D> MeshgridAPI<()> for (Vec<&TensorAny<R, T, B, D>>, &str, bool)
+/// Compute the output shape and the varying-axis position of each input.
+///
+/// For `indexing = "xy"` the first two entries are swapped (NumPy convention);
+/// `positions[i]` is the axis of the output grid that varies with input `i`.
+fn meshgrid_out_shape_and_pos(lens: &[usize], indexing: &str) -> (Vec<usize>, Vec<usize>) {
+    let ndim = lens.len();
+    let mut shape_out: Vec<usize> = lens.to_vec();
+    let mut positions: Vec<usize> = (0..ndim).collect();
+    if indexing == "xy" && ndim >= 2 {
+        shape_out.swap(0, 1);
+        positions.swap(0, 1);
+    }
+    (shape_out, positions)
+}
+
+/// Layout of the grid for one input: the input's own stride is kept on axis
+/// `pos`, all other axes have stride 0 (broadcast convention).
+fn meshgrid_grid_layout(layout_in: &Layout<Ix1>, pos: usize, shape_out: &[usize]) -> Result<Layout<IxD>> {
+    let stride_var = layout_in.stride()[0];
+    let stride: Vec<isize> = (0..shape_out.len()).map(|j| if j == pos { stride_var } else { 0 }).collect();
+    let layout: Layout<IxD> = Layout::new(shape_out.into(), stride, layout_in.offset())?;
+    return Ok(layout);
+}
+
+impl<'a, R, T, B, D> MeshgridAPI<()> for (Vec<&'a TensorAny<R, T, B, D>>, &str, bool)
 where
-    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataCloneAPI,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
     T: Clone,
     D: DimAPI,
-    B: DeviceAPI<T>
-        + DeviceRawAPI<MaybeUninit<T>>
-        + DeviceCreationAnyAPI<T>
-        + OpAssignAPI<T, IxD>
-        + OpAssignArbitaryAPI<T, IxD, IxD>,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD> + OpAssignArbitaryAPI<T, IxD, IxD>,
     <B as DeviceRawAPI<T>>::Raw: Clone,
 {
-    type Out = Vec<Tensor<T, B, IxD>>;
+    type Out = Vec<TensorCow<'a, T, B, IxD>>;
 
     fn meshgrid_f(self) -> Result<Self::Out> {
         let (tensors, indexing, copy) = self;
@@ -322,13 +376,9 @@ where
             _ => rstsr_raise!(InvalidValue, "indexing must be 'ij' or 'xy'.")?,
         }
 
-        // fast return for tensors with length 0/1
+        // fast return for empty input
         if tensors.is_empty() {
             return Ok(vec![]);
-        } else if tensors.len() == 1 {
-            let tensor = tensors[0];
-            rstsr_assert_eq!(tensor.ndim(), 1, InvalidLayout, "meshgrid only support 1-D tensor.")?;
-            return Ok(vec![tensor.view().into_dim().into_owned()]);
         }
 
         // check
@@ -345,64 +395,147 @@ where
             Ok(())
         })?;
 
-        let ndim = tensors.len();
-        let s0 = vec![1isize; ndim];
+        let lens = tensors.iter().map(|tensor| tensor.shape()[0]).collect::<Vec<_>>();
+        let (shape_out, positions) = meshgrid_out_shape_and_pos(&lens, indexing);
 
-        // tensors to be broadcasted
-        let tensors = tensors
+        // each grid is built layout-only from its input; `copy` decides
+        // whether the result is a fresh owned tensor or a view of the input
+        tensors
             .iter()
             .enumerate()
-            .map(|(i, tensor)| {
-                let mut shape_new = s0.clone();
-                if indexing == "xy" && i == 0 {
-                    // special case for indexing="xy"
-                    shape_new[1] = -1;
-                } else if indexing == "xy" && i == 1 {
-                    // special case for indexing="xy"
-                    shape_new[0] = -1;
+            .map(|(i, tensor)| -> Result<TensorCow<'a, T, B, IxD>> {
+                // copy the reference out so the view borrows the input
+                // directly, not the local vector of references
+                let tensor_ref: &'a TensorAny<R, T, B, D> = *tensor;
+                let view: TensorView<'a, T, B, Ix1> = tensor_ref.view().into_dim::<Ix1>();
+                let layout_grid = meshgrid_grid_layout(view.layout(), positions[i], &shape_out)?;
+                let (storage, _) = view.into_raw_parts();
+                // safety: `layout_grid` references only elements within the
+                // input's own bounds (strides scaled from the input's layout)
+                let grid: TensorView<'a, T, B, IxD> = unsafe { TensorBase::new_unchecked(storage, layout_grid) };
+                if copy {
+                    // copy = true: fresh owned grid, contiguous in device default order
+                    Ok(grid.into_contig_f(device.default_order())?.into_cow())
                 } else {
-                    // s0[:i] + (-1,) + so[i+1:]
-                    shape_new[i] = -1;
+                    // copy = false: broadcast view sharing the input's memory
+                    Ok(grid.into_cow())
                 }
-                tensor.view().into_dim::<IxD>().into_shape_f(shape_new)
             })
-            .collect::<Result<Vec<_>>>()?;
-        // tensors have been broadcasted to the same shape
-        let tensors = broadcast_arrays_f(tensors)?;
+            .collect()
+    }
+}
 
-        if !copy {
-            Ok(tensors)
-        } else {
-            tensors.into_iter().map(|t| t.into_contig_f(device.default_order())).collect()
+impl<T, B, D> MeshgridAPI<()> for (Vec<Tensor<T, B, D>>, &str, bool)
+where
+    T: Clone,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD> + OpAssignArbitaryAPI<T, IxD, IxD>,
+    <B as DeviceRawAPI<T>>::Raw: Clone,
+{
+    type Out = Vec<Tensor<T, B, IxD>>;
+
+    fn meshgrid_f(self) -> Result<Self::Out> {
+        let (tensors, indexing, copy) = self;
+
+        match indexing {
+            "ij" | "xy" => (),
+            _ => rstsr_raise!(InvalidValue, "indexing must be 'ij' or 'xy'.")?,
         }
+
+        // fast return for empty input
+        if tensors.is_empty() {
+            return Ok(vec![]);
+        }
+
+        // check
+        // a. all tensors must have the same device
+        // b. all tensors are 1-D
+        let device = tensors[0].device().clone();
+        tensors.iter().try_for_each(|tensor| -> Result<()> {
+            rstsr_assert_eq!(tensor.ndim(), 1, InvalidLayout, "meshgrid only support 1-D tensor.")?;
+            rstsr_assert!(
+                tensor.device().same_device(&device),
+                DeviceMismatch,
+                "All tensors must be on the same device."
+            )?;
+            Ok(())
+        })?;
+
+        let lens = tensors.iter().map(|tensor| tensor.shape()[0]).collect::<Vec<_>>();
+        let (shape_out, positions) = meshgrid_out_shape_and_pos(&lens, indexing);
+
+        tensors
+            .into_iter()
+            .enumerate()
+            .map(|(i, tensor)| -> Result<Tensor<T, B, IxD>> {
+                let tensor = tensor.into_dim::<Ix1>();
+                let layout_grid = meshgrid_grid_layout(tensor.layout(), positions[i], &shape_out)?;
+                let (storage, _) = tensor.into_raw_parts();
+                // safety: `layout_grid` references only elements within the
+                // input's own bounds (strides scaled from the input's layout)
+                let grid: Tensor<T, B, IxD> = unsafe { TensorBase::new_unchecked(storage, layout_grid) };
+                if copy {
+                    // copy = true: fresh owned grid, contiguous in device default order
+                    grid.into_contig_f(device.default_order())
+                } else {
+                    // copy = false: owned grid with stride-0 layout aliasing
+                    // the input's own storage (no copy is performed)
+                    Ok(grid)
+                }
+            })
+            .collect()
     }
 }
 
 // implementation for reference tensors
 #[duplicate_item(
-    ImplType         ImplStruct                                           tuple_args                  tuple_internal                             ;
-   [              ] [(&Vec<&TensorAny<R, T, B, D>>, &str, bool)] [(tensors, indexing, copy)] [(tensors.to_vec(), indexing, copy)];
-   [const N: usize] [([&TensorAny<R, T, B, D>; N] , &str, bool)] [(tensors, indexing, copy)] [(tensors.to_vec(), indexing, copy)];
-   [              ] [(Vec<&TensorAny<R, T, B, D>> , &str,     )] [(tensors, indexing,     )] [(tensors.to_vec(), indexing, true)];
-   [              ] [(&Vec<&TensorAny<R, T, B, D>>, &str,     )] [(tensors, indexing,     )] [(tensors.to_vec(), indexing, true)];
-   [const N: usize] [([&TensorAny<R, T, B, D>; N] , &str,     )] [(tensors, indexing,     )] [(tensors.to_vec(), indexing, true)];
-   [              ] [(Vec<&TensorAny<R, T, B, D>> ,       bool)] [(tensors,           copy)] [(tensors.to_vec(), "xy"    , copy)];
-   [              ] [(&Vec<&TensorAny<R, T, B, D>>,       bool)] [(tensors,           copy)] [(tensors.to_vec(), "xy"    , copy)];
-   [const N: usize] [([&TensorAny<R, T, B, D>; N] ,       bool)] [(tensors,           copy)] [(tensors.to_vec(), "xy"    , copy)];
-   [              ] [ Vec<&TensorAny<R, T, B, D>>              ] [ tensors                 ] [(tensors.to_vec(), "xy"    , true)];
-   [              ] [ &Vec<&TensorAny<R, T, B, D>>             ] [ tensors                 ] [(tensors.to_vec(), "xy"    , true)];
-   [const N: usize] [ [&TensorAny<R, T, B, D>; N]              ] [ tensors                 ] [(tensors.to_vec(), "xy"    , true)];
+    ImplType         ImplStruct                                                       tuple_args                  tuple_internal                             ;
+   [              ] [(&Vec<&'a TensorAny<R, T, B, D>>, &str, bool)] [(tensors, indexing, copy)] [(tensors.to_vec(), indexing, copy)];
+   [const N: usize] [([&'a TensorAny<R, T, B, D>; N] , &str, bool)] [(tensors, indexing, copy)] [(tensors.to_vec(), indexing, copy)];
+   [              ] [(Vec<&'a TensorAny<R, T, B, D>> , &str,     )] [(tensors, indexing,     )] [(tensors.to_vec(), indexing, true)];
+   [              ] [(&Vec<&'a TensorAny<R, T, B, D>>, &str,     )] [(tensors, indexing,     )] [(tensors.to_vec(), indexing, true)];
+   [const N: usize] [([&'a TensorAny<R, T, B, D>; N] , &str,     )] [(tensors, indexing,     )] [(tensors.to_vec(), indexing, true)];
+   [              ] [(Vec<&'a TensorAny<R, T, B, D>> ,       bool)] [(tensors,           copy)] [(tensors.to_vec(), "xy"    , copy)];
+   [              ] [(&Vec<&'a TensorAny<R, T, B, D>>,       bool)] [(tensors,           copy)] [(tensors.to_vec(), "xy"    , copy)];
+   [const N: usize] [([&'a TensorAny<R, T, B, D>; N] ,       bool)] [(tensors,           copy)] [(tensors.to_vec(), "xy"    , copy)];
+   [              ] [ Vec<&'a TensorAny<R, T, B, D>>              ] [ tensors                 ] [(tensors.to_vec(), "xy"    , true)];
+   [              ] [ &Vec<&'a TensorAny<R, T, B, D>>             ] [ tensors                 ] [(tensors.to_vec(), "xy"    , true)];
+   [const N: usize] [ [&'a TensorAny<R, T, B, D>; N]              ] [ tensors                 ] [(tensors.to_vec(), "xy"    , true)];
 )]
-impl<R, T, B, D, ImplType> MeshgridAPI<()> for ImplStruct
+impl<'a, R, T, B, D, ImplType> MeshgridAPI<()> for ImplStruct
 where
-    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataCloneAPI,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
     T: Clone,
     D: DimAPI,
-    B: DeviceAPI<T>
-        + DeviceRawAPI<MaybeUninit<T>>
-        + DeviceCreationAnyAPI<T>
-        + OpAssignAPI<T, IxD>
-        + OpAssignArbitaryAPI<T, IxD, IxD>,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD> + OpAssignArbitaryAPI<T, IxD, IxD>,
+    <B as DeviceRawAPI<T>>::Raw: Clone,
+{
+    type Out = Vec<TensorCow<'a, T, B, IxD>>;
+
+    fn meshgrid_f(self) -> Result<Self::Out> {
+        let tuple_args = self;
+        let (tensors, indexing, copy) = tuple_internal;
+        MeshgridAPI::meshgrid_f((tensors, indexing, copy))
+    }
+}
+
+// implementation for owned tensors consumed by value: grids are built from
+// the inputs' own storages without an intermediate copy
+#[duplicate_item(
+    ImplType         ImplStruct                             tuple_args                  tuple_internal                             ;
+   [const N: usize] [([Tensor<T, B, D>; N] , &str, bool)] [(tensors, indexing, copy)] [(Vec::from(tensors), indexing, copy)];
+   [              ] [(Vec<Tensor<T, B, D>> , &str,     )] [(tensors, indexing,     )] [(tensors, indexing, true)];
+   [const N: usize] [([Tensor<T, B, D>; N] , &str,     )] [(tensors, indexing,     )] [(Vec::from(tensors), indexing, true)];
+   [              ] [(Vec<Tensor<T, B, D>> ,       bool)] [(tensors,           copy)] [(tensors, "xy"    , copy)];
+   [const N: usize] [([Tensor<T, B, D>; N] ,       bool)] [(tensors,           copy)] [(Vec::from(tensors), "xy"    , copy)];
+   [              ] [ Vec<Tensor<T, B, D>>              ] [ tensors                 ] [(tensors, "xy"    , true)];
+   [const N: usize] [ [Tensor<T, B, D>; N]              ] [ tensors                 ] [(Vec::from(tensors), "xy"    , true)];
+)]
+impl<T, B, D, ImplType> MeshgridAPI<()> for ImplStruct
+where
+    T: Clone,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD> + OpAssignArbitaryAPI<T, IxD, IxD>,
     <B as DeviceRawAPI<T>>::Raw: Clone,
 {
     type Out = Vec<Tensor<T, B, IxD>>;
@@ -414,42 +547,52 @@ where
     }
 }
 
-// implementation for non-reference tensors
+// implementation for owned tensors borrowed by reference: the reference-input
+// grids are converted into owned tensors (moving when already owned)
 #[duplicate_item(
-    ImplType         ImplStruct                                           tuple_args           tuple_internal ;
-   [              ] [(Vec<TensorAny<R, T, B, D>> , &str, bool)] [(tensors, indexing, copy)] [(indexing, copy)];
-   [              ] [(&Vec<TensorAny<R, T, B, D>>, &str, bool)] [(tensors, indexing, copy)] [(indexing, copy)];
-   [const N: usize] [([TensorAny<R, T, B, D>; N] , &str, bool)] [(tensors, indexing, copy)] [(indexing, copy)];
-   [              ] [(Vec<TensorAny<R, T, B, D>> , &str,     )] [(tensors, indexing,     )] [(indexing, true)];
-   [              ] [(&Vec<TensorAny<R, T, B, D>>, &str,     )] [(tensors, indexing,     )] [(indexing, true)];
-   [const N: usize] [([TensorAny<R, T, B, D>; N] , &str,     )] [(tensors, indexing,     )] [(indexing, true)];
-   [              ] [(Vec<TensorAny<R, T, B, D>> ,       bool)] [(tensors,           copy)] [("xy"    , copy)];
-   [              ] [(&Vec<TensorAny<R, T, B, D>>,       bool)] [(tensors,           copy)] [("xy"    , copy)];
-   [const N: usize] [([TensorAny<R, T, B, D>; N] ,       bool)] [(tensors,           copy)] [("xy"    , copy)];
-   [              ] [ Vec<TensorAny<R, T, B, D>>              ] [ tensors                 ] [("xy"    , true)];
-   [              ] [ &Vec<TensorAny<R, T, B, D>>             ] [ tensors                 ] [("xy"    , true)];
-   [const N: usize] [ [TensorAny<R, T, B, D>; N]              ] [ tensors                 ] [("xy"    , true)];
+    ImplType         ImplStruct                                         tuple_args                  tuple_internal            ;
+   [              ] [(&'a Vec<TensorAny<R, T, B, D>>, &str, bool)] [(tensors, indexing, copy)] [(tensors, indexing, copy)];
+   [              ] [(&'a Vec<TensorAny<R, T, B, D>>, &str,     )] [(tensors, indexing,     )] [(tensors, indexing, true)];
+   [              ] [(&'a Vec<TensorAny<R, T, B, D>>,       bool)] [(tensors,           copy)] [(tensors, "xy"    , copy)];
+   [              ] [ &'a Vec<TensorAny<R, T, B, D>>             ] [ tensors                 ] [(tensors, "xy"    , true)];
 )]
-impl<R, T, B, D, ImplType> MeshgridAPI<()> for ImplStruct
+impl<'a, R, T, B, D, ImplType> MeshgridAPI<()> for ImplStruct
 where
-    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataCloneAPI,
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
     T: Clone,
     D: DimAPI,
-    B: DeviceAPI<T>
-        + DeviceRawAPI<MaybeUninit<T>>
-        + DeviceCreationAnyAPI<T>
-        + OpAssignAPI<T, IxD>
-        + OpAssignArbitaryAPI<T, IxD, IxD>,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD> + OpAssignArbitaryAPI<T, IxD, IxD>,
     <B as DeviceRawAPI<T>>::Raw: Clone,
 {
     type Out = Vec<Tensor<T, B, IxD>>;
 
     fn meshgrid_f(self) -> Result<Self::Out> {
         let tuple_args = self;
-        let (indexing, copy) = tuple_internal;
-        let tensors = tensors.iter().collect::<Vec<_>>();
-        MeshgridAPI::meshgrid_f((tensors, indexing, copy))
+        let (tensors, indexing, copy) = tuple_internal;
+        meshgrid_into_owned_from_ref(tensors, indexing, copy)
     }
+}
+
+/// Meshgrid over borrowed owned tensors, returning owned grids.
+///
+/// The reference-input grids are converted into owned tensors: moved when the
+/// cow buffer is already owned (`copy = true`), copied only when the grids are
+/// views (`copy = false`).
+fn meshgrid_into_owned_from_ref<'a, R, T, B, D>(
+    tensors: &'a [TensorAny<R, T, B, D>],
+    indexing: &str,
+    copy: bool,
+) -> Result<Vec<Tensor<T, B, IxD>>>
+where
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw> + DataIntoCowAPI<'a>,
+    T: Clone,
+    D: DimAPI,
+    B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD> + OpAssignArbitaryAPI<T, IxD, IxD>,
+    <B as DeviceRawAPI<T>>::Raw: Clone,
+{
+    let refs = tensors.iter().collect::<Vec<_>>();
+    let grids = MeshgridAPI::meshgrid_f((refs, indexing, copy))?;
+    return Ok(grids.into_iter().map(|grid| grid.into_owned()).collect());
 }
 
 /* #endregion */
