@@ -105,6 +105,13 @@ where
 /// # assert_eq!(b.stride(), &[1, 1]);
 /// ```
 ///
+/// # Panics
+///
+/// - Panics if the internal copy path fails (e.g. an overflowing element count or a device
+///   allocation error).
+///
+/// For a fallible version, use [`to_contig_f`].
+///
 /// # See also
 ///
 /// ## Similar functions in RSTSR

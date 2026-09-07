@@ -23,6 +23,7 @@ pub mod rstsr_traits {
         ConcatAPI, DiagAPI, HStackAPI, MeshgridAPI, StackAPI, UnstackAPI, VStackAPI,
     };
     pub use crate::tensor::device_conversion::{TensorChangeFromDevice, TensorDeviceChangeAPI};
+    pub use crate::tensor::manipulation::exports::BroadcastArraysAPI;
     pub use crate::tensor::operators::op_binary_common::{
         TensorATan2API, TensorCopySignAPI, TensorEqualAPI, TensorFloorDivideAPI, TensorGreaterAPI,
         TensorGreaterEqualAPI, TensorHypotAPI, TensorLessAPI, TensorLessEqualAPI, TensorLogAddExpAPI, TensorMaximumAPI,
@@ -91,7 +92,7 @@ pub mod rstsr_funcs {
         reverse_axes, squeeze, squeeze_f, swapaxes, swapaxes_f, to_broadcast, to_broadcast_f, to_compatible_shape,
         to_compatible_shape_f, to_contig, to_contig_f, to_dim, to_dim_f, to_dyn, to_layout, to_layout_f, to_prefer,
         to_prefer_f, to_shape, to_shape_f, to_shape_with_args, to_shape_with_args_f, transpose, transpose_f, unsqueeze,
-        unsqueeze_f, BroadcastArraysAPI,
+        unsqueeze_f,
     };
 
     // binary arithmetics

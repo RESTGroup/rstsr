@@ -139,16 +139,29 @@ pub fn broadcast_shapes_f(shapes: &[IxD], order: FlagOrder) -> Result<IxD> {
 ///
 /// See [`order_semantics`](crate::order_semantics) for the two device default orders.
 
+/// # Overloads Table
+///
+/// Reference-input forms output views sharing the inputs' memory,
+/// `Vec<TensorView<'a, T, B, IxD>>`:
+///
+/// - `broadcast_arrays(tensors: Vec<&'a TensorAny<R, T, B, IxD>>) -> Vec<TensorView<'a, T, B,
+///   IxD>>`
+/// - `broadcast_arrays(tensors: &Vec<&'a TensorAny<R, T, B, IxD>>) -> Vec<TensorView<'a, T, B,
+///   IxD>>`
+/// - `broadcast_arrays(tensors: [&'a TensorAny<R, T, B, IxD>; N]) -> Vec<TensorView<'a, T, B,
+///   IxD>>`
+///
+/// By-value forms consume the inputs and output `Vec<TensorAny<R, T, B, IxD>>` (owned stride-0
+/// tensors aliasing the inputs' own storages):
+///
+/// - `broadcast_arrays(tensors: Vec<TensorAny<R, T, B, IxD>>) -> Vec<TensorAny<R, T, B, IxD>>`
+/// - `broadcast_arrays(tensors: [TensorAny<R, T, B, IxD>; N]) -> Vec<TensorAny<R, T, B, IxD>>`
+///
+/// All forms only accept dynamic shape tensors ([`IxD`]).
+///
 /// # Parameters
 ///
-/// - `tensors`: the tensors to be broadcasted; all must share one device and dtype. Two input forms
-///   are available:
-///
-///   - Owned inputs: [`Vec<TensorAny<R, T, B, IxD>>`](TensorAny) (also `[TensorAny; N]`); they are
-///     consumed, and the outputs alias their storages. Only dynamic shape tensors ([`IxD`]) are
-///     accepted.
-///   - Reference inputs: `Vec<&'a TensorAny<R, T, B, IxD>>` (also `&Vec<...>` and `[&TensorAny;
-///     N]`); the outputs are views sharing the inputs' memory, as in NumPy.
+/// - `tensors`: the tensors to be broadcasted; all must share one device and dtype.
 ///
 /// # Returns
 ///
@@ -357,6 +370,19 @@ where
 
     fn broadcast_arrays_f(self) -> Result<Self::Out> {
         BroadcastArraysAPI::broadcast_arrays_f(self.to_vec())
+    }
+}
+
+// implementation for owned tensors consumed by value from an array
+impl<R, T, B, const N: usize> BroadcastArraysAPI<()> for [TensorAny<R, T, B, IxD>; N]
+where
+    R: DataAPI<Data = B::Raw>,
+    B: DeviceAPI<T>,
+{
+    type Out = Vec<TensorAny<R, T, B, IxD>>;
+
+    fn broadcast_arrays_f(self) -> Result<Self::Out> {
+        BroadcastArraysAPI::broadcast_arrays_f(Vec::from(self))
     }
 }
 
