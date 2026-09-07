@@ -584,8 +584,7 @@ where
     ///
     /// # Panics
     ///
-    /// - Panics if the tensor does not have exactly one element (including the
-    ///   empty case).
+    /// - Panics if the tensor does not have exactly one element (including the empty case).
     ///
     /// For a fallible version, use [`TensorAny::to_scalar_f`].
     ///
