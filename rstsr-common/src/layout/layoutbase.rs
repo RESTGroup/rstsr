@@ -953,19 +953,17 @@ mod test {
         // a = np.arange(9 * 12 * 15)
         //       .reshape(9, 12, 15)[4:2:-1, 4:10, 2:10:3]
         //       .transpose(2, 0, 1)
-        unsafe {
-            // fixed dim
-            let layout = Layout::new([3, 2, 6], [3, -180, 15], 782).unwrap();
-            assert_eq!(layout.index_uncheck(&[0, 0, 0]), 782);
-            assert_eq!(layout.index_uncheck(&[2, 1, 4]), 668);
-            // dynamic dim
-            let layout = Layout::new(vec![3, 2, 6], vec![3, -180, 15], 782).unwrap();
-            assert_eq!(layout.index_uncheck(&[0, 0, 0]), 782);
-            assert_eq!(layout.index_uncheck(&[2, 1, 4]), 668);
-            // zero-dim
-            let layout = Layout::new([], [], 10).unwrap();
-            assert_eq!(layout.index_uncheck(&[]), 10);
-        }
+        // fixed dim
+        let layout = Layout::new([3, 2, 6], [3, -180, 15], 782).unwrap();
+        assert_eq!(layout.index_uncheck(&[0, 0, 0]), 782);
+        assert_eq!(layout.index_uncheck(&[2, 1, 4]), 668);
+        // dynamic dim
+        let layout = Layout::new(vec![3, 2, 6], vec![3, -180, 15], 782).unwrap();
+        assert_eq!(layout.index_uncheck(&[0, 0, 0]), 782);
+        assert_eq!(layout.index_uncheck(&[2, 1, 4]), 668);
+        // zero-dim
+        let layout = Layout::new([], [], 10).unwrap();
+        assert_eq!(layout.index_uncheck(&[]), 10);
     }
 
     #[test]
@@ -1006,13 +1004,11 @@ mod test {
 
     #[test]
     fn test_unravel_index() {
-        unsafe {
-            let shape = [3, 2, 6];
-            assert_eq!(shape.unravel_index_f(0), [0, 0, 0]);
-            assert_eq!(shape.unravel_index_f(16), [1, 1, 2]);
-            assert_eq!(shape.unravel_index_c(0), [0, 0, 0]);
-            assert_eq!(shape.unravel_index_c(16), [1, 0, 4]);
-        }
+        let shape = [3, 2, 6];
+        assert_eq!(shape.unravel_index_f(0), [0, 0, 0]);
+        assert_eq!(shape.unravel_index_f(16), [1, 1, 2]);
+        assert_eq!(shape.unravel_index_c(0), [0, 0, 0]);
+        assert_eq!(shape.unravel_index_c(16), [1, 0, 4]);
     }
 
     #[test]
