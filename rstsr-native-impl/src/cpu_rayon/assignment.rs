@@ -102,14 +102,14 @@ where
         // generate col-major iterator
         let lc = translate_to_col_major_unary(lc, order)?;
         let la = translate_to_col_major_unary(la, order)?;
+        // pass mutable reference in parallel region
+        let thr_c = AtomicPtr::new(c.as_mut_ptr());
         // iterate and assign
         let func = |(idx_c, idx_a): (usize, usize)| unsafe {
-            // SAFETY: each parallel task writes a disjoint region of `c` (offsets from
-            // distinct output-layout positions). NOTE: the pointer derives from `as_ptr()`
-            // (a shared reborrow) and is written through; disjointness makes this correct
-            // in practice, but derive via `AtomicPtr`/`as_mut_ptr()` for stacked-borrows
-            // strictness.
-            let c_ptr = c.as_ptr() as *mut TypeC;
+            // SAFETY: `c_ptr` is `c`'s base pointer hoisted through `AtomicPtr`
+            // (relaxed load; `c` is never reassigned through it). Each task writes
+            // the disjoint element at `idx_c` of the validated output layouts.
+            let c_ptr = thr_c.load(Ordering::Relaxed);
             let ci = &mut *c_ptr.add(idx_c);
             let ai = &a[idx_a];
             func_clone;
@@ -172,6 +172,9 @@ where
     let layouts_full_ref = layouts_full.iter().collect_vec();
     let (layouts_contig, size_contig) = translate_to_col_major_with_contig(&layouts_full_ref);
 
+    // pass mutable reference in parallel region
+    let thr_c = AtomicPtr::new(c.as_mut_ptr());
+
     // actual parallel iteration
     if size_contig < CONTIG_SWITCH {
         // 2-D order-change fast path (see assign_arbitary_cpu_rayon); a
@@ -194,8 +197,10 @@ where
         let lc = &layouts_full[0];
         let la = &layouts_full[1];
         let func = |(idx_c, idx_a): (usize, usize)| unsafe {
-            // SAFETY: same disjoint-write argument and `as_ptr()` note as above.
-            let c_ptr = c.as_ptr() as *mut TypeC;
+            // SAFETY: `c_ptr` is `c`'s base pointer hoisted through `AtomicPtr`
+            // (relaxed load; `c` is never reassigned through it). Each task writes
+            // the disjoint element at `idx_c` of the validated output layouts.
+            let c_ptr = thr_c.load(Ordering::Relaxed);
             let ci = &mut *c_ptr.add(idx_c);
             let ai = &a[idx_a];
             func_clone;
@@ -207,9 +212,10 @@ where
         let lc = &layouts_contig[0];
         let la = &layouts_contig[1];
         let func = |(idx_c, idx_a): (usize, usize)| unsafe {
-            // SAFETY: single disjoint write at `idx_c` per task. NOTE: same `as_ptr()`
-            // derivation note as above.
-            let c_ptr = c.as_ptr().add(idx_c) as *mut TypeC;
+            // SAFETY: `c_ptr` is `c`'s base pointer hoisted through `AtomicPtr`
+            // (relaxed load; `c` is never reassigned through it). Each task writes
+            // the disjoint contiguous run at `idx_c` of the validated output layouts.
+            let c_ptr = thr_c.load(Ordering::Relaxed).add(idx_c);
             (0..size_contig).for_each(|idx| {
                 let ci = &mut *c_ptr.add(idx);
                 let ai = &a[idx_a + idx];
@@ -251,14 +257,18 @@ where
     let layouts_full_ref = layouts_full.iter().collect_vec();
     let (layouts_contig, size_contig) = translate_to_col_major_with_contig(&layouts_full_ref);
 
+    // pass mutable reference in parallel region
+    let thr_c = AtomicPtr::new(c.as_mut_ptr());
+
     // actual parallel iteration
     if size_contig < CONTIG_SWITCH {
         // not possible for contiguous fill
         let lc = &layouts_full[0];
         let func = |idx_c| unsafe {
-            // SAFETY: each parallel task writes a disjoint region of `c`. NOTE: same
-            // `as_ptr()` derivation note as above.
-            let c_ptr = c.as_ptr() as *mut TC;
+            // SAFETY: `c_ptr` is `c`'s base pointer hoisted through `AtomicPtr`
+            // (relaxed load; `c` is never reassigned through it). Each task writes
+            // the disjoint element at `idx_c` of the validated output layout.
+            let c_ptr = thr_c.load(Ordering::Relaxed);
             *c_ptr.add(idx_c) = fill.clone().into_cast();
         };
         let task = || layout_col_major_dim_dispatch_par_1(lc, func);
@@ -267,9 +277,10 @@ where
         // parallel for outer iteration
         let lc = &layouts_contig[0];
         let func = |idx_c| unsafe {
-            // SAFETY: single disjoint write at `idx_c` per task. NOTE: same `as_ptr()`
-            // derivation note as above.
-            let c_ptr = c.as_ptr().add(idx_c) as *mut TC;
+            // SAFETY: `c_ptr` is `c`'s base pointer hoisted through `AtomicPtr`
+            // (relaxed load; `c` is never reassigned through it). Each task writes
+            // the disjoint contiguous run at `idx_c` of the validated output layout.
+            let c_ptr = thr_c.load(Ordering::Relaxed).add(idx_c);
             (0..size_contig).for_each(|idx| {
                 *c_ptr.add(idx) = fill.clone().into_cast();
             })

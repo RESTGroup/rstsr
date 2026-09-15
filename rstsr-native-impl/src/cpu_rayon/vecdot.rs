@@ -1,7 +1,6 @@
 use crate::prelude_dev::*;
 use core::ops::Mul;
 use num::Zero;
-use rayon::prelude::*;
 use rstsr_dtype_traits::ExtNum;
 
 const PARALLEL_SWITCH: usize = 512;
@@ -79,6 +78,8 @@ where
     let offset_a = la.offset();
     let offset_b = lb.offset();
 
+    // pass mutable reference in parallel region
+    let thr_c = AtomicPtr::new(c.as_mut_ptr());
     // stride 1 can benefit from faster reduction
     let task = || {
         if flag_contig_s {
@@ -110,10 +111,10 @@ where
                 });
                 stat.rstsr_unwrap();
                 unsafe {
-                    // SAFETY: each task writes the disjoint run at `idx_c` (distinct output-layout
-                    // positions). NOTE: the pointer derives from `as_ptr()` and is written through;
-                    // derive via `AtomicPtr`/`as_mut_ptr()` for stacked-borrows strictness.
-                    let c_ptr = c.as_ptr().add(idx_c) as *mut MaybeUninit<TC>;
+                    // SAFETY: `c_ptr` is `c`'s base pointer hoisted through `AtomicPtr`
+                    // (relaxed load; `c` is never reassigned through it). Each task writes
+                    // the disjoint run at `idx_c` (distinct output-layout positions).
+                    let c_ptr = thr_c.load(Ordering::Relaxed).add(idx_c);
                     (*c_ptr).write(val_c);
                 }
             })
@@ -133,10 +134,10 @@ where
             const CHUNK: usize = 64;
             layout_col_major_dim_dispatch_par_3(lcd, lamd, lbmd, |(idx_c, idx_m_a, idx_m_b)| {
                 let slc_c = unsafe {
-                    // SAFETY: each task writes the disjoint run at `idx_c` (distinct output-layout
-                    // positions). NOTE: the pointer derives from `as_ptr()` and is written through;
-                    // derive via `AtomicPtr`/`as_mut_ptr()` for stacked-borrows strictness.
-                    let c_ptr = c.as_ptr().add(idx_c) as *mut MaybeUninit<TC>;
+                    // SAFETY: `c_ptr` is `c`'s base pointer hoisted through `AtomicPtr`
+                    // (relaxed load; `c` is never reassigned through it). Each task writes
+                    // the disjoint run at `idx_c` (distinct output-layout positions).
+                    let c_ptr = thr_c.load(Ordering::Relaxed).add(idx_c);
                     core::slice::from_raw_parts_mut(c_ptr, n_contig)
                 };
                 // currently c has not been initialized, init here
@@ -171,10 +172,10 @@ where
                         acc + x.clone().ext_conj() * y.clone()
                     });
                     unsafe {
-                        // SAFETY: each task writes the disjoint run at `idx_c` (distinct output-layout
-                        // positions). NOTE: the pointer derives from `as_ptr()` and is written through;
-                        // derive via `AtomicPtr`/`as_mut_ptr()` for stacked-borrows strictness.
-                        let c_ptr = c.as_ptr().add(idx_c) as *mut MaybeUninit<TC>;
+                        // SAFETY: `c_ptr` is `c`'s base pointer hoisted through `AtomicPtr`
+                        // (relaxed load; `c` is never reassigned through it). Each task writes
+                        // the disjoint run at `idx_c` (distinct output-layout positions).
+                        let c_ptr = thr_c.load(Ordering::Relaxed).add(idx_c);
                         (*c_ptr).write(val_c);
                     }
                 } else {
@@ -186,10 +187,10 @@ where
                     });
                     stat.rstsr_unwrap();
                     unsafe {
-                        // SAFETY: each task writes the disjoint run at `idx_c` (distinct output-layout
-                        // positions). NOTE: the pointer derives from `as_ptr()` and is written through;
-                        // derive via `AtomicPtr`/`as_mut_ptr()` for stacked-borrows strictness.
-                        let c_ptr = c.as_ptr().add(idx_c) as *mut MaybeUninit<TC>;
+                        // SAFETY: `c_ptr` is `c`'s base pointer hoisted through `AtomicPtr`
+                        // (relaxed load; `c` is never reassigned through it). Each task writes
+                        // the disjoint run at `idx_c` (distinct output-layout positions).
+                        let c_ptr = thr_c.load(Ordering::Relaxed).add(idx_c);
                         (*c_ptr).write(val_c);
                     }
                 }

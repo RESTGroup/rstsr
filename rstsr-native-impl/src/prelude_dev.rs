@@ -4,6 +4,13 @@ pub(crate) use rstsr_dtype_traits::DTypeCastAPI;
 #[cfg(feature = "rayon")]
 pub use rayon::ThreadPool;
 
+/// Commonly used by the rayon kernels (parallel region pointer hoisting and
+/// parallel iteration traits); see `cpu_rayon` module documentation.
+#[cfg(feature = "rayon")]
+pub use core::sync::atomic::{AtomicPtr, Ordering};
+#[cfg(feature = "rayon")]
+pub use rayon::prelude::*;
+
 pub use crate::cpu_serial::adv_indexing::*;
 pub use crate::cpu_serial::assignment::*;
 pub use crate::cpu_serial::creation::*;

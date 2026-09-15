@@ -1,8 +1,6 @@
 use crate::prelude_dev::*;
 use core::slice::from_raw_parts_mut;
-use core::sync::atomic::{AtomicPtr, Ordering};
 use num::complex::ComplexFloat;
-use rayon::prelude::*;
 
 pub fn pack_tri_cpu_rayon<T>(
     a: &mut [MaybeUninit<T>],

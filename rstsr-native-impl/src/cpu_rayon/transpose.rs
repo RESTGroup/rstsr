@@ -1,7 +1,6 @@
 //! Naive implementation of matrix transpose
 
 use crate::prelude_dev::*;
-use rayon::prelude::*;
 
 const BLOCK_SIZE: usize = 64;
 
@@ -43,6 +42,8 @@ where
     let lda = la.stride()[0];
     let ldc = lc.stride()[1];
 
+    // pass mutable reference in parallel region
+    let thr_c = AtomicPtr::new(c.as_mut_ptr());
     (0..ncol).into_par_iter().step_by(BLOCK_SIZE).for_each(|j_start| {
         let j_end = (j_start + BLOCK_SIZE).min(ncol);
         let (j_start, j_end) = (j_start as isize, j_end as isize);
@@ -55,11 +56,10 @@ where
                     let dst_idx = (offset_c + j * ldc + i) as usize;
 
                     unsafe {
-                        // SAFETY: each (i, j) pair maps to a unique `dst_idx` — disjoint writes across
-                        // parallel tasks. NOTE: the pointer derives from `as_ptr()` and is written
-                        // through; `AtomicPtr`/`as_mut_ptr()` derivation would be stacked-borrows
-                        // strict.
-                        let c_ptr = c.as_ptr().add(dst_idx) as *mut T;
+                        // SAFETY: `c_ptr` is `c`'s base pointer hoisted through `AtomicPtr`
+                        // (relaxed load; `c` is never reassigned through it). Each (i, j) pair
+                        // maps to a unique `dst_idx` — disjoint writes across parallel tasks.
+                        let c_ptr = thr_c.load(Ordering::Relaxed).add(dst_idx);
                         *c_ptr = a[src_idx].clone();
                     }
                 }
@@ -149,6 +149,8 @@ where
     let lda = la.stride()[0];
     let ldc = lc.stride()[1];
 
+    // pass mutable reference in parallel region
+    let thr_c = AtomicPtr::new(c.as_mut_ptr());
     (0..ncol).into_par_iter().step_by(BLOCK_SIZE).for_each(|j_start| {
         let j_end = (j_start + BLOCK_SIZE).min(ncol);
         let (j_start, j_end) = (j_start as isize, j_end as isize);
@@ -161,10 +163,10 @@ where
                     let dst_idx = (offset_c + j * ldc + i) as usize;
                     debug_assert!(src_idx < a.len() && dst_idx < c.len());
                     unsafe {
-                        // SAFETY: each (i, j) write touches a unique layout position of `c` — disjoint
-                        // across tasks. NOTE: pointer derived from `as_ptr()` and written through — see
-                        // the note above.
-                        let c_ptr = c.as_ptr() as *mut TypeC;
+                        // SAFETY: `c_ptr` is `c`'s base pointer hoisted through `AtomicPtr`
+                        // (relaxed load; `c` is never reassigned through it). Each (i, j) write
+                        // touches a unique layout position of `c` — disjoint across tasks.
+                        let c_ptr = thr_c.load(Ordering::Relaxed);
                         func_write;
                     }
                 }

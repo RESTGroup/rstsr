@@ -1,7 +1,6 @@
 use crate::prelude_dev::*;
 use core::ops::*;
 use num::{complex::ComplexFloat, FromPrimitive, ToPrimitive};
-use rayon::prelude::*;
 
 /* #region arange */
 

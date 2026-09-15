@@ -3,8 +3,6 @@ use crate::cpu_serial::reduction::{
 };
 use crate::prelude_dev::*;
 use core::mem::transmute;
-use core::sync::atomic::{AtomicPtr, Ordering};
-use rayon::prelude::*;
 
 // this value is used to determine whether to use contiguous inner iteration
 const CONTIG_SWITCH: usize = 32;
@@ -170,6 +168,8 @@ where
     let size_m0 = am0.iter().map(|&i| lm.shape()[i]).product::<usize>();
     let size_mc = amc.iter().map(|&i| lm.shape()[i]).product::<usize>();
 
+    // pass mutable reference in parallel region
+    let thr_out = AtomicPtr::new(out.as_mut_ptr());
     let mut task = || -> Result<()> {
         if size_sc > 1 {
             // contiguous parts to be summed, call unrolled_reduce for inner reduce
@@ -198,12 +198,11 @@ where
                     acc = f_sum(acc, acc_before.clone());
                 }
                 unsafe {
-                    // SAFETY: each task writes the single slot `i_ocd` (disjoint across tasks,
-                    // from the output layout iteration). NOTE: the pointer derives from `as_ptr()`
-                    // (a shared reborrow) and is written through; disjointness makes this correct
-                    // in practice, but derive via `as_mut_ptr()`/`AtomicPtr` for stacked-borrows
-                    // strictness.
-                    let ptr_out_ocd = out.as_ptr().add(i_ocd) as *mut MaybeUninit<TO>;
+                    // SAFETY: `ptr_out_ocd` is `out`'s base pointer hoisted through
+                    // `AtomicPtr` (relaxed load; `out` is never reassigned through it).
+                    // Each task writes the single slot `i_ocd` (disjoint across tasks,
+                    // from the output layout iteration).
+                    let ptr_out_ocd = thr_out.load(Ordering::Relaxed).add(i_ocd);
                     (*ptr_out_ocd).write(f_out(acc));
                 }
             });
@@ -250,10 +249,10 @@ where
                 });
                 // apply broadcast duplication and finalization function and write to output
                 (0..size_mc).into_par_iter().for_each(|i_mc| unsafe {
-                    // SAFETY: each task writes its own `i_od + i_mc` slot (disjoint across tasks).
-                    // NOTE: pointer derives from `as_ptr()` and is written through — see the note
-                    // above; `AtomicPtr` derivation would be stacked-borrows strict.
-                    let ptr_out = out.as_ptr().add(i_od + i_mc) as *mut MaybeUninit<TO>;
+                    // SAFETY: `ptr_out` is `out`'s base pointer hoisted through `AtomicPtr`
+                    // (relaxed load; `out` is never reassigned through it). Each task writes
+                    // its own `i_od + i_mc` slot (disjoint across tasks).
+                    let ptr_out = thr_out.load(Ordering::Relaxed).add(i_od + i_mc);
                     let mut acc = vacc[i_mc].clone();
                     for _ in 1..size_s0 {
                         acc = f_sum(acc, vacc[i_mc].clone());
@@ -287,10 +286,10 @@ where
                     acc = f_sum(acc, acc_before.clone());
                 }
                 unsafe {
-                    // SAFETY: each task writes the single slot `i_od` (disjoint across tasks).
-                    // NOTE: pointer derives from `as_ptr()` and is written through — see the note
-                    // above.
-                    let ptr_out_od = out.as_ptr().add(i_od) as *mut MaybeUninit<TO>;
+                    // SAFETY: `ptr_out_od` is `out`'s base pointer hoisted through `AtomicPtr`
+                    // (relaxed load; `out` is never reassigned through it). Each task writes
+                    // the single slot `i_od` (disjoint across tasks).
+                    let ptr_out_od = thr_out.load(Ordering::Relaxed).add(i_od);
                     (*ptr_out_od).write(f_out(acc));
                 }
             });

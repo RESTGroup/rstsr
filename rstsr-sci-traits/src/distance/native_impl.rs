@@ -1,4 +1,5 @@
 use super::metric::{MetricDistAPI, MetricDistWeightedAPI};
+use core::sync::atomic::{AtomicPtr, Ordering};
 use num::{Float, Zero};
 use rayon::prelude::*;
 use rstsr_core::prelude_dev::*;
@@ -186,7 +187,9 @@ where
 
     let m = shape_a[0];
     let n = shape_b[0];
-    let dists = unsafe { uninitialized_vec::<M::Out>(m * n)? };
+    let mut dists = unsafe { uninitialized_vec::<M::Out>(m * n)? };
+    // pass mutable reference in parallel region
+    let thr_dists = AtomicPtr::new(dists.as_mut_ptr());
 
     kernel.initialize(xa, la, xb, lb)?;
 
@@ -202,6 +205,10 @@ where
                 let batch_end = (i_batch + batch_size).min(m);
                 (0..n).into_par_iter().step_by(batch_size).for_each(|j_batch| {
                     let j_end = (j_batch + batch_size).min(n);
+                    // SAFETY-adjacent note: `dists_ptr` is `dists`'s base pointer hoisted
+                    // through `AtomicPtr` (relaxed load; `dists` is never reassigned
+                    // through it); each task writes the disjoint `i/j`-batch block.
+                    let dists_ptr = thr_dists.load(Ordering::Relaxed);
                     for i in i_batch..batch_end {
                         for j in j_batch..j_end {
                             let uv = (xa, xb);
@@ -215,8 +222,8 @@ where
                             let dist = kernel.distance::<{ $STRIDED }>(uv, offsets, indices, strides, size);
                             unsafe {
                                 let dist_ij = match $ORDER {
-                                    RowMajor => dists.as_ptr().add(i * n + j) as *mut _,
-                                    ColMajor => dists.as_ptr().add(i + j * m) as *mut _,
+                                    RowMajor => dists_ptr.add(i * n + j),
+                                    ColMajor => dists_ptr.add(i + j * m),
                                 };
                                 *dist_ij = dist;
                             }
@@ -270,7 +277,9 @@ where
 
     let m = shape_a[0];
     let n = shape_b[0];
-    let dists = unsafe { uninitialized_vec::<M::Out>(m * n)? };
+    let mut dists = unsafe { uninitialized_vec::<M::Out>(m * n)? };
+    // pass mutable reference in parallel region
+    let thr_dists = AtomicPtr::new(dists.as_mut_ptr());
 
     kernel.weighted_initialize(xa, la, xb, lb, weights)?;
 
@@ -287,6 +296,10 @@ where
                 let batch_end = (i_batch + batch_size).min(m);
                 (0..n).into_par_iter().step_by(batch_size).for_each(|j_batch| {
                     let j_end = (j_batch + batch_size).min(n);
+                    // SAFETY-adjacent note: `dists_ptr` is `dists`'s base pointer hoisted
+                    // through `AtomicPtr` (relaxed load; `dists` is never reassigned
+                    // through it); each task writes the disjoint `i/j`-batch block.
+                    let dists_ptr = thr_dists.load(Ordering::Relaxed);
                     for i in i_batch..batch_end {
                         for j in j_batch..j_end {
                             let uv = (xa, xb);
@@ -308,8 +321,8 @@ where
                             );
                             unsafe {
                                 let dist_ij = match $ORDER {
-                                    RowMajor => dists.as_ptr().add(i * n + j) as *mut _,
-                                    ColMajor => dists.as_ptr().add(i + j * m) as *mut _,
+                                    RowMajor => dists_ptr.add(i * n + j),
+                                    ColMajor => dists_ptr.add(i + j * m),
                                 };
                                 *dist_ij = dist;
                             }

@@ -7,7 +7,6 @@
 use crate::prelude_dev::*;
 use core::ops::{Add, Mul};
 use num::Zero;
-use rayon::prelude::*;
 
 #[allow(clippy::too_many_arguments)]
 pub fn gemm_ix2_naive_cpu_rayon<TA, TB, TC>(
@@ -35,13 +34,15 @@ where
     rstsr_assert_eq!(sc[1], sb[1], InvalidLayout)?;
     let (m, n, k) = (sc[0], sc[1], sa[1]);
 
+    // pass mutable reference in parallel region
+    let thr_c = AtomicPtr::new(c.as_mut_ptr());
     let task = || {
         (0..n).into_par_iter().for_each(|j| {
             (0..m).into_par_iter().for_each(|i| unsafe {
-                // SAFETY: each (i, j) is written by exactly one parallel task.
-                // NOTE: the pointer derives from `as_ptr()` and is written through;
-                // `AtomicPtr`/`as_mut_ptr()` derivation would be stacked-borrows strict.
-                let ptr_c = c.as_ptr().offset(lc.index_uncheck(&[i, j])) as *mut TC;
+                // SAFETY: `ptr_c` is `c`'s base pointer hoisted through `AtomicPtr`
+                // (relaxed load; `c` is never reassigned through it). Each (i, j) is
+                // written by exactly one parallel task.
+                let ptr_c = thr_c.load(Ordering::Relaxed).offset(lc.index_uncheck(&[i, j]));
                 *ptr_c = (*ptr_c).clone() * beta.clone()
                     + (0..k).fold(TC::zero(), |acc, p| {
                         let val_a = a[la.index_uncheck(&[i, p]) as usize].clone();
