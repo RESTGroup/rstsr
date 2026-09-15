@@ -41,16 +41,23 @@ pub enum DataReference<'a, C> {
     Mut(DataMut<'a, C>),
 }
 
+// Send/Sync below are tighter than a plain derive would suggest:
+// - a variant holding `&'a C` (`DataRef::TrueRef`) is `Send` only when `C: Sync`,
+// - `Arc<C>` is `Send`/`Sync` only when `C: Send + Sync`,
+// so every impl that can expose a shared reference (directly or through
+// `Arc`/`DataRef`/`DataCow`/`DataReference`) requires `C: Send + Sync`.
+// The previous looser bounds (`C: Send` only) allowed e.g.
+// `DataRef<'_, Cell<i32>>` to be sent across threads — a data race.
 unsafe impl<C> Send for DataOwned<C> where C: Send {}
-unsafe impl<C> Send for DataRef<'_, C> where C: Send {}
+unsafe impl<C> Send for DataRef<'_, C> where C: Send + Sync {}
 unsafe impl<C> Sync for DataRef<'_, C> where C: Sync {}
 unsafe impl<C> Send for DataMut<'_, C> where C: Send {}
 unsafe impl<C> Sync for DataCow<'_, C> where C: Sync {}
-unsafe impl<C> Send for DataCow<'_, C> where C: Send {}
-unsafe impl<C> Send for DataArc<C> where C: Send {}
-unsafe impl<C> Sync for DataArc<C> where C: Sync {}
-unsafe impl<C> Send for DataReference<'_, C> where C: Send {}
-unsafe impl<C> Sync for DataReference<'_, C> where C: Sync {}
+unsafe impl<C> Send for DataCow<'_, C> where C: Send + Sync {}
+unsafe impl<C> Send for DataArc<C> where C: Send + Sync {}
+unsafe impl<C> Sync for DataArc<C> where C: Send + Sync {}
+unsafe impl<C> Send for DataReference<'_, C> where C: Send + Sync {}
+unsafe impl<C> Sync for DataReference<'_, C> where C: Send + Sync {}
 
 /* #endregion */
 

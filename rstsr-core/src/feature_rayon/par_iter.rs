@@ -23,7 +23,9 @@ where
 impl<'a, T, B> IntoParallelIterator for IterTensor<'a, T, B>
 where
     T: Send + Sync,
-    B::Raw: Send,
+    // the iterator internally holds `DataRef<'a, B::Raw>` / `DataMut<'a, B::Raw>`;
+    // sending it to other threads requires the shared data to be `Sync` as well
+    B::Raw: Send + Sync,
     B: DeviceAPI<T> + Send,
 {
     type Item = <IterTensor<'a, T, B> as Iterator>::Item;

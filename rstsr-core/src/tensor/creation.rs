@@ -1049,7 +1049,10 @@ where
 
     fn full_f(self) -> Result<Self::Out> {
         let (layout, fill, device) = self;
-        let idx_max = layout.size();
+        // allocate by layout bounds, not `size()`: a user-provided layout may have
+        // non-zero offset or negative strides, so the addressable upper bound
+        // (`bounds_index().1`) can exceed the element count (same as `empty`/`zeros`/`ones`)
+        let (_, idx_max) = layout.bounds_index()?;
         let storage = device.full_impl(idx_max, fill)?;
         unsafe { Ok(Tensor::new_unchecked(storage, layout.into_dim()?)) }
     }
@@ -3271,6 +3274,31 @@ fn playground() {
 mod test {
     use super::*;
     use num::complex::Complex32;
+
+    #[test]
+    fn test_full_with_offset_layout() {
+        // Regression: `full` used to allocate `layout.size()` elements while
+        // the provided layout could address up to `bounds_index().1`, so a
+        // layout with non-zero offset addressed storage out of its bounds.
+        let layout = Layout::new(vec![3], vec![1], 100).unwrap();
+        let a: Tensor<i32, _> = full((layout, 7));
+        assert_eq!(a.shape(), &[3]);
+        assert_eq!(a.to_vec(), vec![7, 7, 7]);
+        // storage must cover the layout's upper bound (offset 100 + 3 elements)
+        let (idx_min, idx_max) = a.layout().bounds_index().unwrap();
+        assert_eq!((idx_min, idx_max), (100, 103));
+        assert!(a.storage().len() >= idx_max, "storage smaller than layout upper bound");
+    }
+
+    #[test]
+    fn test_full_with_negative_stride_layout() {
+        // same class of bug: negative strides raise the required upper bound
+        let layout = Layout::new(vec![3], vec![-1], 3).unwrap();
+        let a: Tensor<i32, _> = full((layout, 2));
+        assert_eq!(a.shape(), &[3]);
+        assert_eq!(a.to_vec(), vec![2, 2, 2]);
+        assert!(a.storage().len() >= 4);
+    }
 
     #[test]
     fn playground() {

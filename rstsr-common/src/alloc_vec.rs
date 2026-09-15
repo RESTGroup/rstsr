@@ -88,7 +88,14 @@ pub unsafe fn aligned_uninitialized_vec<T, const N: usize>(size: usize, alignmen
         return unaligned_uninitialized_vec(size);
     } else {
         let sizeof = core::mem::size_of::<T>();
-        let pointer = aligned_alloc(size * sizeof, alignment)?;
+        // byte count must be overflow-checked: a wrapping `size * sizeof` would
+        // allocate a (possibly tiny) buffer and then build a `Vec` claiming
+        // `size` elements — out-of-bounds from the first use
+        let numbytes = match size.checked_mul(sizeof) {
+            Some(numbytes) => numbytes,
+            None => rstsr_raise!(RuntimeError, "Allocation failed (size * size_of::<T>() overflows usize)")?,
+        };
+        let pointer = aligned_alloc(numbytes, alignment)?;
         if let Some(pointer) = pointer {
             let mut v = Vec::from_raw_parts(pointer.as_ptr() as *mut T, size, size);
             unsafe { v.set_len(size) };
@@ -96,5 +103,20 @@ pub unsafe fn aligned_uninitialized_vec<T, const N: usize>(size: usize, alignmen
         } else {
             rstsr_raise!(RuntimeError, "Allocation failed (probably due to out-of-memory)")?
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_aligned_alloc_overflow() {
+        // Regression: `size * size_of::<T>()` used to wrap in release, so an
+        // absurd element count produced a tiny allocation reinterpreted as a
+        // huge `Vec` (out-of-bounds on first use). It must now be an error.
+        let size = usize::MAX / 4 + 1; // * 8 (u64) overflows usize
+        let r = unsafe { aligned_uninitialized_vec::<u64, 128>(size, 64) };
+        assert!(r.is_err());
     }
 }
