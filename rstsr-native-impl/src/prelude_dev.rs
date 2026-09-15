@@ -1,6 +1,9 @@
 pub(crate) use rstsr_common::prelude_dev::*;
 pub(crate) use rstsr_dtype_traits::DTypeCastAPI;
 
+#[cfg(feature = "rayon")]
+pub use rayon::ThreadPool;
+
 pub use crate::cpu_serial::adv_indexing::*;
 pub use crate::cpu_serial::assignment::*;
 pub use crate::cpu_serial::creation::*;
