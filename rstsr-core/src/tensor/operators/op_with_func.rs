@@ -39,6 +39,8 @@ where
     rstsr_assert_eq!(lc_b, *lc, InvalidLayout)?;
     // op provided by device
     let device = c.device().clone();
+    // SAFETY: `Vec<TC>` -> `Vec<MaybeUninit<TC>>` reinterpretation (identical
+    // layout); `c` is a writable output buffer.
     let c_raw_mut = unsafe {
         transmute::<&mut <B as DeviceRawAPI<TC>>::Raw, &mut <B as DeviceRawAPI<MaybeUninit<TC>>>::Raw>(c.raw_mut())
     };
@@ -81,6 +83,8 @@ where
     // add provided by device
     device.op_mutc_refa_refb_func(storage_c.raw_mut(), &lc, a.raw(), &la_b, b.raw(), &lb_b, f)?;
     // return tensor
+    // SAFETY: `op_mutc_refa_refb_func` above wrote every element of `lc`, covering
+    // the fresh `storage_c` exactly.
     let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
     Tensor::new_f(storage_c, lc)
 }
@@ -112,6 +116,8 @@ where
     rstsr_assert_eq!(la_b, *la, InvalidLayout)?;
     // op provided by device
     let device = a.device().clone();
+    // SAFETY: `Vec<TA>` -> `Vec<MaybeUninit<TA>>` reinterpretation (identical
+    // layout); `a` is a writable buffer written in place.
     let a_raw_mut = unsafe {
         transmute::<&mut <B as DeviceRawAPI<TA>>::Raw, &mut <B as DeviceRawAPI<MaybeUninit<TA>>>::Raw>(a.raw_mut())
     };
@@ -128,6 +134,8 @@ where
     let mut a = a.view_mut();
     let la = a.layout().clone();
     let device = a.device().clone();
+    // SAFETY: `Vec<TA>` -> `Vec<MaybeUninit<TA>>` reinterpretation (identical
+    // layout); `a` is a writable buffer written in place.
     let a_raw_mut = unsafe {
         transmute::<&mut <B as DeviceRawAPI<T>>::Raw, &mut <B as DeviceRawAPI<MaybeUninit<T>>>::Raw>(a.raw_mut())
     };

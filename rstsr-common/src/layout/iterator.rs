@@ -78,10 +78,10 @@ where
         let index_start = layout.new_shape();
         let index_end = match iter_end {
             0 => index_start.clone(),
-            _ => unsafe { shape.unravel_index_f(iter_end) },
+            _ => shape.unravel_index_f(iter_end),
         };
         let offset_start = layout.offset() as isize;
-        let offset_end = unsafe { layout.index_uncheck(index_end.as_ref()) };
+        let offset_end = layout.index_uncheck(index_end.as_ref());
 
         return Ok(Self { layout, index_start, iter_start, offset_start, index_end, iter_end, offset_end });
     }
@@ -90,8 +90,8 @@ where
         let Self { layout, index_start, iter_start, offset_start, index_end, iter_end, offset_end } = self.clone();
         let shape = layout.shape();
         let iter_ins = iter_start + index;
-        let index_ins = unsafe { shape.unravel_index_f(iter_ins) };
-        let offset_ins = unsafe { layout.index_uncheck(index_ins.as_ref()) };
+        let index_ins = shape.unravel_index_f(iter_ins);
+        let offset_ins = layout.index_uncheck(index_ins.as_ref());
         let split_lhs = Self {
             layout: layout.clone(),
             index_start,
@@ -401,10 +401,10 @@ where
         let index_start = layout.new_shape();
         let index_end = match iter_end {
             0 => index_start.clone(),
-            _ => unsafe { shape.unravel_index_c(iter_end) },
+            _ => shape.unravel_index_c(iter_end),
         };
         let offset_start = layout.offset() as isize;
-        let offset_end = unsafe { layout.index_uncheck(index_end.as_ref()) };
+        let offset_end = layout.index_uncheck(index_end.as_ref());
 
         return Ok(Self { layout, index_start, iter_start, offset_start, index_end, iter_end, offset_end });
     }
@@ -413,8 +413,8 @@ where
         let Self { layout, index_start, iter_start, offset_start, index_end, iter_end, offset_end } = self.clone();
         let shape = layout.shape();
         let iter_ins = iter_start + index;
-        let index_ins = unsafe { shape.unravel_index_c(iter_ins) };
-        let offset_ins = unsafe { layout.index_uncheck(index_ins.as_ref()) };
+        let index_ins = shape.unravel_index_c(iter_ins);
+        let offset_ins = layout.index_uncheck(index_ins.as_ref());
         let split_lhs = Self {
             layout: layout.clone(),
             index_start,
@@ -1088,7 +1088,7 @@ mod test_col_major {
         let layout = Layout::new([10, 10, 10], [10, 1, 100], 0).unwrap();
         // np.array(np.nditer(a, order="C"))
         let layout_trans = translate_to_col_major_unary(&layout, Order::C).unwrap();
-        println!("{:?}", unsafe { layout.shape().unravel_index_f(100) });
+        println!("{:?}", layout.shape().unravel_index_f(100));
         let iter = IterLayoutColMajor::new(&layout_trans).unwrap();
         let vec_next = iter.collect::<Vec<_>>();
         let iter = IterLayoutColMajor::new(&layout_trans).unwrap();

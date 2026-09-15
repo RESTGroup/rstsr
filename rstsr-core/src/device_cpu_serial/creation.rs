@@ -5,6 +5,8 @@ impl<T> DeviceCreationAnyAPI<T> for DeviceCpuSerial
 where
     Self: DeviceRawAPI<T, Raw = Vec<T>> + DeviceRawAPI<MaybeUninit<T>, Raw = Vec<MaybeUninit<T>>>,
 {
+    // Device trait contract: the returned storage is uninitialized; callers must
+    // initialize every element before reading it (all callers in this crate do).
     unsafe fn empty_impl(&self, len: usize) -> Result<Storage<DataOwned<Vec<T>>, T, DeviceCpuSerial>> {
         let raw = uninitialized_vec(len)?;
         Ok(Storage::new(raw.into(), self.clone()))
@@ -33,6 +35,8 @@ where
     where
         Self: DeviceRawAPI<MaybeUninit<T>>,
     {
+        // SAFETY: `Vec<MaybeUninit<T>>` is exactly the uninitialized-memory use case;
+        // no validity requirement on the contents yet.
         let raw = unsafe { uninitialized_vec(len) }?;
         Ok(Storage::new(raw.into(), self.clone()))
     }
@@ -46,6 +50,8 @@ where
         let (data, device) = storage.into_raw_parts();
         let vec = data.into_raw();
         // transmute `Vec<MaybeUninit<T>>` to `Vec<T>`
+        // SAFETY: `Vec<MaybeUninit<T>>` -> `Vec<T>` has identical layout; the trait
+        // contract requires every element to have been initialized by the caller.
         let vec = core::mem::transmute::<Vec<MaybeUninit<T>>, Vec<T>>(vec);
         let data = vec.into();
         Ok(Storage::new(data, device))

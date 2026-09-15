@@ -23,6 +23,8 @@ where
 }
 
 #[inline]
+// Precondition (see `pack_tri_cpu_serial`): shapes are pre-validated
+// ((n, n) vs n(n+1)/2 packed); loops keep `i, j < n`.
 pub fn inner_pack_tril_general<T>(a: &mut [MaybeUninit<T>], la: &Layout<Ix1>, b: &[T], lb: &Layout<Ix2>, n: usize)
 where
     T: Clone,
@@ -30,8 +32,8 @@ where
     let mut idx_a = 0;
     for i in 0..n {
         for j in 0..=i {
-            let loc_b = unsafe { lb.index_uncheck(&[i, j]) } as usize;
-            let loc_a = unsafe { la.index_uncheck(&[idx_a]) } as usize;
+            let loc_b = lb.index_uncheck(&[i, j]) as usize;
+            let loc_a = la.index_uncheck(&[idx_a]) as usize;
             a[loc_a].write(b[loc_b].clone());
             idx_a += 1;
         }
@@ -55,6 +57,8 @@ where
 }
 
 #[inline]
+// Same precondition as `inner_pack_tril_general` above: validated shapes,
+// `i, j < n`.
 pub fn inner_pack_triu_general<T>(a: &mut [MaybeUninit<T>], la: &Layout<Ix1>, b: &[T], lb: &Layout<Ix2>, n: usize)
 where
     T: Clone,
@@ -62,8 +66,8 @@ where
     let mut idx_a = 0;
     for i in 0..n {
         for j in i..n {
-            let loc_b = unsafe { lb.index_uncheck(&[i, j]) } as usize;
-            let loc_a = unsafe { la.index_uncheck(&[idx_a]) } as usize;
+            let loc_b = lb.index_uncheck(&[i, j]) as usize;
+            let loc_a = la.index_uncheck(&[idx_a]) as usize;
             a[loc_a].write(b[loc_b].clone());
             idx_a += 1;
         }
@@ -116,6 +120,10 @@ where
                 let mut lb_inner = lb_inner.to_dim::<Ix2>()?;
                 for (offset_a, offset_b) in izip!(la_rest_iter, lb_rest_iter) {
                     unsafe {
+                        // SAFETY: `offset_a`/`offset_b` come from the rest-layout iterators over the
+                        // validated layouts; inner layout + offset addresses only in-bounds elements.
+                        // The `unsafe` block is only needed because `set_offset` is an unsafe fn —
+                        // it performs no pointer access.
                         la_inner.set_offset(offset_a);
                         lb_inner.set_offset(offset_b);
                     }
@@ -134,6 +142,10 @@ where
                 let mut lb_inner = lb_inner.to_dim::<Ix2>()?;
                 for (offset_a, offset_b) in izip!(la_rest_iter, lb_rest_iter) {
                     unsafe {
+                        // SAFETY: `offset_a`/`offset_b` come from the rest-layout iterators over the
+                        // validated layouts; inner layout + offset addresses only in-bounds elements.
+                        // The `unsafe` block is only needed because `set_offset` is an unsafe fn —
+                        // it performs no pointer access.
                         la_inner.set_offset(offset_a);
                         lb_inner.set_offset(offset_b);
                     }
@@ -216,6 +228,8 @@ pub fn inner_unpack_tril_c_contig<T>(
 }
 
 #[inline]
+// Precondition (see `unpack_tri_cpu_serial`): shapes are pre-validated
+// (n(n+1)/2 packed vs (n, n)); loops keep `i, j < n`.
 pub fn inner_unpack_tril_general<T>(
     a: &mut [MaybeUninit<T>],
     la: &Layout<Ix2>,
@@ -231,9 +245,9 @@ pub fn inner_unpack_tril_general<T>(
         FlagSymm::Sy => {
             for i in 0..n {
                 for j in 0..=i {
-                    let loc_b = unsafe { lb.index_uncheck(&[idx_b]) } as usize;
-                    let loc_a_ij = unsafe { la.index_uncheck(&[i, j]) } as usize;
-                    let loc_a_ji = unsafe { la.index_uncheck(&[j, i]) } as usize;
+                    let loc_b = lb.index_uncheck(&[idx_b]) as usize;
+                    let loc_a_ij = la.index_uncheck(&[i, j]) as usize;
+                    let loc_a_ji = la.index_uncheck(&[j, i]) as usize;
                     a[loc_a_ij].write(b[loc_b]);
                     a[loc_a_ji].write(b[loc_b]);
                     idx_b += 1;
@@ -243,9 +257,9 @@ pub fn inner_unpack_tril_general<T>(
         FlagSymm::He => {
             for i in 0..n {
                 for j in 0..=i {
-                    let loc_b = unsafe { lb.index_uncheck(&[idx_b]) } as usize;
-                    let loc_a_ij = unsafe { la.index_uncheck(&[i, j]) } as usize;
-                    let loc_a_ji = unsafe { la.index_uncheck(&[j, i]) } as usize;
+                    let loc_b = lb.index_uncheck(&[idx_b]) as usize;
+                    let loc_a_ij = la.index_uncheck(&[i, j]) as usize;
+                    let loc_a_ji = la.index_uncheck(&[j, i]) as usize;
                     a[loc_a_ij].write(b[loc_b]);
                     a[loc_a_ji].write(b[loc_b].conj());
                     idx_b += 1;
@@ -255,14 +269,14 @@ pub fn inner_unpack_tril_general<T>(
         FlagSymm::Ay => {
             for i in 0..n {
                 for j in 0..i {
-                    let loc_b = unsafe { lb.index_uncheck(&[idx_b]) } as usize;
-                    let loc_a_ij = unsafe { la.index_uncheck(&[i, j]) } as usize;
-                    let loc_a_ji = unsafe { la.index_uncheck(&[j, i]) } as usize;
+                    let loc_b = lb.index_uncheck(&[idx_b]) as usize;
+                    let loc_a_ij = la.index_uncheck(&[i, j]) as usize;
+                    let loc_a_ji = la.index_uncheck(&[j, i]) as usize;
                     a[loc_a_ij].write(b[loc_b]);
                     a[loc_a_ji].write(-b[loc_b]);
                     idx_b += 1;
                 }
-                let loc_a_ii = unsafe { la.index_uncheck(&[i, i]) } as usize;
+                let loc_a_ii = la.index_uncheck(&[i, i]) as usize;
                 a[loc_a_ii].write(T::zero());
                 idx_b += 1;
             }
@@ -270,14 +284,14 @@ pub fn inner_unpack_tril_general<T>(
         FlagSymm::Ah => {
             for i in 0..n {
                 for j in 0..i {
-                    let loc_b = unsafe { lb.index_uncheck(&[idx_b]) } as usize;
-                    let loc_a_ij = unsafe { la.index_uncheck(&[i, j]) } as usize;
-                    let loc_a_ji = unsafe { la.index_uncheck(&[j, i]) } as usize;
+                    let loc_b = lb.index_uncheck(&[idx_b]) as usize;
+                    let loc_a_ij = la.index_uncheck(&[i, j]) as usize;
+                    let loc_a_ji = la.index_uncheck(&[j, i]) as usize;
                     a[loc_a_ij].write(b[loc_b]);
                     a[loc_a_ji].write(-b[loc_b].conj());
                     idx_b += 1;
                 }
-                let loc_a_ii = unsafe { la.index_uncheck(&[i, i]) } as usize;
+                let loc_a_ii = la.index_uncheck(&[i, i]) as usize;
                 a[loc_a_ii].write(T::zero());
                 idx_b += 1;
             }
@@ -285,8 +299,8 @@ pub fn inner_unpack_tril_general<T>(
         FlagSymm::N => {
             for i in 0..n {
                 for j in 0..=i {
-                    let loc_b = unsafe { lb.index_uncheck(&[idx_b]) } as usize;
-                    let loc_a_ij = unsafe { la.index_uncheck(&[i, j]) } as usize;
+                    let loc_b = lb.index_uncheck(&[idx_b]) as usize;
+                    let loc_a_ij = la.index_uncheck(&[i, j]) as usize;
                     a[loc_a_ij].write(b[loc_b]);
                     idx_b += 1;
                 }
@@ -362,6 +376,7 @@ pub fn inner_unpack_triu_c_contig<T>(
 }
 
 #[inline]
+// Same precondition as `inner_unpack_tril_general` above.
 pub fn inner_unpack_triu_general<T>(
     a: &mut [MaybeUninit<T>],
     la: &Layout<Ix2>,
@@ -377,9 +392,9 @@ pub fn inner_unpack_triu_general<T>(
         FlagSymm::Sy => {
             for i in 0..n {
                 for j in i..n {
-                    let loc_b = unsafe { lb.index_uncheck(&[idx_b]) } as usize;
-                    let loc_a_ij = unsafe { la.index_uncheck(&[i, j]) } as usize;
-                    let loc_a_ji = unsafe { la.index_uncheck(&[j, i]) } as usize;
+                    let loc_b = lb.index_uncheck(&[idx_b]) as usize;
+                    let loc_a_ij = la.index_uncheck(&[i, j]) as usize;
+                    let loc_a_ji = la.index_uncheck(&[j, i]) as usize;
                     a[loc_a_ij].write(b[loc_b]);
                     a[loc_a_ji].write(b[loc_b]);
                     idx_b += 1;
@@ -389,9 +404,9 @@ pub fn inner_unpack_triu_general<T>(
         FlagSymm::He => {
             for i in 0..n {
                 for j in i..n {
-                    let loc_b = unsafe { lb.index_uncheck(&[idx_b]) } as usize;
-                    let loc_a_ij = unsafe { la.index_uncheck(&[i, j]) } as usize;
-                    let loc_a_ji = unsafe { la.index_uncheck(&[j, i]) } as usize;
+                    let loc_b = lb.index_uncheck(&[idx_b]) as usize;
+                    let loc_a_ij = la.index_uncheck(&[i, j]) as usize;
+                    let loc_a_ji = la.index_uncheck(&[j, i]) as usize;
                     a[loc_a_ij].write(b[loc_b]);
                     a[loc_a_ji].write(b[loc_b].conj());
                     idx_b += 1;
@@ -400,13 +415,13 @@ pub fn inner_unpack_triu_general<T>(
         },
         FlagSymm::Ay => {
             for i in 0..n {
-                let loc_a_ii = unsafe { la.index_uncheck(&[i, i]) } as usize;
+                let loc_a_ii = la.index_uncheck(&[i, i]) as usize;
                 a[loc_a_ii].write(T::zero());
                 idx_b += 1;
                 for j in (i + 1)..n {
-                    let loc_b = unsafe { lb.index_uncheck(&[idx_b]) } as usize;
-                    let loc_a_ij = unsafe { la.index_uncheck(&[i, j]) } as usize;
-                    let loc_a_ji = unsafe { la.index_uncheck(&[j, i]) } as usize;
+                    let loc_b = lb.index_uncheck(&[idx_b]) as usize;
+                    let loc_a_ij = la.index_uncheck(&[i, j]) as usize;
+                    let loc_a_ji = la.index_uncheck(&[j, i]) as usize;
                     a[loc_a_ij].write(b[loc_b]);
                     a[loc_a_ji].write(-b[loc_b]);
                     idx_b += 1;
@@ -415,13 +430,13 @@ pub fn inner_unpack_triu_general<T>(
         },
         FlagSymm::Ah => {
             for i in 0..n {
-                let loc_a_ii = unsafe { la.index_uncheck(&[i, i]) } as usize;
+                let loc_a_ii = la.index_uncheck(&[i, i]) as usize;
                 a[loc_a_ii].write(T::zero());
                 idx_b += 1;
                 for j in (i + 1)..n {
-                    let loc_b = unsafe { lb.index_uncheck(&[idx_b]) } as usize;
-                    let loc_a_ij = unsafe { la.index_uncheck(&[i, j]) } as usize;
-                    let loc_a_ji = unsafe { la.index_uncheck(&[j, i]) } as usize;
+                    let loc_b = lb.index_uncheck(&[idx_b]) as usize;
+                    let loc_a_ij = la.index_uncheck(&[i, j]) as usize;
+                    let loc_a_ji = la.index_uncheck(&[j, i]) as usize;
                     a[loc_a_ij].write(b[loc_b]);
                     a[loc_a_ji].write(-b[loc_b].conj());
                     idx_b += 1;
@@ -431,8 +446,8 @@ pub fn inner_unpack_triu_general<T>(
         FlagSymm::N => {
             for i in 0..n {
                 for j in i..n {
-                    let loc_b = unsafe { lb.index_uncheck(&[idx_b]) } as usize;
-                    let loc_a_ij = unsafe { la.index_uncheck(&[i, j]) } as usize;
+                    let loc_b = lb.index_uncheck(&[idx_b]) as usize;
+                    let loc_a_ij = la.index_uncheck(&[i, j]) as usize;
                     a[loc_a_ij].write(b[loc_b]);
                     idx_b += 1;
                 }
@@ -488,6 +503,10 @@ where
                 let mut lb_inner = lb_inner.to_dim::<Ix1>()?;
                 for (offset_a, offset_b) in izip!(la_rest_iter, lb_rest_iter) {
                     unsafe {
+                        // SAFETY: `offset_a`/`offset_b` come from the rest-layout iterators over the
+                        // validated layouts; inner layout + offset addresses only in-bounds elements.
+                        // The `unsafe` block is only needed because `set_offset` is an unsafe fn —
+                        // it performs no pointer access.
                         la_inner.set_offset(offset_a);
                         lb_inner.set_offset(offset_b);
                     }
@@ -506,6 +525,10 @@ where
                 let mut lb_inner = lb_inner.to_dim::<Ix1>()?;
                 for (offset_a, offset_b) in izip!(la_rest_iter, lb_rest_iter) {
                     unsafe {
+                        // SAFETY: `offset_a`/`offset_b` come from the rest-layout iterators over the
+                        // validated layouts; inner layout + offset addresses only in-bounds elements.
+                        // The `unsafe` block is only needed because `set_offset` is an unsafe fn —
+                        // it performs no pointer access.
                         la_inner.set_offset(offset_a);
                         lb_inner.set_offset(offset_b);
                     }
@@ -543,9 +566,7 @@ where
     for i in 0..nrow {
         let j_start = (i as isize + k + 1).max(0) as usize;
         for j in j_start..ncol {
-            unsafe {
-                raw[layout.index_uncheck(&[i, j]) as usize] = T::zero();
-            }
+            raw[layout.index_uncheck(&[i, j]) as usize] = T::zero();
         }
     }
     Ok(())
@@ -577,9 +598,7 @@ where
     for i in 0..nrow {
         let j_end = (i as isize + k).max(0) as usize;
         for j in 0..j_end {
-            unsafe {
-                raw[layout.index_uncheck(&[i, j]) as usize] = T::zero();
-            }
+            raw[layout.index_uncheck(&[i, j]) as usize] = T::zero();
         }
     }
     Ok(())

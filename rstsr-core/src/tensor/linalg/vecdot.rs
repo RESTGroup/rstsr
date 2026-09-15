@@ -241,6 +241,8 @@ where
     };
     let mut storage_c = device.uninit_impl(layout_c.bounds_index()?.1)?;
     device.vecdot(storage_c.raw_mut(), &layout_c, a.raw(), a.layout(), b.raw(), b.layout(), &axes_a, &axes_b)?;
+    // SAFETY: `device.vecdot` above wrote every element of `layout_c`, covering
+    // the fresh storage exactly.
     unsafe { Tensor::new_f(B::assume_init_impl(storage_c)?, layout_c) }
 }
 
@@ -323,6 +325,8 @@ where
     rstsr_assert_eq!(shape_c_expect, shape_c.as_ref(), InvalidLayout, "incompatible shapes in vecdot")?;
 
     let c_layout = c.layout().clone();
+    // SAFETY: `Vec<TC>` -> `Vec<MaybeUninit<TC>>` reinterpretation (identical
+    // layout); `c` is an initialized, writable output buffer.
     let c_raw_mut = unsafe {
         transmute::<&mut <B as DeviceRawAPI<TC>>::Raw, &mut <B as DeviceRawAPI<MaybeUninit<TC>>>::Raw>(c.raw_mut())
     };

@@ -40,6 +40,9 @@ where
     rstsr_assert_eq!(sa[1], sb[0], InvalidLayout)?;
     rstsr_assert_eq!(sc[1], sb[1], InvalidLayout)?;
 
+    // SAFETY: shapes are asserted above and layouts are validated by the caller
+    // (tensor-level checks); the matrices view the slices at `offset` with the
+    // layouts' strides, so element access stays within the slice allocations.
     let faer_a = unsafe {
         MatRef::from_raw_parts(
             a.as_ptr().add(la.offset()) as *const T,
@@ -49,6 +52,7 @@ where
             la.stride()[1],
         )
     };
+    // SAFETY: see `faer_a` above — same validated-layout argument.
     let faer_b = unsafe {
         MatRef::from_raw_parts(
             b.as_ptr().add(lb.offset()) as *const T,
@@ -58,6 +62,8 @@ where
             lb.stride()[1],
         )
     };
+    // SAFETY: see `faer_a` above; `MatMut` writes stay within `c`'s allocation
+    // (validated layout, asserted shapes).
     let faer_c = unsafe {
         MatMut::from_raw_parts_mut(
             c.as_mut_ptr().add(lc.offset()) as *mut T,
@@ -80,11 +86,14 @@ where
     } else {
         if beta != T::one() {
             // perform inplace multiplication
+            // SAFETY: identical layout reinterpretation; `c` is an initialized buffer
+            // scaled in place by the op below.
             let c = unsafe { transmute::<&mut [T], &mut [MaybeUninit<T>]>(c) };
             op_muta_numb_func_cpu_rayon(
                 c,
                 lc,
                 beta,
+                // SAFETY: `vc` is an initialized element of `c` being scaled in place.
                 &mut |vc, vb| unsafe { *vc.assume_init_mut() *= vb.clone() },
                 pool,
             )?;
@@ -135,6 +144,8 @@ where
             la.stride()[1],
         )
     };
+    // SAFETY: transpose view of the same validated layout (strides swapped);
+    // element access stays within the slice allocation.
     let faer_at = unsafe {
         MatRef::from_raw_parts(
             a.as_ptr().add(la.offset()) as *const T,
@@ -174,11 +185,14 @@ where
     } else {
         if beta != T::one() {
             // perform inplace multiplication
+            // SAFETY: identical layout reinterpretation; `c` is an initialized buffer
+            // scaled in place by the op below.
             let c = unsafe { transmute::<&mut [T], &mut [MaybeUninit<T>]>(c) };
             op_muta_numb_func_cpu_rayon(
                 c,
                 lc,
                 beta,
+                // SAFETY: `vc` is an initialized element of `c` being scaled in place.
                 &mut |vc, vb| unsafe { *vc.assume_init_mut() *= vb.clone() },
                 pool,
             )?;
@@ -227,8 +241,8 @@ where
         if n < PARALLEL_SWITCH || nthreads == 1 {
             for i in 0..n {
                 for j in 0..i {
-                    let idx_ij = unsafe { lc.index_uncheck(&[i, j]) as usize };
-                    let idx_ji = unsafe { lc.index_uncheck(&[j, i]) as usize };
+                    let idx_ij = lc.index_uncheck(&[i, j]) as usize;
+                    let idx_ji = lc.index_uncheck(&[j, i]) as usize;
                     c[idx_ji] = c[idx_ij].clone();
                 }
             }
@@ -236,6 +250,10 @@ where
             let pool = rayon::ThreadPoolBuilder::new().num_threads(nthreads).build().unwrap();
             pool.install(|| {
                 (0..n).into_par_iter().for_each(|i| {
+                    // SAFETY: the symmetrize writes touch disjoint (i, j)/(j, i) pairs.
+                    // NOTE: the pointer is derived from `as_ptr()` and written through;
+                    // disjointness makes this correct in practice, but derive via
+                    // `as_mut_ptr()` for stacked-borrows strictness.
                     (0..i).for_each(|j| unsafe {
                         let idx_ij = lc.index_uncheck(&[i, j]) as usize;
                         let idx_ji = lc.index_uncheck(&[j, i]) as usize;

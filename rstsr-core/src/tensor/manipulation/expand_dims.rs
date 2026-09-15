@@ -21,6 +21,8 @@ where
     for axis in axes {
         layout = layout.dim_insert(axis)?;
     }
+    // SAFETY: `dim_insert` adds a size-1 axis to the validated layout — same
+    // elements, same storage.
     unsafe { Ok(TensorBase::new_unchecked(storage, layout)) }
 }
 

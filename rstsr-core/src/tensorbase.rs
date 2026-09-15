@@ -333,6 +333,9 @@ where
 
 /* #endregion */
 
+// SAFETY: `TensorBase` is a plain struct (storage + layout, no interior
+// mutability beyond what `R` carries); with `R: Send` the whole struct is
+// `Send` — equivalent to the derived impl.
 unsafe impl<R, D> Send for TensorBase<R, D>
 where
     D: DimAPI,
@@ -340,6 +343,8 @@ where
 {
 }
 
+// SAFETY: plain struct; with `R: Sync` the whole struct is `Sync` — equivalent
+// to the derived impl.
 unsafe impl<R, D> Sync for TensorBase<R, D>
 where
     D: DimAPI,

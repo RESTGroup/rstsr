@@ -151,6 +151,8 @@ where
             let layout_diag = layout.diagonal(Some(offset), Some(0), Some(1))?;
             let size = layout_diag.size();
             let device = tensor.device();
+            // SAFETY: fresh `empty_f` storage of `size` elements; the result is read only
+            // through the contiguous `[size]` layout assigned below.
             let mut result = unsafe { empty_f(([size], device))? };
             let layout_result = result.layout().to_dim()?;
             device.assign(result.raw_mut(), &layout_result, tensor.raw(), &layout_diag)?;
@@ -771,6 +773,8 @@ where
         let new_shape = shape_other;
 
         // create the result tensor
+        // SAFETY: fresh `empty_f` storage sized to `new_shape`; each slice of the
+        // result is assigned from an input tensor below before it is exposed.
         let mut result = unsafe { empty_f((new_shape, &device))? };
 
         // assign each tensor to the result tensor
@@ -1474,6 +1478,9 @@ where
                 let (storage, layout) = view.into_raw_parts();
                 let layout = layout.dim_select(axis as isize, i as isize)?;
                 // safety: transmute for lifetime annotation
+                // SAFETY: the transmute only rewrites the storage's lifetime (the view was
+                // created from data alive for `'a` in this scope); `dim_select` yields an
+                // in-bounds single-position layout, so `new_unchecked` is bounds-consistent.
                 let storage = unsafe { transmute::<Storage<_, T, B>, Storage<_, T, B>>(storage) };
                 unsafe { Ok(TensorBase::new_unchecked(storage, layout)) }
             })

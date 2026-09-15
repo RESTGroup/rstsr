@@ -22,6 +22,9 @@ where
     let (data, layout) = tensor.into_raw_parts();
     let index = index.try_into().map_err(Into::into)?;
     let layout = layout.dim_slice(index.as_ref())?;
+    // SAFETY: `dim_slice` narrows the existing (validated) layout with checked
+    // slices/selections; reachable bounds only shrink, so the result stays within
+    // the same storage.
     return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
 }
 
@@ -367,6 +370,8 @@ where
     let (data, layout) = tensor.into_raw_parts();
     let DiagonalArgs { offset, axis1, axis2 } = diagonal_args.into();
     let layout = layout.diagonal(offset, axis1, axis2)?;
+    // SAFETY: `layout.diagonal` addresses a subset of the original elements: the
+    // diagonal offset and length are clamped to the two axes' shapes above.
     return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
 }
 
@@ -558,6 +563,8 @@ where
     let (data, layout) = tensor.into_raw_parts();
     let DiagonalArgs { offset, axis1, axis2 } = diagonal_args.into();
     let layout = layout.diagonal(offset, axis1, axis2)?;
+    // SAFETY: `layout.diagonal` addresses a subset of the original elements (see
+    // `into_diagonal_f` above); mutable form of the same argument.
     return unsafe { Ok(TensorBase::new_unchecked(data, layout)) };
 }
 
@@ -718,7 +725,9 @@ where
         I: AsRef<[usize]>,
     {
         let index = index.as_ref();
-        let i = unsafe { self.layout().index_uncheck(index) } as usize;
+        // Note the resulting offset is applied through checked `Vec` indexing
+        // downstream, so misuse panics rather than corrupting memory.
+        let i = self.layout().index_uncheck(index) as usize;
         let raw = self.raw();
         raw.index(i)
     }
@@ -745,7 +754,9 @@ where
         I: AsRef<[usize]>,
     {
         let index = index.as_ref();
-        let i = unsafe { self.layout().index_uncheck(index) } as usize;
+        // Note the resulting offset is applied through checked `Vec` indexing
+        // downstream, so misuse panics rather than corrupting memory.
+        let i = self.layout().index_uncheck(index) as usize;
         let raw = self.raw_mut();
         raw.index_mut(i)
     }

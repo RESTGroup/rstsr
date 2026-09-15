@@ -110,6 +110,9 @@ where
                 });
                 stat.rstsr_unwrap();
                 unsafe {
+                    // SAFETY: each task writes the disjoint run at `idx_c` (distinct output-layout
+                    // positions). NOTE: the pointer derives from `as_ptr()` and is written through;
+                    // derive via `AtomicPtr`/`as_mut_ptr()` for stacked-borrows strictness.
                     let c_ptr = c.as_ptr().add(idx_c) as *mut MaybeUninit<TC>;
                     (*c_ptr).write(val_c);
                 }
@@ -130,6 +133,9 @@ where
             const CHUNK: usize = 64;
             layout_col_major_dim_dispatch_par_3(lcd, lamd, lbmd, |(idx_c, idx_m_a, idx_m_b)| {
                 let slc_c = unsafe {
+                    // SAFETY: each task writes the disjoint run at `idx_c` (distinct output-layout
+                    // positions). NOTE: the pointer derives from `as_ptr()` and is written through;
+                    // derive via `AtomicPtr`/`as_mut_ptr()` for stacked-borrows strictness.
                     let c_ptr = c.as_ptr().add(idx_c) as *mut MaybeUninit<TC>;
                     core::slice::from_raw_parts_mut(c_ptr, n_contig)
                 };
@@ -165,6 +171,9 @@ where
                         acc + x.clone().ext_conj() * y.clone()
                     });
                     unsafe {
+                        // SAFETY: each task writes the disjoint run at `idx_c` (distinct output-layout
+                        // positions). NOTE: the pointer derives from `as_ptr()` and is written through;
+                        // derive via `AtomicPtr`/`as_mut_ptr()` for stacked-borrows strictness.
                         let c_ptr = c.as_ptr().add(idx_c) as *mut MaybeUninit<TC>;
                         (*c_ptr).write(val_c);
                     }
@@ -177,6 +186,9 @@ where
                     });
                     stat.rstsr_unwrap();
                     unsafe {
+                        // SAFETY: each task writes the disjoint run at `idx_c` (distinct output-layout
+                        // positions). NOTE: the pointer derives from `as_ptr()` and is written through;
+                        // derive via `AtomicPtr`/`as_mut_ptr()` for stacked-borrows strictness.
                         let c_ptr = c.as_ptr().add(idx_c) as *mut MaybeUninit<TC>;
                         (*c_ptr).write(val_c);
                     }

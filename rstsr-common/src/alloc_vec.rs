@@ -48,6 +48,8 @@ pub unsafe fn uninitialized_vec<T>(size: usize) -> Result<Vec<T>> {
 pub unsafe fn unaligned_uninitialized_vec<T>(size: usize) -> Result<Vec<T>> {
     let mut v: Vec<T> = vec![];
     v.try_reserve_exact(size)?;
+    // SAFETY: capacity >= `size` was reserved by `try_reserve_exact` above; per the
+    // # Safety contract, the caller must initialize all elements before any read.
     unsafe { v.set_len(size) };
     return Ok(v);
 }
@@ -64,6 +66,8 @@ pub fn aligned_alloc(numbytes: usize, alignment: usize) -> Result<Option<NonNull
         return Ok(None);
     }
     let layout = alloc::alloc::Layout::from_size_align(numbytes, alignment)?;
+    // SAFETY: `layout` was built from (numbytes, alignment) above; `alloc` is the
+    // corresponding GlobalAlloc call, None result = allocation failure.
     let pointer = NonNull::new(unsafe { alloc::alloc::alloc(layout) }).map(|p| p.cast::<()>());
     Ok(pointer)
 }
@@ -97,6 +101,11 @@ pub unsafe fn aligned_uninitialized_vec<T, const N: usize>(size: usize, alignmen
         };
         let pointer = aligned_alloc(numbytes, alignment)?;
         if let Some(pointer) = pointer {
+            // SAFETY: `pointer` comes from `aligned_alloc(size * size_of::<T>(), alignment)`
+            // (this very size, above), so the Vec claims exactly the allocated extent.
+            // NOTE: `alignment` (64 for `uninitialized_vec`) must also satisfy
+            // `align_of::<T>()` — fine for all numeric element types used by rstsr.
+            // Per the # Safety contract, the caller initializes all elements before reads.
             let mut v = Vec::from_raw_parts(pointer.as_ptr() as *mut T, size, size);
             unsafe { v.set_len(size) };
             return Ok(v);

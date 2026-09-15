@@ -460,7 +460,7 @@ where
         let mut norms_v = vec![T::zero(); n];
 
         norms_u.iter_mut().enumerate().for_each(|(i, norm_u)| {
-            *norm_u = (0..k).fold(T::zero(), |acc, j| unsafe {
+            *norm_u = (0..k).fold(T::zero(), |acc, j| {
                 let val = xa[la.index_uncheck(&[i, j]) as usize];
                 acc + val * val
             });
@@ -468,7 +468,7 @@ where
         });
 
         norms_v.iter_mut().enumerate().for_each(|(i, norm_v)| {
-            *norm_v = (0..k).fold(T::zero(), |acc, j| unsafe {
+            *norm_v = (0..k).fold(T::zero(), |acc, j| {
                 let val = xb[lb.index_uncheck(&[i, j]) as usize];
                 acc + val * val
             });
@@ -556,7 +556,7 @@ where
         let mut norms_v = vec![T::zero(); n];
 
         norms_u.iter_mut().enumerate().for_each(|(i, norm_u)| {
-            *norm_u = (0..k).fold(T::zero(), |acc, j| unsafe {
+            *norm_u = (0..k).fold(T::zero(), |acc, j| {
                 let val = xa[la.index_uncheck(&[i, j]) as usize];
                 acc + weights[j] * val * val
             });
@@ -564,7 +564,7 @@ where
         });
 
         norms_v.iter_mut().enumerate().for_each(|(i, norm_v)| {
-            *norm_v = (0..k).fold(T::zero(), |acc, j| unsafe {
+            *norm_v = (0..k).fold(T::zero(), |acc, j| {
                 let val = xb[lb.index_uncheck(&[i, j]) as usize];
                 acc + weights[j] * val * val
             });
@@ -661,11 +661,11 @@ where
         let mut means_v = vec![T::zero(); n];
 
         means_u.iter_mut().zip(norms_u.iter_mut()).enumerate().for_each(|(i, (mean_u, norm_u))| {
-            *mean_u = (0..k).fold(T::zero(), |acc, j| unsafe {
+            *mean_u = (0..k).fold(T::zero(), |acc, j| {
                 let val = xa[la.index_uncheck(&[i, j]) as usize];
                 acc + val
             }) / T::from_usize(k).unwrap();
-            *norm_u = (0..k).fold(T::zero(), |acc, j| unsafe {
+            *norm_u = (0..k).fold(T::zero(), |acc, j| {
                 let val = xa[la.index_uncheck(&[i, j]) as usize];
                 acc + (val - *mean_u) * (val - *mean_u)
             });
@@ -673,11 +673,11 @@ where
         });
 
         means_v.iter_mut().zip(norms_v.iter_mut()).enumerate().for_each(|(i, (mean_v, norm_v))| {
-            *mean_v = (0..k).fold(T::zero(), |acc, j| unsafe {
+            *mean_v = (0..k).fold(T::zero(), |acc, j| {
                 let val = xb[lb.index_uncheck(&[i, j]) as usize];
                 acc + val
             }) / T::from_usize(k).unwrap();
-            *norm_v = (0..k).fold(T::zero(), |acc, j| unsafe {
+            *norm_v = (0..k).fold(T::zero(), |acc, j| {
                 let val = xb[lb.index_uncheck(&[i, j]) as usize];
                 acc + (val - *mean_v) * (val - *mean_v)
             });
@@ -771,11 +771,11 @@ where
         let mut means_v = vec![T::zero(); n];
 
         means_u.iter_mut().zip(norms_u.iter_mut()).enumerate().for_each(|(i, (mean_u, norm_u))| {
-            *mean_u = (0..k).fold(T::zero(), |acc, j| unsafe {
+            *mean_u = (0..k).fold(T::zero(), |acc, j| {
                 let val = xa[la.index_uncheck(&[i, j]) as usize];
                 acc + val
             }) / T::from_usize(k).unwrap();
-            *norm_u = (0..k).fold(T::zero(), |acc, j| unsafe {
+            *norm_u = (0..k).fold(T::zero(), |acc, j| {
                 let val = xa[la.index_uncheck(&[i, j]) as usize];
                 acc + weights[j] * (val - *mean_u) * (val - *mean_u)
             });
@@ -783,11 +783,11 @@ where
         });
 
         means_v.iter_mut().zip(norms_v.iter_mut()).enumerate().for_each(|(i, (mean_v, norm_v))| {
-            *mean_v = (0..k).fold(T::zero(), |acc, j| unsafe {
+            *mean_v = (0..k).fold(T::zero(), |acc, j| {
                 let val = xb[lb.index_uncheck(&[i, j]) as usize];
                 acc + val
             }) / T::from_usize(k).unwrap();
-            *norm_v = (0..k).fold(T::zero(), |acc, j| unsafe {
+            *norm_v = (0..k).fold(T::zero(), |acc, j| {
                 let val = xb[lb.index_uncheck(&[i, j]) as usize];
                 acc + weights[j] * (val - *mean_v) * (val - *mean_v)
             });
@@ -902,14 +902,14 @@ where
         let mut sums_v = vec![T::zero(); n];
 
         sums_u.iter_mut().enumerate().for_each(|(i, sum_u)| {
-            *sum_u = (0..k).fold(T::zero(), |acc, j| unsafe {
+            *sum_u = (0..k).fold(T::zero(), |acc, j| {
                 let val = xa[la.index_uncheck(&[i, j]) as usize];
                 acc + val
             });
         });
 
         sums_v.iter_mut().enumerate().for_each(|(i, sum_v)| {
-            *sum_v = (0..k).fold(T::zero(), |acc, j| unsafe {
+            *sum_v = (0..k).fold(T::zero(), |acc, j| {
                 let val = xb[lb.index_uncheck(&[i, j]) as usize];
                 acc + val
             });

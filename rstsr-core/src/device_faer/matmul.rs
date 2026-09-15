@@ -39,6 +39,9 @@ where
         && same_type::<TA, TC>()
         && same_type::<TB, TC>()
         && unsafe {
+            // SAFETY: short-circuit `same_type` checks guarantee TA = TB = TC, so the
+            // casts are type-correct; only pointer equality and shape/stride comparison
+            // are performed — no dereference.
             let a_ptr = a.as_ptr().add(la.offset()) as *const TC;
             let b_ptr = b.as_ptr().add(lb.offset()) as *const TC;
             let equal_ptr = core::ptr::eq(a_ptr, b_ptr);
@@ -51,9 +54,13 @@ where
     macro_rules! impl_gemm_dispatch {
         ($ty: ty) => {
             if (same_type::<TA, $ty>() && same_type::<TB, $ty>() && same_type::<TC, $ty>()) {
+                // SAFETY: `TypeId` equality above proves TA = TB = TC = $ty; the reinterpreted
+                // slices have exactly the original lengths.
                 let a_slice = unsafe { from_raw_parts(a.as_ptr() as *const $ty, a.len()) };
                 let b_slice = unsafe { from_raw_parts(b.as_ptr() as *const $ty, b.len()) };
                 let c_slice = unsafe { from_raw_parts_mut(c.as_mut_ptr() as *mut $ty, c.len()) };
+                // SAFETY: `TypeId` equality above proves TC = $ty; reading through the
+                // type-correct pointer copy is valid.
                 let alpha = unsafe { *(&alpha as *const TC as *const $ty) };
                 let beta = unsafe { *(&beta as *const TC as *const $ty) };
                 if able_syrk {
@@ -158,6 +165,10 @@ where
                     let mut lb_m = lb_matmul.clone();
                     let mut lc_m = lc_matmul.clone();
                     unsafe {
+                        // SAFETY: offsets come from the rest-layout iterators over the validated
+                        // matmul config; sub-layout + offset addresses only in-bounds elements of the
+                        // slices. In the parallel branch each task writes a disjoint `lc` region (the
+                        // recreated `&mut [TC]` is used solely through that task's own offsets).
                         la_m.set_offset(ia_rest);
                         lb_m.set_offset(ib_rest);
                         lc_m.set_offset(ic_rest);
@@ -187,6 +198,7 @@ where
             let mut lb_m = lb_matmul.clone();
             let mut lc_m = lc_matmul.clone();
             unsafe {
+                // SAFETY: in-bounds offsets from the rest-layout iterators (sequential branch).
                 la_m.set_offset(ia_rest);
                 lb_m.set_offset(ib_rest);
                 lc_m.set_offset(ic_rest);

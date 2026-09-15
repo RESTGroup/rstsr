@@ -69,6 +69,9 @@ where
 
     // 1. transmute type without affecting input/output types
     #[inline]
+    // SAFETY: `TypeId` equality (checked at the call site) proves `T == U`, so the
+    // `transmute_copy` of the scalars and the final `transmute::<Vec<U>, Vec<T>>`
+    // are no-op reinterpretations of identically-typed data.
     unsafe fn transmute_accelerated<T, U>(
         start: &T,
         end: &T,

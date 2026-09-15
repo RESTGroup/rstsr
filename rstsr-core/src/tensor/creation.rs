@@ -164,6 +164,8 @@ where
         let (start, stop, step, device) = self;
         let data = device.arange_impl(start, stop, step)?;
         let layout = vec![data.len()].into();
+        // SAFETY: `layout` is the contiguous `[data.len()]` layout with offset 0 —
+        // bounds trivially match the fresh storage.
         unsafe { Ok(Tensor::new_unchecked(data, layout)) }
     }
 }
@@ -409,6 +411,8 @@ where
         let (layout, device) = self;
         let (_, idx_max) = layout.bounds_index()?;
         let storage = B::empty_impl(device, idx_max)?;
+        // SAFETY: storage was just allocated with `idx_max = bounds_index().1`
+        // elements, covering every addressable element of `layout`.
         unsafe { Ok(Tensor::new_unchecked(storage, layout.into_dim()?)) }
     }
 }
@@ -603,6 +607,8 @@ where
         let layout = layout_for_array_copy(tensor.layout(), order)?;
         let idx_max = layout.size();
         let storage = device.empty_impl(idx_max)?;
+        // SAFETY: `layout_for_array_copy` returns a fresh contiguous layout with
+        // offset 0; storage allocated with exactly `layout.size()` elements.
         unsafe { Ok(Tensor::new_unchecked(storage, layout)) }
     }
 }
@@ -827,6 +833,8 @@ where
         let mut storage = device.zeros_impl(layout.size())?;
         let layout_diag = layout.diagonal(Some(k), Some(0), Some(1))?;
         device.fill(storage.raw_mut(), &layout_diag, T::one())?;
+        // SAFETY: storage is `zeros_impl(layout.size())`; `layout` is a fresh
+        // contiguous layout of the same size, so bounds match.
         unsafe { Ok(Tensor::new_unchecked(storage, layout.into_dim()?)) }
     }
 }
@@ -1054,6 +1062,8 @@ where
         // (`bounds_index().1`) can exceed the element count (same as `empty`/`zeros`/`ones`)
         let (_, idx_max) = layout.bounds_index()?;
         let storage = device.full_impl(idx_max, fill)?;
+        // SAFETY: storage was allocated to `bounds_index().1` (see above),
+        // covering every addressable element of `layout`.
         unsafe { Ok(Tensor::new_unchecked(storage, layout.into_dim()?)) }
     }
 }
@@ -1244,6 +1254,8 @@ where
         let layout = layout_for_array_copy(tensor.layout(), order)?;
         let idx_max = layout.size();
         let storage = device.full_impl(idx_max, fill)?;
+        // SAFETY: `layout_for_array_copy` returns a fresh contiguous layout with
+        // offset 0; storage allocated with exactly `layout.size()` elements.
         unsafe { Ok(Tensor::new_unchecked(storage, layout)) }
     }
 }
@@ -1444,6 +1456,8 @@ where
         let (start, end, n, endpoint, device) = self;
         let data = B::linspace_impl(device, start, end, n, endpoint)?;
         let layout = vec![data.len()].into();
+        // SAFETY: `layout` is the contiguous `[data.len()]` layout with offset 0 —
+        // bounds trivially match the fresh storage.
         unsafe { Ok(Tensor::new_unchecked(data, layout)) }
     }
 }
@@ -1636,6 +1650,8 @@ where
         let (layout, device) = self;
         let (_, idx_max) = layout.bounds_index()?;
         let storage = device.ones_impl(idx_max)?;
+        // SAFETY: storage allocated with `bounds_index().1` elements — covers every
+        // addressable element of `layout` (same as `empty`).
         unsafe { Ok(Tensor::new_unchecked(storage, layout.into_dim()?)) }
     }
 }
@@ -1822,6 +1838,8 @@ where
         let layout = layout_for_array_copy(tensor.layout(), order)?;
         let idx_max = layout.size();
         let storage = device.ones_impl(idx_max)?;
+        // SAFETY: `layout_for_array_copy` returns a fresh contiguous layout with
+        // offset 0; storage allocated with exactly `layout.size()` elements.
         unsafe { Ok(Tensor::new_unchecked(storage, layout)) }
     }
 }
@@ -2035,6 +2053,8 @@ where
         let (layout, device) = self;
         let (_, idx_max) = layout.bounds_index()?;
         let storage = B::uninit_impl(device, idx_max)?;
+        // SAFETY: storage allocated with `bounds_index().1` elements — covers every
+        // addressable element of `layout` (same as `empty`).
         unsafe { Ok(Tensor::new_unchecked(storage, layout.into_dim()?)) }
     }
 }
@@ -2113,6 +2133,9 @@ where
 {
     let (storage, layout) = tensor.into_raw_parts();
     let storage = B::assume_init_impl(storage)?;
+    // SAFETY: `storage` is the `MaybeUninit` buffer reinterpreted after the
+    // caller (per the # Safety contract) guaranteed initialization; the layout
+    // is unchanged from the validated input.
     unsafe { Ok(Tensor::new_unchecked(storage, layout)) }
 }
 
@@ -2129,6 +2152,8 @@ where
     D: DimAPI,
     B: DeviceAPI<T> + DeviceAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T>,
 {
+    // SAFETY: forwarding to `assume_init_f`; per the # Safety contract the caller
+    // guarantees all `MaybeUninit` elements are initialized.
     unsafe { assume_init_f(tensor).rstsr_unwrap() }
 }
 
@@ -2288,6 +2313,8 @@ where
         let (layout, device) = self;
         let (_, idx_max) = layout.bounds_index()?;
         let storage = B::zeros_impl(device, idx_max)?;
+        // SAFETY: storage allocated with `bounds_index().1` elements — covers every
+        // addressable element of `layout` (same as `empty`).
         unsafe { Ok(Tensor::new_unchecked(storage, layout.into_dim()?)) }
     }
 }
@@ -2483,6 +2510,8 @@ where
         let layout = layout_for_array_copy(tensor.layout(), order)?;
         let idx_max = layout.size();
         let storage = B::zeros_impl(device, idx_max)?;
+        // SAFETY: `layout_for_array_copy` returns a fresh contiguous layout with
+        // offset 0; storage allocated with exactly `layout.size()` elements.
         unsafe { Ok(Tensor::new_unchecked(storage, layout)) }
     }
 }
@@ -3131,6 +3160,8 @@ macro_rules! impl_from_nested_array {
             fn from_nested_array(arr: $arr_type, device: &B) -> Self {
                 let shape: Layout<$ix_type> = [$($n),+].c();
                 let slc = unsafe {
+                    // SAFETY: `arr` is `[T; N1 * N2 * ...]` and `shape.size()` is exactly that
+                    // product; the slice is only read (`to_vec`).
                     core::slice::from_raw_parts(arr.as_ptr() as *const T, shape.size())
                 };
                 let vec = slc.to_vec();

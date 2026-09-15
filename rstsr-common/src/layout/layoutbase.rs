@@ -22,6 +22,8 @@ where
     pub(crate) offset: usize,
 }
 
+// `Layout` holds only plain integer data (shape, stride, offset) and never
+// references memory, so `Send`/`Sync` hold unconditionally.
 unsafe impl<D> Send for Layout<D> where D: DimBaseAPI {}
 unsafe impl<D> Sync for Layout<D> where D: DimBaseAPI {}
 
@@ -397,6 +399,8 @@ where
     where
         D: DimShapeAPI,
     {
+        // SAFETY: the layout is validated immediately below (`bounds_index` +
+        // `check_strides`) before it is returned; errors discard it.
         let layout = unsafe { Layout::new_unchecked(shape, stride, offset) };
         layout.bounds_index()?;
         layout.check_strides(true)?;
@@ -462,6 +466,9 @@ where
             shape[i] = shape_old[axes[i]];
             stride[i] = stride_old[axes[i]];
         }
+        // SAFETY: `axes` is validated above (length, range, no duplicates); permuting
+        // (shape, stride) pairs and keeping the offset preserves the set of reachable
+        // elements, so the source layout's bounds/stride invariants carry over.
         return unsafe { Ok(Layout::new_unchecked(shape, stride, self.offset)) };
     }
 
@@ -482,6 +489,8 @@ where
             shape[i] = shape_old[self.ndim() - i - 1];
             stride[i] = stride_old[self.ndim() - i - 1];
         }
+        // SAFETY: `reverse_axes` applies a fixed reversal permutation of (shape, stride)
+        // pairs; the offset is unchanged and the reachable element set is preserved.
         return unsafe { Layout::new_unchecked(shape, stride, self.offset) };
     }
 
@@ -494,6 +503,9 @@ where
         let mut stride = self.stride().clone();
         shape.as_mut().swap(axis1, axis2);
         stride.as_mut().swap(axis1, axis2);
+        // SAFETY: `axis1`/`axis2` are range-checked above; swapping (shape, stride)
+        // pairs preserves the reachable element set, so the validated layout's
+        // invariants carry over.
         return unsafe { Ok(Layout::new_unchecked(shape, stride, self.offset)) };
     }
 }
@@ -507,16 +519,20 @@ where
 {
     /// Index of tensor by list of indexes to dimensions.
     ///
-    /// # Safety
-    ///
     /// This function does not check for bounds, including
     /// - Negative index
     /// - Index greater than shape
     ///
-    /// Due to these reasons, this function may well give index smaller than
+    /// Out-of-bounds input will not cause undefined behavior, but the
+    /// calculated offset is then meaningless.
+    /// Due to these reasons, this function may well give offset smaller than
     /// zero, which may occur in iterator; so this function returns isize.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `index` has fewer entries than the layout's ndim.
     #[inline]
-    pub unsafe fn index_uncheck(&self, index: &[usize]) -> isize {
+    pub fn index_uncheck(&self, index: &[usize]) -> isize {
         let stride = self.stride.as_ref();
         match self.ndim() {
             0 => self.offset as isize,
@@ -577,6 +593,8 @@ pub trait DimLayoutContigAPI: DimBaseAPI + DimShapeAPI {
     fn new_c_contig(&self, offset: Option<usize>) -> Layout<Self> {
         let shape = self.clone();
         let stride = shape.stride_c_contig();
+        // SAFETY: `stride_c_contig` builds non-overlapping contiguous strides from
+        // `shape`; all indices stay below the shape product.
         unsafe { Layout::new_unchecked(shape, stride, offset.unwrap_or(0)) }
     }
 
@@ -585,6 +603,8 @@ pub trait DimLayoutContigAPI: DimBaseAPI + DimShapeAPI {
     fn new_f_contig(&self, offset: Option<usize>) -> Layout<Self> {
         let shape = self.clone();
         let stride = shape.stride_f_contig();
+        // SAFETY: `stride_f_contig` builds non-overlapping contiguous strides from
+        // `shape`; all indices stay below the shape product.
         unsafe { Layout::new_unchecked(shape, stride, offset.unwrap_or(0)) }
     }
 

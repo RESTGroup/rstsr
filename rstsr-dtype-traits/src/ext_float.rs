@@ -39,6 +39,9 @@ mod impl_half {
 
     macro_rules! force_eval {
         ($e:expr) => {
+            // SAFETY: `read_volatile` only forces evaluation of the expression (prevents
+            // constant folding in the float-manipulation helpers); it reads a valid local
+            // value and the result is used as the expression's value.
             unsafe { ::core::ptr::read_volatile(&$e) }
         };
     }

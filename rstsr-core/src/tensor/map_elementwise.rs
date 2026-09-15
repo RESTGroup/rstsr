@@ -35,6 +35,8 @@ where
             c.write(f(a));
         };
         device.op_muta_refb_func(storage_c.raw_mut(), &lc, self.raw(), la, &mut f_inner)?;
+        // SAFETY: the op above wrote every element of `lc`, which covers the fresh
+        // `storage_c` exactly.
         let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
         return Tensor::new_f(storage_c, lc);
     }
@@ -94,10 +96,14 @@ where
     {
         let (la, _) = greedy_layout(self.layout(), false);
         let device = self.device().clone();
+        // SAFETY: `Vec<T>` -> `Vec<MaybeUninit<T>>` reinterpretation (identical
+        // layout); `self` is an initialized buffer written in place.
         let self_raw_mut = unsafe {
             transmute::<&mut <B as DeviceRawAPI<T>>::Raw, &mut <B as DeviceRawAPI<MaybeUninit<T>>>::Raw>(self.raw_mut())
         };
         let mut f_inner = move |x: &mut MaybeUninit<T>| {
+            // SAFETY: in-place map — `x` is an initialized element of the caller's buffer
+            // (the tensor being mapped); `assume_init_mut` on initialized memory is valid.
             let x_ref = unsafe { x.assume_init_mut() };
             f(x_ref);
         };
@@ -195,6 +201,8 @@ where
             c.write(f(a, b));
         };
         device.op_mutc_refa_refb_func(storage_c.raw_mut(), &lc, self.raw(), &la_b, other.raw(), &lb_b, &mut f_inner)?;
+        // SAFETY: the op above wrote every element of `lc`, which covers the fresh
+        // `storage_c` exactly.
         let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
         Tensor::new_f(storage_c, lc)
     }
@@ -297,6 +305,8 @@ where
             c.write(f(a));
         };
         device.op_muta_refb_func(storage_c.raw_mut(), &lc, self.raw(), la, &mut f_inner)?;
+        // SAFETY: the op above wrote every element of `lc`, which covers the fresh
+        // `storage_c` exactly.
         let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
         return Tensor::new_f(storage_c, lc);
     }
@@ -409,10 +419,14 @@ where
     {
         let (la, _) = greedy_layout(self.layout(), false);
         let device = self.device().clone();
+        // SAFETY: `Vec<T>` -> `Vec<MaybeUninit<T>>` reinterpretation (identical
+        // layout); `self` is an initialized buffer written in place.
         let self_raw_mut = unsafe {
             transmute::<&mut <B as DeviceRawAPI<T>>::Raw, &mut <B as DeviceRawAPI<MaybeUninit<T>>>::Raw>(self.raw_mut())
         };
         let mut f_inner = move |x: &mut MaybeUninit<T>| {
+            // SAFETY: in-place map — `x` is an initialized element of the caller's buffer
+            // (the tensor being mapped); `assume_init_mut` on initialized memory is valid.
             let x_ref = unsafe { x.assume_init_mut() };
             f(x_ref);
         };
@@ -522,6 +536,8 @@ where
             c.write(f(a, b));
         };
         device.op_mutc_refa_refb_func(storage_c.raw_mut(), &lc, self.raw(), &la_b, other.raw(), &lb_b, &mut f_inner)?;
+        // SAFETY: the op above wrote every element of `lc`, which covers the fresh
+        // `storage_c` exactly.
         let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
         Tensor::new_f(storage_c, lc)
     }

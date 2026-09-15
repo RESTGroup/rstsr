@@ -41,6 +41,10 @@ where
         if axis_contig_a {
             // both axis are contiguous
             let func = |(idx_c, idx_a): (usize, usize)| unsafe {
+                // SAFETY: each task writes its own contiguous run at `idx_c` (disjoint output
+                // positions); the `size_indices` writes land in the contiguous selected axis.
+                // NOTE: the pointer derives from `as_ptr()` and is written through;
+                // `AtomicPtr`/`as_mut_ptr()` derivation would be stacked-borrows strict.
                 let c_ptr = c.as_ptr().add(idx_c) as *mut MaybeUninit<T>;
                 (0..size_indices).for_each(|idx| {
                     (*c_ptr.add(idx)).write(a[idx_a + indices[idx]].clone());
@@ -51,6 +55,10 @@ where
         } else {
             let axis_stride_a = la.stride()[axis];
             let func = |(idx_c, idx_a): (usize, usize)| unsafe {
+                // SAFETY: each task writes its own contiguous run at `idx_c` (disjoint output
+                // positions); the `size_indices` writes land in the contiguous selected axis.
+                // NOTE: the pointer derives from `as_ptr()` and is written through;
+                // `AtomicPtr`/`as_mut_ptr()` derivation would be stacked-borrows strict.
                 let c_ptr = c.as_ptr().add(idx_c) as *mut MaybeUninit<T>;
                 (0..size_indices).for_each(|idx| {
                     let idx_a_out = idx_a as isize + axis_stride_a * indices[idx] as isize;

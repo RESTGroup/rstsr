@@ -41,6 +41,9 @@ impl<T> PackArrayAPI<T> for Vec<T> {
             "Length of Vec<T> {len} must be a multiple to cast into Vec<[T; {N}]>"
         )?;
         let vec = ManuallyDrop::new(self);
+        // SAFETY: `len % N == 0` is asserted above; `[T; N]` repeats the layout of `T`,
+        // so the reinterpreted `Vec` covers exactly the same allocation. The source Vec
+        // is `ManuallyDrop`ped, preventing double free.
         let arr = unsafe { Vec::from_raw_parts(vec.as_ptr() as *mut [T; N], len / N, len / N) };
         Ok(arr)
     }
@@ -52,6 +55,9 @@ impl<T, const N: usize> UnpackArrayAPI for Vec<[T; N]> {
     fn unpack_array(self) -> Self::Output {
         let len = self.len();
         let arr = ManuallyDrop::new(self);
+        // SAFETY: flattening `[[T; N]; len]` to `[T; len * N]` covers the same bytes
+        // (`len * N * size_of::<T>()` equals the allocation); the source Vec is
+        // `ManuallyDrop`ped and never dropped twice.
         unsafe { Vec::from_raw_parts(arr.as_ptr() as *mut T, len * N, len * N) }
     }
 }
@@ -73,6 +79,8 @@ impl<T> PackArrayAPI<T> for &[T] {
             InvalidValue,
             "Length of &[T] {len} must be a multiple to cast into Vec<[T; {N}]>"
         )?;
+        // SAFETY: `len % N == 0` is asserted above and `[T; N]` repeats the layout of
+        // `T`; the cast slice covers the first `len` elements of the original `[T]`.
         let arr = unsafe { core::slice::from_raw_parts(self.as_ptr() as *const [T; N], len / N) };
         Ok(arr)
     }
@@ -83,6 +91,8 @@ impl<'l, T, const N: usize> UnpackArrayAPI for &'l [[T; N]] {
 
     fn unpack_array(self) -> Self::Output {
         let len = self.len();
+        // SAFETY: flattening `[[T; N]; len]` to `[T; len * N]` — same bytes, no access
+        // beyond the original slice.
         unsafe { core::slice::from_raw_parts(self.as_ptr() as *const T, len * N) }
     }
 }
@@ -104,6 +114,8 @@ impl<T> PackArrayAPI<T> for &mut [T] {
             InvalidValue,
             "Length of &[T] {len} must be a multiple to cast into Vec<[T; {N}]>"
         )?;
+        // SAFETY: `len % N == 0` asserted above; `[T; N]` repeats the layout of `T`;
+        // the exclusive `&mut` borrow of the source slice is preserved.
         let arr = unsafe { core::slice::from_raw_parts_mut(self.as_mut_ptr() as *mut [T; N], len / N) };
         Ok(arr)
     }
@@ -114,6 +126,8 @@ impl<'l, T, const N: usize> UnpackArrayAPI for &'l mut [[T; N]] {
 
     fn unpack_array(self) -> Self::Output {
         let len = self.len();
+        // SAFETY: flattening `[[T; N]; len]` to `[T; len * N]` in place — same bytes;
+        // the exclusive `&mut` borrow of the source slice is preserved.
         unsafe { core::slice::from_raw_parts_mut(self.as_ptr() as *mut T, len * N) }
     }
 }

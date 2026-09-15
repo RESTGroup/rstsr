@@ -38,6 +38,9 @@ where
     let task = || {
         (0..n).into_par_iter().for_each(|j| {
             (0..m).into_par_iter().for_each(|i| unsafe {
+                // SAFETY: each (i, j) is written by exactly one parallel task.
+                // NOTE: the pointer derives from `as_ptr()` and is written through;
+                // `AtomicPtr`/`as_mut_ptr()` derivation would be stacked-borrows strict.
                 let ptr_c = c.as_ptr().offset(lc.index_uncheck(&[i, j])) as *mut TC;
                 *ptr_c = (*ptr_c).clone() * beta.clone()
                     + (0..k).fold(TC::zero(), |acc, p| {
@@ -80,7 +83,7 @@ where
             .into_par_iter()
             .fold(
                 || TC::zero(),
-                |acc, i| unsafe {
+                |acc, i| {
                     acc + a[la.index_uncheck(&[i]) as usize].clone() * b[lb.index_uncheck(&[i]) as usize].clone()
                 },
             )

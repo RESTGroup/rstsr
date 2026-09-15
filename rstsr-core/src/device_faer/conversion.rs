@@ -17,7 +17,11 @@ where
         let [nrows, ncols] = *self.shape();
         let [row_stride, col_stride] = *self.stride();
         let offset = self.offset();
+        // SAFETY: `offset` is within the storage by layout validity (checked when the
+        // tensor was constructed).
         let ptr = unsafe { self.raw().as_ptr().add(offset) };
+        // SAFETY: strides come from the validated 2-D layout, so faer's element access
+        // stays within the slice's allocation; faer only reads through `MatRef`.
         unsafe { MatRef::from_raw_parts(ptr, nrows, ncols, row_stride, col_stride) }
     }
 }
@@ -32,7 +36,11 @@ where
         let [nrows, ncols] = *self.shape();
         let [row_stride, col_stride] = *self.stride();
         let offset = self.offset();
+        // SAFETY: `offset` within the storage by layout validity; the exclusive `&mut`
+        // borrow provides write provenance.
         let ptr = unsafe { self.raw_mut().as_mut_ptr().add(offset) };
+        // SAFETY: strides from the validated 2-D layout keep all element access within
+        // the slice allocation; exclusive `&mut` borrow backs the write access.
         unsafe { MatMut::from_raw_parts_mut(ptr, nrows, ncols, row_stride, col_stride) }
     }
 }
@@ -49,6 +57,10 @@ impl<'a, T> IntoRSTSR for MatRef<'a, T> {
 
         let layout = Layout::new([nrows, ncols], [row_stride, col_stride], 0).unwrap();
         let (_, upper_bound) = layout.bounds_index().unwrap();
+        // SAFETY: the Vec is a NON-OWNING handle over faer's buffer: wrapped in
+        // `ManuallyDrop` + `DataRef` below, it is never deallocated. `upper_bound` is
+        // the validated layout bound and faer guarantees the referenced elements are
+        // initialized and live for `'a`.
         let raw = unsafe { Vec::from_raw_parts(ptr as *mut T, upper_bound, upper_bound) };
         let data = DataRef::from_manually_drop(ManuallyDrop::new(raw));
         let storage = Storage::new(data, DeviceFaer::default());
@@ -70,6 +82,11 @@ impl<T> IntoRSTSR for Mat<T> {
 
         let layout = Layout::new([nrows, ncols], [row_stride, col_stride], 0).unwrap();
         let (_, upper_bound) = layout.bounds_index().unwrap();
+        // SAFETY: `self` (faer `Mat`, global-allocator backed) is forgotten, moving its
+        // allocation into the `Vec` handle; element count equals the validated layout
+        // bound. Caveat: if faer over-allocated or over-aligned, the `Vec` dealloc
+        // layout would differ from the alloc layout (benign on mainstream allocators;
+        // see audit README).
         let raw = unsafe { Vec::from_raw_parts(ptr as *mut T, upper_bound, upper_bound) };
         let data = DataOwned::from(raw);
         let storage = Storage::new(data, DeviceFaer::default());
@@ -88,6 +105,8 @@ impl<'a, T> IntoRSTSR for ColRef<'a, T> {
 
         let layout = Layout::new([nrows], [stride], 0).unwrap();
         let (_, upper_bound) = layout.bounds_index().unwrap();
+        // SAFETY: non-owning handle over faer's column buffer, as in `MatRef` above;
+        // never deallocated (`ManuallyDrop` + `DataRef`).
         let raw = unsafe { Vec::from_raw_parts(ptr as *mut T, upper_bound, upper_bound) };
         let data = DataRef::from_manually_drop(ManuallyDrop::new(raw));
         let storage = Storage::new(data, DeviceFaer::default());
@@ -108,6 +127,8 @@ impl<'a, T> IntoRSTSR for MatMut<'a, T> {
 
         let layout = Layout::new([nrows, ncols], [row_stride, col_stride], 0).unwrap();
         let (_, upper_bound) = layout.bounds_index().unwrap();
+        // SAFETY: non-owning handle over faer's buffer with mutable access transferred
+        // from the exclusive `MatMut`; never deallocated (`ManuallyDrop` + `DataMut`).
         let raw = unsafe { Vec::from_raw_parts(ptr as *mut T, upper_bound, upper_bound) };
         let data = DataMut::from_manually_drop(ManuallyDrop::new(raw));
         let storage = Storage::new(data, DeviceFaer::default());

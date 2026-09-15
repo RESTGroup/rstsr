@@ -52,6 +52,9 @@ where
                 true => {
                     la_rest_iter.zip(lb_rest_iter).for_each(|(offset_a, offset_b)| {
                         let ptr_a = thr_a.load(Ordering::Relaxed);
+                        // SAFETY: `ptr_a` is `a`'s base pointer hoisted through `AtomicPtr` (length
+                        // preserved); each task writes the disjoint region given by its own
+                        // (offset_a, offset_b) of the validated layouts.
                         let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
                         inner_pack_triu_c_contig(slice_a, offset_a, b, offset_b, n);
                     });
@@ -61,10 +64,16 @@ where
                         let mut la_inner = la_inner.to_dim::<Ix1>()?;
                         let mut lb_inner = lb_inner.to_dim::<Ix2>()?;
                         unsafe {
+                            // SAFETY: offsets from the rest-layout iterators over the validated layouts;
+                            // inner layout + offset addresses only in-bounds elements (no pointer access
+                            // in `set_offset` itself).
                             la_inner.set_offset(offset_a);
                             lb_inner.set_offset(offset_b);
                         }
                         let ptr_a = thr_a.load(Ordering::Relaxed);
+                        // SAFETY: `ptr_a` is `a`'s base pointer hoisted through `AtomicPtr` (length
+                        // preserved); each task writes the disjoint region given by its own
+                        // (offset_a, offset_b) of the validated layouts.
                         let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
                         inner_pack_triu_general(slice_a, &la_inner, b, &lb_inner, n);
                         Ok(())
@@ -75,6 +84,9 @@ where
                 true => {
                     la_rest_iter.zip(lb_rest_iter).for_each(|(offset_a, offset_b)| {
                         let ptr_a = thr_a.load(Ordering::Relaxed);
+                        // SAFETY: `ptr_a` is `a`'s base pointer hoisted through `AtomicPtr` (length
+                        // preserved); each task writes the disjoint region given by its own
+                        // (offset_a, offset_b) of the validated layouts.
                         let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
                         inner_pack_tril_c_contig(slice_a, offset_a, b, offset_b, n);
                     });
@@ -84,10 +96,16 @@ where
                         let mut la_inner = la_inner.to_dim::<Ix1>()?;
                         let mut lb_inner = lb_inner.to_dim::<Ix2>()?;
                         unsafe {
+                            // SAFETY: offsets from the rest-layout iterators over the validated layouts;
+                            // inner layout + offset addresses only in-bounds elements (no pointer access
+                            // in `set_offset` itself).
                             la_inner.set_offset(offset_a);
                             lb_inner.set_offset(offset_b);
                         }
                         let ptr_a = thr_a.load(Ordering::Relaxed);
+                        // SAFETY: `ptr_a` is `a`'s base pointer hoisted through `AtomicPtr` (length
+                        // preserved); each task writes the disjoint region given by its own
+                        // (offset_a, offset_b) of the validated layouts.
                         let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
                         inner_pack_tril_general(slice_a, &la_inner, b, &lb_inner, n);
                         Ok(())
@@ -153,6 +171,9 @@ where
                 true => {
                     la_rest_iter.zip(lb_rest_iter).for_each(|(offset_a, offset_b)| {
                         let ptr_a = thr_a.load(Ordering::Relaxed);
+                        // SAFETY: `ptr_a` is `a`'s base pointer hoisted through `AtomicPtr` (length
+                        // preserved); each task writes the disjoint region given by its own
+                        // (offset_a, offset_b) of the validated layouts.
                         let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
                         inner_unpack_triu_c_contig(slice_a, offset_a, b, offset_b, n, symm);
                     });
@@ -162,10 +183,16 @@ where
                         let mut la_inner = la_inner.to_dim::<Ix2>()?;
                         let mut lb_inner = lb_inner.to_dim::<Ix1>()?;
                         unsafe {
+                            // SAFETY: offsets from the rest-layout iterators over the validated layouts;
+                            // inner layout + offset addresses only in-bounds elements (no pointer access
+                            // in `set_offset` itself).
                             la_inner.set_offset(offset_a);
                             lb_inner.set_offset(offset_b);
                         }
                         let ptr_a = thr_a.load(Ordering::Relaxed);
+                        // SAFETY: `ptr_a` is `a`'s base pointer hoisted through `AtomicPtr` (length
+                        // preserved); each task writes the disjoint region given by its own
+                        // (offset_a, offset_b) of the validated layouts.
                         let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
                         inner_unpack_triu_general(slice_a, &la_inner, b, &lb_inner, n, symm);
                         Ok(())
@@ -176,6 +203,9 @@ where
                 true => {
                     la_rest_iter.zip(lb_rest_iter).for_each(|(offset_a, offset_b)| {
                         let ptr_a = thr_a.load(Ordering::Relaxed);
+                        // SAFETY: `ptr_a` is `a`'s base pointer hoisted through `AtomicPtr` (length
+                        // preserved); each task writes the disjoint region given by its own
+                        // (offset_a, offset_b) of the validated layouts.
                         let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
                         inner_unpack_tril_c_contig(slice_a, offset_a, b, offset_b, n, symm);
                     });
@@ -185,10 +215,16 @@ where
                         let mut la_inner = la_inner.to_dim::<Ix2>()?;
                         let mut lb_inner = lb_inner.to_dim::<Ix1>()?;
                         unsafe {
+                            // SAFETY: offsets from the rest-layout iterators over the validated layouts;
+                            // inner layout + offset addresses only in-bounds elements (no pointer access
+                            // in `set_offset` itself).
                             la_inner.set_offset(offset_a);
                             lb_inner.set_offset(offset_b);
                         }
                         let ptr_a = thr_a.load(Ordering::Relaxed);
+                        // SAFETY: `ptr_a` is `a`'s base pointer hoisted through `AtomicPtr` (length
+                        // preserved); each task writes the disjoint region given by its own
+                        // (offset_a, offset_b) of the validated layouts.
                         let slice_a = unsafe { from_raw_parts_mut(ptr_a, len_a) };
                         inner_unpack_tril_general(slice_a, &la_inner, b, &lb_inner, n, symm);
                         Ok(())

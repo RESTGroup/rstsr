@@ -336,6 +336,8 @@ where
         let layout_c = layout_for_array_copy(layout_a, order)?;
         let mut storage_c = device.uninit_impl(layout_c.size())?;
         device.assign_uninit(storage_c.raw_mut(), &layout_c, input.raw(), layout_a)?;
+        // SAFETY: `assign_uninit` above wrote every element of `layout_c`, which
+        // covers the freshly allocated storage exactly.
         let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
         let tensor = Tensor::new_f(storage_c, layout_c)?;
         return Ok(tensor);
@@ -375,6 +377,8 @@ where
         } else {
             let mut storage_c = device.uninit_impl(layout_c.size())?;
             device.assign_uninit(storage_c.raw_mut(), &layout_c, storage_a.raw(), layout_a)?;
+            // SAFETY: `assign_uninit` above wrote every element of `layout_c`, which
+            // covers the freshly allocated storage exactly.
             let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
             let tensor = Tensor::new_f(storage_c, layout_c)?;
             return Ok(tensor);
@@ -526,6 +530,9 @@ where
         let len = input.len();
         let raw = unsafe {
             let ptr = ptr as *mut T;
+            // SAFETY: the Vec aliases the caller's `&[T]` (len = actual length); it is
+            // wrapped in `ManuallyDrop`/`DataRef` below so it is never deallocated or
+            // resized, and `new_f` validates the layout bounds against `len`.
             Vec::from_raw_parts(ptr, len, len)
         };
         let device = device.clone();
@@ -571,6 +578,9 @@ where
         let len = input.len();
         let raw = unsafe {
             let ptr = ptr as *mut T;
+            // SAFETY: the Vec aliases the caller's `&[T]` (len = actual length); it is
+            // wrapped in `ManuallyDrop`/`DataRef` below so it is never deallocated or
+            // resized, and `new_f` validates the layout bounds against `len`.
             Vec::from_raw_parts(ptr, len, len)
         };
         let data = DataRef::from_manually_drop(ManuallyDrop::new(raw));
@@ -694,6 +704,10 @@ where
         let len = input.len();
         let raw = unsafe {
             let ptr = ptr as *mut T;
+            // SAFETY: the Vec aliases the caller's `&mut [T]` (len = actual length); it is
+            // wrapped in `ManuallyDrop`/`DataMut` below so it is never deallocated or
+            // resized, and the exclusive `&mut` borrow provides write access. `new_f`
+            // validates the layout bounds against `len`.
             Vec::from_raw_parts(ptr, len, len)
         };
         let device = device.clone();
@@ -739,6 +753,10 @@ where
         let len = input.len();
         let raw = unsafe {
             let ptr = ptr as *mut T;
+            // SAFETY: the Vec aliases the caller's `&mut [T]` (len = actual length); it is
+            // wrapped in `ManuallyDrop`/`DataMut` below so it is never deallocated or
+            // resized, and the exclusive `&mut` borrow provides write access. `new_f`
+            // validates the layout bounds against `len`.
             Vec::from_raw_parts(ptr, len, len)
         };
         let data = DataMut::from_manually_drop(ManuallyDrop::new(raw));
@@ -861,6 +879,8 @@ macro_rules! impl_asarray_scalar {
                     let (input, device) = self;
                     let layout = Layout::new(vec![], vec![], 0)?;
                     let storage = device.outof_cpu_vec(vec![input])?;
+                    // SAFETY: 1-element storage with a 0-dim layout at offset 0 — bounds match
+                    // trivially.
                     let tensor = unsafe { Tensor::new_unchecked(storage, layout) };
                     return Ok(tensor);
                 }

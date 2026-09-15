@@ -1,6 +1,9 @@
 use crate::prelude_dev::*;
 use core::mem::transmute;
 
+// SAFETY (closures below): `a`/`b` point to initialized elements of the
+// caller's `Vec` (in-place `+=`-style op); `assume_init_mut` on initialized
+// memory is valid, and the op writes back every visited element.
 #[duplicate_item(
      OpAPI               Op             func                    ;
     [OpAddAssignAPI   ] [AddAssign   ] [|a, b| unsafe { *a.assume_init_mut() +=  b.clone() }];
@@ -21,16 +24,24 @@ where
     D: DimAPI,
 {
     fn op_muta_refb(&self, a: &mut Vec<TA>, la: &Layout<D>, b: &Vec<TB>, lb: &Layout<D>) -> Result<()> {
+        // SAFETY: `Vec<TA>` -> `Vec<MaybeUninit<TA>>` reinterpretation (identical
+        // layout); `a` is an initialized buffer, and the op writes back every visited
+        // element.
         let a = unsafe { transmute::<&mut Vec<TA>, &mut Vec<MaybeUninit<TA>>>(a) };
         self.op_muta_refb_func(a, la, b, lb, &mut func)
     }
 
     fn op_muta_numb(&self, a: &mut Vec<TA>, la: &Layout<D>, b: TB) -> Result<()> {
+        // SAFETY: `Vec<TA>` -> `Vec<MaybeUninit<TA>>` reinterpretation (identical
+        // layout); `a` is an initialized buffer, and the op writes back every visited
+        // element.
         let a = unsafe { transmute::<&mut Vec<TA>, &mut Vec<MaybeUninit<TA>>>(a) };
         self.op_muta_numb_func(a, la, b, &mut func)
     }
 }
 
+// SAFETY (closures below): left-consume op — reads the initialized element via
+// `assume_init_read`, computes, and writes the result back to the same slot.
 #[duplicate_item(
      OpAPI                 Op       func                               ;
     [OpLConsumeAddAPI   ] [Add   ] [|a, b| unsafe { a.write(a.assume_init_read() +  b.clone()); }];
@@ -51,16 +62,24 @@ where
     D: DimAPI,
 {
     fn op_muta_refb(&self, a: &mut Vec<TA>, la: &Layout<D>, b: &Vec<TB>, lb: &Layout<D>) -> Result<()> {
+        // SAFETY: `Vec<TA>` -> `Vec<MaybeUninit<TA>>` reinterpretation (identical
+        // layout); `a` is an initialized buffer, and the op writes back every visited
+        // element.
         let a = unsafe { transmute::<&mut Vec<TA>, &mut Vec<MaybeUninit<TA>>>(a) };
         self.op_muta_refb_func(a, la, b, lb, &mut func)
     }
 
     fn op_muta_numb(&self, a: &mut Vec<TA>, la: &Layout<D>, b: TB) -> Result<()> {
+        // SAFETY: `Vec<TA>` -> `Vec<MaybeUninit<TA>>` reinterpretation (identical
+        // layout); `a` is an initialized buffer, and the op writes back every visited
+        // element.
         let a = unsafe { transmute::<&mut Vec<TA>, &mut Vec<MaybeUninit<TA>>>(a) };
         self.op_muta_numb_func(a, la, b, &mut func)
     }
 }
 
+// SAFETY (closures below): right-consume op — same contract as the
+// left-consume group above.
 #[duplicate_item(
      OpAPI                 Op       func                               ;
     [OpRConsumeAddAPI   ] [Add   ] [|a, b| unsafe { a.write(b.clone() +  a.assume_init_read()); }];
@@ -81,16 +100,24 @@ where
     D: DimAPI,
 {
     fn op_muta_refb(&self, b: &mut Vec<TB>, lb: &Layout<D>, a: &Vec<TA>, la: &Layout<D>) -> Result<()> {
+        // SAFETY: `Vec<TB>` -> `Vec<MaybeUninit<TB>>` reinterpretation (identical
+        // layout); `b` is an initialized buffer, and the op writes back every visited
+        // element.
         let b = unsafe { transmute::<&mut Vec<TB>, &mut Vec<MaybeUninit<TB>>>(b) };
         self.op_muta_refb_func(b, lb, a, la, &mut func)
     }
 
     fn op_muta_numb(&self, b: &mut Vec<TB>, lb: &Layout<D>, a: TA) -> Result<()> {
+        // SAFETY: `Vec<TB>` -> `Vec<MaybeUninit<TB>>` reinterpretation (identical
+        // layout); `b` is an initialized buffer, and the op writes back every visited
+        // element.
         let b = unsafe { transmute::<&mut Vec<TB>, &mut Vec<MaybeUninit<TB>>>(b) };
         self.op_muta_numb_func(b, lb, a, &mut func)
     }
 }
 
+// SAFETY (func_inplace below): reads the initialized element via
+// `assume_init_read` and writes the negated/inverted value back.
 #[duplicate_item(
      OpAPI      Op    func                              func_inplace        ;
     [OpNegAPI] [Neg] [|a, b| { a.write(-b.clone()); }] [|a| unsafe { a.write(-a.assume_init_read()); }];
@@ -107,6 +134,9 @@ where
     }
 
     fn op_muta(&self, a: &mut Vec<TA>, la: &Layout<D>) -> Result<()> {
+        // SAFETY: `Vec<TA>` -> `Vec<MaybeUninit<TA>>` reinterpretation (identical
+        // layout); `a` is an initialized buffer, and the op writes back every visited
+        // element.
         let a = unsafe { transmute::<&mut Vec<TA>, &mut Vec<MaybeUninit<TA>>>(a) };
         self.op_muta_func(a, la, &mut func_inplace)
     }

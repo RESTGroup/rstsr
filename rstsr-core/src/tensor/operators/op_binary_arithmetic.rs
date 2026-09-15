@@ -302,6 +302,8 @@ mod impl_binary_arithmetic_ref {
             // add provided by device
             device.op_mutc_refa_refb(storage_c.raw_mut(), &lc, a.raw(), &la_b, b.raw(), &lb_b)?;
             // return tensor
+            // SAFETY: `op_mutc_refa_refb` above wrote every element of `lc`, which covers
+            // the fresh `storage_c` exactly.
             let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
             Tensor::new_f(storage_c, lc)
         }
@@ -392,6 +394,8 @@ mod impl_binary_lr_consume {
                     // reuse a as c
                     let (mut storage_a, _) = a.into_raw_parts();
                     device.op_muta_refb(storage_a.raw_mut(), &la_b, b.raw(), &lb_b)?;
+                    // SAFETY: `la_b` was checked equal to `a`'s own (validated) layout above and
+                    // `storage_a` is `a`'s original buffer — bounds unchanged.
                     let c = unsafe { Tensor::new_unchecked(storage_a, la_b) };
                     c.into_dim_f::<DC>()
                 }
@@ -442,6 +446,8 @@ mod impl_binary_lr_consume {
                     // reuse b as c
                     let (mut storage_b, _) = b.into_raw_parts();
                     device.op_muta_refb(storage_b.raw_mut(), &lb_b, a.raw(), &la_b)?;
+                    // SAFETY: `lb_b` was checked equal to `b`'s own (validated) layout above and
+                    // `storage_b` is `b`'s original buffer — bounds unchanged.
                     let c = unsafe { Tensor::new_unchecked(storage_b, lb_b) };
                     c.into_dim_f::<DC>()
                 }
@@ -708,6 +714,8 @@ where
     // op provided by device
     let device = c.device().clone();
     // REVIEWME: transmute &Raw<T> to &MaybeUninit<Raw<T>>
+    // SAFETY: `Vec<TC>` -> `Vec<MaybeUninit<TC>>` reinterpretation (identical
+    // layout); `c` is a writable output buffer, elements written by the op.
     let c_raw_mut = unsafe {
         transmute::<&mut <B as DeviceRawAPI<TC>>::Raw, &mut <B as DeviceRawAPI<MaybeUninit<TC>>>::Raw>(c.raw_mut())
     };
@@ -770,6 +778,8 @@ macro_rules! impl_arithmetic_scalar_lhs {
                 let lc = layout_for_array_copy(lb, TensorIterOrder::default())?;
                 let mut storage_c = device.uninit_impl(lc.bounds_index()?.1)?;
                 device.op_mutc_numa_refb(storage_c.raw_mut(), &lc, a, b.raw(), lb)?;
+                // SAFETY: `op_mutc_refa_refb` above wrote every element of `lc`, which covers
+                // the fresh `storage_c` exactly.
                 let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
                 Tensor::new_f(storage_c, lc)
             }
@@ -806,6 +816,8 @@ macro_rules! impl_arithmetic_scalar_lhs {
                 let lc = layout_for_array_copy(lb, TensorIterOrder::default())?;
                 let mut storage_c = device.uninit_impl(lc.bounds_index()?.1)?;
                 device.op_mutc_numa_refb(storage_c.raw_mut(), &lc, a, b.raw(), lb)?;
+                // SAFETY: `op_mutc_refa_refb` above wrote every element of `lc`, which covers
+                // the fresh `storage_c` exactly.
                 let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
                 Tensor::new_f(storage_c, lc)
             }
@@ -1004,6 +1016,8 @@ mod impl_arithmetic_scalar_rhs {
             let lc = layout_for_array_copy(la, TensorIterOrder::default())?;
             let mut storage_c = device.uninit_impl(lc.bounds_index()?.1)?;
             device.op_mutc_refa_numb(storage_c.raw_mut(), &lc, a.raw(), la, b)?;
+            // SAFETY: `op_mutc_refa_refb` above wrote every element of `lc`, which covers
+            // the fresh `storage_c` exactly.
             let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
             Tensor::new_f(storage_c, lc)
         }
@@ -1027,6 +1041,8 @@ mod impl_arithmetic_scalar_rhs {
             let lc = layout_for_array_copy(la, TensorIterOrder::default())?;
             let mut storage_c = device.uninit_impl(lc.bounds_index()?.1)?;
             device.op_mutc_refa_numb(storage_c.raw_mut(), &lc, a.raw(), la, b)?;
+            // SAFETY: `op_mutc_refa_refb` above wrote every element of `lc`, which covers
+            // the fresh `storage_c` exactly.
             let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
             Tensor::new_f(storage_c, lc)
         }

@@ -104,6 +104,11 @@ where
         let la = translate_to_col_major_unary(la, order)?;
         // iterate and assign
         let func = |(idx_c, idx_a): (usize, usize)| unsafe {
+            // SAFETY: each parallel task writes a disjoint region of `c` (offsets from
+            // distinct output-layout positions). NOTE: the pointer derives from `as_ptr()`
+            // (a shared reborrow) and is written through; disjointness makes this correct
+            // in practice, but derive via `AtomicPtr`/`as_mut_ptr()` for stacked-borrows
+            // strictness.
             let c_ptr = c.as_ptr() as *mut TypeC;
             let ci = &mut *c_ptr.add(idx_c);
             let ai = &a[idx_a];
@@ -189,6 +194,7 @@ where
         let lc = &layouts_full[0];
         let la = &layouts_full[1];
         let func = |(idx_c, idx_a): (usize, usize)| unsafe {
+            // SAFETY: same disjoint-write argument and `as_ptr()` note as above.
             let c_ptr = c.as_ptr() as *mut TypeC;
             let ci = &mut *c_ptr.add(idx_c);
             let ai = &a[idx_a];
@@ -201,6 +207,8 @@ where
         let lc = &layouts_contig[0];
         let la = &layouts_contig[1];
         let func = |(idx_c, idx_a): (usize, usize)| unsafe {
+            // SAFETY: single disjoint write at `idx_c` per task. NOTE: same `as_ptr()`
+            // derivation note as above.
             let c_ptr = c.as_ptr().add(idx_c) as *mut TypeC;
             (0..size_contig).for_each(|idx| {
                 let ci = &mut *c_ptr.add(idx);
@@ -248,6 +256,8 @@ where
         // not possible for contiguous fill
         let lc = &layouts_full[0];
         let func = |idx_c| unsafe {
+            // SAFETY: each parallel task writes a disjoint region of `c`. NOTE: same
+            // `as_ptr()` derivation note as above.
             let c_ptr = c.as_ptr() as *mut TC;
             *c_ptr.add(idx_c) = fill.clone().into_cast();
         };
@@ -257,6 +267,8 @@ where
         // parallel for outer iteration
         let lc = &layouts_contig[0];
         let func = |idx_c| unsafe {
+            // SAFETY: single disjoint write at `idx_c` per task. NOTE: same `as_ptr()`
+            // derivation note as above.
             let c_ptr = c.as_ptr().add(idx_c) as *mut TC;
             (0..size_contig).for_each(|idx| {
                 *c_ptr.add(idx) = fill.clone().into_cast();

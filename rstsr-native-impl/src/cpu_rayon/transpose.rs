@@ -55,6 +55,10 @@ where
                     let dst_idx = (offset_c + j * ldc + i) as usize;
 
                     unsafe {
+                        // SAFETY: each (i, j) pair maps to a unique `dst_idx` — disjoint writes across
+                        // parallel tasks. NOTE: the pointer derives from `as_ptr()` and is written
+                        // through; `AtomicPtr`/`as_mut_ptr()` derivation would be stacked-borrows
+                        // strict.
                         let c_ptr = c.as_ptr().add(dst_idx) as *mut T;
                         *c_ptr = a[src_idx].clone();
                     }
@@ -157,6 +161,9 @@ where
                     let dst_idx = (offset_c + j * ldc + i) as usize;
                     debug_assert!(src_idx < a.len() && dst_idx < c.len());
                     unsafe {
+                        // SAFETY: each (i, j) write touches a unique layout position of `c` — disjoint
+                        // across tasks. NOTE: pointer derived from `as_ptr()` and written through — see
+                        // the note above.
                         let c_ptr = c.as_ptr() as *mut TypeC;
                         func_write;
                     }

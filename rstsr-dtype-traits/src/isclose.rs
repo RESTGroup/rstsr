@@ -33,6 +33,8 @@ pub struct IsCloseArgs<TE: 'static> {
 fn default_rtol<TE: 'static>() -> Result<TE, String> {
     use core::any::*;
     if TypeId::of::<TE>() == TypeId::of::<f64>() {
+        // SAFETY: `TypeId::of::<TE>() == f64` is checked above, so the transmute is a
+        // bit-identical copy of an `f64` constant.
         Ok(unsafe { core::mem::transmute_copy::<f64, TE>(&1.0e-5_f64) })
     } else {
         let type_name = type_name::<TE>();
@@ -43,6 +45,8 @@ fn default_rtol<TE: 'static>() -> Result<TE, String> {
 fn default_atol<TE: 'static>() -> Result<TE, String> {
     use core::any::*;
     if TypeId::of::<TE>() == TypeId::of::<f64>() {
+        // SAFETY: `TypeId::of::<TE>() == f64` is checked above, so the transmute is a
+        // bit-identical copy of an `f64` constant.
         Ok(unsafe { core::mem::transmute_copy::<f64, TE>(&1.0e-8_f64) })
     } else {
         let type_name = type_name::<TE>();

@@ -58,6 +58,8 @@ where
 
     fn op_muta(&self, a: &mut Vec<MaybeUninit<Self::TOut>>, la: &Layout<D>) -> Result<()> {
         let mut func = |a: &mut MaybeUninit<Self::TOut>| {
+            // SAFETY: in-place op — `a` is an initialized element of the caller's buffer;
+            // read then overwritten via `write`.
             let b = unsafe { a.assume_init_read() };
             a.write(func_inner);
         };
@@ -81,6 +83,8 @@ where
 
     fn op_muta(&self, a: &mut Vec<MaybeUninit<T>>, la: &Layout<D>) -> Result<()> {
         let mut func = |a: &mut MaybeUninit<T>| {
+            // SAFETY: in-place op — `a` is an initialized element of the caller's buffer;
+            // read then overwritten via `write`.
             let b = unsafe { a.assume_init_read() };
             a.write(b.clone() * b);
         };
@@ -144,7 +148,11 @@ where
         if T::ABS_UNCHANGED {
             return Ok(());
         } else if T::ABS_SAME_TYPE {
+            // SAFETY: in-place op — `a` is an initialized element of the caller's buffer;
+            // read then overwritten via `write`.
             return self.op_muta_func(a, la, &mut |a| unsafe {
+                // SAFETY: in-place op — reads an initialized element, then overwrites it via
+                // `write`.
                 a.write(a.assume_init_read().ext_abs());
             });
         } else {
@@ -176,7 +184,11 @@ where
 
     fn op_muta(&self, a: &mut Vec<MaybeUninit<T::AbsOut>>, la: &Layout<D>) -> Result<()> {
         if T::ABS_SAME_TYPE {
+            // SAFETY: in-place op — `a` is an initialized element of the caller's buffer;
+            // read then overwritten via `write`.
             return self.op_muta_func(a, la, &mut |a| unsafe {
+                // SAFETY: in-place op — reads an initialized element, then overwrites it via
+                // `write`.
                 a.write(a.assume_init_read().ext_imag());
             });
         } else {
@@ -230,7 +242,11 @@ where
     }
 
     fn op_muta(&self, a: &mut Vec<MaybeUninit<T>>, la: &Layout<D>) -> Result<()> {
+        // SAFETY: in-place op — `a` is an initialized element of the caller's buffer;
+        // read then overwritten via `write`.
         self.op_muta_func(a, la, &mut |a| unsafe {
+            // SAFETY: in-place op — reads an initialized element, then overwrites it via
+            // `write`.
             a.write(a.assume_init_read().ext_sign());
         })
     }

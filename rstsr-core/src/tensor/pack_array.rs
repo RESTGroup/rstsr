@@ -40,6 +40,9 @@ impl<'l, T, const N: usize> PackableArrayAPI<T, N> for DataRef<'l, Vec<T>> {
 impl<'l, T> PackArrayAPI<T> for DataRef<'l, Vec<T>> {
     fn pack_array_f<const N: usize>(self) -> Result<<Self as PackableArrayAPI<T, N>>::ArrayVec> {
         let raw = self.raw().as_slice().pack_array_f::<N>()?;
+        // SAFETY: the source slice came from `pack_array_f` on the original buffer
+        // (`len % N == 0` enforced there); reinterpreting as `Vec<[T; N]>` of
+        // `raw.len()` covers the same bytes. Wrapped in `ManuallyDrop`, never freed.
         let vec = unsafe { Vec::from_raw_parts(raw.as_ptr() as *mut [T; N], raw.len(), raw.len()) };
         Ok(DataRef::from_manually_drop(ManuallyDrop::new(vec)))
     }
@@ -50,6 +53,8 @@ impl<'l, T, const N: usize> UnpackArrayAPI for DataRef<'l, Vec<[T; N]>> {
 
     fn unpack_array(self) -> Self::Output {
         let raw = self.raw().as_slice().unpack_array();
+        // SAFETY: flattening `[[T; N]; len]` back to `[T; len * N]` over the same
+        // buffer; wrapped in `ManuallyDrop`, never freed.
         let vec = unsafe { Vec::from_raw_parts(raw.as_ptr() as *mut T, raw.len(), raw.len()) };
         DataRef::from_manually_drop(ManuallyDrop::new(vec))
     }
@@ -65,6 +70,8 @@ impl<'l, T, const N: usize> PackableArrayAPI<T, N> for DataMut<'l, Vec<T>> {
 impl<'l, T> PackArrayAPI<T> for DataMut<'l, Vec<T>> {
     fn pack_array_f<const N: usize>(self) -> Result<<Self as PackableArrayAPI<T, N>>::ArrayVec> {
         let raw = self.raw().as_slice().pack_array_f::<N>()?;
+        // SAFETY: same as the `DataRef` case above; the exclusive `&mut` source
+        // (`DataMut`) provides write access, still `ManuallyDrop`ped.
         let vec = unsafe { Vec::from_raw_parts(raw.as_ptr() as *mut [T; N], raw.len(), raw.len()) };
         Ok(DataMut::from_manually_drop(ManuallyDrop::new(vec)))
     }
@@ -75,6 +82,8 @@ impl<'l, T, const N: usize> UnpackArrayAPI for DataMut<'l, Vec<[T; N]>> {
 
     fn unpack_array(self) -> Self::Output {
         let raw = self.raw().as_slice().unpack_array();
+        // SAFETY: same as the `DataRef` case above; the exclusive `&mut` source
+        // (`DataMut`) provides write access, still `ManuallyDrop`ped.
         let vec = unsafe { Vec::from_raw_parts(raw.as_ptr() as *mut T, raw.len(), raw.len()) };
         DataMut::from_manually_drop(ManuallyDrop::new(vec))
     }
@@ -159,7 +168,13 @@ where
             .try_into()
             .unwrap_or_else(|_| panic!("stride conversion failed"));
         let new_offset = layout.offset() / N;
+        // SAFETY: the packed axis (stride 1, length N, offset divisible by N — all
+        // asserted above) is consumed; remaining strides are divided by N and the
+        // offset by N, so every new flat index stays within the original storage
+        // bounds.
         let new_layout = unsafe { Layout::new_unchecked(layout.shape().clone(), stride, new_offset) };
+        // SAFETY: `new_layout` provably stays within the original storage bounds
+        // (see above); storage only re-wrapped.
         let tensor = unsafe { TensorAny::new_unchecked(storage, new_layout) };
         Ok(tensor)
     }
@@ -221,8 +236,13 @@ where
         stride.iter_mut().map(|s| *s *= N as isize).count();
         stride.insert(axis, 1);
         offset *= N;
+        // SAFETY: unpacking multiplies all strides and the offset by N and inserts a
+        // stride-1 axis of length N; every new flat index maps to `N * old + k <`,
+        // i.e. within `N * len` — exactly the extent of the unpacked `Vec<T>`.
         let layout = unsafe { Layout::new_unchecked(shape, stride, offset) };
         let layout = layout.into_dim().rstsr_unwrap();
+        // SAFETY: layout and storage stay in bounds by construction (see above);
+        // `into_dim` re-checks dimensionality.
         let tensor = unsafe { TensorAny::new_unchecked(storage, layout) };
         Ok(tensor)
     }

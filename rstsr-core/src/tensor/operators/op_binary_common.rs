@@ -143,6 +143,7 @@ mod impl_trait_binary {
             let device = self.device();
             let mut storage_c = device.uninit_impl(lc.bounds_index()?.1)?;
             device.op_mutc_refa_refb(storage_c.raw_mut(), &lc, self.raw(), &la_b, b.raw(), &lb_b)?;
+            // SAFETY: the op above wrote every element of the fresh `storage_c`.
             let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
             Tensor::new_f(storage_c, lc)
         }
@@ -188,6 +189,7 @@ mod impl_trait_binary {
             let device = self.device();
             let mut storage_c = device.uninit_impl(lc.bounds_index()?.1)?;
             device.op_mutc_refa_numb(storage_c.raw_mut(), &lc, self.raw(), la, b)?;
+            // SAFETY: the op above wrote every element of the fresh `storage_c`.
             let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
             Tensor::new_f(storage_c, lc)
         }
@@ -226,6 +228,7 @@ mod impl_trait_binary {
             let device = b.device();
             let mut storage_c = device.uninit_impl(lc.bounds_index()?.1)?;
             device.op_mutc_numa_refb(storage_c.raw_mut(), &lc, self, b.raw(), lb)?;
+            // SAFETY: the op above wrote every element of the fresh `storage_c`.
             let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
             Tensor::new_f(storage_c, lc)
         }

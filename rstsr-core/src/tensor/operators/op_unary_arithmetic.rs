@@ -141,6 +141,7 @@ mod impl_unary {
             let mut storage_a = device.uninit_impl(la.bounds_index()?.1)?;
             // compute and return
             device.op_muta_refb(storage_a.raw_mut(), &la, self.raw(), lb)?;
+            // SAFETY: the op above wrote every element of the fresh `storage_a`.
             let storage_a = unsafe { B::assume_init_impl(storage_a) }?;
             return Tensor::new_f(storage_a, la);
         }

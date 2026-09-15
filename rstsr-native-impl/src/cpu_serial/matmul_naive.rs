@@ -63,6 +63,8 @@ where
                 let mut lb_m = lb_matmul.clone();
                 let mut lc_m = lc_matmul.clone();
                 unsafe {
+                    // SAFETY: offsets come from the rest-layout iterators of the validated matmul
+                    // config; sub-layout + offset addresses only in-bounds elements.
                     la_m.set_offset(ia_rest);
                     lb_m.set_offset(ib_rest);
                     lc_m.set_offset(ic_rest);
@@ -102,19 +104,17 @@ where
     let (m, n, k) = (sc[0], sc[1], sa[1]);
 
     // naive iteration: assuming c-prefer
-    unsafe {
-        for i_m in 0..m {
+    for i_m in 0..m {
+        for i_n in 0..n {
+            let idx_c = lc.index_uncheck(&[i_m, i_n]) as usize;
+            c[idx_c] = beta.clone() * c[idx_c].clone();
+        }
+        for i_k in 0..k {
+            let idx_a = la.index_uncheck(&[i_m, i_k]) as usize;
             for i_n in 0..n {
                 let idx_c = lc.index_uncheck(&[i_m, i_n]) as usize;
-                c[idx_c] = beta.clone() * c[idx_c].clone();
-            }
-            for i_k in 0..k {
-                let idx_a = la.index_uncheck(&[i_m, i_k]) as usize;
-                for i_n in 0..n {
-                    let idx_c = lc.index_uncheck(&[i_m, i_n]) as usize;
-                    let idx_b = lb.index_uncheck(&[i_k, i_n]) as usize;
-                    c[idx_c] = alpha.clone() * (a[idx_a].clone() * b[idx_b].clone()) + c[idx_c].clone();
-                }
+                let idx_b = lb.index_uncheck(&[i_k, i_n]) as usize;
+                c[idx_c] = alpha.clone() * (a[idx_a].clone() * b[idx_b].clone()) + c[idx_c].clone();
             }
         }
     }
@@ -148,15 +148,13 @@ where
     let (n, k) = (sa[0], sa[1]);
 
     // naive iteration: assuming c-prefer
-    unsafe {
-        for i_n in 0..n {
-            let idx_c = lc.index_uncheck(&[i_n]) as usize;
-            c[idx_c] = beta.clone() * c[idx_c].clone();
-            for i_k in 0..k {
-                let idx_a = la.index_uncheck(&[i_n, i_k]) as usize;
-                let idx_b = lb.index_uncheck(&[i_k]) as usize;
-                c[idx_c] = alpha.clone() * (a[idx_a].clone() * b[idx_b].clone()) + c[idx_c].clone();
-            }
+    for i_n in 0..n {
+        let idx_c = lc.index_uncheck(&[i_n]) as usize;
+        c[idx_c] = beta.clone() * c[idx_c].clone();
+        for i_k in 0..k {
+            let idx_a = la.index_uncheck(&[i_n, i_k]) as usize;
+            let idx_b = lb.index_uncheck(&[i_k]) as usize;
+            c[idx_c] = alpha.clone() * (a[idx_a].clone() * b[idx_b].clone()) + c[idx_c].clone();
         }
     }
     Ok(())
@@ -189,15 +187,13 @@ where
     let (n, k) = (sb[1], sb[0]);
 
     // naive iteration: assuming c-prefer
-    unsafe {
-        for i_n in 0..n {
-            let idx_c = lc.index_uncheck(&[i_n]) as usize;
-            c[idx_c] = beta.clone() * c[idx_c].clone();
-            for i_k in 0..k {
-                let idx_a = la.index_uncheck(&[i_k]) as usize;
-                let idx_b = lb.index_uncheck(&[i_k, i_n]) as usize;
-                c[idx_c] = alpha.clone() * (a[idx_a].clone() * b[idx_b].clone()) + c[idx_c].clone();
-            }
+    for i_n in 0..n {
+        let idx_c = lc.index_uncheck(&[i_n]) as usize;
+        c[idx_c] = beta.clone() * c[idx_c].clone();
+        for i_k in 0..k {
+            let idx_a = la.index_uncheck(&[i_k]) as usize;
+            let idx_b = lb.index_uncheck(&[i_k, i_n]) as usize;
+            c[idx_c] = alpha.clone() * (a[idx_a].clone() * b[idx_b].clone()) + c[idx_c].clone();
         }
     }
     Ok(())
@@ -228,15 +224,13 @@ where
     let n = sa[0];
 
     // naive iteration
-    unsafe {
-        let idx_c = lc.index_uncheck(&[]) as usize;
-        let mut sum = beta * c[idx_c].clone();
-        for i in 0..n {
-            let idx_a = la.index_uncheck(&[i]) as usize;
-            let idx_b = lb.index_uncheck(&[i]) as usize;
-            sum = sum + alpha.clone() * (a[idx_a].clone() * b[idx_b].clone());
-        }
-        c[0] = sum;
+    let idx_c = lc.index_uncheck(&[]) as usize;
+    let mut sum = beta * c[idx_c].clone();
+    for i in 0..n {
+        let idx_a = la.index_uncheck(&[i]) as usize;
+        let idx_b = lb.index_uncheck(&[i]) as usize;
+        sum = sum + alpha.clone() * (a[idx_a].clone() * b[idx_b].clone());
     }
+    c[0] = sum;
     Ok(())
 }
