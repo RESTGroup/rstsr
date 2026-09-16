@@ -61,10 +61,6 @@ where
     }
 
     /// Total number of elements in tensor.
-    ///
-    /// # Note
-    ///
-    /// This function uses cached size, instead of evaluating from shape.
     #[inline]
     pub fn size(&self) -> usize {
         self.shape().as_ref().iter().product()
@@ -345,15 +341,11 @@ where
                 "Either stride be zero, or stride too small that elements in tensor can be overlapped."
             )?;
 
-            let extent = shape_axis
-                .checked_sub(1)
-                .and_then(|m| m.checked_mul(stride_abs))
-                .and_then(|v| v.checked_add(elem_cum));
+            let extent =
+                shape_axis.checked_sub(1).and_then(|m| m.checked_mul(stride_abs)).and_then(|v| v.checked_add(elem_cum));
             match extent {
                 Some(v) => elem_cum = v,
-                None => {
-                    rstsr_raise!(InvalidLayout, "Layout is too large that elements count overflows usize.")?
-                },
+                None => rstsr_raise!(InvalidLayout, "Layout is too large that elements count overflows usize.")?,
             }
         }
         return Ok(());
