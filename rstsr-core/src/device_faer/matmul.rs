@@ -8,7 +8,6 @@ use core::any::TypeId;
 use core::ops::{Add, Mul};
 use core::slice::{from_raw_parts, from_raw_parts_mut};
 use num::{Complex, Zero};
-use rayon::prelude::*;
 
 // code from ndarray
 fn same_type<A: 'static, B: 'static>() -> bool {

@@ -296,27 +296,65 @@ where
             return Ok(());
         }
 
-        let mut indices = (0..n).filter(|&k| shape[k] > 1).collect::<Vec<_>>();
-        indices.sort_by_key(|&k| stride[k].abs());
-        let shape_sorted = indices.iter().map(|&k| shape[k]).collect::<Vec<_>>();
-        let stride_sorted = indices.iter().map(|&k| stride[k].unsigned_abs()).collect::<Vec<_>>();
+        // collect axes with more than one element, sorted by absolute stride
+        // (insertion sort into a stack buffer; heap fallback for unusually
+        // high dimensionality keeps this allocation-free in the common case)
+        const MAX_STACK_AXES: usize = 8;
+        let mut buf = [(0usize, 0usize); MAX_STACK_AXES]; // (|stride|, shape)
+        let mut count = 0;
+        let mut heap: Vec<(usize, usize)> = Vec::new();
+        for k in 0..n {
+            if shape[k] <= 1 {
+                continue;
+            }
+            let pair = (stride[k].unsigned_abs(), shape[k]);
+            if heap.is_empty() && count < MAX_STACK_AXES {
+                let mut i = count;
+                while i > 0 && buf[i - 1].0 > pair.0 {
+                    buf[i] = buf[i - 1];
+                    i -= 1;
+                }
+                buf[i] = pair;
+                count += 1;
+            } else {
+                if heap.is_empty() {
+                    heap.extend_from_slice(&buf[..count]);
+                }
+                heap.push(pair);
+            }
+        }
+        let sorted: &[(usize, usize)] = if heap.is_empty() {
+            &buf[..count]
+        } else {
+            heap.sort_unstable_by_key(|&(s, _)| s);
+            &heap
+        };
 
         // elem_cum: cumulative number count of elements in tensor for small strides
         let mut elem_cum = 0;
-        for i in 0..indices.len() {
+        for &(stride_abs, shape_axis) in sorted {
             // if stride is zero, then skip check for this axis
-            if stride_sorted[i] == 0 && skip_zero {
+            if stride_abs == 0 && skip_zero {
                 continue;
             }
             // following function also checks that stride could not be zero
             rstsr_pattern!(
                 elem_cum,
-                0..stride_sorted[i],
+                0..stride_abs,
                 InvalidLayout,
                 "Either stride be zero, or stride too small that elements in tensor can be overlapped."
             )?;
 
-            elem_cum += (shape_sorted[i] - 1) * stride_sorted[i];
+            let extent = shape_axis
+                .checked_sub(1)
+                .and_then(|m| m.checked_mul(stride_abs))
+                .and_then(|v| v.checked_add(elem_cum));
+            match extent {
+                Some(v) => elem_cum = v,
+                None => {
+                    rstsr_raise!(InvalidLayout, "Layout is too large that elements count overflows usize.")?
+                },
+            }
         }
         return Ok(());
     }
@@ -1019,5 +1057,51 @@ mod test {
         let indexed = layout.dim_slice(slc.as_ref()).unwrap();
         assert_eq!(indexed.shape(), &[10, 3, 12]);
         assert_eq!(indexed.stride(), &[132, -48, 1]);
+    }
+
+    #[test]
+    fn test_check_strides_zero_stride() {
+        // zero stride accepted when `skip_zero` (broadcast layout, read-only)
+        let layout = Layout::new([2, 3], [1, 0], 0).unwrap();
+        assert!(layout.check_strides(true).is_ok());
+        assert!(layout.is_broadcasted());
+        // zero stride rejected when strict (write paths use this semantics
+        // via `is_broadcasted`)
+        assert!(layout.check_strides(false).is_err());
+        // zero stride on a shape-1 axis cannot alias anything: stride checking
+        // passes, but `is_broadcasted` (the conservative write-path gate) still
+        // rejects it
+        let layout = Layout::new([3, 1], [1, 0], 0).unwrap();
+        assert!(layout.check_strides(true).is_ok());
+        assert!(layout.check_strides(false).is_ok());
+        assert!(layout.is_broadcasted());
+        assert!(!Layout::new([3, 1], [1, 3], 0).unwrap().is_broadcasted());
+    }
+
+    #[test]
+    fn test_check_strides_many_axes_heap_fallback() {
+        // more than 8 axes with shape > 1 takes the heap path and must stay
+        // correct (overlapping strides detected)
+        let shape = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2]; // 10-d, all shape > 1
+        let stride = [512, 256, 128, 64, 32, 16, 8, 4, 2, 1];
+        let layout = Layout::new(shape, stride, 0).unwrap();
+        assert!(layout.check_strides(false).is_ok());
+        // overlapping: two axes share the same stride
+        let stride = [512, 256, 128, 64, 32, 16, 8, 4, 2, 2];
+        // SAFETY: test-only layout; the invalid stride pair is the case under test
+        let layout = unsafe { Layout::new_unchecked(shape, stride, 0) };
+        assert!(layout.check_strides(false).is_err());
+    }
+
+    #[test]
+    fn test_check_strides_span_overflow() {
+        // the cumulative span must not wrap around usize in release mode
+        // SAFETY: test-only layout; huge strides exercise the overflow guard
+        let layout = unsafe { Layout::new_unchecked([2, 4], [1, 9223372036854775807], 0) };
+        assert!(layout.check_strides(false).is_err());
+        // the same layout with a small final axis is still fine
+        // SAFETY: test-only layout; bounds are irrelevant to stride checking
+        let layout = unsafe { Layout::new_unchecked([2, 2], [1, 9223372036854775807], 0) };
+        assert!(layout.check_strides(false).is_ok());
     }
 }

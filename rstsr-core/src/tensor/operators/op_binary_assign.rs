@@ -171,6 +171,8 @@ mod impl_binary_assign {
     {
         fn op_f(a: Self, b: &TensorAny<RB, TB, B, DB>) -> Result<()> {
             rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch)?;
+            // writing through a broadcast layout would alias elements
+            rstsr_assert!(!a.layout().is_broadcasted(), InvalidLayout, "cannot assign to broadcasted tensor")?;
             let la = a.layout();
             let lb = b.layout();
             let default_order = a.device().default_order();
@@ -219,6 +221,8 @@ mod impl_binary_assign {
         TB: num::Num,
     {
         fn op_f(a: Self, b: TB) -> Result<()> {
+            // writing through a broadcast layout would alias elements
+            rstsr_assert!(!a.layout().is_broadcasted(), InvalidLayout, "cannot assign to broadcasted tensor")?;
             let la = a.layout().clone();
             let device = a.device().clone();
             device.op_muta_numb(a.raw_mut(), &la, b)
@@ -311,5 +315,20 @@ mod test {
             let c_ref = vec![-1., -2., -3., 2., 1., 0.];
             assert!(allclose_f64(&c.raw().into(), &c_ref.into()));
         }
+    }
+
+    #[test]
+    fn test_add_assign_broadcast_err() {
+        // a broadcast (stride-0) layout aliases elements; in-place arithmetic
+        // through it is rejected instead of writing one element multiple times
+        let device = DeviceCpuSerial::default();
+        let a = arange((3.0, &device));
+        let (storage, _) = a.into_raw_parts();
+        let mut c = Tensor::new(storage, Layout::new([2, 3], [0, 1], 0).unwrap());
+        let b = arange((6.0, &device)).into_shape([2, 3]);
+        assert!(add_assign_f(&mut c, &b).is_err());
+        assert!(add_assign_f(&mut c, 1.0).is_err());
+        let v: Vec<_> = c.view().iter().cloned().collect();
+        assert_eq!(v, vec![0., 1., 2., 0., 1., 2.]);
     }
 }

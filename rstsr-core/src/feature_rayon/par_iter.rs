@@ -1,7 +1,6 @@
 //! Layout parallel iterator
 
 use crate::prelude_dev::*;
-use rayon::prelude::*;
 
 /* #region tensor iterator */
 

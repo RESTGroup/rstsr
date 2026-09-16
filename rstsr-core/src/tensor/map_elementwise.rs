@@ -94,6 +94,8 @@ where
         R: DataMutAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
         B: Op_MutA_API<T, D, dyn FnMut(&mut MaybeUninit<T>) + 'f>,
     {
+        // writing through a broadcast layout would alias elements
+        rstsr_assert!(!self.layout().is_broadcasted(), InvalidLayout, "cannot map in place on broadcasted tensor")?;
         let (la, _) = greedy_layout(self.layout(), false);
         let device = self.device().clone();
         // SAFETY: `Vec<T>` -> `Vec<MaybeUninit<T>>` reinterpretation (identical
@@ -417,6 +419,8 @@ where
         R: DataMutAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
         B: Op_MutA_API<T, D, dyn Fn(&mut MaybeUninit<T>) + Send + Sync + 'f>,
     {
+        // writing through a broadcast layout would alias elements
+        rstsr_assert!(!self.layout().is_broadcasted(), InvalidLayout, "cannot map in place on broadcasted tensor")?;
         let (la, _) = greedy_layout(self.layout(), false);
         let device = self.device().clone();
         // SAFETY: `Vec<T>` -> `Vec<MaybeUninit<T>>` reinterpretation (identical
@@ -700,5 +704,28 @@ mod tests_sync {
             let c = a.mapvb(&b, f);
             assert!(allclose_f64(&c.raw().into(), &vec![5., 10., 15., 11., 16., 21.].into()));
         }
+    }
+}
+
+#[cfg(test)]
+mod tests_broadcast {
+    use super::*;
+
+    #[test]
+    fn test_mapi_broadcast_err() {
+        // a broadcast (stride-0) layout aliases elements; in-place mapping
+        // through it is rejected instead of calling `f` on aliased elements
+        let device = DeviceCpuSerial::default();
+        let a = arange((3.0, &device));
+        let (storage, _) = a.into_raw_parts();
+        let mut c = Tensor::new(storage, Layout::new([2, 3], [0, 1], 0).unwrap());
+        assert!(c.mapi_f(|x| {
+            *x += 1.0;
+        }).is_err());
+        assert!(c.mapi_fnmut_f(|x| {
+            *x += 1.0;
+        }).is_err());
+        let v: Vec<_> = c.view().iter().cloned().collect();
+        assert_eq!(v, vec![0., 1., 2., 0., 1., 2.]);
     }
 }

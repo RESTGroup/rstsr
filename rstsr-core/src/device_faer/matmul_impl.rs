@@ -10,7 +10,6 @@ use core::num::NonZeroUsize;
 use faer::prelude::*;
 use faer::traits::ComplexField;
 use num::Num;
-use rayon::prelude::*;
 
 const PARALLEL_SWITCH: usize = 64;
 

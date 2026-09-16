@@ -216,6 +216,12 @@ mod impl_tensor_unary_common {
     {
         type Output = Tensor<T, B, D>;
         fn op_f(mut self) -> Result<Self::Output> {
+            if self.layout().is_broadcasted() {
+                // an owned broadcasted tensor cannot be mapped in place
+                // (elements alias); fall back to producing a fresh packed
+                // output instead, same policy as binary op reuse
+                return TensorOpAPI::op_f(&self);
+            }
             let layout = self.layout().clone();
             let device = self.device().clone();
             // generate empty output tensor

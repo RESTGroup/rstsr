@@ -305,4 +305,20 @@ mod tests {
         a.fill(c);
         assert_eq!(a.raw(), &vec![10.0f32; 6]);
     }
+
+    #[test]
+    fn test_assign_fill_broadcast_err() {
+        // a broadcast (stride-0) layout aliases elements; writing through it
+        // is rejected instead of assigning one element multiple times
+        let device = DeviceCpuSerial::default();
+        let a = arange((3.0, &device));
+        let (storage, _) = a.into_raw_parts();
+        let mut c = Tensor::new(storage, Layout::new([2, 3], [0, 1], 0).unwrap());
+        let b = arange((6.0, &device)).into_shape([2, 3]);
+        assert!(c.assign_f(&b).is_err());
+        assert!(c.fill_f(1.0).is_err());
+        // reading the broadcast tensor is unaffected
+        let v: Vec<_> = c.view().iter().cloned().collect();
+        assert_eq!(v, vec![0., 1., 2., 0., 1., 2.]);
+    }
 }

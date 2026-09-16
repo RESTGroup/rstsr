@@ -388,6 +388,10 @@ where
         // axes of the validated full layout — a subset of the original element set.
         let layout_inner = unsafe { Layout::new_unchecked(shape_inner, stride_inner, offset) };
 
+        // successive items of the iterator would be live simultaneously; if an
+        // iterated axis is broadcast (zero stride), items would alias each other
+        // as multiple `&mut` to the same elements
+        rstsr_assert!(!layout_axes.is_broadcasted(), InvalidLayout, "cannot iterate mutably along broadcasted axes")?;
         // create axes iter
         // The receiver is consumed to move the view's inner `&'a mut` out,
         // which lets `a.view_mut().axes_iter_mut(0)` work as a one-liner: the
@@ -814,6 +818,10 @@ where
         // axes of the validated full layout — a subset of the original element set.
         let layout_inner = unsafe { Layout::new_unchecked(shape_inner, stride_inner, offset) };
 
+        // successive items of the iterator would be live simultaneously; if an
+        // iterated axis is broadcast (zero stride), items would alias each other
+        // as multiple `&mut` to the same elements
+        rstsr_assert!(!layout_axes.is_broadcasted(), InvalidLayout, "cannot iterate mutably along broadcasted axes")?;
         // create axes iter
         // The receiver is consumed to move the view's inner `&'a mut` out;
         // see `axes_iter_mut_with_order_f` for the lifetime contract.
@@ -972,13 +980,38 @@ mod tests_serial {
             ]);
         }
     }
+
+    #[test]
+    fn test_axes_iter_mut_broadcast_err() {
+        // items of a mutable axes iterator are live simultaneously; iterating
+        // along a broadcast (stride-0) axis would make items alias each other
+        // as multiple `&mut` to the same elements, so it is rejected
+        let a = arange((3.0, &DeviceCpu::default()));
+        let (storage, _) = a.into_raw_parts();
+        let mut c = Tensor::new(storage, Layout::new([2, 3], [0, 1], 0).unwrap());
+        assert!(c.view_mut().axes_iter_mut_f([0]).is_err());
+        // iterating along a normal axis is fine; items then carry the
+        // broadcast axis internally (inert views), and writing through an
+        // item is caught by the write-path checks (e.g. `fill`)
+        let iter = c.view_mut().axes_iter_mut_f([1]).unwrap();
+        let mut first = true;
+        for mut item in iter {
+            assert!(item.fill_f(0.0).is_err());
+            if first {
+                let v: Vec<_> = item.view().iter().cloned().collect();
+                assert_eq!(v, vec![0., 0.]);
+                first = false;
+            }
+        }
+        let v: Vec<_> = c.view().iter().cloned().collect();
+        assert_eq!(v, vec![0., 1., 2., 0., 1., 2.]);
+    }
 }
 
 #[cfg(test)]
 #[cfg(feature = "rayon")]
 mod tests_parallel {
     use super::*;
-    use rayon::prelude::*;
 
     #[test]
     fn test_axes_iter() {

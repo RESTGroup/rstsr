@@ -247,6 +247,8 @@ where
     let (a, b, mut c) = (a.view(), b.view(), c.view_mut());
     rstsr_assert!(c.device().same_device(a.device()), DeviceMismatch)?;
     rstsr_assert!(c.device().same_device(b.device()), DeviceMismatch)?;
+    // writing through a broadcast layout would alias elements
+    rstsr_assert!(!c.layout().is_broadcasted(), InvalidLayout, "cannot matmul into broadcasted tensor")?;
     let device = c.device().clone();
     let la = a.layout();
     let lb = b.layout();
