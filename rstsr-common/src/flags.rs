@@ -2,47 +2,23 @@
 
 use crate::prelude_dev::*;
 use core::ffi::c_char;
+use core::sync::atomic::{AtomicU8, Ordering};
 use rstsr_cblas_base::*;
 use serde::{Deserialize, Serialize};
 
 /* #region changeable default */
 
 pub trait ChangeableDefault {
-    /// # Safety
+    /// Change the process-wide default value of this type.
     ///
-    /// This function changes static mutable variable.
+    /// The default is stored in an atomic (`no_std`-compatible `core`
+    /// primitive), so this function can be called from any thread at any
+    /// time; concurrent readers observe either the old or the new value.
+    ///
     /// It is better applying cargo feature instead of using this function.
-    unsafe fn change_default(val: Self);
+    fn change_default(val: Self);
+    /// Get the process-wide default value of this type.
     fn get_default() -> Self;
-}
-
-macro_rules! impl_changeable_default {
-    ($struct:ty, $val:ident, $default:expr) => {
-        // SAFETY: the `static mut` is written only by `change_default` (unsafe, meant
-        // for process initialization before threads are spawned) and read by
-        // `get_default`; concurrent read/write would be a data race — documented API
-        // contract, not enforced here.
-        static mut $val: $struct = $default;
-
-        impl ChangeableDefault for $struct {
-            unsafe fn change_default(val: Self) {
-                $val = val;
-            }
-
-            fn get_default() -> Self {
-                return unsafe { $val };
-            }
-        }
-
-        impl Default for $struct
-        where
-            Self: ChangeableDefault,
-        {
-            fn default() -> Self {
-                <$struct>::get_default()
-            }
-        }
-    };
 }
 
 /* #endregion */
@@ -94,6 +70,7 @@ impl Default for FlagOrder {
 /* #region TensorIterOrder */
 
 /// The policy of the tensor iterator.
+#[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TensorIterOrder {
     /// Row-major order.
@@ -137,7 +114,68 @@ pub enum TensorIterOrder {
     B,
 }
 
-impl_changeable_default!(TensorIterOrder, DEFAULT_TENSOR_ITER_ORDER, TensorIterOrder::K);
+// The process-wide default iterator order, stored as the enum discriminant.
+// `Relaxed` ordering suffices: the value is an independent policy byte and
+// does not order any other memory.
+static DEFAULT_TENSOR_ITER_ORDER: AtomicU8 = AtomicU8::new(TensorIterOrder::K as u8);
+
+impl TensorIterOrder {
+    /// Decode the raw byte of the [`ChangeableDefault`] storage.
+    /// Only `change_default` stores the value, so every stored byte is a
+    /// valid discriminant; the fallback arm only guards against memory
+    /// corruption.
+    fn from_default_u8(val: u8) -> Self {
+        match val {
+            x if x == TensorIterOrder::C as u8 => TensorIterOrder::C,
+            x if x == TensorIterOrder::F as u8 => TensorIterOrder::F,
+            x if x == TensorIterOrder::A as u8 => TensorIterOrder::A,
+            x if x == TensorIterOrder::G as u8 => TensorIterOrder::G,
+            x if x == TensorIterOrder::B as u8 => TensorIterOrder::B,
+            _ => TensorIterOrder::K,
+        }
+    }
+}
+
+impl ChangeableDefault for TensorIterOrder {
+    fn change_default(val: Self) {
+        DEFAULT_TENSOR_ITER_ORDER.store(val as u8, Ordering::Relaxed);
+    }
+
+    fn get_default() -> Self {
+        TensorIterOrder::from_default_u8(DEFAULT_TENSOR_ITER_ORDER.load(Ordering::Relaxed))
+    }
+}
+
+impl Default for TensorIterOrder {
+    fn default() -> Self {
+        <TensorIterOrder>::get_default()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_changeable_default_roundtrip() {
+        let saved = TensorIterOrder::get_default();
+        assert_eq!(TensorIterOrder::default(), saved);
+        for val in [
+            TensorIterOrder::C,
+            TensorIterOrder::F,
+            TensorIterOrder::A,
+            TensorIterOrder::K,
+            TensorIterOrder::G,
+            TensorIterOrder::B,
+        ] {
+            TensorIterOrder::change_default(val);
+            assert_eq!(TensorIterOrder::get_default(), val);
+            assert_eq!(TensorIterOrder::default(), val);
+        }
+        // restore: the default is process-global and other tests may read it
+        TensorIterOrder::change_default(saved);
+    }
+}
 
 /* #endregion */
 
