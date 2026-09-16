@@ -45,6 +45,11 @@ where
     }
 }
 
+/// Converts a faer matrix view into a non-owning RSTSR tensor view (zero-copy).
+///
+/// The result borrows faer's buffer (rstsr never frees it) and keeps faer's
+/// strides; the source must outlive the view. For an owned [`Mat`], the
+/// conversion instead copies; see that impl's documentation.
 impl<'a, T> IntoRSTSR for MatRef<'a, T> {
     type RSTSR = TensorView<'a, T, DeviceFaer, Ix2>;
 
@@ -69,32 +74,68 @@ impl<'a, T> IntoRSTSR for MatRef<'a, T> {
     }
 }
 
-impl<T> IntoRSTSR for Mat<T> {
+/// Converts an owned faer matrix into an owning RSTSR tensor by **copying** the
+/// elements.
+///
+/// The result is a [`Tensor`] that owns a fresh, contiguous column-major buffer
+/// (stride `[1, nrows]`, offset `0`); faer's original allocation is dropped
+/// normally. This differs from the reference conversions ([`MatRef`], [`MatMut`],
+/// [`ColRef`]), which are zero-copy, non-owning views that keep faer's strides.
+///
+/// # Why the owned conversion copies
+///
+/// The faer buffer cannot be re-homed into a [`Vec`] soundly: for the numeric
+/// element types (`f32`, `f64`, complex, ...) faer allocates with 64-byte
+/// alignment and pads its row capacity, while a `Vec<T>` always deallocates
+/// with `align_of::<T>()` and no padding. Deallocating with a different layout
+/// than the original allocation is undefined behavior by the allocator
+/// contract (benign under mainstream system allocators, but detected by Miri,
+/// and by any custom allocator that switches on the layout in `dealloc`).
+/// The elements are therefore copied, and faer deallocates its own buffer.
+///
+/// # Zero-copy alternative
+///
+/// If an owning tensor is not required, borrow the matrix first and convert the
+/// reference instead: the view form maps faer's buffer in place and never frees
+/// it (the source must outlive the view).
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # use faer::Mat;
+/// let mat = Mat::from_fn(2, 3, |i, j| (i * 3 + j) as f64);
+/// let view = mat.as_ref().into_rstsr(); // zero-copy: TensorView borrowing `mat`
+/// assert_eq!(view[[0, 2]], 2.0);
+/// let tensor = mat.into_rstsr(); // owning: fresh contiguous Tensor (copies)
+/// assert_eq!(tensor[[1, 0]], 3.0);
+/// ```
+impl<T> IntoRSTSR for Mat<T>
+where
+    T: Clone,
+{
     type RSTSR = Tensor<T, DeviceFaer, Ix2>;
 
     fn into_rstsr(self) -> Self::RSTSR {
         let nrows = self.nrows();
         let ncols = self.ncols();
-        let row_stride = self.row_stride();
-        let col_stride = self.col_stride();
-        let ptr = self.as_ptr();
-        core::mem::forget(self); // prevent double free
-
-        let layout = Layout::new([nrows, ncols], [row_stride, col_stride], 0).unwrap();
-        let (_, upper_bound) = layout.bounds_index().unwrap();
-        // SAFETY: `self` (faer `Mat`, global-allocator backed) is forgotten, moving its
-        // allocation into the `Vec` handle; element count equals the validated layout
-        // bound. Caveat: if faer over-allocated or over-aligned, the `Vec` dealloc
-        // layout would differ from the alloc layout (benign on mainstream allocators;
-        // see audit README).
-        let raw = unsafe { Vec::from_raw_parts(ptr as *mut T, upper_bound, upper_bound) };
-        let data = DataOwned::from(raw);
+        // Copy column-by-column (`row_stride` of an owned faer matrix is always 1,
+        // so each column is a contiguous, initialized slice). The copy is what
+        // keeps this conversion sound; see the impl-level documentation for why
+        // the faer allocation itself cannot be adopted by a `Vec`.
+        let mut vec = Vec::with_capacity(nrows * ncols);
+        for j in 0..ncols {
+            vec.extend_from_slice(self.col_as_slice(j));
+        }
+        let layout = Layout::new([nrows, ncols], [1, nrows as isize], 0).rstsr_unwrap();
+        let data = DataOwned::from(vec);
         let storage = Storage::new(data, DeviceFaer::default());
-        let tensor = unsafe { Tensor::new_unchecked(storage, layout) };
-        return tensor;
+        Tensor::new(storage, layout)
     }
 }
 
+/// Converts a faer column view into a non-owning RSTSR tensor view (zero-copy).
+///
+/// The result borrows faer's buffer (rstsr never frees it) and keeps faer's
+/// strides; the source must outlive the view.
 impl<'a, T> IntoRSTSR for ColRef<'a, T> {
     type RSTSR = TensorView<'a, T, DeviceFaer, Ix1>;
 
@@ -115,6 +156,11 @@ impl<'a, T> IntoRSTSR for ColRef<'a, T> {
     }
 }
 
+/// Converts a faer mutable matrix view into a non-owning mutable RSTSR tensor
+/// view (zero-copy).
+///
+/// The result borrows faer's buffer mutably (rstsr never frees it) and keeps
+/// faer's strides; the source must outlive the view.
 impl<'a, T> IntoRSTSR for MatMut<'a, T> {
     type RSTSR = TensorViewMut<'a, T, DeviceFaer, Ix2>;
 
@@ -208,5 +254,34 @@ mod test {
         let a_view = a.view();
         let b = a_view.to_device(&device_b);
         println!("{b:?}");
+    }
+
+    #[test]
+    fn test_mat_owned_into_rstsr() {
+        // content preserved; the result owns a fresh contiguous column-major buffer
+        let mat = Mat::from_fn(3, 4, |i, j| (i * 4 + j) as f64);
+        let tensor = mat.into_rstsr();
+        assert_eq!(*tensor.shape(), [3, 4]);
+        assert_eq!(*tensor.stride(), [1, 3]);
+        for i in 0..3 {
+            for j in 0..4 {
+                assert_eq!(tensor[[i, j]], (i * 4 + j) as f64);
+            }
+        }
+        // nrows=5: faer pads its row capacity (to a multiple of 8 for f64); the
+        // conversion must copy exactly the logical elements and nothing else
+        let mat = Mat::from_fn(5, 1, |i, _j| i as f64);
+        let tensor = mat.into_rstsr();
+        assert_eq!(*tensor.shape(), [5, 1]);
+        assert_eq!(*tensor.stride(), [1, 5]);
+        for i in 0..5 {
+            assert_eq!(tensor[[i, 0]], i as f64);
+        }
+        // zero-copy route from an owned matrix: borrow first, then convert
+        let mat = Mat::from_fn(2, 2, |i, j| (i * 2 + j) as f64);
+        let view = mat.as_ref().into_rstsr();
+        assert_eq!(*view.shape(), [2, 2]);
+        assert_eq!(view[[0, 1]], 1.0);
+        assert_eq!(view[[1, 0]], 2.0);
     }
 }

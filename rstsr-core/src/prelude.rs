@@ -23,6 +23,7 @@ pub mod rstsr_traits {
         ConcatAPI, DiagAPI, HStackAPI, MeshgridAPI, StackAPI, UnstackAPI, VStackAPI,
     };
     pub use crate::tensor::device_conversion::{TensorChangeFromDevice, TensorDeviceChangeAPI};
+    pub use crate::tensor::ext_conversion::IntoRSTSR;
     pub use crate::tensor::manipulation::exports::BroadcastArraysAPI;
     pub use crate::tensor::operators::op_binary_common::{
         TensorATan2API, TensorCopySignAPI, TensorEqualAPI, TensorFloorDivideAPI, TensorGreaterAPI,
