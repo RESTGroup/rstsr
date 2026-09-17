@@ -153,7 +153,6 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::prelude_dev::*;
 
     #[test]
     fn test_op_mut_broadcast_err() {
@@ -181,9 +180,9 @@ mod test {
             c.view_mut(),
             b.view(),
             b.view(),
-            &mut |x: &mut MaybeUninit<f64>, _y: &f64, _z: &f64| unsafe {
+            &mut |x: &mut MaybeUninit<f64>, _y: &f64, _z: &f64| {
                 x.write(0.0);
-            }
+            },
         )
         .is_err());
     }

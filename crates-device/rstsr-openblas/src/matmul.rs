@@ -3,8 +3,8 @@ use crate::prelude_dev::*;
 use crate::threading::with_num_threads;
 use core::any::TypeId;
 use core::ops::{Add, Mul};
-use core::sync::atomic::{AtomicPtr, Ordering};
 use core::slice::{from_raw_parts, from_raw_parts_mut};
+use core::sync::atomic::{AtomicPtr, Ordering};
 use num::{Complex, Zero};
 use rayon::prelude::*;
 

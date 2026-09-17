@@ -477,8 +477,9 @@ mod test_cdist_uninit_discipline {
         let xb = vec![0.0; 6]; // [n=3, k=2]
         let la: Layout<Ix2> = Layout::new([2, 2], [2, 1], 0).unwrap();
         let lb: Layout<Ix2> = Layout::new([3, 2], [2, 1], 0).unwrap();
-        let dists = cdist_rayon(&xa, &xb, &la, &lb, CountingMetric { counters: counters.clone() }, RowMajor, Some(&pool))
-            .unwrap();
+        let dists =
+            cdist_rayon(&xa, &xb, &la, &lb, CountingMetric { counters: counters.clone() }, RowMajor, Some(&pool))
+                .unwrap();
         assert_eq!(dists.len(), 6);
         drop(dists);
         let created = counters.created.load(Ordering::SeqCst);

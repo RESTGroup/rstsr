@@ -719,12 +719,16 @@ mod tests_broadcast {
         let a = arange((3.0, &device));
         let (storage, _) = a.into_raw_parts();
         let mut c = Tensor::new(storage, Layout::new([2, 3], [0, 1], 0).unwrap());
-        assert!(c.mapi_f(|x| {
-            *x += 1.0;
-        }).is_err());
-        assert!(c.mapi_fnmut_f(|x| {
-            *x += 1.0;
-        }).is_err());
+        assert!(c
+            .mapi_f(|x| {
+                *x += 1.0;
+            })
+            .is_err());
+        assert!(c
+            .mapi_fnmut_f(|x| {
+                *x += 1.0;
+            })
+            .is_err());
         let v: Vec<_> = c.view().iter().cloned().collect();
         assert_eq!(v, vec![0., 1., 2., 0., 1., 2.]);
     }

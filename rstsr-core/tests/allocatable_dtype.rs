@@ -409,11 +409,7 @@ fn test_diag_concat_allocatable_exact() {
     device.set_default_order(RowMajor);
 
     // diag extraction: 2-D -> 1-D (the migrated uninit + assign_uninit path)
-    let a = rt::asarray((
-        vec![big("10000000000000000000000000"), big("2"), big("3"), big("4")],
-        [2, 2],
-        &device,
-    ));
+    let a = rt::asarray((vec![big("10000000000000000000000000"), big("2"), big("3"), big("4")], [2, 2], &device));
     let d0 = rt::diag((&a, 0));
     assert_eq!(d0.shape(), &[2]);
     assert_eq!(d0.into_shape(-1).into_vec(), vec![big("10000000000000000000000000"), big("4")]);
@@ -502,10 +498,7 @@ fn test_diag_concat_drop_guard() {
     let created = GUARD_CREATED.load(Ordering::SeqCst);
     let dropped = GUARD_DROPPED.load(Ordering::SeqCst);
     assert!(created > 6, "diag/concat must have cloned elements (created = {created})");
-    assert_eq!(
-        created, dropped,
-        "every CtorGuard dropped exactly once (no drop of uninitialized memory)"
-    );
+    assert_eq!(created, dropped, "every CtorGuard dropped exactly once (no drop of uninitialized memory)");
 }
 
 /* #endregion */
