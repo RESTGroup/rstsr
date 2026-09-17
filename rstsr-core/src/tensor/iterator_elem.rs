@@ -662,7 +662,9 @@ mod tests_serial {
     fn test_iter_mut_broadcast_err() {
         // a broadcast (stride-0) layout aliases elements; mutable iteration
         // would yield multiple live `&mut` to the same element and is rejected
-        let a = arange((3.0, &DeviceCpu::default()));
+        let mut device = DeviceCpu::default();
+        device.set_default_order(RowMajor);
+        let a = arange((3.0, &device));
         let (storage, _) = a.into_raw_parts();
         let mut c = Tensor::new(storage, Layout::new([2, 3], [0, 1], 0).unwrap());
         // reading a broadcast layout is fine

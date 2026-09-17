@@ -1455,7 +1455,8 @@ mod test_with_output {
     fn test_with_output_broadcast_err() {
         // a broadcast (stride-0) layout aliases elements; writing through it is
         // rejected instead of writing one element multiple times
-        let device = DeviceCpuSerial::default();
+        let mut device = DeviceCpuSerial::default();
+        device.set_default_order(RowMajor);
         let a = arange((6.0, &device)).into_shape([2, 3]).into_dim::<Ix2>();
         let b = arange((6.0, &device)).into_shape([2, 3]).into_dim::<Ix2>();
         let (storage, _) = arange((3.0, &device)).into_raw_parts();

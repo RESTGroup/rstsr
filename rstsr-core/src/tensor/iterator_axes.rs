@@ -998,7 +998,9 @@ mod tests_serial {
         // items of a mutable axes iterator are live simultaneously; iterating
         // along a broadcast (stride-0) axis would make items alias each other
         // as multiple `&mut` to the same elements, so it is rejected
-        let a = arange((3.0, &DeviceCpu::default()));
+        let mut device = DeviceCpu::default();
+        device.set_default_order(RowMajor);
+        let a = arange((3.0, &device));
         let (storage, _) = a.into_raw_parts();
         let mut c = Tensor::new(storage, Layout::new([2, 3], [0, 1], 0).unwrap());
         assert!(c.view_mut().axes_iter_mut_f([0]).is_err());

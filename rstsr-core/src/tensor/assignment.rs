@@ -310,7 +310,8 @@ mod tests {
     fn test_assign_fill_broadcast_err() {
         // a broadcast (stride-0) layout aliases elements; writing through it
         // is rejected instead of assigning one element multiple times
-        let device = DeviceCpuSerial::default();
+        let mut device = DeviceCpuSerial::default();
+        device.set_default_order(RowMajor);
         let a = arange((3.0, &device));
         let (storage, _) = a.into_raw_parts();
         let mut c = Tensor::new(storage, Layout::new([2, 3], [0, 1], 0).unwrap());

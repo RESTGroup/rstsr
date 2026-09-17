@@ -205,7 +205,8 @@ mod test {
     fn test_neg_broadcast_owned_fallback() {
         // an owned broadcasted tensor cannot be negated in place (elements
         // alias); the op falls back to a fresh output instead of erroring
-        let device = DeviceCpuSerial::default();
+        let mut device = DeviceCpuSerial::default();
+        device.set_default_order(RowMajor);
         let a = arange((3.0, &device));
         let (storage, _) = a.into_raw_parts();
         let c = Tensor::new(storage, Layout::new([2, 3], [0, 1], 0).unwrap());
