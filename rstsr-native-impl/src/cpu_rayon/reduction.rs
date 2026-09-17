@@ -233,7 +233,8 @@ where
                 // initialize sequential parts
                 let mut vacc = vec![init(); size_mc];
                 // iterate the reduction parts
-                // - chunk to contiguous output (current chunk size is small, but applicable to most situations)
+                // - chunk to contiguous output (current chunk size is small, but applicable to most
+                //   situations)
                 // - sequential iteration in chunks for reduction (parallel it can lead to racing)
                 const CHUNK: usize = 64;
                 vacc.par_chunks_mut(CHUNK).enumerate().for_each(|(i_chunk, vacc_chunk)| {

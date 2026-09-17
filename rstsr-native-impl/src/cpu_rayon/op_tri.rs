@@ -62,8 +62,9 @@ where
                         let mut la_inner = la_inner.to_dim::<Ix1>()?;
                         let mut lb_inner = lb_inner.to_dim::<Ix2>()?;
                         unsafe {
-                            // SAFETY: offsets from the rest-layout iterators over the validated layouts;
-                            // inner layout + offset addresses only in-bounds elements (no pointer access
+                            // SAFETY: offsets from the rest-layout iterators over the validated
+                            // layouts; inner layout + offset addresses
+                            // only in-bounds elements (no pointer access
                             // in `set_offset` itself).
                             la_inner.set_offset(offset_a);
                             lb_inner.set_offset(offset_b);
@@ -94,8 +95,9 @@ where
                         let mut la_inner = la_inner.to_dim::<Ix1>()?;
                         let mut lb_inner = lb_inner.to_dim::<Ix2>()?;
                         unsafe {
-                            // SAFETY: offsets from the rest-layout iterators over the validated layouts;
-                            // inner layout + offset addresses only in-bounds elements (no pointer access
+                            // SAFETY: offsets from the rest-layout iterators over the validated
+                            // layouts; inner layout + offset addresses
+                            // only in-bounds elements (no pointer access
                             // in `set_offset` itself).
                             la_inner.set_offset(offset_a);
                             lb_inner.set_offset(offset_b);
@@ -181,8 +183,9 @@ where
                         let mut la_inner = la_inner.to_dim::<Ix2>()?;
                         let mut lb_inner = lb_inner.to_dim::<Ix1>()?;
                         unsafe {
-                            // SAFETY: offsets from the rest-layout iterators over the validated layouts;
-                            // inner layout + offset addresses only in-bounds elements (no pointer access
+                            // SAFETY: offsets from the rest-layout iterators over the validated
+                            // layouts; inner layout + offset addresses
+                            // only in-bounds elements (no pointer access
                             // in `set_offset` itself).
                             la_inner.set_offset(offset_a);
                             lb_inner.set_offset(offset_b);
@@ -213,8 +216,9 @@ where
                         let mut la_inner = la_inner.to_dim::<Ix2>()?;
                         let mut lb_inner = lb_inner.to_dim::<Ix1>()?;
                         unsafe {
-                            // SAFETY: offsets from the rest-layout iterators over the validated layouts;
-                            // inner layout + offset addresses only in-bounds elements (no pointer access
+                            // SAFETY: offsets from the rest-layout iterators over the validated
+                            // layouts; inner layout + offset addresses
+                            // only in-bounds elements (no pointer access
                             // in `set_offset` itself).
                             la_inner.set_offset(offset_a);
                             lb_inner.set_offset(offset_b);

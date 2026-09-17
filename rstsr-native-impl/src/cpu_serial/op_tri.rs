@@ -120,9 +120,10 @@ where
                 let mut lb_inner = lb_inner.to_dim::<Ix2>()?;
                 for (offset_a, offset_b) in izip!(la_rest_iter, lb_rest_iter) {
                     unsafe {
-                        // SAFETY: `offset_a`/`offset_b` come from the rest-layout iterators over the
-                        // validated layouts; inner layout + offset addresses only in-bounds elements.
-                        // The `unsafe` block is only needed because `set_offset` is an unsafe fn —
+                        // SAFETY: `offset_a`/`offset_b` come from the rest-layout iterators over
+                        // the validated layouts; inner layout + offset
+                        // addresses only in-bounds elements. The `unsafe`
+                        // block is only needed because `set_offset` is an unsafe fn —
                         // it performs no pointer access.
                         la_inner.set_offset(offset_a);
                         lb_inner.set_offset(offset_b);
@@ -142,9 +143,10 @@ where
                 let mut lb_inner = lb_inner.to_dim::<Ix2>()?;
                 for (offset_a, offset_b) in izip!(la_rest_iter, lb_rest_iter) {
                     unsafe {
-                        // SAFETY: `offset_a`/`offset_b` come from the rest-layout iterators over the
-                        // validated layouts; inner layout + offset addresses only in-bounds elements.
-                        // The `unsafe` block is only needed because `set_offset` is an unsafe fn —
+                        // SAFETY: `offset_a`/`offset_b` come from the rest-layout iterators over
+                        // the validated layouts; inner layout + offset
+                        // addresses only in-bounds elements. The `unsafe`
+                        // block is only needed because `set_offset` is an unsafe fn —
                         // it performs no pointer access.
                         la_inner.set_offset(offset_a);
                         lb_inner.set_offset(offset_b);
@@ -503,9 +505,10 @@ where
                 let mut lb_inner = lb_inner.to_dim::<Ix1>()?;
                 for (offset_a, offset_b) in izip!(la_rest_iter, lb_rest_iter) {
                     unsafe {
-                        // SAFETY: `offset_a`/`offset_b` come from the rest-layout iterators over the
-                        // validated layouts; inner layout + offset addresses only in-bounds elements.
-                        // The `unsafe` block is only needed because `set_offset` is an unsafe fn —
+                        // SAFETY: `offset_a`/`offset_b` come from the rest-layout iterators over
+                        // the validated layouts; inner layout + offset
+                        // addresses only in-bounds elements. The `unsafe`
+                        // block is only needed because `set_offset` is an unsafe fn —
                         // it performs no pointer access.
                         la_inner.set_offset(offset_a);
                         lb_inner.set_offset(offset_b);
@@ -525,9 +528,10 @@ where
                 let mut lb_inner = lb_inner.to_dim::<Ix1>()?;
                 for (offset_a, offset_b) in izip!(la_rest_iter, lb_rest_iter) {
                     unsafe {
-                        // SAFETY: `offset_a`/`offset_b` come from the rest-layout iterators over the
-                        // validated layouts; inner layout + offset addresses only in-bounds elements.
-                        // The `unsafe` block is only needed because `set_offset` is an unsafe fn —
+                        // SAFETY: `offset_a`/`offset_b` come from the rest-layout iterators over
+                        // the validated layouts; inner layout + offset
+                        // addresses only in-bounds elements. The `unsafe`
+                        // block is only needed because `set_offset` is an unsafe fn —
                         // it performs no pointer access.
                         la_inner.set_offset(offset_a);
                         lb_inner.set_offset(offset_b);

@@ -80,13 +80,10 @@ where
         // otherwise, flip both the tensor and flag, and allocate new tensor if
         // necessary
         match trans {
-            FlagTrans::N => Ok((
-                trans.flip(hermi)?,
-                match hermi {
-                    true => view.into_reverse_axes().change_prefer(order).conj().into_cow(),
-                    false => view.into_reverse_axes().change_prefer(order),
-                },
-            )),
+            FlagTrans::N => Ok((trans.flip(hermi)?, match hermi {
+                true => view.into_reverse_axes().change_prefer(order).conj().into_cow(),
+                false => view.into_reverse_axes().change_prefer(order),
+            })),
             FlagTrans::T => Ok((trans.flip(hermi)?, view.into_reverse_axes().change_prefer(order))),
             FlagTrans::C => Ok((trans.flip(hermi)?, view.into_reverse_axes().change_prefer(order).conj().into_cow())),
             _ => rstsr_invalid!(trans),
