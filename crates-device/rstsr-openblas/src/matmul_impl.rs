@@ -1,6 +1,7 @@
 #![allow(non_camel_case_types)]
 
 use crate::prelude_dev::*;
+use core::sync::atomic::{AtomicPtr, Ordering};
 use lapack_ffi::cblas;
 use num::complex::Complex;
 use num::traits::ConstZero;
@@ -371,12 +372,13 @@ pub fn fn_name(
     let n = sc[0];
     let ldc = lc.stride()[1];
     let offset = lc.offset() as isize;
+    let c_ptr = AtomicPtr::new(c.as_mut_ptr());
     let task = || {
         (0..(n as isize)).into_par_iter().for_each(|j| {
             ((j + 1)..(n as isize)).for_each(|i| unsafe {
                 let idx_ij = (offset + j * ldc + i) as usize;
                 let idx_ji = (offset + i * ldc + j) as usize;
-                let c_ptr_ij = c.as_ptr().add(idx_ij) as *mut ty;
+                let c_ptr_ij = c_ptr.load(Ordering::Relaxed).add(idx_ij);
                 *c_ptr_ij = c[idx_ji];
             });
         });

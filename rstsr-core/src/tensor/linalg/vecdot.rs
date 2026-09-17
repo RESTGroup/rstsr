@@ -262,6 +262,8 @@ where
     B: DeviceVecdotAPI<TA, TB, TC, DA, DB, DC> + DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<TC>,
 {
     let (a, b, mut c) = (a.view(), b.view(), c.view_mut());
+    // writing through a broadcast layout would alias elements
+    rstsr_assert!(!c.layout().is_broadcasted(), InvalidLayout, "cannot write into broadcasted tensor")?;
 
     // check devices
     let device = c.device().clone();
@@ -436,5 +438,22 @@ mod test {
         println!("Result c: {c}");
         let target = rt::tensor_from_nested!([3., 8., 10.], &device);
         assert!(rt::allclose(&c, &target, None));
+    }
+}
+
+#[cfg(test)]
+mod test_broadcast_gate {
+    use crate::prelude_dev::*;
+
+    #[test]
+    fn test_vecdot_from_broadcast_err() {
+        // a broadcast (stride-0) layout aliases elements; writing through it is
+        // rejected instead of writing one element multiple times
+        let device = DeviceCpuSerial::default();
+        let a = arange((3, &device));
+        let b = arange((6, &device)).into_shape((2, 3));
+        let (storage, _) = arange((2, &device)).into_raw_parts();
+        let mut c = Tensor::new(storage, Layout::new([2], [0], 0).unwrap());
+        assert!(vecdot_from_f(c.view_mut(), a.view(), b.view(), -1).is_err());
     }
 }

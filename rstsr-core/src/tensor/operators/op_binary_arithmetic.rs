@@ -701,6 +701,8 @@ where
     // check device
     rstsr_assert!(c.device().same_device(a.device()), DeviceMismatch)?;
     rstsr_assert!(c.device().same_device(b.device()), DeviceMismatch)?;
+    // writing through a broadcast layout would alias elements
+    rstsr_assert!(!c.layout().is_broadcasted(), InvalidLayout, "cannot write into broadcasted tensor")?;
     let lc = c.layout();
     let la = a.layout();
     let lb = b.layout();
@@ -1447,6 +1449,20 @@ mod test_with_output {
             add_with_output(&a, b, c_view);
             println!("{c:?}");
         }
+    }
+
+    #[test]
+    fn test_with_output_broadcast_err() {
+        // a broadcast (stride-0) layout aliases elements; writing through it is
+        // rejected instead of writing one element multiple times
+        let device = DeviceCpuSerial::default();
+        let a = arange((6.0, &device)).into_shape([2, 3]).into_dim::<Ix2>();
+        let b = arange((6.0, &device)).into_shape([2, 3]).into_dim::<Ix2>();
+        let (storage, _) = arange((3.0, &device)).into_raw_parts();
+        let mut c = Tensor::<f64, DeviceCpuSerial, Ix2>::new(storage, Layout::new([2, 3], [0, 1], 0).unwrap());
+        assert!(add_with_output_f(&a, &b, c.view_mut()).is_err());
+        let v: Vec<_> = c.view().iter().cloned().collect();
+        assert_eq!(v, vec![0., 1., 2., 0., 1., 2.]);
     }
 }
 

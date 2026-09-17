@@ -7,6 +7,7 @@ use crate::prelude_dev::*;
 use core::any::TypeId;
 use core::ops::{Add, Mul};
 use core::slice::{from_raw_parts, from_raw_parts_mut};
+use core::sync::atomic::{AtomicPtr, Ordering};
 use num::{Complex, Zero};
 
 // code from ndarray
@@ -156,6 +157,8 @@ where
     let itc_rest = IterLayoutColMajor::new(&lc_rest)?;
     if n_task > 4 * nthreads {
         // parallel outer, sequential matmul
+        let c_ptr = AtomicPtr::new(c.as_mut_ptr());
+        let c_len = c.len();
         let task = || {
             ita_rest.into_par_iter().zip(itb_rest).zip(itc_rest).try_for_each(
                 |((ia_rest, ib_rest), ic_rest)| -> Result<()> {
@@ -165,19 +168,17 @@ where
                     let mut lc_m = lc_matmul.clone();
                     unsafe {
                         // SAFETY: offsets come from the rest-layout iterators over the validated
-                        // matmul config; sub-layout + offset addresses only in-bounds elements of the
-                        // slices. In the parallel branch each task writes a disjoint `lc` region (the
-                        // recreated `&mut [TC]` is used solely through that task's own offsets).
+                        // matmul config; sub-layout + offset addresses only in-bounds elements of
+                        // the slices. In the parallel branch each task writes a disjoint `lc`
+                        // region, and the task-local slice handle is derived from the hoisted
+                        // `as_mut_ptr()` base (unique provenance), never from a shared reborrow.
                         la_m.set_offset(ia_rest);
                         lb_m.set_offset(ib_rest);
                         lc_m.set_offset(ic_rest);
                     }
-                    // move mutable reference into parallel closure
-                    let c = unsafe {
-                        let c_ptr = c.as_ptr() as *mut TC;
-                        let c_len = c.len();
-                        from_raw_parts_mut(c_ptr, c_len)
-                    };
+                    // task-local slice handle for this batch, derived from the hoisted
+                    // base pointer
+                    let c = unsafe { from_raw_parts_mut(c_ptr.load(Ordering::Relaxed), c_len) };
                     // clone alpha and beta
                     let alpha = alpha.clone();
                     let beta = beta.clone();
@@ -441,5 +442,28 @@ mod test {
         let b = linspace((0.0, 14.0, 15, &device)).into_shape([1, 5, 3]);
         let c = &a % &b;
         assert_eq!(c.shape(), &[1, 3, 3]);
+    }
+
+    #[test]
+    fn test_matmul_rule7_broadcast_parallel_outer() {
+        // large batch count crosses the parallel-outer threshold
+        // (`n_task > 4 * nthreads`), exercising the per-task slice handling in
+        // the batched broadcast path
+        let mut device = DeviceFaer::default();
+        device.set_default_order(RowMajor);
+
+        let a = linspace((0.0, 15.0, 15, &device)).into_shape([1, 3, 5]);
+        let b = linspace((0.0, 959.0, 960, &device)).into_shape([64, 5, 3]);
+        let c = &a % &b;
+        assert_eq!(c.shape(), &[64, 3, 3]);
+        let a_big = a.to_broadcast(vec![64, 3, 5]);
+        let c_ref = &a_big % &b;
+        assert!(allclose_f64(&c, &c_ref));
+
+        // beta-scaling path through the same parallel branch
+        let mut c2 = ones_f(([64, 3, 3], &device)).unwrap();
+        matmul_from_f(c2.view_mut(), a_big.view(), b.view(), 1.0, 2.0).unwrap();
+        let c_ref2 = &(&a_big % &b) + 2.0;
+        assert!(allclose_f64(&c2, &c_ref2));
     }
 }

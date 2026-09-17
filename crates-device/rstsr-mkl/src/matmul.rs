@@ -3,6 +3,7 @@ use crate::prelude_dev::*;
 use crate::threading::with_num_threads;
 use core::any::TypeId;
 use core::ops::{Add, Mul};
+use core::sync::atomic::{AtomicPtr, Ordering};
 use core::slice::{from_raw_parts, from_raw_parts_mut};
 use num::{Complex, Zero};
 use rayon::prelude::*;
@@ -155,6 +156,8 @@ where
     let itc_rest = IterLayoutColMajor::new(&lc_rest)?;
     if n_task >= 4 * nthreads {
         // parallel outer, sequential matmul
+        let c_ptr = AtomicPtr::new(c.as_mut_ptr());
+        let c_len = c.len();
         let task = || {
             ita_rest.into_par_iter().zip(itb_rest).zip(itc_rest).try_for_each(
                 |((ia_rest, ib_rest), ic_rest)| -> Result<()> {
@@ -167,12 +170,9 @@ where
                         lb_m.set_offset(ib_rest);
                         lc_m.set_offset(ic_rest);
                     }
-                    // move mutable reference into parallel closure
-                    let c = unsafe {
-                        let c_ptr = c.as_ptr() as *mut TC;
-                        let c_len = c.len();
-                        from_raw_parts_mut(c_ptr, c_len)
-                    };
+                    // task-local slice handle for this batch, derived from the hoisted
+                    // base pointer
+                    let c = unsafe { from_raw_parts_mut(c_ptr.load(Ordering::Relaxed), c_len) };
                     // clone alpha and beta
                     let alpha = alpha.clone();
                     let beta = beta.clone();

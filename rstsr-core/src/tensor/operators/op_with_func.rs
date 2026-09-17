@@ -27,6 +27,8 @@ where
     let (a, b, mut c) = (a.view(), b.view(), c.view_mut());
     rstsr_assert!(c.device().same_device(a.device()), DeviceMismatch)?;
     rstsr_assert!(c.device().same_device(b.device()), DeviceMismatch)?;
+    // writing through a broadcast layout would alias elements
+    rstsr_assert!(!c.layout().is_broadcasted(), InvalidLayout, "cannot write into broadcasted tensor")?;
     let lc = c.layout();
     let la = a.layout();
     let lb = b.layout();
@@ -107,6 +109,8 @@ where
 {
     let (b, mut a) = (b.view(), a.view_mut());
     rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch)?;
+    // writing through a broadcast layout would alias elements
+    rstsr_assert!(!a.layout().is_broadcasted(), InvalidLayout, "cannot write into broadcasted tensor")?;
     let la = a.layout();
     let lb = b.layout();
     let default_order = a.device().default_order();
@@ -132,6 +136,8 @@ where
     F: FnMut(&mut MaybeUninit<T>),
 {
     let mut a = a.view_mut();
+    // writing through a broadcast layout would alias elements
+    rstsr_assert!(!a.layout().is_broadcasted(), InvalidLayout, "cannot write into broadcasted tensor")?;
     let la = a.layout().clone();
     let device = a.device().clone();
     // SAFETY: `Vec<TA>` -> `Vec<MaybeUninit<TA>>` reinterpretation (identical
@@ -143,3 +149,42 @@ where
 }
 
 /* #endregion */
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::prelude_dev::*;
+
+    #[test]
+    fn test_op_mut_broadcast_err() {
+        // a broadcast (stride-0) layout aliases elements; writing through it is
+        // rejected instead of writing one element multiple times
+        let device = DeviceCpuSerial::default();
+        let a = arange((3.0, &device));
+        let (storage, _) = a.clone().into_raw_parts();
+        let mut t = Tensor::<f64, DeviceCpuSerial, Ix2>::new(storage, Layout::new([2, 3], [0, 1], 0).unwrap());
+        let b = arange((6.0, &device)).into_shape([2, 3]).into_dim::<Ix2>();
+        // unary in-place map
+        assert!(op_muta_func(t.view_mut(), &mut |x: &mut MaybeUninit<f64>| unsafe {
+            *x.assume_init_mut() += 1.0;
+        })
+        .is_err());
+        // binary in-place map
+        assert!(op_muta_refb_func(t.view_mut(), b.view(), &mut |x: &mut MaybeUninit<f64>, y: &f64| unsafe {
+            *x.assume_init_mut() += *y;
+        })
+        .is_err());
+        // map into a broadcasted output
+        let (storage_c, _) = a.into_raw_parts();
+        let mut c = Tensor::<f64, DeviceCpuSerial, Ix2>::new(storage_c, Layout::new([2, 3], [0, 1], 0).unwrap());
+        assert!(op_mutc_refa_refb_func(
+            c.view_mut(),
+            b.view(),
+            b.view(),
+            &mut |x: &mut MaybeUninit<f64>, _y: &f64, _z: &f64| unsafe {
+                x.write(0.0);
+            }
+        )
+        .is_err());
+    }
+}
