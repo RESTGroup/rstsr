@@ -3,6 +3,7 @@
 //! **This implementation is not optimized!**
 
 use core::ops::{Add, Mul};
+use num::Zero;
 
 use crate::prelude_dev::*;
 
@@ -10,7 +11,7 @@ impl<TA, TB, TC, DA, DB, DC> DeviceMatMulAPI<TA, TB, TC, DA, DB, DC> for DeviceC
 where
     TA: Clone,
     TB: Clone,
-    TC: Clone,
+    TC: Clone + Zero,
     DA: DimAPI,
     DB: DimAPI,
     DC: DimAPI,
@@ -18,6 +19,7 @@ where
     TB: Mul<TA, Output = TC>,
     TC: Mul<TC, Output = TC> + Add<TC, Output = TC>,
     Self: DeviceAPI<TA, Raw = Vec<TA>> + DeviceAPI<TB, Raw = Vec<TB>> + DeviceAPI<TC, Raw = Vec<TC>>,
+    Self: DeviceAPI<MaybeUninit<TC>, Raw = Vec<MaybeUninit<TC>>>,
 {
     fn matmul(
         &self,
@@ -38,6 +40,28 @@ where
                 let lb = lb.reverse_axes();
                 let lc = lc.reverse_axes();
                 matmul_naive_cpu_serial(c, &lc, b, &lb, a, &la, alpha, beta)
+            },
+        }
+    }
+
+    fn matmul_uninit(
+        &self,
+        c: &mut Vec<MaybeUninit<TC>>,
+        lc: &Layout<DC>,
+        a: &Vec<TA>,
+        la: &Layout<DA>,
+        b: &Vec<TB>,
+        lb: &Layout<DB>,
+        alpha: TC,
+    ) -> Result<()> {
+        let default_order = self.default_order();
+        match default_order {
+            RowMajor => matmul_naive_uninit_cpu_serial(c, lc, a, la, b, lb, alpha),
+            ColMajor => {
+                let la = la.reverse_axes();
+                let lb = lb.reverse_axes();
+                let lc = lc.reverse_axes();
+                matmul_naive_uninit_cpu_serial(c, &lc, b, &lb, a, &la, alpha)
             },
         }
     }

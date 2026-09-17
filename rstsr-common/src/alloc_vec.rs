@@ -22,6 +22,7 @@ use core::ptr::NonNull;
 /// allocation on platforms other than Linux and MacOS until we find a better solution.
 ///
 /// See also <https://gitee.com/restgroup/rest_libcint/pulls/6>.
+#[doc = include_str!("alloc_vec_contract.md")]
 pub unsafe fn uninitialized_vec<T>(size: usize) -> Result<Vec<T>> {
     #[cfg(all(not(target_os = "linux"), not(target_os = "macos")))]
     return unaligned_uninitialized_vec(size);
@@ -44,6 +45,7 @@ pub unsafe fn uninitialized_vec<T>(size: usize) -> Result<Vec<T>> {
 /// This is not a very good function, since `set_len` on uninitialized memory is
 /// undefined-behavior (UB).
 /// Nevertheless, if `T` is some type of `MaybeUninit`, then this will not UB.
+#[doc = include_str!("alloc_vec_contract.md")]
 #[allow(clippy::uninit_vec)]
 pub unsafe fn unaligned_uninitialized_vec<T>(size: usize) -> Result<Vec<T>> {
     let mut v: Vec<T> = vec![];
@@ -84,6 +86,7 @@ pub fn aligned_alloc(numbytes: usize, alignment: usize) -> Result<Option<NonNull
 /// This is not a very good function, since `set_len` on uninitialized memory is
 /// undefined-behavior (UB).
 /// Nevertheless, if `T` is some type of `MaybeUninit`, then this will not UB.
+#[doc = include_str!("alloc_vec_contract.md")]
 #[allow(clippy::uninit_vec)]
 pub unsafe fn aligned_uninitialized_vec<T, const N: usize>(size: usize, alignment: usize) -> Result<Vec<T>> {
     if size == 0 {

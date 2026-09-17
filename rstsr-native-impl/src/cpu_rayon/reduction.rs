@@ -152,7 +152,8 @@ where
 
     // create output layout
     let lo = layout_for_array_copy(&lm, TensorIterOrder::K)?;
-    // SAFETY (contract): `uninitialized_vec` per trait contract; every `lo.size()`
+    // SAFETY (contract): `uninitialized_vec` per the `rstsr_common::alloc_vec`
+    // contract (`alloc_vec_contract.md`); every `lo.size()`
     // slot is written below exactly once (output offsets from the layout
     // iteration) before the final transmute.
     let mut out: Vec<MaybeUninit<TO>> = unsafe { uninitialized_vec(lo.size())? };

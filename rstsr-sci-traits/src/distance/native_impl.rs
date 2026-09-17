@@ -1,10 +1,24 @@
 use super::metric::{MetricDistAPI, MetricDistWeightedAPI};
+use core::mem::MaybeUninit;
 use core::sync::atomic::{AtomicPtr, Ordering};
 use num::{Float, Zero};
 use rayon::prelude::*;
 use rstsr_core::prelude_dev::*;
 
 const CACHE_SIZE: usize = 256 * 1024; // 256 KiB
+
+/// Re-view a fully initialized `Vec<MaybeUninit<T>>` as `Vec<T>`.
+///
+/// # Safety
+///
+/// Every element of `v` must have been initialized before calling this function.
+unsafe fn assume_init_vec<T>(v: Vec<MaybeUninit<T>>) -> Vec<T> {
+    let (ptr, len, cap) = (v.as_ptr() as *mut T, v.len(), v.capacity());
+    core::mem::forget(v);
+    // SAFETY: the caller guarantees every element is initialized; the new `Vec`
+    // reuses the same allocation, length and capacity.
+    unsafe { Vec::from_raw_parts(ptr, len, cap) }
+}
 
 pub fn cdist_serial<T, M>(
     xa: &Vec<T>,
@@ -29,7 +43,10 @@ where
 
     let m = shape_a[0];
     let n = shape_b[0];
-    let mut dists = unsafe { uninitialized_vec::<M::Out>(m * n)? };
+    // The `MaybeUninit` element type makes the uninitialized allocation itself
+    // hazard-free (see `alloc_vec_contract.md` of rstsr-common); every slot is
+    // initialized below, and the buffer is re-viewed as `Vec<M::Out>` at the end.
+    let mut dists: Vec<MaybeUninit<M::Out>> = unsafe { uninitialized_vec(m * n)? };
 
     kernel.initialize(xa, la, xb, lb)?;
 
@@ -57,9 +74,9 @@ where
                             let size = k;
                             let dist = kernel.distance::<{ $STRIDED }>(uv, offsets, indices, strides, size);
                             match $ORDER {
-                                RowMajor => dists[i * n + j] = dist,
-                                ColMajor => dists[i + j * m] = dist,
-                            }
+                                RowMajor => dists[i * n + j].write(dist),
+                                ColMajor => dists[i + j * m].write(dist),
+                            };
                         }
                     }
                 }
@@ -73,7 +90,10 @@ where
         (true, ColMajor) => perform_batch_calc!(true, ColMajor),
     }
 
-    Ok(dists)
+    // SAFETY: every one of the `m * n` slots was written exactly once by the
+    // batch loops above (each `dist` is a freshly computed value; the buffer is
+    // never read before initialization).
+    Ok(unsafe { assume_init_vec(dists) })
 }
 
 pub fn cdist_weighted_serial<T, M>(
@@ -100,7 +120,10 @@ where
 
     let m = shape_a[0];
     let n = shape_b[0];
-    let mut dists = unsafe { uninitialized_vec::<M::Out>(m * n)? };
+    // The `MaybeUninit` element type makes the uninitialized allocation itself
+    // hazard-free (see `alloc_vec_contract.md` of rstsr-common); every slot is
+    // initialized below, and the buffer is re-viewed as `Vec<M::Out>` at the end.
+    let mut dists: Vec<MaybeUninit<M::Out>> = unsafe { uninitialized_vec(m * n)? };
 
     kernel.weighted_initialize(xa, la, xb, lb, weights)?;
 
@@ -137,9 +160,9 @@ where
                                 weights_sum,
                             );
                             match $ORDER {
-                                RowMajor => dists[i * n + j] = dist,
-                                ColMajor => dists[i + j * m] = dist,
-                            }
+                                RowMajor => dists[i * n + j].write(dist),
+                                ColMajor => dists[i + j * m].write(dist),
+                            };
                         }
                     }
                 }
@@ -153,7 +176,10 @@ where
         (true, ColMajor) => perform_batch_calc!(true, ColMajor),
     }
 
-    Ok(dists)
+    // SAFETY: every one of the `m * n` slots was written exactly once by the
+    // batch loops above (each `dist` is a freshly computed value; the buffer is
+    // never read before initialization).
+    Ok(unsafe { assume_init_vec(dists) })
 }
 
 pub fn cdist_rayon<T, M>(
@@ -187,7 +213,10 @@ where
 
     let m = shape_a[0];
     let n = shape_b[0];
-    let mut dists = unsafe { uninitialized_vec::<M::Out>(m * n)? };
+    // The `MaybeUninit` element type makes the uninitialized allocation itself
+    // hazard-free (see `alloc_vec_contract.md` of rstsr-common); every slot is
+    // initialized below, and the buffer is re-viewed as `Vec<M::Out>` at the end.
+    let mut dists: Vec<MaybeUninit<M::Out>> = unsafe { uninitialized_vec(m * n)? };
     // pass mutable reference in parallel region
     let thr_dists = AtomicPtr::new(dists.as_mut_ptr());
 
@@ -225,7 +254,7 @@ where
                                     RowMajor => dists_ptr.add(i * n + j),
                                     ColMajor => dists_ptr.add(i + j * m),
                                 };
-                                *dist_ij = dist;
+                                (*dist_ij).write(dist);
                             }
                         }
                     }
@@ -241,7 +270,10 @@ where
         (true, ColMajor) => perform_batch_calc!(true, ColMajor),
     });
 
-    Ok(dists)
+    // SAFETY: every one of the `m * n` slots was written exactly once by the
+    // parallel batch tasks above (each `dist` is a freshly computed value; the
+    // buffer is never read before initialization).
+    Ok(unsafe { assume_init_vec(dists) })
 }
 
 pub fn cdist_weighted_rayon<T, M>(
@@ -277,7 +309,11 @@ where
 
     let m = shape_a[0];
     let n = shape_b[0];
-    let mut dists = unsafe { uninitialized_vec::<M::Out>(m * n)? };
+    // The `MaybeUninit` element with `write`-only access makes the
+    // uninitialized allocation hazard-free (see `alloc_vec_contract.md` of
+    // rstsr-common); every slot is initialized below, and the buffer is
+    // re-viewed as `Vec<M::Out>` at the end.
+    let mut dists: Vec<MaybeUninit<M::Out>> = unsafe { uninitialized_vec(m * n)? };
     // pass mutable reference in parallel region
     let thr_dists = AtomicPtr::new(dists.as_mut_ptr());
 
@@ -324,7 +360,7 @@ where
                                     RowMajor => dists_ptr.add(i * n + j),
                                     ColMajor => dists_ptr.add(i + j * m),
                                 };
-                                *dist_ij = dist;
+                                (*dist_ij).write(dist);
                             }
                         }
                     }
@@ -340,5 +376,116 @@ where
         (true, ColMajor) => perform_batch_calc!(true, ColMajor),
     });
 
-    Ok(dists)
+    // SAFETY: every one of the `m * n` slots was written exactly once by the
+    // parallel batch tasks above (each `dist` is a freshly computed value; the
+    // buffer is never read before initialization).
+    Ok(unsafe { assume_init_vec(dists) })
 }
+
+/* #region tests: cdist buffer initialization discipline */
+
+#[cfg(test)]
+mod test_cdist_uninit_discipline {
+    use super::*;
+    use crate::distance::metric::MetricEuclidean;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::Arc;
+
+    #[derive(Default)]
+    struct Counters {
+        created: AtomicUsize,
+        dropped: AtomicUsize,
+    }
+
+    /// Non-POD output type with drop counting; dropping uninitialized memory,
+    /// double-dropping, or leaking breaks the `created == dropped` invariant.
+    struct GuardedDist {
+        _payload: Vec<u8>,
+        counters: Arc<Counters>,
+    }
+
+    impl GuardedDist {
+        fn new(counters: Arc<Counters>) -> Self {
+            counters.created.fetch_add(1, Ordering::SeqCst);
+            GuardedDist { _payload: vec![0xA5; 64], counters }
+        }
+    }
+
+    impl Drop for GuardedDist {
+        fn drop(&mut self) {
+            self.counters.dropped.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+
+    /// Metric whose output is the non-POD `GuardedDist` (valid instantiation:
+    /// `Out` is unconstrained on `MetricDistAPI`).
+    struct CountingMetric {
+        counters: Arc<Counters>,
+    }
+
+    impl MetricDistAPI<Vec<f64>> for CountingMetric {
+        type Out = GuardedDist;
+        fn distance<const STRIDED: bool>(
+            &self,
+            _uv: (&Vec<f64>, &Vec<f64>),
+            _offsets: (usize, usize),
+            _indices: (usize, usize),
+            _strides: (isize, isize),
+            _size: usize,
+        ) -> GuardedDist {
+            GuardedDist::new(self.counters.clone())
+        }
+    }
+
+    fn euclidean_cdist(order: FlagOrder) -> Vec<f64> {
+        let xa = vec![0.0, 0.0, 3.0, 4.0]; // [m=2, k=2]
+        let xb = vec![6.0, 8.0, 0.0, 0.0]; // [n=2, k=2]
+        let la: Layout<Ix2> = Layout::new([2, 2], [2, 1], 0).unwrap();
+        let lb: Layout<Ix2> = Layout::new([2, 2], [2, 1], 0).unwrap();
+        cdist_serial(&xa, &xb, &la, &lb, MetricEuclidean, order).unwrap()
+    }
+
+    #[test]
+    fn test_cdist_euclidean_values() {
+        assert_eq!(euclidean_cdist(RowMajor), vec![10.0, 0.0, 5.0, 5.0]);
+        assert_eq!(euclidean_cdist(ColMajor), vec![10.0, 5.0, 0.0, 5.0]);
+    }
+
+    #[test]
+    fn test_cdist_guarded_out_serial() {
+        for order in [RowMajor, ColMajor] {
+            let counters = Arc::new(Counters::default());
+            let xa = vec![0.0; 4]; // [m=2, k=2]
+            let xb = vec![0.0; 6]; // [n=3, k=2]
+            let la: Layout<Ix2> = Layout::new([2, 2], [2, 1], 0).unwrap();
+            let lb: Layout<Ix2> = Layout::new([3, 2], [2, 1], 0).unwrap();
+            let dists = cdist_serial(&xa, &xb, &la, &lb, CountingMetric { counters: counters.clone() }, order).unwrap();
+            assert_eq!(dists.len(), 6);
+            drop(dists);
+            let created = counters.created.load(Ordering::SeqCst);
+            let dropped = counters.dropped.load(Ordering::SeqCst);
+            assert_eq!(created, 6, "one output per (i, j) pair (order = {order:?})");
+            assert_eq!(dropped, created, "every output dropped exactly once (order = {order:?})");
+        }
+    }
+
+    #[test]
+    fn test_cdist_guarded_out_rayon() {
+        let pool = rayon::ThreadPoolBuilder::new().num_threads(2).build().unwrap();
+        let counters = Arc::new(Counters::default());
+        let xa = vec![0.0; 4]; // [m=2, k=2]
+        let xb = vec![0.0; 6]; // [n=3, k=2]
+        let la: Layout<Ix2> = Layout::new([2, 2], [2, 1], 0).unwrap();
+        let lb: Layout<Ix2> = Layout::new([3, 2], [2, 1], 0).unwrap();
+        let dists = cdist_rayon(&xa, &xb, &la, &lb, CountingMetric { counters: counters.clone() }, RowMajor, Some(&pool))
+            .unwrap();
+        assert_eq!(dists.len(), 6);
+        drop(dists);
+        let created = counters.created.load(Ordering::SeqCst);
+        let dropped = counters.dropped.load(Ordering::SeqCst);
+        assert_eq!(created, 6, "one output per (i, j) pair");
+        assert_eq!(dropped, created, "every output dropped exactly once");
+    }
+}
+
+/* #endregion */

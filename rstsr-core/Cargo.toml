@@ -25,6 +25,7 @@ duplicate = { workspace = true }
 
 [dev-dependencies]
 rstsr = { path = "../rstsr", default-features = false }
+num-bigint = { workspace = true }
 rand = { workspace = true }
 itertools = { workspace = true }
 approx = { workspace = true }

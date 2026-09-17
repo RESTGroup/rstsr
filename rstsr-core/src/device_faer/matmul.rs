@@ -212,6 +212,64 @@ where
 }
 
 #[allow(clippy::too_many_arguments)]
+pub fn matmul_uninit_row_major_faer<TA, TB, TC, DA, DB, DC>(
+    c: &mut [MaybeUninit<TC>],
+    lc: &Layout<DC>,
+    a: &[TA],
+    la: &Layout<DA>,
+    b: &[TB],
+    lb: &Layout<DB>,
+    alpha: TC,
+    pool: Option<&ThreadPool>,
+) -> Result<()>
+where
+    TA: Clone + Send + Sync + 'static,
+    TB: Clone + Send + Sync + 'static,
+    TC: Clone + Send + Sync + 'static,
+    DA: DimAPI,
+    DB: DimAPI,
+    DC: DimAPI,
+    TA: Mul<TB, Output = TC>,
+    TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + PartialEq,
+{
+    // quick return for empty matrix
+    if lc.size() == 0 {
+        return Ok(());
+    }
+
+    // type check and dispatch
+    macro_rules! impl_uninit_dispatch {
+        ($ty: ty) => {
+            if (same_type::<TA, $ty>() && same_type::<TB, $ty>() && same_type::<TC, $ty>()) {
+                // SAFETY: `TypeId` equality above proves TA = TB = TC = $ty; the
+                // reinterpreted slices have exactly the original lengths. With
+                // `beta = 0` every path below only writes `c` (faer uses
+                // `Accum::Replace`; the naive fallback skips the beta scaling) —
+                // for these POD types the assignment-drop of the old (garbage)
+                // value is a no-op, so only pointer passing happens before the call.
+                let a_slice = unsafe { from_raw_parts(a.as_ptr() as *const $ty, a.len()) };
+                let b_slice = unsafe { from_raw_parts(b.as_ptr() as *const $ty, b.len()) };
+                let c_slice = unsafe { from_raw_parts_mut(c.as_mut_ptr() as *mut $ty, c.len()) };
+                let alpha = unsafe { *(&alpha as *const TC as *const $ty) };
+                let beta = <$ty as Zero>::zero();
+                return matmul_row_major_faer::<$ty, $ty, $ty, DA, DB, DC>(
+                    c_slice, lc, a_slice, la, b_slice, lb, alpha, beta, pool,
+                );
+            }
+        };
+    }
+
+    impl_uninit_dispatch!(f32);
+    impl_uninit_dispatch!(f64);
+    impl_uninit_dispatch!(Complex<f32>);
+    impl_uninit_dispatch!(Complex<f64>);
+
+    // not able to be accelarated by faer
+    // fallback to naive write-only implementation
+    return matmul_naive_uninit_cpu_rayon(c, lc, a, la, b, lb, alpha, pool);
+}
+
+#[allow(clippy::too_many_arguments)]
 impl<TA, TB, TC, DA, DB, DC> DeviceMatMulAPI<TA, TB, TC, DA, DB, DC> for DeviceFaer
 where
     TA: Clone + Send + Sync + 'static,
@@ -223,6 +281,7 @@ where
     TA: Mul<TB, Output = TC>,
     TB: Mul<TA, Output = TC>,
     TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + PartialEq,
+    Self: DeviceRawAPI<MaybeUninit<TC>, Raw = Vec<MaybeUninit<TC>>>,
 {
     fn matmul(
         &self,
@@ -244,6 +303,29 @@ where
                 let lb = lb.reverse_axes();
                 let lc = lc.reverse_axes();
                 matmul_row_major_faer(c, &lc, b, &lb, a, &la, alpha, beta, pool)
+            },
+        }
+    }
+
+    fn matmul_uninit(
+        &self,
+        c: &mut Vec<MaybeUninit<TC>>,
+        lc: &Layout<DC>,
+        a: &Vec<TA>,
+        la: &Layout<DA>,
+        b: &Vec<TB>,
+        lb: &Layout<DB>,
+        alpha: TC,
+    ) -> Result<()> {
+        let default_order = self.default_order();
+        let pool = self.get_current_pool();
+        match default_order {
+            RowMajor => matmul_uninit_row_major_faer(c, lc, a, la, b, lb, alpha, pool),
+            ColMajor => {
+                let la = la.reverse_axes();
+                let lb = lb.reverse_axes();
+                let lc = lc.reverse_axes();
+                matmul_uninit_row_major_faer(c, &lc, b, &lb, a, &la, alpha, pool)
             },
         }
     }

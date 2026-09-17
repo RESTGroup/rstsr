@@ -151,12 +151,16 @@ where
             let layout_diag = layout.diagonal(Some(offset), Some(0), Some(1))?;
             let size = layout_diag.size();
             let device = tensor.device();
-            // SAFETY: fresh `empty_f` storage of `size` elements; the result is read only
-            // through the contiguous `[size]` layout assigned below.
-            let mut result = unsafe { empty_f(([size], device))? };
-            let layout_result = result.layout().to_dim()?;
-            device.assign(result.raw_mut(), &layout_result, tensor.raw(), &layout_diag)?;
-            return Ok(result);
+            // uninitialized storage with `MaybeUninit` elements; the copy goes
+            // through `assign_uninit` (`MaybeUninit::write` semantics), so
+            // uninitialized values are never read or dropped as `T`
+            let mut storage = device.uninit_impl(size)?;
+            let layout_c: Layout<IxD> = Layout::new(vec![size], vec![1], 0)?;
+            device.assign_uninit(storage.raw_mut(), &layout_c.to_dim()?, tensor.raw(), &layout_diag)?;
+            // SAFETY: `assign_uninit` initialized every element of `layout_c`
+            // exactly once (its write-only contract) before this conversion.
+            let storage = unsafe { B::assume_init_impl(storage)? };
+            return Tensor::new_f(storage, layout_c);
         } else {
             return rstsr_raise!(InvalidLayout, "diag only support 1-D or 2-D tensor.");
         }
@@ -772,22 +776,32 @@ where
         shape_other.insert(axis, new_axis_size);
         let new_shape = shape_other;
 
-        // create the result tensor
-        // SAFETY: fresh `empty_f` storage sized to `new_shape`; each slice of the
-        // result is assigned from an input tensor below before it is exposed.
-        let mut result = unsafe { empty_f((new_shape, &device))? };
+        // create the result storage
+        // uninitialized storage with `MaybeUninit` elements; each slice below is
+        // initialized by `assign_uninit` (`MaybeUninit::write` semantics), and
+        // the slices partition the concatenation axis, covering the result
+        // exactly once
+        let layout_c = new_shape.new_contig(None, device.default_order());
+        // bound the storage by the layout's addressable range (checked, same as
+        // the `empty` constructor)
+        let (_, idx_max) = layout_c.bounds_index()?;
+        let mut storage = device.uninit_impl(idx_max)?;
 
         // assign each tensor to the result tensor
         let mut offset = 0;
         for tensor in tensors {
             let layout = tensor.layout().to_dim::<IxD>()?;
             let axis_size = tensor.shape()[axis];
-            let layout_result = result.layout().dim_narrow(axis as isize, slice!(offset, offset + axis_size))?;
-            device.assign(result.raw_mut(), &layout_result, tensor.raw(), &layout)?;
+            let layout_result = layout_c.dim_narrow(axis as isize, slice!(offset, offset + axis_size))?;
+            device.assign_uninit(storage.raw_mut(), &layout_result, tensor.raw(), &layout)?;
             offset += axis_size;
         }
 
-        Ok(result)
+        // SAFETY: the `assign_uninit` calls above initialized every element of
+        // `layout_c` exactly once (write-only contract; uninitialized values
+        // are never read or dropped as `T`).
+        let storage = unsafe { B::assume_init_impl(storage)? };
+        Tensor::new_f(storage, layout_c)
     }
 }
 
