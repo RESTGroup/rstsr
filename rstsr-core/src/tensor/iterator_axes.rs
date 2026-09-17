@@ -114,8 +114,11 @@ where
         if axes.first().is_some_and(|&v| v < 0) {
             return Err(rstsr_error!(InvalidValue, "Some negative index is too small."));
         }
-        for i in 0..axes_check.len() - 1 {
-            rstsr_assert!(axes_check[i] != axes_check[i + 1], InvalidValue, "Same axes is not allowed here.")?;
+        // adjacent pairs after sorting; `windows(2)` is empty for 0 or 1 axes,
+        // which keeps an empty axes list valid (it iterates once over the
+        // whole tensor)
+        for w in axes_check.windows(2) {
+            rstsr_assert!(w[0] != w[1], InvalidValue, "Same axes is not allowed here.")?;
         }
 
         // get full layout
@@ -354,8 +357,11 @@ where
         if axes.first().is_some_and(|&v| v < 0) {
             return Err(rstsr_error!(InvalidValue, "Some negative index is too small."));
         }
-        for i in 0..axes_check.len() - 1 {
-            rstsr_assert!(axes_check[i] != axes_check[i + 1], InvalidValue, "Same axes is not allowed here.")?;
+        // adjacent pairs after sorting; `windows(2)` is empty for 0 or 1 axes,
+        // which keeps an empty axes list valid (it iterates once over the
+        // whole tensor)
+        for w in axes_check.windows(2) {
+            rstsr_assert!(w[0] != w[1], InvalidValue, "Same axes is not allowed here.")?;
         }
 
         // get full layout
@@ -388,6 +394,10 @@ where
         // axes of the validated full layout — a subset of the original element set.
         let layout_inner = unsafe { Layout::new_unchecked(shape_inner, stride_inner, offset) };
 
+        // successive items of the iterator would be live simultaneously; if an
+        // iterated axis is broadcast (zero stride), items would alias each other
+        // as multiple `&mut` to the same elements
+        rstsr_assert!(!layout_axes.is_broadcasted(), InvalidLayout, "cannot iterate mutably along broadcasted axes")?;
         // create axes iter
         // The receiver is consumed to move the view's inner `&'a mut` out,
         // which lets `a.view_mut().axes_iter_mut(0)` work as a one-liner: the
@@ -579,8 +589,11 @@ where
         if axes.first().is_some_and(|&v| v < 0) {
             return Err(rstsr_error!(InvalidValue, "Some negative index is too small."));
         }
-        for i in 0..axes_check.len() - 1 {
-            rstsr_assert!(axes_check[i] != axes_check[i + 1], InvalidValue, "Same axes is not allowed here.")?;
+        // adjacent pairs after sorting; `windows(2)` is empty for 0 or 1 axes,
+        // which keeps an empty axes list valid (it iterates once over the
+        // whole tensor)
+        for w in axes_check.windows(2) {
+            rstsr_assert!(w[0] != w[1], InvalidValue, "Same axes is not allowed here.")?;
         }
 
         // get full layout
@@ -780,8 +793,11 @@ where
         if axes.first().is_some_and(|&v| v < 0) {
             return Err(rstsr_error!(InvalidValue, "Some negative index is too small."));
         }
-        for i in 0..axes_check.len() - 1 {
-            rstsr_assert!(axes_check[i] != axes_check[i + 1], InvalidValue, "Same axes is not allowed here.")?;
+        // adjacent pairs after sorting; `windows(2)` is empty for 0 or 1 axes,
+        // which keeps an empty axes list valid (it iterates once over the
+        // whole tensor)
+        for w in axes_check.windows(2) {
+            rstsr_assert!(w[0] != w[1], InvalidValue, "Same axes is not allowed here.")?;
         }
 
         // get full layout
@@ -814,6 +830,10 @@ where
         // axes of the validated full layout — a subset of the original element set.
         let layout_inner = unsafe { Layout::new_unchecked(shape_inner, stride_inner, offset) };
 
+        // successive items of the iterator would be live simultaneously; if an
+        // iterated axis is broadcast (zero stride), items would alias each other
+        // as multiple `&mut` to the same elements
+        rstsr_assert!(!layout_axes.is_broadcasted(), InvalidLayout, "cannot iterate mutably along broadcasted axes")?;
         // create axes iter
         // The receiver is consumed to move the view's inner `&'a mut` out;
         // see `axes_iter_mut_with_order_f` for the lifetime contract.
@@ -972,13 +992,79 @@ mod tests_serial {
             ]);
         }
     }
+
+    #[test]
+    fn test_axes_iter_mut_broadcast_err() {
+        // items of a mutable axes iterator are live simultaneously; iterating
+        // along a broadcast (stride-0) axis would make items alias each other
+        // as multiple `&mut` to the same elements, so it is rejected
+        let mut device = DeviceCpu::default();
+        device.set_default_order(RowMajor);
+        let a = arange((3.0, &device));
+        let (storage, _) = a.into_raw_parts();
+        let mut c = Tensor::new(storage, Layout::new([2, 3], [0, 1], 0).unwrap());
+        assert!(c.view_mut().axes_iter_mut_f([0]).is_err());
+        // iterating along a normal axis is fine; items then carry the
+        // broadcast axis internally (inert views), and writing through an
+        // item is caught by the write-path checks (e.g. `fill`)
+        let iter = c.view_mut().axes_iter_mut_f([1]).unwrap();
+        let mut first = true;
+        for mut item in iter {
+            assert!(item.fill_f(0.0).is_err());
+            if first {
+                let v: Vec<_> = item.view().iter().cloned().collect();
+                assert_eq!(v, vec![0., 0.]);
+                first = false;
+            }
+        }
+        let v: Vec<_> = c.view().iter().cloned().collect();
+        assert_eq!(v, vec![0., 1., 2., 0., 1., 2.]);
+    }
+
+    #[test]
+    fn test_axes_iter_empty_axes() {
+        // the product over an empty axes selection is 1, so exactly one
+        // whole-tensor view is yielded (NumPy `ndindex()` semantics);
+        // `()` and `vec![]` are the two spellings of "no axes"
+        let a = arange(24).into_shape([2, 3, 4]);
+        for views in [
+            a.view().axes_iter_f(()).unwrap().collect::<Vec<_>>(),
+            a.view().axes_iter_f(Vec::<isize>::new()).unwrap().collect::<Vec<_>>(),
+        ] {
+            assert_eq!(views.len(), 1);
+            assert_eq!(views[0].shape(), &[2, 3, 4]);
+            assert_eq!(views[0].reshape(-1).to_vec(), (0..24).collect::<Vec<_>>());
+        }
+        // indexed variant yields a single (empty index, whole view) pair
+        let res = a
+            .view()
+            .indexed_axes_iter(Vec::<isize>::new())
+            .map(|(index, view)| (index, view.reshape(-1).to_vec()))
+            .collect::<Vec<_>>();
+        assert_eq!(res, vec![(vec![], (0..24).collect::<Vec<_>>())]);
+        // duplicate axes are still rejected (guard unchanged in behavior)
+        assert!(a.view().axes_iter_f([1, 1]).is_err());
+        assert!(a.view().indexed_axes_iter_f([1, 1]).is_err());
+    }
+
+    #[test]
+    fn test_axes_iter_mut_empty_axes() {
+        // single whole-tensor mut view; sound (one `&mut`, no aliasing)
+        // even for stride-0 layouts since nothing is iterated
+        let mut a = arange(24).into_shape([2, 3, 4]);
+        for mut view in a.view_mut().axes_iter_mut_f(Vec::<isize>::new()).unwrap() {
+            view += 1;
+        }
+        assert_eq!(a.reshape(-1).to_vec(), (1..25).collect::<Vec<_>>());
+        // duplicate axes still rejected on the mut path
+        assert!(a.view_mut().axes_iter_mut_f([1, 1]).is_err());
+    }
 }
 
 #[cfg(test)]
 #[cfg(feature = "rayon")]
 mod tests_parallel {
     use super::*;
-    use rayon::prelude::*;
 
     #[test]
     fn test_axes_iter() {

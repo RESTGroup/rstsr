@@ -7,8 +7,8 @@ use crate::prelude_dev::*;
 use core::any::TypeId;
 use core::ops::{Add, Mul};
 use core::slice::{from_raw_parts, from_raw_parts_mut};
+use core::sync::atomic::{AtomicPtr, Ordering};
 use num::{Complex, Zero};
-use rayon::prelude::*;
 
 // code from ndarray
 fn same_type<A: 'static, B: 'static>() -> bool {
@@ -39,6 +39,9 @@ where
         && same_type::<TA, TC>()
         && same_type::<TB, TC>()
         && unsafe {
+            // SAFETY: short-circuit `same_type` checks guarantee TA = TB = TC, so the
+            // casts are type-correct; only pointer equality and shape/stride comparison
+            // are performed — no dereference.
             let a_ptr = a.as_ptr().add(la.offset()) as *const TC;
             let b_ptr = b.as_ptr().add(lb.offset()) as *const TC;
             let equal_ptr = core::ptr::eq(a_ptr, b_ptr);
@@ -51,9 +54,13 @@ where
     macro_rules! impl_gemm_dispatch {
         ($ty: ty) => {
             if (same_type::<TA, $ty>() && same_type::<TB, $ty>() && same_type::<TC, $ty>()) {
+                // SAFETY: `TypeId` equality above proves TA = TB = TC = $ty; the reinterpreted
+                // slices have exactly the original lengths.
                 let a_slice = unsafe { from_raw_parts(a.as_ptr() as *const $ty, a.len()) };
                 let b_slice = unsafe { from_raw_parts(b.as_ptr() as *const $ty, b.len()) };
                 let c_slice = unsafe { from_raw_parts_mut(c.as_mut_ptr() as *mut $ty, c.len()) };
+                // SAFETY: `TypeId` equality above proves TC = $ty; reading through the
+                // type-correct pointer copy is valid.
                 let alpha = unsafe { *(&alpha as *const TC as *const $ty) };
                 let beta = unsafe { *(&beta as *const TC as *const $ty) };
                 if able_syrk {
@@ -150,6 +157,8 @@ where
     let itc_rest = IterLayoutColMajor::new(&lc_rest)?;
     if n_task > 4 * nthreads {
         // parallel outer, sequential matmul
+        let c_ptr = AtomicPtr::new(c.as_mut_ptr());
+        let c_len = c.len();
         let task = || {
             ita_rest.into_par_iter().zip(itb_rest).zip(itc_rest).try_for_each(
                 |((ia_rest, ib_rest), ic_rest)| -> Result<()> {
@@ -158,16 +167,18 @@ where
                     let mut lb_m = lb_matmul.clone();
                     let mut lc_m = lc_matmul.clone();
                     unsafe {
+                        // SAFETY: offsets come from the rest-layout iterators over the validated
+                        // matmul config; sub-layout + offset addresses only in-bounds elements of
+                        // the slices. In the parallel branch each task writes a disjoint `lc`
+                        // region, and the task-local slice handle is derived from the hoisted
+                        // `as_mut_ptr()` base (unique provenance), never from a shared reborrow.
                         la_m.set_offset(ia_rest);
                         lb_m.set_offset(ib_rest);
                         lc_m.set_offset(ic_rest);
                     }
-                    // move mutable reference into parallel closure
-                    let c = unsafe {
-                        let c_ptr = c.as_ptr() as *mut TC;
-                        let c_len = c.len();
-                        from_raw_parts_mut(c_ptr, c_len)
-                    };
+                    // task-local slice handle for this batch, derived from the hoisted
+                    // base pointer
+                    let c = unsafe { from_raw_parts_mut(c_ptr.load(Ordering::Relaxed), c_len) };
                     // clone alpha and beta
                     let alpha = alpha.clone();
                     let beta = beta.clone();
@@ -187,6 +198,7 @@ where
             let mut lb_m = lb_matmul.clone();
             let mut lc_m = lc_matmul.clone();
             unsafe {
+                // SAFETY: in-bounds offsets from the rest-layout iterators (sequential branch).
                 la_m.set_offset(ia_rest);
                 lb_m.set_offset(ib_rest);
                 lc_m.set_offset(ic_rest);
@@ -201,6 +213,64 @@ where
 }
 
 #[allow(clippy::too_many_arguments)]
+pub fn matmul_uninit_row_major_faer<TA, TB, TC, DA, DB, DC>(
+    c: &mut [MaybeUninit<TC>],
+    lc: &Layout<DC>,
+    a: &[TA],
+    la: &Layout<DA>,
+    b: &[TB],
+    lb: &Layout<DB>,
+    alpha: TC,
+    pool: Option<&ThreadPool>,
+) -> Result<()>
+where
+    TA: Clone + Send + Sync + 'static,
+    TB: Clone + Send + Sync + 'static,
+    TC: Clone + Send + Sync + 'static,
+    DA: DimAPI,
+    DB: DimAPI,
+    DC: DimAPI,
+    TA: Mul<TB, Output = TC>,
+    TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + PartialEq,
+{
+    // quick return for empty matrix
+    if lc.size() == 0 {
+        return Ok(());
+    }
+
+    // type check and dispatch
+    macro_rules! impl_uninit_dispatch {
+        ($ty: ty) => {
+            if (same_type::<TA, $ty>() && same_type::<TB, $ty>() && same_type::<TC, $ty>()) {
+                // SAFETY: `TypeId` equality above proves TA = TB = TC = $ty; the
+                // reinterpreted slices have exactly the original lengths. With
+                // `beta = 0` every path below only writes `c` (faer uses
+                // `Accum::Replace`; the naive fallback skips the beta scaling) —
+                // for these POD types the assignment-drop of the old (garbage)
+                // value is a no-op, so only pointer passing happens before the call.
+                let a_slice = unsafe { from_raw_parts(a.as_ptr() as *const $ty, a.len()) };
+                let b_slice = unsafe { from_raw_parts(b.as_ptr() as *const $ty, b.len()) };
+                let c_slice = unsafe { from_raw_parts_mut(c.as_mut_ptr() as *mut $ty, c.len()) };
+                let alpha = unsafe { *(&alpha as *const TC as *const $ty) };
+                let beta = <$ty as Zero>::zero();
+                return matmul_row_major_faer::<$ty, $ty, $ty, DA, DB, DC>(
+                    c_slice, lc, a_slice, la, b_slice, lb, alpha, beta, pool,
+                );
+            }
+        };
+    }
+
+    impl_uninit_dispatch!(f32);
+    impl_uninit_dispatch!(f64);
+    impl_uninit_dispatch!(Complex<f32>);
+    impl_uninit_dispatch!(Complex<f64>);
+
+    // not able to be accelarated by faer
+    // fallback to naive write-only implementation
+    return matmul_naive_uninit_cpu_rayon(c, lc, a, la, b, lb, alpha, pool);
+}
+
+#[allow(clippy::too_many_arguments)]
 impl<TA, TB, TC, DA, DB, DC> DeviceMatMulAPI<TA, TB, TC, DA, DB, DC> for DeviceFaer
 where
     TA: Clone + Send + Sync + 'static,
@@ -212,6 +282,7 @@ where
     TA: Mul<TB, Output = TC>,
     TB: Mul<TA, Output = TC>,
     TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + PartialEq,
+    Self: DeviceRawAPI<MaybeUninit<TC>, Raw = Vec<MaybeUninit<TC>>>,
 {
     fn matmul(
         &self,
@@ -233,6 +304,29 @@ where
                 let lb = lb.reverse_axes();
                 let lc = lc.reverse_axes();
                 matmul_row_major_faer(c, &lc, b, &lb, a, &la, alpha, beta, pool)
+            },
+        }
+    }
+
+    fn matmul_uninit(
+        &self,
+        c: &mut Vec<MaybeUninit<TC>>,
+        lc: &Layout<DC>,
+        a: &Vec<TA>,
+        la: &Layout<DA>,
+        b: &Vec<TB>,
+        lb: &Layout<DB>,
+        alpha: TC,
+    ) -> Result<()> {
+        let default_order = self.default_order();
+        let pool = self.get_current_pool();
+        match default_order {
+            RowMajor => matmul_uninit_row_major_faer(c, lc, a, la, b, lb, alpha, pool),
+            ColMajor => {
+                let la = la.reverse_axes();
+                let lb = lb.reverse_axes();
+                let lc = lc.reverse_axes();
+                matmul_uninit_row_major_faer(c, &lc, b, &lb, a, &la, alpha, pool)
             },
         }
     }
@@ -348,5 +442,28 @@ mod test {
         let b = linspace((0.0, 14.0, 15, &device)).into_shape([1, 5, 3]);
         let c = &a % &b;
         assert_eq!(c.shape(), &[1, 3, 3]);
+    }
+
+    #[test]
+    fn test_matmul_rule7_broadcast_parallel_outer() {
+        // large batch count crosses the parallel-outer threshold
+        // (`n_task > 4 * nthreads`), exercising the per-task slice handling in
+        // the batched broadcast path
+        let mut device = DeviceFaer::default();
+        device.set_default_order(RowMajor);
+
+        let a = linspace((0.0, 15.0, 15, &device)).into_shape([1, 3, 5]);
+        let b = linspace((0.0, 959.0, 960, &device)).into_shape([64, 5, 3]);
+        let c = &a % &b;
+        assert_eq!(c.shape(), &[64, 3, 3]);
+        let a_big = a.to_broadcast(vec![64, 3, 5]);
+        let c_ref = &a_big % &b;
+        assert!(allclose_f64(&c, &c_ref));
+
+        // beta-scaling path through the same parallel branch
+        let mut c2 = ones_f(([64, 3, 3], &device)).unwrap();
+        matmul_from_f(c2.view_mut(), a_big.view(), b.view(), 1.0, 2.0).unwrap();
+        let c_ref2 = &(&a_big % &b) + 2.0;
+        assert!(allclose_f64(&c2, &c_ref2));
     }
 }

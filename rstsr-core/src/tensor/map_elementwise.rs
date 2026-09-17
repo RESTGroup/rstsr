@@ -35,6 +35,8 @@ where
             c.write(f(a));
         };
         device.op_muta_refb_func(storage_c.raw_mut(), &lc, self.raw(), la, &mut f_inner)?;
+        // SAFETY: the op above wrote every element of `lc`, which covers the fresh
+        // `storage_c` exactly.
         let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
         return Tensor::new_f(storage_c, lc);
     }
@@ -92,12 +94,18 @@ where
         R: DataMutAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
         B: Op_MutA_API<T, D, dyn FnMut(&mut MaybeUninit<T>) + 'f>,
     {
+        // writing through a broadcast layout would alias elements
+        rstsr_assert!(!self.layout().is_broadcasted(), InvalidLayout, "cannot map in place on broadcasted tensor")?;
         let (la, _) = greedy_layout(self.layout(), false);
         let device = self.device().clone();
+        // SAFETY: `Vec<T>` -> `Vec<MaybeUninit<T>>` reinterpretation (identical
+        // layout); `self` is an initialized buffer written in place.
         let self_raw_mut = unsafe {
             transmute::<&mut <B as DeviceRawAPI<T>>::Raw, &mut <B as DeviceRawAPI<MaybeUninit<T>>>::Raw>(self.raw_mut())
         };
         let mut f_inner = move |x: &mut MaybeUninit<T>| {
+            // SAFETY: in-place map — `x` is an initialized element of the caller's buffer
+            // (the tensor being mapped); `assume_init_mut` on initialized memory is valid.
             let x_ref = unsafe { x.assume_init_mut() };
             f(x_ref);
         };
@@ -195,6 +203,8 @@ where
             c.write(f(a, b));
         };
         device.op_mutc_refa_refb_func(storage_c.raw_mut(), &lc, self.raw(), &la_b, other.raw(), &lb_b, &mut f_inner)?;
+        // SAFETY: the op above wrote every element of `lc`, which covers the fresh
+        // `storage_c` exactly.
         let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
         Tensor::new_f(storage_c, lc)
     }
@@ -297,6 +307,8 @@ where
             c.write(f(a));
         };
         device.op_muta_refb_func(storage_c.raw_mut(), &lc, self.raw(), la, &mut f_inner)?;
+        // SAFETY: the op above wrote every element of `lc`, which covers the fresh
+        // `storage_c` exactly.
         let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
         return Tensor::new_f(storage_c, lc);
     }
@@ -407,12 +419,18 @@ where
         R: DataMutAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
         B: Op_MutA_API<T, D, dyn Fn(&mut MaybeUninit<T>) + Send + Sync + 'f>,
     {
+        // writing through a broadcast layout would alias elements
+        rstsr_assert!(!self.layout().is_broadcasted(), InvalidLayout, "cannot map in place on broadcasted tensor")?;
         let (la, _) = greedy_layout(self.layout(), false);
         let device = self.device().clone();
+        // SAFETY: `Vec<T>` -> `Vec<MaybeUninit<T>>` reinterpretation (identical
+        // layout); `self` is an initialized buffer written in place.
         let self_raw_mut = unsafe {
             transmute::<&mut <B as DeviceRawAPI<T>>::Raw, &mut <B as DeviceRawAPI<MaybeUninit<T>>>::Raw>(self.raw_mut())
         };
         let mut f_inner = move |x: &mut MaybeUninit<T>| {
+            // SAFETY: in-place map — `x` is an initialized element of the caller's buffer
+            // (the tensor being mapped); `assume_init_mut` on initialized memory is valid.
             let x_ref = unsafe { x.assume_init_mut() };
             f(x_ref);
         };
@@ -522,6 +540,8 @@ where
             c.write(f(a, b));
         };
         device.op_mutc_refa_refb_func(storage_c.raw_mut(), &lc, self.raw(), &la_b, other.raw(), &lb_b, &mut f_inner)?;
+        // SAFETY: the op above wrote every element of `lc`, which covers the fresh
+        // `storage_c` exactly.
         let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
         Tensor::new_f(storage_c, lc)
     }
@@ -684,5 +704,33 @@ mod tests_sync {
             let c = a.mapvb(&b, f);
             assert!(allclose_f64(&c.raw().into(), &vec![5., 10., 15., 11., 16., 21.].into()));
         }
+    }
+}
+
+#[cfg(test)]
+mod tests_broadcast {
+    use super::*;
+
+    #[test]
+    fn test_mapi_broadcast_err() {
+        // a broadcast (stride-0) layout aliases elements; in-place mapping
+        // through it is rejected instead of calling `f` on aliased elements
+        let mut device = DeviceCpuSerial::default();
+        device.set_default_order(RowMajor);
+        let a = arange((3.0, &device));
+        let (storage, _) = a.into_raw_parts();
+        let mut c = Tensor::new(storage, Layout::new([2, 3], [0, 1], 0).unwrap());
+        assert!(c
+            .mapi_f(|x| {
+                *x += 1.0;
+            })
+            .is_err());
+        assert!(c
+            .mapi_fnmut_f(|x| {
+                *x += 1.0;
+            })
+            .is_err());
+        let v: Vec<_> = c.view().iter().cloned().collect();
+        assert_eq!(v, vec![0., 1., 2., 0., 1., 2.]);
     }
 }

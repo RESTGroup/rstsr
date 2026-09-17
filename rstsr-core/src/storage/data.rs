@@ -311,8 +311,11 @@ pub trait DataOwnedAPI: DataMutAPI {}
 pub trait DataForceMutAPI<C>: DataAPI<Data = C> {
     /// # Safety
     ///
-    /// This function is highly unsafe, as it entirely bypasses Rust's lifetime
-    /// and borrowing rules.
+    /// The returned [`DataMut`] reinterprets data reachable through a shared
+    /// reference, so it may alias other live borrows of the same data. The
+    /// caller must guarantee unique access: while the returned `DataMut` is
+    /// alive, no other reference (shared or mutable) to the same data may be
+    /// used; violating this is an aliasing violation (undefined behavior).
     unsafe fn force_mut(&self) -> DataMut<'_, C>;
 }
 
@@ -541,6 +544,10 @@ impl<T> DataForceMutAPI<Vec<T>> for DataRef<'_, Vec<T>> {
             DataRef::TrueRef(raw) => (raw.as_ptr(), raw.len()),
             DataRef::ManuallyDropOwned(raw) => (raw.as_ptr(), raw.len()),
         };
+        // SAFETY: `ptr` is the original buffer's own pointer with its exact length and
+        // capacity; the resulting `Vec` is wrapped in `ManuallyDrop` immediately, so it
+        // is never deallocated or resized. Per the trait docs, the caller guarantees
+        // unique access.
         let vec = unsafe { Vec::from_raw_parts(ptr as *mut T, len, len) };
         let vec = ManuallyDrop::new(vec);
         DataMut::ManuallyDropOwned(vec)

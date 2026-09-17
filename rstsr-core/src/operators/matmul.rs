@@ -22,6 +22,27 @@ where
         alpha: TC,
         beta: TC,
     ) -> Result<()>;
+
+    /// Matrix multiplication into an **uninitialized** output: writes
+    /// `c = alpha * (a @ b)` and never reads `c`.
+    ///
+    /// `c` is `MaybeUninit`-typed storage. Implementations must initialize
+    /// every element of `lc` (via `MaybeUninit::write` or equivalent) and
+    /// must not read or drop the previous contents — this is the fresh-output
+    /// path of the allocating matmul; the `beta`-scaling path, which reads
+    /// `c` (initialized by the caller), is [`DeviceMatMulAPI::matmul`].
+    fn matmul_uninit(
+        &self,
+        c: &mut <Self as DeviceRawAPI<MaybeUninit<TC>>>::Raw,
+        lc: &Layout<DC>,
+        a: &<Self as DeviceRawAPI<TA>>::Raw,
+        la: &Layout<DA>,
+        b: &<Self as DeviceRawAPI<TB>>::Raw,
+        lb: &Layout<DB>,
+        alpha: TC,
+    ) -> Result<()>
+    where
+        Self: DeviceRawAPI<MaybeUninit<TC>>;
 }
 
 pub trait DeviceGEMMAPI<TA, TB, TC>

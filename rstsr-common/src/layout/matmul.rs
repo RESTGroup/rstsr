@@ -78,6 +78,7 @@ impl LayoutMatMulAPI<Ix1, Ix1> for LayoutMatMulConfig<Ix1, Ix1> {
     fn layout_matmul(la: &Layout<Ix1>, lb: &Layout<Ix1>, _: FlagOrder) -> Result<Self> {
         // check shape
         rstsr_assert_eq!(la.shape(), lb.shape(), InvalidLayout)?;
+        // SAFETY: empty (0-dim) layout with offset 0 — trivially in-bounds.
         let lc = unsafe { Layout::new_unchecked([], [], 0) };
         Ok(LayoutMatMulConfig {
             matmul_type: MatMulType::InnerDot,
@@ -125,6 +126,7 @@ fn layout_matmul_dyn_row_major(la: &Layout<IxD>, lb: &Layout<IxD>) -> Result<Lay
         (1, 1) => {
             // rule 1: vector inner dot
             rstsr_assert_eq!(la.shape(), lb.shape(), InvalidLayout)?;
+            // SAFETY: empty (0-dim) layout with offset 0 — trivially in-bounds.
             let lc = unsafe { Layout::new_unchecked(vec![], vec![], 0) };
             Ok(LayoutMatMulConfig {
                 matmul_type: MatMulType::InnerDot,

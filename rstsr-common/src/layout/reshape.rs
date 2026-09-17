@@ -220,6 +220,8 @@ pub fn layout_reshapeable(
 ) -> Result<Option<Layout<IxD>>> {
     Ok(quick_check(shape_out, layout_in, order)?.or_else(|| {
         attempt_nocopy_reshape(layout_in.shape(), layout_in.stride(), shape_out, order == ColMajor).map(
+            // SAFETY: `attempt_nocopy_reshape` verified that the new (shape, stride) pair
+            // visits exactly the same elements as the validated input layout.
             |stride_out| unsafe { Layout::<IxD>::new_unchecked(shape_out.to_vec(), stride_out, layout_in.offset()) },
         )
     }))

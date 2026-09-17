@@ -27,6 +27,8 @@ where
     let (a, b, mut c) = (a.view(), b.view(), c.view_mut());
     rstsr_assert!(c.device().same_device(a.device()), DeviceMismatch)?;
     rstsr_assert!(c.device().same_device(b.device()), DeviceMismatch)?;
+    // writing through a broadcast layout would alias elements
+    rstsr_assert!(!c.layout().is_broadcasted(), InvalidLayout, "cannot write into broadcasted tensor")?;
     let lc = c.layout();
     let la = a.layout();
     let lb = b.layout();
@@ -39,6 +41,8 @@ where
     rstsr_assert_eq!(lc_b, *lc, InvalidLayout)?;
     // op provided by device
     let device = c.device().clone();
+    // SAFETY: `Vec<TC>` -> `Vec<MaybeUninit<TC>>` reinterpretation (identical
+    // layout); `c` is a writable output buffer.
     let c_raw_mut = unsafe {
         transmute::<&mut <B as DeviceRawAPI<TC>>::Raw, &mut <B as DeviceRawAPI<MaybeUninit<TC>>>::Raw>(c.raw_mut())
     };
@@ -81,6 +85,8 @@ where
     // add provided by device
     device.op_mutc_refa_refb_func(storage_c.raw_mut(), &lc, a.raw(), &la_b, b.raw(), &lb_b, f)?;
     // return tensor
+    // SAFETY: `op_mutc_refa_refb_func` above wrote every element of `lc`, covering
+    // the fresh `storage_c` exactly.
     let storage_c = unsafe { B::assume_init_impl(storage_c) }?;
     Tensor::new_f(storage_c, lc)
 }
@@ -103,6 +109,8 @@ where
 {
     let (b, mut a) = (b.view(), a.view_mut());
     rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch)?;
+    // writing through a broadcast layout would alias elements
+    rstsr_assert!(!a.layout().is_broadcasted(), InvalidLayout, "cannot write into broadcasted tensor")?;
     let la = a.layout();
     let lb = b.layout();
     let default_order = a.device().default_order();
@@ -112,6 +120,8 @@ where
     rstsr_assert_eq!(la_b, *la, InvalidLayout)?;
     // op provided by device
     let device = a.device().clone();
+    // SAFETY: `Vec<TA>` -> `Vec<MaybeUninit<TA>>` reinterpretation (identical
+    // layout); `a` is a writable buffer written in place.
     let a_raw_mut = unsafe {
         transmute::<&mut <B as DeviceRawAPI<TA>>::Raw, &mut <B as DeviceRawAPI<MaybeUninit<TA>>>::Raw>(a.raw_mut())
     };
@@ -126,8 +136,12 @@ where
     F: FnMut(&mut MaybeUninit<T>),
 {
     let mut a = a.view_mut();
+    // writing through a broadcast layout would alias elements
+    rstsr_assert!(!a.layout().is_broadcasted(), InvalidLayout, "cannot write into broadcasted tensor")?;
     let la = a.layout().clone();
     let device = a.device().clone();
+    // SAFETY: `Vec<TA>` -> `Vec<MaybeUninit<TA>>` reinterpretation (identical
+    // layout); `a` is a writable buffer written in place.
     let a_raw_mut = unsafe {
         transmute::<&mut <B as DeviceRawAPI<T>>::Raw, &mut <B as DeviceRawAPI<MaybeUninit<T>>>::Raw>(a.raw_mut())
     };
@@ -135,3 +149,41 @@ where
 }
 
 /* #endregion */
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_op_mut_broadcast_err() {
+        // a broadcast (stride-0) layout aliases elements; writing through it is
+        // rejected instead of writing one element multiple times
+        let device = DeviceCpuSerial::default();
+        let a = arange((3.0, &device));
+        let (storage, _) = a.clone().into_raw_parts();
+        let mut t = Tensor::<f64, DeviceCpuSerial, Ix2>::new(storage, Layout::new([2, 3], [0, 1], 0).unwrap());
+        let b = arange((6.0, &device)).into_shape([2, 3]).into_dim::<Ix2>();
+        // unary in-place map
+        assert!(op_muta_func(t.view_mut(), &mut |x: &mut MaybeUninit<f64>| unsafe {
+            *x.assume_init_mut() += 1.0;
+        })
+        .is_err());
+        // binary in-place map
+        assert!(op_muta_refb_func(t.view_mut(), b.view(), &mut |x: &mut MaybeUninit<f64>, y: &f64| unsafe {
+            *x.assume_init_mut() += *y;
+        })
+        .is_err());
+        // map into a broadcasted output
+        let (storage_c, _) = a.into_raw_parts();
+        let mut c = Tensor::<f64, DeviceCpuSerial, Ix2>::new(storage_c, Layout::new([2, 3], [0, 1], 0).unwrap());
+        assert!(op_mutc_refa_refb_func(
+            c.view_mut(),
+            b.view(),
+            b.view(),
+            &mut |x: &mut MaybeUninit<f64>, _y: &f64, _z: &f64| {
+                x.write(0.0);
+            },
+        )
+        .is_err());
+    }
+}

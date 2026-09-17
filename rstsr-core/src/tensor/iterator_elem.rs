@@ -217,6 +217,9 @@ where
     B: DeviceAPI<T, Raw = Vec<T>>,
 {
     pub fn iter_mut_with_order_f(self, order: TensorIterOrder) -> Result<IterVecMut<'a, T, D>> {
+        // successive items of the iterator would be live simultaneously; on a
+        // broadcast layout they would alias the same element as multiple `&mut`
+        rstsr_assert!(!self.layout().is_broadcasted(), InvalidLayout, "cannot iterate mutably on broadcasted tensor")?;
         // The receiver is consumed to move the view's inner `&'a mut` out,
         // which lets `a.view_mut().iter_mut()` work as a one-liner: the
         // returned iterator borrows the data owner for `'a`.
@@ -482,6 +485,9 @@ where
             C | F => (),
             _ => rstsr_invalid!(order, "This function only accepts TensorIterOrder::C|F.",)?,
         };
+        // successive items of the iterator would be live simultaneously; on a
+        // broadcast layout they would alias the same element as multiple `&mut`
+        rstsr_assert!(!self.layout().is_broadcasted(), InvalidLayout, "cannot iterate mutably on broadcasted tensor")?;
         // The receiver is consumed to move the view's inner `&'a mut` out;
         // see `iter_mut_with_order_f` for the lifetime contract.
         let layout_iter = IterLayout::<D>::new(self.layout(), order)?;
@@ -651,13 +657,31 @@ mod tests_serial {
         #[cfg(feature = "col_major")]
         assert_eq!(vec_t, vec![([0, 0], &0), ([0, 1], &1), ([0, 2], &2), ([1, 0], &3), ([1, 1], &4), ([1, 2], &5)]);
     }
+
+    #[test]
+    fn test_iter_mut_broadcast_err() {
+        // a broadcast (stride-0) layout aliases elements; mutable iteration
+        // would yield multiple live `&mut` to the same element and is rejected
+        let mut device = DeviceCpu::default();
+        device.set_default_order(RowMajor);
+        let a = arange((3.0, &device));
+        let (storage, _) = a.into_raw_parts();
+        let mut c = Tensor::new(storage, Layout::new([2, 3], [0, 1], 0).unwrap());
+        // reading a broadcast layout is fine
+        let v: Vec<_> = c.view().iter().cloned().collect();
+        assert_eq!(v, vec![0., 1., 2., 0., 1., 2.]);
+        // mutable iteration is rejected
+        assert!(c.view_mut().iter_mut_f().is_err());
+        assert!(c.view_mut().indexed_iter_mut_f().is_err());
+        let v: Vec<_> = c.view().iter().cloned().collect();
+        assert_eq!(v, vec![0., 1., 2., 0., 1., 2.]);
+    }
 }
 
 #[cfg(test)]
 #[cfg(feature = "rayon")]
 mod tests_parallel {
     use super::*;
-    use rayon::prelude::*;
 
     #[test]
     fn test_iter() {

@@ -4,6 +4,7 @@ use crate::threading::with_num_threads;
 use core::any::TypeId;
 use core::ops::{Add, Mul};
 use core::slice::{from_raw_parts, from_raw_parts_mut};
+use core::sync::atomic::{AtomicPtr, Ordering};
 use num::{Complex, Zero};
 use rayon::prelude::*;
 
@@ -155,6 +156,8 @@ where
     let itc_rest = IterLayoutColMajor::new(&lc_rest)?;
     if n_task >= 4 * nthreads {
         // parallel outer, sequential matmul
+        let c_ptr = AtomicPtr::new(c.as_mut_ptr());
+        let c_len = c.len();
         let task = || {
             ita_rest.into_par_iter().zip(itb_rest).zip(itc_rest).try_for_each(
                 |((ia_rest, ib_rest), ic_rest)| -> Result<()> {
@@ -167,12 +170,9 @@ where
                         lb_m.set_offset(ib_rest);
                         lc_m.set_offset(ic_rest);
                     }
-                    // move mutable reference into parallel closure
-                    let c = unsafe {
-                        let c_ptr = c.as_ptr() as *mut TC;
-                        let c_len = c.len();
-                        from_raw_parts_mut(c_ptr, c_len)
-                    };
+                    // task-local slice handle for this batch, derived from the hoisted
+                    // base pointer
+                    let c = unsafe { from_raw_parts_mut(c_ptr.load(Ordering::Relaxed), c_len) };
                     // clone alpha and beta
                     let alpha = alpha.clone();
                     let beta = beta.clone();
@@ -208,6 +208,78 @@ where
     }
 }
 
+/// Row-major driver of the fresh-output matmul: `c = alpha * (a @ b)` into
+/// an uninitialized `c`.
+///
+/// The BLAS POD types run the existing machinery over the buffer reinterpreted
+/// as initialized (`beta = 0` keeps every path write-only — the BLAS non-read
+/// convention). Other dtypes use the generic write-only naive fallback.
+#[allow(clippy::too_many_arguments)]
+pub fn matmul_uninit_row_major_blas<TA, TB, TC, DA, DB, DC>(
+    c: &mut [MaybeUninit<TC>],
+    lc: &Layout<DC>,
+    a: &[TA],
+    la: &Layout<DA>,
+    b: &[TB],
+    lb: &Layout<DB>,
+    alpha: TC,
+    pool: Option<&ThreadPool>,
+) -> Result<()>
+where
+    TA: Clone + Send + Sync + 'static,
+    TB: Clone + Send + Sync + 'static,
+    TC: Clone + Send + Sync + 'static,
+    DA: DimAPI,
+    DB: DimAPI,
+    DC: DimAPI,
+    TA: Mul<TB, Output = TC>,
+    TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + PartialEq,
+{
+    // quick return for empty matrix
+    // in this case, we do not check the shape of a, b, c
+    if lc.size() == 0 {
+        return Ok(());
+    }
+
+    // vector inner dot: the shared naive kernel scales `c` by `beta`, so use
+    // the write-only kernel instead
+    if let (1, 1, 0) = (la.ndim(), lb.ndim(), lc.ndim()) {
+        let la = &la.clone().into_dim::<Ix1>().unwrap();
+        let lb = &lb.clone().into_dim::<Ix1>().unwrap();
+        let lc = &lc.clone().into_dim::<Ix0>().unwrap();
+        return inner_dot_naive_uninit_cpu_rayon(c, lc, a, la, b, lb, alpha, pool);
+    }
+
+    // type check and dispatch
+    macro_rules! impl_uninit_dispatch {
+        ($ty: ty) => {
+            if (same_type::<TA, $ty>() && same_type::<TB, $ty>() && same_type::<TC, $ty>()) {
+                // SAFETY: `TypeId` equality above proves TA = TB = TC = $ty; the
+                // reinterpreted slices have exactly the original lengths, and with
+                // `beta = 0` the dispatched routines only write `c` (initializing
+                // every slot) — only pointer passing happens before the call.
+                let a_slice = unsafe { from_raw_parts(a.as_ptr() as *const $ty, a.len()) };
+                let b_slice = unsafe { from_raw_parts(b.as_ptr() as *const $ty, b.len()) };
+                let c_slice = unsafe { from_raw_parts_mut(c.as_mut_ptr() as *mut $ty, c.len()) };
+                let alpha = unsafe { *(&alpha as *const TC as *const $ty) };
+                let beta = <$ty as Zero>::zero();
+                return matmul_row_major_blas::<$ty, $ty, $ty, DA, DB, DC>(
+                    c_slice, lc, a_slice, la, b_slice, lb, alpha, beta, pool,
+                );
+            }
+        };
+    }
+
+    impl_uninit_dispatch!(f32);
+    impl_uninit_dispatch!(f64);
+    impl_uninit_dispatch!(Complex<f32>);
+    impl_uninit_dispatch!(Complex<f64>);
+
+    // not able to be accelarated by blas
+    // fallback to naive write-only implementation
+    return matmul_naive_uninit_cpu_rayon(c, lc, a, la, b, lb, alpha, pool);
+}
+
 #[allow(clippy::too_many_arguments)]
 impl<TA, TB, TC, DA, DB, DC> DeviceMatMulAPI<TA, TB, TC, DA, DB, DC> for DeviceBLAS
 where
@@ -220,6 +292,7 @@ where
     TA: Mul<TB, Output = TC>,
     TB: Mul<TA, Output = TC>,
     TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + PartialEq,
+    Self: DeviceRawAPI<MaybeUninit<TC>, Raw = Vec<MaybeUninit<TC>>>,
 {
     fn matmul(
         &self,
@@ -241,6 +314,29 @@ where
                 let lb = lb.reverse_axes();
                 let lc = lc.reverse_axes();
                 matmul_row_major_blas(c, &lc, b, &lb, a, &la, alpha, beta, pool)
+            },
+        }
+    }
+
+    fn matmul_uninit(
+        &self,
+        c: &mut Vec<MaybeUninit<TC>>,
+        lc: &Layout<DC>,
+        a: &Vec<TA>,
+        la: &Layout<DA>,
+        b: &Vec<TB>,
+        lb: &Layout<DB>,
+        alpha: TC,
+    ) -> Result<()> {
+        let default_order = self.default_order();
+        let pool = self.get_current_pool();
+        match default_order {
+            RowMajor => matmul_uninit_row_major_blas(c, lc, a, la, b, lb, alpha, pool),
+            ColMajor => {
+                let la = la.reverse_axes();
+                let lb = lb.reverse_axes();
+                let lc = lc.reverse_axes();
+                matmul_uninit_row_major_blas(c, &lc, b, &lb, a, &la, alpha, pool)
             },
         }
     }

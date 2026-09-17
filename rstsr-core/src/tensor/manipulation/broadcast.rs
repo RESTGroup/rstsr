@@ -412,6 +412,8 @@ where
     )?;
     let (storage, layout) = tensor.into_raw_parts();
     let layout = update_layout_by_shape(&layout, &shape, &tp1, default_order)?;
+    // SAFETY: `update_layout_by_shape` only adds/expands axes with stride 0; the
+    // reachable element set is unchanged from the validated input layout.
     unsafe { Ok(TensorBase::new_unchecked(storage, layout)) }
 }
 

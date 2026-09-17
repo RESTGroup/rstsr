@@ -107,6 +107,9 @@ where
                 *t = 0;
             }
         });
+        // SAFETY: only axes with shape 1 or stride 0 are rewritten to (shape 1,
+        // stride 0); iteration skips those axes, so reachable offsets stay within the
+        // original layout's bounds.
         layout = unsafe { Layout::new_unchecked(shape, stride, layout.offset()) };
     }
 
@@ -185,6 +188,9 @@ where
             shape[i] = 1;
             stride[i] = l.size() as isize;
         }
+        // SAFETY: `bounds_index` above proved the layout covers exactly `size`
+        // consecutive elements; the rewritten [size, 1, ...] shape with stride 1
+        // addresses the same range.
         Ok(unsafe { Layout::new_unchecked(shape, stride, l.offset()) })
     };
     match order {
@@ -315,6 +321,9 @@ where
             .map(|l| {
                 let shape = l.shape().as_ref()[ndim_f_contig..].iter().cloned().collect_vec();
                 let stride = l.stride().as_ref()[ndim_f_contig..].iter().cloned().collect_vec();
+                // SAFETY: for every layout the first `ndim_f_contig` axes are f-contiguous
+                // with identical shapes (contract: call after `translate_to_col_major`), so
+                // dropping them and iterating `0..size_contig` linearly yields the same offsets.
                 unsafe { Layout::new_unchecked(shape, stride, l.offset()) }
             })
             .collect_vec();
@@ -455,6 +464,10 @@ where
     // a0_o: stride = 0, but that has already initialized as zero.
 
     let shape = la.shape().clone();
+    // SAFETY: strides are rebuilt from `la`'s shape: contiguous/discontiguous axes
+    // get standard product strides, broadcast axes keep stride 0, singleton axes
+    // get a neighboring stride; the maximum reachable offset stays <= size - 1.
+    // Offset 0 is used — callers add each tensor's own offset when indexing.
     let layout = unsafe { Layout::new_unchecked(shape, stride, 0) };
     Ok(layout)
 }

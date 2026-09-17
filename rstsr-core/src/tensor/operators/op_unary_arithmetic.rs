@@ -141,6 +141,7 @@ mod impl_unary {
             let mut storage_a = device.uninit_impl(la.bounds_index()?.1)?;
             // compute and return
             device.op_muta_refb(storage_a.raw_mut(), &la, self.raw(), lb)?;
+            // SAFETY: the op above wrote every element of the fresh `storage_a`.
             let storage_a = unsafe { B::assume_init_impl(storage_a) }?;
             return Tensor::new_f(storage_a, la);
         }
@@ -170,6 +171,12 @@ mod impl_unary {
     {
         type Output = Tensor<T, B, D>;
         fn op_f(mut self) -> Result<Self::Output> {
+            if self.layout().is_broadcasted() {
+                // an owned broadcasted tensor cannot be negated in place
+                // (elements alias); fall back to producing a fresh packed
+                // output instead, same policy as binary op reuse
+                return TensorOpAPI::op_f(&self);
+            }
             let layout = self.layout().clone();
             let device = self.device().clone();
             // generate empty output tensor
@@ -192,5 +199,19 @@ mod test {
         let b = -a;
         let b_ref = vec![-1., -2., -3., -4., -5.].into();
         assert!(allclose_f64(&b, &b_ref));
+    }
+
+    #[test]
+    fn test_neg_broadcast_owned_fallback() {
+        // an owned broadcasted tensor cannot be negated in place (elements
+        // alias); the op falls back to a fresh output instead of erroring
+        let mut device = DeviceCpuSerial::default();
+        device.set_default_order(RowMajor);
+        let a = arange((3.0, &device));
+        let (storage, _) = a.into_raw_parts();
+        let c = Tensor::new(storage, Layout::new([2, 3], [0, 1], 0).unwrap());
+        let d = -c;
+        let v: Vec<_> = d.view().iter().cloned().collect();
+        assert_eq!(v, vec![-0., -1., -2., -0., -1., -2.]);
     }
 }

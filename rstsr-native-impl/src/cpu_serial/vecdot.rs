@@ -128,6 +128,8 @@ where
                     let idx_b = idx_b_chunk + idx_s_b - offset_b; // double count offset
                     let chunk_a = &a[idx_a..idx_a + n_chunk];
                     let chunk_b = &b[idx_b..idx_b + n_chunk];
+                    // SAFETY: `c` is an initialized element of `chunk_c` (zero-initialized above);
+                    // read-then-write in place via `assume_init_read`/`write`.
                     chunk_c.iter_mut().zip(chunk_a.iter().zip(chunk_b.iter())).for_each(|(c, (x, y))| unsafe {
                         let val = x.clone().ext_conj() * y.clone();
                         c.write(c.assume_init_read() + val);

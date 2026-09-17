@@ -43,6 +43,8 @@ where
     for &axis in axes.iter() {
         layout = layout.dim_eliminate(axis)?;
     }
+    // SAFETY: `dim_remove` drops size-1 axes of the validated layout — same
+    // elements, same storage.
     unsafe { Ok(TensorBase::new_unchecked(storage, layout)) }
 }
 

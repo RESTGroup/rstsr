@@ -142,7 +142,7 @@ where
     // operation specific
     TA: Mul<TB, Output = TC>,
     TC: Zero + One,
-    B: DeviceCreationAnyAPI<TC>,
+    B: DeviceCreationAnyAPI<TC> + DeviceRawAPI<MaybeUninit<TC>>,
     LayoutMatMulConfig<DA, DB>: LayoutMatMulAPI<DA, DB, DC = DC>,
     B: DeviceMatMulAPI<TA, TB, TC, DA, DB, DC>,
 {
@@ -160,6 +160,10 @@ where
 /// This function behaves identically under [`RowMajor`] and [`ColMajor`] device
 /// default orders for the values it writes (the operands' existing layouts are
 /// used as given).
+///
+/// When `beta` is zero, the previous contents of `c` are not read (the BLAS
+/// `beta = 0` non-read convention). This holds on every device implementation,
+/// so non-finite values in `c` do not propagate into the result in that case.
 ///
 /// # Parameters
 ///
@@ -247,6 +251,8 @@ where
     let (a, b, mut c) = (a.view(), b.view(), c.view_mut());
     rstsr_assert!(c.device().same_device(a.device()), DeviceMismatch)?;
     rstsr_assert!(c.device().same_device(b.device()), DeviceMismatch)?;
+    // writing through a broadcast layout would alias elements
+    rstsr_assert!(!c.layout().is_broadcasted(), InvalidLayout, "cannot matmul into broadcasted tensor")?;
     let device = c.device().clone();
     let la = a.layout();
     let lb = b.layout();
@@ -269,8 +275,7 @@ where
     DB: DimAPI,
     DC: DimAPI,
     // operation specific
-    TC: Zero,
-    B: DeviceCreationAnyAPI<TC>,
+    B: DeviceCreationAnyAPI<TC> + DeviceRawAPI<MaybeUninit<TC>>,
     LayoutMatMulConfig<DA, DB>: LayoutMatMulAPI<DA, DB, DC = DC>,
     B: DeviceMatMulAPI<TA, TB, TC, DA, DB, DC>,
 {
@@ -279,9 +284,15 @@ where
     let default_order = a.device().default_order();
     let cfg = LayoutMatMulConfig::<DA, DB>::layout_matmul(a.layout(), b.layout(), default_order)?;
     let lc = cfg.lc;
-    let mut c: Tensor<TC, B, _> = unsafe { empty((lc, a.device())) }.into_dim_f()?;
-    op_mutc_refa_refb_matmul(&mut c, &a, &b, alpha, TC::zero())?;
-    return Ok(c);
+    // fresh-output path: uninit storage + the write-only `matmul_uninit`, then
+    // one `assume_init` — no zero-fill pass, and no `beta`-scaling read of
+    // undefined values (BLAS `beta = 0` non-read convention).
+    let device = a.device().clone();
+    let mut storage_c = device.uninit_impl(lc.bounds_index()?.1)?;
+    device.matmul_uninit(storage_c.raw_mut(), &lc, a.raw(), a.layout(), b.raw(), b.layout(), alpha)?;
+    // SAFETY: `matmul_uninit` initialized every element of `lc` (its contract).
+    let storage_c = unsafe { B::assume_init_impl(storage_c)? };
+    Tensor::new_f(storage_c, lc)
 }
 
 /// Matrix multiplication, writing the plain product into a provided output.
@@ -308,7 +319,8 @@ where
 ///
 /// The same operation as [`matmul`] (`a @ b`), but the result is written into
 /// `c` instead of being allocated; this is [`matmul_from`] with `alpha = 1`
-/// and `beta = 0` (the previous contents of `c` are overwritten).
+/// and `beta = 0` (the previous contents of `c` are overwritten without being
+/// read — the BLAS `beta = 0` non-read convention).
 ///
 /// This function behaves identically under [`RowMajor`] and [`ColMajor`] device
 /// default orders for the values it writes (the operands' existing layouts are
@@ -392,6 +404,9 @@ where
     DB: DimAPI,
     DC: DimAPI,
     // operation specific
+    // `Zero` is required by the CPU-serial kernel (it must detect the
+    // `beta = 0` case to honor the BLAS non-read convention).
+    TC: Zero,
     B: DeviceMatMulAPI<TA, TB, TC, DA, DB, DC>,
 {
     op_mutc_refa_refb_matmul(c, a, b, alpha, beta)
@@ -412,7 +427,7 @@ where
     // operation specific
     TA: Mul<TB, Output = TC>,
     TC: Zero + One,
-    B: DeviceCreationAnyAPI<TC>,
+    B: DeviceCreationAnyAPI<TC> + DeviceRawAPI<MaybeUninit<TC>>,
     LayoutMatMulConfig<DA, DB>: LayoutMatMulAPI<DA, DB, DC = DC>,
     B: DeviceMatMulAPI<TA, TB, TC, DA, DB, DC>,
 {
@@ -443,7 +458,7 @@ where
     // operation specific
     TA: Mul<TB, Output = TC>,
     TC: Zero + One,
-    B: DeviceCreationAnyAPI<TC>,
+    B: DeviceCreationAnyAPI<TC> + DeviceRawAPI<MaybeUninit<TC>>,
     LayoutMatMulConfig<DA, DB>: LayoutMatMulAPI<DA, DB, DC = DC>,
     B: DeviceMatMulAPI<TA, TB, TC, DA, DB, DC>,
 {
@@ -477,7 +492,7 @@ where
         // operation specific
         T: Mul<TB, Output = TC>,
         TC: Zero + One,
-        B: DeviceCreationAnyAPI<TC>,
+        B: DeviceCreationAnyAPI<TC> + DeviceRawAPI<MaybeUninit<TC>>,
         LayoutMatMulConfig<D, DB>: LayoutMatMulAPI<D, DB, DC = DC>,
         B: DeviceMatMulAPI<T, TB, TC, D, DB, DC>,
     {
@@ -495,7 +510,7 @@ where
         // operation specific
         T: Mul<TB, Output = TC>,
         TC: Zero + One,
-        B: DeviceCreationAnyAPI<TC>,
+        B: DeviceCreationAnyAPI<TC> + DeviceRawAPI<MaybeUninit<TC>>,
         LayoutMatMulConfig<D, DB>: LayoutMatMulAPI<D, DB, DC = DC>,
         B: DeviceMatMulAPI<T, TB, TC, D, DB, DC>,
     {

@@ -218,6 +218,8 @@ where
     if order == ColMajor {
         let mut shape: IxD = shape.clone().into();
         shape.reverse();
+        // SAFETY: `shape` was cloned from a `DMax` and only reversed (length
+        // preserved), so the conversion back to `DMax` cannot fail.
         let shape: DMax = unsafe { shape.try_into().unwrap_unchecked() };
         let mut broadcast_type = broadcast_type.to_vec();
         broadcast_type.reverse();
@@ -241,6 +243,9 @@ where
     }
     let stride = stride.try_into();
     let stride = stride.map_err(|_| rstsr_error!(InvalidLayout, "Type cast error."))?;
+    // SAFETY: newly added axes get stride 0 and expanded axes (`Expand`/`Upcast`)
+    // get stride 0; untouched axes keep their strides, so reachable offsets stay
+    // within the original (validated) layout's bounds.
     unsafe { Ok(Layout::new_unchecked(shape.clone(), stride, layout.offset())) }
 }
 

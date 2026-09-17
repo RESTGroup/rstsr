@@ -3,8 +3,6 @@ use crate::cpu_serial::reduction::{
 };
 use crate::prelude_dev::*;
 use core::mem::transmute;
-use core::sync::atomic::{AtomicPtr, Ordering};
-use rayon::prelude::*;
 
 // this value is used to determine whether to use contiguous inner iteration
 const CONTIG_SWITCH: usize = 32;
@@ -154,6 +152,10 @@ where
 
     // create output layout
     let lo = layout_for_array_copy(&lm, TensorIterOrder::K)?;
+    // SAFETY (contract): `uninitialized_vec` per the `rstsr_common::alloc_vec`
+    // contract (`alloc_vec_contract.md`); every `lo.size()`
+    // slot is written below exactly once (output offsets from the layout
+    // iteration) before the final transmute.
     let mut out: Vec<MaybeUninit<TO>> = unsafe { uninitialized_vec(lo.size())? };
 
     // extract contiguous part and its corresponding dimensions
@@ -167,6 +169,8 @@ where
     let size_m0 = am0.iter().map(|&i| lm.shape()[i]).product::<usize>();
     let size_mc = amc.iter().map(|&i| lm.shape()[i]).product::<usize>();
 
+    // pass mutable reference in parallel region
+    let thr_out = AtomicPtr::new(out.as_mut_ptr());
     let mut task = || -> Result<()> {
         if size_sc > 1 {
             // contiguous parts to be summed, call unrolled_reduce for inner reduce
@@ -195,7 +199,11 @@ where
                     acc = f_sum(acc, acc_before.clone());
                 }
                 unsafe {
-                    let ptr_out_ocd = out.as_ptr().add(i_ocd) as *mut MaybeUninit<TO>;
+                    // SAFETY: `ptr_out_ocd` is `out`'s base pointer hoisted through
+                    // `AtomicPtr` (relaxed load; `out` is never reassigned through it).
+                    // Each task writes the single slot `i_ocd` (disjoint across tasks,
+                    // from the output layout iteration).
+                    let ptr_out_ocd = thr_out.load(Ordering::Relaxed).add(i_ocd);
                     (*ptr_out_ocd).write(f_out(acc));
                 }
             });
@@ -242,7 +250,10 @@ where
                 });
                 // apply broadcast duplication and finalization function and write to output
                 (0..size_mc).into_par_iter().for_each(|i_mc| unsafe {
-                    let ptr_out = out.as_ptr().add(i_od + i_mc) as *mut MaybeUninit<TO>;
+                    // SAFETY: `ptr_out` is `out`'s base pointer hoisted through `AtomicPtr`
+                    // (relaxed load; `out` is never reassigned through it). Each task writes
+                    // its own `i_od + i_mc` slot (disjoint across tasks).
+                    let ptr_out = thr_out.load(Ordering::Relaxed).add(i_od + i_mc);
                     let mut acc = vacc[i_mc].clone();
                     for _ in 1..size_s0 {
                         acc = f_sum(acc, vacc[i_mc].clone());
@@ -276,7 +287,10 @@ where
                     acc = f_sum(acc, acc_before.clone());
                 }
                 unsafe {
-                    let ptr_out_od = out.as_ptr().add(i_od) as *mut MaybeUninit<TO>;
+                    // SAFETY: `ptr_out_od` is `out`'s base pointer hoisted through `AtomicPtr`
+                    // (relaxed load; `out` is never reassigned through it). Each task writes
+                    // the single slot `i_od` (disjoint across tasks).
+                    let ptr_out_od = thr_out.load(Ordering::Relaxed).add(i_od);
                     (*ptr_out_od).write(f_out(acc));
                 }
             });
@@ -314,17 +328,23 @@ where
 
     // Safety: all broadcast, discontiguous, contiguous parts have been handled, the `out` is now
     // fully initialized, transmute it to the output type
+    // SAFETY: all broadcast, discontiguous and contiguous parts were initialized
+    // above (see the existing comment).
     let mut out = unsafe { transmute::<Vec<MaybeUninit<TO>>, Vec<TO>>(out) };
 
     // handle tensor iter order
     if TensorIterOrder::default() != TensorIterOrder::K {
         let lo_default = layout_for_array_copy(&lm, TensorIterOrder::default())?;
         if lo_default != lo {
+            // SAFETY (contract): uninitialized copy buffer, fully written by the assign
+            // op below before the transmute.
             let mut out_default: Vec<MaybeUninit<TO>> = unsafe { uninitialized_vec(lo_default.size())? };
             let mut func = |a: &mut MaybeUninit<TO>, b: &TO| {
                 a.write(b.clone());
             };
             op_muta_refb_func_cpu_rayon(&mut out_default, &lo_default, &out, &lo, &mut func, pool)?;
+            // SAFETY: `op_muta_refb_func_cpu_rayon` above wrote every element of
+            // `out_default`.
             out = unsafe { transmute::<Vec<MaybeUninit<TO>>, Vec<TO>>(out_default) };
         }
     }
@@ -498,7 +518,7 @@ where
     };
     let sum_func = |acc1: Option<(D, T)>, acc2: Option<(D, T)>| match (acc1, acc2) {
         (Some((idx1, val1)), Some((idx2, _))) => {
-            fold_func(Some((idx1, val1)), (idx2.clone(), unsafe { la.index_uncheck(idx2.as_ref()) as usize }))
+            fold_func(Some((idx1, val1)), (idx2.clone(), la.index_uncheck(idx2.as_ref()) as usize))
         },
         (Some((idx1, val1)), None) => Some((idx1, val1)),
         (None, Some((idx2, val2))) => Some((idx2, val2)),
@@ -605,11 +625,7 @@ where
             Some(pool) => pool.install(task),
         };
         return match flat {
-            Some(flat) => {
-                // safety: `flat` is a c-order position of `la.shape()` with
-                // `flat < size` and `size > 0`
-                Ok(unsafe { la.shape().unravel_index_c(flat) })
-            },
+            Some(flat) => Ok(la.shape().unravel_index_c(flat)),
             None => rstsr_raise!(InvalidValue, "{}", ARG_ALL_NAN_MSG),
         };
     }
@@ -618,9 +634,7 @@ where
     // buffer (the per-chunk scans are seeded with this guaranteed-comparable
     // element, so a NaN inside a chunk can never block its chunk result)
     if !(xs[0] == xs[0]) {
-        // safety: index 0 of any non-empty shape (`size > 0` asserted by the
-        // caller) is always in bounds for `unravel_index_c` (no bounds-check)
-        return Ok(unsafe { la.shape().unravel_index_c(0) });
+        return Ok(la.shape().unravel_index_c(0));
     }
 
     let nthreads = match pool {
@@ -661,9 +675,7 @@ where
         None => task(),
         Some(pool) => pool.install(task),
     };
-    // safety: same contract as the serial contiguous path — `flat` is a
-    // c-order position of `la.shape()` with `flat < size` and `size > 0`
-    Ok(unsafe { la.shape().unravel_index_c(flat) })
+    Ok(la.shape().unravel_index_c(flat))
 }
 
 /// Argmin/argmax-specialized fast path of
@@ -745,6 +757,8 @@ where
 
     // prepare output
     let len_out = layout_out.size();
+    // SAFETY (contract): every `len_out` slot is written below exactly once
+    // (`idx_out` from the layout_out iteration) before the transmute.
     let mut out: Vec<MaybeUninit<IxD>> = unsafe { uninitialized_vec(len_out)? };
     let out_ptr = AtomicPtr::new(out.as_mut_ptr());
 
@@ -754,8 +768,13 @@ where
             let out_ptr = out_ptr.load(Ordering::Relaxed);
             // let out_ptr = out_ptr.get();
             let mut layout_inner = layout_axes.clone();
+            // SAFETY: `idx_rest` comes from the validated rest-layout iteration; inner
+            // layout + offset addresses only in-bounds elements.
             unsafe { layout_inner.set_offset(idx_rest) };
             let acc = reduce_all_unraveled_arg_cmp_cpu_rayon(a, &layout_inner, cmp, pool)?;
+            // SAFETY: `out_ptr` was derived from `as_mut_ptr()` before the task and each
+            // `idx_out` is visited exactly once — disjoint writes through a unique-origin
+            // pointer.
             unsafe { *out_ptr.add(idx_out) = MaybeUninit::new(acc) };
             Ok(())
         })
@@ -764,6 +783,7 @@ where
         None => task()?,
         Some(pool) => pool.install(task)?,
     };
+    // SAFETY: all elements written above.
     let out = unsafe { transmute::<Vec<MaybeUninit<IxD>>, Vec<IxD>>(out) };
     // returns (indices, layout_axes, layout_out): each index in `out` is an
     // unraveled position within `layout_axes` (the reduced-axes space, possibly
@@ -791,7 +811,7 @@ where
         RowMajor => pseudo_shape.c(),
         ColMajor => pseudo_shape.f(),
     };
-    unsafe { Ok(pseudo_layout.index_uncheck(idx.as_ref()) as usize) }
+    Ok(pseudo_layout.index_uncheck(idx.as_ref()) as usize)
 }
 
 /// Argmin/argmax-specialized variant of [`reduce_axes_arg_cpu_rayon`] (see
@@ -818,7 +838,7 @@ where
         RowMajor => pseudo_shape.c(),
         ColMajor => pseudo_shape.f(),
     };
-    let task = || idx.into_par_iter().map(|x| unsafe { pseudo_layout.index_uncheck(x.as_ref()) as usize }).collect();
+    let task = || idx.into_par_iter().map(|x| pseudo_layout.index_uncheck(x.as_ref()) as usize).collect();
     let out = match pool {
         None => task(),
         Some(pool) => pool.install(task),
@@ -895,6 +915,8 @@ where
 
     // prepare output
     let len_out = layout_out.size();
+    // SAFETY (contract): every `len_out` slot is written below exactly once
+    // (`idx_out` from the layout_out iteration) before the transmute.
     let mut out: Vec<MaybeUninit<IxD>> = unsafe { uninitialized_vec(len_out)? };
     let out_ptr = AtomicPtr::new(out.as_mut_ptr());
 
@@ -904,8 +926,13 @@ where
             let out_ptr = out_ptr.load(Ordering::Relaxed);
             // let out_ptr = out_ptr.get();
             let mut layout_inner = layout_axes.clone();
+            // SAFETY: `idx_rest` comes from the validated rest-layout iteration; inner
+            // layout + offset addresses only in-bounds elements.
             unsafe { layout_inner.set_offset(idx_rest) };
             let acc = reduce_all_unraveled_arg_cpu_rayon(a, &layout_inner, &f_comp, &f_eq, pool)?;
+            // SAFETY: `out_ptr` was derived from `as_mut_ptr()` before the task and each
+            // `idx_out` is visited exactly once — disjoint writes through a unique-origin
+            // pointer.
             unsafe { *out_ptr.add(idx_out) = MaybeUninit::new(acc) };
             Ok(())
         })
@@ -914,6 +941,7 @@ where
         None => task()?,
         Some(pool) => pool.install(task)?,
     };
+    // SAFETY: all elements written above.
     let out = unsafe { transmute::<Vec<MaybeUninit<IxD>>, Vec<IxD>>(out) };
     // returns (indices, layout_axes, layout_out): each index in `out` is an
     // unraveled position within `layout_axes` (the reduced-axes space, possibly
@@ -944,7 +972,7 @@ where
         RowMajor => pseudo_shape.c(),
         ColMajor => pseudo_shape.f(),
     };
-    unsafe { Ok(pseudo_layout.index_uncheck(idx.as_ref()) as usize) }
+    Ok(pseudo_layout.index_uncheck(idx.as_ref()) as usize)
 }
 
 /// General closure-based arg-reduction over given axes, raveled index output.
@@ -974,7 +1002,7 @@ where
         RowMajor => pseudo_shape.c(),
         ColMajor => pseudo_shape.f(),
     };
-    let task = || idx.into_par_iter().map(|x| unsafe { pseudo_layout.index_uncheck(x.as_ref()) as usize }).collect();
+    let task = || idx.into_par_iter().map(|x| pseudo_layout.index_uncheck(x.as_ref()) as usize).collect();
     let out = match pool {
         None => task(),
         Some(pool) => pool.install(task),

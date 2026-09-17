@@ -43,6 +43,8 @@ where
     // Apply the transpose
     let (storage, layout) = tensor.into_raw_parts();
     let layout = layout.transpose(&order)?;
+    // SAFETY: `moveaxis` permutes (shape, stride) pairs of the validated layout —
+    // same elements, same storage.
     unsafe { Ok(TensorBase::new_unchecked(storage, layout)) }
 }
 

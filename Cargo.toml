@@ -71,6 +71,7 @@ faer-ext = { version = "0.6" }
 tblis = { version = "0.2" }
 opt-einsum-path = { version = "0.2", features = ["par_rand"] }
 # dev dependencies
+num-bigint = { version = "0.4" }
 npyz = { version = "0.8", features = ["complex"] }
 anyhow = { version = "1.0" }
 rand = { version = "0.8" }

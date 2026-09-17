@@ -22,6 +22,8 @@ where
     pub(crate) offset: usize,
 }
 
+// `Layout` holds only plain integer data (shape, stride, offset) and never
+// references memory, so `Send`/`Sync` hold unconditionally.
 unsafe impl<D> Send for Layout<D> where D: DimBaseAPI {}
 unsafe impl<D> Sync for Layout<D> where D: DimBaseAPI {}
 
@@ -59,10 +61,6 @@ where
     }
 
     /// Total number of elements in tensor.
-    ///
-    /// # Note
-    ///
-    /// This function uses cached size, instead of evaluating from shape.
     #[inline]
     pub fn size(&self) -> usize {
         self.shape().as_ref().iter().product()
@@ -294,27 +292,61 @@ where
             return Ok(());
         }
 
-        let mut indices = (0..n).filter(|&k| shape[k] > 1).collect::<Vec<_>>();
-        indices.sort_by_key(|&k| stride[k].abs());
-        let shape_sorted = indices.iter().map(|&k| shape[k]).collect::<Vec<_>>();
-        let stride_sorted = indices.iter().map(|&k| stride[k].unsigned_abs()).collect::<Vec<_>>();
+        // collect axes with more than one element, sorted by absolute stride
+        // (insertion sort into a stack buffer; heap fallback for unusually
+        // high dimensionality keeps this allocation-free in the common case)
+        const MAX_STACK_AXES: usize = 8;
+        let mut buf = [(0usize, 0usize); MAX_STACK_AXES]; // (|stride|, shape)
+        let mut count = 0;
+        let mut heap: Vec<(usize, usize)> = Vec::new();
+        for k in 0..n {
+            if shape[k] <= 1 {
+                continue;
+            }
+            let pair = (stride[k].unsigned_abs(), shape[k]);
+            if heap.is_empty() && count < MAX_STACK_AXES {
+                let mut i = count;
+                while i > 0 && buf[i - 1].0 > pair.0 {
+                    buf[i] = buf[i - 1];
+                    i -= 1;
+                }
+                buf[i] = pair;
+                count += 1;
+            } else {
+                if heap.is_empty() {
+                    heap.extend_from_slice(&buf[..count]);
+                }
+                heap.push(pair);
+            }
+        }
+        let sorted: &[(usize, usize)] = if heap.is_empty() {
+            &buf[..count]
+        } else {
+            heap.sort_unstable_by_key(|&(s, _)| s);
+            &heap
+        };
 
         // elem_cum: cumulative number count of elements in tensor for small strides
         let mut elem_cum = 0;
-        for i in 0..indices.len() {
+        for &(stride_abs, shape_axis) in sorted {
             // if stride is zero, then skip check for this axis
-            if stride_sorted[i] == 0 && skip_zero {
+            if stride_abs == 0 && skip_zero {
                 continue;
             }
             // following function also checks that stride could not be zero
             rstsr_pattern!(
                 elem_cum,
-                0..stride_sorted[i],
+                0..stride_abs,
                 InvalidLayout,
                 "Either stride be zero, or stride too small that elements in tensor can be overlapped."
             )?;
 
-            elem_cum += (shape_sorted[i] - 1) * stride_sorted[i];
+            let extent =
+                shape_axis.checked_sub(1).and_then(|m| m.checked_mul(stride_abs)).and_then(|v| v.checked_add(elem_cum));
+            match extent {
+                Some(v) => elem_cum = v,
+                None => rstsr_raise!(InvalidLayout, "Layout is too large that elements count overflows usize.")?,
+            }
         }
         return Ok(());
     }
@@ -397,6 +429,8 @@ where
     where
         D: DimShapeAPI,
     {
+        // SAFETY: the layout is validated immediately below (`bounds_index` +
+        // `check_strides`) before it is returned; errors discard it.
         let layout = unsafe { Layout::new_unchecked(shape, stride, offset) };
         layout.bounds_index()?;
         layout.check_strides(true)?;
@@ -462,6 +496,9 @@ where
             shape[i] = shape_old[axes[i]];
             stride[i] = stride_old[axes[i]];
         }
+        // SAFETY: `axes` is validated above (length, range, no duplicates); permuting
+        // (shape, stride) pairs and keeping the offset preserves the set of reachable
+        // elements, so the source layout's bounds/stride invariants carry over.
         return unsafe { Ok(Layout::new_unchecked(shape, stride, self.offset)) };
     }
 
@@ -482,6 +519,8 @@ where
             shape[i] = shape_old[self.ndim() - i - 1];
             stride[i] = stride_old[self.ndim() - i - 1];
         }
+        // SAFETY: `reverse_axes` applies a fixed reversal permutation of (shape, stride)
+        // pairs; the offset is unchanged and the reachable element set is preserved.
         return unsafe { Layout::new_unchecked(shape, stride, self.offset) };
     }
 
@@ -494,6 +533,9 @@ where
         let mut stride = self.stride().clone();
         shape.as_mut().swap(axis1, axis2);
         stride.as_mut().swap(axis1, axis2);
+        // SAFETY: `axis1`/`axis2` are range-checked above; swapping (shape, stride)
+        // pairs preserves the reachable element set, so the validated layout's
+        // invariants carry over.
         return unsafe { Ok(Layout::new_unchecked(shape, stride, self.offset)) };
     }
 }
@@ -507,16 +549,20 @@ where
 {
     /// Index of tensor by list of indexes to dimensions.
     ///
-    /// # Safety
-    ///
     /// This function does not check for bounds, including
     /// - Negative index
     /// - Index greater than shape
     ///
-    /// Due to these reasons, this function may well give index smaller than
+    /// Out-of-bounds input will not cause undefined behavior, but the
+    /// calculated offset is then meaningless.
+    /// Due to these reasons, this function may well give offset smaller than
     /// zero, which may occur in iterator; so this function returns isize.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `index` has fewer entries than the layout's ndim.
     #[inline]
-    pub unsafe fn index_uncheck(&self, index: &[usize]) -> isize {
+    pub fn index_uncheck(&self, index: &[usize]) -> isize {
         let stride = self.stride.as_ref();
         match self.ndim() {
             0 => self.offset as isize,
@@ -577,6 +623,8 @@ pub trait DimLayoutContigAPI: DimBaseAPI + DimShapeAPI {
     fn new_c_contig(&self, offset: Option<usize>) -> Layout<Self> {
         let shape = self.clone();
         let stride = shape.stride_c_contig();
+        // SAFETY: `stride_c_contig` builds non-overlapping contiguous strides from
+        // `shape`; all indices stay below the shape product.
         unsafe { Layout::new_unchecked(shape, stride, offset.unwrap_or(0)) }
     }
 
@@ -585,6 +633,8 @@ pub trait DimLayoutContigAPI: DimBaseAPI + DimShapeAPI {
     fn new_f_contig(&self, offset: Option<usize>) -> Layout<Self> {
         let shape = self.clone();
         let stride = shape.stride_f_contig();
+        // SAFETY: `stride_f_contig` builds non-overlapping contiguous strides from
+        // `shape`; all indices stay below the shape product.
         unsafe { Layout::new_unchecked(shape, stride, offset.unwrap_or(0)) }
     }
 
@@ -933,19 +983,17 @@ mod test {
         // a = np.arange(9 * 12 * 15)
         //       .reshape(9, 12, 15)[4:2:-1, 4:10, 2:10:3]
         //       .transpose(2, 0, 1)
-        unsafe {
-            // fixed dim
-            let layout = Layout::new([3, 2, 6], [3, -180, 15], 782).unwrap();
-            assert_eq!(layout.index_uncheck(&[0, 0, 0]), 782);
-            assert_eq!(layout.index_uncheck(&[2, 1, 4]), 668);
-            // dynamic dim
-            let layout = Layout::new(vec![3, 2, 6], vec![3, -180, 15], 782).unwrap();
-            assert_eq!(layout.index_uncheck(&[0, 0, 0]), 782);
-            assert_eq!(layout.index_uncheck(&[2, 1, 4]), 668);
-            // zero-dim
-            let layout = Layout::new([], [], 10).unwrap();
-            assert_eq!(layout.index_uncheck(&[]), 10);
-        }
+        // fixed dim
+        let layout = Layout::new([3, 2, 6], [3, -180, 15], 782).unwrap();
+        assert_eq!(layout.index_uncheck(&[0, 0, 0]), 782);
+        assert_eq!(layout.index_uncheck(&[2, 1, 4]), 668);
+        // dynamic dim
+        let layout = Layout::new(vec![3, 2, 6], vec![3, -180, 15], 782).unwrap();
+        assert_eq!(layout.index_uncheck(&[0, 0, 0]), 782);
+        assert_eq!(layout.index_uncheck(&[2, 1, 4]), 668);
+        // zero-dim
+        let layout = Layout::new([], [], 10).unwrap();
+        assert_eq!(layout.index_uncheck(&[]), 10);
     }
 
     #[test]
@@ -986,13 +1034,11 @@ mod test {
 
     #[test]
     fn test_unravel_index() {
-        unsafe {
-            let shape = [3, 2, 6];
-            assert_eq!(shape.unravel_index_f(0), [0, 0, 0]);
-            assert_eq!(shape.unravel_index_f(16), [1, 1, 2]);
-            assert_eq!(shape.unravel_index_c(0), [0, 0, 0]);
-            assert_eq!(shape.unravel_index_c(16), [1, 0, 4]);
-        }
+        let shape = [3, 2, 6];
+        assert_eq!(shape.unravel_index_f(0), [0, 0, 0]);
+        assert_eq!(shape.unravel_index_f(16), [1, 1, 2]);
+        assert_eq!(shape.unravel_index_c(0), [0, 0, 0]);
+        assert_eq!(shape.unravel_index_c(16), [1, 0, 4]);
     }
 
     #[test]
@@ -1003,5 +1049,51 @@ mod test {
         let indexed = layout.dim_slice(slc.as_ref()).unwrap();
         assert_eq!(indexed.shape(), &[10, 3, 12]);
         assert_eq!(indexed.stride(), &[132, -48, 1]);
+    }
+
+    #[test]
+    fn test_check_strides_zero_stride() {
+        // zero stride accepted when `skip_zero` (broadcast layout, read-only)
+        let layout = Layout::new([2, 3], [1, 0], 0).unwrap();
+        assert!(layout.check_strides(true).is_ok());
+        assert!(layout.is_broadcasted());
+        // zero stride rejected when strict (write paths use this semantics
+        // via `is_broadcasted`)
+        assert!(layout.check_strides(false).is_err());
+        // zero stride on a shape-1 axis cannot alias anything: stride checking
+        // passes, but `is_broadcasted` (the conservative write-path gate) still
+        // rejects it
+        let layout = Layout::new([3, 1], [1, 0], 0).unwrap();
+        assert!(layout.check_strides(true).is_ok());
+        assert!(layout.check_strides(false).is_ok());
+        assert!(layout.is_broadcasted());
+        assert!(!Layout::new([3, 1], [1, 3], 0).unwrap().is_broadcasted());
+    }
+
+    #[test]
+    fn test_check_strides_many_axes_heap_fallback() {
+        // more than 8 axes with shape > 1 takes the heap path and must stay
+        // correct (overlapping strides detected)
+        let shape = [2, 2, 2, 2, 2, 2, 2, 2, 2, 2]; // 10-d, all shape > 1
+        let stride = [512, 256, 128, 64, 32, 16, 8, 4, 2, 1];
+        let layout = Layout::new(shape, stride, 0).unwrap();
+        assert!(layout.check_strides(false).is_ok());
+        // overlapping: two axes share the same stride
+        let stride = [512, 256, 128, 64, 32, 16, 8, 4, 2, 2];
+        // SAFETY: test-only layout; the invalid stride pair is the case under test
+        let layout = unsafe { Layout::new_unchecked(shape, stride, 0) };
+        assert!(layout.check_strides(false).is_err());
+    }
+
+    #[test]
+    fn test_check_strides_span_overflow() {
+        // the cumulative span must not wrap around usize in release mode
+        // SAFETY: test-only layout; huge strides exercise the overflow guard
+        let layout = unsafe { Layout::new_unchecked([2, 4], [1, 9223372036854775807], 0) };
+        assert!(layout.check_strides(false).is_err());
+        // the same layout with a small final axis is still fine
+        // SAFETY: test-only layout; bounds are irrelevant to stride checking
+        let layout = unsafe { Layout::new_unchecked([2, 2], [1, 9223372036854775807], 0) };
+        assert!(layout.check_strides(false).is_ok());
     }
 }

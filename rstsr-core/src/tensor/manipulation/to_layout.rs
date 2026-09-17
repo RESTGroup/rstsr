@@ -21,6 +21,8 @@ where
     if same_layout {
         // no data cloned
         let (storage, _) = tensor.into_raw_parts();
+        // SAFETY: layouts were compared equal above, so `layout` addresses exactly
+        // what the validated tensor addressed.
         let tensor = unsafe { TensorBase::new_unchecked(storage, layout) };
         return Ok(tensor.into_cow());
     } else {
@@ -31,7 +33,11 @@ where
         let (_, idx_max) = layout.bounds_index()?;
         let mut storage_new = device.uninit_impl(idx_max)?;
         device.assign_arbitary_uninit(storage_new.raw_mut(), &layout, storage_old.raw(), &layout_old)?;
+        // SAFETY: `assign_arbitary_uninit` above filled every element of `layout`
+        // (fresh storage sized to its bounds).
         let storage_new = unsafe { B::assume_init_impl(storage_new)? };
+        // SAFETY: fresh storage sized to `layout`'s bounds and fully written by
+        // `assign_arbitary_uninit` above; layout matches storage by construction.
         let tensor = unsafe { TensorBase::new_unchecked(storage_new, layout) };
         return Ok(tensor.into_cow());
     }

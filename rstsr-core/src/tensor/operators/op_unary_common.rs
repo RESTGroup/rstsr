@@ -188,6 +188,7 @@ mod impl_tensor_unary_common {
             let mut storage_a = device.uninit_impl(la.bounds_index()?.1)?;
             // compute and return
             device.op_muta_refb(storage_a.raw_mut(), &la, self.raw(), lb)?;
+            // SAFETY: the op above wrote every element of the fresh `storage_a`.
             let storage_a = unsafe { B::assume_init_impl(storage_a) }?;
             return Tensor::new_f(storage_a, la);
         }
@@ -215,9 +216,17 @@ mod impl_tensor_unary_common {
     {
         type Output = Tensor<T, B, D>;
         fn op_f(mut self) -> Result<Self::Output> {
+            if self.layout().is_broadcasted() {
+                // an owned broadcasted tensor cannot be mapped in place
+                // (elements alias); fall back to producing a fresh packed
+                // output instead, same policy as binary op reuse
+                return TensorOpAPI::op_f(&self);
+            }
             let layout = self.layout().clone();
             let device = self.device().clone();
             // generate empty output tensor
+            // SAFETY: `Vec<T>` -> `Vec<MaybeUninit<T>>` reinterpretation (identical
+            // layout); `self` is an initialized buffer written in place.
             let self_raw_mut = unsafe {
                 transmute::<&mut <B as DeviceRawAPI<T>>::Raw, &mut <B as DeviceRawAPI<MaybeUninit<T>>>::Raw>(
                     self.raw_mut(),

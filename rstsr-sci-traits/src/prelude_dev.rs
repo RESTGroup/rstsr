@@ -1,6 +1,6 @@
 #![allow(unused_imports)]
 
-pub(crate) use crate as rstsr_sci_traits;
+// `rstsr_sci_traits` self-alias lives in lib.rs (`extern crate self as ...`).
 pub(crate) use rstsr_core::prelude_dev::*;
 
 #[cfg(feature = "faer")]

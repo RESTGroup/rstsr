@@ -445,7 +445,11 @@ where
         let (shape1, shape2) = shape.split_at(axis);
         let (stride1, stride2) = stride.split_at(axis);
 
+        // SAFETY: `dim_split_at` partitions the (validated) layout's shape/stride pairs
+        // into a prefix and a suffix; each sub-layout reaches a subset of the original
+        // elements with the same offset, hence stays in-bounds.
         let layout1 = unsafe { Layout::new_unchecked(shape1.to_vec(), stride1.to_vec(), offset) };
+        // SAFETY: see `layout1` above — suffix partition of the validated layout.
         let layout2 = unsafe { Layout::new_unchecked(shape2.to_vec(), stride2.to_vec(), offset) };
         return Ok((layout1, layout2));
     }

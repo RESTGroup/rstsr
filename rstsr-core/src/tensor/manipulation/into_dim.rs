@@ -10,6 +10,8 @@ where
 {
     let (storage, layout) = tensor.into_raw_parts();
     let layout = layout.into_dim::<D2>()?;
+    // SAFETY: `into_dim` only changes the dimension type (checked to have the same
+    // rank) of the validated layout — same elements, same storage.
     unsafe { Ok(TensorBase::new_unchecked(storage, layout)) }
 }
 

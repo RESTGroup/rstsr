@@ -19,6 +19,8 @@ where
     for axis in axes {
         layout = layout.dim_narrow(axis, slice!(None, None, -1))?;
     }
+    // SAFETY: flipping rewrites offset/strides so the same elements are visited in
+    // reverse order; bounds of the validated layout are preserved.
     unsafe { Ok(TensorBase::new_unchecked(storage, layout)) }
 }
 

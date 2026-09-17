@@ -19,6 +19,8 @@ where
     let order = order.into().unwrap_or(tensor.device().default_order());
     if let Some(layout_new) = layout_reshapeable(&tensor.layout().to_dim()?, &shape_new, order)? {
         let (storage, _) = tensor.into_raw_parts();
+        // SAFETY: contiguity is checked above, and the new contiguous layout covers
+        // the same `size` elements at the same offset as the validated input.
         unsafe { Ok(TensorBase::new_unchecked(storage, layout_new)) }
     } else {
         rstsr_raise!(InvalidLayout, "Cannot reshape {:?} to {shape_new:?} with order {order:?}.", tensor.layout())?
@@ -270,6 +272,8 @@ where
             rstsr_raise!(InvalidLayout, "This array is not contiguous by {:?}", default_order)?
         }
     };
+    // SAFETY: `layout_reshapeable` returned a layout visiting exactly the same
+    // elements as the validated input.
     unsafe { Ok(TensorBase::new_unchecked(storage, new_layout)) }
 }
 

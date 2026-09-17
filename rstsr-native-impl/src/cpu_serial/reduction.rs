@@ -215,6 +215,10 @@ where
 
     // create output layout
     let lo = layout_for_array_copy(&lm, TensorIterOrder::K)?;
+    // SAFETY (contract): `uninitialized_vec` per the `rstsr_common::alloc_vec`
+    // contract (`alloc_vec_contract.md`); every `lo.size()`
+    // slot is written below exactly once (output offsets from the layout
+    // iteration) before the final transmute.
     let mut out: Vec<MaybeUninit<TO>> = unsafe { uninitialized_vec(lo.size())? };
 
     // extract contiguous part and its corresponding dimensions
@@ -344,6 +348,8 @@ where
 
                 // Safety: the c/d part without broadcast should have been initialized by reduced
                 // value
+                // SAFETY: the c/d part without broadcast was initialized by the reduction
+                // above (see existing comment).
                 let val = unsafe { out[idx_ocd].assume_init_read().clone() };
                 out[idx_o0].write(val);
             });
@@ -352,6 +358,7 @@ where
 
     // Safety: all broadcast, discontiguous, contiguous parts have been handled, the `out` is now
     // fully initialized, transmute it to the output type
+    // SAFETY: all `out` elements were written by the reduction above.
     let mut out = unsafe { transmute::<Vec<MaybeUninit<TO>>, Vec<TO>>(out) };
 
     // handle tensor iter order
@@ -362,6 +369,7 @@ where
             op_muta_refb_func_cpu_serial(&mut out_default, &lo_default, &out, &lo, |a, b| {
                 a.write(b.clone());
             })?;
+            // SAFETY: `op_muta_refb_func` above wrote every element of `out_default`.
             out = unsafe { transmute::<Vec<MaybeUninit<TO>>, Vec<TO>>(out_default) };
         }
     }
@@ -743,11 +751,7 @@ where
     let offset = la.offset();
     let size = la.size();
     let flat = arg_contig_cpu_serial(&a[offset..offset + size], cmp)?;
-    // safety: `flat` indexes a c-order position of `la.shape()` with
-    // `flat < size` (result of a scan over exactly `size` elements) and
-    // `size > 0` is asserted by the caller, so `unravel_index_c` cannot go
-    // out of bounds (it does not bounds-check by contract)
-    Ok(unsafe { la.shape().unravel_index_c(flat) })
+    Ok(la.shape().unravel_index_c(flat))
 }
 
 /// Argmin/argmax-specialized fast path of
@@ -810,15 +814,20 @@ where
 
     // prepare output
     let len_out = layout_out.size();
+    // SAFETY (contract): every `len_out` slot is written below exactly once
+    // (`idx_out` from the layout_out iteration) before the transmute.
     let mut out: Vec<MaybeUninit<IxD>> = unsafe { uninitialized_vec(len_out)? };
 
     // actual evaluation
     izip!(iter_out_swapped, iter_rest_swapped).try_for_each(|(idx_out, idx_rest)| -> Result<()> {
+        // SAFETY: `idx_rest` comes from the validated rest-layout iteration; inner
+        // layout + offset addresses only in-bounds elements.
         unsafe { layout_inner.set_offset(idx_rest) };
         let acc = reduce_all_unraveled_arg_cmp_cpu_serial(a, &layout_inner, cmp)?;
         out[idx_out] = MaybeUninit::new(acc);
         Ok(())
     })?;
+    // SAFETY: all elements written above.
     let out = unsafe { transmute::<Vec<MaybeUninit<IxD>>, Vec<IxD>>(out) };
     // returns (indices, layout_axes, layout_out): each index in `out` is an
     // unraveled position within `layout_axes` (the reduced-axes space), *not*
@@ -840,7 +849,7 @@ where
         RowMajor => pseudo_shape.c(),
         ColMajor => pseudo_shape.f(),
     };
-    unsafe { Ok(pseudo_layout.index_uncheck(idx.as_ref()) as usize) }
+    Ok(pseudo_layout.index_uncheck(idx.as_ref()) as usize)
 }
 
 /// Argmin/argmax-specialized variant of [`reduce_axes_arg_cpu_serial`] (see
@@ -867,7 +876,7 @@ where
         RowMajor => pseudo_shape.c(),
         ColMajor => pseudo_shape.f(),
     };
-    let out = idx.into_iter().map(|x| unsafe { pseudo_layout.index_uncheck(x.as_ref()) as usize }).collect();
+    let out = idx.into_iter().map(|x| pseudo_layout.index_uncheck(x.as_ref()) as usize).collect();
     Ok((out, layout))
 }
 
@@ -934,15 +943,20 @@ where
 
     // prepare output
     let len_out = layout_out.size();
+    // SAFETY (contract): every `len_out` slot is written below exactly once
+    // (`idx_out` from the layout_out iteration) before the transmute.
     let mut out: Vec<MaybeUninit<IxD>> = unsafe { uninitialized_vec(len_out)? };
 
     // actual evaluation
     izip!(iter_out_swapped, iter_rest_swapped).try_for_each(|(idx_out, idx_rest)| -> Result<()> {
+        // SAFETY: `idx_rest` comes from the validated rest-layout iteration; inner
+        // layout + offset addresses only in-bounds elements.
         unsafe { layout_inner.set_offset(idx_rest) };
         let acc = reduce_all_unraveled_arg_cpu_serial(a, &layout_inner, &f_comp, &f_eq)?;
         out[idx_out] = MaybeUninit::new(acc);
         Ok(())
     })?;
+    // SAFETY: all elements written above.
     let out = unsafe { transmute::<Vec<MaybeUninit<IxD>>, Vec<IxD>>(out) };
     // returns (indices, layout_axes, layout_out): each index in `out` is an
     // unraveled position within `layout_axes` (the reduced-axes space), *not*
@@ -972,7 +986,7 @@ where
         RowMajor => pseudo_shape.c(),
         ColMajor => pseudo_shape.f(),
     };
-    unsafe { Ok(pseudo_layout.index_uncheck(idx.as_ref()) as usize) }
+    Ok(pseudo_layout.index_uncheck(idx.as_ref()) as usize)
 }
 
 /// General closure-based arg-reduction over given axes, raveled index output.
@@ -1002,7 +1016,7 @@ where
         RowMajor => pseudo_shape.c(),
         ColMajor => pseudo_shape.f(),
     };
-    let out = idx.into_iter().map(|x| unsafe { pseudo_layout.index_uncheck(x.as_ref()) as usize }).collect();
+    let out = idx.into_iter().map(|x| pseudo_layout.index_uncheck(x.as_ref()) as usize).collect();
     Ok((out, layout))
 }
 

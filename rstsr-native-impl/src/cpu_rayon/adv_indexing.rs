@@ -38,10 +38,16 @@ where
         let la_rest = &layouts_rest[1];
 
         let axis_contig_a = la.stride()[axis] == 1;
+        // pass mutable reference in parallel region
+        let thr_c = AtomicPtr::new(c.as_mut_ptr());
         if axis_contig_a {
             // both axis are contiguous
             let func = |(idx_c, idx_a): (usize, usize)| unsafe {
-                let c_ptr = c.as_ptr().add(idx_c) as *mut MaybeUninit<T>;
+                // SAFETY: `c_ptr` is `c`'s base pointer hoisted through `AtomicPtr`
+                // (relaxed load; `c` is never reassigned through it). Each task writes its
+                // own contiguous run at `idx_c` (disjoint output positions); the
+                // `size_indices` writes land in the contiguous selected axis.
+                let c_ptr = thr_c.load(Ordering::Relaxed).add(idx_c);
                 (0..size_indices).for_each(|idx| {
                     (*c_ptr.add(idx)).write(a[idx_a + indices[idx]].clone());
                 });
@@ -51,7 +57,11 @@ where
         } else {
             let axis_stride_a = la.stride()[axis];
             let func = |(idx_c, idx_a): (usize, usize)| unsafe {
-                let c_ptr = c.as_ptr().add(idx_c) as *mut MaybeUninit<T>;
+                // SAFETY: `c_ptr` is `c`'s base pointer hoisted through `AtomicPtr`
+                // (relaxed load; `c` is never reassigned through it). Each task writes its
+                // own contiguous run at `idx_c` (disjoint output positions); the
+                // `size_indices` writes land in the contiguous selected axis.
+                let c_ptr = thr_c.load(Ordering::Relaxed).add(idx_c);
                 (0..size_indices).for_each(|idx| {
                     let idx_a_out = idx_a as isize + axis_stride_a * indices[idx] as isize;
                     (*c_ptr.add(idx)).write(a[idx_a_out as usize].clone());

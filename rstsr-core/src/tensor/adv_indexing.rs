@@ -47,6 +47,8 @@ where
     let out_layout = out_shape.new_contig(None, device.default_order()).into_dim()?;
     let mut out_storage = device.uninit_impl(out_layout.size())?;
     device.index_select(out_storage.raw_mut(), &out_layout, tensor.storage().raw(), tensor_layout, axis, &indices)?;
+    // SAFETY: `device.index_select` above wrote all `out_layout.size()` elements
+    // of the fresh storage.
     let out_storage = unsafe { B::assume_init_impl(out_storage)? };
     TensorBase::new_f(out_storage, out_layout)
 }

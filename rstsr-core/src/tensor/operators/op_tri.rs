@@ -70,6 +70,7 @@ where
         let device = self.device();
         let mut storage_a = device.uninit_impl(la.bounds_index()?.1)?;
         device.pack_tri(storage_a.raw_mut(), &la, self.raw(), &lb, uplo)?;
+        // SAFETY: `tril`/`triu` op above wrote every element of the fresh storage.
         let storage_a = unsafe { B::assume_init_impl(storage_a)? };
         Tensor::new_f(storage_a, la.into_dim()?)
     }
@@ -161,6 +162,7 @@ where
         let device = self.device();
         let mut storage_a = device.uninit_impl(la.bounds_index()?.1)?;
         device.unpack_tri(storage_a.raw_mut(), &la, self.raw(), &lb, uplo, symm)?;
+        // SAFETY: `tril`/`triu` op above wrote every element of the fresh storage.
         let storage_a = unsafe { B::assume_init_impl(storage_a)? };
         Tensor::new_f(storage_a, la.into_dim()?)
     }

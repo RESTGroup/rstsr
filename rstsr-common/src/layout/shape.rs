@@ -54,19 +54,31 @@ pub trait DimShapeAPI: DimBaseAPI {
     /// `f_prefer`.
     fn stride_contig(&self) -> Self::Stride;
 
-    /// Index (col-major) of tensor by list of indexes.
+    /// Unravel linear index (col-major) into a list of indexes.
     ///
-    /// # Safety
+    /// This function does not check whether the linear index is within bounds
+    /// (`index < shape_size()`). An out-of-bounds input will not cause
+    /// undefined behavior, but the returned index list is then meaningless
+    /// (components are wrapped by modulo arithmetic).
     ///
-    /// This function does not check whether index is out of bounds.
-    unsafe fn unravel_index_f(&self, index: usize) -> Self;
+    /// # Panics
+    ///
+    /// Panics if a zero dimension is used as a divisor during unraveling
+    /// (col-major: any dimension except the last one, when ndim > 1).
+    fn unravel_index_f(&self, index: usize) -> Self;
 
-    /// Index (row-major) of tensor by list of indexes.
+    /// Unravel linear index (row-major) into a list of indexes.
     ///
-    /// # Safety
+    /// This function does not check whether the linear index is within bounds
+    /// (`index < shape_size()`). An out-of-bounds input will not cause
+    /// undefined behavior, but the returned index list is then meaningless
+    /// (components are wrapped by modulo arithmetic).
     ///
-    /// This function does not check whether index is out of bounds.
-    unsafe fn unravel_index_c(&self, index: usize) -> Self;
+    /// # Panics
+    ///
+    /// Panics if a zero dimension is used as a divisor during unraveling
+    /// (row-major: any dimension except the first one, when ndim > 1).
+    fn unravel_index_c(&self, index: usize) -> Self;
 }
 
 impl<const N: usize> DimShapeAPI for Ix<N> {
@@ -101,7 +113,7 @@ impl<const N: usize> DimShapeAPI for Ix<N> {
     }
 
     #[inline]
-    unsafe fn unravel_index_f(&self, index: usize) -> Self {
+    fn unravel_index_f(&self, index: usize) -> Self {
         let mut index = index;
         let mut result = self.new_shape();
         match self.ndim() {
@@ -140,7 +152,7 @@ impl<const N: usize> DimShapeAPI for Ix<N> {
     }
 
     #[inline]
-    unsafe fn unravel_index_c(&self, index: usize) -> Self {
+    fn unravel_index_c(&self, index: usize) -> Self {
         let mut index = index;
         let mut result = self.new_shape();
         match self.ndim() {
@@ -211,7 +223,7 @@ impl DimShapeAPI for IxD {
     }
 
     #[inline]
-    unsafe fn unravel_index_f(&self, index: usize) -> Self {
+    fn unravel_index_f(&self, index: usize) -> Self {
         let mut index = index;
         let mut result = self.new_shape();
         if self.ndim() >= 1 {
@@ -226,7 +238,7 @@ impl DimShapeAPI for IxD {
     }
 
     #[inline]
-    unsafe fn unravel_index_c(&self, index: usize) -> Self {
+    fn unravel_index_c(&self, index: usize) -> Self {
         let mut index = index;
         let mut result = self.new_shape();
         if self.ndim() >= 1 {

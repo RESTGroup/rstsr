@@ -57,6 +57,8 @@ where
         let layout = self.layout().clone();
         let data = self.data().as_ref();
         let storage = Storage::new(data, self.device().clone());
+        // SAFETY: storage and layout are carried over unchanged from the validated
+        // tensor; only the data wrapper changes (borrow).
         unsafe { TensorBase::new_unchecked(storage, layout) }
     }
 
@@ -105,6 +107,8 @@ where
         let layout = self.layout().clone();
         let data = self.data_mut().as_mut();
         let storage = Storage::new(data, device);
+        // SAFETY: storage and layout are carried over unchanged from the validated
+        // tensor; only the data wrapper changes (exclusive borrow).
         unsafe { TensorBase::new_unchecked(storage, layout) }
     }
 
@@ -145,6 +149,8 @@ where
         let (storage, layout) = self.into_raw_parts();
         let (data, device) = storage.into_raw_parts();
         let storage = Storage::new(data.into_cow(), device);
+        // SAFETY: same storage and layout as the validated input; only the ownership
+        // wrapper changes (`into_cow`).
         unsafe { TensorBase::new_unchecked(storage, layout) }
     }
 
@@ -166,6 +172,8 @@ where
         let (storage, layout) = self.into_raw_parts();
         let (data, device) = storage.into_raw_parts();
         let storage = Storage::new(data.into_owned(), device);
+        // SAFETY: same storage and layout as the validated input; only the ownership
+        // wrapper changes (`into_owned`).
         unsafe { TensorBase::new_unchecked(storage, layout) }
     }
 
@@ -188,6 +196,8 @@ where
         let (storage, layout) = self.into_raw_parts();
         let (data, device) = storage.into_raw_parts();
         let storage = Storage::new(data.into_shared(), device);
+        // SAFETY: same storage and layout as the validated input; only the ownership
+        // wrapper changes (`into_shared`).
         unsafe { TensorBase::new_unchecked(storage, layout) }
     }
 }
@@ -368,6 +378,8 @@ where
         let (data, device) = storage.into_raw_parts();
         let data = data.into_cow();
         let storage = Storage::new(data, device);
+        // SAFETY: the cloned tensor's (validated) storage and layout are re-wrapped
+        // as `TensorCow`.
         unsafe { TensorBase::new_unchecked(storage, layout) }
     }
 }
@@ -380,8 +392,11 @@ where
 {
     /// # Safety
     ///
-    /// This function is highly unsafe, as it entirely bypasses Rust's lifetime
-    /// and borrowing rules.
+    /// The returned [`TensorMut`] aliases the data of `self` behind a shared
+    /// reference. The caller must guarantee unique access: while the returned
+    /// mutable view is alive, no other reference (shared or mutable) to the
+    /// same data may be used; violating this is an aliasing violation
+    /// (undefined behavior).
     pub unsafe fn force_mut(&self) -> TensorMut<'_, T, B, D> {
         let layout = self.layout().clone();
         let data = self.data().force_mut();
@@ -408,6 +423,8 @@ where
         let size = layout.size();
         let mut new_storage = device.uninit_impl(size)?;
         device.assign_uninit(new_storage.raw_mut(), &[size].c(), self.raw(), &layout)?;
+        // SAFETY: `assign_uninit` above gathered every element of the `[size]`
+        // contiguous layout into the fresh storage.
         let storage = unsafe { B::assume_init_impl(new_storage) }?;
         let (data, _) = storage.into_raw_parts();
         Ok(data.into_raw())
@@ -610,6 +627,9 @@ where
     B: DeviceAPI<T, Raw = Vec<T>>,
 {
     pub fn as_ptr(&self) -> *const T {
+        // SAFETY: `offset` <= storage length by layout validity (checked when the
+        // tensor was constructed); `add` with offset == len (one-past-end) is allowed
+        // and never dereferenced unless an element exists.
         unsafe { self.raw().as_ptr().add(self.layout().offset()) }
     }
 
@@ -617,6 +637,8 @@ where
     where
         R: DataMutAPI,
     {
+        // SAFETY: same as `as_ptr` — offset within the storage by layout validity;
+        // the exclusive `&mut self` provides write provenance.
         unsafe { self.raw_mut().as_mut_ptr().add(self.layout().offset()) }
     }
 }
@@ -651,6 +673,8 @@ where
         let data = self.data().as_ref();
         let storage = Storage::new(data, self.device().clone());
         let layout = self.layout().clone();
+        // SAFETY: view API form — storage and layout carried over unchanged from the
+        // validated tensor.
         unsafe { TensorBase::new_unchecked(storage, layout) }
     }
 }
@@ -713,6 +737,8 @@ where
         let layout = self.layout().clone();
         let data = self.data_mut().as_mut();
         let storage = Storage::new(data, device);
+        // SAFETY: view_mut API form — storage and layout carried over unchanged from
+        // the validated tensor; exclusive borrow.
         unsafe { TensorBase::new_unchecked(storage, layout) }
     }
 }

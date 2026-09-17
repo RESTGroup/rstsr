@@ -16,6 +16,8 @@ where
         _ => {
             let (storage, layout) = tensor.into_raw_parts();
             let layout = layout.transpose(axes.as_ref())?;
+            // SAFETY: `into_transpose_f` permutes (shape, stride) pairs of the validated
+            // layout — same elements, same storage.
             unsafe { Ok(TensorBase::new_unchecked(storage, layout)) }
         },
     }
@@ -299,6 +301,8 @@ where
 {
     let (storage, layout) = tensor.into_raw_parts();
     let layout = layout.reverse_axes();
+    // SAFETY: `reverse_axes` is a fixed permutation of the validated layout's axes
+    // — same elements, same storage.
     unsafe { TensorBase::new_unchecked(storage, layout) }
 }
 
@@ -456,6 +460,8 @@ where
     let axis2 = axis2.try_into().map_err(|_| rstsr_error!(TryFromIntError))?;
     let (storage, layout) = tensor.into_raw_parts();
     let layout = layout.swapaxes(axis1, axis2)?;
+    // SAFETY: `swapaxes` (axes range-checked) permutes (shape, stride) pairs of
+    // the validated layout — same elements, same storage.
     unsafe { Ok(TensorBase::new_unchecked(storage, layout)) }
 }
 
