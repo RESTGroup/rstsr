@@ -43,14 +43,10 @@ fn test_creation_asarray_from_vec_and_nested() {
     ];
     let a = rt::asarray((data, [2, 3], &device));
     assert_eq!(a.shape(), &[2, 3]);
-    assert_eq!(a.into_shape(-1).into_vec(), vec![
-        big("10000000000000000000000000"),
-        big("-3"),
-        big("7"),
-        big("9"),
-        big("11"),
-        big("-13"),
-    ]);
+    assert_eq!(
+        a.into_shape(-1).into_vec(),
+        vec![big("10000000000000000000000000"), big("-3"), big("7"), big("9"), big("11"), big("-13"),]
+    );
 
     // `tensor_from_nested!` (bounds: `T: Clone` + `DeviceCreationAnyAPI`).
     let b = rt::tensor_from_nested!([[big("10"), big("-20")], [big("30"), big("-40")]], &device);
@@ -106,60 +102,68 @@ fn test_elementwise_add_sub_mul_neg() {
     // element-wise add: exact, mixed magnitudes
     let s = rt::add(&a, &b);
     assert_eq!(s.shape(), &[2, 3]);
-    assert_eq!(s.into_shape(-1).into_vec(), vec![
-        big("1000000000000000000000007"),
-        big("-18"),
-        big("27"),
-        big("1000000000000000000000004"),
-        big("6"),
-        big("0"),
-    ]);
+    assert_eq!(
+        s.into_shape(-1).into_vec(),
+        vec![
+            big("1000000000000000000000007"),
+            big("-18"),
+            big("27"),
+            big("1000000000000000000000004"),
+            big("6"),
+            big("0"),
+        ]
+    );
 
     // element-wise sub
     let d = rt::sub(&a, &b);
-    assert_eq!(d.into_shape(-1).into_vec(), vec![
-        big("999999999999999999999993"),
-        big("-22"),
-        big("33"),
-        big("-999999999999999999999996"),
-        big("4"),
-        big("-12"),
-    ]);
+    assert_eq!(
+        d.into_shape(-1).into_vec(),
+        vec![
+            big("999999999999999999999993"),
+            big("-22"),
+            big("33"),
+            big("-999999999999999999999996"),
+            big("4"),
+            big("-12"),
+        ]
+    );
 
     // element-wise mul: products of ~10^24-scale values stay exact
     let m = rt::mul(&a, &b);
-    assert_eq!(m.into_shape(-1).into_vec(), vec![
-        big("7000000000000000000000000"),
-        big("-40"),
-        big("-90"),
-        big("4000000000000000000000000"),
-        big("5"),
-        big("-36"),
-    ]);
+    assert_eq!(
+        m.into_shape(-1).into_vec(),
+        vec![
+            big("7000000000000000000000000"),
+            big("-40"),
+            big("-90"),
+            big("4000000000000000000000000"),
+            big("5"),
+            big("-36"),
+        ]
+    );
 
     // unary neg
     let n = rt::neg(&a);
-    assert_eq!(n.into_shape(-1).into_vec(), vec![
-        big("-1000000000000000000000000"),
-        big("20"),
-        big("-30"),
-        big("-4"),
-        big("-5"),
-        big("6"),
-    ]);
+    assert_eq!(
+        n.into_shape(-1).into_vec(),
+        vec![big("-1000000000000000000000000"), big("20"), big("-30"), big("-4"), big("-5"), big("6"),]
+    );
 
     // broadcast: row `[3]` against the last axis of `[2, 3]`
     let row = rt::asarray((vec![big("1000000000000000000000000"), big("-2000"), big("3000")], &device));
     let c = rt::add(&a, &row);
     assert_eq!(c.shape(), &[2, 3]);
-    assert_eq!(c.into_shape(-1).into_vec(), vec![
-        big("2000000000000000000000000"),
-        big("-2020"),
-        big("3030"),
-        big("1000000000000000000000004"),
-        big("-1995"),
-        big("2994"),
-    ]);
+    assert_eq!(
+        c.into_shape(-1).into_vec(),
+        vec![
+            big("2000000000000000000000000"),
+            big("-2020"),
+            big("3030"),
+            big("1000000000000000000000004"),
+            big("-1995"),
+            big("2994"),
+        ]
+    );
 }
 
 #[test]
@@ -174,14 +178,10 @@ fn test_strided_copy_to_contig() {
     assert_eq!(at.shape(), &[3, 2]);
     let contig = at.to_contig(RowMajor);
     assert_eq!(contig.shape(), &[3, 2]);
-    assert_eq!(contig.into_shape(-1).into_vec(), vec![
-        big("10"),
-        big("40"),
-        big("-20"),
-        big("-50"),
-        big("30"),
-        big("60")
-    ]);
+    assert_eq!(
+        contig.into_shape(-1).into_vec(),
+        vec![big("10"), big("40"), big("-20"), big("-50"), big("30"), big("60")]
+    );
 }
 
 #[test]
@@ -209,12 +209,15 @@ fn test_matmul_with_output_initialized_buffer() {
     // `test_matmul_allocating_exact` below.
     let mut c: Tensor<BigInt, _> = rt::zeros(([2, 2], &device));
     rt::matmul_with_output(&a, &b, &mut c);
-    assert_eq!(c.into_shape(-1).into_vec(), vec![
-        big("70000000000000000000000051"), // 7 * 10^25 + 2*9 + 3*11
-        big("80000000000000000000000056"), // 8 * 10^25 + 2*10 + 3*12
-        big("139"),                        // 4*7 + 5*9 + 6*11
-        big("154"),                        // 4*8 + 5*10 + 6*12
-    ]);
+    assert_eq!(
+        c.into_shape(-1).into_vec(),
+        vec![
+            big("70000000000000000000000051"), // 7 * 10^25 + 2*9 + 3*11
+            big("80000000000000000000000056"), // 8 * 10^25 + 2*10 + 3*12
+            big("139"),                        // 4*7 + 5*9 + 6*11
+            big("154"),                        // 4*8 + 5*10 + 6*12
+        ]
+    );
 
     // non-contiguous operands: (3, 2) = a^T, (2, 3) = b^T
     let a_flat = vec![big("10000000000000000000000000"), big("2"), big("3"), big("4"), big("5"), big("6")];
@@ -256,12 +259,15 @@ fn test_matmul_allocating_exact() {
     // function form (allocating output)
     let c = rt::matmul(&a, &b);
     assert_eq!(c.shape(), &[2, 2]);
-    assert_eq!(c.into_shape(-1).into_vec(), vec![
-        big("70000000000000000000000051"), // 7 * 10^25 + 2*9 + 3*11
-        big("80000000000000000000000056"), // 8 * 10^25 + 2*10 + 3*12
-        big("139"),                        // 4*7 + 5*9 + 6*11
-        big("154"),                        // 4*8 + 5*10 + 6*12
-    ]);
+    assert_eq!(
+        c.into_shape(-1).into_vec(),
+        vec![
+            big("70000000000000000000000051"), // 7 * 10^25 + 2*9 + 3*11
+            big("80000000000000000000000056"), // 8 * 10^25 + 2*10 + 3*12
+            big("139"),                        // 4*7 + 5*9 + 6*11
+            big("154"),                        // 4*8 + 5*10 + 6*12
+        ]
+    );
 
     // method form, with a reference cross-check
     let d = a.matmul(&b);
@@ -275,12 +281,15 @@ fn test_matmul_allocating_exact() {
     let f = rt::asarray((vec![big("5"), big("6"), big("7"), big("8")], [2, 2], &device));
     let g = rt::matmul(&e, &f);
     assert_eq!(g.shape(), &[2, 1, 2]);
-    assert_eq!(g.into_shape(-1).into_vec(), vec![
-        big("19"),
-        big("22"), // [1, 2] @ [[5, 6], [7, 8]]
-        big("43"),
-        big("50"), // [3, 4] @ [[5, 6], [7, 8]]
-    ]);
+    assert_eq!(
+        g.into_shape(-1).into_vec(),
+        vec![
+            big("19"),
+            big("22"), // [1, 2] @ [[5, 6], [7, 8]]
+            big("43"),
+            big("50"), // [3, 4] @ [[5, 6], [7, 8]]
+        ]
+    );
 }
 
 #[test]
@@ -421,25 +430,17 @@ fn test_diag_concat_allocatable_exact() {
     let b = rt::asarray((vec![big("5"), big("6")], [1, 2], &device));
     let c0 = rt::concatenate((vec![a.clone(), b], 0isize));
     assert_eq!(c0.shape(), &[3, 2]);
-    assert_eq!(c0.into_shape(-1).into_vec(), vec![
-        big("10000000000000000000000000"),
-        big("2"),
-        big("3"),
-        big("4"),
-        big("5"),
-        big("6"),
-    ]);
+    assert_eq!(
+        c0.into_shape(-1).into_vec(),
+        vec![big("10000000000000000000000000"), big("2"), big("3"), big("4"), big("5"), big("6"),]
+    );
     let b2 = rt::asarray((vec![big("7"), big("8")], [2, 1], &device));
     let c1 = rt::concatenate((vec![a, b2], 1isize));
     assert_eq!(c1.shape(), &[2, 3]);
-    assert_eq!(c1.into_shape(-1).into_vec(), vec![
-        big("10000000000000000000000000"),
-        big("2"),
-        big("7"),
-        big("3"),
-        big("4"),
-        big("8"),
-    ]);
+    assert_eq!(
+        c1.into_shape(-1).into_vec(),
+        vec![big("10000000000000000000000000"), big("2"), big("7"), big("3"), big("4"), big("8"),]
+    );
 }
 
 static GUARD_CREATED: AtomicUsize = AtomicUsize::new(0);

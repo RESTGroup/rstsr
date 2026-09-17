@@ -1050,35 +1050,47 @@ mod test_col_major {
         let layout_trans = translate_to_col_major_unary(&layout, Order::C).unwrap();
         let iter = IterLayoutColMajor::new(&layout_trans).unwrap();
         let vec = iter.collect::<Vec<_>>();
-        assert_eq!(vec, [
-            782, 797, 812, 827, 842, 857, 602, 617, 632, 647, 662, 677, 785, 800, 815, 830, 845, 860, 605, 620, 635,
-            650, 665, 680, 788, 803, 818, 833, 848, 863, 608, 623, 638, 653, 668, 683
-        ]);
+        assert_eq!(
+            vec,
+            [
+                782, 797, 812, 827, 842, 857, 602, 617, 632, 647, 662, 677, 785, 800, 815, 830, 845, 860, 605, 620,
+                635, 650, 665, 680, 788, 803, 818, 833, 848, 863, 608, 623, 638, 653, 668, 683
+            ]
+        );
         // np.array(np.nditer(a, order="F"))
         let layout_trans = translate_to_col_major_unary(&layout, Order::F).unwrap();
         let iter = IterLayoutColMajor::new(&layout_trans).unwrap();
         let vec = iter.collect::<Vec<_>>();
-        assert_eq!(vec, [
-            782, 785, 788, 602, 605, 608, 797, 800, 803, 617, 620, 623, 812, 815, 818, 632, 635, 638, 827, 830, 833,
-            647, 650, 653, 842, 845, 848, 662, 665, 668, 857, 860, 863, 677, 680, 683
-        ]);
+        assert_eq!(
+            vec,
+            [
+                782, 785, 788, 602, 605, 608, 797, 800, 803, 617, 620, 623, 812, 815, 818, 632, 635, 638, 827, 830,
+                833, 647, 650, 653, 842, 845, 848, 662, 665, 668, 857, 860, 863, 677, 680, 683
+            ]
+        );
         // np.array(np.nditer(a, order="K"))
         let layout_trans = translate_to_col_major_unary(&layout, Order::K).unwrap();
         let iter = IterLayoutColMajor::new(&layout_trans).unwrap();
         let vec = iter.collect::<Vec<_>>();
-        assert_eq!(vec, [
-            602, 605, 608, 617, 620, 623, 632, 635, 638, 647, 650, 653, 662, 665, 668, 677, 680, 683, 782, 785, 788,
-            797, 800, 803, 812, 815, 818, 827, 830, 833, 842, 845, 848, 857, 860, 863
-        ]);
+        assert_eq!(
+            vec,
+            [
+                602, 605, 608, 617, 620, 623, 632, 635, 638, 647, 650, 653, 662, 665, 668, 677, 680, 683, 782, 785,
+                788, 797, 800, 803, 812, 815, 818, 827, 830, 833, 842, 845, 848, 857, 860, 863
+            ]
+        );
         // np.array(np.nditer(a, order="G"))
         // for no broadcast case, greedy-order is same as k-order
         let layout_trans = translate_to_col_major_unary(&layout, Order::K).unwrap();
         let iter = IterLayoutColMajor::new(&layout_trans).unwrap();
         let vec = iter.collect::<Vec<_>>();
-        assert_eq!(vec, [
-            602, 605, 608, 617, 620, 623, 632, 635, 638, 647, 650, 653, 662, 665, 668, 677, 680, 683, 782, 785, 788,
-            797, 800, 803, 812, 815, 818, 827, 830, 833, 842, 845, 848, 857, 860, 863
-        ]);
+        assert_eq!(
+            vec,
+            [
+                602, 605, 608, 617, 620, 623, 632, 635, 638, 647, 650, 653, 662, 665, 668, 677, 680, 683, 782, 785,
+                788, 797, 800, 803, 812, 815, 818, 827, 830, 833, 842, 845, 848, 857, 860, 863
+            ]
+        );
         // buffer should fail
         assert!(translate_to_col_major_unary(&layout, Order::B).is_err());
     }
@@ -1134,15 +1146,21 @@ mod test_row_major {
         // np.array(np.nditer(a, order="C"))
         let iter = IterLayoutRowMajor::new(&layout).unwrap();
         let vec = iter.collect::<Vec<_>>();
-        assert_eq!(vec, [
-            782, 797, 812, 827, 842, 857, 602, 617, 632, 647, 662, 677, 785, 800, 815, 830, 845, 860, 605, 620, 635,
-            650, 665, 680, 788, 803, 818, 833, 848, 863, 608, 623, 638, 653, 668, 683
-        ]);
+        assert_eq!(
+            vec,
+            [
+                782, 797, 812, 827, 842, 857, 602, 617, 632, 647, 662, 677, 785, 800, 815, 830, 845, 860, 605, 620,
+                635, 650, 665, 680, 788, 803, 818, 833, 848, 863, 608, 623, 638, 653, 668, 683
+            ]
+        );
         let iter = IterLayoutRowMajor::new(&layout).unwrap();
         let vec = iter.rev().collect::<Vec<_>>();
-        assert_eq!(vec, [
-            683, 668, 653, 638, 623, 608, 863, 848, 833, 818, 803, 788, 680, 665, 650, 635, 620, 605, 860, 845, 830,
-            815, 800, 785, 677, 662, 647, 632, 617, 602, 857, 842, 827, 812, 797, 782
-        ]);
+        assert_eq!(
+            vec,
+            [
+                683, 668, 653, 638, 623, 608, 863, 848, 833, 818, 803, 788, 680, 665, 650, 635, 620, 605, 860, 845,
+                830, 815, 800, 785, 677, 662, 647, 632, 617, 602, 857, 842, 827, 812, 797, 782
+            ]
+        );
     }
 }
