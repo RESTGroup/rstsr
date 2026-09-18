@@ -128,12 +128,13 @@ where
         };
 
         // perform blas
-        let ptr_a = a.raw().as_ptr();
-        let ptr_b = b.raw().as_ptr();
-        let ptr_c = c.view_mut().raw_mut().as_mut_ptr();
+        let ptr_a = a.as_ptr();
+        let ptr_b = b.as_ptr();
+        let ldc = c.view_mut().ld_col().unwrap();
+        let ptr_c = c.view_mut().as_mut_ptr();
 
         unsafe {
-            B::driver_syhemm(ColMajor, side, uplo, m, n, alpha, ptr_a, lda, ptr_b, ldb, beta, ptr_c, m);
+            B::driver_syhemm(ColMajor, side, uplo, m, n, alpha, ptr_a, lda, ptr_b, ldb, beta, ptr_c, ldc);
         }
 
         Ok(c.clone_to_mut())
