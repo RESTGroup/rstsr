@@ -17,7 +17,7 @@ fn getrf_wide_matrix_values() {
     // LAPACK xGETRF defines ipiv over min(m, n) entries
     assert_eq!(ipiv.size(), 2);
     // partial pivoting swaps rows 0 and 1 (|5| > |1); 0-based pivots
-    let piv: Vec<i64> = ipiv.raw().iter().map(|&v| v as i64).collect();
+    let piv = ipiv.raw().to_vec();
     assert_eq!(piv, vec![1, 1]);
 
     // PA = LU with L = [[1, 0], [0.2, 1]] and U = [[5, 6, 7, 8], [0, 0.8, 1.6, 2.4]]
