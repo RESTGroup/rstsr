@@ -36,6 +36,7 @@ where
         rstsr_assert_eq!(a.view().nrow(), a.view().ncol(), InvalidLayout, "Lapack GETRI: A must be square")?;
 
         let n = a.view().nrow();
+        rstsr_assert!(ipiv.size() >= n, InvalidLayout, "Lapack GETRI: ipiv must have at least n elements")?;
         let lda = a.view().ld(order).unwrap();
         let ptr_a = a.view_mut().as_mut_ptr();
         let ptr_ipiv = ipiv.as_mut_ptr();

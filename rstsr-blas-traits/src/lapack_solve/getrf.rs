@@ -37,7 +37,7 @@ where
 
         let [m, n] = *a.view().shape();
         let lda = a.view().ld(order).unwrap();
-        let mut ipiv = unsafe { empty_f(([n].c(), &device))?.into_dim::<Ix1>() };
+        let mut ipiv = unsafe { empty_f(([m.min(n)].c(), &device))?.into_dim::<Ix1>() };
         let ptr_a = a.view_mut().as_mut_ptr();
         let ptr_ipiv = ipiv.as_mut_ptr();
 

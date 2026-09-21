@@ -71,6 +71,22 @@ where
             _ => unreachable!(),
         };
 
+        // empty matrix (min(m, n) == 0): nothing to compute; return the factors
+        // with their LAPACK shapes, zero-filled where they carry no values
+        // (e.g. VT under jobz 'A'). Also skips the drivers, which do not handle
+        // the degenerate layouts of zero-sized dimensions.
+        if minmn == 0 {
+            let s = zeros_f(([0], &device))?.into_dim::<Ix1>();
+            return match compute_uv {
+                false => Ok((s, None, None)),
+                true => {
+                    let u = zeros_f(([u0, u1], order, &device))?.into_dim::<Ix2>();
+                    let vt = zeros_f(([vt0, vt1], order, &device))?.into_dim::<Ix2>();
+                    Ok((s, Some(u), Some(vt)))
+                },
+            };
+        }
+
         let mut u = unsafe { empty_f(([u0, u1], order, &device))?.into_dim::<Ix2>() };
         let mut vt = unsafe { empty_f(([vt0, vt1], order, &device))?.into_dim::<Ix2>() };
         let mut s = unsafe { empty_f(([minmn], &device))?.into_dim::<Ix1>() };

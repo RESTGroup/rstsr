@@ -41,12 +41,12 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
             &(m as _),
             &(n as _),
             a,
-            &(lda as _),
+            &(m.max(n) as _),
             s,
             u,
-            &(ldu as _),
+            &(m.max(n) as _),
             vt,
-            &(ldvt as _),
+            &(m.max(n) as _),
             &mut work_query,
             &lwork,
             &mut info,
@@ -84,7 +84,6 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
                 return info;
             }
         } else {
-            let lda_t = m.max(1);
             let nrows_u = if jobu == 'A' || jobu == 'S' { m } else { 1 };
             let ncols_u = if jobu == 'A' {
                 m
@@ -100,19 +99,15 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
             } else {
                 1
             };
+            let lda_t = m.max(1);
             let ldu_t = nrows_u.max(1);
             let ldvt_t = nrows_vt.max(1);
 
-            // Transpose input matrices
+            // Allocate memory for temporary array(s)
             let mut a_t: Vec<T> = match uninitialized_vec(m * n) {
                 Ok(a_t) => a_t,
                 Err(_) => return -1011,
             };
-            let a_slice = from_raw_parts_mut(a, m * lda);
-            let la = Layout::new_unchecked([m, n], [lda as isize, 1], 0);
-            let la_t = Layout::new_unchecked([m, n], [1, lda_t as isize], 0);
-            orderchange_out_r2c_ix2_cpu_serial(&mut a_t, &la_t, a_slice, &la).unwrap();
-
             let mut u_t = if jobu == 'A' || jobu == 'S' {
                 match uninitialized_vec(nrows_u * ncols_u) {
                     Ok(u_t) => u_t,
@@ -121,7 +116,6 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
             } else {
                 Vec::new()
             };
-
             let mut vt_t = if jobvt == 'A' || jobvt == 'S' {
                 match uninitialized_vec(nrows_vt * n) {
                     Ok(vt_t) => vt_t,
@@ -130,6 +124,12 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
             } else {
                 Vec::new()
             };
+
+            // Transpose input matrices
+            let a_slice = from_raw_parts_mut(a, m * lda);
+            let la = Layout::new_unchecked([m, n], [lda as isize, 1], 0);
+            let la_t = Layout::new_unchecked([m, n], [1, lda_t as isize], 0);
+            orderchange_out_r2c_ix2_cpu_serial(&mut a_t, &la_t, a_slice, &la).unwrap();
 
             // Call LAPACK function
             func_(
@@ -153,26 +153,26 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
             }
 
             // Transpose output matrices
-            orderchange_out_r2c_ix2_cpu_serial(a_slice, &la, &a_t, &la_t).unwrap();
+            orderchange_out_c2r_ix2_cpu_serial(a_slice, &la, &a_t, &la_t).unwrap();
 
             if jobu == 'A' || jobu == 'S' {
                 let u_slice = from_raw_parts_mut(u, nrows_u * ldu);
                 let lu = Layout::new_unchecked([nrows_u, ncols_u], [ldu as isize, 1], 0);
                 let lu_t = Layout::new_unchecked([nrows_u, ncols_u], [1, ldu_t as isize], 0);
-                orderchange_out_r2c_ix2_cpu_serial(u_slice, &lu, &u_t, &lu_t).unwrap();
+                orderchange_out_c2r_ix2_cpu_serial(u_slice, &lu, &u_t, &lu_t).unwrap();
             }
 
             if jobvt == 'A' || jobvt == 'S' {
                 let vt_slice = from_raw_parts_mut(vt, nrows_vt * ldvt);
                 let lvt = Layout::new_unchecked([nrows_vt, n], [ldvt as isize, 1], 0);
                 let lvt_t = Layout::new_unchecked([nrows_vt, n], [1, ldvt_t as isize], 0);
-                orderchange_out_r2c_ix2_cpu_serial(vt_slice, &lvt, &vt_t, &lvt_t).unwrap();
+                orderchange_out_c2r_ix2_cpu_serial(vt_slice, &lvt, &vt_t, &lvt_t).unwrap();
             }
         }
 
         // Backup superb data
         let min_mn = m.min(n);
-        for i in 0..min_mn - 1 {
+        for i in 0..min_mn.saturating_sub(1) {
             superb.add(i).write(work[i + 1]);
         }
 
@@ -220,12 +220,12 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
             &(m as _),
             &(n as _),
             a as *mut _,
-            &(lda as _),
+            &(m.max(n) as _),
             s as *mut _,
             u as *mut _,
-            &(ldu as _),
+            &(m.max(n) as _),
             vt as *mut _,
-            &(ldvt as _),
+            &(m.max(n) as _),
             &mut work_query as *mut _ as *mut _,
             &lwork,
             rwork.as_mut_ptr() as *mut _,
@@ -265,7 +265,6 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
                 return info;
             }
         } else {
-            let lda_t = m.max(1);
             let nrows_u = if jobu == 'A' || jobu == 'S' { m } else { 1 };
             let ncols_u = if jobu == 'A' {
                 m
@@ -281,19 +280,15 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
             } else {
                 1
             };
+            let lda_t = m.max(1);
             let ldu_t = nrows_u.max(1);
             let ldvt_t = nrows_vt.max(1);
 
-            // Transpose input matrices
+            // Allocate memory for temporary array(s)
             let mut a_t: Vec<T> = match uninitialized_vec(m * n) {
                 Ok(a_t) => a_t,
                 Err(_) => return -1011,
             };
-            let a_slice = from_raw_parts_mut(a, m * lda);
-            let la = Layout::new_unchecked([m, n], [lda as isize, 1], 0);
-            let la_t = Layout::new_unchecked([m, n], [1, lda_t as isize], 0);
-            orderchange_out_r2c_ix2_cpu_serial(&mut a_t, &la_t, a_slice, &la).unwrap();
-
             let mut u_t = if jobu == 'A' || jobu == 'S' {
                 match uninitialized_vec(nrows_u * ncols_u) {
                     Ok(u_t) => u_t,
@@ -302,7 +297,6 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
             } else {
                 Vec::new()
             };
-
             let mut vt_t = if jobvt == 'A' || jobvt == 'S' {
                 match uninitialized_vec(nrows_vt * n) {
                     Ok(vt_t) => vt_t,
@@ -311,6 +305,12 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
             } else {
                 Vec::new()
             };
+
+            // Transpose input matrices
+            let a_slice = from_raw_parts_mut(a, m * lda);
+            let la = Layout::new_unchecked([m, n], [lda as isize, 1], 0);
+            let la_t = Layout::new_unchecked([m, n], [1, lda_t as isize], 0);
+            orderchange_out_r2c_ix2_cpu_serial(&mut a_t, &la_t, a_slice, &la).unwrap();
 
             // Call LAPACK function
             func_(
@@ -335,26 +335,26 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
             }
 
             // Transpose output matrices
-            orderchange_out_r2c_ix2_cpu_serial(a_slice, &la, &a_t, &la_t).unwrap();
+            orderchange_out_c2r_ix2_cpu_serial(a_slice, &la, &a_t, &la_t).unwrap();
 
             if jobu == 'A' || jobu == 'S' {
                 let u_slice = from_raw_parts_mut(u, nrows_u * ldu);
                 let lu = Layout::new_unchecked([nrows_u, ncols_u], [ldu as isize, 1], 0);
                 let lu_t = Layout::new_unchecked([nrows_u, ncols_u], [1, ldu_t as isize], 0);
-                orderchange_out_r2c_ix2_cpu_serial(u_slice, &lu, &u_t, &lu_t).unwrap();
+                orderchange_out_c2r_ix2_cpu_serial(u_slice, &lu, &u_t, &lu_t).unwrap();
             }
 
             if jobvt == 'A' || jobvt == 'S' {
                 let vt_slice = from_raw_parts_mut(vt, nrows_vt * ldvt);
                 let lvt = Layout::new_unchecked([nrows_vt, n], [ldvt as isize, 1], 0);
                 let lvt_t = Layout::new_unchecked([nrows_vt, n], [1, ldvt_t as isize], 0);
-                orderchange_out_r2c_ix2_cpu_serial(vt_slice, &lvt, &vt_t, &lvt_t).unwrap();
+                orderchange_out_c2r_ix2_cpu_serial(vt_slice, &lvt, &vt_t, &lvt_t).unwrap();
             }
         }
 
         // Backup superb data
         #[allow(clippy::needless_range_loop)]
-        for i in 0..min_mn - 1 {
+        for i in 0..min_mn.saturating_sub(1) {
             superb.add(i).write(rwork[i]);
         }
 
