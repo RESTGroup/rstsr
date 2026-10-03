@@ -15,6 +15,7 @@ members = [
     "crates-device/rstsr-aocl",
     "crates-device/rstsr-kml",
     "crates-plugin/rstsr-tblis",
+    "crates-interop/rstsr-cpu-dlpack",
 ]
 
 [workspace.package]
@@ -46,9 +47,12 @@ rstsr-aocl = { path = "./crates-device/rstsr-aocl", default-features = false, ve
 rstsr-kml = { path = "./crates-device/rstsr-kml", default-features = false, version = "0.9.0" }
 # members (plugin)
 rstsr-tblis = { path = "./crates-plugin/rstsr-tblis", default-features = false, version = "0.9.0" }
+# members (interop)
+rstsr-cpu-dlpack = { path = "./crates-interop/rstsr-cpu-dlpack", default-features = false, version = "0.9.0" }
 # develop dependencies that should not publish
 rstsr-test-manifest = { path = "./rstsr-test-manifest", default-features = false }
 # ffi dependencies
+dlpack-ffi = { version = "1.3" }
 rstsr-cblas-base = { version = "0.1" }
 rstsr-openblas-ffi = { version = "0.5", default-features = false, features = ["blas", "cblas", "lapack"] }
 rstsr-mkl-ffi = { version = "0.2", default-features = false, features = ["blas", "cblas", "lapack"] }

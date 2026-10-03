@@ -1,0 +1,25 @@
+[package]
+name = "rstsr-cpu-dlpack"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+license.workspace = true
+readme = "readme.md"
+description = "DLPack interchange for rstsr CPU tensors (pure Rust, no Python bindings)"
+
+[dependencies]
+dlpack-ffi = { workspace = true }
+num = { workspace = true }
+half = { workspace = true, optional = true }
+rstsr-core = { workspace = true }
+rstsr-common = { workspace = true }
+
+[features]
+default = ["row_major", "std", "half"]
+row_major = ["rstsr-core/row_major", "rstsr-common/row_major"]
+col_major = ["rstsr-core/col_major", "rstsr-common/col_major"]
+std = ["rstsr-core/std", "rstsr-common/std"]
+half = ["dep:half"]
