@@ -9,7 +9,8 @@
 //! # Directions
 //!
 //! - **export**: [`into_dlpack`] (move), [`to_dlpack_shared`] (zero-copy, read-only share),
-//!   [`to_dlpack_copy`] (copy fallback for views) — each has a fallible `_f` variant.
+//!   [`to_dlpack_shared_view`] (zero-copy share of a basic-indexed view), [`to_dlpack_copy`] (copy
+//!   fallback for views) — each has a fallible `_f` variant.
 //! - **import**: [`from_dlpack_versioned_f`], [`from_dlpack_legacy_f`] → read-only zero-copy
 //!   [`TensorDlpack`] that owns the producer's lifetime.
 //!
@@ -51,7 +52,8 @@ pub use rstsr_common::rstsr_raise;
 pub use crate::device::DeviceDlpackAPI;
 pub use crate::dtype::DlpackDtype;
 pub use crate::export::{
-    into_dlpack, into_dlpack_f, to_dlpack_copy, to_dlpack_copy_f, to_dlpack_shared, to_dlpack_shared_f, DlpackExport,
+    into_dlpack, into_dlpack_f, to_dlpack_copy, to_dlpack_copy_f, to_dlpack_shared, to_dlpack_shared_f,
+    to_dlpack_shared_view, to_dlpack_shared_view_f, DlpackExport, DlpackSharedBaseAPI,
 };
 pub use crate::import::{from_dlpack_legacy_f, from_dlpack_versioned_f};
 pub use crate::repr::{into_shared_dlpack_f, DataDlpack, DlpackForeignOwner, TensorDlpack, TensorDlpackShared};

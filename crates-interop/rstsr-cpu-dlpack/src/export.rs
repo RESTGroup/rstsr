@@ -2,8 +2,10 @@
 
 use core::ffi::c_void;
 use core::mem;
+use core::mem::ManuallyDrop;
 use core::mem::MaybeUninit;
 use core::ptr::{self, NonNull};
+use std::sync::Arc;
 
 use dlpack_ffi::{
     DLDataType, DLDevice, DLManagedTensorVersioned, DLPackVersion, DLTensor, DLPACK_FLAG_BITMASK_IS_COPIED,
@@ -12,11 +14,11 @@ use dlpack_ffi::{
 use rstsr_common::error::{RSTSRResultAPI, Result};
 use rstsr_core::operators::exports::OpAssignAPI;
 use rstsr_core::prelude::*;
-use rstsr_core::storage::exports::{DeviceCreationAnyAPI, Storage};
+use rstsr_core::storage::exports::{DataArc, DeviceCreationAnyAPI, Storage};
 
 use crate::device::DeviceDlpackAPI;
 use crate::dtype::DlpackDtype;
-use crate::repr::TensorDlpackShared;
+use crate::repr::{DataDlpack, TensorDlpackShared};
 
 /// The allocation the consumer's `DLManagedTensorVersioned` points into.
 ///
@@ -290,4 +292,146 @@ where
     // so the exported copy may have a different (compact) layout.
     let owned = tensor.to_owned();
     into_dlpack_f(owned)
+}
+
+/// A base tensor that can keep its buffer alive while an export of one of its views lives.
+///
+/// Implemented for the bridge's [`TensorDlpackShared`] and for core's [`TensorArc`];
+/// implement it for another representation to export views of it. The owner is cloned into
+/// the export and must keep the buffer alive without taking it over (dropping an export
+/// must leave the base intact).
+pub trait DlpackSharedBaseAPI<T> {
+    /// Keep-alive owner cloned into each export.
+    type Owner;
+
+    /// Base address of the buffer.
+    fn buffer_base_ptr(&self) -> *const T;
+
+    /// Buffer length in elements.
+    fn buffer_len(&self) -> usize;
+
+    /// Clone the keep-alive owner of the buffer.
+    fn clone_buffer_owner(&self) -> Self::Owner;
+}
+
+impl<T, B, D> DlpackSharedBaseAPI<T> for TensorDlpackShared<T, B, D>
+where
+    B: DeviceAPI<T, Raw = Vec<T>>,
+    D: DimAPI,
+{
+    type Owner = DataDlpack<Vec<T>, Arc<Vec<T>>>;
+
+    fn buffer_base_ptr(&self) -> *const T {
+        self.storage().raw().as_ptr()
+    }
+
+    fn buffer_len(&self) -> usize {
+        self.storage().raw().len()
+    }
+
+    fn clone_buffer_owner(&self) -> Self::Owner {
+        (*self.storage().data()).clone()
+    }
+}
+
+impl<T, B, D> DlpackSharedBaseAPI<T> for TensorArc<T, B, D>
+where
+    B: DeviceAPI<T, Raw = Vec<T>>,
+    D: DimAPI,
+{
+    type Owner = DataArc<Vec<T>>;
+
+    fn buffer_base_ptr(&self) -> *const T {
+        self.storage().raw().as_ptr()
+    }
+
+    fn buffer_len(&self) -> usize {
+        self.storage().raw().len()
+    }
+
+    fn clone_buffer_owner(&self) -> Self::Owner {
+        (*self.storage().data()).clone()
+    }
+}
+
+/// Export a basic-indexed view of a shared tensor, zero-copy.
+///
+/// `view` must be a view of `base`'s buffer. The buffer is kept alive by the export
+/// (the base's owner is cloned into it), so both `base` and `view` may be dropped after
+/// [`DlpackExport::into_raw`]. The view's own layout — offset and strides — is exported
+/// as-is and read-only (`DLPACK_FLAG_BITMASK_READ_ONLY`); every call returns an
+/// independent export.
+///
+/// The base can be a core [`TensorArc`] (as below) or a bridge
+/// [`TensorDlpackShared`](crate::repr::TensorDlpackShared) from
+/// [`into_shared_dlpack_f`](crate::repr::into_shared_dlpack_f).
+///
+/// # Examples
+///
+/// ```
+/// use rstsr_cpu_dlpack::*;
+/// use rstsr_core::prelude::*;
+///
+/// let device = DeviceCpuSerial::default();
+/// let tensor: Tensor<f64, DeviceCpuSerial, IxD> =
+///     rt::arange_f((0.0, 12.0, 1.0, &device))?.into_shape([3, 4]);
+/// let shared = tensor.into_shared();
+///
+/// // columns 1..3, zero-copy: data = buffer base + 1 element
+/// let view = shared.i((.., 1..3));
+/// let export = to_dlpack_shared_view(&shared, &view);
+/// assert_eq!(export.flags(), dlpack_ffi::DLPACK_FLAG_BITMASK_READ_ONLY as u64);
+/// assert_eq!(export.data_ptr() as usize, shared.raw().as_ptr() as usize + 8);
+/// # Ok::<(), rstsr_common::error::Error>(())
+/// ```
+///
+/// # Panics
+///
+/// - Panics if `view` is not a view of `base`'s buffer, or if the view layout does not fit into
+///   that buffer.
+///
+/// For a fallible version, use [`to_dlpack_shared_view_f`].
+///
+/// # See also
+///
+/// - [`to_dlpack_shared`]: the same for a whole tensor.
+/// - [`to_dlpack_copy`]: the copying fallback for views of buffers that cannot be shared.
+pub fn to_dlpack_shared_view<Base, T, B, D2>(base: &Base, view: &TensorView<'_, T, B, D2>) -> DlpackExport
+where
+    Base: DlpackSharedBaseAPI<T>,
+    T: DlpackDtype,
+    B: DeviceAPI<T, Raw = Vec<T>> + DeviceDlpackAPI<T>,
+    D2: DimAPI,
+{
+    to_dlpack_shared_view_f(base, view).rstsr_unwrap()
+}
+
+/// Export a basic-indexed view of a shared tensor, zero-copy.
+///
+/// See also [`to_dlpack_shared_view`].
+pub fn to_dlpack_shared_view_f<Base, T, B, D2>(base: &Base, view: &TensorView<'_, T, B, D2>) -> Result<DlpackExport>
+where
+    Base: DlpackSharedBaseAPI<T>,
+    T: DlpackDtype,
+    B: DeviceAPI<T, Raw = Vec<T>> + DeviceDlpackAPI<T>,
+    D2: DimAPI,
+{
+    let base_ptr = base.buffer_base_ptr();
+    let view_ptr = view.storage().raw().as_ptr();
+    if !ptr::eq(base_ptr, view_ptr) {
+        return rstsr_raise!(InvalidValue, "the view does not refer to the buffer of the given base tensor");
+    }
+    let len = base.buffer_len();
+    let owner = base.clone_buffer_owner();
+    let device = (*view.storage().device()).clone();
+    // SAFETY: fabricated span over the base buffer; it is never dropped or resized, and
+    // the cloned owner (moved into the export) keeps the buffer alive.
+    let span = unsafe { ManuallyDrop::new(Vec::from_raw_parts(base_ptr as *mut T, len, len)) };
+    let repr: DataDlpack<Vec<T>, Base::Owner> = unsafe { DataDlpack::from_parts(span, owner) };
+    let storage = Storage::new(repr, device);
+    // `new_f` validates the view layout (strides and bounds) against the buffer span.
+    let tensor =
+        TensorBase::<Storage<DataDlpack<Vec<T>, Base::Owner>, T, B>, D2>::new_f(storage, view.layout().clone())?;
+    let (storage, layout) = tensor.into_raw_parts();
+    export_from_storage(storage, layout, DLPACK_FLAG_BITMASK_READ_ONLY as u64)
 }
