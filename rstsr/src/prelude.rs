@@ -14,6 +14,11 @@ pub mod rstsr_traits {
     pub mod tblis {
         pub use rstsr_tblis::prelude::rstsr_traits::*;
     }
+
+    #[cfg(feature = "dlpack")]
+    pub mod dlpack {
+        pub use rstsr_cpu_dlpack::prelude::rstsr_traits::*;
+    }
 }
 
 pub mod rstsr_structs {
@@ -79,6 +84,11 @@ pub mod rstsr_structs {
         feature = "kml"
     ))]
     pub type DeviceBLAS = DeviceKML;
+
+    #[cfg(feature = "dlpack")]
+    pub mod dlpack {
+        pub use rstsr_cpu_dlpack::prelude::rstsr_structs::*;
+    }
 }
 
 pub mod rstsr_funcs {
@@ -96,6 +106,11 @@ pub mod rstsr_funcs {
     #[cfg(feature = "tblis")]
     pub mod tblis {
         pub use rstsr_tblis::prelude::rstsr_funcs::*;
+    }
+
+    #[cfg(feature = "dlpack")]
+    pub mod dlpack {
+        pub use rstsr_cpu_dlpack::prelude::rstsr_funcs::*;
     }
 }
 
@@ -129,6 +144,13 @@ pub mod tblis {
     pub use rstsr_tblis::prelude::rstsr_traits::*;
 }
 
+#[cfg(feature = "dlpack")]
+pub mod dlpack {
+    pub use rstsr_cpu_dlpack::prelude::rstsr_funcs::*;
+    pub use rstsr_cpu_dlpack::prelude::rstsr_structs::*;
+    pub use rstsr_cpu_dlpack::prelude::rstsr_traits::*;
+}
+
 pub mod rt {
     pub use super::rstsr_funcs;
     pub use super::rstsr_macros;
@@ -148,6 +170,9 @@ pub mod rt {
 
     #[cfg(feature = "tblis")]
     pub use super::tblis;
+
+    #[cfg(feature = "dlpack")]
+    pub use super::dlpack;
 
     #[cfg(feature = "use_blas_traits")]
     pub use rstsr_blas_traits::prelude as blas;

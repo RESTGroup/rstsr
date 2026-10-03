@@ -19,3 +19,6 @@ exchange is a thin host-side capsule holder over this crate.
 - **cargo features**: `half` (default; `f16`/`bf16` dtype support, via the
   `half` crate), `row_major` / `col_major` and `std` (forwarded to
   `rstsr-core` and `rstsr-common`).
+- **prelude / facade**: the same items are grouped under `prelude::rstsr_*`; with the
+  `dlpack` feature of the `rstsr` facade they are reachable as `rt::dlpack::*`
+  (e.g. `rt::dlpack::into_dlpack`).

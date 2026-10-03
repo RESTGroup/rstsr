@@ -27,6 +27,8 @@ rstsr-aocl = { workspace = true, optional = true }
 rstsr-kml = { workspace = true, optional = true }
 # plugin dependencies
 rstsr-tblis = { workspace = true, optional = true }
+# interop dependencies
+rstsr-cpu-dlpack = { workspace = true, optional = true }
 
 [dev-dependencies]
 
@@ -70,6 +72,7 @@ sci = [
     "rstsr-kml?/sci",
 ]
 tblis = ["dep:rstsr-tblis"]
+dlpack = ["dep:rstsr-cpu-dlpack", "rstsr-cpu-dlpack?/half"]
 
 # BLAS configurations
 dynamic_loading = [
@@ -89,5 +92,5 @@ ilp64 = [
 ]
 
 [package.metadata.docs.rs]
-features = ["default", "openblas", "linalg", "sci", "tblis"]
+features = ["default", "openblas", "linalg", "sci", "tblis", "dlpack"]
 rustdoc-args = ["--cfg", "docsrs", "--document-private-items", "--html-in-header", "katex-header.html"]

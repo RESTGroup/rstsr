@@ -64,3 +64,16 @@ fn test() {
     //   [  401.0  212.0]
     //   [  464.0  245.0]]]
 }
+
+#[cfg(feature = "dlpack")]
+#[test]
+fn test_dlpack_prelude() {
+    use crate::prelude::*;
+
+    // the bridge crate is surfaced through the prelude namespace `rt::dlpack`
+    let device = DeviceCpuSerial::default();
+    let tensor: Tensor<f64, DeviceCpuSerial, IxD> = rt::arange_f((0.0, 5.0, 1.0, &device)).unwrap();
+    let shared = rt::dlpack::into_shared_dlpack_f(tensor).unwrap();
+    let export: dlpack::DlpackExport = rt::dlpack::to_dlpack_shared(&shared);
+    assert_eq!(export.flags(), rstsr_cpu_dlpack::dlpack_ffi::DLPACK_FLAG_BITMASK_READ_ONLY as u64);
+}

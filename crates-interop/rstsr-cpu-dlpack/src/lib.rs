@@ -19,6 +19,12 @@
 //! - `half` (default): `f16`/`bf16` dtype support (via the `half` crate).
 //! - `row_major` / `col_major`, `std`: forwarded to `rstsr-core` and `rstsr-common`.
 //!
+//! # Prelude
+//!
+//! [`prelude`] groups the items above into the workspace's `rstsr_traits` /
+//! `rstsr_structs` / `rstsr_funcs` namespaces. The `rstsr` facade forwards them under its
+//! `dlpack` feature, so they are also reachable as `rt::dlpack::*`.
+//!
 //! # Interchange version
 //!
 //! Exports speak the DLPack 1.0 subset (`version = {1, 0}`) although the
@@ -43,6 +49,7 @@ pub mod device;
 pub mod dtype;
 pub mod export;
 pub mod import;
+pub mod prelude;
 pub mod repr;
 
 pub use dlpack_ffi;
