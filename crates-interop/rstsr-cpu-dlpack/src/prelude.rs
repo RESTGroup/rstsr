@@ -1,7 +1,9 @@
 //! User-facing prelude of rstsr-cpu-dlpack.
 //!
-//! - [`rstsr_traits`]: the API traits ([`DlpackDtype`], [`DlpackSharedBaseAPI`], ...).
-//! - [`rstsr_structs`]: the tensor types and the export handle ([`TensorDlpack`], [`DlpackExport`],
+//! - [`rstsr_traits`]: the API traits ([`DlpackDtype`](crate::dtype::DlpackDtype),
+//!   [`DlpackSharedBaseAPI`](crate::export::DlpackSharedBaseAPI), ...).
+//! - [`rstsr_structs`]: the tensor types and the export handle
+//!   ([`TensorDlpack`](crate::repr::TensorDlpack), [`DlpackExport`](crate::export::DlpackExport),
 //!   ...).
 //! - [`rstsr_funcs`]: free functions (the `rt::dlpack::` surface: `into_dlpack`,
 //!   `from_dlpack_versioned_f`, ...).

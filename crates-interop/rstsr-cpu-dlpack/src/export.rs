@@ -223,6 +223,8 @@ where
 ///
 /// - [`into_shared_dlpack_f`](crate::repr::into_shared_dlpack_f): move an owned tensor into the
 ///   shared representation.
+/// - [`to_dlpack_shared_view`]: use it to export a whole core [`TensorArc`] (which is not a
+///   [`TensorDlpackShared`]) or a view of either shared representation.
 pub fn to_dlpack_shared<T, B, D>(tensor: &TensorDlpackShared<T, B, D>) -> DlpackExport
 where
     T: DlpackDtype,
@@ -299,7 +301,17 @@ where
 /// Implemented for the bridge's [`TensorDlpackShared`] and for core's [`TensorArc`];
 /// implement it for another representation to export views of it. The owner is cloned into
 /// the export and must keep the buffer alive without taking it over (dropping an export
-/// must leave the base intact).
+/// must leave the base intact). [`buffer_base_ptr`](Self::buffer_base_ptr) doubles as the base
+/// identity: all zero-length buffers share the same dangling address, so a view of one empty base
+/// is accepted for another — harmless, since such an export is empty (NULL data pointer).
+///
+/// # Implementor's contract
+///
+/// The trait is safe to implement, but [`to_dlpack_shared_view`] is safe code that trusts these
+/// members to fabricate a span over the buffer: [`buffer_base_ptr`](Self::buffer_base_ptr) must be
+/// the base of a live allocation, [`buffer_len`](Self::buffer_len) its length in elements, and the
+/// returned owner must keep that allocation alive for as long as the clone lives. An
+/// implementation that breaks this makes safe code hand out a dangling pointer — a soundness bug.
 pub trait DlpackSharedBaseAPI<T> {
     /// Keep-alive owner cloned into each export.
     type Owner;
@@ -363,8 +375,7 @@ where
 /// independent export.
 ///
 /// The base can be a core [`TensorArc`] (as below) or a bridge
-/// [`TensorDlpackShared`](crate::repr::TensorDlpackShared) from
-/// [`into_shared_dlpack_f`](crate::repr::into_shared_dlpack_f).
+/// [`TensorDlpackShared`] from [`into_shared_dlpack_f`](crate::repr::into_shared_dlpack_f).
 ///
 /// # Examples
 ///
@@ -377,11 +388,13 @@ where
 ///     rt::arange_f((0.0, 12.0, 1.0, &device))?.into_shape([3, 4]);
 /// let shared = tensor.into_shared();
 ///
-/// // columns 1..3, zero-copy: data = buffer base + 1 element
+/// // columns 1..3, zero-copy: the export points into the base buffer at the
+/// // view's own offset (order-dependent, so compare through the layout)
 /// let view = shared.i((.., 1..3));
 /// let export = to_dlpack_shared_view(&shared, &view);
 /// assert_eq!(export.flags(), dlpack_ffi::DLPACK_FLAG_BITMASK_READ_ONLY as u64);
-/// assert_eq!(export.data_ptr() as usize, shared.raw().as_ptr() as usize + 8);
+/// let offset_bytes = view.layout().offset() * std::mem::size_of::<f64>();
+/// assert_eq!(export.data_ptr() as usize, shared.raw().as_ptr() as usize + offset_bytes);
 /// # Ok::<(), rstsr_common::error::Error>(())
 /// ```
 ///

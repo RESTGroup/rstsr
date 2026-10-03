@@ -12,7 +12,8 @@
 //!   [`to_dlpack_shared_view`] (zero-copy share of a basic-indexed view), [`to_dlpack_copy`] (copy
 //!   fallback for views) — each has a fallible `_f` variant.
 //! - **import**: [`from_dlpack_versioned_f`], [`from_dlpack_legacy_f`] → read-only zero-copy
-//!   [`TensorDlpack`] that owns the producer's lifetime.
+//!   [`TensorDlpack`] that owns the producer's lifetime; `kDLBool` payloads are validated to be 0
+//!   or 1 (Rust `bool` has no other values).
 //!
 //! # Cargo features
 //!

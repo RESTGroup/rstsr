@@ -9,7 +9,7 @@ use rstsr_core::prelude::*;
 use rstsr_core::storage::exports::Storage;
 
 use crate::device::check_cpu_device;
-use crate::dtype::DlpackDtype;
+use crate::dtype::{DlpackDtype, CODE_BOOL};
 use crate::repr::{DataDlpack, DlpackForeignOwner, TensorDlpack};
 
 /// Upper bound on the accepted dimensionality (mirrors NumPy's `NPY_MAXDIMS`).
@@ -85,8 +85,15 @@ unsafe fn plan_import<T: DlpackDtype>(dl: &DLTensor) -> Result<ImportPlan> {
     }
 
     if numel == 0 {
-        // DLPack allows (recommends) a NULL data pointer for empty tensors.
-        return Ok(ImportPlan { base: NonNull::<u8>::dangling().as_ptr(), shape, strides, offset: 0, span_len: 0 });
+        // DLPack allows (recommends) a NULL data pointer for empty tensors; the fabricated
+        // zero-length span still needs a dangling pointer that is aligned for `T`.
+        return Ok(ImportPlan {
+            base: NonNull::<T>::dangling().as_ptr() as *mut u8,
+            shape,
+            strides,
+            offset: 0,
+            span_len: 0,
+        });
     }
     if dl.data.is_null() {
         return rstsr_raise!(InvalidValue, "DLPack data pointer is NULL for a non-empty tensor");
@@ -94,17 +101,19 @@ unsafe fn plan_import<T: DlpackDtype>(dl: &DLTensor) -> Result<ImportPlan> {
 
     let byte_offset = usize::try_from(dl.byte_offset)
         .map_err(|_| rstsr_error!(ValueOutOfRange, "byte_offset does not fit into usize"))?;
-    let start = (dl.data as usize)
+    let start_addr = (dl.data as usize)
         .checked_add(byte_offset)
         .ok_or_else(|| rstsr_error!(ValueOutOfRange, "data + byte_offset overflows usize"))?;
-    if start % core::mem::align_of::<T>() != 0 {
+    if start_addr % core::mem::align_of::<T>() != 0 {
         return rstsr_raise!(
             InvalidValue,
-            "DLPack data pointer {start:#x} is not aligned for the element type (alignment {})",
+            "DLPack data pointer {start_addr:#x} is not aligned for the element type (alignment {})",
             core::mem::align_of::<T>()
         );
     }
-    let start = start as *mut T;
+    // Advance the pointer itself rather than rebuilding it from `start_addr`, so the span keeps
+    // the producer pointer's provenance; the checked address guarantees this cannot wrap.
+    let start = dl.data.cast::<u8>().wrapping_add(byte_offset).cast::<T>();
 
     // Index-space bounds; `min <= 0 <= max` by construction of the sums.
     let mut min: i128 = 0;
@@ -131,7 +140,43 @@ unsafe fn plan_import<T: DlpackDtype>(dl: &DLTensor) -> Result<ImportPlan> {
     // it lies inside the same allocation as every other element.
     let base = unsafe { start.offset(min_isize) } as *mut u8;
 
-    Ok(ImportPlan { base, shape, strides, offset, span_len })
+    let plan = ImportPlan { base, shape, strides, offset, span_len };
+    validate_bool_payload::<T>(&plan)?;
+    Ok(plan)
+}
+
+/// `kDLBool` promises boolean semantics but not canonical bytes, while Rust's `bool` must be
+/// 0 or 1 — so every element readable through the layout is checked while the buffer is still
+/// raw bytes (reading it through the tensor would already build an invalid `bool`).
+fn validate_bool_payload<T: DlpackDtype>(plan: &ImportPlan) -> Result<()> {
+    if T::DLTYPE.code != CODE_BOOL {
+        return Ok(());
+    }
+    let ndim = plan.shape.len();
+    let numel: usize = plan.shape.iter().product();
+    let mut index = vec![0isize; ndim];
+    for _ in 0..numel {
+        let elem =
+            plan.offset as i128 + index.iter().zip(&plan.strides).map(|(&i, &s)| i as i128 * s as i128).sum::<i128>();
+        // SAFETY: `elem` lies inside the span (the plan bounds the layout), and `plan.base` is the
+        // lowest addressed element of the producer's allocation, so the byte is readable.
+        let byte = unsafe { *plan.base.add(elem as usize) };
+        if byte > 1 {
+            return rstsr_raise!(
+                InvalidValue,
+                "kDLBool element {index:?} holds byte {byte}, but a Rust `bool` must be 0 or 1"
+            );
+        }
+        // odometer over the shape (row-major order of the index tuple)
+        for dim in (0..ndim).rev() {
+            index[dim] += 1;
+            if (index[dim] as usize) < plan.shape[dim] {
+                break;
+            }
+            index[dim] = 0;
+        }
+    }
+    Ok(())
 }
 
 /// Validate the plan as a rstsr layout **before** ownership is transferred, so
@@ -178,7 +223,8 @@ where
 /// `ptr` must be a valid pointer to a `DLManagedTensorVersioned` produced by a
 /// conforming DLPack producer, which the caller must not hand to anything else
 /// (in particular it must not call the deleter afterwards). Everything else —
-/// version, device, dtype, shape, strides, alignment, bounds — is validated.
+/// version, device, dtype, shape, strides, alignment, bounds, and the payload
+/// of `kDLBool` tensors (every element must be 0 or 1) — is validated.
 pub unsafe fn from_dlpack_versioned_f<T, B, D>(ptr: *mut DLManagedTensorVersioned) -> Result<TensorDlpack<T, B, D>>
 where
     T: DlpackDtype,

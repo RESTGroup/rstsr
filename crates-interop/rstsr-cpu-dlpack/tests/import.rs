@@ -10,6 +10,7 @@ use dlpack_ffi::{
     DLPACK_FLAG_BITMASK_READ_ONLY,
 };
 use rstsr_core::prelude::*;
+use rstsr_cpu_dlpack::dtype::CODE_BOOL;
 use rstsr_cpu_dlpack::{from_dlpack_legacy_f, from_dlpack_versioned_f, DlpackDtype, TensorDlpack};
 
 /// Owns the producer's buffers; `calls` observes how often the deleter ran.
@@ -192,6 +193,31 @@ fn negative_strides_are_normalised() {
 }
 
 #[test]
+fn owned_copy_of_a_negative_stride_import_preserves_order() {
+    let calls = Arc::new(AtomicUsize::new(0));
+    let mut recipe = Recipe::contiguous(vec![4]);
+    recipe.data_elem_offset = 3;
+    recipe.strides = Some(vec![-1]);
+    let ptr = make_versioned(recipe, &calls);
+
+    let tensor = import(ptr).unwrap();
+    // `raw()` is address order (the whole span), the layout is what makes it a reversed view
+    assert_eq!(tensor.raw().to_vec(), vec![0.0, 1.0, 2.0, 3.0]);
+    assert_eq!(values(&tensor), vec![3.0, 2.0, 1.0, 0.0]);
+
+    // `to_owned` must own a private buffer with unchanged logical content (it may keep the
+    // layout over a copied span instead of gathering — both branches are documented)
+    let owned = tensor.to_owned();
+    assert!(!ptr::eq(owned.raw().as_ptr(), tensor.raw().as_ptr()));
+    let owned_logical: Vec<f64> = (0..4isize).map(|i| owned.storage().get_index(owned.layout().index(&[i]))).collect();
+    assert_eq!(owned_logical, vec![3.0, 2.0, 1.0, 0.0]);
+
+    drop(owned);
+    drop(tensor);
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+}
+
+#[test]
 fn byte_offset_is_applied_to_the_pointer() {
     let calls = Arc::new(AtomicUsize::new(0));
     let mut recipe = Recipe::contiguous(vec![4]);
@@ -350,4 +376,87 @@ fn view_outlives_nothing_it_should_not() {
     drop(tensor);
     assert_eq!(calls.load(Ordering::SeqCst), 1);
     assert_eq!(owned.raw().to_vec(), vec![0.0, 1.0, 2.0]);
+}
+
+// ---- `kDLBool`: DLPack promises boolean semantics, Rust `bool` requires 0/1 ----
+
+/// Producer owning byte payloads (`kDLBool` elements are one byte each).
+struct OwnerBytes {
+    calls: Arc<AtomicUsize>,
+    _data: Box<[u8]>,
+    _shape: Box<[i64]>,
+    _strides: Option<Box<[i64]>>,
+}
+
+unsafe extern "C" fn deleter_bytes(ptr: *mut DLManagedTensorVersioned) {
+    let managed = unsafe { Box::from_raw(ptr) };
+    let owner = unsafe { Box::from_raw(managed.manager_ctx as *mut OwnerBytes) };
+    owner.calls.fetch_add(1, Ordering::SeqCst);
+    drop(owner);
+}
+
+fn make_versioned_bool(
+    bytes: Vec<u8>,
+    shape: Vec<i64>,
+    strides: Option<Vec<i64>>,
+    calls: &Arc<AtomicUsize>,
+) -> *mut DLManagedTensorVersioned {
+    let data: Box<[u8]> = bytes.into_boxed_slice();
+    let shape: Box<[i64]> = shape.into_boxed_slice();
+    let strides: Option<Box<[i64]>> = strides.map(|s| s.into_boxed_slice());
+    let owner = Box::new(OwnerBytes { calls: Arc::clone(calls), _data: data, _shape: shape, _strides: strides });
+    let dl_tensor = DLTensor {
+        data: owner._data.as_ptr() as *mut c_void,
+        device: DLDevice { device_type: DLDeviceType::kDLCPU, device_id: 0 },
+        ndim: owner._shape.len() as i32,
+        dtype: DLDataType { code: CODE_BOOL, bits: 8, lanes: 1 },
+        shape: owner._shape.as_ptr() as *mut i64,
+        strides: owner._strides.as_ref().map_or(ptr::null_mut(), |s| s.as_ptr() as *mut i64),
+        byte_offset: 0,
+    };
+    let managed = Box::new(DLManagedTensorVersioned {
+        version: DLPackVersion { major: 1, minor: 0 },
+        manager_ctx: Box::into_raw(owner) as *mut c_void,
+        deleter: Some(deleter_bytes),
+        flags: 0,
+        dl_tensor,
+    });
+    Box::into_raw(managed)
+}
+
+#[test]
+fn canonical_kdlbool_imports_zero_copy() {
+    let calls = Arc::new(AtomicUsize::new(0));
+    let ptr = make_versioned_bool(vec![1, 0, 1, 1], vec![4], None, &calls);
+    let tensor = unsafe { from_dlpack_versioned_f::<bool, DeviceCpuSerial, IxD>(ptr) }.unwrap();
+    assert_eq!(tensor.raw().to_vec(), vec![true, false, true, true]);
+    drop(tensor);
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+}
+
+#[test]
+fn non_canonical_kdlbool_payload_is_rejected() {
+    // 2/255 are no valid Rust `bool`s; NumPy can produce such arrays (e.g. `.view(np.bool_)`),
+    // so the import must reject them instead of materialising invalid values later.
+    let calls = Arc::new(AtomicUsize::new(0));
+    let ptr = make_versioned_bool(vec![2, 0, 255, 1], vec![4], None, &calls);
+    let result = unsafe { from_dlpack_versioned_f::<bool, DeviceCpuSerial, IxD>(ptr) };
+    assert!(result.is_err(), "non-canonical kDLBool bytes must be rejected");
+    assert_eq!(calls.load(Ordering::SeqCst), 0, "a rejected import must not free the foreign tensor");
+    let deleter = unsafe { (*ptr).deleter }.unwrap();
+    unsafe { deleter(ptr) };
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+}
+
+#[test]
+fn kdlbool_validation_follows_the_layout_not_the_span() {
+    // stride 2: the visible bytes are 1, 0, 1; the in-between bytes are not part of the tensor
+    // and must not be validated (a span-wide scan would wrongly reject them)
+    let calls = Arc::new(AtomicUsize::new(0));
+    let ptr = make_versioned_bool(vec![1, 9, 0, 9, 1, 9], vec![3], Some(vec![2]), &calls);
+    let tensor = unsafe { from_dlpack_versioned_f::<bool, DeviceCpuSerial, IxD>(ptr) }.unwrap();
+    assert_eq!(tensor.layout().stride().to_vec(), vec![2]);
+    assert!(!tensor.storage().get_index(tensor.layout().index(&[1isize])));
+    drop(tensor);
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
 }

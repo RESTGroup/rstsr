@@ -13,7 +13,8 @@ exchange is a thin host-side capsule holder over this crate.
   basic-indexed views (zero-copy, read-only; `TensorDlpackShared` or core
   `TensorArc` bases), and a copy fallback for other views.
 - **import**: zero-copy read-only tensors over foreign buffers; the imported
-  tensor owns the producer's lifetime (the DLPack deleter travels with it).
+  tensor owns the producer's lifetime (the DLPack deleter travels with it);
+  `kDLBool` payloads are validated to be 0 or 1 (Rust `bool` has no other values).
 - DLPack 1.0 interchange subset (`version = {1, 0}`); all CPU devices
   (`Raw = Vec<T>`) map to `kDLCPU`.
 - **cargo features**: `half` (default; `f16`/`bf16` dtype support, via the

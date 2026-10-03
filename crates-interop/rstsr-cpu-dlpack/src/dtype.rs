@@ -18,6 +18,14 @@ pub type Complex64 = Complex<f64>;
 /// Implemented for the numeric dtypes rstsr supports. `f16`/`bf16` require the
 /// `half` feature (default); `i128`/`u128` are valid DLPack but stock NumPy
 /// cannot consume them (see the crate docs).
+///
+/// # Implementor's contract
+///
+/// The trait is safe to implement, but safe import code sizes the fabricated span from
+/// [`DLTYPE`](Self::DLTYPE) rather than from `size_of::<Self>()`: the description must match
+/// `Self` exactly (element code, `bits == size_of::<Self>() * 8`, one lane) and
+/// [`from_dltype`](Self::from_dltype) must accept exactly those dtypes. A mismatched description
+/// makes safe code read outside the producer's buffer — a soundness bug.
 pub trait DlpackDtype: Copy + 'static {
     /// The DLPack data type of `Self`.
     const DLTYPE: DLDataType;
