@@ -266,6 +266,17 @@ impl<C> DataArc<C> {
     }
 }
 
+/// Cloning shares the buffer: the reference count is bumped, no data is copied.
+///
+/// The two handles behave as independent values: mutation through
+/// [`DataMutAPI::raw_mut`] is copy-on-write and detaches while the buffer is shared.
+impl<C> Clone for DataArc<C> {
+    #[inline]
+    fn clone(&self) -> Self {
+        Self { raw: Arc::clone(&self.raw) }
+    }
+}
+
 impl<C> DataReference<'_, C> {
     #[inline]
     pub fn is_ref(&self) -> bool {
@@ -461,7 +472,12 @@ where
 {
     #[inline]
     fn into_owned(self) -> DataOwned<Self::Data> {
-        DataOwned::from(Arc::try_unwrap(self.raw).ok().unwrap())
+        match Arc::try_unwrap(self.raw) {
+            // Sole owner: move the buffer, no copy.
+            Ok(unique) => DataOwned::from(unique),
+            // Shared buffer: clone the data, so that no alias is handed out as owned.
+            Err(shared) => DataOwned::from((*shared).clone()),
+        }
     }
 
     #[inline]
@@ -657,5 +673,37 @@ mod test {
         let mut data_ref2 = data_ref.into_owned();
         println!("{:?}", data_ref2.raw().as_ptr());
         data_ref2.raw_mut()[1] = 10;
+    }
+
+    #[test]
+    fn test_data_arc_clone_is_zero_copy_and_copy_on_write() {
+        let data = DataArc::from(vec![1, 2, 3]);
+        let ptr = data.raw().as_ptr();
+
+        let mut clone = data.clone();
+        assert_eq!(data.strong_count(), 2);
+        assert_eq!(clone.raw().as_ptr(), ptr); // zero copy
+
+        // mutation of a shared buffer detaches (copy-on-write)
+        clone.raw_mut()[0] = 10;
+        assert_eq!(data.raw(), &vec![1, 2, 3]);
+        assert_eq!(clone.raw(), &vec![10, 2, 3]);
+        assert_ne!(clone.raw().as_ptr(), ptr);
+        assert_eq!(data.strong_count(), 1);
+
+        // sole owner: the buffer is moved, not copied
+        let owned = data.into_owned();
+        assert_eq!(owned.raw().as_ptr(), ptr);
+        assert_eq!(owned.raw(), &vec![1, 2, 3]);
+    }
+
+    #[test]
+    fn test_data_arc_into_owned_clones_when_shared() {
+        let data = DataArc::from(vec![1, 2, 3]);
+        let other = data.clone();
+        let owned = data.into_owned();
+        assert_eq!(owned.raw(), &vec![1, 2, 3]);
+        assert_ne!(owned.raw().as_ptr(), other.raw().as_ptr());
+        assert_eq!(other.strong_count(), 1);
     }
 }

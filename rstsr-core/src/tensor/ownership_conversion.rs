@@ -384,6 +384,34 @@ where
     }
 }
 
+/// Cloning shares the buffer (zero-copy on data): the reference count of the
+/// underlying arc is bumped and the layout is cloned.
+///
+/// A clone behaves as an independent value: mutating either handle while the
+/// buffer is shared copies the buffer first (copy-on-write).
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let a = rt::arange((6, &device)).into_shared();
+/// let b = a.clone();
+/// // zero-copy: both handles point at the same buffer
+/// assert_eq!(a.raw().as_ptr(), b.raw().as_ptr());
+/// assert_eq!(a.data().strong_count(), 2);
+/// ```
+impl<T, B, D> Clone for TensorArc<T, B, D>
+where
+    B: DeviceAPI<T>,
+    D: DimAPI,
+{
+    fn clone(&self) -> Self {
+        let storage = Storage::new(self.storage().data().clone(), self.storage().device().clone());
+        // SAFETY: the clone shares the same (already validated) buffer and layout.
+        unsafe { TensorBase::new_unchecked(storage, self.layout().clone()) }
+    }
+}
+
 impl<R, T, B, D> TensorAny<R, T, B, D>
 where
     R: DataAPI<Data = B::Raw> + DataForceMutAPI<B::Raw>,
