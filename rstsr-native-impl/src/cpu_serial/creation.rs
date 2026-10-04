@@ -8,12 +8,23 @@ pub fn arange_by_partial_ord_cpu_serial<T>(start: T, end: T, step: T) -> Vec<T>
 where
     T: PartialOrd + Clone + Add<Output = T>,
 {
-    // This is serial implementation and low performance
+    // This is serial implementation and low performance. The step must point
+    // from `start` towards `end`; sign-mismatched ranges are empty (numpy
+    // semantics) and the direction-aware condition keeps the loop bounded.
+    let up = start < end;
     let mut result = Vec::new();
     let mut current = start;
-    while current < end {
-        result.push(current.clone());
-        current = current + step.clone();
+    loop {
+        let next = current.clone() + step.clone();
+        let inside = match up {
+            true => current < end && current < next,
+            false => current > end && current > next,
+        };
+        if !inside {
+            break;
+        }
+        result.push(current);
+        current = next;
     }
     result
 }

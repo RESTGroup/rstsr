@@ -69,4 +69,36 @@ mod custom_arange {
         // np.arange(10, 0, -2) -> [10, 8, 6, 4, 2]
         assert_equal(rt::arange((10, 0, -2, &device)), rt::tensor_from_nested!([10, 8, 6, 4, 2], &device), None);
     }
+
+    #[test]
+    fn test_direction_semantics() {
+        crate::specify_test!("test_direction_semantics");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // np.arange(0, -2, -1, dtype=int8) -> [0, -1]; downward ranges hold
+        // for narrow ints even though they take the generic path
+        assert_equal(rt::arange((0i8, -2i8, -1i8, &device)), rt::tensor_from_nested!([0i8, -1], &device), None);
+        assert_equal(rt::arange((0i16, -2i16, -1i16, &device)), rt::tensor_from_nested!([0i16, -1], &device), None);
+
+        // np.arange(0.0, -2.0, -1.0) -> [0.0, -1.0]
+        assert_equal(rt::arange((0.0, -2.0, -1.0, &device)), rt::tensor_from_nested!([0.0, -1.0], &device), None);
+
+        // Sign-mismatched range is empty (numpy semantics): the step points
+        // away from the stop; the f64 input here once looped unboundedly.
+        assert_eq!(rt::arange((0.0, 4151497946.0, -129734311.0, &device)).shape()[0], 0);
+        assert_eq!(rt::arange((0i64, 10, -2, &device)).shape()[0], 0);
+        assert_eq!(rt::arange((5i32, 0, 2, &device)).shape()[0], 0);
+
+        // Upward float rounding and open right boundary; start == end is
+        // empty in both directions.
+        assert_equal(
+            rt::arange((0.0, 1.0, 0.25, &device)),
+            rt::tensor_from_nested!([0.0, 0.25, 0.5, 0.75], &device),
+            None,
+        );
+        assert_eq!(rt::arange((0i64, 0, 1, &device)).shape()[0], 0);
+        assert_eq!(rt::arange((0i64, 0, -1, &device)).shape()[0], 0);
+    }
 }
