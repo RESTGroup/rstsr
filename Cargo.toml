@@ -16,6 +16,7 @@ members = [
     "crates-device/rstsr-kml",
     "crates-plugin/rstsr-tblis",
     "crates-interop/rstsr-cpu-dlpack",
+    "crates-interop/rstsr-faer-py",
 ]
 
 [workspace.package]

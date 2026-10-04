@@ -1,0 +1,23 @@
+[package]
+name = "rstsr-faer-py"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+keywords.workspace = true
+categories.workspace = true
+license.workspace = true
+description = "Python array-API binding of rstsr (faer device); validation instrument for the Python array API standard"
+
+[lib]
+name = "rstsr_faer"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.29", features = ["extension-module", "abi3-py310", "py-clone"] }
+num = { workspace = true }
+rstsr = { workspace = true, features = ["default", "dlpack"] }
+rstsr-core = { workspace = true }
+rstsr-dtype-traits = { workspace = true }
+rstsr-common = { workspace = true }
+dlpack-ffi = { workspace = true }
