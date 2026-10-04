@@ -1,0 +1,19 @@
+name: rstsr-cpu-dlpack tests
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  unittests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: unittest (default features)
+        run: cargo test -p rstsr-cpu-dlpack --release
+      - name: unittest (col-major)
+        run: cargo test -p rstsr-cpu-dlpack --release --no-default-features --features "std col_major half"
+      - name: facade prelude test (feature dlpack)
+        run: cargo test -p rstsr --release --no-default-features --features "std row_major dlpack" --lib
