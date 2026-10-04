@@ -506,17 +506,9 @@ where
         (None, Some(c)) => (T::zero(), a0, c),
         (None, None) => (T::zero(), a0, T::one()),
     };
-    let r: rt::Result<FTensor<T>> = if step == T::zero() {
-        // let rstsr raise InvalidValue
-        rt::arange_f((start, stop, step, device_faer()))
-    } else if (step > T::zero()) == (stop > start) {
-        rt::arange_f((start, stop, step, device_faer()))
-    } else {
-        // Sign-mismatched range is empty per spec (numpy: []). rstsr's generic
-        // fallback loops forever on this input — see register G-030.
-        rt::asarray_f((Vec::<T>::new(), device_faer()))
-    };
-    err_py(r)
+    // A zero step raises InvalidValue; a sign-mismatched range comes back
+    // empty from rstsr itself.
+    err_py(rt::arange_f((start, stop, step, device_faer())))
 }
 
 fn cast_ts<S, U>(t: &FTensor<S>) -> PyResult<FTensor<U>>
