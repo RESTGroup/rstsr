@@ -10,6 +10,7 @@ mod creation;
 mod device;
 mod dlpack;
 mod dtype;
+mod indexing;
 mod info;
 mod ops;
 
@@ -173,6 +174,12 @@ fn rstsr_faer(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(ops::reshape, m)?)?;
     m.add_function(wrap_pyfunction!(ops::transpose, m)?)?;
     m.add_function(wrap_pyfunction!(ops::getitem_int, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::sum, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::broadcast_to, m)?)?;
+
+    m.add_function(wrap_pyfunction!(indexing::getitem_basic, m)?)?;
+    m.add_function(wrap_pyfunction!(indexing::setitem_basic, m)?)?;
+    m.add_function(wrap_pyfunction!(indexing::setitem_scalar, m)?)?;
 
     m.add_function(wrap_pyfunction!(dlpack::dlpack_export, m)?)?;
     m.add_function(wrap_pyfunction!(dlpack::dlpack_import, m)?)?;

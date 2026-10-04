@@ -42,6 +42,8 @@ from .rstsr_faer import (
     isnan as _isnan,
     isfinite as _isfinite,
     isinf as _isinf,
+    sum as _sum,
+    broadcast_to as _broadcast_to,
     reshape as _reshape,
     transpose as _transpose,
     finfo as _finfo,
@@ -83,6 +85,9 @@ complex128 = _pkg.complex128
 # -------------------------------------------------------------------- device --
 
 _DEVICE = _pkg.device_cpu
+
+# Spec sentinel for indexing (x[..., newaxis, :]); `None` in an index tuple.
+newaxis = None
 
 
 def _check_device(device, /):
@@ -148,7 +153,7 @@ class _NamespaceInfo:
         return {
             "boolean indexing": True,
             "data-dependent shapes": False,
-            "max ndim": 8,
+            "max dimensions": 8,
         }
 
 
@@ -231,7 +236,7 @@ class Array:
     def T(self, /):
         if self.ndim < 2:
             return self
-        return permute_axes(self, tuple(range(self.ndim - 1, -1, -1)))
+        return permute_dims(self, tuple(range(self.ndim - 1, -1, -1)))
 
     @property
     def mT(self, /):
@@ -239,7 +244,7 @@ class Array:
             return self
         axes = tuple(range(self.ndim))
         axes = axes[:-2] + (axes[-1], axes[-2])
-        return permute_axes(self, axes)
+        return permute_dims(self, axes)
 
     # ---- protocol methods ---------------------------------------------
 
@@ -273,22 +278,21 @@ class Array:
         return _pkg.dlpack_export(self._h)
 
     def __getitem__(self, index, /):
-        if isinstance(index, tuple) and len(index) == 0 and self.ndim == 0:
-            return self  # no-op 0-d index (suite strategy contract; S3 generalizes)
-        if isinstance(index, _py_bool) or not isinstance(index, _py_int):
-            raise TypeError(
-                "Array.__getitem__: only integer indices are supported so far "
-                "(slices/advanced indexing are planned for S3)"
-            )
-        if self.ndim == 0:
-            raise IndexError("too many indices for array: array is 0-dimensional")
-        idx = _py_int(index)
-        n = self.shape[0]
-        if idx < 0:
-            idx += n
-        if not 0 <= idx < n:
-            raise IndexError(f"index {int(index)} is out of bounds for axis 0 with size {n}")
-        return _wrap(_pkg.getitem_int(self._h, idx))
+        if isinstance(index, tuple) and builtins.len(index) == 0:
+            return self  # () is a no-op index at any dimensionality
+        key = index if isinstance(index, tuple) else (index,)
+        if builtins.any(isinstance(k, Array) for k in key):
+            _unimplemented("boolean-mask / integer-array indexing (rstsr gaps G-038/G-039)")
+        return _wrap(_pkg.getitem_basic(self._h, key))
+
+    def __setitem__(self, key, value, /):
+        key = key if isinstance(key, tuple) else (key,)
+        if builtins.any(isinstance(k, Array) for k in key):
+            _unimplemented("boolean-mask item assignment (rstsr gap G-038)")
+        if isinstance(value, Array):
+            _pkg.setitem_basic(self._h, key, value._h)
+        else:
+            _pkg.setitem_scalar(self._h, key, value)
 
     def tolist(self, /):
         return self._h.tolist()
@@ -633,6 +637,17 @@ def isinf(x, /):
     return _wrap(_isinf(_handle(x)))
 
 
+def sum(x, /, *, axis=None, keepdims=False):
+    if axis is not None:
+        _unimplemented("sum(axis=...) (reductions over axes)")
+    return _wrap(_sum(_handle(x)))
+
+
+def broadcast_to(x, /, shape):
+    return _wrap(_broadcast_to(_handle(x), _norm_shape(shape)))
+
+
+
 # ------------------------------------------------------------- manipulation ---
 
 
@@ -640,11 +655,15 @@ def reshape(x, /, shape, *, copy=None):
     return _wrap(_reshape(_handle(x), _norm_shape(shape)))
 
 
-def permute_axes(x, /, axes):
+def permute_dims(x, /, axes):
     return _wrap(_transpose(_handle(x), tuple(axes)))
 
 
 # --------------------------------------------------------------- data types ---
+
+
+def astype(x, /, dtype, *, copy=True):
+    return _wrap(_astype(_handle(x), dtype, copy))
 
 
 def finfo(type, /):
@@ -679,8 +698,14 @@ __all__ = [
     "equal", "not_equal", "less", "less_equal", "greater", "greater_equal",
     # logical / tests
     "all", "any", "isnan", "isfinite", "isinf",
+    # reductions (whole-array)
+    "sum",
+    # broadcasting
+    "broadcast_to",
     # manipulation
-    "reshape", "permute_axes",
+    "reshape", "permute_dims",
     # data types
-    "finfo", "iinfo",
+    "astype", "finfo", "iinfo",
+    # constants / sentinels
+    "newaxis",
 ]

@@ -22,9 +22,10 @@ use rstsr_core::tensor::operators::exports::{
 };
 
 use crate::any_tensor::{
-    device_faer, dispatch_bin, dispatch_bin_numeric_self, dispatch_t, dispatch_t_bool, dispatch_t_signed, lift,
-    type_err, AnyTensor, FTensor, NativeArray,
+    device_faer, dispatch_bin, dispatch_bin_numeric_self, dispatch_t, dispatch_t_bool, dispatch_t_signed, err_py,
+    lift, type_err, AnyTensor, FTensor, NativeArray,
 };
+use crate::creation::dim_from;
 
 /// Whole-array boolean reduction rebuilt as a 0-d array. rstsr's `all`/`any`
 /// reductions are bool-typed only (OpAllAPI), so truthiness is derived as
@@ -38,7 +39,7 @@ where
     let zero: FTensor<T> = rt::asarray_f((vec![T::default()], device_faer()))?;
     let truthy = rt::not_equal_f(t, &zero)?;
     let s: bool = rt::all_f(&truthy)?;
-    rt::asarray_f((vec![s], device_faer()))
+    rt::asarray_f((vec![s], dim_from(&[]), device_faer()))
 }
 
 fn op_any<T>(t: &FTensor<T>) -> rt::Result<FTensor<bool>>
@@ -50,7 +51,7 @@ where
     let zero: FTensor<T> = rt::asarray_f((vec![T::default()], device_faer()))?;
     let truthy = rt::not_equal_f(t, &zero)?;
     let s: bool = rt::any_f(&truthy)?;
-    rt::asarray_f((vec![s], device_faer()))
+    rt::asarray_f((vec![s], dim_from(&[]), device_faer()))
 }
 
 fn op_neg<T>(t: &FTensor<T>) -> rt::Result<FTensor<T>>
@@ -90,7 +91,7 @@ where
     rt::is_inf_f(t)
 }
 
-fn op_reshape<T>(t: &FTensor<T>, shape: Vec<usize>) -> rt::Result<FTensor<T>>
+fn op_reshape<T>(t: &FTensor<T>, shape: Vec<isize>) -> rt::Result<FTensor<T>>
 where
     T: Clone + Send + Sync,
     DeviceFaer: DeviceAPI<T, Raw = Vec<T>>
@@ -377,7 +378,7 @@ pub fn isinf(x: &NativeArray) -> PyResult<NativeArray> {
 // ------------------------------------------------------------ manipulation --
 
 #[pyfunction]
-pub fn reshape(x: &NativeArray, shape: Vec<usize>) -> PyResult<NativeArray> {
+pub fn reshape(x: &NativeArray, shape: Vec<isize>) -> PyResult<NativeArray> {
     Ok(NativeArray {
         t: dispatch_t!(x.t, op_reshape(shape.clone()))?,
     })
@@ -414,3 +415,44 @@ pub fn getitem_int(x: &NativeArray, idx: usize) -> PyResult<NativeArray> {
 // Complex referenced by generated turbofish instantiations in macros.
 #[allow(unused)]
 fn _complex_used(_c: Complex<f64>) {}
+
+/// Whole-array sum returned as a 0-d array (rstsr's `sum` yields the scalar).
+fn op_sum<T>(t: &FTensor<T>) -> rt::Result<FTensor<T>>
+where
+    T: Clone + Send + Sync + core::ops::Add<Output = T> + num::Zero,
+    DeviceFaer: DeviceAPI<T, Raw = Vec<T>>
+        + DeviceCreationAnyAPI<T>
+        + DeviceRawAPI<MaybeUninit<T>>,
+{
+    let s: T = rt::sum_f(t)?;
+    rt::asarray_f((vec![s], dim_from(&[]), device_faer()))
+}
+
+#[pyfunction]
+pub fn sum(x: &NativeArray) -> PyResult<NativeArray> {
+    macro_rules! arms {
+        ($($dv:ident);* $(;)?) => {
+            match &x.t {
+                AnyTensor::Bool(_) => type_err("sum: bool dtype not supported yet (gap)"),
+                $(AnyTensor::$dv(t) => Ok(NativeArray { t: AnyTensor::$dv(err_py(op_sum(t))?) }),)*
+            }
+        };
+    }
+    arms!(I8; I16; I32; I64; U8; U16; U32; U64; F32; F64; C32; C64)
+}
+
+fn op_broadcast_to<T>(t: &FTensor<T>, shape: Vec<usize>) -> rt::Result<FTensor<T>>
+where
+    T: Clone + Send + Sync,
+    DeviceFaer: DeviceAPI<T, Raw = Vec<T>> + DeviceCreationAnyAPI<T>,
+{
+    let v = rt::broadcast_to_f(t, shape)?;
+    Ok(v.into_owned())
+}
+
+#[pyfunction]
+pub fn broadcast_to(x: &NativeArray, shape: Vec<usize>) -> PyResult<NativeArray> {
+    Ok(NativeArray { t: dispatch_t!(x.t, op_broadcast_to(shape.clone()))? })
+}
+
+

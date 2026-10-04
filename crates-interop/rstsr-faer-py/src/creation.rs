@@ -26,7 +26,7 @@ pub fn dim_from(shape: &[usize]) -> IxD {
 /// numpy conventions for complex (complex->real takes the real part).
 /// Rust float->int casts saturate (vs numpy's UB wrap); the standard
 /// leaves out-of-range float->int casts undefined, so this is conformant.
-trait NumCastShim<To> {
+pub(crate) trait NumCastShim<To> {
     fn cast_to(self) -> To;
 }
 
@@ -242,11 +242,11 @@ cast_row_from_c32!(u64);
 cast_row_from_c32!(f32);
 cast_row_from_c32!(f64);
 
-/// Canonical-scalar -> dtype-element cast (asarray/full/arange all funnel
-/// here; lossy casts allowed, matching numpy's asarray-with-dtype behavior).
-/// Complex leaves are rejected for real targets at runtime — the standard
-/// provides no complex->real scalar conversion.
-trait ScalarCastTarget: Sized {
+/// Canonical-scalar -> dtype-element cast (asarray/full/arange/setitem all
+/// funnel here; lossy casts allowed, matching numpy's asarray-with-dtype
+/// behavior). Complex leaves are rejected for real targets at runtime — the
+/// standard provides no complex->real scalar conversion.
+pub(crate) trait ScalarCastTarget: Sized {
     fn from_scalar(s: PyScalar) -> PyResult<Self>;
 }
 

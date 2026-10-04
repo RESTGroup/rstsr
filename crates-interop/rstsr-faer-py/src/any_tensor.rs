@@ -15,12 +15,13 @@
 //! - `dispatch_name!`— dtype-name dispatch calling a generic fn item
 
 use num::Complex;
-use pyo3::exceptions::{PyTypeError, PyValueError};
+use pyo3::exceptions::{PyIndexError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::Bound;
 use pyo3::types::{PyAny, PyComplex, PyTuple};
 use pyo3::IntoPyObjectExt;
 use rstsr::prelude::*;
+use rstsr_common::error::RSTSRError;
 
 /// Owned, dynamic-dimension tensor on the faer device.
 pub type FTensor<T> = Tensor<T, DeviceFaer, IxD>;
@@ -122,10 +123,17 @@ macro_rules! impl_traits {
 }
 for_each_item!(impl_traits);
 
-/// rstsr error -> Python ValueError (fallback mapping; specific call sites
-/// raise TypeError where the cause is a dtype/operand mismatch).
+/// rstsr error -> Python exception, matched by rstsr's own error variant
+/// (indexing errors surface as IndexError, everything else as ValueError;
+/// specific call sites raise TypeError where the cause is an operand
+/// mismatch). This keeps the wrapper layer free of re-validation.
 pub fn err_py<T>(r: rt::Result<T>) -> PyResult<T> {
-    r.map_err(|e| PyValueError::new_err(format!("{e}")))
+    r.map_err(|e| match &e.inner {
+        RSTSRError::IndexError(_) | RSTSRError::AxisError { .. } => {
+            PyIndexError::new_err(format!("{e}"))
+        }
+        _ => PyValueError::new_err(format!("{e}")),
+    })
 }
 
 pub fn type_err<T>(msg: impl Into<String>) -> PyResult<T> {
