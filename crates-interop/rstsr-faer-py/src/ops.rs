@@ -7,28 +7,28 @@
 //! closure is type-checked once across all 13 expansion points, while fn
 //! items instantiate per arm.
 
+use core::mem::MaybeUninit;
 use num::Complex;
 use pyo3::prelude::*;
-use rstsr::prelude::*;
 use rstsr::prelude::rt;
-use core::mem::MaybeUninit;
-use rstsr_core::storage::exports::{DeviceCreationAnyAPI, DeviceRawAPI};
+use rstsr::prelude::*;
 use rstsr_common::layout::exports::Indexer;
 use rstsr_core::operators::assignment::OpAssignAPI;
-use rstsr_dtype_traits::{DTypeIntoFloatAPI, DTypePromoteAPI};
+use rstsr_core::storage::exports::{DeviceCreationAnyAPI, DeviceRawAPI};
 use rstsr_core::tensor::operators::exports::{
-    TensorAddAPI, TensorATan2API, TensorBitAndAPI, TensorBitOrAPI, TensorBitXorAPI, TensorCopySignAPI,
-    TensorDivAPI, TensorEqualAPI, TensorFloorDivideAPI, TensorGreaterAPI, TensorGreaterEqualAPI,
-    TensorHypotAPI, TensorLessAPI, TensorLessEqualAPI, TensorLogAddExpAPI, TensorMaximumAPI, TensorMinimumAPI,
-    TensorMulAPI, TensorNegAPI, TensorNextAfterAPI, TensorNotEqualAPI, TensorPositiveAPI, TensorReciprocalAPI,
-    TensorRemAPI, TensorShlAPI, TensorShrAPI, TensorSquareAPI, TensorSubAPI,
+    TensorATan2API, TensorAddAPI, TensorBitAndAPI, TensorBitOrAPI, TensorBitXorAPI, TensorCopySignAPI, TensorDivAPI,
+    TensorEqualAPI, TensorFloorDivideAPI, TensorGreaterAPI, TensorGreaterEqualAPI, TensorHypotAPI, TensorLessAPI,
+    TensorLessEqualAPI, TensorLogAddExpAPI, TensorMaximumAPI, TensorMinimumAPI, TensorMulAPI, TensorNegAPI,
+    TensorNextAfterAPI, TensorNotEqualAPI, TensorPositiveAPI, TensorReciprocalAPI, TensorRemAPI, TensorShlAPI,
+    TensorShrAPI, TensorSquareAPI, TensorSubAPI,
 };
+use rstsr_dtype_traits::{DTypeIntoFloatAPI, DTypePromoteAPI};
 
 use crate::any_tensor::{
     device_faer, dispatch_bin_bool_self, dispatch_bin_int_bool_self, dispatch_bin_int_self, dispatch_bin_numeric_self,
-    dispatch_bin_promote, dispatch_bin_promote_eq, dispatch_t, dispatch_t_bool, dispatch_t_float_complex_same, dispatch_t_into_float, dispatch_t_no_complex,
-    dispatch_t_numeric_same, dispatch_t_real_float_same, dispatch_t_signed, err_py, lift, type_err, AnyTensor,
-    FTensor, NativeArray,
+    dispatch_bin_promote, dispatch_bin_promote_eq, dispatch_t, dispatch_t_bool, dispatch_t_float_complex_same,
+    dispatch_t_into_float, dispatch_t_no_complex, dispatch_t_numeric_same, dispatch_t_real_float_same,
+    dispatch_t_signed, err_py, lift, type_err, AnyTensor, FTensor, NativeArray,
 };
 use crate::creation::dim_from;
 
@@ -78,10 +78,8 @@ fn const_bool(n: usize, v: bool) -> rt::Result<FTensor<bool>> {
 fn op_reshape<T>(t: &FTensor<T>, shape: Vec<isize>) -> rt::Result<FTensor<T>>
 where
     T: Clone + Send + Sync,
-    DeviceFaer: DeviceAPI<T, Raw = Vec<T>>
-        + DeviceRawAPI<MaybeUninit<T>>
-        + DeviceCreationAnyAPI<T>
-        + OpAssignAPI<T, IxD>,
+    DeviceFaer:
+        DeviceAPI<T, Raw = Vec<T>> + DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD>,
 {
     let cow = rt::reshape_f(t, shape)?;
     Ok(cow.into_owned())
@@ -90,10 +88,8 @@ where
 fn op_transpose<T>(t: &FTensor<T>, axes: Option<Vec<isize>>) -> rt::Result<FTensor<T>>
 where
     T: Clone + Send + Sync,
-    DeviceFaer: DeviceAPI<T, Raw = Vec<T>>
-        + DeviceRawAPI<MaybeUninit<T>>
-        + DeviceCreationAnyAPI<T>
-        + OpAssignAPI<T, IxD>,
+    DeviceFaer:
+        DeviceAPI<T, Raw = Vec<T>> + DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD>,
 {
     // axes=None: full axis reversal (spec `.T` semantics)
     let reversed: Vec<isize> = (0..t.ndim()).rev().map(|i| i as isize).collect();
@@ -407,8 +403,10 @@ macro_rules! bin_promote_wrapper {
 /// (`atan2`-family: `TOut = Res::FloatType`).
 macro_rules! bin_promote_float_wrapper {
     ($wrapper:ident, $rt:ident, $Trait:ident) => {
-        fn $wrapper<T, U>(a: &FTensor<T>, b: &FTensor<U>)
-            -> rt::Result<FTensor<<<T as DTypePromoteAPI<U>>::Res as DTypeIntoFloatAPI>::FloatType>>
+        fn $wrapper<T, U>(
+            a: &FTensor<T>,
+            b: &FTensor<U>,
+        ) -> rt::Result<FTensor<<<T as DTypePromoteAPI<U>>::Res as DTypeIntoFloatAPI>::FloatType>>
         where
             T: DTypePromoteAPI<U>,
             <T as DTypePromoteAPI<U>>::Res: DTypeIntoFloatAPI,
@@ -536,7 +534,7 @@ pub fn pow(x1: &NativeArray, x2: &NativeArray) -> PyResult<NativeArray> {
         (AnyTensor::F64(a), AnyTensor::F64(b)) => lift(rt::pow_f(a, b), AnyTensor::F64)?,
         (AnyTensor::F32(_) | AnyTensor::F64(_), _) | (_, AnyTensor::F32(_) | AnyTensor::F64(_)) => {
             return type_err("pow: mixed-dtype operands are not provided by rstsr (gap G-009)")
-        }
+        },
         _ => return type_err("pow: integer/bool/complex bases are not provided by rstsr (gap G-053)"),
     };
     Ok(NativeArray { t })
@@ -566,39 +564,29 @@ py_logical!(
 
 #[pyfunction]
 pub fn add(x1: &NativeArray, x2: &NativeArray) -> PyResult<NativeArray> {
-    Ok(NativeArray {
-        t: dispatch_bin_numeric_self!(x1.t, x2.t, "add", op_add)?,
-    })
+    Ok(NativeArray { t: dispatch_bin_numeric_self!(x1.t, x2.t, "add", op_add)? })
 }
 
 #[pyfunction]
 pub fn subtract(x1: &NativeArray, x2: &NativeArray) -> PyResult<NativeArray> {
-    Ok(NativeArray {
-        t: dispatch_bin_numeric_self!(x1.t, x2.t, "subtract", op_sub)?,
-    })
+    Ok(NativeArray { t: dispatch_bin_numeric_self!(x1.t, x2.t, "subtract", op_sub)? })
 }
 
 #[pyfunction]
 pub fn multiply(x1: &NativeArray, x2: &NativeArray) -> PyResult<NativeArray> {
-    Ok(NativeArray {
-        t: dispatch_bin_numeric_self!(x1.t, x2.t, "multiply", op_mul)?,
-    })
+    Ok(NativeArray { t: dispatch_bin_numeric_self!(x1.t, x2.t, "multiply", op_mul)? })
 }
 
 #[pyfunction]
 pub fn divide(x1: &NativeArray, x2: &NativeArray) -> PyResult<NativeArray> {
-    Ok(NativeArray {
-        t: dispatch_bin_numeric_self!(x1.t, x2.t, "divide", op_div)?,
-    })
+    Ok(NativeArray { t: dispatch_bin_numeric_self!(x1.t, x2.t, "divide", op_div)? })
 }
 
 /// negative: signed numeric dtypes only (bool/unsigned rejected; unsigned
 /// wrap semantics are not defined by the standard).
 #[pyfunction]
 pub fn negative(x: &NativeArray) -> PyResult<NativeArray> {
-    Ok(NativeArray {
-        t: dispatch_t_signed!(x.t, op_neg())?,
-    })
+    Ok(NativeArray { t: dispatch_t_signed!(x.t, op_neg())? })
 }
 
 /// abs: numeric only; complex abs yields a REAL tensor (device TOut is the
@@ -627,60 +615,44 @@ pub fn abs(x: &NativeArray) -> PyResult<NativeArray> {
 
 #[pyfunction]
 pub fn equal(x1: &NativeArray, x2: &NativeArray) -> PyResult<NativeArray> {
-    Ok(NativeArray {
-        t: dispatch_bin_promote_eq!(x1.t, x2.t, "equal", op_equal)?,
-    })
+    Ok(NativeArray { t: dispatch_bin_promote_eq!(x1.t, x2.t, "equal", op_equal)? })
 }
 
 #[pyfunction]
 pub fn not_equal(x1: &NativeArray, x2: &NativeArray) -> PyResult<NativeArray> {
-    Ok(NativeArray {
-        t: dispatch_bin_promote_eq!(x1.t, x2.t, "not_equal", op_not_equal)?,
-    })
+    Ok(NativeArray { t: dispatch_bin_promote_eq!(x1.t, x2.t, "not_equal", op_not_equal)? })
 }
 
 #[pyfunction]
 pub fn less(x1: &NativeArray, x2: &NativeArray) -> PyResult<NativeArray> {
-    Ok(NativeArray {
-        t: dispatch_bin_promote!(x1.t, x2.t, "less", op_less)?,
-    })
+    Ok(NativeArray { t: dispatch_bin_promote!(x1.t, x2.t, "less", op_less)? })
 }
 
 #[pyfunction]
 pub fn less_equal(x1: &NativeArray, x2: &NativeArray) -> PyResult<NativeArray> {
-    Ok(NativeArray {
-        t: dispatch_bin_promote!(x1.t, x2.t, "less_equal", op_less_equal)?,
-    })
+    Ok(NativeArray { t: dispatch_bin_promote!(x1.t, x2.t, "less_equal", op_less_equal)? })
 }
 
 #[pyfunction]
 pub fn greater(x1: &NativeArray, x2: &NativeArray) -> PyResult<NativeArray> {
-    Ok(NativeArray {
-        t: dispatch_bin_promote!(x1.t, x2.t, "greater", op_greater)?,
-    })
+    Ok(NativeArray { t: dispatch_bin_promote!(x1.t, x2.t, "greater", op_greater)? })
 }
 
 #[pyfunction]
 pub fn greater_equal(x1: &NativeArray, x2: &NativeArray) -> PyResult<NativeArray> {
-    Ok(NativeArray {
-        t: dispatch_bin_promote!(x1.t, x2.t, "greater_equal", op_greater_equal)?,
-    })
+    Ok(NativeArray { t: dispatch_bin_promote!(x1.t, x2.t, "greater_equal", op_greater_equal)? })
 }
 
 // --------------------------------------------------- predicates & logicals --
 
 #[pyfunction]
 pub fn all(x: &NativeArray) -> PyResult<NativeArray> {
-    Ok(NativeArray {
-        t: dispatch_t_bool!(x.t, op_all())?,
-    })
+    Ok(NativeArray { t: dispatch_t_bool!(x.t, op_all())? })
 }
 
 #[pyfunction]
 pub fn any(x: &NativeArray) -> PyResult<NativeArray> {
-    Ok(NativeArray {
-        t: dispatch_t_bool!(x.t, op_any())?,
-    })
+    Ok(NativeArray { t: dispatch_t_bool!(x.t, op_any())? })
 }
 
 #[pyfunction]
@@ -723,16 +695,12 @@ pub fn isinf(x: &NativeArray) -> PyResult<NativeArray> {
 
 #[pyfunction]
 pub fn reshape(x: &NativeArray, shape: Vec<isize>) -> PyResult<NativeArray> {
-    Ok(NativeArray {
-        t: dispatch_t!(x.t, op_reshape(shape.clone()))?,
-    })
+    Ok(NativeArray { t: dispatch_t!(x.t, op_reshape(shape.clone()))? })
 }
 
 #[pyfunction]
 pub fn transpose(x: &NativeArray, axes: Option<Vec<isize>>) -> PyResult<NativeArray> {
-    Ok(NativeArray {
-        t: dispatch_t!(x.t, op_transpose(axes.clone()))?,
-    })
+    Ok(NativeArray { t: dispatch_t!(x.t, op_transpose(axes.clone()))? })
 }
 
 /// Integer index on axis 0, spec semantics (drops the axis). Copy, not a
@@ -740,10 +708,8 @@ pub fn transpose(x: &NativeArray, axes: Option<Vec<isize>>) -> PyResult<NativeAr
 fn op_index<T>(t: &FTensor<T>, idx: usize) -> rt::Result<FTensor<T>>
 where
     T: Clone + Send + Sync,
-    DeviceFaer: DeviceAPI<T, Raw = Vec<T>>
-        + DeviceRawAPI<MaybeUninit<T>>
-        + DeviceCreationAnyAPI<T>
-        + OpAssignAPI<T, IxD>,
+    DeviceFaer:
+        DeviceAPI<T, Raw = Vec<T>> + DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD>,
 {
     let view = t.i(Indexer::from(idx));
     Ok(view.into_owned())
@@ -751,9 +717,7 @@ where
 
 #[pyfunction]
 pub fn getitem_int(x: &NativeArray, idx: usize) -> PyResult<NativeArray> {
-    Ok(NativeArray {
-        t: dispatch_t!(x.t, op_index(idx))?,
-    })
+    Ok(NativeArray { t: dispatch_t!(x.t, op_index(idx))? })
 }
 
 // Complex referenced by generated turbofish instantiations in macros.
@@ -764,9 +728,7 @@ fn _complex_used(_c: Complex<f64>) {}
 fn op_sum<T>(t: &FTensor<T>) -> rt::Result<FTensor<T>>
 where
     T: Clone + Send + Sync + core::ops::Add<Output = T> + num::Zero,
-    DeviceFaer: DeviceAPI<T, Raw = Vec<T>>
-        + DeviceCreationAnyAPI<T>
-        + DeviceRawAPI<MaybeUninit<T>>,
+    DeviceFaer: DeviceAPI<T, Raw = Vec<T>> + DeviceCreationAnyAPI<T> + DeviceRawAPI<MaybeUninit<T>>,
 {
     let s: T = rt::sum_f(t)?;
     rt::asarray_f((vec![s], dim_from(&[]), device_faer()))
@@ -798,5 +760,3 @@ where
 pub fn broadcast_to(x: &NativeArray, shape: Vec<usize>) -> PyResult<NativeArray> {
     Ok(NativeArray { t: dispatch_t!(x.t, op_broadcast_to(shape.clone()))? })
 }
-
-

@@ -4,14 +4,14 @@
 
 use num::Complex;
 use pyo3::prelude::*;
-use pyo3::Bound;
 use pyo3::types::{PyAny, PyList};
-use rstsr::prelude::*;
+use pyo3::Bound;
 use rstsr::prelude::rt;
+use rstsr::prelude::*;
 
 use crate::any_tensor::{
-    device_faer, dispatch_name, dispatch_name_numeric, dispatch_name_real, err_py, liftp, parse_leaf, type_err, AnyTensor, FTensor, NativeArray,
-    PyScalar,
+    device_faer, dispatch_name, dispatch_name_numeric, dispatch_name_real, err_py, liftp, parse_leaf, type_err,
+    AnyTensor, FTensor, NativeArray, PyScalar,
 };
 use crate::dtype::Dtype;
 
@@ -258,9 +258,7 @@ macro_rules! impl_sct_real {
                     PyScalar::B(x) => Ok(x.cast_to()),
                     PyScalar::I(x) => Ok(x.cast_to()),
                     PyScalar::F(x) => Ok(x.cast_to()),
-                    PyScalar::C(_) => type_err(
-                        "cannot convert a complex scalar to a real dtype",
-                    ),
+                    PyScalar::C(_) => type_err("cannot convert a complex scalar to a real dtype"),
                 }
             }
         }
@@ -326,7 +324,7 @@ where
         Filler::Full(s) => {
             let val: T = T::from_scalar(*s)?;
             rt::full_f((dim_from(shape), val, device_faer()))
-        }
+        },
     };
     err_py(r)
 }
@@ -357,7 +355,7 @@ pub fn asarray_from_flat<'py>(
             let rank = scalars.iter().map(|s| s.kind_rank()).max().unwrap_or(1);
             // spec default-dtype rules from Python native types
             ["bool", "int64", "float64", "complex128"][rank as usize]
-        }
+        },
     };
     let t = dispatch_name!(name, build_t(&scalars, &shape))?;
     Ok(NativeArray { t })
@@ -378,7 +376,7 @@ fn filled_bool(shape: &[usize], filler: &Filler) -> PyResult<AnyTensor> {
                 PyScalar::C(x) => x != num::Complex::new(0.0, 0.0),
             };
             vec![b; n]
-        }
+        },
     };
     err_py(rt::asarray_f((v, dim_from(shape), device_faer()))).map(AnyTensor::Bool)
 }
@@ -458,26 +456,17 @@ pub fn arange<'py>(
     let name: &'static str = match dtype {
         Some(d) => d.borrow().name,
         None => {
-            if matches!(s0, PyScalar::B(_))
-                || matches!(s1, Some(PyScalar::B(_)))
-                || matches!(s2, Some(PyScalar::B(_)))
+            if matches!(s0, PyScalar::B(_)) || matches!(s1, Some(PyScalar::B(_))) || matches!(s2, Some(PyScalar::B(_)))
             {
                 return type_err("arange: boolean arguments are not supported");
             }
-            if matches!(s0, PyScalar::C(_))
-                || matches!(s1, Some(PyScalar::C(_)))
-                || matches!(s2, Some(PyScalar::C(_)))
+            if matches!(s0, PyScalar::C(_)) || matches!(s1, Some(PyScalar::C(_))) || matches!(s2, Some(PyScalar::C(_)))
             {
                 return type_err("arange: complex arguments are not supported by the standard");
             }
-            let rank = [Some(s0), s1, s2]
-                .iter()
-                .flatten()
-                .map(|s| s.kind_rank())
-                .max()
-                .unwrap_or(1);
+            let rank = [Some(s0), s1, s2].iter().flatten().map(|s| s.kind_rank()).max().unwrap_or(1);
             ["bool", "int64", "float64"][rank as usize]
-        }
+        },
     };
     let t = dispatch_name_real!(name, arange_t(s0, s1, s2))?;
     Ok(NativeArray { t })
@@ -527,9 +516,7 @@ where
 #[pyfunction]
 pub fn astype<'py>(x: &NativeArray, dtype: &Bound<'py, Dtype>, copy: bool) -> PyResult<NativeArray> {
     if x.t.dtype_name() == dtype.borrow().name {
-        return Ok(NativeArray {
-            t: x.t.deep_copy(),
-        });
+        return Ok(NativeArray { t: x.t.deep_copy() });
     }
     let _ = copy;
     macro_rules! cast_arm {
@@ -571,4 +558,3 @@ pub fn astype<'py>(x: &NativeArray, dtype: &Bound<'py, Dtype>, copy: bool) -> Py
     };
     Ok(NativeArray { t })
 }
-

@@ -16,8 +16,8 @@
 use num::Complex;
 use pyo3::exceptions::{PyIndexError, PyTypeError, PyValueError};
 use pyo3::prelude::*;
-use pyo3::Bound;
 use pyo3::types::{PyAny, PyComplex, PyTuple};
+use pyo3::Bound;
 use pyo3::IntoPyObjectExt;
 use rstsr::prelude::*;
 use rstsr_common::error::RSTSRError;
@@ -102,9 +102,7 @@ impl NativeArray {
     }
 
     fn copy(&self) -> NativeArray {
-        NativeArray {
-            t: self.t.deep_copy(),
-        }
+        NativeArray { t: self.t.deep_copy() }
     }
 }
 
@@ -128,9 +126,7 @@ for_each_item!(impl_traits);
 /// mismatch). This keeps the wrapper layer free of re-validation.
 pub fn err_py<T>(r: rt::Result<T>) -> PyResult<T> {
     r.map_err(|e| match &e.inner {
-        RSTSRError::IndexError(_) | RSTSRError::AxisError { .. } => {
-            PyIndexError::new_err(format!("{e}"))
-        }
+        RSTSRError::IndexError(_) | RSTSRError::AxisError { .. } => PyIndexError::new_err(format!("{e}")),
         _ => PyValueError::new_err(format!("{e}")),
     })
 }
@@ -141,18 +137,12 @@ pub fn type_err<T>(msg: impl Into<String>) -> PyResult<T> {
 
 /// Lift a typed tensor result into the erased enum via the arm's variant
 /// constructor (the constructor makes R concrete at each instantiation).
-pub(crate) fn lift<R>(
-    r: rt::Result<FTensor<R>>,
-    ctor: impl FnOnce(FTensor<R>) -> AnyTensor,
-) -> PyResult<AnyTensor> {
+pub(crate) fn lift<R>(r: rt::Result<FTensor<R>>, ctor: impl FnOnce(FTensor<R>) -> AnyTensor) -> PyResult<AnyTensor> {
     err_py(r).map(ctor)
 }
 
 /// Same for helpers that already produce `PyResult` (creation paths).
-pub(crate) fn liftp<R>(
-    r: PyResult<FTensor<R>>,
-    ctor: impl FnOnce(FTensor<R>) -> AnyTensor,
-) -> PyResult<AnyTensor> {
+pub(crate) fn liftp<R>(r: PyResult<FTensor<R>>, ctor: impl FnOnce(FTensor<R>) -> AnyTensor) -> PyResult<AnyTensor> {
     r.map(ctor)
 }
 
@@ -246,10 +236,9 @@ macro_rules! dispatch_fn {
 macro_rules! dispatch_bin_numeric_self {
     ($a:expr, $b:expr, $opname:expr, $f:ident) => {
         match (&$a, &$b) {
-            (AnyTensor::Bool(_), _) | (_, AnyTensor::Bool(_)) => type_err(format!(
-                "{}: not defined for bool dtype",
-                $opname
-            )),
+            (AnyTensor::Bool(_), _) | (_, AnyTensor::Bool(_)) => {
+                type_err(format!("{}: not defined for bool dtype", $opname))
+            },
             (AnyTensor::I8(a), AnyTensor::I8(b)) => lift(($f::<i8>)(a, b), AnyTensor::I8),
             (AnyTensor::I16(a), AnyTensor::I16(b)) => lift(($f::<i16>)(a, b), AnyTensor::I16),
             (AnyTensor::I32(a), AnyTensor::I32(b)) => lift(($f::<i32>)(a, b), AnyTensor::I32),
@@ -262,10 +251,9 @@ macro_rules! dispatch_bin_numeric_self {
             (AnyTensor::F64(a), AnyTensor::F64(b)) => lift(($f::<f64>)(a, b), AnyTensor::F64),
             (AnyTensor::C32(a), AnyTensor::C32(b)) => lift(($f::<Complex<f32>>)(a, b), AnyTensor::C32),
             (AnyTensor::C64(a), AnyTensor::C64(b)) => lift(($f::<Complex<f64>>)(a, b), AnyTensor::C64),
-            _ => type_err(format!(
-                "{}: mixed-dtype operands require type promotion (rstsr gap); use astype()",
-                $opname
-            )),
+            _ => {
+                type_err(format!("{}: mixed-dtype operands require type promotion (rstsr gap); use astype()", $opname))
+            },
         }
     };
 }
@@ -597,7 +585,7 @@ macro_rules! dispatch_bin_promote {
             (AnyTensor::U8(a), AnyTensor::U64(b)) => lift(($f::<u8, u64>)(a, b), crate::any_tensor::any_of),
             // 89 arms
 
-// 89 pair arms, generated from the DTypePromoteAPI impls of
+            // 89 pair arms, generated from the DTypePromoteAPI impls of
             // rstsr-dtype-traits/src/promotion.rs (real dtypes only).
             _ => type_err(format!(
                 "{}: this dtype pair is not promoted by rstsr (gap G-009); use astype() or matching dtypes",
@@ -624,11 +612,8 @@ macro_rules! dispatch_bin_int_bool_self {
             (AnyTensor::U64(a), AnyTensor::U64(b)) => lift(($f)(a, b), AnyTensor::U64),
             (AnyTensor::F32(_) | AnyTensor::F64(_) | AnyTensor::C32(_) | AnyTensor::C64(_), _)
             | (_, AnyTensor::F32(_) | AnyTensor::F64(_) | AnyTensor::C32(_) | AnyTensor::C64(_)) => {
-                type_err(format!(
-                    "{}: only integer or boolean dtypes are allowed",
-                    $opname
-                ))
-            }
+                type_err(format!("{}: only integer or boolean dtypes are allowed", $opname))
+            },
             _ => type_err(format!(
                 "{}: mixed-dtype operands require type promotion (rstsr gap G-009); use astype()",
                 $opname
@@ -651,10 +636,7 @@ macro_rules! dispatch_bin_int_self {
             (AnyTensor::U16(a), AnyTensor::U16(b)) => lift(($f::<u16>)(a, b), AnyTensor::U16),
             (AnyTensor::U32(a), AnyTensor::U32(b)) => lift(($f::<u32>)(a, b), AnyTensor::U32),
             (AnyTensor::U64(a), AnyTensor::U64(b)) => lift(($f::<u64>)(a, b), AnyTensor::U64),
-            _ => type_err(format!(
-                "{}: only integer dtypes of matching kind are allowed",
-                $opname
-            )),
+            _ => type_err(format!("{}: only integer dtypes of matching kind are allowed", $opname)),
         }
     };
 }
@@ -665,10 +647,7 @@ macro_rules! dispatch_bin_bool_self {
     ($a:expr, $b:expr, $opname:expr, $f:ident) => {
         match (&$a, &$b) {
             (AnyTensor::Bool(a), AnyTensor::Bool(b)) => lift(($f)(a, b), AnyTensor::Bool),
-            _ => type_err(format!(
-                "{}: only boolean dtypes are allowed",
-                $opname
-            )),
+            _ => type_err(format!("{}: only boolean dtypes are allowed", $opname)),
         }
     };
 }
@@ -690,8 +669,12 @@ macro_rules! dispatch_bin_promote_eq {
             (AnyTensor::U64(a), AnyTensor::U64(b)) => lift(($f::<u64, u64>)(a, b), crate::any_tensor::any_of),
             (AnyTensor::F32(a), AnyTensor::F32(b)) => lift(($f::<f32, f32>)(a, b), crate::any_tensor::any_of),
             (AnyTensor::F64(a), AnyTensor::F64(b)) => lift(($f::<f64, f64>)(a, b), crate::any_tensor::any_of),
-            (AnyTensor::C32(a), AnyTensor::C32(b)) => lift(($f::<Complex<f32>, Complex<f32>>)(a, b), crate::any_tensor::any_of),
-            (AnyTensor::C64(a), AnyTensor::C64(b)) => lift(($f::<Complex<f64>, Complex<f64>>)(a, b), crate::any_tensor::any_of),
+            (AnyTensor::C32(a), AnyTensor::C32(b)) => {
+                lift(($f::<Complex<f32>, Complex<f32>>)(a, b), crate::any_tensor::any_of)
+            },
+            (AnyTensor::C64(a), AnyTensor::C64(b)) => {
+                lift(($f::<Complex<f64>, Complex<f64>>)(a, b), crate::any_tensor::any_of)
+            },
             (AnyTensor::Bool(a), AnyTensor::Bool(b)) => lift(($f::<bool, bool>)(a, b), crate::any_tensor::any_of),
             (AnyTensor::Bool(a), AnyTensor::I8(b)) => lift(($f::<bool, i8>)(a, b), crate::any_tensor::any_of),
             (AnyTensor::I8(a), AnyTensor::Bool(b)) => lift(($f::<i8, bool>)(a, b), crate::any_tensor::any_of),
@@ -713,11 +696,21 @@ macro_rules! dispatch_bin_promote_eq {
             (AnyTensor::F32(a), AnyTensor::Bool(b)) => lift(($f::<f32, bool>)(a, b), crate::any_tensor::any_of),
             (AnyTensor::Bool(a), AnyTensor::F64(b)) => lift(($f::<bool, f64>)(a, b), crate::any_tensor::any_of),
             (AnyTensor::F64(a), AnyTensor::Bool(b)) => lift(($f::<f64, bool>)(a, b), crate::any_tensor::any_of),
-            (AnyTensor::Bool(a), AnyTensor::C32(b)) => lift(($f::<bool, Complex<f32>>)(a, b), crate::any_tensor::any_of),
-            (AnyTensor::C32(a), AnyTensor::Bool(b)) => lift(($f::<Complex<f32>, bool>)(a, b), crate::any_tensor::any_of),
-            (AnyTensor::Bool(a), AnyTensor::C64(b)) => lift(($f::<bool, Complex<f64>>)(a, b), crate::any_tensor::any_of),
-            (AnyTensor::C64(a), AnyTensor::Bool(b)) => lift(($f::<Complex<f64>, bool>)(a, b), crate::any_tensor::any_of),
-            (AnyTensor::C32(a), AnyTensor::C64(b)) => lift(($f::<Complex<f32>, Complex<f64>>)(a, b), crate::any_tensor::any_of),
+            (AnyTensor::Bool(a), AnyTensor::C32(b)) => {
+                lift(($f::<bool, Complex<f32>>)(a, b), crate::any_tensor::any_of)
+            },
+            (AnyTensor::C32(a), AnyTensor::Bool(b)) => {
+                lift(($f::<Complex<f32>, bool>)(a, b), crate::any_tensor::any_of)
+            },
+            (AnyTensor::Bool(a), AnyTensor::C64(b)) => {
+                lift(($f::<bool, Complex<f64>>)(a, b), crate::any_tensor::any_of)
+            },
+            (AnyTensor::C64(a), AnyTensor::Bool(b)) => {
+                lift(($f::<Complex<f64>, bool>)(a, b), crate::any_tensor::any_of)
+            },
+            (AnyTensor::C32(a), AnyTensor::C64(b)) => {
+                lift(($f::<Complex<f32>, Complex<f64>>)(a, b), crate::any_tensor::any_of)
+            },
             (AnyTensor::C32(a), AnyTensor::F32(b)) => lift(($f::<Complex<f32>, f32>)(a, b), crate::any_tensor::any_of),
             (AnyTensor::C32(a), AnyTensor::F64(b)) => lift(($f::<Complex<f32>, f64>)(a, b), crate::any_tensor::any_of),
             (AnyTensor::C32(a), AnyTensor::I16(b)) => lift(($f::<Complex<f32>, i16>)(a, b), crate::any_tensor::any_of),
@@ -728,7 +721,9 @@ macro_rules! dispatch_bin_promote_eq {
             (AnyTensor::C32(a), AnyTensor::U32(b)) => lift(($f::<Complex<f32>, u32>)(a, b), crate::any_tensor::any_of),
             (AnyTensor::C32(a), AnyTensor::U64(b)) => lift(($f::<Complex<f32>, u64>)(a, b), crate::any_tensor::any_of),
             (AnyTensor::C32(a), AnyTensor::U8(b)) => lift(($f::<Complex<f32>, u8>)(a, b), crate::any_tensor::any_of),
-            (AnyTensor::C64(a), AnyTensor::C32(b)) => lift(($f::<Complex<f64>, Complex<f32>>)(a, b), crate::any_tensor::any_of),
+            (AnyTensor::C64(a), AnyTensor::C32(b)) => {
+                lift(($f::<Complex<f64>, Complex<f32>>)(a, b), crate::any_tensor::any_of)
+            },
             (AnyTensor::C64(a), AnyTensor::F32(b)) => lift(($f::<Complex<f64>, f32>)(a, b), crate::any_tensor::any_of),
             (AnyTensor::C64(a), AnyTensor::F64(b)) => lift(($f::<Complex<f64>, f64>)(a, b), crate::any_tensor::any_of),
             (AnyTensor::C64(a), AnyTensor::I16(b)) => lift(($f::<Complex<f64>, i16>)(a, b), crate::any_tensor::any_of),
@@ -923,10 +918,7 @@ pub fn parse_leaf(el: &Bound<'_, PyAny>) -> PyResult<PyScalar> {
     } else if let Ok(f) = el.extract::<f64>() {
         Ok(PyScalar::F(f))
     } else {
-        type_err(format!(
-            "asarray: unsupported leaf type {}",
-            el.get_type().name()?
-        ))
+        type_err(format!("asarray: unsupported leaf type {}", el.get_type().name()?))
     }
 }
 

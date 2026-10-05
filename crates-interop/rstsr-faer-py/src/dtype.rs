@@ -35,7 +35,6 @@ macro_rules! for_each_dtype {
     };
 }
 
-
 /// Register all 13 dtype singletons as module attributes.
 pub fn add_dtype_objects(m: &Bound<'_, PyModule>) -> PyResult<()> {
     macro_rules! add {

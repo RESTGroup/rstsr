@@ -45,14 +45,7 @@ pub fn finfo32(dtype: Py<Dtype>) -> Finfo {
 }
 
 pub fn finfo64(dtype: Py<Dtype>) -> Finfo {
-    Finfo {
-        bits: 64,
-        eps: f64::EPSILON,
-        max: f64::MAX,
-        min: f64::MIN,
-        smallest_normal: f64::MIN_POSITIVE,
-        dtype,
-    }
+    Finfo { bits: 64, eps: f64::EPSILON, max: f64::MAX, min: f64::MIN, smallest_normal: f64::MIN_POSITIVE, dtype }
 }
 
 /// Unified iinfo result; constructed by `iinfo(dtype)` per integer width.
@@ -77,12 +70,7 @@ impl Iinfo {
 
 macro_rules! iinfo_for {
     ($t:ty, $bits:literal, $dtype:expr) => {
-        Iinfo {
-            bits: $bits,
-            max: <$t>::MAX as i128,
-            min: <$t>::MIN as i128,
-            dtype: $dtype,
-        }
+        Iinfo { bits: $bits, max: <$t>::MAX as i128, min: <$t>::MIN as i128, dtype: $dtype }
     };
 }
 

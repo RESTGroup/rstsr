@@ -18,8 +18,8 @@ use std::collections::HashMap;
 
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use std::sync::OnceLock;
 use pyo3::types::{PyAny, PyBool, PyComplex};
+use std::sync::OnceLock;
 
 use any_tensor::NativeArray;
 use dtype::Dtype;
@@ -43,9 +43,7 @@ fn finfo<'py>(py: Python<'py>, dtype: &Bound<'py, Dtype>) -> PyResult<info::Finf
     match dtype.borrow().name {
         "float32" => Ok(info::finfo32(d)),
         "float64" => Ok(info::finfo64(d)),
-        _ => Err(PyValueError::new_err(
-            "finfo: only real floating-point dtypes are allowed",
-        )),
+        _ => Err(PyValueError::new_err("finfo: only real floating-point dtypes are allowed")),
     }
 }
 
@@ -61,11 +59,7 @@ fn iinfo<'py>(py: Python<'py>, dtype: &Bound<'py, Dtype>) -> PyResult<info::Iinf
         "uint16" => info::iinfo_u16(d),
         "uint32" => info::iinfo_u32(d),
         "uint64" => info::iinfo_u64(d),
-        _ => {
-            return Err(PyValueError::new_err(
-                "iinfo: only integral dtypes are allowed",
-            ))
-        }
+        _ => return Err(PyValueError::new_err("iinfo: only integral dtypes are allowed")),
     })
 }
 
@@ -74,9 +68,7 @@ fn iinfo<'py>(py: Python<'py>, dtype: &Bound<'py, Dtype>) -> PyResult<info::Iinf
 fn dtype_kind(dtype: &Bound<'_, Dtype>) -> &'static str {
     match dtype.borrow().name {
         "bool" => "bool",
-        "int8" | "int16" | "int32" | "int64" | "uint8" | "uint16" | "uint32" | "uint64" => {
-            "integral"
-        }
+        "int8" | "int16" | "int32" | "int64" | "uint8" | "uint16" | "uint32" | "uint64" => "integral",
         "float32" | "float64" => "real floating",
         _ => "complex floating",
     }
@@ -95,10 +87,7 @@ fn default_dtype_for<'py>(py: Python<'py>, value: &Bound<'py, PyAny>) -> PyResul
     } else if value.extract::<f64>().is_ok() {
         "float64"
     } else {
-        return Err(PyValueError::new_err(format!(
-            "not a supported scalar type: {}",
-            value.get_type().name()?
-        )));
+        return Err(PyValueError::new_err(format!("not a supported scalar type: {}", value.get_type().name()?)));
     };
     dtype_by_name(py, name)
 }

@@ -6,22 +6,20 @@
 //! are declined here per the wrapper-only rule. Results are fresh owned
 //! tensors — the handle model has no shared storage (register G-036).
 
+use core::mem::MaybeUninit;
 use num::Complex;
 use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
-use pyo3::Bound;
 use pyo3::types::{PyAny, PyBool, PyEllipsis, PyNone, PySlice, PyTuple};
-use rstsr::prelude::*;
+use pyo3::Bound;
 use rstsr::prelude::rt;
-use core::mem::MaybeUninit;
+use rstsr::prelude::*;
 
 use rstsr_common::layout::exports::{Indexer, SliceI};
 use rstsr_core::operators::assignment::OpAssignAPI;
 use rstsr_core::storage::exports::{DeviceCreationAnyAPI, DeviceRawAPI};
 
-use crate::any_tensor::{
-    dispatch_t, err_py, lift, parse_leaf, type_err, AnyTensor, FTensor, NativeArray, PyScalar,
-};
+use crate::any_tensor::{dispatch_t, err_py, lift, parse_leaf, type_err, AnyTensor, FTensor, NativeArray, PyScalar};
 use crate::creation::ScalarCastTarget;
 
 /* #region key parsing */
@@ -60,10 +58,7 @@ fn parse_key<'py>(key: &Bound<'py, PyTuple>) -> PyResult<Vec<KeyItem>> {
                 "array indexing (boolean mask / integer array) is not provided by rstsr (gap)",
             ));
         } else {
-            return Err(PyTypeError::new_err(format!(
-                "invalid index element of type {}",
-                item.get_type().name()?
-            )));
+            return Err(PyTypeError::new_err(format!("invalid index element of type {}", item.get_type().name()?)));
         }
     }
     Ok(items)
@@ -105,17 +100,11 @@ pub fn getitem_basic(x: &NativeArray, key: &Bound<'_, PyTuple>) -> PyResult<Nati
 
 /* #region setitem */
 
-fn op_setitem_basic<T>(
-    t: &mut FTensor<T>,
-    src: &FTensor<T>,
-    idx: &[Indexer],
-) -> rt::Result<()>
+fn op_setitem_basic<T>(t: &mut FTensor<T>, src: &FTensor<T>, idx: &[Indexer]) -> rt::Result<()>
 where
     T: Clone + Send + Sync,
-    DeviceFaer: DeviceAPI<T, Raw = Vec<T>>
-        + DeviceRawAPI<MaybeUninit<T>>
-        + DeviceCreationAnyAPI<T>
-        + OpAssignAPI<T, IxD>,
+    DeviceFaer:
+        DeviceAPI<T, Raw = Vec<T>> + DeviceRawAPI<MaybeUninit<T>> + DeviceCreationAnyAPI<T> + OpAssignAPI<T, IxD>,
 {
     let mut view = t.i_mut_f(idx)?;
     view.assign_f(src.view())
@@ -149,70 +138,69 @@ impl NativeArray {
                 let v = <bool as ScalarCastTarget>::from_scalar(value)?;
                 let mut view = err_py(a.i_mut_f(idx.as_slice()))?;
                 err_py(view.fill_f(v))
-            }
+            },
             AnyTensor::I8(ref mut a) => {
                 let v = <i8 as ScalarCastTarget>::from_scalar(value)?;
                 let mut view = err_py(a.i_mut_f(idx.as_slice()))?;
                 err_py(view.fill_f(v))
-            }
+            },
             AnyTensor::I16(ref mut a) => {
                 let v = <i16 as ScalarCastTarget>::from_scalar(value)?;
                 let mut view = err_py(a.i_mut_f(idx.as_slice()))?;
                 err_py(view.fill_f(v))
-            }
+            },
             AnyTensor::I32(ref mut a) => {
                 let v = <i32 as ScalarCastTarget>::from_scalar(value)?;
                 let mut view = err_py(a.i_mut_f(idx.as_slice()))?;
                 err_py(view.fill_f(v))
-            }
+            },
             AnyTensor::I64(ref mut a) => {
                 let v = <i64 as ScalarCastTarget>::from_scalar(value)?;
                 let mut view = err_py(a.i_mut_f(idx.as_slice()))?;
                 err_py(view.fill_f(v))
-            }
+            },
             AnyTensor::U8(ref mut a) => {
                 let v = <u8 as ScalarCastTarget>::from_scalar(value)?;
                 let mut view = err_py(a.i_mut_f(idx.as_slice()))?;
                 err_py(view.fill_f(v))
-            }
+            },
             AnyTensor::U16(ref mut a) => {
                 let v = <u16 as ScalarCastTarget>::from_scalar(value)?;
                 let mut view = err_py(a.i_mut_f(idx.as_slice()))?;
                 err_py(view.fill_f(v))
-            }
+            },
             AnyTensor::U32(ref mut a) => {
                 let v = <u32 as ScalarCastTarget>::from_scalar(value)?;
                 let mut view = err_py(a.i_mut_f(idx.as_slice()))?;
                 err_py(view.fill_f(v))
-            }
+            },
             AnyTensor::U64(ref mut a) => {
                 let v = <u64 as ScalarCastTarget>::from_scalar(value)?;
                 let mut view = err_py(a.i_mut_f(idx.as_slice()))?;
                 err_py(view.fill_f(v))
-            }
+            },
             AnyTensor::F32(ref mut a) => {
                 let v = <f32 as ScalarCastTarget>::from_scalar(value)?;
                 let mut view = err_py(a.i_mut_f(idx.as_slice()))?;
                 err_py(view.fill_f(v))
-            }
+            },
             AnyTensor::F64(ref mut a) => {
                 let v = <f64 as ScalarCastTarget>::from_scalar(value)?;
                 let mut view = err_py(a.i_mut_f(idx.as_slice()))?;
                 err_py(view.fill_f(v))
-            }
+            },
             AnyTensor::C32(ref mut a) => {
                 let v = <Complex<f32> as ScalarCastTarget>::from_scalar(value)?;
                 let mut view = err_py(a.i_mut_f(idx.as_slice()))?;
                 err_py(view.fill_f(v))
-            }
+            },
             AnyTensor::C64(ref mut a) => {
                 let v = <Complex<f64> as ScalarCastTarget>::from_scalar(value)?;
                 let mut view = err_py(a.i_mut_f(idx.as_slice()))?;
                 err_py(view.fill_f(v))
-            }
+            },
         }
     }
-
 }
 
 /* #endregion */
