@@ -1,5 +1,7 @@
 [package]
 name = "rstsr-faer-py"
+# Validation instrument only — never published (see readme.md).
+publish = false
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -7,6 +9,7 @@ repository.workspace = true
 keywords.workspace = true
 categories.workspace = true
 license.workspace = true
+readme = "readme.md"
 description = "Python array-API binding of rstsr (faer device); validation instrument for the Python array API standard"
 
 [lib]
