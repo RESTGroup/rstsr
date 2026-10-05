@@ -131,6 +131,12 @@ mod custom_stride0 {
         assert_eq!(v.shape().to_vec(), vec![1, 3]);
         let v = rt::var_with_args(&af, (1i32, false));
         assert_eq!(v.shape().to_vec(), vec![2]);
+        // container element types beyond isize (parity with the _axes API)
+        let _: Tensor<i64, _> = rt::sum_with_args(&a, vec![0i32, 1]);
+        let _: Tensor<i64, _> = rt::sum_with_args(&a, [0u32, 1]);
+        let _: Tensor<i64, _> = rt::sum_with_args(&a, (vec![0u64], true));
+        let v = rt::var_with_args(&af, (vec![1usize], true));
+        assert_eq!(v.shape().to_vec(), vec![2, 1]);
 
         // out-of-range axis: _f returns Err (does not panic inside From)
         assert!(rt::sum_with_args_f(&a, 5).is_err());

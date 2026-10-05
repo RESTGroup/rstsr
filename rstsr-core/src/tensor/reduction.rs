@@ -252,6 +252,41 @@ impl From<(Vec<isize>, bool)> for ReduceArgs {
     }
 }
 
+/// Container overloads for common integer element types (parity with the
+/// `AxesIndex` conversions accepted by the `_axes` functions). `as isize`
+/// keeps `From` infallible; invalid values are rejected by the later axes
+/// validation.
+macro_rules! impl_reduce_args_from_int_container {
+    ($Args: ident, $($t: ty),* $(,)?) => {$(
+        impl From<Vec<$t>> for $Args {
+            fn from(axes: Vec<$t>) -> Self {
+                Self::from(AxesIndex::Vec(axes.into_iter().map(|v| v as isize).collect_vec()))
+            }
+        }
+
+        impl<const N: usize> From<[$t; N]> for $Args {
+            fn from(axes: [$t; N]) -> Self {
+                Self::from(AxesIndex::Vec(axes.into_iter().map(|v| v as isize).collect_vec()))
+            }
+        }
+
+        impl From<(Vec<$t>, bool)> for $Args {
+            fn from((axes, keepdims): (Vec<$t>, bool)) -> Self {
+                Self::from((AxesIndex::Vec(axes.into_iter().map(|v| v as isize).collect_vec()), keepdims))
+            }
+        }
+
+        impl<const N: usize> From<([$t; N], bool)> for $Args {
+            fn from((axes, keepdims): ([$t; N], bool)) -> Self {
+                Self::from((AxesIndex::Vec(axes.into_iter().map(|v| v as isize).collect_vec()), keepdims))
+            }
+        }
+    )*};
+}
+
+impl_reduce_args_from_int_container!(ReduceArgs, i32, i64, u32, u64, usize);
+impl_reduce_args_from_int_container!(VarArgs, i32, i64, u32, u64, usize);
+
 impl From<bool> for VarArgs {
     fn from(keepdims: bool) -> Self {
         Self { axes: AxesIndex::None, keepdims, correction: None }
