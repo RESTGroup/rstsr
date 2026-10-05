@@ -158,13 +158,27 @@ where
     // iteration) before the final transmute.
     let mut out: Vec<MaybeUninit<TO>> = unsafe { uninitialized_vec(lo.size())? };
 
+    // zero-size input: every output cell is the finalized initial accumulator
+    // (sum -> 0, prod -> 1, mean/var -> NaN), matching whole-array reduction
+    if la.size() == 0 {
+        // SAFETY (contract): `uninitialized_vec` per the `rstsr_common::alloc_vec`
+        // contract (`alloc_vec_contract.md`); every slot is written in the loop below.
+        let mut out_empty: Vec<MaybeUninit<TO>> = unsafe { uninitialized_vec(lo.size())? };
+        for slot in out_empty.iter_mut() {
+            slot.write(f_out(init()));
+        }
+        // SAFETY: all `out_empty` elements were written above.
+        let out_empty = unsafe { transmute::<Vec<MaybeUninit<TO>>, Vec<TO>>(out_empty) };
+        return Ok((out_empty, lo));
+    }
+
     // extract contiguous part and its corresponding dimensions
     // returns: remaining layout, remaining axes loc, contiguous size, contiguous axes loc
     let (_as1, as0, asc, asd) = get_axes_composition(&ls);
     let (_am1, am0, amc, amd) = get_axes_composition(&lm);
 
     // get some specific sizes of different parts
-    let size_s0 = as0.iter().map(|&i| lm.shape()[i]).product::<usize>();
+    let size_s0 = as0.iter().map(|&i| ls.shape()[i]).product::<usize>();
     let size_sc = asc.iter().map(|&i| ls.shape()[i]).product::<usize>();
     let size_m0 = am0.iter().map(|&i| lm.shape()[i]).product::<usize>();
     let size_mc = amc.iter().map(|&i| lm.shape()[i]).product::<usize>();

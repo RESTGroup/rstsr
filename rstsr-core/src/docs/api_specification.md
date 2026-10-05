@@ -25,6 +25,9 @@
         - Functions decorated with `_with_output` suffix (e.g. [`add_with_output`]) write the result into caller-provided output tensor, instead of allocating a new one.
     - Explicit all-element variants:
         - Reduction families (e.g. [`sum`]) are also decorated with `_all` suffix for explicitly reducing all elements into a scalar, which behaves the same as the undecorated function (e.g. [`sum_all`]).
+    - Reduction argument variants:
+        - Reduction families accept grouped arguments (`axes`, `keepdims`, and for var/std `correction`) by the `_with_args` suffix (e.g. [`sum_with_args`]), with the argument types [`ReduceArgs`] / [`VarArgs`];
+        - Accumulating families (sum, prod, mean, var, std) also accept an explicit output dtype by the `_with_dtype` suffix (e.g. [`sum_with_dtype`]); the fold accumulates in the requested dtype.
 
 ## Tensor Structure and Ownership
 
@@ -320,11 +323,13 @@ Aliases: [`equal_than`], [`greater_than`], [`less_than`], [`greater_equal_to`], 
 
 [`max`]/[`max_axes`], [`mean`]/[`mean_axes`], [`min`]/[`min_axes`], [`prod`]/[`prod_axes`], [`std`](std())/[`std_axes`], [`sum`]/[`sum_axes`], [`var`]/[`var_axes`], [`l2_norm`]/[`l2_norm_axes`]
 
+Args/dtype variants: all of the above (plus [`all`], [`any`], argmin/argmax families, [`count_nonzero`], [`unraveled_argmin`]/[`unraveled_argmax`]) also have `_with_args` forms taking [`ReduceArgs`] (axes + keepdims); var/std take [`VarArgs`] (adds array-api `correction`); sum/prod/mean/var/std additionally have `_with_dtype` forms with an explicit output dtype.
+
 Closeness testing: [`allclose`](allclose()) (explicit all-element form [`allclose_all`]), or macro [`allclose!`].
 
 ### Sorting, searching and counting functions
 
-[`argmin`]/[`argmin_axes`], [`argmax`]/[`argmax_axes`], [`count_nonzero`]/[`count_nonzero_axes`], [`unraveled_argmin`]/[`unraveled_argmin_axes`], [`unraveled_argmax`]/[`unraveled_argmax_axes`]
+[`argmin`]/[`argmin_axes`], [`argmax`]/[`argmax_axes`], [`count_nonzero`]/[`count_nonzero_axes`], [`unraveled_argmin`]/[`unraveled_argmin_axes`], [`unraveled_argmax`]/[`unraveled_argmax_axes`], each with `_with_args` forms
 
 ### Utility functions
 

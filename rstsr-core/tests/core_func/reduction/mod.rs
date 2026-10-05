@@ -12,6 +12,7 @@ pub mod test_nanargmin;
 pub mod test_prod;
 pub mod test_reduce_args;
 pub mod test_reduce_dtype;
+pub mod test_reduce_stride0;
 pub mod test_std;
 pub mod test_sum;
 pub mod test_var;

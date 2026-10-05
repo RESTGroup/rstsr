@@ -58,6 +58,8 @@ pub mod rstsr_structs {
         TensorViewMut,
     };
 
+    pub use rstsr_common::axis_index::AxesIndex;
+
     pub use crate::tensor::manipulation::exports::ReshapeArgs;
     pub use crate::tensor::reduction::{ReduceArgs, VarArgs};
 }

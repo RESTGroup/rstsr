@@ -88,7 +88,7 @@
 //! // [[ 5 7 9]]
 //! // explicit output dtype: fold in f64
 //! println!("{}", a.sum_with_dtype::<f64>(1));
-//! // [ 6.0 15.0]
+//! // [ 6 15]
 //! # assert_eq!(format!("{}", rt::sum_with_args(&a, ([0], true))), "[[ 5 7 9]]");
 //! # assert_eq!(a.sum_with_dtype::<f64>(1)[[1]], 15.0);
 //! ```
@@ -110,6 +110,10 @@ use num::{Float, FromPrimitive};
 ///   RSTSR's existing [`AxesIndex`] conventions.
 /// - `keepdims`: if `true`, reduced axes are kept in the result as size-1 dimensions instead of
 ///   being dropped.
+///
+/// Note: `()` (and [`ReduceArgs::default`]) means reduce **all** axes. This differs from the bare
+/// `AxesIndex::from(())` (an empty axes list, i.e. reduce nothing) that the `_axes` functions
+/// accept; here `()` always reads as the default argument set.
 ///
 /// # Notes of API accordance
 ///
@@ -181,19 +185,21 @@ impl<const N: usize> From<[isize; N]> for ReduceArgs {
     }
 }
 
+/// `as isize` (not TryFrom): `From` is infallible by convention, so an
+/// out-of-range value must not panic here. Widened/negative values are
+/// rejected later by the axes validation (`normalize_axes_index`), which
+/// surfaces as `Err` for the `_f` entry points.
 macro_rules! impl_reduce_args_from_int {
     ($Args: ident, $($t: ty),* $(,)?) => {$(
         impl From<$t> for $Args {
             fn from(axis: $t) -> Self {
-                let axes = AxesIndex::<isize>::try_from(axis).rstsr_unwrap();
-                Self::from(axes)
+                Self::from(AxesIndex::Val(axis as isize))
             }
         }
 
         impl From<($t, bool)> for $Args {
             fn from((axis, keepdims): ($t, bool)) -> Self {
-                let axes = AxesIndex::<isize>::try_from(axis).rstsr_unwrap();
-                Self::from((axes, keepdims))
+                Self::from((AxesIndex::Val(axis as isize), keepdims))
             }
         }
     )*};
@@ -237,6 +243,30 @@ impl From<(AxesIndex<isize>, bool)> for ReduceArgs {
 impl<const N: usize> From<([isize; N], bool)> for ReduceArgs {
     fn from((axes, keepdims): ([isize; N], bool)) -> Self {
         Self { axes: AxesIndex::Vec(axes.to_vec()), keepdims }
+    }
+}
+
+impl From<(Vec<isize>, bool)> for ReduceArgs {
+    fn from((axes, keepdims): (Vec<isize>, bool)) -> Self {
+        Self { axes: AxesIndex::Vec(axes), keepdims }
+    }
+}
+
+impl From<bool> for VarArgs {
+    fn from(keepdims: bool) -> Self {
+        Self { axes: AxesIndex::None, keepdims, correction: None }
+    }
+}
+
+impl From<Option<AxesIndex<isize>>> for VarArgs {
+    fn from(axes: Option<AxesIndex<isize>>) -> Self {
+        Self::from(axes.unwrap_or(AxesIndex::None))
+    }
+}
+
+impl From<(Vec<isize>, bool)> for VarArgs {
+    fn from((axes, keepdims): (Vec<isize>, bool)) -> Self {
+        Self { axes: AxesIndex::Vec(axes), keepdims, correction: None }
     }
 }
 
@@ -287,12 +317,6 @@ impl From<Vec<isize>> for VarArgs {
 impl<const N: usize> From<[isize; N]> for VarArgs {
     fn from(axes: [isize; N]) -> Self {
         Self::from(AxesIndex::Vec(axes.to_vec()))
-    }
-}
-
-impl From<VarArgs> for ReduceArgs {
-    fn from(args: VarArgs) -> Self {
-        ReduceArgs { axes: args.axes, keepdims: args.keepdims }
     }
 }
 
@@ -559,6 +583,50 @@ pub use impl_trait_reduction::*;
 /// accumulate closure), so accumulation happens in the requested dtype
 /// (anti-overflow semantics of array-api's `dtype=` keyword) without
 /// materializing a cast copy of the input.
+/// Dispatch + output-layout plumbing shared by the `*_with_args` /
+/// `*_with_dtype` entry points (a macro so each call site expands inline:
+/// closure-based helpers lose the outer generics' associated types).
+///
+/// Requires `tensor` in scope (a viewed `TensorAny`), plus device methods
+/// `$all` / `$axes`; expands to a `Result<Tensor<..>>`.
+macro_rules! reduce_dispatch_output {
+    ($tensor: ident, $all: ident, $axes: ident, $axes_val: expr, $keepdims: expr) => {{
+        let axes = $axes_val;
+        let keepdims = $keepdims;
+        let layout: Layout<IxD> = $tensor.layout().to_dim()?;
+        match axes {
+            AxesIndex::None => {
+                let val = $tensor.device().$all($tensor.raw(), $tensor.layout())?;
+                let storage = $tensor.device().outof_cpu_vec(vec![val])?;
+                let out_layout = reduce_layout_whole(layout.ndim(), keepdims)?;
+                Tensor::new_f(storage, out_layout)
+            },
+            axes => {
+                let (storage, out_layout) = $tensor.device().$axes($tensor.raw(), $tensor.layout(), axes.as_ref())?;
+                let out_layout = reduce_layout_keepdims(out_layout, &axes, layout.ndim(), keepdims)?;
+                Tensor::new_f(storage, out_layout)
+            },
+        }
+    }};
+    ($tensor: ident, @axes_kernel $axes: ident, $axes_val: expr, $keepdims: expr) => {{
+        let axes = $axes_val;
+        let keepdims = $keepdims;
+        let layout: Layout<IxD> = $tensor.layout().to_dim()?;
+        let axes = match axes {
+            AxesIndex::None => AxesIndex::Vec((0..layout.ndim() as isize).collect_vec()),
+            axes => axes,
+        };
+        let (storage, out_layout) = $tensor.device().$axes($tensor.raw(), $tensor.layout(), axes.as_ref())?;
+        let out_layout = reduce_layout_keepdims(out_layout, &axes, layout.ndim(), keepdims)?;
+        Tensor::new_f(storage, out_layout)
+    }};
+}
+
+/// Dispatch + output-layout plumbing shared by the `*_with_args` /
+/// `*_with_dtype` entry points: `AxesIndex::None` routes to the whole-array
+/// kernel (which, unlike the axes kernel, supports broadcast and zero-size
+/// inputs), other axes to the axes kernel; keepdims rebuilds the output
+/// layout afterwards.
 macro_rules! trait_reduction_dtype {
     ($OpReduceDtypeAPI: ident, $fn_with_dtype: ident, $fn_with_dtype_f: ident, $fn_axes_dtype: ident) => {
         pub fn $fn_with_dtype_f<T, TOut, B, D>(
@@ -572,22 +640,7 @@ macro_rules! trait_reduction_dtype {
             let ReduceArgs { axes, keepdims } = args.into();
             let tensor = tensor.view();
 
-            match axes {
-                AxesIndex::None => {
-                    // no dedicated whole-array dtype kernel: reduce all axes
-                    // through the axes kernel; rebuild the layout for keepdims
-                    let all_axes: Vec<isize> = (0..tensor.layout().ndim() as isize).collect_vec();
-                    let (storage, _) = tensor.device().$fn_axes_dtype(tensor.raw(), tensor.layout(), &all_axes)?;
-                    let layout = reduce_layout_whole(tensor.layout().ndim(), keepdims)?;
-                    Tensor::new_f(storage, layout)
-                },
-                axes => {
-                    let (storage, layout) =
-                        tensor.device().$fn_axes_dtype(tensor.raw(), tensor.layout(), axes.as_ref())?;
-                    let layout = reduce_layout_keepdims(layout, &axes, tensor.layout().ndim(), keepdims)?;
-                    Tensor::new_f(storage, layout)
-                },
-            }
+            reduce_dispatch_output!(tensor, @axes_kernel $fn_axes_dtype, axes, keepdims)
         }
 
         pub fn $fn_with_dtype<T, TOut, B, D>(
@@ -624,14 +677,121 @@ macro_rules! trait_reduction_dtype {
     };
 }
 
+/// var/std `*_with_dtype`: same dispatch as [`trait_reduction_dtype`], but
+/// consuming [`VarArgs`] and applying array-api `correction` to the finished
+/// result (output-sized rescale; no input-sized intermediate).
+///
+/// The fold accumulates `(sum, sum-of-squares)` in `TOut` (one-pass formula, same as NumPy). With
+/// a narrower accumulator than the input (e.g. `f64` input folded in `f32`) catastrophic
+/// cancellation can yield a negative variance / NaN std; prefer an equal-width or wider `TOut`
+/// when precision matters.
+macro_rules! trait_reduction_dtype_varstd {
+    ($OpReduceDtypeAPI: ident, $fn_with_dtype: ident, $fn_with_dtype_f: ident, $fn_axes_dtype: ident, $is_std: literal) => {
+        pub fn $fn_with_dtype_f<T, TOut, B, D>(
+            tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
+            args: impl Into<VarArgs>,
+        ) -> Result<Tensor<TOut, B, IxD>>
+        where
+            D: DimAPI,
+            TOut: Float + FromPrimitive + Send + Sync + 'static,
+            B: $OpReduceDtypeAPI<T, TOut, D>
+                + DeviceCreationAnyAPI<TOut>
+                + DeviceRawAPI<MaybeUninit<TOut>>
+                + for<'f> Op_MutA_RefB_API<
+                    TOut,
+                    TOut,
+                    IxD,
+                    dyn Fn(&mut MaybeUninit<TOut>, &TOut) + Send + Sync + 'f,
+                >,
+        {
+            let VarArgs {
+                axes,
+                keepdims,
+                correction,
+            } = args.into();
+            let tensor = tensor.view();
+
+            let result = reduce_dispatch_output!(tensor, @axes_kernel $fn_axes_dtype, axes.clone(), keepdims)?;
+
+            match correction {
+                None => Ok(result),
+                Some(correction) => {
+                    let size = reduced_axes_size(&axes, tensor.layout())?;
+                    let factor = <TOut as FromPrimitive>::from_f64(var_correction_factor(size, correction, $is_std)).unwrap();
+                    Ok(result.mapv(move |x| x * factor))
+                },
+            }
+        }
+
+        pub fn $fn_with_dtype<T, TOut, B, D>(
+            tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
+            args: impl Into<VarArgs>,
+        ) -> Tensor<TOut, B, IxD>
+        where
+            D: DimAPI,
+            TOut: Float + FromPrimitive + Send + Sync + 'static,
+            B: $OpReduceDtypeAPI<T, TOut, D>
+                + DeviceCreationAnyAPI<TOut>
+                + DeviceRawAPI<MaybeUninit<TOut>>
+                + for<'f> Op_MutA_RefB_API<
+                    TOut,
+                    TOut,
+                    IxD,
+                    dyn Fn(&mut MaybeUninit<TOut>, &TOut) + Send + Sync + 'f,
+                >,
+        {
+            $fn_with_dtype_f(tensor, args).rstsr_unwrap()
+        }
+
+        impl<R, T, B, D> TensorAny<R, T, B, D>
+        where
+            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+            D: DimAPI,
+            B: DeviceAPI<T>,
+        {
+            pub fn $fn_with_dtype_f<TOut>(&self, args: impl Into<VarArgs>) -> Result<Tensor<TOut, B, IxD>>
+            where
+                TOut: Float + FromPrimitive + Send + Sync + 'static,
+                B: $OpReduceDtypeAPI<T, TOut, D>
+                    + DeviceCreationAnyAPI<TOut>
+                    + DeviceRawAPI<MaybeUninit<TOut>>
+                    + for<'f> Op_MutA_RefB_API<
+                        TOut,
+                        TOut,
+                        IxD,
+                        dyn Fn(&mut MaybeUninit<TOut>, &TOut) + Send + Sync + 'f,
+                    >,
+            {
+                $fn_with_dtype_f(self, args)
+            }
+
+            pub fn $fn_with_dtype<TOut>(&self, args: impl Into<VarArgs>) -> Tensor<TOut, B, IxD>
+            where
+                TOut: Float + FromPrimitive + Send + Sync + 'static,
+                B: $OpReduceDtypeAPI<T, TOut, D>
+                    + DeviceCreationAnyAPI<TOut>
+                    + DeviceRawAPI<MaybeUninit<TOut>>
+                    + for<'f> Op_MutA_RefB_API<
+                        TOut,
+                        TOut,
+                        IxD,
+                        dyn Fn(&mut MaybeUninit<TOut>, &TOut) + Send + Sync + 'f,
+                    >,
+            {
+                $fn_with_dtype(self, args)
+            }
+        }
+    };
+}
+
 #[rustfmt::skip]
 mod impl_trait_reduction_dtype {
     use super::*;
     trait_reduction_dtype!(OpSumDtypeAPI, sum_with_dtype, sum_with_dtype_f, sum_axes_dtype);
     trait_reduction_dtype!(OpProdDtypeAPI, prod_with_dtype, prod_with_dtype_f, prod_axes_dtype);
     trait_reduction_dtype!(OpMeanDtypeAPI, mean_with_dtype, mean_with_dtype_f, mean_axes_dtype);
-    trait_reduction_dtype!(OpVarDtypeAPI, var_with_dtype, var_with_dtype_f, var_axes_dtype);
-    trait_reduction_dtype!(OpStdDtypeAPI, std_with_dtype, std_with_dtype_f, std_axes_dtype);
+    trait_reduction_dtype_varstd!(OpVarDtypeAPI, var_with_dtype, var_with_dtype_f, var_axes_dtype, false);
+    trait_reduction_dtype_varstd!(OpStdDtypeAPI, std_with_dtype, std_with_dtype_f, std_axes_dtype, true);
 }
 pub use impl_trait_reduction_dtype::*;
 
@@ -680,19 +840,7 @@ where
     let VarArgs { axes, keepdims, correction } = args.into();
     let tensor = tensor.view();
 
-    let result = match &axes {
-        AxesIndex::None => {
-            let val = tensor.device().var_all(tensor.raw(), tensor.layout())?;
-            let storage = tensor.device().outof_cpu_vec(vec![val])?;
-            let layout = reduce_layout_whole(tensor.layout().ndim(), keepdims)?;
-            Tensor::new_f(storage, layout)?
-        },
-        axes => {
-            let (storage, layout) = tensor.device().var_axes(tensor.raw(), tensor.layout(), axes.as_ref())?;
-            let layout = reduce_layout_keepdims(layout, axes, tensor.layout().ndim(), keepdims)?;
-            Tensor::new_f(storage, layout)?
-        },
-    };
+    let result: Tensor<B::TOut, B, IxD> = reduce_dispatch_output!(tensor, var_all, var_axes, axes.clone(), keepdims)?;
 
     if let Some(correction) = correction {
         let size = reduced_axes_size(&axes, tensor.layout())?;
@@ -742,19 +890,7 @@ where
     let VarArgs { axes, keepdims, correction } = args.into();
     let tensor = tensor.view();
 
-    let result = match &axes {
-        AxesIndex::None => {
-            let val = tensor.device().std_all(tensor.raw(), tensor.layout())?;
-            let storage = tensor.device().outof_cpu_vec(vec![val])?;
-            let layout = reduce_layout_whole(tensor.layout().ndim(), keepdims)?;
-            Tensor::new_f(storage, layout)?
-        },
-        axes => {
-            let (storage, layout) = tensor.device().std_axes(tensor.raw(), tensor.layout(), axes.as_ref())?;
-            let layout = reduce_layout_keepdims(layout, axes, tensor.layout().ndim(), keepdims)?;
-            Tensor::new_f(storage, layout)?
-        },
-    };
+    let result: Tensor<B::TOut, B, IxD> = reduce_dispatch_output!(tensor, std_all, std_axes, axes.clone(), keepdims)?;
 
     if let Some(correction) = correction {
         let size = reduced_axes_size(&axes, tensor.layout())?;
@@ -1020,18 +1156,22 @@ macro_rules! trait_reduction_arg_with_args {
             let ReduceArgs { axes, keepdims } = args.into();
             let tensor = tensor.view();
 
-            match axes {
-                AxesIndex::None => {
-                    let arg = tensor.device().$fn_all(tensor.raw(), tensor.layout())?;
-                    let storage = tensor.device().outof_cpu_vec(vec![arg.into()])?;
-                    let layout = reduce_layout_whole(tensor.layout().ndim(), keepdims)?;
-                    Tensor::new_f(storage, layout)
-                },
-                axes => {
-                    let (storage, layout) = tensor.device().$fn_axes(tensor.raw(), tensor.layout(), axes.as_ref())?;
-                    let layout = reduce_layout_keepdims(layout, &axes, tensor.layout().ndim(), keepdims)?;
-                    Tensor::new_f(storage, layout)
-                },
+            {
+                // unraveled all-form returns a dim; wrap into the 0-D/keepdims tensor
+                match axes {
+                    AxesIndex::None => {
+                        let arg = tensor.device().$fn_all(tensor.raw(), tensor.layout())?;
+                        let storage = tensor.device().outof_cpu_vec(vec![arg.into()])?;
+                        let out_layout = reduce_layout_whole(tensor.layout().ndim(), keepdims)?;
+                        Tensor::new_f(storage, out_layout)
+                    },
+                    axes => {
+                        let (storage, out_layout) =
+                            tensor.device().$fn_axes(tensor.raw(), tensor.layout(), axes.as_ref())?;
+                        let out_layout = reduce_layout_keepdims(out_layout, &axes, tensor.layout().ndim(), keepdims)?;
+                        Tensor::new_f(storage, out_layout)
+                    },
+                }
             }
         }
 
@@ -1131,21 +1271,8 @@ where
 
     fn sum_with_args_f(&self, args: impl Into<ReduceArgs>) -> Result<Tensor<usize, B, IxD>> {
         let ReduceArgs { axes, keepdims } = args.into();
-
-        match axes {
-            AxesIndex::None => {
-                // special case for summing all axes
-                let sum = self.device().sum_all(self.raw(), self.layout())?;
-                let storage = self.device().outof_cpu_vec(vec![sum])?;
-                let layout = reduce_layout_whole(self.layout().ndim(), keepdims)?;
-                Tensor::new_f(storage, layout)
-            },
-            axes => {
-                let (storage, layout) = self.device().sum_axes(self.raw(), self.layout(), axes.as_ref())?;
-                let layout = reduce_layout_keepdims(layout, &axes, self.layout().ndim(), keepdims)?;
-                Tensor::new_f(storage, layout)
-            },
-        }
+        let tensor = self.view();
+        reduce_dispatch_output!(tensor, sum_all, sum_axes, axes, keepdims)
     }
 }
 
@@ -1771,6 +1898,22 @@ mod test {
         let m = a.mean_with_dtype::<f64>(1);
         assert_eq!(m[[0]], 2.0);
         assert_eq!(m[[1]], 5.0);
+
+        // prod / var / std dtype paths (rayon kernels)
+        let p = a.prod_with_dtype::<i64>(());
+        assert_eq!(p.to_scalar(), 720i64);
+        let x: Tensor<f64, DeviceFaer> = asarray((vec![1.0, 2.0, 3.0, 4.0], &DeviceFaer::default()));
+        let v = x.var_with_dtype::<f64>(VarArgs { correction: Some(1.0), ..Default::default() });
+        assert!((v.to_scalar() - 5.0 / 3.0).abs() < 1e-12);
+        let s = x.std_with_dtype::<f64>(VarArgs { correction: Some(1.0), ..Default::default() });
+        assert!((s.to_scalar() - (5.0f64 / 3.0).sqrt()).abs() < 1e-12);
+
+        // with_args + stride-0 input (rayon axes kernel)
+        let av: Tensor<i64, DeviceFaer> = asarray((vec![0i64, 1, 2, 3], [4, 1].c(), &DeviceFaer::default()));
+        let av_dyn = av.into_dyn();
+        let bv: TensorView<i64, DeviceFaer, Vec<usize>> = broadcast_to(&av_dyn, vec![4usize, 3]);
+        assert_eq!(bv.sum_axes(1).to_vec(), vec![0i64, 3, 6, 9]);
+        assert_eq!(bv.sum_axes([0, 1]).to_scalar(), 18i64);
     }
 
     #[test]

@@ -55,9 +55,31 @@ mod doc_with_args {
         assert_eq!(format!("{}", rt::sum_with_args(&a, ([0], true))), "[[ 5 7 9]]");
         // explicit output dtype: fold in f64
         println!("{}", a.sum_with_dtype::<f64>(1));
-        // [ 6.0 15.0]
+        // [ 6 15]
+        assert_eq!(format!("{}", a.sum_with_dtype::<f64>(1)), "[ 6 15]");
         assert_eq!(a.sum_with_dtype::<f64>(1)[[0]], 6.0);
         assert_eq!(a.sum_with_dtype::<f64>(1)[[1]], 15.0);
+    }
+}
+
+mod doc_reduce_args {
+    use super::*;
+    static FUNC: &str = "doc_reduce_args";
+
+    #[test]
+    fn test_doc() {
+        crate::specify_test!("test_doc");
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // twin of the ReduceArgs docstring example
+        let a = rt::tensor_from_nested!([[1, 2, 3], [4, 5, 6]], &device);
+        let s = rt::sum_with_args(&a, true);
+        assert_eq!(s.shape().to_vec(), vec![1, 1]);
+        assert_eq!(s.to_scalar(), 21);
+        let s = rt::sum_with_args(&a, ([0], true));
+        assert_eq!(s.shape().to_vec(), vec![1, 3]);
+        assert_eq!(format!("{}", s), "[[ 5 7 9]]");
     }
 }
 

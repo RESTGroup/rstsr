@@ -230,9 +230,9 @@ The reference implementation (as in [`DeviceCpuSerial`] and [`DeviceFaer`]), fol
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| Y | [`argmax`], [`argmax_axes`] | [`argmax`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.argmax.html) | Returns the indices of the maximum values along a specified axis. |
-| Y | [`argmin`], [`argmin_axes`] | [`argmin`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.argmin.html) | Returns the indices of the minimum values along a specified axis. |
-| Y | [`count_nonzero`], [`count_nonzero_axes`] | [`count_nonzero`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.count_nonzero.html) | Counts the number of array elements which are non-zero. |
+| Y | [`argmax`], [`argmax_axes`], [`argmax_with_args`] | [`argmax`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.argmax.html) | Returns the indices of the maximum values along a specified axis. |
+| Y | [`argmin`], [`argmin_axes`], [`argmin_with_args`] | [`argmin`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.argmin.html) | Returns the indices of the minimum values along a specified axis. |
+| Y | [`count_nonzero`], [`count_nonzero_axes`], [`count_nonzero_with_args`] | [`count_nonzero`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.count_nonzero.html) | Counts the number of array elements which are non-zero. |
 | | | [`nonzero`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.nonzero.html) | Returns the indices of the array elements which are non-zero. |
 | | | [`searchsorted`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.searchsorted.html) | Finds the indices into x1 such that, if the corresponding elements in x2 were inserted before the indices, the order of x1, when sorted in ascending order, would be preserved. |
 | | | [`where`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.where.html) | Returns elements chosen from x1 or x2 depending on condition. |
@@ -264,7 +264,7 @@ The reference implementation (as in [`DeviceCpuSerial`] and [`DeviceFaer`]), fol
 | Y | [`mean`], [`mean_axes`], [`mean_with_args`], [`mean_with_dtype`] | [`mean`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.mean.html) | Calculates the arithmetic mean of the input array `x`. |
 | Y | [`min`], [`min_axes`], [`min_with_args`] | [`min`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.min.html) | Calculates the minimum value of the input array `x`. |
 | Y | [`prod`], [`prod_axes`], [`prod_with_args`], [`prod_with_dtype`] | [`prod`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.prod.html) | Calculates the product of input array `x` elements. |
-| Y | [`std`]([std()]), [`std_axes`], [`std_with_args`] | [`std`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.std.html) | Calculates the standard deviation of the input array `x`. |
+| Y | [`std`]([std()]), [`std_axes`], [`std_with_args`], [`std_with_dtype`] | [`std`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.std.html) | Calculates the standard deviation of the input array `x`. |
 | Y | [`sum`], [`sum_axes`], [`sum_with_args`], [`sum_with_dtype`] | [`sum`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.sum.html) | Calculates the sum of the input array `x`. |
 | Y | [`var`], [`var_axes`], [`var_with_args`], [`var_with_dtype`] | [`var`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.var.html) | Calculates the variance of the input array `x`. |
 
@@ -272,8 +272,8 @@ The reference implementation (as in [`DeviceCpuSerial`] and [`DeviceFaer`]), fol
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| Y | [`all`], [`all_axes`] | [`all`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.all.html) | Tests whether all input array elements evaluate to `True` along a specified axis. |
-| Y | [`any`], [`any_axes`] | [`any`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.any.html) | Tests whether any input array element evaluates to `True` along a specified axis. |
+| Y | [`all`], [`all_axes`], [`all_with_args`] | [`all`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.all.html) | Tests whether all input array elements evaluate to `True` along a specified axis. |
+| Y | [`any`], [`any_axes`], [`any_with_args`] | [`any`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.any.html) | Tests whether any input array element evaluates to `True` along a specified axis. |
 | | | [`diff`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.diff.html) | Calculates the n-th discrete forward difference along a specified axis. |
 
 
