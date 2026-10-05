@@ -141,3 +141,17 @@ where
         self.op_muta_func(a, la, &mut func_inplace)
     }
 }
+
+// SAFETY (closure below): `a` is the caller's fresh output storage; the
+// closure writes a clone of every visited element of `b` into it.
+impl<T, D> OpPositiveAPI<T, D> for DeviceRayonAutoImpl
+where
+    T: Clone + Send + Sync,
+    D: DimAPI,
+{
+    fn op_muta_refb(&self, a: &mut Vec<MaybeUninit<T>>, la: &Layout<D>, b: &Vec<T>, lb: &Layout<D>) -> Result<()> {
+        self.op_muta_refb_func(a, la, b, lb, &mut |a, b| {
+            a.write(b.clone());
+        })
+    }
+}

@@ -1,6 +1,7 @@
-//! Unary arithmetic operators with rust-operator counterparts:
-//! [`neg`](neg()) (operator `-`, arithmetic negation) and [`not`](not())
-//! (operator `!`, logical/bitwise not for boolean and integer tensors).
+//! Unary arithmetic operators: [`neg`](neg()) (operator `-`, arithmetic
+//! negation), [`not`](not()) (operator `!`, logical/bitwise not for boolean
+//! and integer tensors), and [`positive`](positive()) (identity function; no
+//! rust-operator counterpart).
 //!
 //! # Examples
 //!
@@ -20,6 +21,7 @@ use crate::prelude_dev::*;
     op    op_f    TensorOpAPI    ;
    [neg] [neg_f] [TensorNegAPI];
    [not] [not_f] [TensorNotAPI];
+   [positive] [positive_f] [TensorPositiveAPI];
 )]
 pub trait TensorOpAPI {
     type Output;
@@ -36,6 +38,7 @@ pub trait TensorOpAPI {
     op    op_f    TensorOpAPI    ;
    [neg] [neg_f] [TensorNegAPI];
    [not] [not_f] [TensorNotAPI];
+   [positive] [positive_f] [TensorPositiveAPI];
 )]
 pub fn op_f<TRA, TRB>(a: TRA) -> Result<TRB>
 where
@@ -48,6 +51,7 @@ where
     op    op_f    TensorOpAPI    ;
    [neg] [neg_f] [TensorNegAPI];
    [not] [not_f] [TensorNotAPI];
+   [positive] [positive_f] [TensorPositiveAPI];
 )]
 pub fn op<TRA, TRB>(a: TRA) -> TRB
 where
@@ -60,6 +64,7 @@ where
     op    op_f    TensorOpAPI    ;
    [neg] [neg_f] [TensorNegAPI];
    [not] [not_f] [TensorNotAPI];
+   [positive] [positive_f] [TensorPositiveAPI];
 )]
 impl<S, D> TensorBase<S, D>
 where
@@ -186,6 +191,65 @@ mod impl_unary {
     }
 }
 
+#[doc(hidden)]
+mod impl_unary_positive {
+    use super::*;
+
+    // `positive` follows the `neg`/`not` machinery (device kernel behind
+    // `OpPositiveAPI`), but with no operator trait bound on the element type:
+    // the kernel only clones, and the in-place form is the identity.
+
+    #[doc(hidden)]
+    impl<R, T, B, D> TensorPositiveAPI for &TensorAny<R, T, B, D>
+    where
+        D: DimAPI,
+        R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+        T: Clone,
+        B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpPositiveAPI<T, D>,
+    {
+        type Output = Tensor<T, B, D>;
+        fn positive_f(self) -> Result<Self::Output> {
+            let lb = self.layout();
+            // generate empty output tensor
+            let device = self.device();
+            let la = layout_for_array_copy(lb, TensorIterOrder::K)?;
+            let mut storage_a = device.uninit_impl(la.bounds_index()?.1)?;
+            // compute and return
+            device.op_muta_refb(storage_a.raw_mut(), &la, self.raw(), lb)?;
+            // SAFETY: the op above wrote every element of the fresh `storage_a`.
+            let storage_a = unsafe { B::assume_init_impl(storage_a) }?;
+            return Tensor::new_f(storage_a, la);
+        }
+    }
+
+    #[doc(hidden)]
+    impl<T, B, D> TensorPositiveAPI for TensorView<'_, T, B, D>
+    where
+        D: DimAPI,
+        T: Clone,
+        B: DeviceAPI<T> + DeviceCreationAnyAPI<T> + OpPositiveAPI<T, D>,
+    {
+        type Output = Tensor<T, B, D>;
+        fn positive_f(self) -> Result<Self::Output> {
+            TensorPositiveAPI::positive_f(&self)
+        }
+    }
+
+    #[doc(hidden)]
+    impl<T, B, D> TensorPositiveAPI for Tensor<T, B, D>
+    where
+        D: DimAPI,
+        B: DeviceAPI<T>,
+    {
+        type Output = Tensor<T, B, D>;
+        fn positive_f(self) -> Result<Self::Output> {
+            // the identity in place is a no-op: an owned tensor is returned
+            // as-is, without a device call or a copy
+            Ok(self)
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -199,6 +263,24 @@ mod test {
         let b = -a;
         let b_ref = vec![-1., -2., -3., -4., -5.].into();
         assert!(allclose_f64(&b, &b_ref));
+    }
+
+    #[test]
+    fn test_positive() {
+        let a = linspace((1.0, 5.0, 5));
+        let b_ref = vec![1., 2., 3., 4., 5.].into();
+        // borrowed input: fresh owned copy
+        let b = positive(&a);
+        assert!(allclose_f64(&b, &b_ref));
+        assert_ne!(a.raw().as_ptr(), b.raw().as_ptr());
+        // view input: fresh owned copy as well
+        let c = positive(a.view());
+        assert!(allclose_f64(&c, &b_ref));
+        // owned input: identity in place, no copy
+        let ptr_a = a.raw().as_ptr();
+        let d = positive(a);
+        assert!(allclose_f64(&d, &b_ref));
+        assert_eq!(ptr_a, d.raw().as_ptr());
     }
 
     #[test]

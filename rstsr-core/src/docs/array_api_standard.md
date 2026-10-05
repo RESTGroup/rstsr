@@ -25,7 +25,7 @@ To use remainder (modular) function correctly, one may use [`rt::rem`] (as funct
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| D | | [`__pos__`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.array.__pos__.html) | `+x` |
+| Y | [`positive`] | [`__pos__`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.array.__pos__.html) | `+x` |
 | Y | `-` | [`__neg__`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.array.__neg__.html) | `-x` |
 | Y | `+` | [`__add__`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.array.__add__.html) | `x1 + x2` |
 | Y | `-` | [`__sub__`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.array.__sub__.html) | `x1 - x2` |
@@ -48,7 +48,6 @@ To use remainder (modular) function correctly, one may use [`rt::rem`] (as funct
 - `__mod__`: We do not use remainder function to represent something like `8 % 3 = 2`, but instead using notation `%` to represent matrix multiplication (`@` in python/numpy).
 
 **Dropped support**
-- `__pos__`: In rust, leading `+` is not allowed.
 - `__ifloordiv__`: This is not a priority for implementation.
 - `__ipow__`: This is not a priority for implementation.
 
@@ -309,7 +308,7 @@ The reference implementation (as in [`DeviceCpuSerial`] and [`DeviceFaer`]), fol
 | [`ComplexFloat`] | [`log10`] | [`log10`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.log10.html) | Calculates an implementation-dependent approximation to the base 10 logarithm for each element x_i of the input array x. |
 | [`Not`] | [`not`] instead | [`logical_not`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.logical_not.html) | Computes the logical NOT for each element x_i of the input array x. |
 | [`Neg`] | `-`, [`neg`] | [`negative`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.negative.html) | Computes the numerical negative of each element x_i (i.e., y_i = -x_i) of the input array x. |
-| Dropped | | [`positive`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.positive.html) | Computes the numerical positive of each element x_i (i.e., y_i = +x_i) of the input array x. |
+| [`Clone`] | [`positive`] | [`positive`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.positive.html) | Computes the numerical positive of each element x_i (i.e., y_i = +x_i) of the input array x. |
 | [`ExtNum`] | [`real`] | [`real`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.real.html) | Returns the real component of a complex number for each element x_i of the input array x. |
 | [`ComplexFloat`] | [`reciprocal`] | [`reciprocal`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.reciprocal.html) | Returns the reciprocal for each element x_i of the input array x. |
 | [`Float`] | [`round`] | [`round`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.round.html) | Rounds each element x_i of the input array x to the nearest integer-valued number. |

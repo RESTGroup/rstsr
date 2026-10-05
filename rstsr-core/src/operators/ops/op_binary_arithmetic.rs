@@ -107,3 +107,23 @@ where
 
     fn op_muta(&self, a: &mut <Self as DeviceRawAPI<TA>>::Raw, la: &Layout<D>) -> Result<()>;
 }
+
+/// Device kernel of the array API `positive` operation (identity): each
+/// visited element of the input is cloned into the output storage.
+///
+/// Unlike [`OpNegAPI`] / [`OpNotAPI`], the element type carries no operator
+/// trait bound. The in-place form of `positive` is the identity and is
+/// handled at the tensor layer, so there is no `op_muta` counterpart.
+pub trait OpPositiveAPI<T, D>
+where
+    D: DimAPI,
+    Self: DeviceAPI<MaybeUninit<T>> + DeviceAPI<T>,
+{
+    fn op_muta_refb(
+        &self,
+        a: &mut <Self as DeviceRawAPI<MaybeUninit<T>>>::Raw,
+        la: &Layout<D>,
+        b: &<Self as DeviceRawAPI<T>>::Raw,
+        lb: &Layout<D>,
+    ) -> Result<()>;
+}

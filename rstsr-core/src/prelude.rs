@@ -119,7 +119,7 @@ pub mod rstsr_funcs {
         shl_assign_f, shr_assign, shr_assign_f,
     };
     // unary arithmetics
-    pub use crate::tensor::operators::exports::{neg, neg_f, not, not_f};
+    pub use crate::tensor::operators::exports::{neg, neg_f, not, not_f, positive, positive_f};
     // unary common functions
     pub use crate::tensor::operators::exports::{
         abs, abs_f, acos, acos_f, acosh, acosh_f, asin, asin_f, asinh, asinh_f, atan, atan_f, atanh, atanh_f, ceil,
