@@ -260,13 +260,13 @@ The reference implementation (as in [`DeviceCpuSerial`] and [`DeviceFaer`]), fol
 |-|-|-|-|
 | | | [`cumulative_prod`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.cumulative_prod.html) | Calculates the cumulative product of elements in the input array `x`. |
 | | | [`cumulative_sum`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.cumulative_sum.html) | Calculates the cumulative sum of elements in the input array `x`. |
-| Y | [`max`], [`max_axes`] | [`max`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.max.html) | Calculates the maximum value of the input array `x`. |
-| Y | [`mean`], [`mean_axes`] | [`mean`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.mean.html) | Calculates the arithmetic mean of the input array `x`. |
-| Y | [`min`], [`min_axes`] | [`min`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.min.html) | Calculates the minimum value of the input array `x`. |
-| Y | [`prod`], [`prod_axes`] | [`prod`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.prod.html) | Calculates the product of input array `x` elements. |
-| Y | [`std`]([std()]), [`std_axes`] | [`std`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.std.html) | Calculates the standard deviation of the input array `x`. |
-| Y | [`sum`], [`sum_axes`] | [`sum`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.sum.html) | Calculates the sum of the input array `x`. |
-| Y | [`var`], [`var_axes`] | [`var`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.var.html) | Calculates the variance of the input array `x`. |
+| Y | [`max`], [`max_axes`], [`max_with_args`] | [`max`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.max.html) | Calculates the maximum value of the input array `x`. |
+| Y | [`mean`], [`mean_axes`], [`mean_with_args`], [`mean_with_dtype`] | [`mean`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.mean.html) | Calculates the arithmetic mean of the input array `x`. |
+| Y | [`min`], [`min_axes`], [`min_with_args`] | [`min`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.min.html) | Calculates the minimum value of the input array `x`. |
+| Y | [`prod`], [`prod_axes`], [`prod_with_args`], [`prod_with_dtype`] | [`prod`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.prod.html) | Calculates the product of input array `x` elements. |
+| Y | [`std`]([std()]), [`std_axes`], [`std_with_args`] | [`std`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.std.html) | Calculates the standard deviation of the input array `x`. |
+| Y | [`sum`], [`sum_axes`], [`sum_with_args`], [`sum_with_dtype`] | [`sum`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.sum.html) | Calculates the sum of the input array `x`. |
+| Y | [`var`], [`var_axes`], [`var_with_args`], [`var_with_dtype`] | [`var`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.var.html) | Calculates the variance of the input array `x`. |
 
 ## Utility Functions
 

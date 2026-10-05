@@ -38,6 +38,29 @@ mod doc_sum {
     }
 }
 
+mod doc_with_args {
+    use super::*;
+    static FUNC: &str = "doc_with_args";
+
+    #[test]
+    fn test_doc() {
+        crate::specify_test!("test_doc");
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        let a = rt::tensor_from_nested!([[1, 2, 3], [4, 5, 6]], &device);
+        // keep reduced axes as size-1 dimensions
+        println!("{}", rt::sum_with_args(&a, ([0], true)));
+        // [[ 5 7 9]]
+        assert_eq!(format!("{}", rt::sum_with_args(&a, ([0], true))), "[[ 5 7 9]]");
+        // explicit output dtype: fold in f64
+        println!("{}", a.sum_with_dtype::<f64>(1));
+        // [ 6.0 15.0]
+        assert_eq!(a.sum_with_dtype::<f64>(1)[[0]], 6.0);
+        assert_eq!(a.sum_with_dtype::<f64>(1)[[1]], 15.0);
+    }
+}
+
 mod doc_mean {
     use super::*;
     static FUNC: &str = "doc_mean";

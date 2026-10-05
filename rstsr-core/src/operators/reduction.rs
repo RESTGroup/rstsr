@@ -36,6 +36,28 @@ where
 
 #[allow(clippy::type_complexity)]
 #[duplicate_item(
+    OpReduceDtypeAPI  func_axes_dtype  ;
+   [OpSumDtypeAPI   ] [sum_axes_dtype  ];
+   [OpProdDtypeAPI  ] [prod_axes_dtype ];
+   [OpMeanDtypeAPI  ] [mean_axes_dtype ];
+   [OpVarDtypeAPI   ] [var_axes_dtype  ];
+   [OpStdDtypeAPI   ] [std_axes_dtype  ];
+)]
+pub trait OpReduceDtypeAPI<T, TOut, D>
+where
+    D: DimAPI,
+    Self: DeviceAPI<T> + DeviceAPI<TOut>,
+{
+    fn func_axes_dtype(
+        &self,
+        a: &<Self as DeviceRawAPI<T>>::Raw,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<<Self as DeviceRawAPI<TOut>>::Raw>, TOut, Self>, Layout<IxD>)>;
+}
+
+#[allow(clippy::type_complexity)]
+#[duplicate_item(
     OpReduceAPI            func                    func_all             ;
    [OpUnraveledArgMinAPI] [unraveled_argmin_axes] [unraveled_argmin_all];
    [OpUnraveledArgMaxAPI] [unraveled_argmax_axes] [unraveled_argmax_all];

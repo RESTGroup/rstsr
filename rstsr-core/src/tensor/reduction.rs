@@ -9,6 +9,12 @@
 //! - `<fam>_all(tensor)`: the same, explicit form;
 //! - `<fam>_axes(tensor, axes)`: reduce along the given axes (negative values count from the back;
 //!   `None` reduces everything into a 0-D tensor);
+//! - `<fam>_with_args(tensor, args)`: the same, with [`ReduceArgs`] grouping `axes` and `keepdims`
+//!   (reduced axes kept as size-1 dimensions); var/std take [`VarArgs`], which adds array-api
+//!   `correction` (NumPy `ddof`) on top;
+//! - `<fam>_with_dtype::<TOut>(tensor, args)` (sum/prod/mean/var/std): reduce with an explicit
+//!   output dtype; elements are cast inside the fold, so accumulation happens in `TOut`
+//!   (anti-overflow semantics of array-api's `dtype=`), with no cast copy of the input;
 //! - fallible `_f` versions of all of the above.
 //!
 //! The arg* families (`argmin`, `argmax`, and their `unraveled_` variants from
@@ -69,11 +75,281 @@
 //! # assert_eq!(rt::argmax(&a), 1);
 //! # assert_eq!(format!("{}", rt::argmax_axes(&a, 0)), "[ 1 0 0]");
 //! ```
+//!
+//! `*_with_args` and `*_with_dtype`:
+//!
+//! ```rust
+//! # use rstsr::prelude::*;
+//! # let mut device = DeviceCpu::default();
+//! # device.set_default_order(RowMajor);
+//! let a = rt::tensor_from_nested!([[1, 2, 3], [4, 5, 6]], &device);
+//! // keep reduced axes as size-1 dimensions
+//! println!("{}", rt::sum_with_args(&a, ([0], true)));
+//! // [[ 5 7 9]]
+//! // explicit output dtype: fold in f64
+//! println!("{}", a.sum_with_dtype::<f64>(1));
+//! // [ 6.0 15.0]
+//! # assert_eq!(format!("{}", rt::sum_with_args(&a, ([0], true))), "[[ 5 7 9]]");
+//! # assert_eq!(a.sum_with_dtype::<f64>(1)[[1]], 15.0);
+//! ```
 
 use crate::prelude_dev::*;
+use num::{Float, FromPrimitive};
+
+/* #region reduce args */
+
+/// Reduction arguments: `axes` and `keepdims`.
+///
+/// Default (`ReduceArgs::default()` or `()`): reduce **all** axes, dropping
+/// them from the result layout.
+///
+/// # Parameters
+///
+/// - `axes`: axes to reduce; `AxesIndex::None` reduces everything. Negative values count from the
+///   back. Unlike NumPy's `axis` keyword the field is spelled `axes` (plural), consistent with
+///   RSTSR's existing [`AxesIndex`] conventions.
+/// - `keepdims`: if `true`, reduced axes are kept in the result as size-1 dimensions instead of
+///   being dropped.
+///
+/// # Notes of API accordance
+///
+/// - array-api: `sum(x, axis=..., keepdims=...)` spells the axis argument `axis` and only accepts
+///   this in keyword form; RSTSR groups both into this struct.
+///
+/// # Examples
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let a = rt::tensor_from_nested!([[1, 2, 3], [4, 5, 6]], &device);
+/// // reduce all axes, keep dimensions: shape (1, 1), value 21
+/// let s = rt::sum_with_args(&a, true);
+/// assert_eq!(s.shape().to_vec(), vec![1, 1]);
+/// assert_eq!(s.to_scalar(), 21);
+/// // reduce axis 0 only, keepdims: shape (1, 3), values [5 7 9]
+/// let s = rt::sum_with_args(&a, ([0], true));
+/// assert_eq!(s.shape().to_vec(), vec![1, 3]);
+/// assert_eq!(s[[0, 2]], 9);
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReduceArgs {
+    pub axes: AxesIndex<isize>,
+    pub keepdims: bool,
+}
+
+impl Default for ReduceArgs {
+    fn default() -> Self {
+        ReduceArgs { axes: AxesIndex::None, keepdims: false }
+    }
+}
+
+impl From<()> for ReduceArgs {
+    fn from(_: ()) -> Self {
+        Self::default()
+    }
+}
+
+/// `keepdims` shorthand: `sum_with_args(&a, true)` reduces all axes keeping dims.
+impl From<bool> for ReduceArgs {
+    fn from(keepdims: bool) -> Self {
+        Self { axes: AxesIndex::None, keepdims }
+    }
+}
+
+impl From<AxesIndex<isize>> for ReduceArgs {
+    fn from(axes: AxesIndex<isize>) -> Self {
+        Self { axes, keepdims: false }
+    }
+}
+
+impl From<Option<AxesIndex<isize>>> for ReduceArgs {
+    fn from(axes: Option<AxesIndex<isize>>) -> Self {
+        Self::from(axes.unwrap_or(AxesIndex::None))
+    }
+}
+
+impl From<Vec<isize>> for ReduceArgs {
+    fn from(axes: Vec<isize>) -> Self {
+        Self::from(AxesIndex::Vec(axes))
+    }
+}
+
+impl<const N: usize> From<[isize; N]> for ReduceArgs {
+    fn from(axes: [isize; N]) -> Self {
+        Self::from(AxesIndex::Vec(axes.to_vec()))
+    }
+}
+
+macro_rules! impl_reduce_args_from_int {
+    ($Args: ident, $($t: ty),* $(,)?) => {$(
+        impl From<$t> for $Args {
+            fn from(axis: $t) -> Self {
+                let axes = AxesIndex::<isize>::try_from(axis).rstsr_unwrap();
+                Self::from(axes)
+            }
+        }
+
+        impl From<($t, bool)> for $Args {
+            fn from((axis, keepdims): ($t, bool)) -> Self {
+                let axes = AxesIndex::<isize>::try_from(axis).rstsr_unwrap();
+                Self::from((axes, keepdims))
+            }
+        }
+    )*};
+}
+
+// `isize` converts directly (no TryFrom needed; the std blanket TryFrom has an
+// `Infallible` error type that does not carry rstsr backtrace info)
+impl From<isize> for ReduceArgs {
+    fn from(axis: isize) -> Self {
+        Self::from(AxesIndex::Val(axis))
+    }
+}
+
+impl From<(isize, bool)> for ReduceArgs {
+    fn from((axis, keepdims): (isize, bool)) -> Self {
+        Self { axes: AxesIndex::Val(axis), keepdims }
+    }
+}
+
+impl From<isize> for VarArgs {
+    fn from(axis: isize) -> Self {
+        Self::from(AxesIndex::Val(axis))
+    }
+}
+
+impl From<(isize, bool)> for VarArgs {
+    fn from((axis, keepdims): (isize, bool)) -> Self {
+        Self { axes: AxesIndex::Val(axis), keepdims, correction: None }
+    }
+}
+
+impl_reduce_args_from_int!(ReduceArgs, i32, i64, usize);
+impl_reduce_args_from_int!(VarArgs, i32, i64, usize);
+
+impl From<(AxesIndex<isize>, bool)> for ReduceArgs {
+    fn from((axes, keepdims): (AxesIndex<isize>, bool)) -> Self {
+        Self { axes, keepdims }
+    }
+}
+
+impl<const N: usize> From<([isize; N], bool)> for ReduceArgs {
+    fn from((axes, keepdims): ([isize; N], bool)) -> Self {
+        Self { axes: AxesIndex::Vec(axes.to_vec()), keepdims }
+    }
+}
+
+/* #endregion */
+
+/* #region var args */
+
+/// Variance/std reduction arguments: [`ReduceArgs`] fields plus `correction`.
+///
+/// `correction` follows array-api `std`/`var`: the divisor is `M -
+/// correction` (NumPy's `ddof`), default `0` (population variance). If
+/// `M - correction <= 0` the result is NaN.
+#[derive(Debug, Clone, PartialEq)]
+pub struct VarArgs {
+    pub axes: AxesIndex<isize>,
+    pub keepdims: bool,
+    /// `f64` (not generic over the tensor's float type): corrections are
+    /// counts (NumPy `ddof`), exactly representable in `f64`, and the
+    /// rescale factor is computed once in `f64` then converted to the output
+    /// dtype - strictly more accurate than accumulating in a narrower float.
+    pub correction: Option<f64>,
+}
+
+impl Default for VarArgs {
+    fn default() -> Self {
+        VarArgs { axes: AxesIndex::None, keepdims: false, correction: None }
+    }
+}
+
+impl From<()> for VarArgs {
+    fn from(_: ()) -> Self {
+        Self::default()
+    }
+}
+
+impl From<AxesIndex<isize>> for VarArgs {
+    fn from(axes: AxesIndex<isize>) -> Self {
+        Self { axes, keepdims: false, correction: None }
+    }
+}
+
+impl From<Vec<isize>> for VarArgs {
+    fn from(axes: Vec<isize>) -> Self {
+        Self::from(AxesIndex::Vec(axes))
+    }
+}
+
+impl<const N: usize> From<[isize; N]> for VarArgs {
+    fn from(axes: [isize; N]) -> Self {
+        Self::from(AxesIndex::Vec(axes.to_vec()))
+    }
+}
+
+impl From<VarArgs> for ReduceArgs {
+    fn from(args: VarArgs) -> Self {
+        ReduceArgs { axes: args.axes, keepdims: args.keepdims }
+    }
+}
+
+impl From<(AxesIndex<isize>, bool)> for VarArgs {
+    fn from((axes, keepdims): (AxesIndex<isize>, bool)) -> Self {
+        Self { axes, keepdims, correction: None }
+    }
+}
+
+impl<const N: usize> From<([isize; N], bool)> for VarArgs {
+    fn from((axes, keepdims): ([isize; N], bool)) -> Self {
+        Self { axes: AxesIndex::Vec(axes.to_vec()), keepdims, correction: None }
+    }
+}
+
+/* #endregion */
+
+/* #region keepdims layout helpers */
+
+/// Layout for a whole-reduction result: 0-D, or `(1,)*ndim` if keepdims.
+fn reduce_layout_whole(ndim: usize, keepdims: bool) -> Result<Layout<IxD>> {
+    let mut layout = Layout::new(vec![], vec![], 0)?;
+    if keepdims {
+        for axis in 0..ndim {
+            layout = layout.dim_insert(axis as isize)?;
+        }
+    }
+    Ok(layout)
+}
+
+/// Reinsert size-1 dims at the (normalized, sorted) reduced axes if keepdims;
+/// otherwise return the layout unchanged.
+///
+/// Ascending insertion: after the first `i` inserts the layout holds the
+/// remaining axes plus `i` size-1 dims, and the next reduced axis `a_i` is
+/// always a valid insert position (`a_i <= ndim_original - k + i`).
+fn reduce_layout_keepdims(
+    layout: Layout<IxD>,
+    axes: &AxesIndex<isize>,
+    ndim: usize,
+    keepdims: bool,
+) -> Result<Layout<IxD>> {
+    if !keepdims {
+        return Ok(layout);
+    }
+    let axes_norm = normalize_axes_index(axes.clone(), ndim, false, true)?;
+    let mut layout = layout;
+    for &axis in axes_norm.iter() {
+        layout = layout.dim_insert(axis)?;
+    }
+    Ok(layout)
+}
+
+/* #endregion */
 
 macro_rules! trait_reduction {
-    ($OpReduceAPI: ident, $fn: ident, $fn_f: ident, $fn_axes: ident, $fn_axes_f: ident, $fn_all: ident, $fn_all_f: ident) => {
+    ([$($with_args: ident)?] $OpReduceAPI: ident, $fn: ident, $fn_f: ident, $fn_axes: ident, $fn_axes_f: ident, $fn_all: ident, $fn_all_f: ident, $fn_with_args: ident, $fn_with_args_f: ident) => {
         pub fn $fn_all_f<T, B, D>(tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>) -> Result<B::TOut>
         where
             D: DimAPI,
@@ -143,6 +419,8 @@ macro_rules! trait_reduction {
             $fn_all(tensor)
         }
 
+        trait_reduction_with_args!([$($with_args)?] $OpReduceAPI, $fn_with_args_f, $fn_with_args, $fn_axes, $fn_all);
+
         impl<R, T, B, D> TensorAny<R, T, B, D>
         where
             R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
@@ -181,33 +459,417 @@ macro_rules! trait_reduction {
             pub fn $fn(&self) -> B::TOut {
                 $fn(self)
             }
+
+            trait_reduction_with_args_methods!([$($with_args)?] $fn_with_args_f, $fn_with_args);
         }
     };
+}
+
+/// Free functions and methods `<fam>_with_args[_f]` for reduction families
+/// taking [`ReduceArgs`] (axes + keepdims). Emitted only for families marked
+/// `[with_args]` in [`trait_reduction!`]; var/std use hand-written
+/// [`VarArgs`] versions (correction).
+macro_rules! trait_reduction_with_args {
+    ([$_with_args: ident] $OpReduceAPI: ident, $fn_with_args_f: ident, $fn_with_args: ident, $fn_axes: ident, $fn_all: ident) => {
+        pub fn $fn_with_args_f<T, B, D>(
+            tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
+            args: impl Into<ReduceArgs>,
+        ) -> Result<Tensor<B::TOut, B, IxD>>
+        where
+            D: DimAPI,
+            B: $OpReduceAPI<T, D> + DeviceCreationAnyAPI<B::TOut>,
+        {
+            let ReduceArgs { axes, keepdims } = args.into();
+            let tensor = tensor.view();
+
+            match axes {
+                AxesIndex::None => {
+                    let val = tensor.device().$fn_all(tensor.raw(), tensor.layout())?;
+                    let storage = tensor.device().outof_cpu_vec(vec![val])?;
+                    let layout = reduce_layout_whole(tensor.layout().ndim(), keepdims)?;
+                    Tensor::new_f(storage, layout)
+                },
+                axes => {
+                    let (storage, layout) = tensor.device().$fn_axes(tensor.raw(), tensor.layout(), axes.as_ref())?;
+                    let layout = reduce_layout_keepdims(layout, &axes, tensor.layout().ndim(), keepdims)?;
+                    Tensor::new_f(storage, layout)
+                },
+            }
+        }
+
+        pub fn $fn_with_args<T, B, D>(
+            tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
+            args: impl Into<ReduceArgs>,
+        ) -> Tensor<B::TOut, B, IxD>
+        where
+            D: DimAPI,
+            B: $OpReduceAPI<T, D> + DeviceCreationAnyAPI<B::TOut>,
+        {
+            $fn_with_args_f(tensor, args).rstsr_unwrap()
+        }
+    };
+    ([] $($rest: tt)*) => {};
+}
+
+macro_rules! trait_reduction_with_args_methods {
+    ([$_with_args: ident] $fn_with_args_f: ident, $fn_with_args: ident) => {
+        pub fn $fn_with_args_f(&self, args: impl Into<ReduceArgs>) -> Result<Tensor<B::TOut, B, IxD>>
+        where
+            B: DeviceCreationAnyAPI<B::TOut>,
+        {
+            $fn_with_args_f(self, args)
+        }
+
+        pub fn $fn_with_args(&self, args: impl Into<ReduceArgs>) -> Tensor<B::TOut, B, IxD>
+        where
+            B: DeviceCreationAnyAPI<B::TOut>,
+        {
+            $fn_with_args(self, args)
+        }
+    };
+    ([] $($rest: tt)*) => {};
 }
 
 #[rustfmt::skip]
 mod impl_trait_reduction {
     use super::*;
-    trait_reduction!(OpSumAPI, sum, sum_f, sum_axes, sum_axes_f, sum_all, sum_all_f);
-    trait_reduction!(OpMinAPI, min, min_f, min_axes, min_axes_f, min_all, min_all_f);
-    trait_reduction!(OpMaxAPI, max, max_f, max_axes, max_axes_f, max_all, max_all_f);
-    trait_reduction!(OpProdAPI, prod, prod_f, prod_axes, prod_axes_f, prod_all, prod_all_f);
-    trait_reduction!(OpMeanAPI, mean, mean_f, mean_axes, mean_axes_f, mean_all, mean_all_f);
-    trait_reduction!(OpVarAPI, var, var_f, var_axes, var_axes_f, var_all, var_all_f);
-    trait_reduction!(OpStdAPI, std, std_f, std_axes, std_axes_f, std_all, std_all_f);
-    trait_reduction!(OpL2NormAPI, l2_norm, l2_norm_f, l2_norm_axes, l2_norm_axes_f, l2_norm_all, l2_norm_all_f);
-    trait_reduction!(OpArgMinAPI, argmin, argmin_f, argmin_axes, argmin_axes_f, argmin_all, argmin_all_f);
-    trait_reduction!(OpArgMaxAPI, argmax, argmax_f, argmax_axes, argmax_axes_f, argmax_all, argmax_all_f);
-    trait_reduction!(OpNanArgMinAPI, nanargmin, nanargmin_f, nanargmin_axes, nanargmin_axes_f, nanargmin_all, nanargmin_all_f);
-    trait_reduction!(OpNanArgMaxAPI, nanargmax, nanargmax_f, nanargmax_axes, nanargmax_axes_f, nanargmax_all, nanargmax_all_f);
-    trait_reduction!(OpAllAPI, all, all_f, all_axes, all_axes_f, all_all, all_all_f);
-    trait_reduction!(OpAnyAPI, any, any_f, any_axes, any_axes_f, any_all, any_all_f);
-    trait_reduction!(OpCountNonZeroAPI, count_nonzero, count_nonzero_f, count_nonzero_axes, count_nonzero_axes_f, count_nonzero_all, count_nonzero_all_f);
+    trait_reduction!([with_args] OpSumAPI, sum, sum_f, sum_axes, sum_axes_f, sum_all, sum_all_f, sum_with_args, sum_with_args_f);
+    trait_reduction!([with_args] OpMinAPI, min, min_f, min_axes, min_axes_f, min_all, min_all_f, min_with_args, min_with_args_f);
+    trait_reduction!([with_args] OpMaxAPI, max, max_f, max_axes, max_axes_f, max_all, max_all_f, max_with_args, max_with_args_f);
+    trait_reduction!([with_args] OpProdAPI, prod, prod_f, prod_axes, prod_axes_f, prod_all, prod_all_f, prod_with_args, prod_with_args_f);
+    trait_reduction!([with_args] OpMeanAPI, mean, mean_f, mean_axes, mean_axes_f, mean_all, mean_all_f, mean_with_args, mean_with_args_f);
+    trait_reduction!([] OpVarAPI, var, var_f, var_axes, var_axes_f, var_all, var_all_f, var_with_args, var_with_args_f);
+    trait_reduction!([] OpStdAPI, std, std_f, std_axes, std_axes_f, std_all, std_all_f, std_with_args, std_with_args_f);
+    trait_reduction!([with_args] OpL2NormAPI, l2_norm, l2_norm_f, l2_norm_axes, l2_norm_axes_f, l2_norm_all, l2_norm_all_f, l2_norm_with_args, l2_norm_with_args_f);
+    trait_reduction!([with_args] OpArgMinAPI, argmin, argmin_f, argmin_axes, argmin_axes_f, argmin_all, argmin_all_f, argmin_with_args, argmin_with_args_f);
+    trait_reduction!([with_args] OpArgMaxAPI, argmax, argmax_f, argmax_axes, argmax_axes_f, argmax_all, argmax_all_f, argmax_with_args, argmax_with_args_f);
+    trait_reduction!([with_args] OpNanArgMinAPI, nanargmin, nanargmin_f, nanargmin_axes, nanargmin_axes_f, nanargmin_all, nanargmin_all_f, nanargmin_with_args, nanargmin_with_args_f);
+    trait_reduction!([with_args] OpNanArgMaxAPI, nanargmax, nanargmax_f, nanargmax_axes, nanargmax_axes_f, nanargmax_all, nanargmax_all_f, nanargmax_with_args, nanargmax_with_args_f);
+    trait_reduction!([with_args] OpAllAPI, all, all_f, all_axes, all_axes_f, all_all, all_all_f, all_with_args, all_with_args_f);
+    trait_reduction!([with_args] OpAnyAPI, any, any_f, any_axes, any_axes_f, any_all, any_all_f, any_with_args, any_with_args_f);
+    trait_reduction!([with_args] OpCountNonZeroAPI, count_nonzero, count_nonzero_f, count_nonzero_axes, count_nonzero_axes_f, count_nonzero_all, count_nonzero_all_f, count_nonzero_with_args, count_nonzero_with_args_f);
 }
 pub use impl_trait_reduction::*;
 
+/* #region with dtype */
+
+/// Reduction families with an explicit output dtype: `<fam>_with_dtype::<TOut>`.
+///
+/// The fold runs in `TOut` (elements are cast per element inside the kernel's
+/// accumulate closure), so accumulation happens in the requested dtype
+/// (anti-overflow semantics of array-api's `dtype=` keyword) without
+/// materializing a cast copy of the input.
+macro_rules! trait_reduction_dtype {
+    ($OpReduceDtypeAPI: ident, $fn_with_dtype: ident, $fn_with_dtype_f: ident, $fn_axes_dtype: ident) => {
+        pub fn $fn_with_dtype_f<T, TOut, B, D>(
+            tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
+            args: impl Into<ReduceArgs>,
+        ) -> Result<Tensor<TOut, B, IxD>>
+        where
+            D: DimAPI,
+            B: $OpReduceDtypeAPI<T, TOut, D> + DeviceCreationAnyAPI<TOut>,
+        {
+            let ReduceArgs { axes, keepdims } = args.into();
+            let tensor = tensor.view();
+
+            match axes {
+                AxesIndex::None => {
+                    // no dedicated whole-array dtype kernel: reduce all axes
+                    // through the axes kernel; rebuild the layout for keepdims
+                    let all_axes: Vec<isize> = (0..tensor.layout().ndim() as isize).collect_vec();
+                    let (storage, _) = tensor.device().$fn_axes_dtype(tensor.raw(), tensor.layout(), &all_axes)?;
+                    let layout = reduce_layout_whole(tensor.layout().ndim(), keepdims)?;
+                    Tensor::new_f(storage, layout)
+                },
+                axes => {
+                    let (storage, layout) =
+                        tensor.device().$fn_axes_dtype(tensor.raw(), tensor.layout(), axes.as_ref())?;
+                    let layout = reduce_layout_keepdims(layout, &axes, tensor.layout().ndim(), keepdims)?;
+                    Tensor::new_f(storage, layout)
+                },
+            }
+        }
+
+        pub fn $fn_with_dtype<T, TOut, B, D>(
+            tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
+            args: impl Into<ReduceArgs>,
+        ) -> Tensor<TOut, B, IxD>
+        where
+            D: DimAPI,
+            B: $OpReduceDtypeAPI<T, TOut, D> + DeviceCreationAnyAPI<TOut>,
+        {
+            $fn_with_dtype_f(tensor, args).rstsr_unwrap()
+        }
+
+        impl<R, T, B, D> TensorAny<R, T, B, D>
+        where
+            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+            D: DimAPI,
+            B: DeviceAPI<T>,
+        {
+            pub fn $fn_with_dtype_f<TOut>(&self, args: impl Into<ReduceArgs>) -> Result<Tensor<TOut, B, IxD>>
+            where
+                B: $OpReduceDtypeAPI<T, TOut, D> + DeviceCreationAnyAPI<TOut>,
+            {
+                $fn_with_dtype_f(self, args)
+            }
+
+            pub fn $fn_with_dtype<TOut>(&self, args: impl Into<ReduceArgs>) -> Tensor<TOut, B, IxD>
+            where
+                B: $OpReduceDtypeAPI<T, TOut, D> + DeviceCreationAnyAPI<TOut>,
+            {
+                $fn_with_dtype(self, args)
+            }
+        }
+    };
+}
+
+#[rustfmt::skip]
+mod impl_trait_reduction_dtype {
+    use super::*;
+    trait_reduction_dtype!(OpSumDtypeAPI, sum_with_dtype, sum_with_dtype_f, sum_axes_dtype);
+    trait_reduction_dtype!(OpProdDtypeAPI, prod_with_dtype, prod_with_dtype_f, prod_axes_dtype);
+    trait_reduction_dtype!(OpMeanDtypeAPI, mean_with_dtype, mean_with_dtype_f, mean_axes_dtype);
+    trait_reduction_dtype!(OpVarDtypeAPI, var_with_dtype, var_with_dtype_f, var_axes_dtype);
+    trait_reduction_dtype!(OpStdDtypeAPI, std_with_dtype, std_with_dtype_f, std_axes_dtype);
+}
+pub use impl_trait_reduction_dtype::*;
+
+/* #endregion */
+
+/* #region var/std with args (correction) */
+
+/// Rescale factor from population variance to corrected variance
+/// (NumPy `ddof` / array-api `correction`): `M / (M - correction)`, `sqrt`'ed
+/// for std. NaN when `M - correction <= 0` (array-api contract).
+fn var_correction_factor(size: usize, correction: f64, is_std: bool) -> f64 {
+    let m = size as f64;
+    let d = m - correction;
+    if d <= 0.0 {
+        f64::NAN
+    } else {
+        let factor = m / d;
+        if is_std {
+            factor.sqrt()
+        } else {
+            factor
+        }
+    }
+}
+
+/// Variance with [`VarArgs`] (axes, keepdims, correction).
+///
+/// The correction rescales the population variance by `M / (M - correction)`
+/// on the (output-sized) result; no input-sized intermediate is created.
+pub fn var_with_args_f<T, B, D>(
+    tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
+    args: impl Into<VarArgs>,
+) -> Result<Tensor<B::TOut, B, IxD>>
+where
+    D: DimAPI,
+    B: OpVarAPI<T, D>
+        + DeviceCreationAnyAPI<B::TOut>
+        + Op_MutA_RefB_API<
+            B::TOut,
+            B::TOut,
+            IxD,
+            dyn for<'x, 'y> Fn(&'x mut MaybeUninit<B::TOut>, &'y B::TOut) + Send + Sync,
+        >,
+    B::TOut: Float + FromPrimitive + Send + Sync + 'static,
+{
+    let VarArgs { axes, keepdims, correction } = args.into();
+    let tensor = tensor.view();
+
+    let result = match &axes {
+        AxesIndex::None => {
+            let val = tensor.device().var_all(tensor.raw(), tensor.layout())?;
+            let storage = tensor.device().outof_cpu_vec(vec![val])?;
+            let layout = reduce_layout_whole(tensor.layout().ndim(), keepdims)?;
+            Tensor::new_f(storage, layout)?
+        },
+        axes => {
+            let (storage, layout) = tensor.device().var_axes(tensor.raw(), tensor.layout(), axes.as_ref())?;
+            let layout = reduce_layout_keepdims(layout, axes, tensor.layout().ndim(), keepdims)?;
+            Tensor::new_f(storage, layout)?
+        },
+    };
+
+    if let Some(correction) = correction {
+        let size = reduced_axes_size(&axes, tensor.layout())?;
+        let factor = B::TOut::from_f64(var_correction_factor(size, correction, false)).unwrap();
+        return Ok(result.mapv(move |x| x * factor));
+    }
+    Ok(result)
+}
+
+/// Variance with [`VarArgs`]; panicking version of [`var_with_args_f`].
+pub fn var_with_args<T, B, D>(
+    tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
+    args: impl Into<VarArgs>,
+) -> Tensor<B::TOut, B, IxD>
+where
+    D: DimAPI,
+    B: OpVarAPI<T, D>
+        + DeviceCreationAnyAPI<B::TOut>
+        + Op_MutA_RefB_API<
+            B::TOut,
+            B::TOut,
+            IxD,
+            dyn for<'x, 'y> Fn(&'x mut MaybeUninit<B::TOut>, &'y B::TOut) + Send + Sync,
+        >,
+    B::TOut: Float + FromPrimitive + Send + Sync + 'static,
+{
+    var_with_args_f(tensor, args).rstsr_unwrap()
+}
+
+/// Standard deviation with [`VarArgs`] (axes, keepdims, correction).
+pub fn std_with_args_f<T, B, D>(
+    tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
+    args: impl Into<VarArgs>,
+) -> Result<Tensor<B::TOut, B, IxD>>
+where
+    D: DimAPI,
+    B: OpStdAPI<T, D>
+        + DeviceCreationAnyAPI<B::TOut>
+        + Op_MutA_RefB_API<
+            B::TOut,
+            B::TOut,
+            IxD,
+            dyn for<'x, 'y> Fn(&'x mut MaybeUninit<B::TOut>, &'y B::TOut) + Send + Sync,
+        >,
+    B::TOut: Float + FromPrimitive + Send + Sync + 'static,
+{
+    let VarArgs { axes, keepdims, correction } = args.into();
+    let tensor = tensor.view();
+
+    let result = match &axes {
+        AxesIndex::None => {
+            let val = tensor.device().std_all(tensor.raw(), tensor.layout())?;
+            let storage = tensor.device().outof_cpu_vec(vec![val])?;
+            let layout = reduce_layout_whole(tensor.layout().ndim(), keepdims)?;
+            Tensor::new_f(storage, layout)?
+        },
+        axes => {
+            let (storage, layout) = tensor.device().std_axes(tensor.raw(), tensor.layout(), axes.as_ref())?;
+            let layout = reduce_layout_keepdims(layout, axes, tensor.layout().ndim(), keepdims)?;
+            Tensor::new_f(storage, layout)?
+        },
+    };
+
+    if let Some(correction) = correction {
+        let size = reduced_axes_size(&axes, tensor.layout())?;
+        let factor = B::TOut::from_f64(var_correction_factor(size, correction, true)).unwrap();
+        return Ok(result.mapv(move |x| x * factor));
+    }
+    Ok(result)
+}
+
+/// Standard deviation with [`VarArgs`]; panicking version of [`std_with_args_f`].
+pub fn std_with_args<T, B, D>(
+    tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
+    args: impl Into<VarArgs>,
+) -> Tensor<B::TOut, B, IxD>
+where
+    D: DimAPI,
+    B: OpStdAPI<T, D>
+        + DeviceCreationAnyAPI<B::TOut>
+        + Op_MutA_RefB_API<
+            B::TOut,
+            B::TOut,
+            IxD,
+            dyn for<'x, 'y> Fn(&'x mut MaybeUninit<B::TOut>, &'y B::TOut) + Send + Sync,
+        >,
+    B::TOut: Float + FromPrimitive + Send + Sync + 'static,
+{
+    std_with_args_f(tensor, args).rstsr_unwrap()
+}
+
+/// Number of elements each output cell aggregates: the product of the reduced
+/// axes' sizes (all axes when `AxesIndex::None`).
+fn reduced_axes_size<D: DimAPI>(axes: &AxesIndex<isize>, layout: &Layout<D>) -> Result<usize> {
+    match axes {
+        AxesIndex::None => Ok(layout.size()),
+        axes => {
+            let axes_norm = normalize_axes_index(axes.clone(), layout.ndim(), false, true)?;
+            Ok(axes_norm.iter().map(|&axis| layout.shape()[axis as usize]).product::<usize>())
+        },
+    }
+}
+
+impl<R, T, B, D> TensorAny<R, T, B, D>
+where
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+    D: DimAPI,
+    B: OpVarAPI<T, D>,
+{
+    pub fn var_with_args_f(&self, args: impl Into<VarArgs>) -> Result<Tensor<B::TOut, B, IxD>>
+    where
+        B: DeviceCreationAnyAPI<B::TOut>
+            + Op_MutA_RefB_API<
+                B::TOut,
+                B::TOut,
+                IxD,
+                dyn for<'x, 'y> Fn(&'x mut MaybeUninit<B::TOut>, &'y B::TOut) + Send + Sync,
+            >,
+        B::TOut: Float + FromPrimitive + Send + Sync + 'static,
+    {
+        var_with_args_f(self, args)
+    }
+
+    pub fn var_with_args(&self, args: impl Into<VarArgs>) -> Tensor<B::TOut, B, IxD>
+    where
+        B: DeviceCreationAnyAPI<B::TOut>
+            + Op_MutA_RefB_API<
+                B::TOut,
+                B::TOut,
+                IxD,
+                dyn for<'x, 'y> Fn(&'x mut MaybeUninit<B::TOut>, &'y B::TOut) + Send + Sync,
+            >,
+        B::TOut: Float + FromPrimitive + Send + Sync + 'static,
+    {
+        var_with_args(self, args)
+    }
+}
+
+impl<R, T, B, D> TensorAny<R, T, B, D>
+where
+    R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+    D: DimAPI,
+    B: OpStdAPI<T, D>,
+{
+    pub fn std_with_args_f(&self, args: impl Into<VarArgs>) -> Result<Tensor<B::TOut, B, IxD>>
+    where
+        B: DeviceCreationAnyAPI<B::TOut>
+            + Op_MutA_RefB_API<
+                B::TOut,
+                B::TOut,
+                IxD,
+                dyn for<'x, 'y> Fn(&'x mut MaybeUninit<B::TOut>, &'y B::TOut) + Send + Sync,
+            >,
+        B::TOut: Float + FromPrimitive + Send + Sync + 'static,
+    {
+        std_with_args_f(self, args)
+    }
+
+    pub fn std_with_args(&self, args: impl Into<VarArgs>) -> Tensor<B::TOut, B, IxD>
+    where
+        B: DeviceCreationAnyAPI<B::TOut>
+            + Op_MutA_RefB_API<
+                B::TOut,
+                B::TOut,
+                IxD,
+                dyn for<'x, 'y> Fn(&'x mut MaybeUninit<B::TOut>, &'y B::TOut) + Send + Sync,
+            >,
+        B::TOut: Float + FromPrimitive + Send + Sync + 'static,
+    {
+        std_with_args(self, args)
+    }
+}
+
+/* #endregion */
+
 macro_rules! trait_reduction_arg {
-    ($OpReduceAPI: ident, $fn: ident, $fn_f: ident, $fn_axes: ident, $fn_axes_f: ident, $fn_all: ident, $fn_all_f: ident) => {
+    ([$($with_args: ident)?] $OpReduceAPI: ident, $fn: ident, $fn_f: ident, $fn_axes: ident, $fn_axes_f: ident, $fn_all: ident, $fn_all_f: ident, $fn_with_args: ident, $fn_with_args_f: ident) => {
         pub fn $fn_all_f<T, B, D>(tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>) -> Result<D>
         where
             D: DimAPI,
@@ -278,6 +940,8 @@ macro_rules! trait_reduction_arg {
             $fn_all(tensor)
         }
 
+        trait_reduction_arg_with_args!([$($with_args)?] $OpReduceAPI, $fn_with_args_f, $fn_with_args, $fn_axes, $fn_all);
+
         impl<R, T, B, D> TensorAny<R, T, B, D>
         where
             R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
@@ -316,27 +980,98 @@ macro_rules! trait_reduction_arg {
             pub fn $fn(&self) -> D {
                 $fn(self)
             }
+
+            trait_reduction_arg_with_args_methods!([$($with_args)?] $fn_with_args_f, $fn_with_args);
         }
     };
 }
 
+/// Methods `<fam>_with_args[_f]` for the unraveled-arg families (IxD output).
+macro_rules! trait_reduction_arg_with_args_methods {
+    ([$_with_args: ident] $fn_with_args_f: ident, $fn_with_args: ident) => {
+        pub fn $fn_with_args_f(&self, args: impl Into<ReduceArgs>) -> Result<Tensor<IxD, B, IxD>>
+        where
+            B: DeviceAPI<IxD> + DeviceCreationAnyAPI<IxD>,
+        {
+            $fn_with_args_f(self, args)
+        }
+
+        pub fn $fn_with_args(&self, args: impl Into<ReduceArgs>) -> Tensor<IxD, B, IxD>
+        where
+            B: DeviceAPI<IxD> + DeviceCreationAnyAPI<IxD>,
+        {
+            $fn_with_args(self, args)
+        }
+    };
+    ([] $($rest: tt)*) => {};
+}
+
+/// Free functions `<fam>_with_args[_f]` for the unraveled-arg families.
+macro_rules! trait_reduction_arg_with_args {
+    ([$_with_args: ident] $OpReduceAPI: ident, $fn_with_args_f: ident, $fn_with_args: ident, $fn_axes: ident, $fn_all: ident) => {
+        pub fn $fn_with_args_f<T, B, D>(
+            tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
+            args: impl Into<ReduceArgs>,
+        ) -> Result<Tensor<IxD, B, IxD>>
+        where
+            D: DimAPI,
+            B: $OpReduceAPI<T, D> + DeviceAPI<IxD> + DeviceCreationAnyAPI<IxD>,
+        {
+            let ReduceArgs { axes, keepdims } = args.into();
+            let tensor = tensor.view();
+
+            match axes {
+                AxesIndex::None => {
+                    let arg = tensor.device().$fn_all(tensor.raw(), tensor.layout())?;
+                    let storage = tensor.device().outof_cpu_vec(vec![arg.into()])?;
+                    let layout = reduce_layout_whole(tensor.layout().ndim(), keepdims)?;
+                    Tensor::new_f(storage, layout)
+                },
+                axes => {
+                    let (storage, layout) = tensor.device().$fn_axes(tensor.raw(), tensor.layout(), axes.as_ref())?;
+                    let layout = reduce_layout_keepdims(layout, &axes, tensor.layout().ndim(), keepdims)?;
+                    Tensor::new_f(storage, layout)
+                },
+            }
+        }
+
+        pub fn $fn_with_args<T, B, D>(
+            tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
+            args: impl Into<ReduceArgs>,
+        ) -> Tensor<IxD, B, IxD>
+        where
+            D: DimAPI,
+            B: $OpReduceAPI<T, D> + DeviceAPI<IxD> + DeviceCreationAnyAPI<IxD>,
+        {
+            $fn_with_args_f(tensor, args).rstsr_unwrap()
+        }
+    };
+    ([] $($rest: tt)*) => {};
+}
+
 trait_reduction_arg!(
+    [with_args]
     OpUnraveledArgMinAPI,
     unraveled_argmin,
     unraveled_argmin_f,
     unraveled_argmin_axes,
     unraveled_argmin_axes_f,
     unraveled_argmin_all,
-    unraveled_argmin_all_f
+    unraveled_argmin_all_f,
+    unraveled_argmin_with_args,
+    unraveled_argmin_with_args_f
 );
 trait_reduction_arg!(
+    [with_args]
     OpUnraveledArgMaxAPI,
     unraveled_argmax,
     unraveled_argmax_f,
     unraveled_argmax_axes,
     unraveled_argmax_axes_f,
     unraveled_argmax_all,
-    unraveled_argmax_all_f
+    unraveled_argmax_all_f,
+    unraveled_argmax_with_args,
+    unraveled_argmax_with_args_f
 );
 
 /* #region sum (bool) */
@@ -359,6 +1094,10 @@ where
     fn sum_axes_f(&self, axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> Result<Tensor<usize, B, IxD>>;
     fn sum_axes(&self, axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> Tensor<usize, B, IxD> {
         self.sum_axes_f(axes).rstsr_unwrap()
+    }
+    fn sum_with_args_f(&self, args: impl Into<ReduceArgs>) -> Result<Tensor<usize, B, IxD>>;
+    fn sum_with_args(&self, args: impl Into<ReduceArgs>) -> Tensor<usize, B, IxD> {
+        self.sum_with_args_f(args).rstsr_unwrap()
     }
 }
 
@@ -385,6 +1124,25 @@ where
             },
             _ => {
                 let (storage, layout) = self.device().sum_axes(self.raw(), self.layout(), axes.as_ref())?;
+                Tensor::new_f(storage, layout)
+            },
+        }
+    }
+
+    fn sum_with_args_f(&self, args: impl Into<ReduceArgs>) -> Result<Tensor<usize, B, IxD>> {
+        let ReduceArgs { axes, keepdims } = args.into();
+
+        match axes {
+            AxesIndex::None => {
+                // special case for summing all axes
+                let sum = self.device().sum_all(self.raw(), self.layout())?;
+                let storage = self.device().outof_cpu_vec(vec![sum])?;
+                let layout = reduce_layout_whole(self.layout().ndim(), keepdims)?;
+                Tensor::new_f(storage, layout)
+            },
+            axes => {
+                let (storage, layout) = self.device().sum_axes(self.raw(), self.layout(), axes.as_ref())?;
+                let layout = reduce_layout_keepdims(layout, &axes, self.layout().ndim(), keepdims)?;
                 Tensor::new_f(storage, layout)
             },
         }
@@ -994,6 +1752,25 @@ mod test {
         println!("{m:?}");
         let m_vec = m.raw();
         assert_eq!(m_vec, &vec![2, 2, 1]);
+    }
+
+    #[test]
+    #[cfg(feature = "faer")]
+    fn test_with_args_and_dtype_faer() {
+        // rayon (DeviceFaer) paths of *_with_args / *_with_dtype
+        let a: Tensor<i32, DeviceFaer> = asarray((vec![1, 2, 3, 4, 5, 6], [2, 3].c(), &DeviceFaer::default()));
+
+        let s = a.sum_with_args(([0], true));
+        assert_eq!(s.shape().to_vec(), vec![1, 3]);
+        assert_eq!(s[[0, 0]], 5);
+        assert_eq!(s[[0, 2]], 9);
+
+        let s = a.sum_with_dtype::<i64>(true);
+        assert_eq!(s.to_scalar(), 21i64);
+
+        let m = a.mean_with_dtype::<f64>(1);
+        assert_eq!(m[[0]], 2.0);
+        assert_eq!(m[[1]], 5.0);
     }
 
     #[test]

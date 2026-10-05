@@ -59,6 +59,7 @@ pub mod rstsr_structs {
     };
 
     pub use crate::tensor::manipulation::exports::ReshapeArgs;
+    pub use crate::tensor::reduction::{ReduceArgs, VarArgs};
 }
 
 pub mod rstsr_funcs {
@@ -139,19 +140,27 @@ pub mod rstsr_funcs {
     };
     // reduction
     pub use crate::tensor::reduction::{
-        all, all_all, all_all_f, all_axes, all_axes_f, all_f, allclose, allclose_all, allclose_all_f, allclose_f, any,
-        any_all, any_all_f, any_axes, any_axes_f, any_f, argmax, argmax_all, argmax_all_f, argmax_axes, argmax_axes_f,
-        argmax_f, argmin, argmin_all, argmin_all_f, argmin_axes, argmin_axes_f, argmin_f, count_nonzero,
-        count_nonzero_all, count_nonzero_all_f, count_nonzero_axes, count_nonzero_axes_f, count_nonzero_f, l2_norm,
-        l2_norm_all, l2_norm_all_f, l2_norm_axes, l2_norm_axes_f, l2_norm_f, max, max_all, max_all_f, max_axes,
-        max_axes_f, max_f, mean, mean_all, mean_all_f, mean_axes, mean_axes_f, mean_f, min, min_all, min_all_f,
-        min_axes, min_axes_f, min_f, nanargmax, nanargmax_all, nanargmax_all_f, nanargmax_axes, nanargmax_axes_f,
-        nanargmax_f, nanargmin, nanargmin_all, nanargmin_all_f, nanargmin_axes, nanargmin_axes_f, nanargmin_f, prod,
-        prod_all, prod_all_f, prod_axes, prod_axes_f, prod_f, std, std_all, std_all_f, std_axes, std_axes_f, std_f,
-        sum, sum_all, sum_all_f, sum_axes, sum_axes_f, sum_f, unraveled_argmax, unraveled_argmax_all,
-        unraveled_argmax_all_f, unraveled_argmax_axes, unraveled_argmax_axes_f, unraveled_argmax_f, unraveled_argmin,
+        all, all_all, all_all_f, all_axes, all_axes_f, all_f, all_with_args, all_with_args_f, allclose, allclose_all,
+        allclose_all_f, allclose_f, any, any_all, any_all_f, any_axes, any_axes_f, any_f, any_with_args,
+        any_with_args_f, argmax, argmax_all, argmax_all_f, argmax_axes, argmax_axes_f, argmax_f, argmax_with_args,
+        argmax_with_args_f, argmin, argmin_all, argmin_all_f, argmin_axes, argmin_axes_f, argmin_f, argmin_with_args,
+        argmin_with_args_f, count_nonzero, count_nonzero_all, count_nonzero_all_f, count_nonzero_axes,
+        count_nonzero_axes_f, count_nonzero_f, count_nonzero_with_args, count_nonzero_with_args_f, l2_norm,
+        l2_norm_all, l2_norm_all_f, l2_norm_axes, l2_norm_axes_f, l2_norm_f, l2_norm_with_args, l2_norm_with_args_f,
+        max, max_all, max_all_f, max_axes, max_axes_f, max_f, max_with_args, max_with_args_f, mean, mean_all,
+        mean_all_f, mean_axes, mean_axes_f, mean_f, mean_with_args, mean_with_args_f, mean_with_dtype,
+        mean_with_dtype_f, min, min_all, min_all_f, min_axes, min_axes_f, min_f, min_with_args, min_with_args_f,
+        nanargmax, nanargmax_all, nanargmax_all_f, nanargmax_axes, nanargmax_axes_f, nanargmax_f, nanargmax_with_args,
+        nanargmax_with_args_f, nanargmin, nanargmin_all, nanargmin_all_f, nanargmin_axes, nanargmin_axes_f,
+        nanargmin_f, nanargmin_with_args, nanargmin_with_args_f, prod, prod_all, prod_all_f, prod_axes, prod_axes_f,
+        prod_f, prod_with_args, prod_with_args_f, prod_with_dtype, prod_with_dtype_f, std, std_all, std_all_f,
+        std_axes, std_axes_f, std_f, std_with_args, std_with_args_f, std_with_dtype, std_with_dtype_f, sum, sum_all,
+        sum_all_f, sum_axes, sum_axes_f, sum_f, sum_with_args, sum_with_args_f, sum_with_dtype, sum_with_dtype_f,
+        unraveled_argmax, unraveled_argmax_all, unraveled_argmax_all_f, unraveled_argmax_axes, unraveled_argmax_axes_f,
+        unraveled_argmax_f, unraveled_argmax_with_args, unraveled_argmax_with_args_f, unraveled_argmin,
         unraveled_argmin_all, unraveled_argmin_all_f, unraveled_argmin_axes, unraveled_argmin_axes_f,
-        unraveled_argmin_f, var, var_all, var_all_f, var_axes, var_axes_f, var_f,
+        unraveled_argmin_f, unraveled_argmin_with_args, unraveled_argmin_with_args_f, var, var_all, var_all_f,
+        var_axes, var_axes_f, var_f, var_with_args, var_with_args_f, var_with_dtype, var_with_dtype_f,
     };
     // linalg (array-api's basic linalg operations, not the rstsr-linalg-traits)
     pub use crate::tensor::linalg::exports::{
