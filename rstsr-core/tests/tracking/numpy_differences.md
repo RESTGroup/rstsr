@@ -245,3 +245,34 @@ applies instead. For example, with `a = [[10, 21], [33, 44]]` and
 (not the elementwise remainder `[[1, 1], [3, 2]]`). The free function
 `rt::rem(&a, &b)` provides the NumPy-compatible elementwise remainder; the
 parity test asserts both `rt::rem` (remainder) and `a % b` (matmul) accordingly.
+
+## `cumulative_sum`/`cumulative_prod` require `axis` for n-D input (no flatten-on-`None`)
+
+- **numpy:** `np.cumsum(a)` / `np.cumprod(a)` with `axis=None` (the default) flatten the input
+  first and return a 1-D cumulative result for any `ndim` (`test_function_base.py` `TestCumsum`
+  relies on this legacy spelling).
+- **rstsr:** entry_row_cpu::core_func::reduction::test_cumulative::custom_cumulative::test_axis_none_contract
+- **tag:** intentional
+- **status:** open
+
+RSTSR follows the array-api-aligned `numpy.cumulative_sum` / `numpy.cumulative_prod`
+(NumPy >= 2.1): `axis = None` is only valid for 1-D input, and an n-D input without an
+explicit axis raises `InvalidValue` instead of flattening. Pass `axis` explicitly
+(`rt::cumulative_sum(&x, 0)`) for n-D inputs; the legacy flatten-then-scan is a
+caller-side `rt::cumulative_sum(&x.reshape([-1]), 0)`.
+
+## `cumulative_sum`/`cumulative_prod` keep the input dtype (no platform-integer widening)
+
+- **numpy:** `np.cumsum`/`np.cumprod` (and array-api `cumulative_sum`) accumulate narrow integer
+  inputs (`int8`/`uint8`/`int16`/...) in the platform default integer (`int64`/`uint64`) when
+  `dtype` is not given; `test_function_base.py::TestCumsum::test_basic` passes with small dtypes
+  precisely because the accumulator is widened.
+- **rstsr:** entry_row_cpu::core_func::reduction::test_cumulative::custom_cumulative::test_with_dtype
+- **tag:** intentional
+- **status:** open
+
+RSTSR is strongly typed: with no explicit dtype the scan accumulates in `T` itself, so a
+`u8` input that overflows panics in debug builds instead of silently widening. The
+anti-overflow use case is served by the `*_with_dtype` variants (array-api `dtype=`):
+`x.cumulative_sum_with_dtype::<i64>(args)` casts each element into the accumulator inside
+the scan (no materialized cast copy).

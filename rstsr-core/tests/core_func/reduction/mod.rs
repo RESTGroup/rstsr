@@ -4,6 +4,7 @@ pub mod test_any;
 pub mod test_argmax;
 pub mod test_argmin;
 pub mod test_count_nonzero;
+pub mod test_cumulative;
 pub mod test_max;
 pub mod test_mean;
 pub mod test_min;

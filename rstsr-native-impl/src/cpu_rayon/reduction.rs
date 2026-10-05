@@ -368,6 +368,97 @@ where
 
 /* #endregion */
 
+/* #region cumulative */
+
+/// Cumulative fold (scan) along a single axis; parallelizes independent scan
+/// lines of [`crate::cpu_serial::reduction::cumulative_cpu_serial`].
+pub fn cumulative_cpu_rayon<TI, TS, TO, I, F, FOut>(
+    a: &[TI],
+    la: &Layout<IxD>,
+    axis: isize,
+    include_initial: bool,
+    init: I,
+    f: F,
+    f_out: FOut,
+    pool: Option<&ThreadPool>,
+) -> Result<(Vec<TO>, Layout<IxD>)>
+where
+    TI: Clone + Send + Sync,
+    TS: Clone + Send + Sync,
+    TO: Clone + Send + Sync,
+    I: Fn() -> TS + Send + Sync,
+    F: Fn(TS, TI) -> TS + Send + Sync,
+    FOut: Fn(TS) -> TO + Send + Sync,
+{
+    // determine whether to use parallel iteration
+    if la.size() < PARALLEL_SWITCH {
+        return cumulative_cpu_serial(a, la, axis, include_initial, init, f, f_out);
+    }
+
+    let axis = rstsr_check_axis!(axis, la.ndim())?;
+    let (ls, lm) = la.dim_split_axes(&[axis as isize])?;
+    let size_m = ls.shape()[0];
+    let stride_in = ls.stride()[0];
+
+    let mut shape_o = la.shape().clone();
+    shape_o[axis] = if include_initial { size_m + 1 } else { size_m };
+    // SAFETY: the probe layout is never iterated or dereferenced; it only feeds
+    // `layout_for_array_copy` (K order), which reads its shape/strides to derive
+    // the axis arrangement. A grown scan axis makes the probe's shape/stride
+    // relation inconsistent (which `Layout::new` rejects); `layout_for_array_copy`
+    // still returns a fresh, non-overlapping output layout.
+    let layout_probe = unsafe { Layout::new_unchecked(shape_o, la.stride().clone(), la.offset()) };
+    let lo = layout_for_array_copy(&layout_probe, TensorIterOrder::K)?;
+    let stride_out = lo.stride()[axis];
+    let lo_rest = lo.dim_chop(axis as isize)?;
+
+    // SAFETY (contract): `uninitialized_vec` per the `rstsr_common::alloc_vec`
+    // contract (`alloc_vec_contract.md`); every slot is written below exactly
+    // once (each line writes `size_m + include_initial` consecutive slots).
+    let mut out: Vec<MaybeUninit<TO>> = unsafe { uninitialized_vec(lo.size())? };
+
+    let it_m = IterLayoutColMajor::new(&lm)?;
+    let it_o = IterLayoutColMajor::new(&lo_rest)?;
+
+    // pass mutable reference in parallel region
+    let thr_out = AtomicPtr::new(out.as_mut_ptr());
+    let task = || -> Result<()> {
+        it_m.into_par_iter().zip(it_o).for_each(|(i_m, i_o)| {
+            let mut acc = init();
+            let mut pos = i_o as isize;
+            if include_initial {
+                unsafe {
+                    // SAFETY: `thr_out` is `out`'s base pointer hoisted through
+                    // `AtomicPtr` (relaxed load; `out` is never reassigned through
+                    // it). Each line writes its own disjoint slot range.
+                    let ptr = thr_out.load(Ordering::Relaxed).add(pos as usize);
+                    (*ptr).write(f_out(acc.clone()));
+                }
+                pos += stride_out;
+            }
+            for k in 0..size_m {
+                acc = f(acc, a[(i_m as isize + k as isize * stride_in) as usize].clone());
+                unsafe {
+                    // SAFETY: see above; each output slot is written by one line only.
+                    let ptr = thr_out.load(Ordering::Relaxed).add((pos + k as isize * stride_out) as usize);
+                    (*ptr).write(f_out(acc.clone()));
+                }
+            }
+        });
+        Ok(())
+    };
+    match pool {
+        None => task()?,
+        Some(pool) => pool.install(task)?,
+    };
+
+    // SAFETY: all `out` elements were written by the scan above.
+    let out = unsafe { transmute::<Vec<MaybeUninit<TO>>, Vec<TO>>(out) };
+    Ok((out, lo))
+}
+
+/* #endregion */
+
 /* #region reduce_binary */
 
 pub fn reduce_all_binary_cpu_rayon<TI1, TI2, TS, TO, D, I, F, FSum, FOut>(

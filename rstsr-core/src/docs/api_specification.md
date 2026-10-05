@@ -328,6 +328,9 @@ Args/dtype variants: all of the above (plus [`all`], [`any`], argmin/argmax fami
 Closeness testing: [`allclose`](allclose()) (explicit all-element form [`allclose_all`]), or macro [`allclose!`].
 
 
+Cumulative functions (scans, not reductions; output keeps the input shape): [`cumulative_sum`], [`cumulative_prod`], with [`CumulativeArgs`] (`axis` + `include_initial`) and `_with_dtype` forms.
+
+
 Custom user reduction (expert-level): [`reduce_all`], [`reduce_axes`], [`reduce_with_args`] with user-provided init/fold/combine/finalize closures. 
 
 ### Sorting, searching and counting functions

@@ -391,6 +391,77 @@ where
     Ok((out, lo))
 }
 
+/* #region cumulative */
+
+/// Cumulative fold (scan) along a single axis.
+///
+/// The output has the input's axis arrangement (K order) with the scan axis
+/// of size `M` (`M + 1` when `include_initial`). Each line along the scan
+/// axis is a sequential fold seeded by `init`; lines are independent.
+pub fn cumulative_cpu_serial<TI, TS, TO, I, F, FOut>(
+    a: &[TI],
+    la: &Layout<IxD>,
+    axis: isize,
+    include_initial: bool,
+    init: I,
+    f: F,
+    f_out: FOut,
+) -> Result<(Vec<TO>, Layout<IxD>)>
+where
+    TI: Clone,
+    TS: Clone,
+    TO: Clone,
+    I: Fn() -> TS,
+    F: Fn(TS, TI) -> TS,
+    FOut: Fn(TS) -> TO,
+{
+    let axis = rstsr_check_axis!(axis, la.ndim())?;
+    // split the scan axis from the rest; both keep the input offset
+    let (ls, lm) = la.dim_split_axes(&[axis as isize])?;
+    let size_m = ls.shape()[0];
+    let stride_in = ls.stride()[0];
+
+    // output layout: input arrangement (K order), scan axis possibly grown.
+    // The probe layout reuses the input strides only to derive the K
+    // permutation; `layout_for_array_copy` returns a fresh (non-overlapping)
+    // layout, which is what a grown scan axis requires.
+    let mut shape_o = la.shape().clone();
+    shape_o[axis] = if include_initial { size_m + 1 } else { size_m };
+    // SAFETY: the probe layout is never iterated or dereferenced; it only feeds
+    // `layout_for_array_copy` (K order), which reads its shape/strides to derive
+    // the axis arrangement. A grown scan axis makes the probe's shape/stride
+    // relation inconsistent (which `Layout::new` rejects); `layout_for_array_copy`
+    // still returns a fresh, non-overlapping output layout.
+    let layout_probe = unsafe { Layout::new_unchecked(shape_o, la.stride().clone(), la.offset()) };
+    let lo = layout_for_array_copy(&layout_probe, TensorIterOrder::K)?;
+    let stride_out = lo.stride()[axis];
+    let lo_rest = lo.dim_chop(axis as isize)?;
+
+    // SAFETY (contract): `uninitialized_vec` per the `rstsr_common::alloc_vec`
+    // contract (`alloc_vec_contract.md`); every slot is written below exactly
+    // once (each line writes `size_m + include_initial` consecutive slots).
+    let mut out: Vec<MaybeUninit<TO>> = unsafe { uninitialized_vec(lo.size())? };
+
+    let it_m = IterLayoutColMajor::new(&lm)?;
+    let it_o = IterLayoutColMajor::new(&lo_rest)?;
+    it_m.zip(it_o).for_each(|(i_m, i_o)| {
+        let mut acc = init();
+        let mut pos = i_o as isize;
+        if include_initial {
+            out[pos as usize].write(f_out(acc.clone()));
+            pos += stride_out;
+        }
+        for k in 0..size_m {
+            acc = f(acc, a[(i_m as isize + k as isize * stride_in) as usize].clone());
+            out[(pos + k as isize * stride_out) as usize].write(f_out(acc.clone()));
+        }
+    });
+
+    // SAFETY: all `out` elements were written by the scan above.
+    let out = unsafe { transmute::<Vec<MaybeUninit<TO>>, Vec<TO>>(out) };
+    Ok((out, lo))
+}
+
 /* #endregion */
 
 /* #region reduce_binary */

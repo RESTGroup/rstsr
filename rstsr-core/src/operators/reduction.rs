@@ -164,3 +164,73 @@ where
         FC: Fn(TS, TS) -> TS + Send + Sync,
         FO: Fn(TS) -> TO + Send + Sync;
 }
+
+/// Cumulative sum (scan) along a single axis; `TOut` is the input dtype
+/// (array-api `dtype=None` semantics).
+#[allow(clippy::type_complexity)]
+pub trait OpCumSumAPI<T, D>
+where
+    D: DimAPI,
+    Self: DeviceAPI<T> + DeviceAPI<Self::TOut>,
+{
+    type TOut;
+    fn cumulative_sum(
+        &self,
+        a: &<Self as DeviceRawAPI<T>>::Raw,
+        la: &Layout<D>,
+        axis: isize,
+        include_initial: bool,
+    ) -> Result<(Storage<DataOwned<<Self as DeviceRawAPI<Self::TOut>>::Raw>, Self::TOut, Self>, Layout<IxD>)>;
+}
+
+/// Cumulative product (scan) along a single axis; `TOut` is the input dtype
+/// (array-api `dtype=None` semantics).
+#[allow(clippy::type_complexity)]
+pub trait OpCumProdAPI<T, D>
+where
+    D: DimAPI,
+    Self: DeviceAPI<T> + DeviceAPI<Self::TOut>,
+{
+    type TOut;
+    fn cumulative_prod(
+        &self,
+        a: &<Self as DeviceRawAPI<T>>::Raw,
+        la: &Layout<D>,
+        axis: isize,
+        include_initial: bool,
+    ) -> Result<(Storage<DataOwned<<Self as DeviceRawAPI<Self::TOut>>::Raw>, Self::TOut, Self>, Layout<IxD>)>;
+}
+
+/// Cumulative sum with an explicit output dtype: the scan accumulates in
+/// `TOut` (elements are cast inside the fold, no cast copy of the input).
+#[allow(clippy::type_complexity)]
+pub trait OpCumSumDtypeAPI<T, TOut, D>
+where
+    D: DimAPI,
+    Self: DeviceAPI<T> + DeviceAPI<TOut>,
+{
+    fn cumulative_sum_dtype(
+        &self,
+        a: &<Self as DeviceRawAPI<T>>::Raw,
+        la: &Layout<D>,
+        axis: isize,
+        include_initial: bool,
+    ) -> Result<(Storage<DataOwned<<Self as DeviceRawAPI<TOut>>::Raw>, TOut, Self>, Layout<IxD>)>;
+}
+
+/// Cumulative product with an explicit output dtype: the scan accumulates in
+/// `TOut` (elements are cast inside the fold, no cast copy of the input).
+#[allow(clippy::type_complexity)]
+pub trait OpCumProdDtypeAPI<T, TOut, D>
+where
+    D: DimAPI,
+    Self: DeviceAPI<T> + DeviceAPI<TOut>,
+{
+    fn cumulative_prod_dtype(
+        &self,
+        a: &<Self as DeviceRawAPI<T>>::Raw,
+        la: &Layout<D>,
+        axis: isize,
+        include_initial: bool,
+    ) -> Result<(Storage<DataOwned<<Self as DeviceRawAPI<TOut>>::Raw>, TOut, Self>, Layout<IxD>)>;
+}

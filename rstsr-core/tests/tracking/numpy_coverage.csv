@@ -173,6 +173,9 @@ lib/tests/test_function_base.py,TestAll,test_basic,v2.5.2,transferred,core_func/
 lib/tests/test_function_base.py,TestAll,test_nd,v2.5.2,transferred,core_func/reduction/test_all.rs::numpy_all::test_nd,5bee0e544c7b,axis 0/1 bool values
 lib/tests/test_function_base.py,TestAny,test_basic,v2.5.2,transferred,core_func/reduction/test_any.rs::numpy_any::test_basic,beb8a357681a,bool input
 lib/tests/test_function_base.py,TestAny,test_nd,v2.5.2,transferred,core_func/reduction/test_any.rs::numpy_any::test_nd,86c30dc92987,axis 0/1 bool values
+lib/tests/test_function_base.py,TestCumsum,test_basic,v2.5.2,transferred,core_func/reduction/test_cumulative.rs::numpy_cumulative::test_cumsum_basic,afcd46564c4e,"parametrized np.cumsum/np.cumulative_sum; values via rt::cumulative_sum (dtype loop N/A); axis=None flatten N/A (see numpy_differences.md)"
+lib/tests/test_function_base.py,TestCumprod,test_basic,v2.5.2,transferred,core_func/reduction/test_cumulative.rs::numpy_cumulative::test_cumprod_basic,0c50f1f6f8b1,"parametrized np.cumprod/np.cumulative_prod; values via rt::cumulative_prod (dtype loop N/A)"
+lib/tests/test_function_base.py,,test_cumulative_include_initial,v2.5.2,transferred,core_func/reduction/test_cumulative.rs::numpy_cumulative::test_cumulative_include_initial,bed67d65850e,"include_initial sum/prod cases; out= cases N/A (rstsr has no out parameter)"
 # --- core_func/creation ---
 _core/tests/test_multiarray.py,TestArange,test_start_stop_kwarg,v2.5.2,transferred,core_func/creation/test_arange.rs::numpy_arange::test_start_stop_kwarg,b8d32f6da456,"value portion; Python keyword-call variants compile-time typed (N/A)"
 _core/tests/test_multiarray.py,TestArange,test_zero_step,v2.5.2,transferred,core_func/creation/test_arange.rs::numpy_arange::test_zero_step,2d2f8be1eee3,zero step -> is_err (NumPy ZeroDivisionError)
