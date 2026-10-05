@@ -31,7 +31,7 @@ pub(crate) fn dtype_by_name(py: Python<'_>, name: &str) -> PyResult<Py<Dtype>> {
     DTYPES
         .get()
         .and_then(|m| m.get(name))
-        .cloned()
+        .map(|d| d.clone_ref(py))
         .ok_or_else(|| PyValueError::new_err(format!("unknown dtype {name:?}")))
 }
 
@@ -164,6 +164,58 @@ fn rstsr_faer(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(ops::less_equal, m)?)?;
     m.add_function(wrap_pyfunction!(ops::greater, m)?)?;
     m.add_function(wrap_pyfunction!(ops::greater_equal, m)?)?;
+
+    // W2 elementwise surface (bindings over rt::; dtype policy in ops.rs)
+    m.add_function(wrap_pyfunction!(ops::acos, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::acosh, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::asin, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::asinh, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::atan, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::atanh, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::cos, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::cosh, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::exp, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::expm1, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::log, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::log2, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::log10, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::reciprocal, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::sin, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::sinh, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::sqrt, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::tan, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::tanh, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::ceil, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::floor, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::trunc, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::round, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::positive, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::square, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::sign, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::conj, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::signbit, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::real, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::imag, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::invert, m)?)?;
+
+    m.add_function(wrap_pyfunction!(ops::maximum, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::minimum, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::floor_divide, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::atan2, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::copysign, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::hypot, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::nextafter, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::logaddexp, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::remainder, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::pow, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::bitwise_and, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::bitwise_or, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::bitwise_xor, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::bitwise_left_shift, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::bitwise_right_shift, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::logical_and, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::logical_or, m)?)?;
+    m.add_function(wrap_pyfunction!(ops::logical_xor, m)?)?;
 
     m.add_function(wrap_pyfunction!(ops::all, m)?)?;
     m.add_function(wrap_pyfunction!(ops::any, m)?)?;

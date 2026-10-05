@@ -15,15 +15,20 @@ use core::mem::MaybeUninit;
 use rstsr_core::storage::exports::{DeviceCreationAnyAPI, DeviceRawAPI};
 use rstsr_common::layout::exports::Indexer;
 use rstsr_core::operators::assignment::OpAssignAPI;
+use rstsr_dtype_traits::{DTypeIntoFloatAPI, DTypePromoteAPI};
 use rstsr_core::tensor::operators::exports::{
-    TensorAddAPI, TensorDivAPI, TensorEqualAPI, TensorGreaterAPI, TensorGreaterEqualAPI,
-    TensorLessAPI, TensorLessEqualAPI, TensorMulAPI, TensorNegAPI, TensorNotEqualAPI,
-    TensorSubAPI,
+    TensorAddAPI, TensorATan2API, TensorBitAndAPI, TensorBitOrAPI, TensorBitXorAPI, TensorCopySignAPI,
+    TensorDivAPI, TensorEqualAPI, TensorFloorDivideAPI, TensorGreaterAPI, TensorGreaterEqualAPI,
+    TensorHypotAPI, TensorLessAPI, TensorLessEqualAPI, TensorLogAddExpAPI, TensorMaximumAPI, TensorMinimumAPI,
+    TensorMulAPI, TensorNegAPI, TensorNextAfterAPI, TensorNotEqualAPI, TensorPositiveAPI, TensorReciprocalAPI,
+    TensorRemAPI, TensorShlAPI, TensorShrAPI, TensorSquareAPI, TensorSubAPI,
 };
 
 use crate::any_tensor::{
-    device_faer, dispatch_bin, dispatch_bin_numeric_self, dispatch_t, dispatch_t_bool, dispatch_t_signed, err_py,
-    lift, type_err, AnyTensor, FTensor, NativeArray,
+    device_faer, dispatch_bin_bool_self, dispatch_bin_int_bool_self, dispatch_bin_int_self, dispatch_bin_numeric_self,
+    dispatch_bin_promote, dispatch_bin_promote_eq, dispatch_t, dispatch_t_bool, dispatch_t_float_complex_same, dispatch_t_into_float, dispatch_t_no_complex,
+    dispatch_t_numeric_same, dispatch_t_real_float_same, dispatch_t_signed, err_py, lift, type_err, AnyTensor,
+    FTensor, NativeArray,
 };
 use crate::creation::dim_from;
 
@@ -68,27 +73,6 @@ where
 
 fn const_bool(n: usize, v: bool) -> rt::Result<FTensor<bool>> {
     rt::asarray_f((vec![v; n], device_faer()))
-}
-
-fn op_isnan_f<T>(t: &FTensor<T>) -> rt::Result<FTensor<bool>>
-where
-    for<'a> &'a FTensor<T>: TensorIsNanAPI<Output = FTensor<bool>>,
-{
-    rt::is_nan_f(t)
-}
-
-fn op_isfinite_f<T>(t: &FTensor<T>) -> rt::Result<FTensor<bool>>
-where
-    for<'a> &'a FTensor<T>: TensorIsFiniteAPI<Output = FTensor<bool>>,
-{
-    rt::is_finite_f(t)
-}
-
-fn op_isinf_f<T>(t: &FTensor<T>) -> rt::Result<FTensor<bool>>
-where
-    for<'a> &'a FTensor<T>: TensorIsInfAPI<Output = FTensor<bool>>,
-{
-    rt::is_inf_f(t)
 }
 
 fn op_reshape<T>(t: &FTensor<T>, shape: Vec<isize>) -> rt::Result<FTensor<T>>
@@ -147,47 +131,436 @@ where
     rt::div_f(a, b)
 }
 
-fn op_equal<T>(a: &FTensor<T>, b: &FTensor<T>) -> rt::Result<FTensor<bool>>
+fn op_equal<T, U>(a: &FTensor<T>, b: &FTensor<U>) -> rt::Result<FTensor<bool>>
 where
-    for<'x> &'x FTensor<T>: TensorEqualAPI<&'x FTensor<T>, Output = FTensor<bool>>,
+    for<'x> &'x FTensor<T>: TensorEqualAPI<&'x FTensor<U>, Output = FTensor<bool>>,
 {
     rt::equal_f(a, b)
 }
 
-fn op_not_equal<T>(a: &FTensor<T>, b: &FTensor<T>) -> rt::Result<FTensor<bool>>
+fn op_not_equal<T, U>(a: &FTensor<T>, b: &FTensor<U>) -> rt::Result<FTensor<bool>>
 where
-    for<'x> &'x FTensor<T>: TensorNotEqualAPI<&'x FTensor<T>, Output = FTensor<bool>>,
+    for<'x> &'x FTensor<T>: TensorNotEqualAPI<&'x FTensor<U>, Output = FTensor<bool>>,
 {
     rt::not_equal_f(a, b)
 }
 
-fn op_less<T>(a: &FTensor<T>, b: &FTensor<T>) -> rt::Result<FTensor<bool>>
+fn op_less<T, U>(a: &FTensor<T>, b: &FTensor<U>) -> rt::Result<FTensor<bool>>
 where
-    for<'x> &'x FTensor<T>: TensorLessAPI<&'x FTensor<T>, Output = FTensor<bool>>,
+    for<'x> &'x FTensor<T>: TensorLessAPI<&'x FTensor<U>, Output = FTensor<bool>>,
 {
     rt::less_f(a, b)
 }
 
-fn op_less_equal<T>(a: &FTensor<T>, b: &FTensor<T>) -> rt::Result<FTensor<bool>>
+fn op_less_equal<T, U>(a: &FTensor<T>, b: &FTensor<U>) -> rt::Result<FTensor<bool>>
 where
-    for<'x> &'x FTensor<T>: TensorLessEqualAPI<&'x FTensor<T>, Output = FTensor<bool>>,
+    for<'x> &'x FTensor<T>: TensorLessEqualAPI<&'x FTensor<U>, Output = FTensor<bool>>,
 {
     rt::less_equal_f(a, b)
 }
 
-fn op_greater<T>(a: &FTensor<T>, b: &FTensor<T>) -> rt::Result<FTensor<bool>>
+fn op_greater<T, U>(a: &FTensor<T>, b: &FTensor<U>) -> rt::Result<FTensor<bool>>
 where
-    for<'x> &'x FTensor<T>: TensorGreaterAPI<&'x FTensor<T>, Output = FTensor<bool>>,
+    for<'x> &'x FTensor<T>: TensorGreaterAPI<&'x FTensor<U>, Output = FTensor<bool>>,
 {
     rt::greater_f(a, b)
 }
 
-fn op_greater_equal<T>(a: &FTensor<T>, b: &FTensor<T>) -> rt::Result<FTensor<bool>>
+fn op_greater_equal<T, U>(a: &FTensor<T>, b: &FTensor<U>) -> rt::Result<FTensor<bool>>
 where
-    for<'x> &'x FTensor<T>: TensorGreaterEqualAPI<&'x FTensor<T>, Output = FTensor<bool>>,
+    for<'x> &'x FTensor<T>: TensorGreaterEqualAPI<&'x FTensor<U>, Output = FTensor<bool>>,
 {
     rt::greater_equal_f(a, b)
 }
+
+// ------------------------------------------------- W2 elementwise surface ---
+//
+// Binding-only additions: every wrapper is a thin call into `rt::`; dtype
+// policy lives in the dispatch macros of any_tensor.rs. Divergences that a
+// binding cannot fix (integer inputs to the dtype-preserving rounding family,
+// integer/complex kernels rstsr lacks, mixed-dtype arithmetic) are declined
+// with a register reference instead of worked around.
+
+/// Output-type shape is taken from rstsr's own dtype traits (`FloatType`,
+/// promoted `Res`), so no dtype table is duplicated in the shim.
+macro_rules! unary_wrapper {
+    ($wrapper:ident, $rt:ident, $Trait:ident) => {
+        fn $wrapper<T>(t: &FTensor<T>) -> rt::Result<FTensor<T::FloatType>>
+        where
+            T: DTypeIntoFloatAPI,
+            for<'x> &'x FTensor<T>: $Trait<Output = FTensor<T::FloatType>>,
+        {
+            rt::$rt(t)
+        }
+    };
+}
+
+macro_rules! unary_wrapper_same {
+    ($wrapper:ident, $rt:ident, $Trait:ident) => {
+        fn $wrapper<T>(t: &FTensor<T>) -> rt::Result<FTensor<T>>
+        where
+            for<'x> &'x FTensor<T>: $Trait<Output = FTensor<T>>,
+        {
+            rt::$rt(t)
+        }
+    };
+}
+
+// transcendental family (bool rejected; integers -> float64)
+unary_wrapper!(op_acos, acos_f, TensorAcosAPI);
+unary_wrapper!(op_acosh, acosh_f, TensorAcoshAPI);
+unary_wrapper!(op_asin, asin_f, TensorAsinAPI);
+unary_wrapper!(op_asinh, asinh_f, TensorAsinhAPI);
+unary_wrapper!(op_atan, atan_f, TensorAtanAPI);
+unary_wrapper!(op_atanh, atanh_f, TensorAtanhAPI);
+unary_wrapper!(op_cos, cos_f, TensorCosAPI);
+unary_wrapper!(op_cosh, cosh_f, TensorCoshAPI);
+unary_wrapper!(op_exp, exp_f, TensorExpAPI);
+unary_wrapper!(op_log, log_f, TensorLogAPI);
+unary_wrapper!(op_log2, log2_f, TensorLog2API);
+unary_wrapper!(op_log10, log10_f, TensorLog10API);
+unary_wrapper!(op_reciprocal, reciprocal_f, TensorReciprocalAPI);
+unary_wrapper!(op_sin, sin_f, TensorSinAPI);
+unary_wrapper!(op_sinh, sinh_f, TensorSinhAPI);
+unary_wrapper!(op_sqrt, sqrt_f, TensorSqrtAPI);
+unary_wrapper!(op_tan, tan_f, TensorTanAPI);
+unary_wrapper!(op_tanh, tanh_f, TensorTanhAPI);
+// real-only kernels
+unary_wrapper!(op_expm1, expm1_f, TensorExpm1API);
+unary_wrapper_same!(op_ceil, ceil_f, TensorCeilAPI);
+unary_wrapper_same!(op_floor, floor_f, TensorFloorAPI);
+unary_wrapper_same!(op_trunc, trunc_f, TensorTruncAPI);
+unary_wrapper_same!(op_round, round_f, TensorRoundAPI);
+// dtype-preserving numeric kernels
+unary_wrapper_same!(op_square, square_f, TensorSquareAPI);
+unary_wrapper_same!(op_sign, sign_f, TensorSignAPI);
+unary_wrapper_same!(op_conj, conj_f, TensorConjAPI);
+
+macro_rules! py_unary_into_float {
+    ($($pyname:ident => $wrapper:ident),* $(,)?) => {
+        $(
+            #[pyfunction]
+            pub fn $pyname(x: &NativeArray) -> PyResult<NativeArray> {
+                Ok(NativeArray { t: dispatch_t_into_float!(x.t, $wrapper())? })
+            }
+        )*
+    };
+}
+
+macro_rules! py_unary_no_complex {
+    ($($pyname:ident => $wrapper:ident),* $(,)?) => {
+        $(
+            #[pyfunction]
+            pub fn $pyname(x: &NativeArray) -> PyResult<NativeArray> {
+                Ok(NativeArray { t: dispatch_t_no_complex!(x.t, $wrapper())? })
+            }
+        )*
+    };
+}
+
+macro_rules! py_unary_real_float_same {
+    ($($pyname:ident => $wrapper:ident),* $(,)?) => {
+        $(
+            #[pyfunction]
+            pub fn $pyname(x: &NativeArray) -> PyResult<NativeArray> {
+                Ok(NativeArray { t: dispatch_t_real_float_same!(x.t, stringify!($pyname), $wrapper())? })
+            }
+        )*
+    };
+}
+
+macro_rules! py_unary_float_complex_same {
+    ($($pyname:ident => $wrapper:ident),* $(,)?) => {
+        $(
+            #[pyfunction]
+            pub fn $pyname(x: &NativeArray) -> PyResult<NativeArray> {
+                Ok(NativeArray {
+                    t: dispatch_t_float_complex_same!(x.t, stringify!($pyname), $wrapper())?,
+                })
+            }
+        )*
+    };
+}
+
+macro_rules! py_unary_numeric_same {
+    ($($pyname:ident => $wrapper:ident),* $(,)?) => {
+        $(
+            #[pyfunction]
+            pub fn $pyname(x: &NativeArray) -> PyResult<NativeArray> {
+                Ok(NativeArray { t: dispatch_t_numeric_same!(x.t, stringify!($pyname), $wrapper())? })
+            }
+        )*
+    };
+}
+
+py_unary_into_float!(
+    acos => op_acos,
+    acosh => op_acosh,
+    asin => op_asin,
+    asinh => op_asinh,
+    atan => op_atan,
+    atanh => op_atanh,
+    cos => op_cos,
+    cosh => op_cosh,
+    exp => op_exp,
+    log => op_log,
+    log2 => op_log2,
+    log10 => op_log10,
+    reciprocal => op_reciprocal,
+    sin => op_sin,
+    sinh => op_sinh,
+    sqrt => op_sqrt,
+    tan => op_tan,
+    tanh => op_tanh,
+);
+py_unary_no_complex!(expm1 => op_expm1);
+py_unary_real_float_same!(
+    ceil => op_ceil,
+    floor => op_floor,
+    trunc => op_trunc,
+    round => op_round,
+);
+/// `positive`: identity function, routed through rstsr's `TensorPositiveAPI`
+/// (rust-side trait added 2026-10-05; no operator trait bound on the dtype).
+fn op_positive<T>(t: &FTensor<T>) -> rt::Result<FTensor<T>>
+where
+    for<'a> &'a FTensor<T>: TensorPositiveAPI<Output = FTensor<T>>,
+{
+    rt::positive_f(t)
+}
+
+py_unary_numeric_same!(
+    square => op_square,
+    sign => op_sign,
+);
+py_unary_numeric_same!(positive => op_positive);
+
+py_unary_float_complex_same!(conj => op_conj);
+
+/// `signbit` is present in rstsr but its kernel writes `is_positive()` —
+/// the inverse of the standard's sign-bit test (verified: `signbit(-2.0)` is
+/// False). The shim declines instead of returning wrong values; rust-side fix
+/// requested (register G-054).
+#[pyfunction]
+pub fn signbit(_x: &NativeArray) -> PyResult<NativeArray> {
+    type_err(
+        "signbit: rstsr's kernel returns is_positive (inverted sign-bit semantics) — \
+         rust-side fix required (register G-054)",
+    )
+}
+
+#[pyfunction]
+pub fn real(x: &NativeArray) -> PyResult<NativeArray> {
+    let t: AnyTensor = match &x.t {
+        AnyTensor::C32(v) => lift(rt::real_f(v), AnyTensor::F32)?,
+        AnyTensor::C64(v) => lift(rt::real_f(v), AnyTensor::F64)?,
+        _ => return type_err("real: only complex dtypes are allowed"),
+    };
+    Ok(NativeArray { t })
+}
+
+#[pyfunction]
+pub fn imag(x: &NativeArray) -> PyResult<NativeArray> {
+    let t: AnyTensor = match &x.t {
+        AnyTensor::C32(v) => lift(rt::imag_f(v), AnyTensor::F32)?,
+        AnyTensor::C64(v) => lift(rt::imag_f(v), AnyTensor::F64)?,
+        _ => return type_err("imag: only complex dtypes are allowed"),
+    };
+    Ok(NativeArray { t })
+}
+
+/// `logical_not` (bool) and `bitwise_invert` (integer/bool): same dtype.
+#[pyfunction]
+pub fn invert(x: &NativeArray) -> PyResult<NativeArray> {
+    let t: AnyTensor = match &x.t {
+        AnyTensor::Bool(v) => lift(rt::not_f(v), AnyTensor::Bool)?,
+        AnyTensor::I8(v) => lift(rt::not_f(v), AnyTensor::I8)?,
+        AnyTensor::I16(v) => lift(rt::not_f(v), AnyTensor::I16)?,
+        AnyTensor::I32(v) => lift(rt::not_f(v), AnyTensor::I32)?,
+        AnyTensor::I64(v) => lift(rt::not_f(v), AnyTensor::I64)?,
+        AnyTensor::U8(v) => lift(rt::not_f(v), AnyTensor::U8)?,
+        AnyTensor::U16(v) => lift(rt::not_f(v), AnyTensor::U16)?,
+        AnyTensor::U32(v) => lift(rt::not_f(v), AnyTensor::U32)?,
+        AnyTensor::U64(v) => lift(rt::not_f(v), AnyTensor::U64)?,
+        _ => return type_err("invert: only integer or boolean dtypes are allowed"),
+    };
+    Ok(NativeArray { t })
+}
+
+// --------------------------------------------------- binary (W2) ------------
+
+/// Mixed-dtype wrappers for kernels whose promoted result keeps the promoted
+/// dtype (`maximum`-family) ...
+macro_rules! bin_promote_wrapper {
+    ($wrapper:ident, $rt:ident, $Trait:ident) => {
+        fn $wrapper<T, U>(a: &FTensor<T>, b: &FTensor<U>) -> rt::Result<FTensor<<T as DTypePromoteAPI<U>>::Res>>
+        where
+            T: DTypePromoteAPI<U>,
+            for<'x> &'x FTensor<T>: $Trait<&'x FTensor<U>, Output = FTensor<<T as DTypePromoteAPI<U>>::Res>>,
+        {
+            rt::$rt(a, b)
+        }
+    };
+}
+
+/// ... and for kernels that promote first and then map to the float type
+/// (`atan2`-family: `TOut = Res::FloatType`).
+macro_rules! bin_promote_float_wrapper {
+    ($wrapper:ident, $rt:ident, $Trait:ident) => {
+        fn $wrapper<T, U>(a: &FTensor<T>, b: &FTensor<U>)
+            -> rt::Result<FTensor<<<T as DTypePromoteAPI<U>>::Res as DTypeIntoFloatAPI>::FloatType>>
+        where
+            T: DTypePromoteAPI<U>,
+            <T as DTypePromoteAPI<U>>::Res: DTypeIntoFloatAPI,
+            for<'x> &'x FTensor<T>: $Trait<
+                &'x FTensor<U>,
+                Output = FTensor<<<T as DTypePromoteAPI<U>>::Res as DTypeIntoFloatAPI>::FloatType>,
+            >,
+        {
+            rt::$rt(a, b)
+        }
+    };
+}
+
+bin_promote_wrapper!(op_maximum, maximum_f, TensorMaximumAPI);
+bin_promote_wrapper!(op_minimum, minimum_f, TensorMinimumAPI);
+bin_promote_wrapper!(op_floor_divide, floor_divide_f, TensorFloorDivideAPI);
+bin_promote_float_wrapper!(op_atan2, atan2_f, TensorATan2API);
+bin_promote_float_wrapper!(op_copysign, copysign_f, TensorCopySignAPI);
+bin_promote_float_wrapper!(op_hypot, hypot_f, TensorHypotAPI);
+bin_promote_float_wrapper!(op_nextafter, nextafter_f, TensorNextAfterAPI);
+bin_promote_float_wrapper!(op_logaddexp, log_add_exp_f, TensorLogAddExpAPI);
+
+macro_rules! py_bin_promote {
+    ($($pyname:ident => $wrapper:ident),* $(,)?) => {
+        $(
+            #[pyfunction]
+            pub fn $pyname(x1: &NativeArray, x2: &NativeArray) -> PyResult<NativeArray> {
+                Ok(NativeArray {
+                    t: dispatch_bin_promote!(x1.t, x2.t, stringify!($pyname), $wrapper)?,
+                })
+            }
+        )*
+    };
+}
+
+py_bin_promote!(
+    maximum => op_maximum,
+    minimum => op_minimum,
+    floor_divide => op_floor_divide,
+    atan2 => op_atan2,
+    copysign => op_copysign,
+    hypot => op_hypot,
+    nextafter => op_nextafter,
+    logaddexp => op_logaddexp,
+);
+
+/// Same-dtype integer/bitwise binary ops (`remainder`, `bitwise_*`, shifts).
+macro_rules! bin_self_wrapper {
+    ($wrapper:ident, $rt:ident, $Trait:ident) => {
+        fn $wrapper<T>(a: &FTensor<T>, b: &FTensor<T>) -> rt::Result<FTensor<T>>
+        where
+            for<'x> &'x FTensor<T>: $Trait<&'x FTensor<T>, Output = FTensor<T>>,
+        {
+            rt::$rt(a, b)
+        }
+    };
+}
+
+bin_self_wrapper!(op_remainder, rem_f, TensorRemAPI);
+bin_self_wrapper!(op_bitwise_and, bitand_f, TensorBitAndAPI);
+bin_self_wrapper!(op_bitwise_or, bitor_f, TensorBitOrAPI);
+bin_self_wrapper!(op_bitwise_xor, bitxor_f, TensorBitXorAPI);
+bin_self_wrapper!(op_bitwise_left_shift, shl_f, TensorShlAPI);
+bin_self_wrapper!(op_bitwise_right_shift, shr_f, TensorShrAPI);
+
+macro_rules! py_bin_self {
+    ($($pyname:ident => $wrapper:ident),* $(,)?) => {
+        $(
+            #[pyfunction]
+            pub fn $pyname(x1: &NativeArray, x2: &NativeArray) -> PyResult<NativeArray> {
+                Ok(NativeArray {
+                    t: dispatch_bin_numeric_self!(x1.t, x2.t, stringify!($pyname), $wrapper)?,
+                })
+            }
+        )*
+    };
+}
+
+py_bin_self!(remainder => op_remainder);
+
+macro_rules! py_bin_int_bool {
+    ($($pyname:ident => $wrapper:ident),* $(,)?) => {
+        $(
+            #[pyfunction]
+            pub fn $pyname(x1: &NativeArray, x2: &NativeArray) -> PyResult<NativeArray> {
+                Ok(NativeArray {
+                    t: dispatch_bin_int_bool_self!(x1.t, x2.t, stringify!($pyname), $wrapper)?,
+                })
+            }
+        )*
+    };
+}
+
+py_bin_int_bool!(
+    bitwise_and => op_bitwise_and,
+    bitwise_or => op_bitwise_or,
+    bitwise_xor => op_bitwise_xor,
+);
+
+macro_rules! py_bin_int {
+    ($($pyname:ident => $wrapper:ident),* $(,)?) => {
+        $(
+            #[pyfunction]
+            pub fn $pyname(x1: &NativeArray, x2: &NativeArray) -> PyResult<NativeArray> {
+                Ok(NativeArray {
+                    t: dispatch_bin_int_self!(x1.t, x2.t, stringify!($pyname), $wrapper)?,
+                })
+            }
+        )*
+    };
+}
+
+py_bin_int!(
+    bitwise_left_shift => op_bitwise_left_shift,
+    bitwise_right_shift => op_bitwise_right_shift,
+);
+
+/// `pow`: same-dtype only, floats — rstsr's `Pow` bound needs an unsigned
+/// exponent for integer bases and `num` provides no `Complex: Pow<Complex>`,
+/// so integer and complex pow are rust-side gaps (registered G-053).
+#[pyfunction]
+pub fn pow(x1: &NativeArray, x2: &NativeArray) -> PyResult<NativeArray> {
+    let t: AnyTensor = match (&x1.t, &x2.t) {
+        (AnyTensor::F32(a), AnyTensor::F32(b)) => lift(rt::pow_f(a, b), AnyTensor::F32)?,
+        (AnyTensor::F64(a), AnyTensor::F64(b)) => lift(rt::pow_f(a, b), AnyTensor::F64)?,
+        (AnyTensor::F32(_) | AnyTensor::F64(_), _) | (_, AnyTensor::F32(_) | AnyTensor::F64(_)) => {
+            return type_err("pow: mixed-dtype operands are not provided by rstsr (gap G-009)")
+        }
+        _ => return type_err("pow: integer/bool/complex bases are not provided by rstsr (gap G-053)"),
+    };
+    Ok(NativeArray { t })
+}
+
+/// `logical_and/or/xor`: boolean inputs only, boolean output.
+macro_rules! py_logical {
+    ($($pyname:ident => $wrapper:ident),* $(,)?) => {
+        $(
+            #[pyfunction]
+            pub fn $pyname(x1: &NativeArray, x2: &NativeArray) -> PyResult<NativeArray> {
+                Ok(NativeArray {
+                    t: dispatch_bin_bool_self!(x1.t, x2.t, stringify!($pyname), $wrapper)?,
+                })
+            }
+        )*
+    };
+}
+
+py_logical!(
+    logical_and => op_bitwise_and,
+    logical_or => op_bitwise_or,
+    logical_xor => op_bitwise_xor,
+);
 
 // ------------------------------------------------------------ arithmetic ----
 
@@ -255,71 +628,42 @@ pub fn abs(x: &NativeArray) -> PyResult<NativeArray> {
 #[pyfunction]
 pub fn equal(x1: &NativeArray, x2: &NativeArray) -> PyResult<NativeArray> {
     Ok(NativeArray {
-        t: dispatch_bin!(x1.t, x2.t, "equal", op_equal, Bool)?,
+        t: dispatch_bin_promote_eq!(x1.t, x2.t, "equal", op_equal)?,
     })
 }
 
 #[pyfunction]
 pub fn not_equal(x1: &NativeArray, x2: &NativeArray) -> PyResult<NativeArray> {
     Ok(NativeArray {
-        t: dispatch_bin!(x1.t, x2.t, "not_equal", op_not_equal, Bool)?,
+        t: dispatch_bin_promote_eq!(x1.t, x2.t, "not_equal", op_not_equal)?,
     })
-}
-
-/// Ordering comparisons reject complex dtypes (spec: ordering is real-valued
-/// only; rstsr has no PartialOrd for complex); output is always bool.
-macro_rules! dispatch_bin_real {
-    ($a:expr, $b:expr, $opname:literal, $f:ident, $rv:ident) => {
-        match (&$a, &$b) {
-            (AnyTensor::C32(_), _) | (_, AnyTensor::C32(_)) | (AnyTensor::C64(_), _)
-            | (_, AnyTensor::C64(_)) => type_err(format!(
-                "{}: ordering comparison is not defined for complex dtypes",
-                $opname
-            )),
-            (AnyTensor::Bool(a), AnyTensor::Bool(b)) => lift(($f::<bool>)(a, b), AnyTensor::$rv),
-            (AnyTensor::I8(a), AnyTensor::I8(b)) => lift(($f::<i8>)(a, b), AnyTensor::$rv),
-            (AnyTensor::I16(a), AnyTensor::I16(b)) => lift(($f::<i16>)(a, b), AnyTensor::$rv),
-            (AnyTensor::I32(a), AnyTensor::I32(b)) => lift(($f::<i32>)(a, b), AnyTensor::$rv),
-            (AnyTensor::I64(a), AnyTensor::I64(b)) => lift(($f::<i64>)(a, b), AnyTensor::$rv),
-            (AnyTensor::U8(a), AnyTensor::U8(b)) => lift(($f::<u8>)(a, b), AnyTensor::$rv),
-            (AnyTensor::U16(a), AnyTensor::U16(b)) => lift(($f::<u16>)(a, b), AnyTensor::$rv),
-            (AnyTensor::U32(a), AnyTensor::U32(b)) => lift(($f::<u32>)(a, b), AnyTensor::$rv),
-            (AnyTensor::U64(a), AnyTensor::U64(b)) => lift(($f::<u64>)(a, b), AnyTensor::$rv),
-            (AnyTensor::F32(a), AnyTensor::F32(b)) => lift(($f::<f32>)(a, b), AnyTensor::$rv),
-            (AnyTensor::F64(a), AnyTensor::F64(b)) => lift(($f::<f64>)(a, b), AnyTensor::$rv),
-            _ => type_err(format!(
-                "{}: mixed-dtype operands require type promotion (rstsr gap); use astype()",
-                $opname
-            )),
-        }
-    };
 }
 
 #[pyfunction]
 pub fn less(x1: &NativeArray, x2: &NativeArray) -> PyResult<NativeArray> {
     Ok(NativeArray {
-        t: dispatch_bin_real!(x1.t, x2.t, "less", op_less, Bool)?,
+        t: dispatch_bin_promote!(x1.t, x2.t, "less", op_less)?,
     })
 }
 
 #[pyfunction]
 pub fn less_equal(x1: &NativeArray, x2: &NativeArray) -> PyResult<NativeArray> {
     Ok(NativeArray {
-        t: dispatch_bin_real!(x1.t, x2.t, "less_equal", op_less_equal, Bool)?,
+        t: dispatch_bin_promote!(x1.t, x2.t, "less_equal", op_less_equal)?,
     })
 }
 
 #[pyfunction]
 pub fn greater(x1: &NativeArray, x2: &NativeArray) -> PyResult<NativeArray> {
     Ok(NativeArray {
-        t: dispatch_bin_real!(x1.t, x2.t, "greater", op_greater, Bool)?,
+        t: dispatch_bin_promote!(x1.t, x2.t, "greater", op_greater)?,
     })
 }
 
 #[pyfunction]
 pub fn greater_equal(x1: &NativeArray, x2: &NativeArray) -> PyResult<NativeArray> {
     Ok(NativeArray {
-        t: dispatch_bin_real!(x1.t, x2.t, "greater_equal", op_greater_equal, Bool)?,
+        t: dispatch_bin_promote!(x1.t, x2.t, "greater_equal", op_greater_equal)?,
     })
 }
 

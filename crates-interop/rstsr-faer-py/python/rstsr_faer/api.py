@@ -43,6 +43,55 @@ from .rstsr_faer import (
     isfinite as _isfinite,
     isinf as _isinf,
     sum as _sum,
+    acos as _acos,
+    acosh as _acosh,
+    asin as _asin,
+    asinh as _asinh,
+    atan as _atan,
+    atanh as _atanh,
+    cos as _cos,
+    cosh as _cosh,
+    exp as _exp,
+    expm1 as _expm1,
+    log as _log,
+    log2 as _log2,
+    log10 as _log10,
+    reciprocal as _reciprocal,
+    sin as _sin,
+    sinh as _sinh,
+    sqrt as _sqrt,
+    tan as _tan,
+    tanh as _tanh,
+    ceil as _ceil,
+    floor as _floor,
+    trunc as _trunc,
+    round as _round,
+    positive as _positive,
+    square as _square,
+    sign as _sign,
+    conj as _conj,
+    signbit as _signbit,
+    real as _real,
+    imag as _imag,
+    invert as _invert,
+    maximum as _maximum,
+    minimum as _minimum,
+    floor_divide as _floor_divide,
+    atan2 as _atan2,
+    copysign as _copysign,
+    hypot as _hypot,
+    nextafter as _nextafter,
+    logaddexp as _logaddexp,
+    remainder as _remainder,
+    pow as _pow,
+    bitwise_and as _bitwise_and,
+    bitwise_or as _bitwise_or,
+    bitwise_xor as _bitwise_xor,
+    bitwise_left_shift as _bitwise_left_shift,
+    bitwise_right_shift as _bitwise_right_shift,
+    logical_and as _logical_and,
+    logical_or as _logical_or,
+    logical_xor as _logical_xor,
     broadcast_to as _broadcast_to,
     reshape as _reshape,
     transpose as _transpose,
@@ -189,6 +238,43 @@ def _handle(x, /):
 
 def _wrap(h, /):
     return Array.__new__(Array, h)
+
+
+def _scalar_operand(value, ref_dtype, /):
+    """Weak-scalar marshalling: cast a Python scalar to the reference dtype.
+
+    Cross-kind scalars (scalar kind higher than the array kind) are declined —
+    rstsr has no cross-dtype promotion (register G-009) and the shim carries
+    no promotion table of its own.
+    """
+    if isinstance(value, Array):
+        return value
+    if not isinstance(value, (_py_bool, _py_int, _py_float, _py_complex)):
+        raise TypeError(
+            f"expected an rstsr_faer.api Array or a Python scalar, got {type(value).__name__}"
+        )
+    kind = (
+        "bool" if isinstance(value, _py_bool)
+        else "integral" if isinstance(value, _py_int)
+        else "real floating" if isinstance(value, _py_float)
+        else "complex floating"
+    )
+    own_kind = _kind(ref_dtype)
+    if _KIND_ORDER[kind] > _KIND_ORDER[own_kind]:
+        raise TypeError(
+            f"cross-kind scalar promotion ({kind} scalar vs {own_kind} array) is not "
+            f"provided by rstsr (gap G-009)"
+        )
+    return asarray(value, dtype=ref_dtype)
+
+
+def _operands(x1, x2, /):
+    """Handle pair for a binary namespace function, with weak-scalar support."""
+    if isinstance(x1, Array):
+        return x1._h, _scalar_operand(x2, x1.dtype)._h
+    if isinstance(x2, Array):
+        return _scalar_operand(x1, x2.dtype)._h, x2._h
+    raise TypeError("at least one operand must be an rstsr_faer.api Array")
 
 
 # --------------------------------------------------------------------- Array --
@@ -386,11 +472,8 @@ class Array:
         other = self._operand(other, self.dtype)
         if other is None:
             return NotImplemented
-        if other.dtype is not self.dtype:
-            raise TypeError(
-                "cross-dtype array promotion is not provided by rstsr (gap); "
-                "use astype() or matching dtypes"
-            )
+        # mixed-dtype array pairs are passed through: the native layer serves
+        # the pairs rstsr can promote and raises the gap otherwise (G-009)
         return op(self, other) if not reflected else op(other, self)
 
     # arithmetic
@@ -438,6 +521,94 @@ class Array:
 
     def __ge__(self, other, /):
         return self._binary(other, greater_equal)
+
+    # ---- arithmetic / bitwise operator dunders (W2) ---------------------
+
+    def __pow__(self, other, /):
+        return self._binary(other, pow)
+
+    def __rpow__(self, other, /):
+        return self._binary(other, pow, reflected=True)
+
+    def __ipow__(self, other, /):
+        return self._binary(other, pow)
+
+    def __floordiv__(self, other, /):
+        return self._binary(other, floor_divide)
+
+    def __rfloordiv__(self, other, /):
+        return self._binary(other, floor_divide, reflected=True)
+
+    def __ifloordiv__(self, other, /):
+        return self._binary(other, floor_divide)
+
+    def __mod__(self, other, /):
+        return self._binary(other, remainder)
+
+    def __rmod__(self, other, /):
+        return self._binary(other, remainder, reflected=True)
+
+    def __imod__(self, other, /):
+        return self._binary(other, remainder)
+
+    def __and__(self, other, /):
+        return self._binary(other, bitwise_and)
+
+    def __rand__(self, other, /):
+        return self._binary(other, bitwise_and, reflected=True)
+
+    def __iand__(self, other, /):
+        return self._binary(other, bitwise_and)
+
+    def __or__(self, other, /):
+        return self._binary(other, bitwise_or)
+
+    def __ror__(self, other, /):
+        return self._binary(other, bitwise_or, reflected=True)
+
+    def __ior__(self, other, /):
+        return self._binary(other, bitwise_or)
+
+    def __xor__(self, other, /):
+        return self._binary(other, bitwise_xor)
+
+    def __rxor__(self, other, /):
+        return self._binary(other, bitwise_xor, reflected=True)
+
+    def __ixor__(self, other, /):
+        return self._binary(other, bitwise_xor)
+
+    def __lshift__(self, other, /):
+        return self._binary(other, bitwise_left_shift)
+
+    def __rlshift__(self, other, /):
+        return self._binary(other, bitwise_left_shift, reflected=True)
+
+    def __ilshift__(self, other, /):
+        return self._binary(other, bitwise_left_shift)
+
+    def __rshift__(self, other, /):
+        return self._binary(other, bitwise_right_shift)
+
+    def __rrshift__(self, other, /):
+        return self._binary(other, bitwise_right_shift, reflected=True)
+
+    def __irshift__(self, other, /):
+        return self._binary(other, bitwise_right_shift)
+
+    # ---- unary dunders --------------------------------------------------
+
+    def __invert__(self, /):
+        return bitwise_invert(self)
+
+    def __neg__(self, /):
+        return negative(self)
+
+    def __pos__(self, /):
+        return positive(self)
+
+    def __abs__(self, /):
+        return abs(self)
 
     __hash__ = None  # arrays are unhashable, like the reference implementations
 
@@ -560,19 +731,23 @@ def _dtype_or_default(dtype, kind, /):
 
 
 def add(x1, x2, /):
-    return _wrap(_add(_handle(x1), _handle(x2)))
+    a, b = _operands(x1, x2)
+    return _wrap(_add(a, b))
 
 
 def subtract(x1, x2, /):
-    return _wrap(_subtract(_handle(x1), _handle(x2)))
+    a, b = _operands(x1, x2)
+    return _wrap(_subtract(a, b))
 
 
 def multiply(x1, x2, /):
-    return _wrap(_multiply(_handle(x1), _handle(x2)))
+    a, b = _operands(x1, x2)
+    return _wrap(_multiply(a, b))
 
 
 def divide(x1, x2, /):
-    return _wrap(_divide(_handle(x1), _handle(x2)))
+    a, b = _operands(x1, x2)
+    return _wrap(_divide(a, b))
 
 
 def negative(x, /):
@@ -587,27 +762,33 @@ def abs(x, /):
 
 
 def equal(x1, x2, /):
-    return _wrap(_equal(_handle(x1), _handle(x2)))
+    a, b = _operands(x1, x2)
+    return _wrap(_equal(a, b))
 
 
 def not_equal(x1, x2, /):
-    return _wrap(_not_equal(_handle(x1), _handle(x2)))
+    a, b = _operands(x1, x2)
+    return _wrap(_not_equal(a, b))
 
 
 def less(x1, x2, /):
-    return _wrap(_less(_handle(x1), _handle(x2)))
+    a, b = _operands(x1, x2)
+    return _wrap(_less(a, b))
 
 
 def less_equal(x1, x2, /):
-    return _wrap(_less_equal(_handle(x1), _handle(x2)))
+    a, b = _operands(x1, x2)
+    return _wrap(_less_equal(a, b))
 
 
 def greater(x1, x2, /):
-    return _wrap(_greater(_handle(x1), _handle(x2)))
+    a, b = _operands(x1, x2)
+    return _wrap(_greater(a, b))
 
 
 def greater_equal(x1, x2, /):
-    return _wrap(_greater_equal(_handle(x1), _handle(x2)))
+    a, b = _operands(x1, x2)
+    return _wrap(_greater_equal(a, b))
 
 
 # ----------------------------------------------------------- logical / tests --
@@ -635,6 +816,191 @@ def isfinite(x, /):
 
 def isinf(x, /):
     return _wrap(_isinf(_handle(x)))
+
+
+
+
+# ------------------------------------------------- elementwise (W2 surface) --
+
+
+def acos(x, /):
+    return _wrap(_acos(_handle(x)))
+
+def acosh(x, /):
+    return _wrap(_acosh(_handle(x)))
+
+def asin(x, /):
+    return _wrap(_asin(_handle(x)))
+
+def asinh(x, /):
+    return _wrap(_asinh(_handle(x)))
+
+def atan(x, /):
+    return _wrap(_atan(_handle(x)))
+
+def atanh(x, /):
+    return _wrap(_atanh(_handle(x)))
+
+def ceil(x, /):
+    return _wrap(_ceil(_handle(x)))
+
+def conj(x, /):
+    return _wrap(_conj(_handle(x)))
+
+def cos(x, /):
+    return _wrap(_cos(_handle(x)))
+
+def cosh(x, /):
+    return _wrap(_cosh(_handle(x)))
+
+def exp(x, /):
+    return _wrap(_exp(_handle(x)))
+
+def expm1(x, /):
+    return _wrap(_expm1(_handle(x)))
+
+def floor(x, /):
+    return _wrap(_floor(_handle(x)))
+
+def imag(x, /):
+    return _wrap(_imag(_handle(x)))
+
+def log(x, /):
+    return _wrap(_log(_handle(x)))
+
+def log2(x, /):
+    return _wrap(_log2(_handle(x)))
+
+def log10(x, /):
+    return _wrap(_log10(_handle(x)))
+
+def real(x, /):
+    return _wrap(_real(_handle(x)))
+
+def reciprocal(x, /):
+    return _wrap(_reciprocal(_handle(x)))
+
+def round(x, /):
+    return _wrap(_round(_handle(x)))
+
+def positive(x, /):
+    return _wrap(_positive(_handle(x)))
+
+
+def sign(x, /):
+    return _wrap(_sign(_handle(x)))
+
+def signbit(x, /):
+    return _wrap(_signbit(_handle(x)))
+
+def sin(x, /):
+    return _wrap(_sin(_handle(x)))
+
+def sinh(x, /):
+    return _wrap(_sinh(_handle(x)))
+
+def square(x, /):
+    return _wrap(_square(_handle(x)))
+
+
+def sqrt(x, /):
+    return _wrap(_sqrt(_handle(x)))
+
+def tan(x, /):
+    return _wrap(_tan(_handle(x)))
+
+def tanh(x, /):
+    return _wrap(_tanh(_handle(x)))
+
+def trunc(x, /):
+    return _wrap(_trunc(_handle(x)))
+
+
+# ------------------------------------------------- inverse / bitwise helpers --
+
+
+def logical_not(x, /):
+    h = _handle(x)
+    if _kind(h.dtype()) != "bool":
+        raise TypeError("logical_not: only boolean arrays are allowed")
+    return _wrap(_invert(h))
+
+
+def bitwise_invert(x, /):
+    return _wrap(_invert(_handle(x)))
+
+
+def maximum(x1, x2, /):
+    a, b = _operands(x1, x2)
+    return _wrap(_maximum(a, b))
+
+def minimum(x1, x2, /):
+    a, b = _operands(x1, x2)
+    return _wrap(_minimum(a, b))
+
+def floor_divide(x1, x2, /):
+    a, b = _operands(x1, x2)
+    return _wrap(_floor_divide(a, b))
+
+def atan2(x1, x2, /):
+    a, b = _operands(x1, x2)
+    return _wrap(_atan2(a, b))
+
+def copysign(x1, x2, /):
+    a, b = _operands(x1, x2)
+    return _wrap(_copysign(a, b))
+
+def hypot(x1, x2, /):
+    a, b = _operands(x1, x2)
+    return _wrap(_hypot(a, b))
+
+def nextafter(x1, x2, /):
+    a, b = _operands(x1, x2)
+    return _wrap(_nextafter(a, b))
+
+def logaddexp(x1, x2, /):
+    a, b = _operands(x1, x2)
+    return _wrap(_logaddexp(a, b))
+
+def remainder(x1, x2, /):
+    a, b = _operands(x1, x2)
+    return _wrap(_remainder(a, b))
+
+def pow(x1, x2, /):
+    a, b = _operands(x1, x2)
+    return _wrap(_pow(a, b))
+
+def bitwise_and(x1, x2, /):
+    a, b = _operands(x1, x2)
+    return _wrap(_bitwise_and(a, b))
+
+def bitwise_or(x1, x2, /):
+    a, b = _operands(x1, x2)
+    return _wrap(_bitwise_or(a, b))
+
+def bitwise_xor(x1, x2, /):
+    a, b = _operands(x1, x2)
+    return _wrap(_bitwise_xor(a, b))
+
+def bitwise_left_shift(x1, x2, /):
+    a, b = _operands(x1, x2)
+    return _wrap(_bitwise_left_shift(a, b))
+
+def bitwise_right_shift(x1, x2, /):
+    a, b = _operands(x1, x2)
+    return _wrap(_bitwise_right_shift(a, b))
+
+def logical_and(x1, x2, /):
+    a, b = _operands(x1, x2)
+    return _wrap(_logical_and(a, b))
+
+def logical_or(x1, x2, /):
+    a, b = _operands(x1, x2)
+    return _wrap(_logical_or(a, b))
+
+def logical_xor(x1, x2, /):
+    a, b = _operands(x1, x2)
+    return _wrap(_logical_xor(a, b))
 
 
 def sum(x, /, *, axis=None, keepdims=False):
@@ -693,7 +1059,15 @@ __all__ = [
     # creation
     "asarray", "zeros", "ones", "empty", "full", "arange", "from_dlpack",
     # elementwise
-    "add", "subtract", "multiply", "divide", "negative", "abs",
+    "add", "subtract", "multiply", "divide", "negative", "abs", "positive",
+    "acos", "acosh", "asin", "asinh", "atan", "atan2", "atanh", "ceil",
+    "conj", "copysign", "cos", "cosh", "exp", "expm1", "floor", "floor_divide",
+    "hypot", "imag", "log", "log2", "log10", "logaddexp", "maximum",
+    "minimum", "nextafter", "pow", "real", "reciprocal", "remainder", "round",
+    "sign", "signbit", "sin", "sinh", "sqrt", "square", "tan", "tanh", "trunc",
+    "bitwise_and", "bitwise_left_shift", "bitwise_invert", "bitwise_or",
+    "bitwise_right_shift", "bitwise_xor", "logical_and", "logical_not",
+    "logical_or", "logical_xor",
     # comparison
     "equal", "not_equal", "less", "less_equal", "greater", "greater_equal",
     # logical / tests

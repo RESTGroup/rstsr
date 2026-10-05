@@ -67,7 +67,6 @@ half = { version = "2.7", default-features = false, features = ["alloc", "num-tr
 libm = { version = "0.2" }
 derive_builder = { version = "0.20", default-features = false, features = ["alloc"] }
 duplicate = { version = "2.0" }
-rustversion = { version = "1.0" }
 serde = { version = "1.0", default-features = false, features = ["derive"] }
 # optional dependencies
 rayon = { version = ">=1.10" }
@@ -78,7 +77,6 @@ opt-einsum-path = { version = "0.2", features = ["par_rand"] }
 # dev dependencies
 num-bigint = { version = "0.4" }
 npyz = { version = "0.8", features = ["complex"] }
-anyhow = { version = "1.0" }
 rand = { version = "0.8" }
 approx = { version = "0.5" }
 ndarray = { version = "0.15" }
