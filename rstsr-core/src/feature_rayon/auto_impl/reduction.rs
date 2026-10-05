@@ -844,3 +844,54 @@ where
         unimplemented!("This function (`allclose_axes`) is not planned to be implemented yet.");
     }
 }
+
+impl<T, TS, TO, D> OpReduceCustomAPI<T, TS, TO, D> for DeviceRayonAutoImpl
+where
+    T: Clone + Send + Sync,
+    TS: Clone + Send + Sync,
+    TO: Clone + Send + Sync,
+    D: DimAPI,
+{
+    fn reduce_all_custom<FI, FF, FC, FO>(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        f_init: FI,
+        f: FF,
+        f_sum: FC,
+        f_out: FO,
+    ) -> Result<TO>
+    where
+        TS: Clone,
+        FI: Fn() -> TS + Send + Sync,
+        FF: Fn(TS, T) -> TS + Send + Sync,
+        FC: Fn(TS, TS) -> TS + Send + Sync,
+        FO: Fn(TS) -> TO + Send + Sync,
+    {
+        let pool = self.get_current_pool();
+        reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
+    }
+
+    fn reduce_axes_custom<FI, FF, FC, FO>(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+        f_init: FI,
+        f: FF,
+        f_sum: FC,
+        f_out: FO,
+    ) -> Result<(Storage<DataOwned<Vec<TO>>, TO, Self>, Layout<IxD>)>
+    where
+        TS: Clone,
+        TO: Clone,
+        FI: Fn() -> TS + Send + Sync,
+        FF: Fn(TS, T) -> TS + Send + Sync,
+        FC: Fn(TS, TS) -> TS + Send + Sync,
+        FO: Fn(TS) -> TO + Send + Sync,
+    {
+        let pool = self.get_current_pool();
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}

@@ -117,3 +117,50 @@ where
         isclose_args: &IsCloseArgs<TE>,
     ) -> Result<(Storage<DataOwned<<Self as DeviceRawAPI<bool>>::Raw>, bool, Self>, Layout<IxD>)>;
 }
+
+/// Custom user reduction over generic closures (init / fold / combine /
+/// finalize); the accumulator `TS` and output `TO` are both free.
+///
+/// `combine` must be associative; within one output cell the input order is
+/// sequential (row-major traversal), but the tree shape of `combine` is
+/// device-defined (e.g. parallel chunking on the rayon device).
+#[allow(clippy::type_complexity)]
+pub trait OpReduceCustomAPI<T, TS, TO, D>
+where
+    D: DimAPI,
+    Self: DeviceAPI<T> + DeviceAPI<TO>,
+{
+    fn reduce_all_custom<FI, FF, FC, FO>(
+        &self,
+        a: &<Self as DeviceRawAPI<T>>::Raw,
+        la: &Layout<D>,
+        f_init: FI,
+        f: FF,
+        f_sum: FC,
+        f_out: FO,
+    ) -> Result<TO>
+    where
+        TS: Clone,
+        FI: Fn() -> TS + Send + Sync,
+        FF: Fn(TS, T) -> TS + Send + Sync,
+        FC: Fn(TS, TS) -> TS + Send + Sync,
+        FO: Fn(TS) -> TO + Send + Sync;
+
+    fn reduce_axes_custom<FI, FF, FC, FO>(
+        &self,
+        a: &<Self as DeviceRawAPI<T>>::Raw,
+        la: &Layout<D>,
+        axes: &[isize],
+        f_init: FI,
+        f: FF,
+        f_sum: FC,
+        f_out: FO,
+    ) -> Result<(Storage<DataOwned<<Self as DeviceRawAPI<TO>>::Raw>, TO, Self>, Layout<IxD>)>
+    where
+        TS: Clone,
+        TO: Clone,
+        FI: Fn() -> TS + Send + Sync,
+        FF: Fn(TS, T) -> TS + Send + Sync,
+        FC: Fn(TS, TS) -> TS + Send + Sync,
+        FO: Fn(TS) -> TO + Send + Sync;
+}

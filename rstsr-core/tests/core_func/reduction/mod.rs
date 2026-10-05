@@ -11,6 +11,7 @@ pub mod test_nanargmax;
 pub mod test_nanargmin;
 pub mod test_prod;
 pub mod test_reduce_args;
+pub mod test_reduce_custom;
 pub mod test_reduce_dtype;
 pub mod test_reduce_stride0;
 pub mod test_std;

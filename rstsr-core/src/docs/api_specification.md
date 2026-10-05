@@ -327,6 +327,9 @@ Args/dtype variants: all of the above (plus [`all`], [`any`], argmin/argmax fami
 
 Closeness testing: [`allclose`](allclose()) (explicit all-element form [`allclose_all`]), or macro [`allclose!`].
 
+
+Custom user reduction (expert-level): [`reduce_all`], [`reduce_axes`], [`reduce_with_args`] with user-provided init/fold/combine/finalize closures. 
+
 ### Sorting, searching and counting functions
 
 [`argmin`]/[`argmin_axes`], [`argmax`]/[`argmax_axes`], [`count_nonzero`]/[`count_nonzero_axes`], [`unraveled_argmin`]/[`unraveled_argmin_axes`], [`unraveled_argmax`]/[`unraveled_argmax_axes`], each with `_with_args` forms

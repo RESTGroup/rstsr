@@ -17,6 +17,11 @@
 //!   (anti-overflow semantics of array-api's `dtype=`), with no cast copy of the input;
 //! - fallible `_f` versions of all of the above.
 //!
+//! The expert-level [`reduce_all`] / [`reduce_axes`] / [`reduce_with_args`]
+//! functions expose the underlying fold machinery (init/fold/combine/finalize
+//! closures, generic accumulator and output types) for custom user
+//! reductions.
+//!
 //! The arg* families (`argmin`, `argmax`, and their `unraveled_` variants from
 //! the `trait_reduction_arg!` macro) return element indices instead of values:
 //! the all-element forms return the flat (linear) index, and the `_axes`
@@ -1039,6 +1044,286 @@ where
 
 /* #endregion */
 
+/* #region custom reduce */
+
+/// Reduces the whole input with user-provided fold closures; fallible version of [`reduce_all`].
+///
+/// See also [`reduce_all`].
+pub fn reduce_all_f<T, TS, TO, B, D, FI, FF, FC, FO>(
+    tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
+    f_init: FI,
+    f: FF,
+    f_sum: FC,
+    f_out: FO,
+) -> Result<TO>
+where
+    D: DimAPI,
+    TS: Clone,
+    FI: Fn() -> TS + Send + Sync,
+    FF: Fn(TS, T) -> TS + Send + Sync,
+    FC: Fn(TS, TS) -> TS + Send + Sync,
+    FO: Fn(TS) -> TO + Send + Sync,
+    B: OpReduceCustomAPI<T, TS, TO, D>,
+{
+    let tensor = tensor.view();
+    tensor.device().reduce_all_custom(tensor.raw(), tensor.layout(), f_init, f, f_sum, f_out)
+}
+/// Reduces the whole input with user-provided fold closures.
+///
+/// The accumulator type `TS` and output type `TO` are both free; `f_out`
+/// converts the final accumulator into the output. `f_sum` combines two
+/// partial accumulators and must be associative (devices may chunk the input
+/// in any order, e.g. parallel reduction on the rayon device); within one
+/// output cell, elements visit `f` in row-major order.
+///
+/// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
+///
+/// # Parameters
+///
+/// - `tensor`: [`&TensorAny<R, T, B, D>`](TensorAny), the input.
+/// - `f_init`: the initial accumulator (called once per output cell / chunk).
+/// - `f`: folds one element into the accumulator, e.g. `|acc, x| acc + x`.
+/// - `f_sum`: combines two accumulators (associative).
+/// - `f_out`: converts the finished accumulator into the output.
+///
+/// # Returns
+///
+/// The reduced scalar of type `TO`.
+///
+/// # Examples
+///
+/// The 3-norm of a vector, spelled with the fold machinery (a typical
+/// custom-reduction use case):
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
+/// let v = rt::tensor_from_nested!([1.0, 2.0, 2.0], &device);
+/// let p3 = rt::reduce_all(
+///     &v,
+///     || 0.0_f64,
+///     |acc, x| acc + x * x * x,
+///     |acc1, acc2| acc1 + acc2,
+///     |acc| acc.cbrt(),
+/// );
+/// println!("{}", p3);
+/// // 2.571281590658235
+/// # assert_eq!(p3, 2.571281590658235);
+/// ```
+///
+/// # Common reductions expressed via this function
+///
+/// Many built-in reduction families are fold closures underneath; the same
+/// spellings work for `rt::reduce_all` (whole input) and `rt::reduce_axes` /
+/// `rt::reduce_with_args` (per output cell along axes), with the closures
+/// unchanged:
+///
+/// | Built-in | `rt::reduce_all` spelling |
+/// |-|-|
+/// | [`sum`] | `reduce_all(&x, \|\| T::zero(), \|acc, x\| acc + x, \|a, b\| a + b, \|a\| a)` |
+/// | [`prod`] | `reduce_all(&x, \|\| T::one(), \|acc, x\| acc * x, \|a, b\| a * b, \|a\| a)` |
+/// | [`mean`] | tuple accumulator `\|\| (T::zero(), 0.0)`, fold `\|(s, n), x\| (s + x, n + 1.0)`, finalize `\|(s, n)\| s / n` |
+/// | [`var`] | tuple `(sum, sum-of-squares)` accumulator, finalize `\|(s1, s2), n\| s2 / n - (s1 / n) * (s1 / n)` |
+/// | [`max`] | init `\|\| f64::NEG_INFINITY`, fold/combine `\|acc, x\| acc.max(x)` (real floats) |
+/// | [`l2_norm`] | `reduce_all(&x, \|\| 0.0, \|acc, x\| acc + x * x, \|a, b\| a + b, \|a\| a.sqrt())` |
+/// | [`count_nonzero`] | init `\|\| 0_usize`, fold `\|acc, x\| acc + (x != 0) as usize` |
+/// | [`all`] / [`any`] | `reduce_all(&x, \|\| true, \|acc, x\| acc && x, \|a, b\| a && b, \|a\| a)` |
+///
+/// Prefer the built-ins in production code: they document intent, and folds
+/// without an identity element (e.g. `max`, with init `-inf`) return the init
+/// value on empty input where a built-in may raise instead.
+///
+/// # Notes of API accordance
+///
+/// - array-api: no direct counterpart (this is an expert-level extension surface).
+///   `rt::reduce_all`/`rt::reduce_axes` mirror the internal reduction kernels that power the other
+///   reduction families.
+///
+/// # Panics
+///
+/// Panics if the closures' requirements are violated at the device level
+/// (e.g. the rayon pool is poisoned).
+///
+/// For a fallible version, use [`reduce_all_f`].
+///
+/// # See also
+///
+/// ## Related functions in RSTSR
+///
+/// - [`reduce_axes`], [`reduce_with_args`]: axes / keepdims forms
+/// - [`sum`]: the built-in specialization
+///
+/// ## Variants of this function
+///
+/// - [`reduce_axes`], [`reduce_with_args`]
+/// - [`reduce_all_f`]: fallible version
+pub fn reduce_all<T, TS, TO, B, D, FI, FF, FC, FO>(
+    tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
+    f_init: FI,
+    f: FF,
+    f_sum: FC,
+    f_out: FO,
+) -> TO
+where
+    D: DimAPI,
+    TS: Clone,
+    FI: Fn() -> TS + Send + Sync,
+    FF: Fn(TS, T) -> TS + Send + Sync,
+    FC: Fn(TS, TS) -> TS + Send + Sync,
+    FO: Fn(TS) -> TO + Send + Sync,
+    B: OpReduceCustomAPI<T, TS, TO, D>,
+{
+    reduce_all_f(tensor, f_init, f, f_sum, f_out).rstsr_unwrap()
+}
+/// Reduces along the given axes with user-provided fold closures; fallible version of
+/// [`reduce_axes`].
+///
+/// See also [`reduce_axes`].
+pub fn reduce_axes_f<T, TS, TO, B, D, FI, FF, FC, FO>(
+    tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
+    axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
+    f_init: FI,
+    f: FF,
+    f_sum: FC,
+    f_out: FO,
+) -> Result<Tensor<TO, B, IxD>>
+where
+    D: DimAPI,
+    TS: Clone,
+    TO: Clone,
+    FI: Fn() -> TS + Send + Sync,
+    FF: Fn(TS, T) -> TS + Send + Sync,
+    FC: Fn(TS, TS) -> TS + Send + Sync,
+    FO: Fn(TS) -> TO + Send + Sync,
+    B: OpReduceCustomAPI<T, TS, TO, D> + DeviceCreationAnyAPI<TO>,
+{
+    let axes = axes.try_into().map_err(Into::into)?;
+    let tensor = tensor.view();
+
+    match axes {
+        AxesIndex::None => {
+            let val = tensor.device().reduce_all_custom(tensor.raw(), tensor.layout(), f_init, f, f_sum, f_out)?;
+            let storage = tensor.device().outof_cpu_vec(vec![val])?;
+            let layout = Layout::new(vec![], vec![], 0)?;
+            Tensor::new_f(storage, layout)
+        },
+        axes => {
+            let (storage, layout) = tensor.device().reduce_axes_custom(
+                tensor.raw(),
+                tensor.layout(),
+                axes.as_ref(),
+                f_init,
+                f,
+                f_sum,
+                f_out,
+            )?;
+            Tensor::new_f(storage, layout)
+        },
+    }
+}
+/// Reduces along the given axes with user-provided fold closures.
+///
+/// See also [`reduce_all`]; `AxesIndex::None` reduces everything into a 0-D
+/// tensor. `f_sum` must be associative (see [`reduce_all`]).
+///
+/// For a fallible version, use [`reduce_axes_f`].
+pub fn reduce_axes<T, TS, TO, B, D, FI, FF, FC, FO>(
+    tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
+    axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>,
+    f_init: FI,
+    f: FF,
+    f_sum: FC,
+    f_out: FO,
+) -> Tensor<TO, B, IxD>
+where
+    D: DimAPI,
+    TS: Clone,
+    TO: Clone,
+    FI: Fn() -> TS + Send + Sync,
+    FF: Fn(TS, T) -> TS + Send + Sync,
+    FC: Fn(TS, TS) -> TS + Send + Sync,
+    FO: Fn(TS) -> TO + Send + Sync,
+    B: OpReduceCustomAPI<T, TS, TO, D> + DeviceCreationAnyAPI<TO>,
+{
+    reduce_axes_f(tensor, axes, f_init, f, f_sum, f_out).rstsr_unwrap()
+}
+/// Reduces with user-provided fold closures and [`ReduceArgs`]; fallible version of
+/// [`reduce_with_args`].
+///
+/// See also [`reduce_with_args`].
+pub fn reduce_with_args_f<T, TS, TO, B, D, FI, FF, FC, FO>(
+    tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
+    args: impl Into<ReduceArgs>,
+    f_init: FI,
+    f: FF,
+    f_sum: FC,
+    f_out: FO,
+) -> Result<Tensor<TO, B, IxD>>
+where
+    D: DimAPI,
+    TS: Clone,
+    TO: Clone,
+    FI: Fn() -> TS + Send + Sync,
+    FF: Fn(TS, T) -> TS + Send + Sync,
+    FC: Fn(TS, TS) -> TS + Send + Sync,
+    FO: Fn(TS) -> TO + Send + Sync,
+    B: OpReduceCustomAPI<T, TS, TO, D> + DeviceCreationAnyAPI<TO>,
+{
+    let ReduceArgs { axes, keepdims } = args.into();
+    let tensor = tensor.view();
+
+    match axes {
+        AxesIndex::None => {
+            let val = tensor.device().reduce_all_custom(tensor.raw(), tensor.layout(), f_init, f, f_sum, f_out)?;
+            let storage = tensor.device().outof_cpu_vec(vec![val])?;
+            let out_layout = reduce_layout_whole(tensor.layout().ndim(), keepdims)?;
+            Tensor::new_f(storage, out_layout)
+        },
+        axes => {
+            let (storage, out_layout) = tensor.device().reduce_axes_custom(
+                tensor.raw(),
+                tensor.layout(),
+                axes.as_ref(),
+                f_init,
+                f,
+                f_sum,
+                f_out,
+            )?;
+            let out_layout = reduce_layout_keepdims(out_layout, &axes, tensor.layout().ndim(), keepdims)?;
+            Tensor::new_f(storage, out_layout)
+        },
+    }
+}
+/// Reduces with user-provided fold closures, [`ReduceArgs`] grouping `axes` and `keepdims`.
+///
+/// See also [`reduce_all`]; the args follow the same conventions as
+/// `sum_with_args` (`()` = whole reduction, `(axes, keepdims)` pairs, ...).
+///
+/// For a fallible version, use [`reduce_with_args_f`].
+pub fn reduce_with_args<T, TS, TO, B, D, FI, FF, FC, FO>(
+    tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
+    args: impl Into<ReduceArgs>,
+    f_init: FI,
+    f: FF,
+    f_sum: FC,
+    f_out: FO,
+) -> Tensor<TO, B, IxD>
+where
+    D: DimAPI,
+    TS: Clone,
+    TO: Clone,
+    FI: Fn() -> TS + Send + Sync,
+    FF: Fn(TS, T) -> TS + Send + Sync,
+    FC: Fn(TS, TS) -> TS + Send + Sync,
+    FO: Fn(TS) -> TO + Send + Sync,
+    B: OpReduceCustomAPI<T, TS, TO, D> + DeviceCreationAnyAPI<TO>,
+{
+    reduce_with_args_f(tensor, args, f_init, f, f_sum, f_out).rstsr_unwrap()
+}
+
+/* #endregion */
+
 macro_rules! trait_reduction_arg {
     ([$($with_args: ident)?] $OpReduceAPI: ident, $fn: ident, $fn_f: ident, $fn_axes: ident, $fn_axes_f: ident, $fn_all: ident, $fn_all_f: ident, $fn_with_args: ident, $fn_with_args_f: ident) => {
         pub fn $fn_all_f<T, B, D>(tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>) -> Result<D>
@@ -1949,6 +2234,22 @@ mod test {
         let bv: TensorView<i64, DeviceFaer, Vec<usize>> = broadcast_to(&av_dyn, vec![4usize, 3]);
         assert_eq!(bv.sum_axes(1).to_vec(), vec![0i64, 3, 6, 9]);
         assert_eq!(bv.sum_axes([0, 1]).to_scalar(), 18i64);
+    }
+
+    #[test]
+    #[cfg(feature = "faer")]
+    fn test_reduce_custom_faer() {
+        // rayon (DeviceFaer) paths of the custom reduce family
+        let device = DeviceFaer::default();
+        let v: Tensor<f64, DeviceFaer> = asarray((vec![3.0, 4.0], &device));
+        let a: Tensor<f64, DeviceFaer> = asarray((vec![1.0, 2.0, 3.0, 4.0], [2, 2].c(), &device));
+
+        let r = reduce_all(&v, || 0.0_f64, |acc, x| acc + x, |acc1, acc2| acc1 + acc2, |acc| acc);
+        assert_eq!(r, 7.0);
+        let s = reduce_axes(&a, 1, || 0.0_f64, |acc, x| acc + x, |acc1, acc2| acc1 + acc2, |acc| acc);
+        assert_eq!(s.to_vec(), vec![3.0, 7.0]);
+        let any = reduce_with_args(&a, true, || false, |acc, x| acc || x > 2.0, |acc1, acc2| acc1 || acc2, |acc| acc);
+        assert!(any.to_scalar());
     }
 
     #[test]
