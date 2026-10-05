@@ -25,6 +25,7 @@ pub mod rstsr_traits {
     pub use crate::tensor::device_conversion::{TensorChangeFromDevice, TensorDeviceChangeAPI};
     pub use crate::tensor::ext_conversion::IntoRSTSR;
     pub use crate::tensor::manipulation::exports::BroadcastArraysAPI;
+    pub use crate::tensor::manipulation::exports::DTypeAstypeAPI;
     pub use crate::tensor::operators::op_binary_common::{
         TensorATan2API, TensorCopySignAPI, TensorEqualAPI, TensorFloorDivideAPI, TensorGreaterAPI,
         TensorGreaterEqualAPI, TensorHypotAPI, TensorLessAPI, TensorLessEqualAPI, TensorLogAddExpAPI, TensorMaximumAPI,
@@ -59,6 +60,8 @@ pub mod rstsr_structs {
     };
 
     pub use crate::tensor::manipulation::exports::ReshapeArgs;
+
+    pub use crate::tensor::reduction::{ReduceArgs, VarArgs};
 }
 
 pub mod rstsr_funcs {
@@ -153,6 +156,20 @@ pub mod rstsr_funcs {
         unraveled_argmin_all, unraveled_argmin_all_f, unraveled_argmin_axes, unraveled_argmin_axes_f,
         unraveled_argmin_f, var, var_all, var_all_f, var_axes, var_axes_f, var_f,
     };
+    // reduction: keepdims / dtype variants, and tensor dtype cast
+    pub use crate::tensor::manipulation::exports::{astype, astype_f, into_astype, into_astype_f};
+    pub use crate::tensor::reduction::{
+        all_with_args, all_with_args_f, any_with_args, any_with_args_f, argmax_with_args, argmax_with_args_f,
+        argmin_with_args, argmin_with_args_f, count_nonzero_with_args, count_nonzero_with_args_f, l2_norm_with_args,
+        l2_norm_with_args_f, max_with_args, max_with_args_f, mean_with_args, mean_with_args_f, mean_with_dtype,
+        mean_with_dtype_f, min_with_args, min_with_args_f, nanargmax_with_args, nanargmax_with_args_f,
+        nanargmin_with_args, nanargmin_with_args_f, prod_with_args, prod_with_args_f, prod_with_dtype,
+        prod_with_dtype_f, std_with_args, std_with_args_f, std_with_dtype, std_with_dtype_f, sum_with_args,
+        sum_with_args_f, sum_with_dtype, sum_with_dtype_f, unraveled_argmax_with_args, unraveled_argmax_with_args_f,
+        unraveled_argmin_with_args, unraveled_argmin_with_args_f, var_with_args, var_with_args_f, var_with_dtype,
+        var_with_dtype_f,
+    };
+
     // linalg (array-api's basic linalg operations, not the rstsr-linalg-traits)
     pub use crate::tensor::linalg::exports::{
         into_matrix_transpose, into_matrix_transpose_f, matmul, matmul_f, matmul_from, matmul_from_f,

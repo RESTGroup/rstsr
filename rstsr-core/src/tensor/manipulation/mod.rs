@@ -1,5 +1,6 @@
 //! This module handles tensor data manipulation.
 
+pub mod astype;
 pub mod broadcast;
 pub mod expand_dims;
 pub mod flip;
@@ -15,6 +16,7 @@ pub mod transpose;
 pub mod exports {
     use super::*;
 
+    pub use astype::*;
     pub use broadcast::*;
     pub use expand_dims::*;
     pub use flip::*;

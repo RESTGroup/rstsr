@@ -31,7 +31,7 @@ tensor/creation.rs,creation,full,done,1,uplifted (anchors+overloads+row/col noti
 tensor/creation_from_tensor.rs,creation,full,done,1,uplifted; concat link typo fixed; API traits documented minimally; meshgrid copy=false view semantics fixed (see numpy_differences_resolved.md)
 tensor/indexing.rs,indexing,full,done,2,anchors slice/diagonal (+DiagonalArgs floor); variants and i/i_mut minimal; twins in doc_draft/indexing
 tensor/adv_indexing.rs,indexing,full,done,2,index_select/take/bool_select full tier; _f and method forms minimal
-tensor/reduction.rs,reduction,full,done,6,module docs carry family table + order notice + examples; allclose anchor full; twins extended (argmax/allclose/count_nonzero)
+tensor/reduction.rs,reduction,full,done,6,module docs carry family table + order notice + examples; allclose anchor full; twins extended (argmax/allclose/count_nonzero); +_with_args/_with_dtype (2026-10): sum_with_args/sum_with_dtype/var_with_args anchors full, generated variants minimal (summary + see-also)
 tensor/operators/,operators,full,done,5,documented via module docs per policy §9 (macro-generated surface); % -as-matmul warning; op_* module floors; twins extended
 tensor/map_elementwise.rs,utility,full,done,4,map anchor full; mapv/mapi minimal-plus; mapb/mapvi/mapvb and *_fnmut minimal with see-alsos
 tensor/ownership_conversion.rs,utility,full,done,4,view/view_mut/into_cow/into_owned/into_shared/to_owned/to_vec/into_vec/to_scalar full or full-lite; keep_layout and force_mut minimal-plus
@@ -62,3 +62,4 @@ feature_rayon/,internals,minimal,done,na,module //! present; item docs stay oppo
 format/,internals,minimal,done,na,module //! added (format/mod.rs); item docs stay opportunistic
 src/docs/api_specification.md,docs,na,na,na,API index; maintained on API-surface change only
 src/docs/array_api_standard.md,docs,na,na,na,conformance matrix; maintained on API-surface change only
+tensor/manipulation/astype.rs,manipulation,full,done,-,anchor astype + into_astype documented (conditional copy, dtype as type parameter); dispatch trait doc'd; variants minimal

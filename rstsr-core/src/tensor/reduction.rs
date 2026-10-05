@@ -72,6 +72,213 @@
 
 use crate::prelude_dev::*;
 
+/* #region reduction args */
+
+/// Arguments of reduction operations: axes and keepdims.
+///
+/// All fields are optional; `None` means the field's default behavior:
+/// [`axes`](ReduceArgs::axes) reduces all elements, and
+/// [`keepdims`](ReduceArgs::keepdims) drops the reduced axes.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct ReduceArgs {
+    /// Axes to reduce; negative values count from the back.
+    /// `None` (default) reduces all elements like [`AxesIndex::None`].
+    pub axes: Option<AxesIndex<isize>>,
+
+    /// Whether to keep the reduced axes as size-1 dimensions. Default `false`.
+    pub keepdims: Option<bool>,
+}
+
+impl ReduceArgs {
+    /// Set the axes to reduce, builder-style.
+    pub fn axes(mut self, axes: impl Into<AxesIndex<isize>>) -> Self {
+        self.axes = Some(axes.into());
+        self
+    }
+
+    /// Set whether the reduced axes are kept, builder-style.
+    pub fn keepdims(mut self, keepdims: bool) -> Self {
+        self.keepdims = Some(keepdims);
+        self
+    }
+
+    pub(crate) fn resolve(&self) -> (AxesIndex<isize>, bool) {
+        (self.axes.clone().unwrap_or(AxesIndex::None), self.keepdims.unwrap_or(false))
+    }
+}
+
+/// Arguments of `var`/`std` operations: axes, keepdims, and correction.
+///
+/// Same conversion overloads as [`ReduceArgs`]; the `correction` (Delta
+/// degrees of freedom) is set through the struct literal or
+/// [`VarArgs::correction`].
+#[derive(Debug, Clone, PartialEq, Default)]
+pub struct VarArgs {
+    /// Axes to reduce; negative values count from the back.
+    /// `None` (default) reduces all elements like [`AxesIndex::None`].
+    pub axes: Option<AxesIndex<isize>>,
+
+    /// Whether to keep the reduced axes as size-1 dimensions. Default `false`.
+    pub keepdims: Option<bool>,
+
+    /// Delta degrees of freedom (Array-API `correction`); the divisor is
+    /// `M - correction` where `M` is the number of reduced elements.
+    /// Default `0.0`; the result is NaN when `M - correction <= 0`.
+    pub correction: Option<f64>,
+}
+
+impl VarArgs {
+    /// Set the axes to reduce, builder-style.
+    pub fn axes(mut self, axes: impl Into<AxesIndex<isize>>) -> Self {
+        self.axes = Some(axes.into());
+        self
+    }
+
+    /// Set whether the reduced axes are kept, builder-style.
+    pub fn keepdims(mut self, keepdims: bool) -> Self {
+        self.keepdims = Some(keepdims);
+        self
+    }
+
+    /// Set the Delta degrees of freedom (`correction`), builder-style.
+    pub fn correction(mut self, correction: f64) -> Self {
+        self.correction = Some(correction);
+        self
+    }
+
+    pub(crate) fn resolve(&self) -> (AxesIndex<isize>, bool, f64) {
+        (self.axes.clone().unwrap_or(AxesIndex::None), self.keepdims.unwrap_or(false), self.correction.unwrap_or(0.0))
+    }
+}
+
+macro_rules! impl_reduce_args_axes_conversions {
+    ($Args:ident; $($T:ty),* $(,)?) => {$(
+        impl TryFrom<$T> for $Args {
+            type Error = Error;
+
+            fn try_from(value: $T) -> Result<Self> {
+                let axes: AxesIndex<isize> = value.try_into()?;
+                Ok(Self { axes: Some(axes), ..Default::default() })
+            }
+        }
+
+        impl<const N: usize> TryFrom<[$T; N]> for $Args {
+            type Error = Error;
+
+            fn try_from(value: [$T; N]) -> Result<Self> {
+                let axes: AxesIndex<isize> = value.try_into()?;
+                Ok(Self { axes: Some(axes), ..Default::default() })
+            }
+        }
+
+        impl TryFrom<Vec<$T>> for $Args {
+            type Error = Error;
+
+            fn try_from(value: Vec<$T>) -> Result<Self> {
+                let axes: AxesIndex<isize> = value.try_into()?;
+                Ok(Self { axes: Some(axes), ..Default::default() })
+            }
+        }
+
+        impl TryFrom<&[$T]> for $Args {
+            type Error = Error;
+
+            fn try_from(value: &[$T]) -> Result<Self> {
+                let axes: AxesIndex<isize> = value.try_into()?;
+                Ok(Self { axes: Some(axes), ..Default::default() })
+            }
+        }
+
+        #[allow(clippy::needless_update)]
+        impl TryFrom<($T, bool)> for $Args {
+            type Error = Error;
+
+            fn try_from(value: ($T, bool)) -> Result<Self> {
+                let axes: AxesIndex<isize> = value.0.try_into()?;
+                Ok(Self { axes: Some(axes), keepdims: Some(value.1), ..Default::default() })
+            }
+        }
+
+        #[allow(clippy::needless_update)]
+        impl<const N: usize> TryFrom<([$T; N], bool)> for $Args {
+            type Error = Error;
+
+            fn try_from(value: ([$T; N], bool)) -> Result<Self> {
+                let axes: AxesIndex<isize> = value.0.try_into()?;
+                Ok(Self { axes: Some(axes), keepdims: Some(value.1), ..Default::default() })
+            }
+        }
+
+        #[allow(clippy::needless_update)]
+        impl TryFrom<(Vec<$T>, bool)> for $Args {
+            type Error = Error;
+
+            fn try_from(value: (Vec<$T>, bool)) -> Result<Self> {
+                let axes: AxesIndex<isize> = value.0.try_into()?;
+                Ok(Self { axes: Some(axes), keepdims: Some(value.1), ..Default::default() })
+            }
+        }
+    )*};
+}
+
+macro_rules! impl_reduce_args_conversions {
+    ($Args:ident) => {
+        impl TryFrom<()> for $Args {
+            type Error = Error;
+
+            fn try_from(_: ()) -> Result<Self> {
+                Ok(Self::default())
+            }
+        }
+
+        impl TryFrom<bool> for $Args {
+            type Error = Error;
+
+            fn try_from(keepdims: bool) -> Result<Self> {
+                Ok(Self { keepdims: Some(keepdims), ..Default::default() })
+            }
+        }
+
+        impl TryFrom<AxesIndex<isize>> for $Args {
+            type Error = Error;
+
+            fn try_from(axes: AxesIndex<isize>) -> Result<Self> {
+                Ok(Self { axes: Some(axes), ..Default::default() })
+            }
+        }
+
+        #[allow(clippy::needless_update)]
+        impl TryFrom<(AxesIndex<isize>, bool)> for $Args {
+            type Error = Error;
+
+            fn try_from(value: (AxesIndex<isize>, bool)) -> Result<Self> {
+                Ok(Self { axes: Some(value.0), keepdims: Some(value.1), ..Default::default() })
+            }
+        }
+
+        impl_reduce_args_axes_conversions!($Args; isize, i32, usize, u32, i64, u64);
+    };
+}
+
+impl_reduce_args_conversions!(ReduceArgs);
+impl_reduce_args_conversions!(VarArgs);
+
+/// Rebuild a reduced tensor with the reduced axes re-inserted as size-1
+/// dimensions (`keepdims` post-processing of `*_with_args`).
+pub(crate) fn reduction_keepdims<S>(
+    tensor: TensorBase<S, IxD>,
+    axes: AxesIndex<isize>,
+    input_ndim: usize,
+) -> Result<TensorBase<S, IxD>> {
+    let axes = match axes {
+        AxesIndex::None => (0..input_ndim).map(|x| x as isize).collect(),
+        axes => normalize_axes_index(axes, input_ndim, false, true)?,
+    };
+    into_expand_dims_f(tensor, axes)
+}
+
+/* #endregion */
+
 macro_rules! trait_reduction {
     ($OpReduceAPI: ident, $fn: ident, $fn_f: ident, $fn_axes: ident, $fn_axes_f: ident, $fn_all: ident, $fn_all_f: ident) => {
         pub fn $fn_all_f<T, B, D>(tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>) -> Result<B::TOut>
@@ -339,6 +546,427 @@ trait_reduction_arg!(
     unraveled_argmax_all_f
 );
 
+/* #region with_args docstrings */
+
+macro_rules! doc_sum_with_args {
+    () => {
+        r#"Sums tensor elements along the given axes, optionally keeping the reduced axes as size-1 dimensions.
+
+This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
+
+# Parameters
+
+- `tensor`: the input tensor.
+- `args`: Into [`ReduceArgs`] — the axes to reduce and whether to keep them.
+
+  - Overloads:
+
+    - axes only: an integer, array, vector or [`AxesIndex`] — e.g. `1`, `[0, -1]`, `None`
+    - axes and keepdims: a tuple `(axes, keepdims)` — e.g. `(1, true)`
+    - keepdims only: a [`bool`] (reduces all elements) — e.g. `true`
+    - a [`ReduceArgs`] struct, e.g. `ReduceArgs::default().axes(1).keepdims(true)`
+
+# Returns
+
+- [`Tensor<B::TOut, B, IxD>`](Tensor): the sums; the reduced axes are dropped, or kept as size-1
+  dimensions when `keepdims` is true. Reducing all elements yields a 0-d tensor.
+
+# Examples
+
+```rust
+# use rstsr::prelude::*;
+# let mut device = DeviceCpu::default();
+# device.set_default_order(RowMajor);
+let a = rt::tensor_from_nested!([[1, 2, 3], [4, 5, 6]], &device);
+println!("{}", a.sum_with_args((1, true)));
+// [[ 6]
+//  [ 15]]
+println!("{}", rt::sum_with_args(&a, true));
+// [[ 21]]
+println!("{}", rt::sum_with_args(&a, 0));
+// [ 5 7 9]
+# assert_eq!(format!("{}", a.sum_with_args((1, true))), "[[ 6]\n [ 15]]");
+# assert_eq!(a.sum_with_args(true).to_scalar(), 21);
+```
+
+# Notes of API accordance
+
+- Array-API: `sum(x, /, *, axis=None, dtype=None, keepdims=False)` ([`sum`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.sum.html))
+- NumPy: `numpy.sum(a, axis=None, dtype=None, out=None, keepdims=<no value>, initial=<no value>, where=<no value>)` ([`numpy.sum`](https://numpy.org/doc/stable/reference/generated/numpy.sum.html))
+- RSTSR: `rt::sum_with_args(&a, args)` or `a.sum_with_args(args)`. `keepdims` is a field of [`ReduceArgs`];
+  the explicit `dtype` is provided by the separate [`sum_with_dtype`] (a type parameter rather than a runtime
+  value). NumPy's `out`, `initial` and `where` arguments are not supported.
+
+# See also
+
+## Similar function from other crates/libraries
+
+- NumPy: [`numpy.sum`](https://numpy.org/doc/stable/reference/generated/numpy.sum.html)
+
+## Related functions in RSTSR
+
+- [`sum`] / [`sum_all`]: reduce all elements to a scalar.
+- [`sum_axes`]: reduce along given axes without the `keepdims` option.
+- [`sum_with_dtype`]: sum with an explicit accumulator (and output) dtype.
+
+## Variants of this function
+
+- [`sum_with_args_f`]: fallible version.
+- Associated methods on [`TensorAny`]: [`TensorAny::sum_with_args`] / [`TensorAny::sum_with_args_f`]."#
+    };
+}
+
+macro_rules! doc_sum_with_dtype {
+    () => {
+        r#"Sums tensor elements along the given axes, accumulating (and returning) in the explicit dtype `TOut`.
+
+The input elements are cast to `TOut` inside the reduction fold, so no intermediate (input-sized)
+tensor is created; this is the anti-overflow spelling of [`sum_with_args`] for narrow integer inputs.
+
+This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
+
+# Parameters
+
+- `tensor`: the input tensor.
+- `args`: Into [`ReduceArgs`] — the axes to reduce and whether to keep them (same overloads as
+  [`sum_with_args`]).
+- `TOut` (type parameter): the accumulator and output dtype; must be castable from the input dtype.
+  Since a dtype has no runtime value, specify it with a type annotation or through the method form:
+  `a.sum_with_dtype::<i64>(())`.
+
+# Returns
+
+- [`Tensor<TOut, B, IxD>`](Tensor): the sums; the reduced axes are dropped, or kept as size-1
+  dimensions when `keepdims` is true.
+
+# Examples
+
+```rust
+# use rstsr::prelude::*;
+# let mut device = DeviceCpu::default();
+# device.set_default_order(RowMajor);
+// accumulate an int8 tensor in int64 (would overflow if summed in int8)
+let a: Tensor<i8, _> = rt::tensor_from_nested!([100, 100, 100], &device);
+let s: Tensor<i64, _> = a.sum_with_dtype(());
+println!("{s}");
+// 300
+// accumulate an integer tensor in float64
+let b: Tensor<i32, _> = rt::tensor_from_nested!([[1, 2], [3, 4]], &device);
+let m: Tensor<f64, _> = b.mean_with_dtype((0, true));
+println!("{m}");
+// [[ 2 3]]
+# assert_eq!(s.to_scalar(), 300i64);
+# assert_eq!(m.raw(), &[2.0f64, 3.0]);
+```
+
+# Notes of API accordance
+
+- Array-API: `sum(x, /, *, axis=None, dtype=None, keepdims=False)` ([`sum`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.sum.html))
+- NumPy: `numpy.sum(a, axis=None, dtype=None, ...)` ([`numpy.sum`](https://numpy.org/doc/stable/reference/generated/numpy.sum.html))
+- RSTSR: `rt::sum_with_dtype(&a, args)` or `a.sum_with_dtype(args)`; `dtype` is a type parameter
+  (`TOut`) rather than a runtime value, and the input is cast before accumulating each element
+  (per the Array-API anti-overflow rule).
+
+# See also
+
+## Similar function from other crates/libraries
+
+- NumPy: [`numpy.sum`](https://numpy.org/doc/stable/reference/generated/numpy.sum.html)
+
+## Related functions in RSTSR
+
+- [`sum_with_args`]: sum in the input's natural accumulator dtype.
+
+## Variants of this function
+
+- [`sum_with_dtype_f`]: fallible version.
+- Associated methods on [`TensorAny`]: [`TensorAny::sum_with_dtype`] / [`TensorAny::sum_with_dtype_f`]."#
+    };
+}
+
+macro_rules! doc_var_with_args {
+    () => {
+        r#"Computes the variance along the given axes, with an optional Delta degrees of freedom (`correction`) and `keepdims` support.
+
+The divisor is `M - correction`, where `M` is the number of reduced elements; the result is NaN
+when `M - correction <= 0` (Array-API `correction` semantics). The default `correction` is `0.0`
+(population variance); `correction = 1.0` gives the sample variance.
+
+This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
+
+# Parameters
+
+- `tensor`: the input tensor.
+- `args`: Into [`VarArgs`] — the axes to reduce, whether to keep them, and the `correction`.
+  The axes/keepdims overloads are the same as [`sum_with_args`]; the `correction` is set through
+  the struct literal or [`VarArgs::correction`].
+
+# Returns
+
+- [`Tensor<T::Real, B, IxD>`](Tensor): the variances; the reduced axes are dropped, or kept as
+  size-1 dimensions when `keepdims` is true. Complex input yields a real result.
+
+# Examples
+
+```rust
+# use rstsr::prelude::*;
+# let mut device = DeviceCpu::default();
+# device.set_default_order(RowMajor);
+let a = rt::tensor_from_nested!([[1.5, 2.5, 3.5], [4.5, 5.5, 6.5]], &device);
+println!("{}", a.var_with_args(1));
+// [ 0.6666666666666666 0.6666666666666666]
+println!("{}", a.var_with_args(VarArgs::default().axes(1).correction(1.0)));
+// [ 1 1]
+# assert_eq!(a.var_with_args(VarArgs::default().axes(1).correction(1.0)).to_vec(), vec![1.0, 1.0]);
+```
+
+# Notes of API accordance
+
+- Array-API: `var(x, /, *, axis=None, correction=0.0, keepdims=False)` ([`var`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.var.html))
+- NumPy: `numpy.var(a, axis=None, dtype=None, out=None, ddof=0, keepdims=<no value>, ...)` ([`numpy.var`](https://numpy.org/doc/stable/reference/generated/numpy.var.html))
+- RSTSR: `rt::var_with_args(&a, args)` or `a.var_with_args(args)`; `ddof` is spelled `correction`
+  (Array-API wording), and `dtype` is provided by the separate [`var_with_dtype`].
+
+# See also
+
+## Similar function from other crates/libraries
+
+- NumPy: [`numpy.var`](https://numpy.org/doc/stable/reference/generated/numpy.var.html)
+
+## Related functions in RSTSR
+
+- [`var`] / [`var_all`]: reduce all elements to a scalar.
+- [`var_axes`]: reduce along given axes without `correction`/`keepdims`.
+- [`var_with_dtype`]: variance with an explicit accumulator dtype.
+- [`std_with_args`]: standard deviation with the same arguments.
+
+## Variants of this function
+
+- [`var_with_args_f`]: fallible version.
+- Associated methods on [`TensorAny`]: [`TensorAny::var_with_args`] / [`TensorAny::var_with_args_f`]."#
+    };
+}
+
+/* #endregion */
+
+/* #region with_args / with_dtype */
+
+/// Generate the `_with_args` entry points (`axes` + `keepdims`) of one
+/// reduction family. `$TOut` is the output element type; `$fn_all_x` /
+/// `$fn_axes_x` are the device methods performing the reduction.
+macro_rules! trait_reduction_with_args {
+    ($fn_with_args: ident, $fn_with_args_f: ident, $fn_all_x: ident, $fn_axes_x: ident, $Args: ty,
+     [$($gen:tt),*], [$($mgen:tt),*], $TOut: ty, [$($bound:tt)*], $doc: expr) => {
+        #[doc = $doc]
+        pub fn $fn_with_args_f<$($gen),*>(
+            tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
+            args: impl TryInto<$Args, Error: Into<Error>>,
+        ) -> Result<Tensor<$TOut, B, IxD>>
+        where
+            D: DimAPI,
+            B: $($bound)*,
+        {
+            let args = args.try_into().map_err(Into::into)?;
+            let (axes, keepdims) = args.resolve();
+            let tensor = tensor.view();
+            let ndim = tensor.ndim();
+
+            let out: Tensor<$TOut, B, IxD> = match axes.clone() {
+                AxesIndex::None => {
+                    let value = tensor.device().$fn_all_x(tensor.raw(), tensor.layout())?;
+                    let storage = tensor.device().outof_cpu_vec(vec![value.into()])?;
+                    let layout = Layout::new(vec![], vec![], 0)?;
+                    Tensor::new_f(storage, layout)?
+                },
+                axes => {
+                    let (storage, layout) = tensor.device().$fn_axes_x(tensor.raw(), tensor.layout(), axes.as_ref())?;
+                    Tensor::new_f(storage, layout)?
+                },
+            };
+
+            if keepdims {
+                reduction_keepdims(out, axes, ndim)
+            } else {
+                Ok(out)
+            }
+        }
+
+        #[doc = $doc]
+        pub fn $fn_with_args<$($gen),*>(
+            tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
+            args: impl TryInto<$Args, Error: Into<Error>>,
+        ) -> Tensor<$TOut, B, IxD>
+        where
+            D: DimAPI,
+            B: $($bound)*,
+        {
+            $fn_with_args_f(tensor, args).rstsr_unwrap()
+        }
+
+        impl<R, T, B, D> TensorAny<R, T, B, D>
+        where
+            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+            D: DimAPI,
+            B: DeviceAPI<T>,
+        {
+            #[doc = $doc]
+            pub fn $fn_with_args_f<$($mgen),*>(
+                &self,
+                args: impl TryInto<$Args, Error: Into<Error>>,
+            ) -> Result<Tensor<$TOut, B, IxD>>
+            where
+                B: $($bound)*,
+            {
+                $fn_with_args_f(self, args)
+            }
+
+            #[doc = $doc]
+            pub fn $fn_with_args<$($mgen),*>(&self, args: impl TryInto<$Args, Error: Into<Error>>) -> Tensor<$TOut, B, IxD>
+            where
+                B: $($bound)*,
+            {
+                $fn_with_args(self, args)
+            }
+        }
+    };
+}
+
+/// Generate the `_with_args` entry points of `var`/`std` (taking [`VarArgs`]:
+/// `axes`, `keepdims` and `correction`) and their `_with_dtype` twins.
+macro_rules! trait_reduction_varstd_args {
+    ($fn_with_args: ident, $fn_with_args_f: ident, $fn_all_x: ident, $fn_axes_x: ident,
+     [$($gen:tt),*], [$($mgen:tt),*], $TOut: ty, [$($bound:tt)*], $doc: expr) => {
+        #[doc = $doc]
+        pub fn $fn_with_args_f<$($gen),*>(
+            tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
+            args: impl TryInto<VarArgs, Error: Into<Error>>,
+        ) -> Result<Tensor<$TOut, B, IxD>>
+        where
+            D: DimAPI,
+            B: $($bound)*,
+        {
+            let (axes, keepdims, correction) = args.try_into().map_err(Into::into)?.resolve();
+            let tensor = tensor.view();
+            let ndim = tensor.ndim();
+
+            let out: Tensor<$TOut, B, IxD> = match axes.clone() {
+                AxesIndex::None => {
+                    let value = tensor.device().$fn_all_x(tensor.raw(), tensor.layout(), correction)?;
+                    let storage = tensor.device().outof_cpu_vec(vec![value.into()])?;
+                    let layout = Layout::new(vec![], vec![], 0)?;
+                    Tensor::new_f(storage, layout)?
+                },
+                axes => {
+                    let (storage, layout) =
+                        tensor.device().$fn_axes_x(tensor.raw(), tensor.layout(), axes.as_ref(), correction)?;
+                    Tensor::new_f(storage, layout)?
+                },
+            };
+
+            if keepdims {
+                reduction_keepdims(out, axes, ndim)
+            } else {
+                Ok(out)
+            }
+        }
+
+        #[doc = $doc]
+        pub fn $fn_with_args<$($gen),*>(
+            tensor: impl TensorViewAPI<Type = T, Backend = B, Dim = D>,
+            args: impl TryInto<VarArgs, Error: Into<Error>>,
+        ) -> Tensor<$TOut, B, IxD>
+        where
+            D: DimAPI,
+            B: $($bound)*,
+        {
+            $fn_with_args_f(tensor, args).rstsr_unwrap()
+        }
+
+        impl<R, T, B, D> TensorAny<R, T, B, D>
+        where
+            R: DataAPI<Data = <B as DeviceRawAPI<T>>::Raw>,
+            D: DimAPI,
+            B: DeviceAPI<T>,
+        {
+            #[doc = $doc]
+            pub fn $fn_with_args_f<$($mgen),*>(
+                &self,
+                args: impl TryInto<VarArgs, Error: Into<Error>>,
+            ) -> Result<Tensor<$TOut, B, IxD>>
+            where
+                B: $($bound)*,
+            {
+                $fn_with_args_f(self, args)
+            }
+
+            #[doc = $doc]
+            pub fn $fn_with_args<$($mgen),*>(&self, args: impl TryInto<VarArgs, Error: Into<Error>>) -> Tensor<$TOut, B, IxD>
+            where
+                B: $($bound)*,
+            {
+                $fn_with_args(self, args)
+            }
+        }
+    };
+}
+
+#[rustfmt::skip]
+mod impl_trait_reduction_with_args {
+    use super::*;
+
+    // value families
+    trait_reduction_with_args!(sum_with_args, sum_with_args_f, sum_all, sum_axes, ReduceArgs, [T, B, D], [], B::TOut, [OpSumAPI<T, D> + DeviceCreationAnyAPI<B::TOut>], doc_sum_with_args!());
+    trait_reduction_with_args!(min_with_args, min_with_args_f, min_all, min_axes, ReduceArgs, [T, B, D], [], B::TOut, [OpMinAPI<T, D> + DeviceCreationAnyAPI<B::TOut>],
+        "Computes the minimum along the given axes, optionally keeping the reduced axes as size-1 dimensions.\n\nSee also [`min`].");
+    trait_reduction_with_args!(max_with_args, max_with_args_f, max_all, max_axes, ReduceArgs, [T, B, D], [], B::TOut, [OpMaxAPI<T, D> + DeviceCreationAnyAPI<B::TOut>],
+        "Computes the maximum along the given axes, optionally keeping the reduced axes as size-1 dimensions.\n\nSee also [`max`].");
+    trait_reduction_with_args!(prod_with_args, prod_with_args_f, prod_all, prod_axes, ReduceArgs, [T, B, D], [], B::TOut, [OpProdAPI<T, D> + DeviceCreationAnyAPI<B::TOut>],
+        "Multiplies tensor elements along the given axes, optionally keeping the reduced axes as size-1 dimensions.\n\nSee also [`prod`].");
+    trait_reduction_with_args!(mean_with_args, mean_with_args_f, mean_all, mean_axes, ReduceArgs, [T, B, D], [], B::TOut, [OpMeanAPI<T, D> + DeviceCreationAnyAPI<B::TOut>],
+        "Computes the arithmetic mean along the given axes, optionally keeping the reduced axes as size-1 dimensions.\n\nSee also [`mean`].");
+    trait_reduction_with_args!(l2_norm_with_args, l2_norm_with_args_f, l2_norm_all, l2_norm_axes, ReduceArgs, [T, B, D], [], B::TOut, [OpL2NormAPI<T, D> + DeviceCreationAnyAPI<B::TOut>],
+        "Computes the L2 norm along the given axes, optionally keeping the reduced axes as size-1 dimensions.\n\nSee also [`l2_norm`].");
+    trait_reduction_with_args!(argmin_with_args, argmin_with_args_f, argmin_all, argmin_axes, ReduceArgs, [T, B, D], [], B::TOut, [OpArgMinAPI<T, D> + DeviceCreationAnyAPI<B::TOut>],
+        "Returns the indices of the minimum along the given axes, optionally keeping the reduced axes as size-1 dimensions.\n\nSee also [`argmin`].");
+    trait_reduction_with_args!(argmax_with_args, argmax_with_args_f, argmax_all, argmax_axes, ReduceArgs, [T, B, D], [], B::TOut, [OpArgMaxAPI<T, D> + DeviceCreationAnyAPI<B::TOut>],
+        "Returns the indices of the maximum along the given axes, optionally keeping the reduced axes as size-1 dimensions.\n\nSee also [`argmax`].");
+    trait_reduction_with_args!(nanargmin_with_args, nanargmin_with_args_f, nanargmin_all, nanargmin_axes, ReduceArgs, [T, B, D], [], B::TOut, [OpNanArgMinAPI<T, D> + DeviceCreationAnyAPI<B::TOut>],
+        "Returns the indices of the minimum along the given axes, skipping NaN elements, optionally keeping the reduced axes as size-1 dimensions.\n\nSee also [`nanargmin`].");
+    trait_reduction_with_args!(nanargmax_with_args, nanargmax_with_args_f, nanargmax_all, nanargmax_axes, ReduceArgs, [T, B, D], [], B::TOut, [OpNanArgMaxAPI<T, D> + DeviceCreationAnyAPI<B::TOut>],
+        "Returns the indices of the maximum along the given axes, skipping NaN elements, optionally keeping the reduced axes as size-1 dimensions.\n\nSee also [`nanargmax`].");
+    trait_reduction_with_args!(all_with_args, all_with_args_f, all_all, all_axes, ReduceArgs, [T, B, D], [], B::TOut, [OpAllAPI<T, D> + DeviceCreationAnyAPI<B::TOut>],
+        "Tests whether all elements along the given axes are true, optionally keeping the reduced axes as size-1 dimensions.\n\nSee also [`all`].");
+    trait_reduction_with_args!(any_with_args, any_with_args_f, any_all, any_axes, ReduceArgs, [T, B, D], [], B::TOut, [OpAnyAPI<T, D> + DeviceCreationAnyAPI<B::TOut>],
+        "Tests whether any element along the given axes is true, optionally keeping the reduced axes as size-1 dimensions.\n\nSee also [`any`].");
+    trait_reduction_with_args!(count_nonzero_with_args, count_nonzero_with_args_f, count_nonzero_all, count_nonzero_axes, ReduceArgs, [T, B, D], [], B::TOut, [OpCountNonZeroAPI<T, D> + DeviceCreationAnyAPI<B::TOut>],
+        "Counts nonzero elements along the given axes, optionally keeping the reduced axes as size-1 dimensions.\n\nSee also [`count_nonzero`].");
+
+    // arg-index families (output IxD)
+    trait_reduction_with_args!(unraveled_argmin_with_args, unraveled_argmin_with_args_f, unraveled_argmin_all, unraveled_argmin_axes, ReduceArgs, [T, B, D], [], IxD, [OpUnraveledArgMinAPI<T, D> + DeviceAPI<IxD> + DeviceCreationAnyAPI<IxD>],
+        "Returns the unraveled indices of the minimum along the given axes, optionally keeping the reduced axes as size-1 dimensions.\n\nSee also [`unraveled_argmin`].");
+    trait_reduction_with_args!(unraveled_argmax_with_args, unraveled_argmax_with_args_f, unraveled_argmax_all, unraveled_argmax_axes, ReduceArgs, [T, B, D], [], IxD, [OpUnraveledArgMaxAPI<T, D> + DeviceAPI<IxD> + DeviceCreationAnyAPI<IxD>],
+        "Returns the unraveled indices of the maximum along the given axes, optionally keeping the reduced axes as size-1 dimensions.\n\nSee also [`unraveled_argmax`].");
+
+    // var / std with correction (VarArgs)
+    trait_reduction_varstd_args!(var_with_args, var_with_args_f, var_all_corr, var_axes_corr, [T, B, D], [], B::TOut, [OpVarCorrAPI<T, D> + DeviceCreationAnyAPI<B::TOut>], doc_var_with_args!());
+    trait_reduction_varstd_args!(std_with_args, std_with_args_f, std_all_corr, std_axes_corr, [T, B, D], [], B::TOut, [OpStdCorrAPI<T, D> + DeviceCreationAnyAPI<B::TOut>],
+        "Computes the standard deviation along the given axes, with an optional Delta degrees of freedom (`correction`) and `keepdims` support.\n\nSee also [`std`].");
+
+    // dtype families
+    trait_reduction_with_args!(sum_with_dtype, sum_with_dtype_f, sum_all_dtype, sum_axes_dtype, ReduceArgs, [TOut, T, B, D], [TOut], TOut, [OpSumDtypeAPI<T, D, TOut> + DeviceCreationAnyAPI<TOut>], doc_sum_with_dtype!());
+    trait_reduction_with_args!(prod_with_dtype, prod_with_dtype_f, prod_all_dtype, prod_axes_dtype, ReduceArgs, [TOut, T, B, D], [TOut], TOut, [OpProdDtypeAPI<T, D, TOut> + DeviceCreationAnyAPI<TOut>],
+        "Multiplies tensor elements along the given axes, accumulating (and returning) in the explicit dtype `TOut`.\n\nSee also [`prod`].");
+    trait_reduction_with_args!(mean_with_dtype, mean_with_dtype_f, mean_all_dtype, mean_axes_dtype, ReduceArgs, [TOut, T, B, D], [TOut], TOut, [OpMeanDtypeAPI<T, D, TOut> + DeviceCreationAnyAPI<TOut>],
+        "Computes the arithmetic mean along the given axes, accumulating (and returning) in the explicit dtype `TOut`.\n\nSee also [`mean`].");
+    trait_reduction_varstd_args!(var_with_dtype, var_with_dtype_f, var_all_dtype, var_axes_dtype, [TOut, T, B, D], [TOut], TOut, [OpVarDtypeAPI<T, D, TOut> + DeviceCreationAnyAPI<TOut>],
+        "Computes the variance along the given axes in the explicit dtype `TOut`, with an optional Delta degrees of freedom (`correction`).\n\nSee also [`var`].");
+    trait_reduction_varstd_args!(std_with_dtype, std_with_dtype_f, std_all_dtype, std_axes_dtype, [TOut, T, B, D], [TOut], TOut, [OpStdDtypeAPI<T, D, TOut> + DeviceCreationAnyAPI<TOut>],
+        "Computes the standard deviation along the given axes in the explicit dtype `TOut`, with an optional Delta degrees of freedom (`correction`).\n\nSee also [`std`].");
+}
+pub use impl_trait_reduction_with_args::*;
+
+/* #endregion */
+
 /* #region sum (bool) */
 
 pub trait TensorSumBoolAPI<B, D>
@@ -359,6 +987,10 @@ where
     fn sum_axes_f(&self, axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> Result<Tensor<usize, B, IxD>>;
     fn sum_axes(&self, axes: impl TryInto<AxesIndex<isize>, Error: Into<Error>>) -> Tensor<usize, B, IxD> {
         self.sum_axes_f(axes).rstsr_unwrap()
+    }
+    fn sum_with_args_f(&self, args: impl TryInto<ReduceArgs, Error: Into<Error>>) -> Result<Tensor<usize, B, IxD>>;
+    fn sum_with_args(&self, args: impl TryInto<ReduceArgs, Error: Into<Error>>) -> Tensor<usize, B, IxD> {
+        self.sum_with_args_f(args).rstsr_unwrap()
     }
 }
 
@@ -387,6 +1019,17 @@ where
                 let (storage, layout) = self.device().sum_axes(self.raw(), self.layout(), axes.as_ref())?;
                 Tensor::new_f(storage, layout)
             },
+        }
+    }
+
+    fn sum_with_args_f(&self, args: impl TryInto<ReduceArgs, Error: Into<Error>>) -> Result<Tensor<usize, B, IxD>> {
+        let (axes, keepdims) = args.try_into().map_err(Into::into)?.resolve();
+        let ndim = self.ndim();
+        let out = self.sum_axes_f(axes.clone())?;
+        if keepdims {
+            reduction_keepdims(out, axes, ndim)
+        } else {
+            Ok(out)
         }
     }
 }
@@ -1037,5 +1680,47 @@ mod test {
         let result = allclose(&a, &b, args);
         println!("Allclose result with tight args: {result}");
         assert!(!result);
+    }
+
+    #[test]
+    #[cfg(feature = "faer")]
+    fn test_reduction_args_faer() {
+        let mut device = DeviceFaer::default();
+        device.set_default_order(RowMajor);
+
+        let a = asarray((vec![1, 2, 3, 4, 5, 6], [2, 3].c(), &device));
+
+        // keepdims through the parallel device
+        let s = a.sum_with_args((1, true));
+        assert_eq!(s.shape(), &[2, 1]);
+        assert_eq!(s.raw(), &[6, 15]);
+
+        // correction through the parallel device
+        let b = asarray((vec![1.0f64, 2.0, 3.0, 4.0, 5.0, 6.0], [2, 3].c(), &device));
+        let v = b.var_with_args(VarArgs::default().axes(1).correction(1.0));
+        assert!(allclose_f64(&v, &asarray(vec![1.0, 1.0])));
+
+        let v = b.std_with_args(1);
+        assert!(allclose_f64(&v, &asarray(vec![0.816496580927726, 0.816496580927726])));
+    }
+
+    #[test]
+    #[cfg(feature = "faer")]
+    fn test_reduction_dtype_faer() {
+        let mut device = DeviceFaer::default();
+        device.set_default_order(RowMajor);
+
+        let a = asarray((vec![1i32, 2, 3, 4], [2, 2].c(), &device));
+
+        // dtype variants through the parallel device
+        let s: Tensor<i64, _> = a.sum_with_dtype((1, true));
+        assert_eq!(s.shape(), &[2, 1]);
+        assert_eq!(s.raw(), &[3i64, 7]);
+
+        let m: Tensor<f64, _> = a.mean_with_dtype(1);
+        assert_eq!(m.raw(), &[1.5f64, 3.5]);
+
+        let v: Tensor<f64, _> = a.var_with_dtype(VarArgs::default().axes(0).correction(1.0));
+        assert!(allclose_f64(&v, &asarray(vec![2.0, 2.0])));
     }
 }

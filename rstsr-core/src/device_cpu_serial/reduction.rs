@@ -628,3 +628,296 @@ where
         unimplemented!("This function (`allclose_axes`) is not planned to be implemented yet.");
     }
 }
+
+/* #region dtype / correction variants */
+
+/// Variance finalize with `correction` (Delta degrees of freedom) in the
+/// accumulator dtype `TOut`; `M - correction <= 0` yields NaN.
+#[inline]
+pub(crate) fn var_out_dtype<TOut>(sum: TOut, sumsq: TOut, size: usize, correction: f64) -> TOut
+where
+    TOut: ComplexFloat + FromPrimitive + Clone,
+{
+    let dof = size as f64 - correction;
+    if dof <= 0.0 {
+        return TOut::from_f64(f64::NAN).unwrap();
+    }
+    // sum of squared deviations from the mean, divided by `M - correction`:
+    // `(sumsq - M * |mean|^2) / (M - correction)`.
+    let n = TOut::from_usize(size).unwrap();
+    let mean = sum / n;
+    (sumsq - mean * mean.conj() * n) / TOut::from_f64(dof).unwrap()
+}
+
+/// Variance finalize with `correction` for complex input and the input's
+/// natural real accumulator; `M - correction <= 0` yields NaN.
+#[inline]
+pub(crate) fn var_out_corr<T>(sum: T, sumsq: T::Real, size: usize, correction: f64) -> T::Real
+where
+    T: ComplexFloat + FromPrimitive,
+    T::Real: ComplexFloat + FromPrimitive + Clone,
+{
+    let dof = size as f64 - correction;
+    if dof <= 0.0 {
+        return T::Real::from_f64(f64::NAN).unwrap();
+    }
+    // `(sumsq - M * |mean|^2) / (M - correction)`
+    let n_1 = T::from_usize(size).unwrap();
+    let n_2 = T::Real::from_usize(size).unwrap();
+    let mean = sum / n_1;
+    (sumsq - (mean * mean.conj()).re() * n_2) / T::Real::from_f64(dof).unwrap()
+}
+
+impl<T, TOut, D> OpSumDtypeAPI<T, D, TOut> for DeviceCpuSerial
+where
+    T: Clone + DTypeCastAPI<TOut>,
+    TOut: Zero + Add<Output = TOut> + Clone,
+    D: DimAPI,
+{
+    fn sum_all_dtype(&self, a: &Vec<T>, la: &Layout<D>) -> Result<TOut> {
+        let f_init = TOut::zero;
+        let f = |acc: TOut, x: T| acc + x.into_cast();
+        let f_sum = |acc1: TOut, acc2: TOut| acc1 + acc2;
+        let f_out = |acc: TOut| acc;
+
+        reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)
+    }
+
+    fn sum_axes_dtype(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<TOut>>, TOut, Self>, Layout<IxD>)> {
+        let f_init = TOut::zero;
+        let f = |acc: TOut, x: T| acc + x.into_cast();
+        let f_sum = |acc1: TOut, acc2: TOut| acc1 + acc2;
+        let f_out = |acc: TOut| acc;
+
+        let (out, layout_out) = reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, TOut, D> OpProdDtypeAPI<T, D, TOut> for DeviceCpuSerial
+where
+    T: Clone + DTypeCastAPI<TOut>,
+    TOut: One + Mul<Output = TOut> + Clone,
+    D: DimAPI,
+{
+    fn prod_all_dtype(&self, a: &Vec<T>, la: &Layout<D>) -> Result<TOut> {
+        let f_init = TOut::one;
+        let f = |acc: TOut, x: T| acc * x.into_cast();
+        let f_sum = |acc1: TOut, acc2: TOut| acc1 * acc2;
+        let f_out = |acc: TOut| acc;
+
+        reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)
+    }
+
+    fn prod_axes_dtype(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<TOut>>, TOut, Self>, Layout<IxD>)> {
+        let f_init = TOut::one;
+        let f = |acc: TOut, x: T| acc * x.into_cast();
+        let f_sum = |acc1: TOut, acc2: TOut| acc1 * acc2;
+        let f_out = |acc: TOut| acc;
+
+        let (out, layout_out) = reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, TOut, D> OpMeanDtypeAPI<T, D, TOut> for DeviceCpuSerial
+where
+    T: Clone + DTypeCastAPI<TOut>,
+    TOut: ComplexFloat + FromPrimitive + Clone,
+    D: DimAPI,
+{
+    fn mean_all_dtype(&self, a: &Vec<T>, la: &Layout<D>) -> Result<TOut> {
+        let size = la.size();
+        let f_init = TOut::zero;
+        let f = |acc: TOut, x: T| acc + x.into_cast();
+        let f_sum = |acc1: TOut, acc2: TOut| acc1 + acc2;
+        let f_out = |acc: TOut| acc / TOut::from_usize(size).unwrap();
+
+        reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)
+    }
+
+    fn mean_axes_dtype(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<TOut>>, TOut, Self>, Layout<IxD>)> {
+        let (layout_axes, _) = la.dim_split_axes(axes)?;
+        let size = layout_axes.size();
+        let f_init = TOut::zero;
+        let f = |acc: TOut, x: T| acc + x.into_cast();
+        let f_sum = |acc1: TOut, acc2: TOut| acc1 + acc2;
+        let f_out = |acc: TOut| acc / TOut::from_usize(size).unwrap();
+
+        let (out, layout_out) = reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, TOut, D> OpVarDtypeAPI<T, D, TOut> for DeviceCpuSerial
+where
+    T: Clone + DTypeCastAPI<TOut>,
+    TOut: ComplexFloat + FromPrimitive + Clone,
+    D: DimAPI,
+{
+    fn var_all_dtype(&self, a: &Vec<T>, la: &Layout<D>, correction: f64) -> Result<TOut> {
+        let size = la.size();
+        let f_init = || (TOut::zero(), TOut::zero());
+        let f = |(acc_1, acc_2): (TOut, TOut), x: T| {
+            let x: TOut = x.into_cast();
+            (acc_1 + x, acc_2 + x * x.conj())
+        };
+        let f_sum = |(acc_1, acc_2): (TOut, TOut), (x_1, x_2): (TOut, TOut)| (acc_1 + x_1, acc_2 + x_2);
+        let f_out = |(acc_1, acc_2): (TOut, TOut)| var_out_dtype(acc_1, acc_2, size, correction);
+
+        reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)
+    }
+
+    fn var_axes_dtype(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+        correction: f64,
+    ) -> Result<(Storage<DataOwned<Vec<TOut>>, TOut, Self>, Layout<IxD>)> {
+        let (layout_axes, _) = la.dim_split_axes(axes)?;
+        let size = layout_axes.size();
+        let f_init = || (TOut::zero(), TOut::zero());
+        let f = |(acc_1, acc_2): (TOut, TOut), x: T| {
+            let x: TOut = x.into_cast();
+            (acc_1 + x, acc_2 + x * x.conj())
+        };
+        let f_sum = |(acc_1, acc_2): (TOut, TOut), (x_1, x_2): (TOut, TOut)| (acc_1 + x_1, acc_2 + x_2);
+        let f_out = |(acc_1, acc_2): (TOut, TOut)| var_out_dtype(acc_1, acc_2, size, correction);
+
+        let (out, layout_out) = reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, TOut, D> OpStdDtypeAPI<T, D, TOut> for DeviceCpuSerial
+where
+    T: Clone + DTypeCastAPI<TOut>,
+    TOut: ComplexFloat + FromPrimitive + Clone,
+    D: DimAPI,
+{
+    fn std_all_dtype(&self, a: &Vec<T>, la: &Layout<D>, correction: f64) -> Result<TOut> {
+        let size = la.size();
+        let f_init = || (TOut::zero(), TOut::zero());
+        let f = |(acc_1, acc_2): (TOut, TOut), x: T| {
+            let x: TOut = x.into_cast();
+            (acc_1 + x, acc_2 + x * x.conj())
+        };
+        let f_sum = |(acc_1, acc_2): (TOut, TOut), (x_1, x_2): (TOut, TOut)| (acc_1 + x_1, acc_2 + x_2);
+        let f_out = |(acc_1, acc_2): (TOut, TOut)| var_out_dtype(acc_1, acc_2, size, correction).sqrt();
+
+        reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)
+    }
+
+    fn std_axes_dtype(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+        correction: f64,
+    ) -> Result<(Storage<DataOwned<Vec<TOut>>, TOut, Self>, Layout<IxD>)> {
+        let (layout_axes, _) = la.dim_split_axes(axes)?;
+        let size = layout_axes.size();
+        let f_init = || (TOut::zero(), TOut::zero());
+        let f = |(acc_1, acc_2): (TOut, TOut), x: T| {
+            let x: TOut = x.into_cast();
+            (acc_1 + x, acc_2 + x * x.conj())
+        };
+        let f_sum = |(acc_1, acc_2): (TOut, TOut), (x_1, x_2): (TOut, TOut)| (acc_1 + x_1, acc_2 + x_2);
+        let f_out = |(acc_1, acc_2): (TOut, TOut)| var_out_dtype(acc_1, acc_2, size, correction).sqrt();
+
+        let (out, layout_out) = reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, D> OpVarCorrAPI<T, D> for DeviceCpuSerial
+where
+    T: Clone + ComplexFloat + FromPrimitive,
+    T::Real: Clone + ComplexFloat + FromPrimitive,
+    D: DimAPI,
+{
+    type TOut = T::Real;
+
+    fn var_all_corr(&self, a: &Vec<T>, la: &Layout<D>, correction: f64) -> Result<T::Real> {
+        let size = la.size();
+        let f_init = || (T::zero(), T::Real::zero());
+        let f = |(acc_1, acc_2): (T, T::Real), x: T| (acc_1 + x, acc_2 + (x * x.conj()).re());
+        let f_sum = |(acc_1, acc_2): (T, T::Real), (x_1, x_2): (T, T::Real)| (acc_1 + x_1, acc_2 + x_2);
+        let f_out = |(acc_1, acc_2): (T, T::Real)| var_out_corr(acc_1, acc_2, size, correction);
+
+        reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)
+    }
+
+    fn var_axes_corr(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+        correction: f64,
+    ) -> Result<(Storage<DataOwned<Vec<T::Real>>, T::Real, Self>, Layout<IxD>)> {
+        let (layout_axes, _) = la.dim_split_axes(axes)?;
+        let size = layout_axes.size();
+        let f_init = || (T::zero(), T::Real::zero());
+        let f = |(acc_1, acc_2): (T, T::Real), x: T| (acc_1 + x, acc_2 + (x * x.conj()).re());
+        let f_sum = |(acc_1, acc_2): (T, T::Real), (x_1, x_2): (T, T::Real)| (acc_1 + x_1, acc_2 + x_2);
+        let f_out = |(acc_1, acc_2): (T, T::Real)| var_out_corr(acc_1, acc_2, size, correction);
+
+        let (out, layout_out) = reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, D> OpStdCorrAPI<T, D> for DeviceCpuSerial
+where
+    T: Clone + ComplexFloat + FromPrimitive,
+    T::Real: Clone + ComplexFloat + FromPrimitive,
+    D: DimAPI,
+{
+    type TOut = T::Real;
+
+    fn std_all_corr(&self, a: &Vec<T>, la: &Layout<D>, correction: f64) -> Result<T::Real> {
+        let size = la.size();
+        let f_init = || (T::zero(), T::Real::zero());
+        let f = |(acc_1, acc_2): (T, T::Real), x: T| (acc_1 + x, acc_2 + (x * x.conj()).re());
+        let f_sum = |(acc_1, acc_2): (T, T::Real), (x_1, x_2): (T, T::Real)| (acc_1 + x_1, acc_2 + x_2);
+        let f_out = |(acc_1, acc_2): (T, T::Real)| var_out_corr(acc_1, acc_2, size, correction).sqrt();
+
+        reduce_all_cpu_serial(a, la, f_init, f, f_sum, f_out)
+    }
+
+    fn std_axes_corr(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+        correction: f64,
+    ) -> Result<(Storage<DataOwned<Vec<T::Real>>, T::Real, Self>, Layout<IxD>)> {
+        let (layout_axes, _) = la.dim_split_axes(axes)?;
+        let size = layout_axes.size();
+        let f_init = || (T::zero(), T::Real::zero());
+        let f = |(acc_1, acc_2): (T, T::Real), x: T| (acc_1 + x, acc_2 + (x * x.conj()).re());
+        let f_sum = |(acc_1, acc_2): (T, T::Real), (x_1, x_2): (T, T::Real)| (acc_1 + x_1, acc_2 + x_2);
+        let f_out = |(acc_1, acc_2): (T, T::Real)| var_out_corr(acc_1, acc_2, size, correction).sqrt();
+
+        let (out, layout_out) = reduce_axes_cpu_serial(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+/* #endregion */

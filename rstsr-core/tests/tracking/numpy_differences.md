@@ -201,6 +201,11 @@ input as `f64` (e.g. `[[1.0, 2.0, 3.0], ...]`) rather than `i32`. Output values
 match NumPy (population statistics, ddof = 0). `sum`/`prod`/`min`/`max`/`argmin`/
 `argmax` do accept integers.
 
+Since 2026-10 (reduction args/dtype work), integer input is accepted through the
+`_with_dtype` forms, which cast the input before accumulating:
+`a.mean_with_dtype::<f64>(axis)` matches `np.mean(a, axis=..., dtype=np.float64)`.
+
+
 ## `all`/`any` require a `bool` tensor (NumPy accepts truthy int)
 
 - **numpy:** `lib/tests/test_function_base.py::TestAll::test_basic` (L283) /
@@ -245,3 +250,58 @@ applies instead. For example, with `a = [[10, 21], [33, 44]]` and
 (not the elementwise remainder `[[1, 1], [3, 2]]`). The free function
 `rt::rem(&a, &b)` provides the NumPy-compatible elementwise remainder; the
 parity test asserts both `rt::rem` (remainder) and `a % b` (matmul) accordingly.
+
+## Reduction arguments (`keepdims`, `dtype`, `ddof`) are not keywords
+
+- **numpy:** `np.sum(a, axis=None, dtype=None, keepdims=..., initial=..., where=...)`,
+  `np.var(a, axis=None, ddof=0, keepdims=...)`, etc.
+- **rstsr:** entry_row_cpu::core_func::reduction::{test_reduction_args,test_reduction_dtype}
+- **tag:** intentional
+- **status:** open
+
+rstsr groups reduction options into argument structs instead of keyword arguments:
+`rt::sum_with_args(&a, args)` / `a.sum_with_args(args)` takes `ReduceArgs { axes,
+keepdims }` (overloads: `axes`, `(axes, keepdims)`, `bool`, `ReduceArgs`), and
+`var`/`std` take `VarArgs { axes, keepdims, correction }`. Two consequences:
+
+- `keepdims` has no dedicated function; use `sum_with_args((0, true))` (NumPy:
+  `np.sum(a, axis=0, keepdims=True)`) — equivalently
+  `ReduceArgs::default().axes(0).keepdims(true)`.
+- The explicit output dtype is a separate function family
+  `<fn>_with_dtype::<TOut>` rather than a `dtype=` keyword (a dtype is a Rust type,
+  not a runtime value): `a.sum_with_dtype::<i64>(args)` matches
+  `np.sum(a, dtype=np.int64)`, and the input is cast before accumulating
+  (the Array-API anti-overflow rule). `TOut` is supplied by a type annotation or
+  the method turbofish; the plain functions keep `num.sum`-style input-dtype
+  accumulation (`sum` of `int32` stays `int32`).
+- NumPy's `out`, `initial` and `where` arguments have no rstsr counterpart.
+
+## `var`/`std` use `correction` (Array-API), not `ddof` (NumPy)
+
+- **numpy:** `np.var(a, ddof=1)` divides by `M - ddof`.
+- **rstsr:** entry_row_cpu::core_func::reduction::test_reduction_args
+- **tag:** intentional
+- **status:** open
+
+`VarArgs::correction` follows the Python Array API spelling (`correction=0.0`
+default). The divisor is `M - correction`, and `M - correction <= 0` yields NaN
+(the Array-API rule). `a.var_with_args(VarArgs::default().axes(1).correction(1.0))`
+matches `np.var(a, axis=1, ddof=1)`.
+
+## `astype` copies conditionally and takes the dtype as a type parameter
+
+- **numpy:** `ndarray.astype(dtype, order='K', casting='unsafe', subok=True, copy=True)`
+  always copies unless `copy=False` and the dtype matches.
+- **rstsr:** entry_row_cpu::core_func::manipulation::test_astype
+- **tag:** intentional
+- **status:** open
+
+`rt::astype::<TOut>` / `a.astype::<TOut>()` returns a [`TensorCow`]: when `TOut`
+equals the input dtype the result is a zero-copy view (like
+`np.asarray(a)`/`astype(copy=False)`), otherwise the elements are copied into a
+fresh contiguous buffer (same shape, device default order). There is no `copy=`
+argument (the conditional behavior is the default) and no `casting=`/`subok=`.
+The dtype is a type parameter, so the method form takes a single turbofish
+(`a.astype::<f64>()`); the free function is called with a type annotation or
+placeholders (`rt::astype::<f64, _, _, _, _>(&a)`). `into_astype` moves the
+storage when the dtype is unchanged.

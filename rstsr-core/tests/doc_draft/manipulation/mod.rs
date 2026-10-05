@@ -1,3 +1,4 @@
+pub mod test_astype;
 pub mod test_broadcast;
 pub mod test_broadcast_shapes;
 pub mod test_expand_dims;

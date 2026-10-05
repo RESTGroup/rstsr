@@ -71,6 +71,81 @@ where
     ) -> Result<(Storage<DataOwned<<Self as DeviceRawAPI<usize>>::Raw>, usize, Self>, Layout<IxD>)>;
 }
 
+/* #region dtype / correction variants */
+
+/// Reductions with an explicit accumulator (and output) dtype; the input
+/// elements are cast to `TOut` inside the fold, so no intermediate tensor is
+/// created.
+#[allow(clippy::type_complexity)]
+#[duplicate_item(
+    OpReduceDtypeAPI   func_dtype         func_all_dtype     ;
+   [OpSumDtypeAPI   ] [sum_axes_dtype   ] [sum_all_dtype    ];
+   [OpProdDtypeAPI  ] [prod_axes_dtype  ] [prod_all_dtype   ];
+   [OpMeanDtypeAPI  ] [mean_axes_dtype  ] [mean_all_dtype   ];
+)]
+pub trait OpReduceDtypeAPI<T, D, TOut>
+where
+    D: DimAPI,
+    Self: DeviceAPI<T> + DeviceAPI<TOut>,
+{
+    fn func_all_dtype(&self, a: &<Self as DeviceRawAPI<T>>::Raw, la: &Layout<D>) -> Result<TOut>;
+    fn func_dtype(
+        &self,
+        a: &<Self as DeviceRawAPI<T>>::Raw,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<<Self as DeviceRawAPI<TOut>>::Raw>, TOut, Self>, Layout<IxD>)>;
+}
+
+/// `var`/`std` with an explicit accumulator dtype and a Delta degrees of
+/// freedom (`correction`); the divisor is `M - correction`.
+#[allow(clippy::type_complexity)]
+#[duplicate_item(
+    OpVarStdDtypeAPI   func_dtype         func_all_dtype     ;
+   [OpVarDtypeAPI  ] [var_axes_dtype   ] [var_all_dtype    ];
+   [OpStdDtypeAPI  ] [std_axes_dtype   ] [std_all_dtype    ];
+)]
+pub trait OpVarStdDtypeAPI<T, D, TOut>
+where
+    D: DimAPI,
+    Self: DeviceAPI<T> + DeviceAPI<TOut>,
+{
+    fn func_all_dtype(&self, a: &<Self as DeviceRawAPI<T>>::Raw, la: &Layout<D>, correction: f64) -> Result<TOut>;
+    fn func_dtype(
+        &self,
+        a: &<Self as DeviceRawAPI<T>>::Raw,
+        la: &Layout<D>,
+        axes: &[isize],
+        correction: f64,
+    ) -> Result<(Storage<DataOwned<<Self as DeviceRawAPI<TOut>>::Raw>, TOut, Self>, Layout<IxD>)>;
+}
+
+/// `var`/`std` with a Delta degrees of freedom (`correction`) and the
+/// input's natural real accumulator dtype (`ComplexFloat::Real`, i.e. `T::Real`).
+#[allow(clippy::type_complexity)]
+#[duplicate_item(
+    OpReduceCorrAPI   func_corr         func_all_corr     ;
+   [OpVarCorrAPI   ] [var_axes_corr   ] [var_all_corr    ];
+   [OpStdCorrAPI   ] [std_axes_corr   ] [std_all_corr    ];
+)]
+pub trait OpReduceCorrAPI<T, D>
+where
+    D: DimAPI,
+    Self: DeviceAPI<T> + DeviceAPI<Self::TOut>,
+{
+    type TOut;
+    fn func_all_corr(&self, a: &<Self as DeviceRawAPI<T>>::Raw, la: &Layout<D>, correction: f64) -> Result<Self::TOut>;
+    fn func_corr(
+        &self,
+        a: &<Self as DeviceRawAPI<T>>::Raw,
+        la: &Layout<D>,
+        axes: &[isize],
+        correction: f64,
+    ) -> Result<(Storage<DataOwned<<Self as DeviceRawAPI<Self::TOut>>::Raw>, Self::TOut, Self>, Layout<IxD>)>;
+}
+
+/* #endregion */
+
 #[allow(clippy::type_complexity)]
 pub trait OpAllCloseAPI<TA, TB, TE, D>
 where

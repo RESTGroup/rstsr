@@ -24,10 +24,8 @@ mod numpy_sum {
         // out = np.sum(m, axis=1, keepdims=True)
         // assert_equal(tgt, out)
         let m = rt::tensor_from_nested!([[1, 2, 3], [4, 5, 6], [7, 8, 9]], &device);
-        // rstsr `sum_axes` drops the reduced axis (no `keepdims`); the reduction
-        // value is identical to NumPy's keepdims result squeezed back to 1-D.
-        let out = m.sum_axes(1);
-        let expected = rt::tensor_from_nested!([6, 15, 24], &device);
+        let out = m.sum_with_args((1, true));
+        let expected = rt::tensor_from_nested!([[6], [15], [24]], &device);
         assert_equal(&out, &expected, None);
     }
 }

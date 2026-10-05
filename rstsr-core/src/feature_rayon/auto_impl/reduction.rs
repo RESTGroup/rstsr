@@ -1,3 +1,4 @@
+use crate::device_cpu_serial::reduction::{var_out_corr, var_out_dtype};
 use crate::prelude_dev::*;
 use core::ops::{Add, Mul};
 use num::complex::ComplexFloat;
@@ -703,3 +704,287 @@ where
         unimplemented!("This function (`allclose_axes`) is not planned to be implemented yet.");
     }
 }
+
+/* #region dtype / correction variants */
+
+impl<T, TOut, D> OpSumDtypeAPI<T, D, TOut> for DeviceRayonAutoImpl
+where
+    T: Clone + Send + Sync + DTypeCastAPI<TOut>,
+    TOut: Zero + Add<Output = TOut> + Clone + Send + Sync,
+    D: DimAPI,
+{
+    fn sum_all_dtype(&self, a: &Vec<T>, la: &Layout<D>) -> Result<TOut> {
+        let pool = self.get_current_pool();
+
+        let f_init = TOut::zero;
+        let f = |acc: TOut, x: T| acc + x.into_cast();
+        let f_sum = |acc1: TOut, acc2: TOut| acc1 + acc2;
+        let f_out = |acc: TOut| acc;
+
+        reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
+    }
+
+    fn sum_axes_dtype(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<TOut>>, TOut, Self>, Layout<IxD>)> {
+        let pool = self.get_current_pool();
+
+        let f_init = TOut::zero;
+        let f = |acc: TOut, x: T| acc + x.into_cast();
+        let f_sum = |acc1: TOut, acc2: TOut| acc1 + acc2;
+        let f_out = |acc: TOut| acc;
+
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, TOut, D> OpProdDtypeAPI<T, D, TOut> for DeviceRayonAutoImpl
+where
+    T: Clone + Send + Sync + DTypeCastAPI<TOut>,
+    TOut: One + Mul<Output = TOut> + Clone + Send + Sync,
+    D: DimAPI,
+{
+    fn prod_all_dtype(&self, a: &Vec<T>, la: &Layout<D>) -> Result<TOut> {
+        let pool = self.get_current_pool();
+
+        let f_init = TOut::one;
+        let f = |acc: TOut, x: T| acc * x.into_cast();
+        let f_sum = |acc1: TOut, acc2: TOut| acc1 * acc2;
+        let f_out = |acc: TOut| acc;
+
+        reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
+    }
+
+    fn prod_axes_dtype(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<TOut>>, TOut, Self>, Layout<IxD>)> {
+        let pool = self.get_current_pool();
+
+        let f_init = TOut::one;
+        let f = |acc: TOut, x: T| acc * x.into_cast();
+        let f_sum = |acc1: TOut, acc2: TOut| acc1 * acc2;
+        let f_out = |acc: TOut| acc;
+
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, TOut, D> OpMeanDtypeAPI<T, D, TOut> for DeviceRayonAutoImpl
+where
+    T: Clone + Send + Sync + DTypeCastAPI<TOut>,
+    TOut: ComplexFloat + FromPrimitive + Clone + Send + Sync,
+    D: DimAPI,
+{
+    fn mean_all_dtype(&self, a: &Vec<T>, la: &Layout<D>) -> Result<TOut> {
+        let pool = self.get_current_pool();
+
+        let size = la.size();
+        let f_init = TOut::zero;
+        let f = |acc: TOut, x: T| acc + x.into_cast();
+        let f_sum = |acc1: TOut, acc2: TOut| acc1 + acc2;
+        let f_out = |acc: TOut| acc / TOut::from_usize(size).unwrap();
+
+        reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
+    }
+
+    fn mean_axes_dtype(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+    ) -> Result<(Storage<DataOwned<Vec<TOut>>, TOut, Self>, Layout<IxD>)> {
+        let pool = self.get_current_pool();
+
+        let (layout_axes, _) = la.dim_split_axes(axes)?;
+        let size = layout_axes.size();
+        let f_init = TOut::zero;
+        let f = |acc: TOut, x: T| acc + x.into_cast();
+        let f_sum = |acc1: TOut, acc2: TOut| acc1 + acc2;
+        let f_out = |acc: TOut| acc / TOut::from_usize(size).unwrap();
+
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, TOut, D> OpVarDtypeAPI<T, D, TOut> for DeviceRayonAutoImpl
+where
+    T: Clone + Send + Sync + DTypeCastAPI<TOut>,
+    TOut: ComplexFloat + FromPrimitive + Clone + Send + Sync,
+    D: DimAPI,
+{
+    fn var_all_dtype(&self, a: &Vec<T>, la: &Layout<D>, correction: f64) -> Result<TOut> {
+        let pool = self.get_current_pool();
+
+        let size = la.size();
+        let f_init = || (TOut::zero(), TOut::zero());
+        let f = |(acc_1, acc_2): (TOut, TOut), x: T| {
+            let x: TOut = x.into_cast();
+            (acc_1 + x, acc_2 + x * x.conj())
+        };
+        let f_sum = |(acc_1, acc_2): (TOut, TOut), (x_1, x_2): (TOut, TOut)| (acc_1 + x_1, acc_2 + x_2);
+        let f_out = |(acc_1, acc_2): (TOut, TOut)| var_out_dtype(acc_1, acc_2, size, correction);
+
+        reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
+    }
+
+    fn var_axes_dtype(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+        correction: f64,
+    ) -> Result<(Storage<DataOwned<Vec<TOut>>, TOut, Self>, Layout<IxD>)> {
+        let pool = self.get_current_pool();
+
+        let (layout_axes, _) = la.dim_split_axes(axes)?;
+        let size = layout_axes.size();
+        let f_init = || (TOut::zero(), TOut::zero());
+        let f = |(acc_1, acc_2): (TOut, TOut), x: T| {
+            let x: TOut = x.into_cast();
+            (acc_1 + x, acc_2 + x * x.conj())
+        };
+        let f_sum = |(acc_1, acc_2): (TOut, TOut), (x_1, x_2): (TOut, TOut)| (acc_1 + x_1, acc_2 + x_2);
+        let f_out = |(acc_1, acc_2): (TOut, TOut)| var_out_dtype(acc_1, acc_2, size, correction);
+
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, TOut, D> OpStdDtypeAPI<T, D, TOut> for DeviceRayonAutoImpl
+where
+    T: Clone + Send + Sync + DTypeCastAPI<TOut>,
+    TOut: ComplexFloat + FromPrimitive + Clone + Send + Sync,
+    D: DimAPI,
+{
+    fn std_all_dtype(&self, a: &Vec<T>, la: &Layout<D>, correction: f64) -> Result<TOut> {
+        let pool = self.get_current_pool();
+
+        let size = la.size();
+        let f_init = || (TOut::zero(), TOut::zero());
+        let f = |(acc_1, acc_2): (TOut, TOut), x: T| {
+            let x: TOut = x.into_cast();
+            (acc_1 + x, acc_2 + x * x.conj())
+        };
+        let f_sum = |(acc_1, acc_2): (TOut, TOut), (x_1, x_2): (TOut, TOut)| (acc_1 + x_1, acc_2 + x_2);
+        let f_out = |(acc_1, acc_2): (TOut, TOut)| var_out_dtype(acc_1, acc_2, size, correction).sqrt();
+
+        reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
+    }
+
+    fn std_axes_dtype(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+        correction: f64,
+    ) -> Result<(Storage<DataOwned<Vec<TOut>>, TOut, Self>, Layout<IxD>)> {
+        let pool = self.get_current_pool();
+
+        let (layout_axes, _) = la.dim_split_axes(axes)?;
+        let size = layout_axes.size();
+        let f_init = || (TOut::zero(), TOut::zero());
+        let f = |(acc_1, acc_2): (TOut, TOut), x: T| {
+            let x: TOut = x.into_cast();
+            (acc_1 + x, acc_2 + x * x.conj())
+        };
+        let f_sum = |(acc_1, acc_2): (TOut, TOut), (x_1, x_2): (TOut, TOut)| (acc_1 + x_1, acc_2 + x_2);
+        let f_out = |(acc_1, acc_2): (TOut, TOut)| var_out_dtype(acc_1, acc_2, size, correction).sqrt();
+
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, D> OpVarCorrAPI<T, D> for DeviceRayonAutoImpl
+where
+    T: Clone + Send + Sync + ComplexFloat + FromPrimitive,
+    T::Real: Clone + Send + Sync + ComplexFloat + FromPrimitive,
+    D: DimAPI,
+{
+    type TOut = T::Real;
+
+    fn var_all_corr(&self, a: &Vec<T>, la: &Layout<D>, correction: f64) -> Result<T::Real> {
+        let pool = self.get_current_pool();
+
+        let size = la.size();
+        let f_init = || (T::zero(), T::Real::zero());
+        let f = |(acc_1, acc_2): (T, T::Real), x: T| (acc_1 + x, acc_2 + (x * x.conj()).re());
+        let f_sum = |(acc_1, acc_2): (T, T::Real), (x_1, x_2): (T, T::Real)| (acc_1 + x_1, acc_2 + x_2);
+        let f_out = |(acc_1, acc_2): (T, T::Real)| var_out_corr(acc_1, acc_2, size, correction);
+
+        reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
+    }
+
+    fn var_axes_corr(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+        correction: f64,
+    ) -> Result<(Storage<DataOwned<Vec<T::Real>>, T::Real, Self>, Layout<IxD>)> {
+        let pool = self.get_current_pool();
+
+        let (layout_axes, _) = la.dim_split_axes(axes)?;
+        let size = layout_axes.size();
+        let f_init = || (T::zero(), T::Real::zero());
+        let f = |(acc_1, acc_2): (T, T::Real), x: T| (acc_1 + x, acc_2 + (x * x.conj()).re());
+        let f_sum = |(acc_1, acc_2): (T, T::Real), (x_1, x_2): (T, T::Real)| (acc_1 + x_1, acc_2 + x_2);
+        let f_out = |(acc_1, acc_2): (T, T::Real)| var_out_corr(acc_1, acc_2, size, correction);
+
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+impl<T, D> OpStdCorrAPI<T, D> for DeviceRayonAutoImpl
+where
+    T: Clone + Send + Sync + ComplexFloat + FromPrimitive,
+    T::Real: Clone + Send + Sync + ComplexFloat + FromPrimitive,
+    D: DimAPI,
+{
+    type TOut = T::Real;
+
+    fn std_all_corr(&self, a: &Vec<T>, la: &Layout<D>, correction: f64) -> Result<T::Real> {
+        let pool = self.get_current_pool();
+
+        let size = la.size();
+        let f_init = || (T::zero(), T::Real::zero());
+        let f = |(acc_1, acc_2): (T, T::Real), x: T| (acc_1 + x, acc_2 + (x * x.conj()).re());
+        let f_sum = |(acc_1, acc_2): (T, T::Real), (x_1, x_2): (T, T::Real)| (acc_1 + x_1, acc_2 + x_2);
+        let f_out = |(acc_1, acc_2): (T, T::Real)| var_out_corr(acc_1, acc_2, size, correction).sqrt();
+
+        reduce_all_cpu_rayon(a, la, f_init, f, f_sum, f_out, pool)
+    }
+
+    fn std_axes_corr(
+        &self,
+        a: &Vec<T>,
+        la: &Layout<D>,
+        axes: &[isize],
+        correction: f64,
+    ) -> Result<(Storage<DataOwned<Vec<T::Real>>, T::Real, Self>, Layout<IxD>)> {
+        let pool = self.get_current_pool();
+
+        let (layout_axes, _) = la.dim_split_axes(axes)?;
+        let size = layout_axes.size();
+        let f_init = || (T::zero(), T::Real::zero());
+        let f = |(acc_1, acc_2): (T, T::Real), x: T| (acc_1 + x, acc_2 + (x * x.conj()).re());
+        let f_sum = |(acc_1, acc_2): (T, T::Real), (x_1, x_2): (T, T::Real)| (acc_1 + x_1, acc_2 + x_2);
+        let f_out = |(acc_1, acc_2): (T, T::Real)| var_out_corr(acc_1, acc_2, size, correction).sqrt();
+
+        let (out, layout_out) = reduce_axes_cpu_rayon(a, &la.to_dim()?, axes, f_init, f, f_sum, f_out, pool)?;
+        Ok((Storage::new(out.into(), self.clone()), layout_out))
+    }
+}
+
+/* #endregion */
