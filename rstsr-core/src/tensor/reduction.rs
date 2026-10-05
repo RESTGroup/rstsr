@@ -2803,7 +2803,8 @@ mod test {
     #[cfg(feature = "faer")]
     fn test_cumulative_faer() {
         // rayon (DeviceFaer) paths of cumulative_sum / cumulative_prod
-        let device = DeviceFaer::default();
+        let mut device = DeviceFaer::default();
+        device.set_default_order(RowMajor);
         let a: Tensor<i32, DeviceFaer> = asarray((vec![1, 2, 3, 4, 5, 6], [2, 3].c(), &device));
 
         let r = a.cumulative_sum(1);
