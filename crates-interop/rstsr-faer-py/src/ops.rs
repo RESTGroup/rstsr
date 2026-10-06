@@ -8,12 +8,19 @@
 //! items instantiate per arm.
 
 use core::mem::MaybeUninit;
+use num::complex::ComplexFloat;
 use num::Complex;
+use num::{Float, FromPrimitive};
 use pyo3::prelude::*;
 use rstsr::prelude::rt;
 use rstsr::prelude::*;
 use rstsr_common::layout::exports::Indexer;
 use rstsr_core::operators::assignment::OpAssignAPI;
+use rstsr_core::operators::exports::Op_MutA_RefB_API;
+use rstsr_core::operators::reduction::{
+    OpAllAPI, OpAnyAPI, OpCumProdAPI, OpCumSumAPI, OpMaxAPI, OpMeanAPI, OpMinAPI, OpProdAPI, OpStdAPI, OpSumAPI,
+    OpVarAPI,
+};
 use rstsr_core::storage::exports::{DeviceCreationAnyAPI, DeviceRawAPI};
 use rstsr_core::tensor::operators::exports::{
     TensorATan2API, TensorAddAPI, TensorBitAndAPI, TensorBitOrAPI, TensorBitXorAPI, TensorCopySignAPI, TensorDivAPI,
@@ -28,35 +35,33 @@ use crate::any_tensor::{
     device_faer, dispatch_bin_bool_self, dispatch_bin_int_bool_self, dispatch_bin_int_self, dispatch_bin_numeric_self,
     dispatch_bin_promote, dispatch_bin_promote_eq, dispatch_t, dispatch_t_bool, dispatch_t_float_complex_same,
     dispatch_t_into_float, dispatch_t_no_complex, dispatch_t_numeric_same, dispatch_t_real_float_same,
-    dispatch_t_signed, err_py, lift, type_err, AnyTensor, FTensor, NativeArray,
+    dispatch_t_real_numeric_same, dispatch_t_signed, lift, type_err, AnyTensor, FTensor, NativeArray,
 };
-use crate::creation::dim_from;
 
-/// Whole-array boolean reduction rebuilt as a 0-d array. rstsr's `all`/`any`
-/// reductions are bool-typed only (OpAllAPI), so truthiness is derived as
-/// `x != 0` first — values are exact, no algorithm added (gap G-017).
-fn op_all<T>(t: &FTensor<T>) -> rt::Result<FTensor<bool>>
+/// Boolean reduction over axes rebuilt from rstsr's bool-typed `all`/`any`
+/// (OpAllAPI): truthiness is derived as `x != 0` first, so the reduction is
+/// value-exact on every dtype (gap G-017); axes/keepdims come from
+/// `ReduceArgs` (fixes G-041). `AxesIndex::None` yields a 0-d result.
+fn op_all_axes<T>(t: &FTensor<T>, axes: Option<Vec<isize>>, keepdims: bool) -> rt::Result<FTensor<bool>>
 where
     T: Default + PartialEq + Clone,
-    DeviceFaer: DeviceAPI<T, Raw = Vec<T>> + DeviceCreationAnyAPI<T>,
+    DeviceFaer: DeviceAPI<T, Raw = Vec<T>> + DeviceCreationAnyAPI<T> + OpAllAPI<bool, IxD, TOut = bool>,
     for<'x> &'x FTensor<T>: TensorNotEqualAPI<&'x FTensor<T>, Output = FTensor<bool>>,
 {
     let zero: FTensor<T> = rt::asarray_f((vec![T::default()], device_faer()))?;
     let truthy = rt::not_equal_f(t, &zero)?;
-    let s: bool = rt::all_f(&truthy)?;
-    rt::asarray_f((vec![s], dim_from(&[]), device_faer()))
+    rt::all_with_args_f(&truthy, reduce_args(axes, keepdims))
 }
 
-fn op_any<T>(t: &FTensor<T>) -> rt::Result<FTensor<bool>>
+fn op_any_axes<T>(t: &FTensor<T>, axes: Option<Vec<isize>>, keepdims: bool) -> rt::Result<FTensor<bool>>
 where
     T: Default + PartialEq + Clone,
-    DeviceFaer: DeviceAPI<T, Raw = Vec<T>> + DeviceCreationAnyAPI<T>,
+    DeviceFaer: DeviceAPI<T, Raw = Vec<T>> + DeviceCreationAnyAPI<T> + OpAnyAPI<bool, IxD, TOut = bool>,
     for<'x> &'x FTensor<T>: TensorNotEqualAPI<&'x FTensor<T>, Output = FTensor<bool>>,
 {
     let zero: FTensor<T> = rt::asarray_f((vec![T::default()], device_faer()))?;
     let truthy = rt::not_equal_f(t, &zero)?;
-    let s: bool = rt::any_f(&truthy)?;
-    rt::asarray_f((vec![s], dim_from(&[]), device_faer()))
+    rt::any_with_args_f(&truthy, reduce_args(axes, keepdims))
 }
 
 fn op_neg<T>(t: &FTensor<T>) -> rt::Result<FTensor<T>>
@@ -646,13 +651,13 @@ pub fn greater_equal(x1: &NativeArray, x2: &NativeArray) -> PyResult<NativeArray
 // --------------------------------------------------- predicates & logicals --
 
 #[pyfunction]
-pub fn all(x: &NativeArray) -> PyResult<NativeArray> {
-    Ok(NativeArray { t: dispatch_t_bool!(x.t, op_all())? })
+pub fn all(x: &NativeArray, axis: Option<Vec<isize>>, keepdims: bool) -> PyResult<NativeArray> {
+    Ok(NativeArray { t: dispatch_t_bool!(x.t, op_all_axes(axis.clone(), keepdims))? })
 }
 
 #[pyfunction]
-pub fn any(x: &NativeArray) -> PyResult<NativeArray> {
-    Ok(NativeArray { t: dispatch_t_bool!(x.t, op_any())? })
+pub fn any(x: &NativeArray, axis: Option<Vec<isize>>, keepdims: bool) -> PyResult<NativeArray> {
+    Ok(NativeArray { t: dispatch_t_bool!(x.t, op_any_axes(axis.clone(), keepdims))? })
 }
 
 #[pyfunction]
@@ -724,28 +729,175 @@ pub fn getitem_int(x: &NativeArray, idx: usize) -> PyResult<NativeArray> {
 #[allow(unused)]
 fn _complex_used(_c: Complex<f64>) {}
 
-/// Whole-array sum returned as a 0-d array (rstsr's `sum` yields the scalar).
-fn op_sum<T>(t: &FTensor<T>) -> rt::Result<FTensor<T>>
-where
-    T: Clone + Send + Sync + core::ops::Add<Output = T> + num::Zero,
-    DeviceFaer: DeviceAPI<T, Raw = Vec<T>> + DeviceCreationAnyAPI<T> + DeviceRawAPI<MaybeUninit<T>>,
-{
-    let s: T = rt::sum_f(t)?;
-    rt::asarray_f((vec![s], dim_from(&[]), device_faer()))
+// --------------------------------------------------- statistical (W3) ------
+//
+// Axes reductions over rstsr's `*_with_args` families (ReduceArgs: axes +
+// keepdims; VarArgs: + correction). The array-api accumulation rule (integer
+// inputs widen to the default integer dtype, `dtype=` selects the
+// accumulator) is served Python-side by casting with the existing astype
+// path BEFORE the same-dtype reduction — the order the standard itself
+// recommends ("the input array should be cast to the specified data type
+// before computing the sum"). `AxesIndex::None` (axis=None) reduces all
+// axes to a 0-d result; an empty axes list reduces nothing.
+
+fn reduce_args(axes: Option<Vec<isize>>, keepdims: bool) -> ReduceArgs {
+    ReduceArgs { axes: axes.map(AxesIndex::Vec).unwrap_or(AxesIndex::None), keepdims }
 }
 
-#[pyfunction]
-pub fn sum(x: &NativeArray) -> PyResult<NativeArray> {
-    macro_rules! arms {
-        ($($dv:ident);* $(;)?) => {
-            match &x.t {
-                AnyTensor::Bool(_) => type_err("sum: bool dtype not supported yet (gap)"),
-                $(AnyTensor::$dv(t) => Ok(NativeArray { t: AnyTensor::$dv(err_py(op_sum(t))?) }),)*
-            }
-        };
-    }
-    arms!(I8; I16; I32; I64; U8; U16; U32; U64; F32; F64; C32; C64)
+macro_rules! reduce_wrapper {
+    ($wrapper:ident, $rt:ident, $Trait:ident) => {
+        fn $wrapper<T>(t: &FTensor<T>, axes: Option<Vec<isize>>, keepdims: bool) -> rt::Result<FTensor<T>>
+        where
+            DeviceFaer: DeviceRawAPI<T, Raw = Vec<T>> + $Trait<T, IxD, TOut = T>,
+        {
+            rt::$rt(t, reduce_args(axes, keepdims))
+        }
+    };
 }
+
+reduce_wrapper!(op_sum_axes, sum_with_args_f, OpSumAPI);
+reduce_wrapper!(op_prod_axes, prod_with_args_f, OpProdAPI);
+reduce_wrapper!(op_max_axes, max_with_args_f, OpMaxAPI);
+reduce_wrapper!(op_min_axes, min_with_args_f, OpMinAPI);
+reduce_wrapper!(op_mean_axes, mean_with_args_f, OpMeanAPI);
+
+/// Variance over axes; rstsr's `OpVarAPI::TOut` is the component float type
+/// (`T::Real`), so a complex input yields a real-dtype result.
+fn op_var_axes<T>(
+    t: &FTensor<T>,
+    axes: Option<Vec<isize>>,
+    keepdims: bool,
+    correction: Option<f64>,
+) -> rt::Result<FTensor<T::Real>>
+where
+    T: ComplexFloat + FromPrimitive + Send + Sync + 'static,
+    T::Real: Float + FromPrimitive + Send + Sync + 'static,
+    DeviceFaer: OpVarAPI<T, IxD, TOut = T::Real>
+        + DeviceCreationAnyAPI<T::Real>
+        + Op_MutA_RefB_API<
+            T::Real,
+            T::Real,
+            IxD,
+            dyn for<'x, 'y> Fn(&'x mut MaybeUninit<T::Real>, &'y T::Real) + Send + Sync,
+        >,
+{
+    let args = VarArgs { axes: reduce_args(axes, keepdims).axes, keepdims, correction };
+    rt::var_with_args_f(t, args)
+}
+
+fn op_std_axes<T>(
+    t: &FTensor<T>,
+    axes: Option<Vec<isize>>,
+    keepdims: bool,
+    correction: Option<f64>,
+) -> rt::Result<FTensor<T::Real>>
+where
+    T: ComplexFloat + FromPrimitive + Send + Sync + 'static,
+    T::Real: Float + FromPrimitive + Send + Sync + 'static,
+    DeviceFaer: OpStdAPI<T, IxD, TOut = T::Real>
+        + DeviceCreationAnyAPI<T::Real>
+        + Op_MutA_RefB_API<
+            T::Real,
+            T::Real,
+            IxD,
+            dyn for<'x, 'y> Fn(&'x mut MaybeUninit<T::Real>, &'y T::Real) + Send + Sync,
+        >,
+{
+    let args = VarArgs { axes: reduce_args(axes, keepdims).axes, keepdims, correction };
+    rt::std_with_args_f(t, args)
+}
+
+/// Cumulative scan; axis=None is valid for 1-D input only (the rust-side
+/// contract mirrors the standard), include_initial grows the axis to M+1.
+macro_rules! cumulative_wrapper {
+    ($wrapper:ident, $rt:ident, $Trait:ident) => {
+        fn $wrapper<T>(t: &FTensor<T>, axis: Option<isize>, include_initial: bool) -> rt::Result<FTensor<T>>
+        where
+            DeviceFaer: DeviceRawAPI<T, Raw = Vec<T>> + $Trait<T, IxD, TOut = T>,
+        {
+            rt::$rt(t, CumulativeArgs { axis, include_initial })
+        }
+    };
+}
+
+cumulative_wrapper!(op_cumulative_sum, cumulative_sum_f, OpCumSumAPI);
+cumulative_wrapper!(op_cumulative_prod, cumulative_prod_f, OpCumProdAPI);
+
+macro_rules! py_reduce_numeric {
+    ($($pyname:ident => $wrapper:ident),* $(,)?) => {
+        $(
+            #[pyfunction]
+            pub fn $pyname(x: &NativeArray, axis: Option<Vec<isize>>, keepdims: bool) -> PyResult<NativeArray> {
+                Ok(NativeArray {
+                    t: dispatch_t_numeric_same!(x.t, stringify!($pyname), $wrapper(axis.clone(), keepdims))?,
+                })
+            }
+        )*
+    };
+}
+
+py_reduce_numeric!(sum => op_sum_axes, prod => op_prod_axes);
+
+/// max/min: real numeric dtypes only (`ExtReal` kernels; complex ordering is
+/// unspecified in the standard and unimplemented in rstsr).
+macro_rules! py_reduce_real_numeric {
+    ($($pyname:ident => $wrapper:ident),* $(,)?) => {
+        $(
+            #[pyfunction]
+            pub fn $pyname(x: &NativeArray, axis: Option<Vec<isize>>, keepdims: bool) -> PyResult<NativeArray> {
+                Ok(NativeArray {
+                    t: dispatch_t_real_numeric_same!(x.t, stringify!($pyname), $wrapper(axis.clone(), keepdims))?,
+                })
+            }
+        )*
+    };
+}
+
+py_reduce_real_numeric!(max => op_max_axes, min => op_min_axes);
+
+/// mean: float/complex dtypes (rstsr's `ComplexFloat` kernel; integer inputs
+/// are cast to the default float dtype by the Python layer per spec).
+#[pyfunction]
+pub fn mean(x: &NativeArray, axis: Option<Vec<isize>>, keepdims: bool) -> PyResult<NativeArray> {
+    Ok(NativeArray { t: dispatch_t_float_complex_same!(x.t, "mean", op_mean_axes(axis.clone(), keepdims))? })
+}
+
+/// var/std over real and complex floating dtypes; complex inputs produce
+/// real-dtype results (component-float semantics).
+macro_rules! py_reduce_varstd {
+    ($($pyname:ident => $wrapper:ident),* $(,)?) => {
+        $(
+            #[pyfunction]
+            pub fn $pyname(x: &NativeArray, axis: Option<Vec<isize>>, correction: Option<f64>, keepdims: bool) -> PyResult<NativeArray> {
+                let t: AnyTensor = match &x.t {
+                    AnyTensor::F32(v) => lift($wrapper(v, axis.clone(), keepdims, correction), AnyTensor::F32)?,
+                    AnyTensor::F64(v) => lift($wrapper(v, axis.clone(), keepdims, correction), AnyTensor::F64)?,
+                    AnyTensor::C32(v) => lift($wrapper(v, axis.clone(), keepdims, correction), AnyTensor::F32)?,
+                    AnyTensor::C64(v) => lift($wrapper(v, axis.clone(), keepdims, correction), AnyTensor::F64)?,
+                    _ => type_err(format!("{}: real or complex floating dtypes only", stringify!($pyname)))?,
+                };
+                Ok(NativeArray { t })
+            }
+        )*
+    };
+}
+
+py_reduce_varstd!(var => op_var_axes, std => op_std_axes);
+
+macro_rules! py_cumulative {
+    ($($pyname:ident => $wrapper:ident),* $(,)?) => {
+        $(
+            #[pyfunction]
+            pub fn $pyname(x: &NativeArray, axis: Option<isize>, include_initial: bool) -> PyResult<NativeArray> {
+                Ok(NativeArray {
+                    t: dispatch_t_numeric_same!(x.t, stringify!($pyname), $wrapper(axis, include_initial))?,
+                })
+            }
+        )*
+    };
+}
+
+py_cumulative!(cumulative_sum => op_cumulative_sum, cumulative_prod => op_cumulative_prod);
 
 fn op_broadcast_to<T>(t: &FTensor<T>, shape: Vec<usize>) -> rt::Result<FTensor<T>>
 where

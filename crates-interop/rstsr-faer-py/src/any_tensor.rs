@@ -476,6 +476,36 @@ macro_rules! dispatch_t_float_complex_same {
     };
 }
 pub(crate) use dispatch_t_float_complex_same;
+/// Unary dispatch over real numeric dtypes only (ints + floats; no bool, no
+/// complex), output dtype == input dtype (`ExtReal`-bound reductions: max,
+/// min — inequality comparison of complex numbers is unspecified in the
+/// standard and unimplemented in rstsr).
+macro_rules! dispatch_t_real_numeric_same {
+    ($scrut:expr, $opname:expr, $f:ident ( $($arg:expr),* )) => {
+        match &$scrut {
+            AnyTensor::Bool(_) => type_err(format!(
+                "{}: not defined for bool dtype",
+                $opname
+            )),
+            AnyTensor::I8(t) => lift(($f::<i8>)(&t, $($arg),*), AnyTensor::I8),
+            AnyTensor::I16(t) => lift(($f::<i16>)(&t, $($arg),*), AnyTensor::I16),
+            AnyTensor::I32(t) => lift(($f::<i32>)(&t, $($arg),*), AnyTensor::I32),
+            AnyTensor::I64(t) => lift(($f::<i64>)(&t, $($arg),*), AnyTensor::I64),
+            AnyTensor::U8(t) => lift(($f::<u8>)(&t, $($arg),*), AnyTensor::U8),
+            AnyTensor::U16(t) => lift(($f::<u16>)(&t, $($arg),*), AnyTensor::U16),
+            AnyTensor::U32(t) => lift(($f::<u32>)(&t, $($arg),*), AnyTensor::U32),
+            AnyTensor::U64(t) => lift(($f::<u64>)(&t, $($arg),*), AnyTensor::U64),
+            AnyTensor::F32(t) => lift(($f::<f32>)(&t, $($arg),*), AnyTensor::F32),
+            AnyTensor::F64(t) => lift(($f::<f64>)(&t, $($arg),*), AnyTensor::F64),
+            AnyTensor::C32(_) | AnyTensor::C64(_) => type_err(format!(
+                "{}: complex inputs are not provided by rstsr (gap)",
+                $opname
+            )),
+        }
+    };
+}
+pub(crate) use dispatch_t_real_numeric_same;
+
 /// Binary dispatch for ops whose rstsr device kernel promotes mixed dtypes
 /// (`DTypePromoteAPI` bound; real dtypes only — bool and complex are out of
 /// the spec contract for these ops). Arms mirror the promotion table in

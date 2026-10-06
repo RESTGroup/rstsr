@@ -43,6 +43,14 @@ from .rstsr_faer import (
     isfinite as _isfinite,
     isinf as _isinf,
     sum as _sum,
+    prod as _prod,
+    max as _max,
+    min as _min,
+    mean as _mean,
+    var as _var,
+    std as _std,
+    cumulative_sum as _cumulative_sum,
+    cumulative_prod as _cumulative_prod,
     acos as _acos,
     acosh as _acosh,
     asin as _asin,
@@ -795,15 +803,11 @@ def greater_equal(x1, x2, /):
 
 
 def all(x, /, *, axis=None, keepdims=False):
-    if axis is not None:
-        _unimplemented("all(axis=...) (reductions over axes)")
-    return _wrap(_all(_handle(x)))
+    return _wrap(_all(_handle(x), _norm_axes(axis), keepdims))
 
 
 def any(x, /, *, axis=None, keepdims=False):
-    if axis is not None:
-        _unimplemented("any(axis=...) (reductions over axes)")
-    return _wrap(_any(_handle(x)))
+    return _wrap(_any(_handle(x), _norm_axes(axis), keepdims))
 
 
 def isnan(x, /):
@@ -1003,10 +1007,92 @@ def logical_xor(x1, x2, /):
     return _wrap(_logical_xor(a, b))
 
 
-def sum(x, /, *, axis=None, keepdims=False):
-    if axis is not None:
-        _unimplemented("sum(axis=...) (reductions over axes)")
-    return _wrap(_sum(_handle(x)))
+# ------------------------------------------------------- statistical (W3) -----
+#
+# Axes reductions over the rstsr `*_with_args` families. The accumulation
+# dtype rule (standard 2025.12: integer inputs widen to the default integer
+# dtype unless dtype= is given; floats/complexes keep their dtype) is applied
+# by casting the input with the existing astype path BEFORE the same-dtype
+# reduction — the order the standard itself recommends.
+
+
+def _norm_axes(axis, /):
+    """Marshalling: axis kwarg (None | int | tuple of ints) -> list | None."""
+    if axis is None:
+        return None
+    if isinstance(axis, _py_int):
+        return [axis]
+    if isinstance(axis, tuple) and builtins.all(isinstance(a, _py_int) for a in axis):
+        return list(axis)
+    raise TypeError(f"axis must be None, an int, or a tuple of ints, got {axis!r}")
+
+
+def _accumulation_dtype(x, dtype, /):
+    """Resolve the accumulation result dtype (spec sum/prod/cumulative rule)."""
+    if dtype is not None:
+        if not isinstance(dtype, Dtype):
+            raise TypeError(f"dtype must be an xp dtype object, got {dtype!r}")
+        return dtype
+    kind = _kind(x.dtype)
+    if kind in ("bool", "integral"):
+        return uint64 if x.dtype.name in ("uint8", "uint16", "uint32", "uint64") else int64
+    return x.dtype
+
+
+def _accumulated(x, dtype, /):
+    """Cast x to the accumulation dtype when it differs (no-op otherwise)."""
+    out = _accumulation_dtype(x, dtype)
+    return x if out is x.dtype else astype(x, out)
+
+
+def sum(x, /, *, axis=None, dtype=None, keepdims=False):
+    y = _accumulated(x, dtype)
+    return _wrap(_sum(_handle(y), _norm_axes(axis), keepdims))
+
+
+def prod(x, /, *, axis=None, dtype=None, keepdims=False):
+    y = _accumulated(x, dtype)
+    return _wrap(_prod(_handle(y), _norm_axes(axis), keepdims))
+
+
+def max(x, /, *, axis=None, keepdims=False):
+    return _wrap(_max(_handle(x), _norm_axes(axis), keepdims))
+
+
+def min(x, /, *, axis=None, keepdims=False):
+    return _wrap(_min(_handle(x), _norm_axes(axis), keepdims))
+
+
+def _float_input(x, /):
+    """mean/std/var input marshalling: integers (and bool) promote to the
+    default real floating dtype (spec), floats/complexes pass through."""
+    if _kind(_handle(x).dtype()) in ("bool", "integral"):
+        return astype(x, float64)
+    return x
+
+
+def mean(x, /, *, axis=None, keepdims=False):
+    return _wrap(_mean(_handle(_float_input(x)), _norm_axes(axis), keepdims))
+
+
+def var(x, /, *, axis=None, correction=0.0, keepdims=False):
+    y = _float_input(x)
+    return _wrap(_var(_handle(y), _norm_axes(axis), float(correction), keepdims))
+
+
+def std(x, /, *, axis=None, correction=0.0, keepdims=False):
+    y = _float_input(x)
+    return _wrap(_std(_handle(y), _norm_axes(axis), float(correction), keepdims))
+
+
+def cumulative_sum(x, /, *, axis=None, dtype=None, include_initial=False):
+    y = _accumulated(x, dtype)
+    return _wrap(_cumulative_sum(_handle(y), axis, include_initial))
+
+
+def cumulative_prod(x, /, *, axis=None, dtype=None, include_initial=False):
+    y = _accumulated(x, dtype)
+    return _wrap(_cumulative_prod(_handle(y), axis, include_initial))
 
 
 def broadcast_to(x, /, shape):
@@ -1072,8 +1158,9 @@ __all__ = [
     "equal", "not_equal", "less", "less_equal", "greater", "greater_equal",
     # logical / tests
     "all", "any", "isnan", "isfinite", "isinf",
-    # reductions (whole-array)
-    "sum",
+    # statistical (axes reductions + cumulative scans)
+    "sum", "prod", "max", "min", "mean", "std", "var",
+    "cumulative_sum", "cumulative_prod",
     # broadcasting
     "broadcast_to",
     # manipulation
