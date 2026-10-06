@@ -245,3 +245,20 @@ copy flag: the reference-input result is always a view, so the `Cow` owned branc
 would be unreachable (`Cow` remains right for `meshgrid`, whose `copy` flag
 switches at runtime). The by-value form keeps its previous behavior (consumed
 inputs, owned stride-0 outputs, zero copy).
+## `round` was round-half-away-from-zero, not ties-to-even (FIXED)
+
+- **numpy:** `np.round` / `np.rint` resolve halfway cases to the even integer
+  (`test_umath.py::TestRoundingFunctions`); the array-api elementwise `round`
+  requires the same ("the even integer closest to `x_i`").
+- **rstsr:** entry_row_cpu::core_func::math::test_unary_math::custom_math_basic::test_round_ties_to_even
+- **tag:** bug
+- **status:** fixed
+
+`OpRoundAPI`'s device kernels called `f64::round`, which is
+round-half-away-from-zero. Discovered 2026-10-06 through the rstsr-faer-py
+conformance suite (`test_special_cases.py::test_unary[round ...]` drew an exact
+halfway example that earlier runs had not). Both kernel tables
+(`device_cpu_serial/operators/op_binary_common.rs`,
+`feature_rayon/auto_impl/op_binary_common.rs`) now use an IEEE
+`roundToIntegralTiesToEven` helper (`round_ties_even_f`, exact for `f32` via an
+`f64` round trip); NaN/inf and signed zeros propagate per IEEE.

@@ -68,6 +68,32 @@ mod custom_math_basic {
         assert!(!s[3].is_sign_negative());
         assert_eq!(s[4], 0.0);
     }
+
+    #[test]
+    fn test_round_ties_to_even() {
+        crate::specify_test!("test_round_ties_to_even");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // np.round([2.5, 3.5, -2.5, -3.5]) == [2.0, 4.0, -2.0, -4.0]:
+        // halfway cases resolve to the even neighbor (array-api `round`,
+        // "the even integer closest to x_i"), not Rust's ties-away `round`.
+        let a = rt::tensor_from_nested!([2.5, 3.5, -2.5, -3.5], &device);
+        assert_equal(rt::round(&a), rt::tensor_from_nested!([2.0, 4.0, -2.0, -4.0], &device), None);
+
+        // np.round(-0.5) == -0.0 (IEEE roundToIntegralTiesToEven keeps the sign).
+        let z = rt::round(&rt::tensor_from_nested!([-0.5], &device));
+        assert_eq!(z.to_vec(), vec![-0.0]);
+
+        // non-ties round to nearest; NaN/inf propagate.
+        let b: Tensor<f64, _> = rt::asarray((vec![0.4, 2.6, f64::NAN, f64::INFINITY], &device));
+        let r = rt::round(&b).to_vec();
+        assert_eq!(r[0], 0.0);
+        assert_eq!(r[1], 3.0);
+        assert!(r[2].is_nan());
+        assert!(r[3].is_infinite());
+    }
 }
 
 #[cfg(test)]

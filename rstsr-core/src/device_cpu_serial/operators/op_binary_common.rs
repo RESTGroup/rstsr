@@ -7,6 +7,17 @@ use rstsr_dtype_traits::{DTypeIntoFloatAPI, ExtNum};
 
 /* #region same type */
 
+/// IEEE roundToIntegralTiesToEven: the standard's `round` (and numpy's
+/// `np.round`) resolve halfway cases to the even integer, while Rust's
+/// `f64::round` is ties-away. f32 rounds through f64 exactly.
+fn round_ties_even_f<T: Float>(b: T) -> T {
+    // ToPrimitive/NumCast are total for f32/f64, so both fallbacks are
+    // unreachable; NaN keeps the failure loud if a new Float type ever
+    // makes them real.
+    let x = num::ToPrimitive::to_f64(&b).unwrap_or(f64::NAN);
+    num::NumCast::from(x.round_ties_even()).unwrap_or_else(T::nan)
+}
+
 #[duplicate_item(
      OpAPI             NumTrait       func_inner;
     [OpAcosAPI      ] [ComplexFloat] [b.acos()  ];
@@ -27,7 +38,7 @@ use rstsr_dtype_traits::{DTypeIntoFloatAPI, ExtNum};
     [OpLog2API      ] [ComplexFloat] [b.log2()  ];
     [OpLog10API     ] [ComplexFloat] [b.log10() ];
     [OpReciprocalAPI] [ComplexFloat] [b.recip() ];
-    [OpRoundAPI     ] [Float       ] [b.round() ];
+    [OpRoundAPI     ] [Float       ] [round_ties_even_f(b) ];
     [OpSinAPI       ] [ComplexFloat] [b.sin()   ];
     [OpSinhAPI      ] [ComplexFloat] [b.sinh()  ];
     [OpSqrtAPI      ] [ComplexFloat] [b.sqrt()  ];
