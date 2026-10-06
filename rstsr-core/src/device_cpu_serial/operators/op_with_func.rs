@@ -109,4 +109,29 @@ where
     }
 }
 
+impl<TA, TB, TC, TD, D, F> Op_MutD_RefA_RefB_RefC_API<TA, TB, TC, TD, D, F> for DeviceCpuSerial
+where
+    TA: Clone,
+    TB: Clone,
+    TC: Clone,
+    TD: Clone,
+    D: DimAPI,
+    F: FnMut(&mut MaybeUninit<TD>, &TA, &TB, &TC) + ?Sized,
+{
+    fn op_mutd_refa_refb_refc_func(
+        &self,
+        d: &mut Vec<MaybeUninit<TD>>,
+        ld: &Layout<D>,
+        a: &Vec<TA>,
+        la: &Layout<D>,
+        b: &Vec<TB>,
+        lb: &Layout<D>,
+        c: &Vec<TC>,
+        lc: &Layout<D>,
+        f: &mut F,
+    ) -> Result<()> {
+        op_mutd_refa_refb_refc_func_cpu_serial(d, ld, a, la, b, lb, c, lc, f)
+    }
+}
+
 /* #endregion */

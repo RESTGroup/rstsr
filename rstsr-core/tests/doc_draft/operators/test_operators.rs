@@ -202,3 +202,32 @@ mod doc_pow {
         assert_eq!(format!("{}", rt::pow(&a, 2)), "[[ 1 4]\n [ 9 16]]");
     }
 }
+
+mod doc_where {
+    use super::*;
+    static FUNC: &str = "doc_where";
+
+    #[test]
+    fn test_doc() {
+        crate::specify_test!("test_doc");
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        let cond = rt::tensor_from_nested!([true, false, true], &device);
+        let x = rt::tensor_from_nested!([1, 2, 3], &device);
+        let y = rt::tensor_from_nested!([10, 20, 30], &device);
+        println!("{}", rt::r#where(&cond, &x, &y));
+        // [ 1 20 3]
+        assert_eq!(format!("{}", rt::r#where(&cond, &x, &y)), "[ 1 20 3]");
+
+        // scalar arguments follow rstsr's usual (strong) promotion
+        let cond = rt::tensor_from_nested!([[true, false], [false, true]], &device);
+        println!("{}", rt::r#where(&cond, &rt::arange((4.0, &device)).reshape([2, 2]), 0.0));
+        // [[ 0 0]
+        //  [ 0 3]]
+        assert_eq!(
+            format!("{}", rt::r#where(&cond, &rt::arange((4.0, &device)).reshape([2, 2]), 0.0)),
+            "[[ 0 0]\n [ 0 3]]"
+        );
+    }
+}

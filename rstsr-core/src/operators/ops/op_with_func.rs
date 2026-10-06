@@ -92,6 +92,28 @@ where
 }
 
 #[allow(non_camel_case_types)]
+#[allow(clippy::too_many_arguments)]
+pub trait Op_MutD_RefA_RefB_RefC_API<TA, TB, TC, TD, D, F>
+where
+    D: DimAPI,
+    F: FnMut(&mut MaybeUninit<TD>, &TA, &TB, &TC) + ?Sized,
+    Self: DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<TC> + DeviceAPI<MaybeUninit<TD>>,
+{
+    fn op_mutd_refa_refb_refc_func(
+        &self,
+        d: &mut <Self as DeviceRawAPI<MaybeUninit<TD>>>::Raw,
+        ld: &Layout<D>,
+        a: &<Self as DeviceRawAPI<TA>>::Raw,
+        la: &Layout<D>,
+        b: &<Self as DeviceRawAPI<TB>>::Raw,
+        lb: &Layout<D>,
+        c: &<Self as DeviceRawAPI<TC>>::Raw,
+        lc: &Layout<D>,
+        f: &mut F,
+    ) -> Result<()>;
+}
+
+#[allow(non_camel_case_types)]
 pub trait Op_MutA_API<T, D, F>
 where
     D: DimAPI,

@@ -114,4 +114,30 @@ where
     }
 }
 
+impl<TA, TB, TC, TD, D, F> Op_MutD_RefA_RefB_RefC_API<TA, TB, TC, TD, D, F> for DeviceRayonAutoImpl
+where
+    TA: Clone + Send + Sync,
+    TB: Clone + Send + Sync,
+    TC: Clone + Send + Sync,
+    TD: Clone + Send + Sync,
+    D: DimAPI,
+    F: Fn(&mut MaybeUninit<TD>, &TA, &TB, &TC) + ?Sized + Send + Sync,
+{
+    fn op_mutd_refa_refb_refc_func(
+        &self,
+        d: &mut Vec<MaybeUninit<TD>>,
+        ld: &Layout<D>,
+        a: &Vec<TA>,
+        la: &Layout<D>,
+        b: &Vec<TB>,
+        lb: &Layout<D>,
+        c: &Vec<TC>,
+        lc: &Layout<D>,
+        f: &mut F,
+    ) -> Result<()> {
+        let pool = self.get_current_pool();
+        op_mutd_refa_refb_refc_func_cpu_rayon(d, ld, a, la, b, lb, c, lc, f, pool)
+    }
+}
+
 /* #endregion */

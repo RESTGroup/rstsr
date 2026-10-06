@@ -960,6 +960,56 @@ where
 }
 
 #[allow(unused_mut)]
+pub fn layout_col_major_dim_dispatch_4<D, F>(la: &Layout<D>, lb: &Layout<D>, lc: &Layout<D>, ld: &Layout<D>, mut f: F) -> Result<()>
+where
+    D: DimAPI,
+    F: FnMut((usize, usize, usize, usize)),
+{
+    rstsr_assert_eq!(la.ndim(), lb.ndim(), RuntimeError)?;
+    rstsr_assert_eq!(la.ndim(), lc.ndim(), RuntimeError)?;
+    rstsr_assert_eq!(la.ndim(), ld.ndim(), RuntimeError)?;
+
+    #[cfg(feature = "dispatch_dim_layout_iter")]
+    {
+        macro_rules! dispatch {
+            ($dim: ident) => {{
+                let iter_a = IterLayoutColMajor::new(&la.to_dim::<$dim>()?)?;
+                let iter_b = IterLayoutColMajor::new(&lb.to_dim::<$dim>()?)?;
+                let iter_c = IterLayoutColMajor::new(&lc.to_dim::<$dim>()?)?;
+                let iter_d = IterLayoutColMajor::new(&ld.to_dim::<$dim>()?)?;
+                izip!(iter_a, iter_b, iter_c, iter_d).for_each(f);
+            }};
+        }
+        match la.ndim() {
+            0 => f((la.offset(), lb.offset(), lc.offset(), ld.offset())),
+            1 => dispatch!(Ix1),
+            2 => dispatch!(Ix2),
+            3 => dispatch!(Ix3),
+            4 => dispatch!(Ix4),
+            5 => dispatch!(Ix5),
+            6 => dispatch!(Ix6),
+            _ => {
+                let iter_a = IterLayoutColMajor::new(la)?;
+                let iter_b = IterLayoutColMajor::new(lb)?;
+                let iter_c = IterLayoutColMajor::new(lc)?;
+                let iter_d = IterLayoutColMajor::new(ld)?;
+                izip!(iter_a, iter_b, iter_c, iter_d).for_each(f);
+            },
+        }
+    }
+
+    #[cfg(not(feature = "dispatch_dim_layout_iter"))]
+    {
+        let iter_a = IterLayoutColMajor::new(la)?;
+        let iter_b = IterLayoutColMajor::new(lb)?;
+        let iter_c = IterLayoutColMajor::new(lc)?;
+        let iter_d = IterLayoutColMajor::new(ld)?;
+        izip!(iter_a, iter_b, iter_c, iter_d).for_each(f);
+    }
+    Ok(())
+}
+
+#[allow(unused_mut)]
 pub fn layout_col_major_dim_dispatch_2diff<DA, DB, F>(la: &Layout<DA>, lb: &Layout<DB>, mut f: F) -> Result<()>
 where
     DA: DimAPI,

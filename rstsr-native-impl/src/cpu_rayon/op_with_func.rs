@@ -221,6 +221,141 @@ where
     Ok(())
 }
 
+/// 4-layout (output + three inputs) read-only view of the blocked-2D
+/// iteration geometry; same contract as [`Blocked2DGeom`].
+struct Blocked2DGeom4 {
+    dim_fast: usize,
+    dim_slow: usize,
+    sd_fast: isize,
+    sd_slow: isize,
+    sa_fast: isize,
+    sa_slow: isize,
+    sb_fast: isize,
+    sb_slow: isize,
+    sc_fast: isize,
+    sc_slow: isize,
+    od: isize,
+    oa: isize,
+    ob: isize,
+    oc: isize,
+    n_tiles_fast: usize,
+    n_tiles_slow: usize,
+}
+
+#[inline]
+fn blocked_2d_geom_4<D>(ld: &Layout<D>, la: &Layout<D>, lb: &Layout<D>, lc: &Layout<D>) -> Blocked2DGeom4
+where
+    D: DimAPI,
+{
+    let shape = ld.shape().as_ref();
+    let (dim0, dim1) = (shape[0], shape[1]);
+    let sd = ld.stride().as_ref();
+    let sa = la.stride().as_ref();
+    let sb = lb.stride().as_ref();
+    let sc = lc.stride().as_ref();
+    // choose d's fastest axis as the element-innermost loop
+    let (fast, slow) = if sd[0].abs() <= sd[1].abs() { (0usize, 1usize) } else { (1, 0) };
+    let (dim_fast, dim_slow) = if fast == 0 { (dim0, dim1) } else { (dim1, dim0) };
+    Blocked2DGeom4 {
+        dim_fast,
+        dim_slow,
+        sd_fast: sd[fast],
+        sd_slow: sd[slow],
+        sa_fast: sa[fast],
+        sa_slow: sa[slow],
+        sb_fast: sb[fast],
+        sb_slow: sb[slow],
+        sc_fast: sc[fast],
+        sc_slow: sc[slow],
+        od: ld.offset() as isize,
+        oa: la.offset() as isize,
+        ob: lb.offset() as isize,
+        oc: lc.offset() as isize,
+        n_tiles_fast: dim_fast.div_ceil(TILE),
+        n_tiles_slow: dim_slow.div_ceil(TILE),
+    }
+}
+
+/// 4-layout (output `d` + three inputs) variant of
+/// [`blocked_2d_3layouts_cpu_rayon`]; same contract and visit-order note.
+#[allow(clippy::too_many_arguments)]
+fn blocked_2d_4layouts_cpu_rayon<TA, TB, TC, TD, D, F>(
+    d: &mut [MaybeUninit<TD>],
+    ld: &Layout<D>,
+    a: &[TA],
+    la: &Layout<D>,
+    b: &[TB],
+    lb: &Layout<D>,
+    c: &[TC],
+    lc: &Layout<D>,
+    f: &F,
+    pool: Option<&ThreadPool>,
+) -> Result<()>
+where
+    D: DimAPI,
+    TA: Send + Sync,
+    TB: Send + Sync,
+    TC: Send + Sync,
+    TD: Send + Sync,
+    F: Fn(&mut MaybeUninit<TD>, &TA, &TB, &TC) + ?Sized + Send + Sync,
+{
+    let g = blocked_2d_geom_4(ld, la, lb, lc);
+    // pass mutable reference in parallel region
+    let thr_d = AtomicPtr::new(d.as_mut_ptr());
+    let task = || {
+        (0..g.n_tiles_slow).into_par_iter().for_each(|t_slow| {
+            let slow_begin = t_slow * TILE;
+            let slow_end = (slow_begin + TILE).min(g.dim_slow);
+            // SAFETY: `d_ptr` is `d`'s base pointer hoisted through `AtomicPtr` (relaxed
+            // load; `d` is never reassigned through it). Each parallel task writes the
+            // disjoint region of `d` given by its own tile band (offsets from distinct
+            // output-layout positions; bounds debug-asserted in the loop).
+            let d_ptr = thr_d.load(Ordering::Relaxed);
+            let a_ptr = a.as_ptr();
+            let b_ptr = b.as_ptr();
+            let c_ptr = c.as_ptr();
+            for t_fast in 0..g.n_tiles_fast {
+                let fast_begin = t_fast * TILE;
+                let fast_end = (fast_begin + TILE).min(g.dim_fast);
+                for s in slow_begin..slow_end {
+                    let mut off_d = g.od + (s as isize) * g.sd_slow + (fast_begin as isize) * g.sd_fast;
+                    let mut off_a = g.oa + (s as isize) * g.sa_slow + (fast_begin as isize) * g.sa_fast;
+                    let mut off_b = g.ob + (s as isize) * g.sb_slow + (fast_begin as isize) * g.sb_fast;
+                    let mut off_c = g.oc + (s as isize) * g.sc_slow + (fast_begin as isize) * g.sc_fast;
+                    for _ in fast_begin..fast_end {
+                        debug_assert!(
+                            off_d >= 0 && (off_d as usize) < d.len(),
+                            "blocked 2-D iter: d offset out of bounds"
+                        );
+                        debug_assert!(
+                            off_a >= 0 && (off_a as usize) < a.len(),
+                            "blocked 2-D iter: a offset out of bounds"
+                        );
+                        debug_assert!(
+                            off_b >= 0 && (off_b as usize) < b.len(),
+                            "blocked 2-D iter: b offset out of bounds"
+                        );
+                        debug_assert!(
+                            off_c >= 0 && (off_c as usize) < c.len(),
+                            "blocked 2-D iter: c offset out of bounds"
+                        );
+                        unsafe {
+                            f(&mut *d_ptr.add(off_d as usize), &*a_ptr.add(off_a as usize), &*b_ptr.add(off_b as usize), &*c_ptr.add(off_c as usize))
+                        };
+                        off_d += g.sd_fast;
+                        off_a += g.sa_fast;
+                        off_b += g.sb_fast;
+                        off_c += g.sc_fast;
+                    }
+                }
+            }
+        });
+    };
+    pool.map_or_else(task, |pool| pool.install(task));
+    Ok(())
+}
+
+
 /* #region op_func definition */
 
 #[allow(clippy::too_many_arguments)]
@@ -311,6 +446,100 @@ where
     }
 }
 
+/// 3-input (output `d` + three refs) elementwise kernel, e.g. `where(cond, x, y)`.
+#[allow(clippy::too_many_arguments)]
+pub fn op_mutd_refa_refb_refc_func_cpu_rayon<TA, TB, TC, TD, D, F>(
+    d: &mut [MaybeUninit<TD>],
+    ld: &Layout<D>,
+    a: &[TA],
+    la: &Layout<D>,
+    b: &[TB],
+    lb: &Layout<D>,
+    c: &[TC],
+    lc: &Layout<D>,
+    f: &mut F,
+    pool: Option<&ThreadPool>,
+) -> Result<()>
+where
+    TA: Send + Sync,
+    TB: Send + Sync,
+    TC: Send + Sync,
+    TD: Send + Sync,
+    D: DimAPI,
+    F: Fn(&mut MaybeUninit<TD>, &TA, &TB, &TC) + ?Sized + Sync + Send,
+{
+    // determine whether to use parallel iteration
+    let size = ld.size();
+    if size < PARALLEL_SWITCH || pool.is_none() {
+        return op_mutd_refa_refb_refc_func_cpu_serial(d, ld, a, la, b, lb, c, lc, f);
+    }
+
+    // re-align layouts
+    let layouts_full = translate_to_col_major(&[ld, la, lb, lc], TensorIterOrder::K)?;
+    let layouts_full_ref = layouts_full.iter().collect_vec();
+    let (layouts_outer, size_contig) = translate_to_col_major_with_contig(&layouts_full_ref);
+
+    // pass mutable reference in parallel region
+    let thr_d = AtomicPtr::new(d.as_mut_ptr());
+
+    // actual parallel iteration
+    if size_contig >= CONTIG_SWITCH {
+        // parallel for outer iteration
+        let ld = &layouts_outer[0];
+        let la = &layouts_outer[1];
+        let lb = &layouts_outer[2];
+        let lc = &layouts_outer[3];
+        if size_contig < PARALLEL_SWITCH {
+            // not parallel inner iteration
+            let func = |(idx_d, idx_a, idx_b, idx_c)| unsafe {
+                // SAFETY: `d_ptr` is `d`'s base pointer hoisted through `AtomicPtr`
+                // (relaxed load; `d` is never reassigned through it). Each task writes
+                // the disjoint contiguous run at `idx_d` of the validated output layout.
+                let d_ptr = thr_d.load(Ordering::Relaxed).add(idx_d);
+                (0..size_contig).for_each(|idx| {
+                    f(&mut *d_ptr.add(idx), &a[idx_a + idx], &b[idx_b + idx], &c[idx_c + idx]);
+                });
+            };
+            let task = || layout_col_major_dim_dispatch_par_4(ld, la, lb, lc, func);
+            pool.map_or_else(task, |pool| pool.install(task))
+        } else {
+            // parallel inner iteration
+            let func = |(idx_d, idx_a, idx_b, idx_c)| unsafe {
+                (0..size_contig).into_par_iter().for_each(|idx| {
+                    // SAFETY: `d_ptr` is `d`'s base pointer hoisted through `AtomicPtr`
+                    // (relaxed load; `d` is never reassigned through it). Each task writes
+                    // the single element at a disjoint offset of the validated output layout.
+                    let d_ptr = thr_d.load(Ordering::Relaxed);
+                    f(&mut *d_ptr.add(idx_d + idx), &a[idx_a + idx], &b[idx_b + idx], &c[idx_c + idx]);
+                });
+            };
+            let task = || layout_col_major_dim_dispatch_par_4(ld, la, lb, lc, func);
+            pool.map_or_else(task, |pool| pool.install(task))
+        }
+    } else if blocked_2d_applicable_rayon(&layouts_full, size) {
+        // blocked 2-D iteration for fully strided problems
+        let ld = &layouts_full[0];
+        let la = &layouts_full[1];
+        let lb = &layouts_full[2];
+        let lc = &layouts_full[3];
+        blocked_2d_4layouts_cpu_rayon(d, ld, a, la, b, lb, c, lc, f, pool)
+    } else {
+        // not possible for contiguous assign
+        let ld = &layouts_full[0];
+        let la = &layouts_full[1];
+        let lb = &layouts_full[2];
+        let lc = &layouts_full[3];
+        let func = |(idx_d, idx_a, idx_b, idx_c)| unsafe {
+            // SAFETY: `d_ptr` is `d`'s base pointer hoisted through `AtomicPtr`
+            // (relaxed load; `d` is never reassigned through it). Each task writes
+            // the disjoint element at `idx_d` of the validated output layout.
+            let d_ptr = thr_d.load(Ordering::Relaxed);
+            f(&mut *d_ptr.add(idx_d), &a[idx_a], &b[idx_b], &c[idx_c]);
+        };
+        let task = || layout_col_major_dim_dispatch_par_4(ld, la, lb, lc, func);
+        pool.map_or_else(task, |pool| pool.install(task))
+    }
+}
 pub fn op_mutc_refa_numb_func_cpu_rayon<TA, TB, TC, D, F>(
     c: &mut [MaybeUninit<TC>],
     lc: &Layout<D>,
