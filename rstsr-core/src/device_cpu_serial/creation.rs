@@ -109,8 +109,9 @@ where
             true => (end - start) / T::from(n - 1).unwrap(),
             false => (end - start) / T::from(n).unwrap(),
         };
-        // NumPy parity: `start + i * step` per element (accumulation would
-        // drift) and an exactly-included endpoint (`i = n - 1` alone rounds)
+        // NumPy-style: `start + i * step` per element and an exactly-included
+        // endpoint; bit-identical to NumPy for float64 (other dtypes may differ
+        // by a few ulp — the arithmetic runs in the output dtype)
         let mut raw: Vec<T> = (0..n).map(|i| start + T::from(i).unwrap() * step).collect();
         if endpoint {
             raw[n - 1] = end;

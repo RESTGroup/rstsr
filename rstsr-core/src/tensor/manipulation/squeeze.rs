@@ -29,7 +29,9 @@ where
         _ => {
             let mut axes: Vec<isize> = axes.as_ref().iter().map(|&v| if v >= 0 { v } else { v + ndim }).collect();
             axes.sort_by(|a, b| b.cmp(a));
-            if axes.first().is_some_and(|&v| v < 0) {
+            // scan every axis: checking only the descending-sort head let mixed
+            // lists like (-4, 0) through (the invalid -1 survived the sort)
+            if axes.iter().any(|&v| v < 0) {
                 return Err(rstsr_error!(InvalidValue, "Some negative index is too small."));
             }
             // check no two axis are the same

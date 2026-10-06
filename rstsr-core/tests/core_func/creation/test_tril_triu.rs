@@ -118,4 +118,20 @@ mod custom_tril_triu {
         assert_equal(rt::tril((&a, isize::MIN)), &zeros, None);
         assert_equal(rt::tril((&a, isize::MAX)), &a, None);
     }
+
+    #[test]
+    fn test_ndim1_error() {
+        crate::specify_test!("test_ndim1_error");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // Regression (rstsr-faer-py review, 2026-10-06): rank-1 input used to
+        // surface as a bare AxisError from `dim_split_at(-2)`.
+        let a: Tensor<i32, _> = rt::tensor_from_nested!([1, 2, 3], &device);
+        let err = rt::tril_f((&a, 0)).unwrap_err();
+        assert!(format!("{err}").contains("at least 2 dimensions"));
+        let err = rt::triu_f((&a, 0)).unwrap_err();
+        assert!(format!("{err}").contains("at least 2 dimensions"));
+    }
 }

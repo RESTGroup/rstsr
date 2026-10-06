@@ -121,3 +121,31 @@ mod custom_argmax_nan {
         assert_eq!(rt::argmax(&a), 1);
     }
 }
+
+#[cfg(test)]
+mod custom_arg_empty {
+    use super::*;
+    static FUNC: &str = "custom_arg_empty";
+
+    #[test]
+    fn test_empty_output() {
+        crate::specify_test!("test_empty_output");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // Regression (rstsr-faer-py review, 2026-10-06): an empty *output* is
+        // legal; only an empty *reduced* axis raises.
+        let a: Tensor<f64, _> = rt::zeros(([2, 0], &device));
+        let idx = rt::argmax_with_args_f(&a, ReduceArgs { axes: AxesIndex::Val(0), keepdims: false }).unwrap();
+        assert_eq!(idx.shape(), &[0]);
+
+        let b: Tensor<f64, _> = rt::zeros(([0, 3], &device));
+        let idx = rt::argmin_with_args_f(&b, ReduceArgs { axes: AxesIndex::Val(1), keepdims: false }).unwrap();
+        assert_eq!(idx.shape(), &[0]);
+
+        // an empty reduced axis still errors
+        assert!(rt::argmax_with_args_f(&b, ReduceArgs { axes: AxesIndex::Val(0), keepdims: false }).is_err());
+        assert!(rt::argmin_with_args_f(&b, ReduceArgs { axes: AxesIndex::Val(0), keepdims: false }).is_err());
+    }
+}

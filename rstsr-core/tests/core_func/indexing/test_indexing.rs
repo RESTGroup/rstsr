@@ -107,3 +107,31 @@ mod custom_indexing {
         assert_equal(&out, rt::tensor_from_nested!([2, 4, 8], &device), None);
     }
 }
+
+#[cfg(test)]
+mod custom_indexing_take {
+    use super::*;
+    static FUNC: &str = "custom_indexing_take";
+
+    #[test]
+    fn test_take_empty_indices() {
+        crate::specify_test!("test_take_empty_indices");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // Regression (rstsr-faer-py review, 2026-10-06): the max() sentinel
+        // tested 0 against an empty axis; NumPy returns the empty selection.
+        let a: Tensor<f64, _> = rt::zeros(([0], &device));
+        let b = rt::take_f(&a, Vec::<isize>::new(), 0).unwrap();
+        assert_eq!(b.shape(), &[0]);
+
+        let a: Tensor<f64, _> = rt::zeros(([3, 0], &device));
+        let b = rt::take_f(&a, Vec::<isize>::new(), 1).unwrap();
+        assert_eq!(b.shape(), &[3, 0]);
+
+        // non-empty indices are still bounds-checked
+        let a: Tensor<f64, _> = rt::zeros(([3], &device));
+        assert!(rt::take_f(&a, vec![5isize], 0).is_err());
+    }
+}

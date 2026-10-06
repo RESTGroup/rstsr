@@ -29,7 +29,11 @@ where
     rstsr_assert_eq!(ndim, la.ndim(), InvalidLayout, "Input and output ndim should same.")?;
     rstsr_check_axis!(axis as isize, ndim)?;
     rstsr_assert_eq!(lc.shape()[axis], indices.len(), InvalidLayout, "Invalid index length.")?;
-    rstsr_pattern!(*indices.iter().max().unwrap_or(&0), 0..la.shape()[axis], IndexError, "Index out of range.")?;
+    // empty indices select nothing; the `unwrap_or(0)` sentinel would test 0
+    // against an empty axis (regression 2026-10-06)
+    if let Some(&max_index) = indices.iter().max() {
+        rstsr_pattern!(max_index, 0..la.shape()[axis], IndexError, "Index out of range.")?;
+    }
 
     // determine how iteration should be performed
     let axis_contig_c = lc.stride()[axis] == 1;

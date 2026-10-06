@@ -50,4 +50,29 @@ mod custom_eye {
         let expected = rt::tensor_from_nested!([[0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], &device);
         assert_equal(&e, &expected, None);
     }
+
+    #[test]
+    fn test_eye_offset_past_rows() {
+        crate::specify_test!("test_eye_offset_past_rows");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // Regression (rstsr-faer-py review, 2026-10-06): `Layout::diagonal`
+        // gated super-diagonals on rows, dropping diagonals of wider matrices.
+        // eye(2, 4, k=2): ones at (0, 2) and (1, 3)
+        let e: Tensor<i32, _> = rt::eye((2, 4, 2, &device));
+        let expected = rt::tensor_from_nested!([[0, 0, 1, 0], [0, 0, 0, 1]], &device);
+        assert_equal(&e, &expected, None);
+
+        // eye(3, 4, k=3): one at (0, 3)
+        let e: Tensor<i32, _> = rt::eye((3, 4, 3, &device));
+        let expected = rt::tensor_from_nested!([[0, 0, 0, 1], [0, 0, 0, 0], [0, 0, 0, 0]], &device);
+        assert_equal(&e, &expected, None);
+
+        // eye(3, 1, k=2): the diagonal has left the matrix -> all zeros
+        let e: Tensor<i32, _> = rt::eye((3, 1, 2, &device));
+        let expected = rt::tensor_from_nested!([[0], [0], [0]], &device);
+        assert_equal(&e, &expected, None);
+    }
 }

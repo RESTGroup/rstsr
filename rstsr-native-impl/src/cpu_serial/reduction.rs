@@ -870,10 +870,11 @@ where
     T: Clone + PartialOrd,
     D: DimAPI,
 {
-    rstsr_assert!(la.size() > 0, InvalidLayout, "empty sequence is not allowed for reduce_arg.")?;
-
     // split the layout into axes (to be summed) and the rest
     let (layout_axes, layout_rest) = la.dim_split_axes(axes)?;
+    // the *reduced* axes must be non-empty; an empty output is legal
+    // (argmax(zeros((2, 0)), axis=0) returns an empty array)
+    rstsr_assert!(layout_axes.size() > 0, InvalidLayout, "empty sequence is not allowed for reduce_arg.")?;
 
     // generate layout for result (from layout_rest)
     let layout_out = layout_for_array_copy(&layout_rest, TensorIterOrder::default())?;
@@ -999,10 +1000,11 @@ where
     Fcomp: Fn(Option<T>, T) -> Option<bool>,
     Feq: Fn(Option<T>, T) -> Option<bool>,
 {
-    rstsr_assert!(la.size() > 0, InvalidLayout, "empty sequence is not allowed for reduce_arg.")?;
-
     // split the layout into axes (to be summed) and the rest
     let (layout_axes, layout_rest) = la.dim_split_axes(axes)?;
+    // the *reduced* axes must be non-empty; an empty output is legal
+    // (argmax(zeros((2, 0)), axis=0) returns an empty array)
+    rstsr_assert!(layout_axes.size() > 0, InvalidLayout, "empty sequence is not allowed for reduce_arg.")?;
 
     // generate layout for result (from layout_rest)
     let layout_out = layout_for_array_copy(&layout_rest, TensorIterOrder::default())?;

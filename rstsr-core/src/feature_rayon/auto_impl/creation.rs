@@ -133,5 +133,15 @@ mod test {
         let device = DeviceRayonAutoImpl::default();
         let a = linspace((1.0, 5.0, 5, &device));
         assert_eq!(a.raw(), &vec![1., 2., 3., 4., 5.]);
+
+        // regression (2026-10-06): the parallel kernel must include the endpoint
+        // exactly and use `start + i * step`
+        let cases: [(f64, f64, usize); 2] = [(0.0, 6.4913965932284536e16, 25), (2.0, 10.0, 100)];
+        for (start, stop, n) in cases {
+            let y = linspace((start, stop, n, &device));
+            assert_eq!(y.raw()[n - 1], stop, "endpoint not exact: linspace({start}, {stop}, {n})");
+        }
+        let y = linspace((0.0, 1.0, 11, &device));
+        assert_eq!(y.raw()[8], 0.8);
     }
 }

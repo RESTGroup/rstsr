@@ -131,8 +131,8 @@ where
     let task = || -> Vec<T> {
         let mut out: Vec<T> = (0..n).into_par_iter().map(|i| start + T::from(i).unwrap() * step).collect();
         if endpoint {
-            // NumPy parity: the endpoint is included exactly, not as
-            // `start + (n - 1) * step` (which rounds to a neighbor)
+            // endpoint included exactly, not as `start + (n - 1) * step`
+            // (which rounds to a neighbor); as in NumPy for float64
             out[n - 1] = end;
         }
         out

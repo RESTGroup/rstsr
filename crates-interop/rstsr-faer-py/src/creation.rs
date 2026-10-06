@@ -588,9 +588,7 @@ pub fn eye(n_rows: usize, n_cols: Option<usize>, k: isize, dtype: &Bound<'_, Dty
 
 /// rstsr's linspace is bound on `ComplexFloat`: real and complex floating
 /// dtypes only (integer output is implementation-defined in the spec and not
-/// provided). Known rstsr-side gap: the endpoint is not forced exact
-/// (`out[-1]` may be 1 ulp off `stop`), which the suite's exact-equality
-/// check catches — registered for a rust-side fix.
+/// provided).
 fn op_linspace<T>(start: PyScalar, stop: PyScalar, num: usize, endpoint: bool) -> PyResult<FTensor<T>>
 where
     T: ComplexFloat + Clone + Send + Sync + ScalarCastTarget + 'static,
@@ -637,10 +635,6 @@ pub fn linspace(
 
 /// tril/triu: rstsr's kernel is `Num`-bound (bool inputs unreachable); the
 /// input is only read, the result is a fresh owned tensor (rstsr copies).
-/// Known rstsr-side bug: `triu` panics (index out of bounds) for part of the
-/// k range — `triu_ix2_cpu_serial` clamps `j_end` to 0 but not to `ncol`
-/// (`rstsr-native-impl/src/cpu_serial/op_tri.rs`); registered, no shim
-/// workaround (a shim mask would be an algorithm).
 fn op_tril<T>(t: &FTensor<T>, k: isize) -> rt::Result<FTensor<T>>
 where
     T: num::Num + Clone + Send + Sync + 'static,

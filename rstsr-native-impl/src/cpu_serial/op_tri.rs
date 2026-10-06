@@ -553,6 +553,7 @@ where
     T: Num + Clone,
     D: DimAPI,
 {
+    rstsr_assert!(layout.ndim() >= 2, InvalidLayout, "tril requires at least 2 dimensions")?;
     let (la_rest, la_ix2) = layout.dim_split_at(-2)?;
     let mut la_ix2 = la_ix2.into_dim::<Ix2>()?;
     for offset in IterLayoutColMajor::new(&la_rest)? {
@@ -587,6 +588,7 @@ where
     T: Num + Clone,
     D: DimAPI,
 {
+    rstsr_assert!(layout.ndim() >= 2, InvalidLayout, "triu requires at least 2 dimensions")?;
     let (la_rest, la_ix2) = layout.dim_split_at(-2)?;
     let mut la_ix2 = la_ix2.into_dim::<Ix2>()?;
     for offset in IterLayoutColMajor::new(&la_rest)? {

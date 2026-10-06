@@ -201,8 +201,9 @@ pub fn stack<'py>(parts: Vec<PyRef<'py, NativeArray>>, axis: isize) -> PyResult<
 #[pyfunction]
 pub fn meshgrid<'py>(parts: Vec<PyRef<'py, NativeArray>>, indexing: &str) -> PyResult<Vec<NativeArray>> {
     let refs = handles(&parts);
+    // spec: zero vectors is a legal input and yields an empty tuple
     if refs.is_empty() {
-        return value_err("meshgrid: at least one array is required");
+        return Ok(Vec::new());
     }
     let name = refs[0].t.dtype_name();
     let out: Vec<AnyTensor> = dispatch_name_many!(name, op_meshgrid(&refs, indexing))?;

@@ -375,18 +375,16 @@ where
         let t1 = self.stride()[axis1];
         let t2 = self.stride()[axis2];
 
-        // number of elements in diagonal, and starting offset
-        //
-        // For a negative offset (sub-diagonal) the element is A[i + |k|, i], valid
-        // while i + |k| < d1 (rows), i.e. |k| < d1, i.e. offset in (-d1, 0). Use
-        // (-d1 + 1..0) so a non-square matrix with more rows than cols reaches its
-        // lower sub-diagonals (square matrices are unaffected, d1 == d2).
+        // diagonal element count and starting offset; a diagonal is valid while
+        // it stays inside both dims. Sub-diagonal by rows (|k| < d1, range
+        // -d1 + 1..0); super-diagonal by cols (k < d2) — gating the latter on
+        // d1 dropped diagonals of wider matrices (and could wrap a length).
         let (offset_diag, d_diag) = if (-d1 + 1..0).contains(&offset) {
             let offset = -offset;
             let offset_diag = (self.offset() as isize + t1 * offset) as usize;
             let d_diag = (d1 - offset).min(d2) as usize;
             (offset_diag, d_diag)
-        } else if (0..d1).contains(&offset) {
+        } else if (0..d2).contains(&offset) {
             let offset_diag = (self.offset() as isize + t2 * offset) as usize;
             let d_diag = (d2 - offset).min(d1) as usize;
             (offset_diag, d_diag)
@@ -1005,6 +1003,17 @@ mod test {
         assert_eq!(diag, Layout::new([2, 2], [12, 5], 4).unwrap()); // fixed at issue 77
         let diag = layout.diagonal(Some(-4), Some(-2), Some(-1)).unwrap();
         assert_eq!(diag, Layout::new([2, 0], [12, 5], 0).unwrap());
+        // super-diagonals of a wide matrix (regression 2026-10-06: the branch
+        // used to be gated on d1 = rows, so `k >= n_rows` lost the diagonal)
+        let layout = [2, 4].c();
+        let diag = layout.diagonal(Some(2), Some(0), Some(1)).unwrap();
+        assert_eq!(diag, Layout::new([2], [5], 2).unwrap());
+        let diag = layout.diagonal(Some(4), Some(0), Some(1)).unwrap();
+        assert_eq!(diag, Layout::new([0], [5], 0).unwrap());
+        // and a tall matrix with `k >= n_cols` (used to cast a negative length)
+        let layout = [3, 1].c();
+        let diag = layout.diagonal(Some(2), Some(0), Some(1)).unwrap();
+        assert_eq!(diag, Layout::new([0], [2], 0).unwrap());
     }
 
     #[test]

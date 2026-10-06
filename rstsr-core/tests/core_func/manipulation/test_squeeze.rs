@@ -253,3 +253,27 @@ mod numpy_squeeze {
         assert_eq!(b.shape(), &[1, 3, 1, 4, 1]);
     }
 }
+
+#[cfg(test)]
+mod custom_squeeze_mixed_axes {
+    use super::*;
+    static FUNC: &str = "custom_squeeze_mixed_axes";
+
+    #[test]
+    fn test_mixed_invalid_negative_axis() {
+        crate::specify_test!("test_mixed_invalid_negative_axis");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // Regression (rstsr-faer-py review, 2026-10-06): only the head of the
+        // descending sort was validated, so (-4, 0) slipped through.
+        let a: Tensor<f64, _> = rt::zeros(([1, 2, 1], &device));
+        assert!(a.squeeze_f([-4, 0]).is_err());
+        assert!(a.squeeze_f([-4]).is_err());
+
+        // the valid pair still squeezes
+        let b = a.squeeze([0, 2]);
+        assert_eq!(b.shape(), &[2]);
+    }
+}
