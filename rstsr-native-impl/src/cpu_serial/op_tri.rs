@@ -568,7 +568,9 @@ where
 {
     let [nrow, ncol] = *layout.shape();
     for i in 0..nrow {
-        let j_start = (i as isize + k + 1).max(0) as usize;
+        // saturating: `k` may sit near `isize::MAX` (from a Python `int`),
+        // where the plain add would overflow
+        let j_start = (i as isize).saturating_add(k).saturating_add(1).clamp(0, ncol as isize) as usize;
         for j in j_start..ncol {
             raw[layout.index_uncheck(&[i, j]) as usize] = T::zero();
         }
@@ -598,9 +600,12 @@ pub fn triu_ix2_cpu_serial<T>(raw: &mut [T], layout: &Layout<Ix2>, k: isize) -> 
 where
     T: Num + Clone,
 {
-    let [nrow, _] = *layout.shape();
+    let [nrow, ncol] = *layout.shape();
     for i in 0..nrow {
-        let j_end = (i as isize + k).max(0) as usize;
+        // zero columns j < i + k, clamped to the row: for k >= ncol the whole
+        // row is below the diagonal (clamping is what keeps the index in
+        // bounds); saturating because `k` may sit near `isize::MAX`
+        let j_end = (i as isize).saturating_add(k).clamp(0, ncol as isize) as usize;
         for j in 0..j_end {
             raw[layout.index_uncheck(&[i, j]) as usize] = T::zero();
         }

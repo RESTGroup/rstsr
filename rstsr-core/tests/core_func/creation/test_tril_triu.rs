@@ -66,3 +66,56 @@ mod numpy_tril_triu {
         assert_equal(&triu_neg1, rt::tensor_from_nested!([[1, 1, 1], [1, 1, 1], [0, 1, 1]], &device), None);
     }
 }
+
+#[cfg(test)]
+mod custom_tril_triu {
+    use super::*;
+    static FUNC: &str = "custom_tril_triu";
+
+    #[test]
+    fn test_k_outside_row_bounds() {
+        crate::specify_test!("test_k_outside_row_bounds");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // Regression, found 2026-10-06 through the rstsr-faer-py conformance
+        // suite (xp.triu(3x3, k=2) panicked): triu zeroes columns `j < i + k`
+        // without clamping `i + k` to the row, indexing past the buffer
+        // whenever the diagonal leaves the matrix.
+        let a: Tensor<i32, _> = rt::tensor_from_nested!([[1, 2, 3], [4, 5, 6], [7, 8, 9]], &device);
+        // np.triu(a, k=2): only (0, 2) sits on or above the diagonal
+        assert_equal(rt::triu((&a, 2)), rt::tensor_from_nested!([[0, 0, 3], [0, 0, 0], [0, 0, 0]], &device), None);
+        // fully below the diagonal
+        let zeros: Tensor<i32, _> = rt::zeros(([3, 3], &device));
+        assert_equal(rt::triu((&a, 3)), &zeros, None);
+        // np.tril(a, k=-2): only (2, 0) sits on or below the diagonal
+        assert_equal(rt::tril((&a, -2)), rt::tensor_from_nested!([[0, 0, 0], [0, 0, 0], [7, 0, 0]], &device), None);
+        assert_equal(rt::tril((&a, -3)), &zeros, None);
+
+        // M > N (each row of triu at k = -1 starts past the single column)
+        let b: Tensor<i32, _> = rt::tensor_from_nested!([[1], [2], [3], [4]], &device);
+        assert_equal(rt::triu((&b, -1)), rt::tensor_from_nested!([[1], [2], [0], [0]], &device), None);
+        // N > M
+        let c: Tensor<i32, _> = rt::tensor_from_nested!([[1, 2, 3, 4]], &device);
+        assert_equal(rt::triu((&c, 1)), rt::tensor_from_nested!([[0, 2, 3, 4]], &device), None);
+    }
+
+    #[test]
+    fn test_extreme_k() {
+        crate::specify_test!("test_extreme_k");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // `k` at the isize bounds must not overflow the `i + k` arithmetic:
+        // a huge positive k zeroes the whole matrix for triu (every column is
+        // below the diagonal), a huge negative k keeps it
+        let a: Tensor<i32, _> = rt::tensor_from_nested!([[1, 2, 3], [4, 5, 6], [7, 8, 9]], &device);
+        let zeros: Tensor<i32, _> = rt::zeros(([3, 3], &device));
+        assert_equal(rt::triu((&a, isize::MAX)), &zeros, None);
+        assert_equal(rt::triu((&a, isize::MIN)), &a, None);
+        assert_equal(rt::tril((&a, isize::MIN)), &zeros, None);
+        assert_equal(rt::tril((&a, isize::MAX)), &a, None);
+    }
+}

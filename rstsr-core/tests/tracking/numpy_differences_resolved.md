@@ -262,3 +262,19 @@ halfway example that earlier runs had not). Both kernel tables
 `feature_rayon/auto_impl/op_binary_common.rs`) now use an IEEE
 `roundToIntegralTiesToEven` helper (`round_ties_even_f`, exact for `f32` via an
 `f64` round trip); NaN/inf and signed zeros propagate per IEEE.
+## `triu` indexed past the row when the diagonal left the matrix (FIXED)
+
+- **numpy:** `np.triu` zeroes `j < i + k` clipped to the row: `np.triu(ones((3, 3)), 2)` is
+  `[[0, 0, 1], [0, 0, 0], [0, 0, 0]]`, and a `k` beyond the matrix zeroes (or keeps) everything
+  (`lib/tests/test_twodim_base.py::test_tril_triu_ndim2` covers the in-range cases).
+- **rstsr:** entry_row_cpu::core_func::creation::test_tril_triu::custom_tril_triu::test_k_outside_row_bounds
+  (+ `::test_extreme_k`)
+- **tag:** bug
+- **status:** fixed
+
+`triu_ix2_cpu_serial` computed `j_end = max(i + k, 0)` but never clamped it to `ncol`, so any
+element of the k-th diagonal outside the matrix (e.g. `k >= ncol`, or `M > N` with a negative
+`k`) indexed past the buffer and panicked. Discovered 2026-10-06 through the rstsr-faer-py
+conformance suite (`test_triu` draws `k` over `[-max(n, m), max(n, m)]`). The same kernels now
+clamp to the row and use saturating arithmetic, so a `k` at the `isize` bounds cannot overflow
+either.
