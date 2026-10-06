@@ -16,4 +16,5 @@ num = { workspace = true }
 rayon = { workspace = true, optional = true }
 
 [features]
+std = ["rstsr-common/std"]
 rayon = ["dep:rayon", "rstsr-common/rayon"]

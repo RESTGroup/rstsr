@@ -20,6 +20,7 @@ pub use crate::cpu_serial::op_with_func::*;
 pub use crate::cpu_serial::reduction::*;
 pub use crate::cpu_serial::transpose::*;
 pub use crate::cpu_serial::vecdot::*;
+pub use crate::scalar_math::*;
 
 #[cfg(feature = "rayon")]
 mod cpu_rayon {
