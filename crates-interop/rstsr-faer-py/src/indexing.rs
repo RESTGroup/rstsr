@@ -16,6 +16,7 @@ use rstsr::prelude::rt;
 use rstsr::prelude::*;
 
 use rstsr_common::layout::exports::{Indexer, SliceI};
+use rstsr_core::operators::adv_indexing::DeviceIndexSelectAPI;
 use rstsr_core::operators::assignment::OpAssignAPI;
 use rstsr_core::storage::exports::{DeviceCreationAnyAPI, DeviceRawAPI};
 
@@ -216,6 +217,26 @@ pub fn setitem_basic(x: &mut NativeArray, key: &Bound<'_, PyTuple>, value: &Nati
 pub fn setitem_scalar(x: &mut NativeArray, key: &Bound<'_, PyTuple>, value: &Bound<'_, PyAny>) -> PyResult<()> {
     let s = parse_leaf(value)?;
     x.setitem_basic_scalar(key, s)
+}
+
+/* #endregion */
+
+/* #region take */
+
+/// `take`: indices travel as a Python int list (the Python layer flattens the
+/// index array through `tolist`), so the shim carries no index-dtype dispatch
+/// of its own; rstsr resolves negative indices and checks the bounds.
+fn op_take<T>(t: &FTensor<T>, indices: Vec<isize>, axis: isize) -> rt::Result<FTensor<T>>
+where
+    T: Clone + Send + Sync + 'static,
+    DeviceFaer: DeviceAPI<T, Raw = Vec<T>> + DeviceCreationAnyAPI<T> + DeviceIndexSelectAPI<T, IxD>,
+{
+    rt::take_f(t, indices, axis)
+}
+
+#[pyfunction]
+pub fn take(x: &NativeArray, indices: Vec<isize>, axis: isize) -> PyResult<NativeArray> {
+    Ok(NativeArray { t: dispatch_t!(x.t, op_take(indices.clone(), axis))? })
 }
 
 /* #endregion */

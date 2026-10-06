@@ -118,6 +118,11 @@ from .rstsr_faer import (
     squeeze as _squeeze,
     flip as _flip,
     moveaxis as _moveaxis,
+    argmax as _argmax,
+    argmin as _argmin,
+    count_nonzero as _count_nonzero,
+    sum_bool as _sum_bool,
+    take as _take,
 )
 
 __array_api_version__ = "2025.12"
@@ -1276,6 +1281,57 @@ def moveaxis(x, source, destination, /):
     )
 
 
+# ------------------------------------------- searching / indexing (W5) ------
+
+
+def _axis_or_none(axis, opname, /):
+    """argmax/argmin's axis: None or a single int (the standard has no tuple form)."""
+    if axis is None:
+        return None
+    if isinstance(axis, _py_int) and not isinstance(axis, _py_bool):
+        return axis
+    raise TypeError(f"{opname}: axis must be None or an int, got {axis!r}")
+
+
+def argmax(x, /, *, axis=None, keepdims=False):
+    return _wrap(_argmax(_handle(x), _axis_or_none(axis, "argmax"), _py_bool(keepdims)))
+
+
+def argmin(x, /, *, axis=None, keepdims=False):
+    return _wrap(_argmin(_handle(x), _axis_or_none(axis, "argmin"), _py_bool(keepdims)))
+
+
+def count_nonzero(x, /, *, axis=None, keepdims=False):
+    """Count non-zero elements.
+
+    Documented exception: for boolean input, rstsr's generic `count_nonzero`
+    kernel is unavailable (`Zero` has no bool impl). Bool is instead routed to
+    rstsr's **bool-specialized sum** (`TensorSumBoolAPI::sum_with_args_f`,
+    `TOut = usize`; see `ops::sum_bool`) — counting `True`s is the 0/1 sum by
+    definition. This is a rust-backed kernel, not a Python-side fallback.
+    """
+    h = _handle(x)
+    axes = _norm_axes(axis)
+    if _kind(h.dtype()) == "bool":
+        return _wrap(_sum_bool(h, axes, _py_bool(keepdims)))
+    return _wrap(_count_nonzero(h, axes, _py_bool(keepdims)))
+
+
+def take(x, /, indices, *, axis=None):
+    h = _handle(x)
+    if not isinstance(indices, Array):
+        raise TypeError(f"take: indices must be an rstsr_faer.api Array, got {type(indices).__name__}")
+    if _kind(indices.dtype) != "integral":
+        raise TypeError(f"take: indices must have an integer data type, got {indices.dtype!r}")
+    if indices.ndim != 1:
+        raise ValueError(f"take: indices must be one-dimensional, got ndim={indices.ndim}")
+    if axis is None:
+        if h.ndim() != 1:
+            raise ValueError("take: axis is required when x has more than one axis")
+        axis = 0
+    return _wrap(_take(h, indices.tolist(), axis))
+
+
 # --------------------------------------------------------------- data types ---
 
 
@@ -1333,6 +1389,8 @@ __all__ = [
     # manipulation
     "reshape", "permute_dims", "broadcast_arrays", "broadcast_shapes",
     "concat", "stack", "unstack", "expand_dims", "squeeze", "flip", "moveaxis",
+    # searching / indexing
+    "argmax", "argmin", "count_nonzero", "take",
     # data types
     "astype", "finfo", "iinfo",
     # constants / sentinels

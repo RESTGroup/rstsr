@@ -334,6 +334,60 @@ macro_rules! dispatch_name_many {
 }
 pub(crate) use dispatch_name_many;
 
+/// Dispatch for the ordered index reductions (`argmax`/`argmin`): real dtypes
+/// only (complex has no ordering), each arm lifted to the namespace's default
+/// index dtype (int64) by `crate::ops::idx_lift`.
+macro_rules! dispatch_t_index_ord {
+    ($scrut:expr, $f:ident ( $($arg:expr),* )) => {
+        match &$scrut {
+            AnyTensor::C32(_) | AnyTensor::C64(_) => crate::any_tensor::type_err(
+                "argmax/argmin: complex inputs have no defined ordering, so the standard and \
+                 rstsr both leave them unimplemented",
+            ),
+            AnyTensor::Bool(t) => crate::ops::idx_lift(($f::<bool>)(&t, $($arg),*)),
+            AnyTensor::I8(t) => crate::ops::idx_lift(($f::<i8>)(&t, $($arg),*)),
+            AnyTensor::I16(t) => crate::ops::idx_lift(($f::<i16>)(&t, $($arg),*)),
+            AnyTensor::I32(t) => crate::ops::idx_lift(($f::<i32>)(&t, $($arg),*)),
+            AnyTensor::I64(t) => crate::ops::idx_lift(($f::<i64>)(&t, $($arg),*)),
+            AnyTensor::U8(t) => crate::ops::idx_lift(($f::<u8>)(&t, $($arg),*)),
+            AnyTensor::U16(t) => crate::ops::idx_lift(($f::<u16>)(&t, $($arg),*)),
+            AnyTensor::U32(t) => crate::ops::idx_lift(($f::<u32>)(&t, $($arg),*)),
+            AnyTensor::U64(t) => crate::ops::idx_lift(($f::<u64>)(&t, $($arg),*)),
+            AnyTensor::F32(t) => crate::ops::idx_lift(($f::<f32>)(&t, $($arg),*)),
+            AnyTensor::F64(t) => crate::ops::idx_lift(($f::<f64>)(&t, $($arg),*)),
+        }
+    };
+}
+pub(crate) use dispatch_t_index_ord;
+
+/// Dispatch for `count_nonzero`: its kernel is bound on `Zero` (no bool impl),
+/// and complex is served (equality, not ordering). The Python layer routes
+/// bool to `ops::sum_bool` (rstsr's bool-specialized sum), so this arm is a
+/// guard, not a served path.
+macro_rules! dispatch_t_index_zero {
+    ($scrut:expr, $f:ident ( $($arg:expr),* )) => {
+        match &$scrut {
+            AnyTensor::Bool(_) => crate::any_tensor::type_err(
+                "count_nonzero: bool inputs are not served by this kernel (bound on `Zero`); \
+                 the Python layer routes bool to rstsr's bool-specialized sum (ops::sum_bool)",
+            ),
+            AnyTensor::I8(t) => crate::ops::idx_lift(($f::<i8>)(&t, $($arg),*)),
+            AnyTensor::I16(t) => crate::ops::idx_lift(($f::<i16>)(&t, $($arg),*)),
+            AnyTensor::I32(t) => crate::ops::idx_lift(($f::<i32>)(&t, $($arg),*)),
+            AnyTensor::I64(t) => crate::ops::idx_lift(($f::<i64>)(&t, $($arg),*)),
+            AnyTensor::U8(t) => crate::ops::idx_lift(($f::<u8>)(&t, $($arg),*)),
+            AnyTensor::U16(t) => crate::ops::idx_lift(($f::<u16>)(&t, $($arg),*)),
+            AnyTensor::U32(t) => crate::ops::idx_lift(($f::<u32>)(&t, $($arg),*)),
+            AnyTensor::U64(t) => crate::ops::idx_lift(($f::<u64>)(&t, $($arg),*)),
+            AnyTensor::F32(t) => crate::ops::idx_lift(($f::<f32>)(&t, $($arg),*)),
+            AnyTensor::F64(t) => crate::ops::idx_lift(($f::<f64>)(&t, $($arg),*)),
+            AnyTensor::C32(t) => crate::ops::idx_lift(($f::<Complex<f32>>)(&t, $($arg),*)),
+            AnyTensor::C64(t) => crate::ops::idx_lift(($f::<Complex<f64>>)(&t, $($arg),*)),
+        }
+    };
+}
+pub(crate) use dispatch_t_index_zero;
+
 /// Like `dispatch_name!` but without the bool arm — for fn items whose
 /// bounds exclude bool (e.g. `num::Num`-gated creation); bool falls to the
 /// error arm so guarded call sites can pre-route bool themselves.

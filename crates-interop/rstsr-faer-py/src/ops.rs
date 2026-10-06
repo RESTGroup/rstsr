@@ -10,7 +10,7 @@
 use core::mem::MaybeUninit;
 use num::complex::ComplexFloat;
 use num::Complex;
-use num::{Float, FromPrimitive};
+use num::{Float, FromPrimitive, Zero};
 use pyo3::prelude::*;
 use rstsr::prelude::rt;
 use rstsr::prelude::*;
@@ -18,8 +18,8 @@ use rstsr_common::layout::exports::Indexer;
 use rstsr_core::operators::assignment::OpAssignAPI;
 use rstsr_core::operators::exports::Op_MutA_RefB_API;
 use rstsr_core::operators::reduction::{
-    OpAllAPI, OpAnyAPI, OpCumProdAPI, OpCumSumAPI, OpMaxAPI, OpMeanAPI, OpMinAPI, OpProdAPI, OpStdAPI, OpSumAPI,
-    OpVarAPI,
+    OpAllAPI, OpAnyAPI, OpArgMaxAPI, OpArgMinAPI, OpCountNonZeroAPI, OpCumProdAPI, OpCumSumAPI, OpMaxAPI, OpMeanAPI,
+    OpMinAPI, OpProdAPI, OpStdAPI, OpSumAPI, OpVarAPI,
 };
 use rstsr_core::storage::exports::{DeviceCreationAnyAPI, DeviceRawAPI};
 use rstsr_core::tensor::operators::exports::{
@@ -34,9 +34,11 @@ use rstsr_dtype_traits::{DTypeIntoFloatAPI, DTypePromoteAPI};
 use crate::any_tensor::{
     device_faer, dispatch_bin_bool_self, dispatch_bin_int_bool_self, dispatch_bin_int_self, dispatch_bin_numeric_self,
     dispatch_bin_promote, dispatch_bin_promote_eq, dispatch_t, dispatch_t_bool, dispatch_t_float_complex_same,
-    dispatch_t_into_float, dispatch_t_no_complex, dispatch_t_numeric_same, dispatch_t_real_float_same,
-    dispatch_t_real_numeric_same, dispatch_t_signed, lift, type_err, AnyTensor, FTensor, NativeArray,
+    dispatch_t_index_ord, dispatch_t_index_zero, dispatch_t_into_float, dispatch_t_no_complex, dispatch_t_numeric_same,
+    dispatch_t_real_float_same, dispatch_t_real_numeric_same, dispatch_t_signed, err_py, lift, type_err, AnyTensor,
+    FTensor, NativeArray,
 };
+use crate::creation::dim_from;
 
 /// Boolean reduction over axes rebuilt from rstsr's bool-typed `all`/`any`
 /// (OpAllAPI): truthiness is derived as `x != 0` first, so the reduction is
@@ -906,6 +908,81 @@ where
 {
     let v = rt::broadcast_to_f(t, shape)?;
     Ok(v.into_owned())
+}
+
+// ---------------------------------------------- index reductions (W5) ------
+//
+// argmax / argmin / count_nonzero. rstsr's index-reduction kernels return
+// `usize` tensors; the standard requires the default index dtype (int64), so
+// every result is re-materialized as int64 — a lossless element cast of the
+// same kind the astype path performs (G-007/G-008), not an algorithm.
+
+/// Lift a `usize` index/count tensor into the Python-visible int64 variant.
+/// Macro arms in `any_tensor.rs` land here through `dispatch_t_index*!`.
+pub(crate) fn idx_lift(r: rt::Result<FTensor<usize>>) -> PyResult<NativeArray> {
+    let t = err_py(r)?;
+    let shape = AsRef::<[usize]>::as_ref(t.shape()).to_vec();
+    let data: Vec<i64> = t.view().iter().map(|&v| v as i64).collect();
+    let out = err_py(rt::asarray_f((data, dim_from(&shape), device_faer())))?;
+    Ok(NativeArray { t: AnyTensor::I64(out) })
+}
+
+fn op_argmax<T>(t: &FTensor<T>, args: ReduceArgs) -> rt::Result<FTensor<usize>>
+where
+    T: Clone + PartialOrd + Send + Sync + 'static,
+    DeviceFaer: OpArgMaxAPI<T, IxD, TOut = usize> + DeviceCreationAnyAPI<usize>,
+{
+    rt::argmax_with_args_f(t, args)
+}
+
+fn op_argmin<T>(t: &FTensor<T>, args: ReduceArgs) -> rt::Result<FTensor<usize>>
+where
+    T: Clone + PartialOrd + Send + Sync + 'static,
+    DeviceFaer: OpArgMinAPI<T, IxD, TOut = usize> + DeviceCreationAnyAPI<usize>,
+{
+    rt::argmin_with_args_f(t, args)
+}
+
+fn op_count_nonzero<T>(t: &FTensor<T>, args: ReduceArgs) -> rt::Result<FTensor<usize>>
+where
+    T: Clone + PartialEq + Zero + Send + Sync + 'static,
+    DeviceFaer: OpCountNonZeroAPI<T, IxD, TOut = usize> + DeviceCreationAnyAPI<usize>,
+{
+    rt::count_nonzero_with_args_f(t, args)
+}
+
+macro_rules! py_index_reduce {
+    ($($pyname:ident => $wrapper:ident),* $(,)?) => {
+        $(
+            #[pyfunction]
+            pub fn $pyname(x: &NativeArray, axis: Option<isize>, keepdims: bool) -> PyResult<NativeArray> {
+                dispatch_t_index_ord!(x.t, $wrapper(reduce_args(axis.map(|a| vec![a]), keepdims)))
+            }
+        )*
+    };
+}
+
+py_index_reduce!(argmax => op_argmax, argmin => op_argmin);
+
+#[pyfunction]
+pub fn count_nonzero(x: &NativeArray, axes: Option<Vec<isize>>, keepdims: bool) -> PyResult<NativeArray> {
+    dispatch_t_index_zero!(x.t, op_count_nonzero(reduce_args(axes.clone(), keepdims)))
+}
+
+/// `count_nonzero` on bool tensors — **the one documented exception** in the
+/// index family: rstsr's generic `count_nonzero` kernel is bound on `Zero`
+/// (no bool impl), but rstsr serves bool counting through its bool-specialized
+/// sum, `TensorSumBoolAPI::sum_with_args_f` (`OpSumBoolAPI`, `TOut = usize`).
+/// Counting `True`s is the 0/1 sum by definition, so the Python layer routes
+/// bool inputs here instead of casting — a rust-backed kernel, not a shim-side
+/// fallback. See `api.py::count_nonzero`, which carries the same note for the
+/// Python reader.
+#[pyfunction]
+pub fn sum_bool(x: &NativeArray, axes: Option<Vec<isize>>, keepdims: bool) -> PyResult<NativeArray> {
+    match &x.t {
+        AnyTensor::Bool(t) => idx_lift(t.sum_with_args_f(reduce_args(axes.clone(), keepdims))),
+        _ => type_err("sum_bool: only boolean arrays are allowed (count_nonzero's bool path)"),
+    }
 }
 
 #[pyfunction]
