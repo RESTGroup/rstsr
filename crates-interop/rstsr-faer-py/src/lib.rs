@@ -12,6 +12,7 @@ mod dlpack;
 mod dtype;
 mod indexing;
 mod info;
+mod manipulation;
 mod ops;
 
 use std::collections::HashMap;
@@ -139,6 +140,11 @@ fn rstsr_faer(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(creation::full, m)?)?;
     m.add_function(wrap_pyfunction!(creation::arange, m)?)?;
     m.add_function(wrap_pyfunction!(creation::astype, m)?)?;
+    // W4 creation surface (bindings over rt:: creation entries)
+    m.add_function(wrap_pyfunction!(creation::eye, m)?)?;
+    m.add_function(wrap_pyfunction!(creation::linspace, m)?)?;
+    m.add_function(wrap_pyfunction!(creation::tril, m)?)?;
+    m.add_function(wrap_pyfunction!(creation::triu, m)?)?;
 
     m.add_function(wrap_pyfunction!(ops::add, m)?)?;
     m.add_function(wrap_pyfunction!(ops::subtract, m)?)?;
@@ -226,6 +232,17 @@ fn rstsr_faer(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(ops::std, m)?)?;
     m.add_function(wrap_pyfunction!(ops::cumulative_sum, m)?)?;
     m.add_function(wrap_pyfunction!(ops::cumulative_prod, m)?)?;
+
+    // W4 manipulation surface (bindings over rt:: manipulation entries)
+    m.add_function(wrap_pyfunction!(manipulation::broadcast_shapes, m)?)?;
+    m.add_function(wrap_pyfunction!(manipulation::concat, m)?)?;
+    m.add_function(wrap_pyfunction!(manipulation::stack, m)?)?;
+    m.add_function(wrap_pyfunction!(manipulation::meshgrid, m)?)?;
+    m.add_function(wrap_pyfunction!(manipulation::unstack, m)?)?;
+    m.add_function(wrap_pyfunction!(manipulation::expand_dims, m)?)?;
+    m.add_function(wrap_pyfunction!(manipulation::squeeze, m)?)?;
+    m.add_function(wrap_pyfunction!(manipulation::flip, m)?)?;
+    m.add_function(wrap_pyfunction!(manipulation::moveaxis, m)?)?;
 
     m.add_function(wrap_pyfunction!(indexing::getitem_basic, m)?)?;
     m.add_function(wrap_pyfunction!(indexing::setitem_basic, m)?)?;

@@ -2,6 +2,7 @@
 //! empty/full/arange, and astype (element cast through DTypeCastAPI — rstsr
 //! 0.9.0 has no tensor-level dtype conversion; see gap register G-007).
 
+use num::complex::ComplexFloat;
 use num::Complex;
 use pyo3::prelude::*;
 use pyo3::types::{PyAny, PyList};
@@ -9,9 +10,12 @@ use pyo3::Bound;
 use rstsr::prelude::rt;
 use rstsr::prelude::*;
 
+use rstsr_core::operators::assignment::OpAssignAPI;
+use rstsr_core::storage::exports::{DeviceCreationComplexFloatAPI, DeviceCreationNumAPI, DeviceCreationTriAPI};
+
 use crate::any_tensor::{
-    device_faer, dispatch_name, dispatch_name_numeric, dispatch_name_real, err_py, liftp, parse_leaf, type_err,
-    AnyTensor, FTensor, NativeArray, PyScalar,
+    device_faer, dispatch_name, dispatch_name_numeric, dispatch_name_real, dispatch_t_numeric_same, err_py, lift,
+    liftp, parse_leaf, type_err, AnyTensor, FTensor, NativeArray, PyScalar,
 };
 use crate::dtype::Dtype;
 
@@ -558,3 +562,109 @@ pub fn astype<'py>(x: &NativeArray, dtype: &Bound<'py, Dtype>, copy: bool) -> Py
     };
     Ok(NativeArray { t })
 }
+
+/* #region W4 creation: eye / linspace / tril / triu */
+
+// Thin bindings over the rstsr-core creation entries. Dtype policy lives at
+// the call site; unsupported dtypes are declined with the bound that excludes
+// them (no shim-side assembly).
+
+/// `eye` needs a `Num`-bound creation kernel, so bool is out of reach;
+/// every numeric dtype is served.
+fn op_eye<T>(n_rows: usize, n_cols: usize, k: isize) -> PyResult<FTensor<T>>
+where
+    T: num::Num + Clone + Send + Sync + 'static,
+    DeviceFaer: DeviceAPI<T, Raw = Vec<T>> + DeviceCreationNumAPI<T> + OpAssignAPI<T, Ix1>,
+{
+    err_py(rt::eye_f((n_rows, n_cols, k, device_faer())))
+}
+
+#[pyfunction]
+pub fn eye(n_rows: usize, n_cols: Option<usize>, k: isize, dtype: &Bound<'_, Dtype>) -> PyResult<NativeArray> {
+    let n_cols = n_cols.unwrap_or(n_rows);
+    let t = dispatch_name_numeric!(dtype.borrow().name, op_eye(n_rows, n_cols, k))?;
+    Ok(NativeArray { t })
+}
+
+/// rstsr's linspace is bound on `ComplexFloat`: real and complex floating
+/// dtypes only (integer output is implementation-defined in the spec and not
+/// provided). Known rstsr-side gap: the endpoint is not forced exact
+/// (`out[-1]` may be 1 ulp off `stop`), which the suite's exact-equality
+/// check catches — registered for a rust-side fix.
+fn op_linspace<T>(start: PyScalar, stop: PyScalar, num: usize, endpoint: bool) -> PyResult<FTensor<T>>
+where
+    T: ComplexFloat + Clone + Send + Sync + ScalarCastTarget + 'static,
+    DeviceFaer: DeviceAPI<T, Raw = Vec<T>> + DeviceCreationComplexFloatAPI<T>,
+{
+    let a: T = T::from_scalar(start)?;
+    let b: T = T::from_scalar(stop)?;
+    err_py(rt::linspace_f((a, b, num, endpoint, device_faer())))
+}
+
+#[pyfunction]
+pub fn linspace(
+    start: &Bound<'_, PyAny>,
+    stop: &Bound<'_, PyAny>,
+    num: usize,
+    endpoint: bool,
+    dtype: Option<&Bound<'_, Dtype>>,
+) -> PyResult<NativeArray> {
+    let s0 = parse_leaf(start)?;
+    let s1 = parse_leaf(stop)?;
+    let name: &str = match dtype {
+        Some(d) => d.borrow().name,
+        None => {
+            // spec default: complex floating if either bound is complex
+            if matches!(s0, PyScalar::C(_)) || matches!(s1, PyScalar::C(_)) {
+                "complex128"
+            } else {
+                "float64"
+            }
+        },
+    };
+    let t = match name {
+        "float32" => liftp(op_linspace::<f32>(s0, s1, num, endpoint), AnyTensor::F32),
+        "float64" => liftp(op_linspace::<f64>(s0, s1, num, endpoint), AnyTensor::F64),
+        "complex64" => liftp(op_linspace::<Complex<f32>>(s0, s1, num, endpoint), AnyTensor::C32),
+        "complex128" => liftp(op_linspace::<Complex<f64>>(s0, s1, num, endpoint), AnyTensor::C64),
+        _ => type_err(format!(
+            "linspace: dtype {name:?} is not provided by rstsr (its kernel is bound on \
+             ComplexFloat: float32/float64/complex64/complex128)"
+        )),
+    }?;
+    Ok(NativeArray { t })
+}
+
+/// tril/triu: rstsr's kernel is `Num`-bound (bool inputs unreachable); the
+/// input is only read, the result is a fresh owned tensor (rstsr copies).
+/// Known rstsr-side bug: `triu` panics (index out of bounds) for part of the
+/// k range — `triu_ix2_cpu_serial` clamps `j_end` to 0 but not to `ncol`
+/// (`rstsr-native-impl/src/cpu_serial/op_tri.rs`); registered, no shim
+/// workaround (a shim mask would be an algorithm).
+fn op_tril<T>(t: &FTensor<T>, k: isize) -> rt::Result<FTensor<T>>
+where
+    T: num::Num + Clone + Send + Sync + 'static,
+    DeviceFaer: DeviceAPI<T, Raw = Vec<T>> + DeviceCreationTriAPI<T>,
+{
+    rt::tril_f((t, k))
+}
+
+fn op_triu<T>(t: &FTensor<T>, k: isize) -> rt::Result<FTensor<T>>
+where
+    T: num::Num + Clone + Send + Sync + 'static,
+    DeviceFaer: DeviceAPI<T, Raw = Vec<T>> + DeviceCreationTriAPI<T>,
+{
+    rt::triu_f((t, k))
+}
+
+#[pyfunction]
+pub fn tril(x: &NativeArray, k: isize) -> PyResult<NativeArray> {
+    Ok(NativeArray { t: dispatch_t_numeric_same!(x.t, "tril", op_tril(k))? })
+}
+
+#[pyfunction]
+pub fn triu(x: &NativeArray, k: isize) -> PyResult<NativeArray> {
+    Ok(NativeArray { t: dispatch_t_numeric_same!(x.t, "triu", op_triu(k))? })
+}
+
+/* #endregion */

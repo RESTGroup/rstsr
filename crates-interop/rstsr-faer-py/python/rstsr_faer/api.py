@@ -105,6 +105,19 @@ from .rstsr_faer import (
     transpose as _transpose,
     finfo as _finfo,
     iinfo as _iinfo,
+    eye as _eye,
+    linspace as _linspace,
+    tril as _tril,
+    triu as _triu,
+    meshgrid as _meshgrid,
+    broadcast_shapes as _broadcast_shapes,
+    concat as _concat,
+    stack as _stack,
+    unstack as _unstack,
+    expand_dims as _expand_dims,
+    squeeze as _squeeze,
+    flip as _flip,
+    moveaxis as _moveaxis,
 )
 
 __array_api_version__ = "2025.12"
@@ -735,6 +748,70 @@ def _dtype_or_default(dtype, kind, /):
     return dtype
 
 
+# ---- creation: `*_like` family (marshalling only, same creation paths) -----
+
+
+def _like_target(x, dtype, /):
+    """Resolve (shape, dtype) for the `*_like` family from an input array."""
+    if not isinstance(x, Array):
+        raise TypeError(f"expected an rstsr_faer.api Array, got {type(x).__name__}")
+    if dtype is None:
+        return x.shape, x.dtype
+    if not isinstance(dtype, Dtype):
+        raise TypeError(f"dtype must be an xp dtype object, got {dtype!r}")
+    return x.shape, dtype
+
+
+def empty_like(x, /, *, dtype=None, device=None):
+    _check_device(device)
+    shape, dtype = _like_target(x, dtype)
+    return _wrap(_empty(shape, dtype, _DEVICE))
+
+
+def zeros_like(x, /, *, dtype=None, device=None):
+    _check_device(device)
+    shape, dtype = _like_target(x, dtype)
+    return _wrap(_zeros(shape, dtype, _DEVICE))
+
+
+def ones_like(x, /, *, dtype=None, device=None):
+    _check_device(device)
+    shape, dtype = _like_target(x, dtype)
+    return _wrap(_ones(shape, dtype, _DEVICE))
+
+
+def full_like(x, /, fill_value, *, dtype=None, device=None):
+    _check_device(device)
+    shape, dtype = _like_target(x, dtype)
+    return _wrap(_full(shape, fill_value, dtype, _DEVICE))
+
+
+def eye(n_rows, n_cols=None, /, *, k=0, dtype=None, device=None):
+    _check_device(device)
+    return _wrap(_eye(n_rows, n_cols, k, _dtype_or_default(dtype, "real")))
+
+
+def linspace(start, stop, /, num, *, dtype=None, device=None, endpoint=True):
+    _check_device(device)
+    if dtype is not None and not isinstance(dtype, Dtype):
+        raise TypeError(f"dtype must be an xp dtype object, got {dtype!r}")
+    return _wrap(_linspace(start, stop, num, _py_bool(endpoint), dtype))
+
+
+def tril(x, /, *, k=0):
+    return _wrap(_tril(_handle(x), k))
+
+
+def triu(x, /, *, k=0):
+    return _wrap(_triu(_handle(x), k))
+
+
+def meshgrid(*arrays, indexing="xy"):
+    if indexing not in ("xy", "ij"):
+        raise ValueError(f"meshgrid: indexing must be 'xy' or 'ij', got {indexing!r}")
+    return tuple(_wrap(h) for h in _meshgrid([_handle(a) for a in arrays], indexing))
+
+
 # ------------------------------------------------------------ elementwise -----
 
 
@@ -1111,6 +1188,94 @@ def permute_dims(x, /, axes):
     return _wrap(_transpose(_handle(x), tuple(axes)))
 
 
+# ---- manipulation (W4): joins, splits, axis moves, broadcasting -----------
+
+
+def _axes_vec(axis, opname, /):
+    """Required axis argument (int or tuple of ints) -> list of ints."""
+    axes = _norm_axes(axis)
+    if axes is None:
+        raise TypeError(f"{opname}: axis must be an int or a tuple of ints")
+    return axes
+
+
+def _norm_shape_ints(shape, opname, /):
+    try:
+        dims = list(shape)
+    except TypeError:
+        raise TypeError(f"{opname}: each shape must be a tuple/list of ints, got {shape!r}") from None
+    for d in dims:
+        if not isinstance(d, _py_int) or isinstance(d, _py_bool):
+            raise TypeError(f"{opname}: shape dimensions must be ints, got {d!r}")
+    return dims
+
+
+def broadcast_shapes(*shapes):
+    return tuple(_broadcast_shapes([_norm_shape_ints(s, "broadcast_shapes") for s in shapes]))
+
+
+def broadcast_arrays(*arrays):
+    """Broadcast arrays against each other.
+
+    Spec composition of two rstsr primitives: the common shape comes from
+    rstsr's own broadcasting rule (`broadcast_shapes`), each result from
+    `broadcast_to` — so unlike rstsr's same-dtype `broadcast_arrays`, every
+    input keeps its own dtype here.
+    """
+    if builtins.len(arrays) == 0:
+        raise ValueError("broadcast_arrays: at least one array is required")
+    hs = [_handle(a) for a in arrays]
+    shape = tuple(_broadcast_shapes([h.shape() for h in hs]))
+    return tuple(_wrap(_broadcast_to(h, shape)) for h in hs)
+
+
+def _join_parts(arrays, opname, /):
+    if not isinstance(arrays, (list, tuple)):
+        raise TypeError(f"{opname}: arrays must be a list or tuple of arrays")
+    if builtins.len(arrays) == 0:
+        raise ValueError(f"{opname}: at least one array is required")
+    return [_handle(a) for a in arrays]
+
+
+def concat(arrays, /, *, axis=0):
+    parts = _join_parts(arrays, "concat")
+    if axis is None:
+        # spec: axis=None flattens every array before concatenation
+        parts = [_reshape(h, (-1,)) for h in parts]
+        axis = 0
+    return _wrap(_concat(parts, axis))
+
+
+def stack(arrays, /, *, axis=0):
+    return _wrap(_stack(_join_parts(arrays, "stack"), axis))
+
+
+def unstack(x, /, *, axis=0):
+    return tuple(_wrap(h) for h in _unstack(_handle(x), axis))
+
+
+def expand_dims(x, /, axis):
+    return _wrap(_expand_dims(_handle(x), _axes_vec(axis, "expand_dims")))
+
+
+def squeeze(x, /, axis=None):
+    return _wrap(_squeeze(_handle(x), _norm_axes(axis)))
+
+
+def flip(x, /, *, axis=None):
+    return _wrap(_flip(_handle(x), _norm_axes(axis)))
+
+
+def moveaxis(x, source, destination, /):
+    return _wrap(
+        _moveaxis(
+            _handle(x),
+            _axes_vec(source, "moveaxis"),
+            _axes_vec(destination, "moveaxis"),
+        )
+    )
+
+
 # --------------------------------------------------------------- data types ---
 
 
@@ -1144,6 +1309,8 @@ __all__ = [
     "float32", "float64", "complex64", "complex128",
     # creation
     "asarray", "zeros", "ones", "empty", "full", "arange", "from_dlpack",
+    "empty_like", "zeros_like", "ones_like", "full_like",
+    "eye", "linspace", "tril", "triu", "meshgrid",
     # elementwise
     "add", "subtract", "multiply", "divide", "negative", "abs", "positive",
     "acos", "acosh", "asin", "asinh", "atan", "atan2", "atanh", "ceil",
@@ -1164,7 +1331,8 @@ __all__ = [
     # broadcasting
     "broadcast_to",
     # manipulation
-    "reshape", "permute_dims",
+    "reshape", "permute_dims", "broadcast_arrays", "broadcast_shapes",
+    "concat", "stack", "unstack", "expand_dims", "squeeze", "flip", "moveaxis",
     # data types
     "astype", "finfo", "iinfo",
     # constants / sentinels

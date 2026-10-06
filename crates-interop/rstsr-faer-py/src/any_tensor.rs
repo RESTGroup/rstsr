@@ -120,6 +120,27 @@ macro_rules! impl_traits {
 }
 for_each_item!(impl_traits);
 
+/// Typed borrow of the erased tensor, for ops that take a homogeneous slice
+/// of arrays (concat / stack / meshgrid): the only way back from a runtime
+/// dtype name to a typed tensor.
+pub trait AnyTensorRef<T> {
+    fn tensor_ref(&self) -> Option<&FTensor<T>>;
+}
+
+macro_rules! impl_any_tensor_ref {
+    ($v:ident, $t:ty, $name:literal) => {
+        impl AnyTensorRef<$t> for AnyTensor {
+            fn tensor_ref(&self) -> Option<&FTensor<$t>> {
+                match self {
+                    AnyTensor::$v(t) => Some(t),
+                    _ => None,
+                }
+            }
+        }
+    };
+}
+for_each_item!(impl_any_tensor_ref);
+
 /// rstsr error -> Python exception, matched by rstsr's own error variant
 /// (indexing errors surface as IndexError, everything else as ValueError;
 /// specific call sites raise TypeError where the cause is an operand
@@ -144,6 +165,14 @@ pub(crate) fn lift<R>(r: rt::Result<FTensor<R>>, ctor: impl FnOnce(FTensor<R>) -
 /// Same for helpers that already produce `PyResult` (creation paths).
 pub(crate) fn liftp<R>(r: PyResult<FTensor<R>>, ctor: impl FnOnce(FTensor<R>) -> AnyTensor) -> PyResult<AnyTensor> {
     r.map(ctor)
+}
+
+/// Per-element lift for ops returning several tensors (meshgrid, unstack).
+pub(crate) fn lift_vec<R>(
+    r: PyResult<Vec<FTensor<R>>>,
+    ctor: impl Fn(FTensor<R>) -> AnyTensor,
+) -> PyResult<Vec<AnyTensor>> {
+    r.map(|v| v.into_iter().map(ctor).collect())
 }
 
 macro_rules! dispatch_t {
@@ -280,6 +309,30 @@ macro_rules! dispatch_name {
     };
 }
 pub(crate) use dispatch_name;
+
+/// `dispatch_name!` for ops returning several tensors (meshgrid, unstack):
+/// each arm lifts the whole typed vector element-wise.
+macro_rules! dispatch_name_many {
+    ($name:expr, $f:ident ( $($arg:expr),* )) => {
+        match $name {
+            "bool" => lift_vec(($f::<bool>)($($arg),*), AnyTensor::Bool),
+            "int8" => lift_vec(($f::<i8>)($($arg),*), AnyTensor::I8),
+            "int16" => lift_vec(($f::<i16>)($($arg),*), AnyTensor::I16),
+            "int32" => lift_vec(($f::<i32>)($($arg),*), AnyTensor::I32),
+            "int64" => lift_vec(($f::<i64>)($($arg),*), AnyTensor::I64),
+            "uint8" => lift_vec(($f::<u8>)($($arg),*), AnyTensor::U8),
+            "uint16" => lift_vec(($f::<u16>)($($arg),*), AnyTensor::U16),
+            "uint32" => lift_vec(($f::<u32>)($($arg),*), AnyTensor::U32),
+            "uint64" => lift_vec(($f::<u64>)($($arg),*), AnyTensor::U64),
+            "float32" => lift_vec(($f::<f32>)($($arg),*), AnyTensor::F32),
+            "float64" => lift_vec(($f::<f64>)($($arg),*), AnyTensor::F64),
+            "complex64" => lift_vec(($f::<Complex<f32>>)($($arg),*), AnyTensor::C32),
+            "complex128" => lift_vec(($f::<Complex<f64>>)($($arg),*), AnyTensor::C64),
+            _ => type_err(format!("unknown dtype {:?}", $name)),
+        }
+    };
+}
+pub(crate) use dispatch_name_many;
 
 /// Like `dispatch_name!` but without the bool arm — for fn items whose
 /// bounds exclude bool (e.g. `num::Num`-gated creation); bool falls to the
