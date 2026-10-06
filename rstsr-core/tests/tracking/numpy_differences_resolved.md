@@ -278,3 +278,18 @@ element of the k-th diagonal outside the matrix (e.g. `k >= ncol`, or `M > N` wi
 conformance suite (`test_triu` draws `k` over `[-max(n, m), max(n, m)]`). The same kernels now
 clamp to the row and use saturating arithmetic, so a `k` at the `isize` bounds cannot overflow
 either.
+## `linspace` endpoint was not exact and the serial kernel accumulated (FIXED)
+
+- **numpy:** `np.linspace` includes `stop` exactly when `endpoint=True` and computes
+  `y[i] = start + i * step` (`_core/tests/test_function_base.py::TestLinspace`).
+- **rstsr:** entry_row_cpu::core_func::creation::test_linspace::custom_linspace::test_endpoint_exact
+- **tag:** bug
+- **status:** fixed
+
+Both kernels left the last value at `start + (n - 1) * step` — off by one ulp from `stop` on
+some inputs (`linspace(0, 6.4913965932284536e16, 25)`) — and the serial kernel accumulated
+`v += step`, drifting up to a few ulp through the interior (`linspace(2, 10, 100)[-1]` was
+`9.999999999999996`, and `linspace(0, 1, 11)[8]` was `0.7999999999999999`). Discovered
+2026-10-06 through the rstsr-faer-py conformance suite (`test_linspace` asserts
+`out[-1] == stop` exactly). Both kernels now compute `start + i * step` and assign the
+endpoint directly when `endpoint=True`; `endpoint=False` keeps the half-open interval.

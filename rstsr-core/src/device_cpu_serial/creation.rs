@@ -105,15 +105,15 @@ where
             return Ok(Storage::new(vec![start].into(), self.clone()));
         }
 
-        let mut raw = Vec::with_capacity(n);
         let step = match endpoint {
             true => (end - start) / T::from(n - 1).unwrap(),
             false => (end - start) / T::from(n).unwrap(),
         };
-        let mut v = start;
-        for _ in 0..n {
-            raw.push(v);
-            v = v + step;
+        // NumPy parity: `start + i * step` per element (accumulation would
+        // drift) and an exactly-included endpoint (`i = n - 1` alone rounds)
+        let mut raw: Vec<T> = (0..n).map(|i| start + T::from(i).unwrap() * step).collect();
+        if endpoint {
+            raw[n - 1] = end;
         }
         Ok(Storage::new(raw.into(), self.clone()))
     }

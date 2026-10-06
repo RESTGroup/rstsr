@@ -70,4 +70,35 @@ mod custom_linspace {
         let expected = rt::tensor_from_nested!([0.0, 0.25, 0.5, 0.75, 1.0], &device);
         assert_equal(&y, &expected, None);
     }
+
+    #[test]
+    fn test_endpoint_exact() {
+        crate::specify_test!("test_endpoint_exact");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // Regression, found 2026-10-06 through the rstsr-faer-py conformance
+        // suite: with endpoint=true the last value was `start + (n-1)*step`
+        // (parallel kernel) or the accumulated `start + step + ... + step`
+        // (serial kernel), each rounding to a neighbor of `stop` on some
+        // inputs; NumPy includes the endpoint exactly (the suite asserts
+        // out[-1] == stop). Two cases: each is exact for one kernel and off
+        // by one ulp for the other under the unfixed code.
+        for (start, stop, n) in [(0.0, 6.4913965932284536e16, 25), (2.0, 10.0, 100)] {
+            let y: Tensor<f64, _> = rt::linspace((start, stop, n, &device));
+            let last = y.to_vec()[n - 1];
+            assert_eq!(last, stop, "endpoint not exact: linspace({start}, {stop}, {n}) -> {last}");
+        }
+
+        // interior values follow NumPy's `start + i * step` (the serial kernel
+        // used to accumulate `v += step`, drifting: index 8 was
+        // 0.7999999999999999 instead of 0.8)
+        let y3: Tensor<f64, _> = rt::linspace((0.0, 1.0, 11, &device));
+        assert_eq!(y3.to_vec()[8], 0.8);
+
+        // endpoint=false keeps the half-open interval (no forced endpoint)
+        let y2: Tensor<f64, _> = rt::linspace((0.0, 1.0, 4, false, &device));
+        assert_eq!(y2.to_vec(), vec![0.0, 0.25, 0.5, 0.75]);
+    }
 }

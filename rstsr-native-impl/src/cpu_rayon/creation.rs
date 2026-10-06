@@ -128,7 +128,15 @@ where
     };
 
     // unwrap should be safe here: if `n` can be converted, this can surely be converted by `i`.
-    let task = || -> Vec<T> { (0..n).into_par_iter().map(|i| start + T::from(i).unwrap() * step).collect() };
+    let task = || -> Vec<T> {
+        let mut out: Vec<T> = (0..n).into_par_iter().map(|i| start + T::from(i).unwrap() * step).collect();
+        if endpoint {
+            // NumPy parity: the endpoint is included exactly, not as
+            // `start + (n - 1) * step` (which rounds to a neighbor)
+            out[n - 1] = end;
+        }
+        out
+    };
     Some(pool.map_or_else(task, |pool| pool.install(task)))
 }
 
