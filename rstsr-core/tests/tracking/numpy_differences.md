@@ -278,7 +278,7 @@ anti-overflow use case is served by the `*_with_dtype` variants (array-api `dtyp
 the scan (no materialized cast copy).
 ## `where` condition must be a boolean tensor (no truthiness)
 
-- **numpy:** `_core/tests/test_multiarray.py::TestWhere::test_dtype_mix` (L10017)
+- **numpy:** `_core/tests/test_multiarray.py::TestWhere::test_dtype_mix` (L10016)
   accepts non-bool conditions (`c.astype(int)`, values like 34242324) via
   truthiness; the iterator casts any operand dtype to `NPY_BOOL`.
 - **rstsr:** `rt::where` requires `TensorAny<R, bool, B, D>` for the condition;
@@ -293,7 +293,7 @@ rstsr either.
 
 ## Scalar arguments promote like tensors (no NEP 50 weak scalars)
 
-- **numpy:** `_core/tests/test_multiarray.py::TestWhere::test_exotic` (L9958)
+- **numpy:** `_core/tests/test_multiarray.py::TestWhere::test_exotic` (L9959)
   pins NEP 50 weak Python scalars: `np.where(True, float32_arr, float('nan'))`
   stays float32, `1e150` overflows with a warning but stays float32,
   `test_scalar_overflow` raises OverflowError for out-of-range Python ints.
@@ -307,3 +307,17 @@ rstsr either.
 
 Library-wide divergence (applies to all elementwise scalars), recorded here
 because `where` is the first select-family function with scalar overloads.
+
+## `where` has no one-argument form (indices/nonzero)
+
+- **numpy:** `np.where(condition)` with a single argument returns the indices
+  of truthy elements (equivalent to `np.nonzero`) - see
+  `_core/tests/test_multiarray.py::TestWhere::test_empty_result` (L10086) /
+  `test_largedim` (L10094).
+- **rstsr:** `rt::where` provides only the three-argument select form
+  `where(cond, x, y)`; the one-argument indices form is out of scope.
+- **tag:** intentional
+- **status:** open
+
+API-surface scope decision: index retrieval should be served by dedicated
+nonzero/argwhere-style APIs rather than an overloaded `where` (none wired yet).

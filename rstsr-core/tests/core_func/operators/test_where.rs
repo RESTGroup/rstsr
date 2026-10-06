@@ -8,10 +8,10 @@ use crate::TESTCFG;
 
 // NumPy TestWhere (numpy/_core/tests/test_multiarray.py) translations.
 // Known divergences (see tests/tracking/numpy_differences.md):
-// - cond must be a bool tensor; NumPy applies truthiness to any dtype
-//   (test_dtype_mix non-bool-mask cases are translated via `ne(mask, 0)`).
-// - scalar x/y follow rstsr's strong promotion, not NumPy's NEP 50 weak
-//   scalars (test_exotic minimal-dtype-with-NaN-scalar cases not applicable).
+// - cond must be a bool tensor; NumPy applies truthiness to any dtype (test_dtype_mix non-bool-mask
+//   cases are translated via `ne(mask, 0)`).
+// - scalar x/y follow rstsr's strong promotion, not NumPy's NEP 50 weak scalars (test_exotic
+//   minimal-dtype-with-NaN-scalar cases not applicable).
 // - `np.longdouble` / `np.clongdouble` dtypes have no rstsr counterpart.
 
 #[cfg(test)]
@@ -22,7 +22,7 @@ mod numpy_where {
 
     /// Shared body of NumPy `test_basic` for one dtype: all-true cond, one
     /// false entry at index 7, scalar-cond, 0-d operand broadcast and
-    /// strided views (`::2`, `1::2`, `::3`, `1::3`, `::-2`, `::-3`).
+    /// strided views (`::2`, `1::2`, `::3`, `1::3`, `::-2`, `::-3`, `1::-3`).
     macro_rules! assert_basic_case {
         ($ty:ty, $zero:expr, $one:expr, $device:expr) => {{
             let device = &$device;
@@ -50,7 +50,7 @@ mod numpy_where {
             assert_eq!(rt::r#where(&c, &e, &e).to_vec(), vec![$zero; 53]);
             assert_eq!(rt::r#where(&c, &d, &e).to_vec(), r);
             assert_eq!(rt::r#where(&c, &d, &zero0).to_vec(), r);
-            assert_eq!(rt::r#where(&c, &zero0, &e).to_vec(), vec![$zero; 53]);
+            assert_eq!(rt::r#where(&c, &one0, &e).to_vec(), r);
 
             // strided views
             let expected_fwd = |start: usize, step: usize| -> Vec<$ty> {
@@ -78,11 +78,15 @@ mod numpy_where {
             assert_eq!(rt::r#where(&cs, &ds, &es).to_vec(), expected_rev(2));
             let (cs, ds, es) = slc(None, -3);
             assert_eq!(rt::r#where(&cs, &ds, &es).to_vec(), expected_rev(3));
+            // c[1::-3]: start 1, step -3 stops before index 0 -> single element
+            let (cs, ds, es) = slc(Some(1), -3);
+            assert_eq!(rt::r#where(&cs, &ds, &es).to_vec(), vec![$one]);
         }};
     }
 
     #[test]
     fn test_basic() {
+        // numpy: v2.5.2 | _core/tests/test_multiarray.py::TestWhere::test_basic (L9932)
         crate::specify_test!("test_basic");
 
         let mut device = TESTCFG.device.clone();
@@ -98,6 +102,7 @@ mod numpy_where {
 
     #[test]
     fn test_ndim() {
+        // numpy: v2.5.2 | _core/tests/test_multiarray.py::TestWhere::test_ndim (L10002)
         crate::specify_test!("test_ndim");
 
         let mut device = TESTCFG.device.clone();
@@ -124,6 +129,7 @@ mod numpy_where {
 
     #[test]
     fn test_dtype_mix() {
+        // numpy: v2.5.2 | _core/tests/test_multiarray.py::TestWhere::test_dtype_mix (L10016)
         crate::specify_test!("test_dtype_mix");
 
         let mut device = TESTCFG.device.clone();
@@ -131,7 +137,8 @@ mod numpy_where {
 
         // c = [F,T,F,F,F,F,T,F,F,F,T,F]
         let c = rt::tensor_from_nested!(
-            [false, true, false, false, false, false, true, false, false, false, true, false], &device
+            [false, true, false, false, false, false, true, false, false, false, true, false],
+            &device
         );
         let b = rt::tensor_from_nested!([5., 0., 3., 2., -1., -4., 0., -10., 10., 1., 0., 3.], &device);
         let expected = [5., 1., 3., 2., -1., -4., 1., -10., 10., 1., 1., 3.];
@@ -165,6 +172,7 @@ mod numpy_where {
 
     #[test]
     fn test_error() {
+        // numpy: v2.5.2 | _core/tests/test_multiarray.py::TestWhere::test_error (L10059)
         crate::specify_test!("test_error");
 
         let mut device = TESTCFG.device.clone();
@@ -176,10 +184,16 @@ mod numpy_where {
         let b: Tensor<f64, _, _> = rt::full(([5, 5], 1.0, &device));
         assert!(rt::where_f(&c, &a, &a).is_err());
         assert!(rt::where_f(&c, &a, &b).is_err());
+
+        // scalar cond with non-broadcastable x/y (NumPy: np.where(c[0], a, b)
+        // raises ValueError); translated with a 0-d bool cond tensor
+        let t: Tensor<bool, _, _> = rt::full(([], true, &device));
+        assert!(rt::where_f(&t, &a, &b).is_err());
     }
 
     #[test]
     fn test_exotic() {
+        // numpy: v2.5.2 | _core/tests/test_multiarray.py::TestWhere::test_exotic (L9959)
         crate::specify_test!("test_exotic");
 
         let mut device = TESTCFG.device.clone();
@@ -243,6 +257,43 @@ mod custom_where {
         let y = rt::tensor_from_nested!([10, 20], &device);
         let r = c.view().r#where(&x, &y);
         assert_eq!(r.to_vec(), vec![1, 20]);
+
+        // by-value view spellings of x/y (delegate to the reference impls)
+        assert_eq!(rt::r#where(&c, x.view(), &y).to_vec(), vec![1, 20]);
+        assert_eq!(rt::r#where(&c, &x, y.view()).to_vec(), vec![1, 20]);
+        assert_eq!(rt::r#where(&c, x.view(), y.view()).to_vec(), vec![1, 20]);
+
+        // view/mut-view receivers with a scalar operand (autoref resolves to
+        // the reference impls, no by-value receiver impls needed)
+        assert_eq!(c.view().r#where(&x, 0).to_vec(), vec![1, 0]);
+        let mut cm = c.clone();
+        assert_eq!(cm.view_mut().r#where(7, &y).to_vec(), vec![7, 20]);
+    }
+
+    #[test]
+    fn test_output_layout() {
+        crate::specify_test!("test_output_layout");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // output memory order follows the shared elementwise-op policy: with
+        // all operands f-contiguous, the result is f-contiguous, matching
+        // rt::add on the same inputs
+        let c = rt::tensor_from_nested!([[true, false, true], [false, true, false]], &device);
+        let x = rt::tensor_from_nested!([[1, 2, 3], [4, 5, 6]], &device);
+        let y = rt::tensor_from_nested!([[-1, -2, -3], [-4, -5, -6]], &device);
+        let r = rt::r#where(&c.t(), &x.t(), &y.t());
+        assert_eq!(r.shape(), &[3, 2]);
+        assert_eq!(r.stride(), &[1, 3]);
+        let r_add = rt::add(&x.t(), &y.t());
+        assert_eq!(r_add.stride(), &[1, 3]);
+
+        // mixed c/f-contiguous operands fall back to the device default order
+        let x2 = rt::arange((6, &device)).into_shape([3, 2]);
+        let r = rt::r#where(&c, &x2.t(), &x2.t());
+        assert_eq!(r.shape(), &[2, 3]);
+        assert_eq!(r.stride(), &[3, 1]);
     }
 
     #[test]
@@ -259,5 +310,94 @@ mod custom_where {
         let r = rt::r#where(&c, &x, &y);
         assert_eq!(r.shape(), &[3, 4]);
         assert_eq!(r.reshape([-1]).to_vec(), vec![1, 2, 3, 4, -1, -2, -3, -4, 1, 2, 3, 4]);
+    }
+
+    // Large arrays (>= TILE_SWITCH / PARALLEL_SWITCH, 4096 elements) reaching
+    // the 4-ary kernel fast paths: contiguous dispatch, blocked 2-D iteration,
+    // and the generic strided dispatch (with and without broadcast stride-0).
+    // The parallel (rayon) arms of the same kernels are exercised by the same
+    // sizes when compiled with feature `rayon`.
+    #[test]
+    fn test_large_kernels() {
+        crate::specify_test!("test_large_kernels");
+
+        let mut device = TESTCFG.device.clone();
+        device.set_default_order(RowMajor);
+
+        // 1-D contiguous, one past the switch boundary (parallel-inner branch
+        // under rayon)
+        let n = 4099;
+        let xv: Vec<i64> = (0..n as i64).collect();
+        let yv: Vec<i64> = (0..n as i64).map(|i| -i).collect();
+        let cv: Vec<bool> = (0..n).map(|i| i % 3 == 0).collect();
+        let x = rt::asarray((&xv, &device));
+        let y = rt::asarray((&yv, &device));
+        let c = rt::asarray((&cv, &device));
+        let r = rt::r#where(&c, &x, &y);
+        let expected: Vec<i64> = (0..n as i64).map(|i| if i % 3 == 0 { i } else { -i }).collect();
+        assert_eq!(r.to_vec(), expected);
+
+        // helper data: 4096 = 64 * 64 elements, cond true at every 5th
+        let make = |sign: i64| -> Tensor<i64, _, _> {
+            let v: Vec<i64> = (0..4096).map(|i| sign * i as i64).collect();
+            rt::asarray((&v, &device)).into_shape([64, 64])
+        };
+        let cv2: Vec<bool> = (0..4096).map(|i| i % 5 < 2).collect();
+        let c2 = rt::asarray((&cv2, &device)).into_shape([64, 64]);
+
+        // 2-D fully strided (transposed views): blocked 2-D iteration
+        let x = make(1);
+        let y = make(-1);
+        let r = rt::r#where(&c2.t(), &x.t(), &y.t());
+        let expected: Vec<i64> = (0..64)
+            .flat_map(|i| (0..64).map(move |j| (i, j)))
+            .map(|(i, j)| {
+                let k = j * 64 + i;
+                if k % 5 < 2 {
+                    k as i64
+                } else {
+                    -(k as i64)
+                }
+            })
+            .collect();
+        assert_eq!(r.reshape([-1]).to_vec(), expected);
+
+        // 3-D strided (16^3): generic dispatch arm
+        let x = rt::asarray((&(0..4096).map(|i| i as i64).collect::<Vec<_>>(), &device)).into_shape([16, 16, 16]);
+        let y = rt::asarray((&(0..4096).map(|i| -(i as i64)).collect::<Vec<_>>(), &device)).into_shape([16, 16, 16]);
+        let c3 = rt::asarray((&cv2, &device)).into_shape([16, 16, 16]);
+        let r = rt::r#where(&c3.t(), &x.t(), &y.t());
+        let expected: Vec<i64> = (0..16usize)
+            .flat_map(|i| (0..16).flat_map(move |j| (0..16).map(move |k| (i, j, k))))
+            .map(|(i, j, k)| {
+                let src = k * 256 + j * 16 + i; // transposed source index
+                if src % 5 < 2 {
+                    src as i64
+                } else {
+                    -(src as i64)
+                }
+            })
+            .collect();
+        assert_eq!(r.reshape([-1]).to_vec(), expected);
+
+        // broadcast cond (64, 1) against (64, 64): stride-0 leg disables the
+        // blocked path -> generic dispatch with broadcast strides
+        let cvb: Vec<bool> = (0..64).map(|i| i % 4 < 2).collect();
+        let cb = rt::asarray((&cvb, &device)).into_shape([64, 1]);
+        let x = make(1);
+        let y = make(-1);
+        let r = rt::r#where(&cb, &x, &y);
+        let expected: Vec<i64> = (0..64usize)
+            .flat_map(|i| (0..64).map(move |j| (i, j)))
+            .map(|(i, j)| {
+                let k = i * 64 + j;
+                if i % 4 < 2 {
+                    k as i64
+                } else {
+                    -(k as i64)
+                }
+            })
+            .collect();
+        assert_eq!(r.reshape([-1]).to_vec(), expected);
     }
 }

@@ -168,12 +168,8 @@ macro_rules! blocked_2d_iter_4 {
         let (sb_fast, sb_slow) = (sb[fast], sb[slow]);
         let (sc_fast, sc_slow) = (sc[fast], sc[slow]);
         // offset bases in isize; usize casts happen only at the indexing site
-        let (od, oa, ob, oc) = (
-            $ld.offset() as isize,
-            $la.offset() as isize,
-            $lb.offset() as isize,
-            $lc.offset() as isize,
-        );
+        let (od, oa, ob, oc) =
+            ($ld.offset() as isize, $la.offset() as isize, $lb.offset() as isize, $lc.offset() as isize);
         // tile grid: row-major in (slow, fast) so consecutive tiles are
         // adjacent along the output's fast axis
         for t_slow in (0..dim_slow).step_by(TILE) {

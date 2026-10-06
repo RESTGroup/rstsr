@@ -45,6 +45,18 @@ SURFACE = [
     ("_core/tests/test_multiarray.py", "TestPickling", "test_transposed_contiguous_array"),
     # TestArrayConstruction::test_array_cont = np.ascontiguousarray/asfortranarray analog (to_contig)
     ("_core/tests/test_multiarray.py", "TestArrayConstruction", "test_array_cont"),
+    # --- _core/tests/test_multiarray.py (operators: where) ---
+    ("_core/tests/test_multiarray.py", "TestWhere", "test_basic"),
+    ("_core/tests/test_multiarray.py", "TestWhere", "test_exotic"),
+    ("_core/tests/test_multiarray.py", "TestWhere", "test_ndim"),
+    ("_core/tests/test_multiarray.py", "TestWhere", "test_dtype_mix"),
+    ("_core/tests/test_multiarray.py", "TestWhere", "test_foreign"),
+    ("_core/tests/test_multiarray.py", "TestWhere", "test_error"),
+    ("_core/tests/test_multiarray.py", "TestWhere", "test_scalar_overflow"),
+    ("_core/tests/test_multiarray.py", "TestWhere", "test_string"),
+    ("_core/tests/test_multiarray.py", "TestWhere", "test_empty_result"),
+    ("_core/tests/test_multiarray.py", "TestWhere", "test_largedim"),
+    ("_core/tests/test_multiarray.py", "TestWhere", "test_kwargs"),
     # --- test_numeric.py ---
     ("_core/tests/test_numeric.py", "TestNonarrayArgs", "test_reshape"),
     ("_core/tests/test_numeric.py", "TestNonarrayArgs", "test_reshape_shape_arg"),

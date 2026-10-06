@@ -960,7 +960,13 @@ where
 }
 
 #[allow(unused_mut)]
-pub fn layout_col_major_dim_dispatch_4<D, F>(la: &Layout<D>, lb: &Layout<D>, lc: &Layout<D>, ld: &Layout<D>, mut f: F) -> Result<()>
+pub fn layout_col_major_dim_dispatch_4<D, F>(
+    la: &Layout<D>,
+    lb: &Layout<D>,
+    lc: &Layout<D>,
+    ld: &Layout<D>,
+    mut f: F,
+) -> Result<()>
 where
     D: DimAPI,
     F: FnMut((usize, usize, usize, usize)),

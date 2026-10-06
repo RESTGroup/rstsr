@@ -229,5 +229,24 @@ mod doc_where {
             format!("{}", rt::r#where(&cond, &rt::arange((4.0, &device)).reshape([2, 2]), 0.0)),
             "[[ 0 0]\n [ 0 3]]"
         );
+
+        // order-dependent broadcast: a 1-D condition of length 2 against
+        // (2, 3) operands is non-broadcastable under RowMajor (trailing-axis
+        // alignment), but valid under ColMajor (leading-axis alignment);
+        // operands are recreated after each order switch so their devices
+        // carry the intended default order
+        device.set_default_order(RowMajor);
+        let cond = rt::tensor_from_nested!([true, false], &device);
+        let x = rt::tensor_from_nested!([[0, 1, 2], [3, 4, 5]], &device);
+        let y = rt::tensor_from_nested!([[0, -1, -2], [-3, -4, -5]], &device);
+        assert!(rt::where_f(&cond, &x, &y).is_err());
+        device.set_default_order(ColMajor);
+        let cond = rt::tensor_from_nested!([true, false], &device);
+        let x = rt::tensor_from_nested!([[0, 1, 2], [3, 4, 5]], &device);
+        let y = rt::tensor_from_nested!([[0, -1, -2], [-3, -4, -5]], &device);
+        let r = rt::r#where(&cond, &x, &y);
+        println!("{r}");
+        assert_eq!(r.shape(), &[2, 3]);
+        assert_eq!(format!("{r}"), "[[ 0 1 2]\n [ -3 -4 -5]]");
     }
 }

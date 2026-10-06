@@ -203,10 +203,10 @@ _core/tests/test_indexing.py,TestIndexing,test_single_int_index,v2.5.2,transferr
 _core/tests/test_indexing.py,TestIndexing,test_ellipsis_index,v2.5.2,transferred,core_func/indexing/test_indexing.rs::numpy_indexing::test_ellipsis_index,2ce6cc7a982a,"a[...,1] + a[0,...,1]; sub-tensor/ellipsis indexing works"
 
 # --- core_func/operators (elementwise select) ---
-_core/tests/test_multiarray.py,TestWhere,test_basic,v2.5.2,transferred,core_func/operators/test_where.rs::numpy_where::test_basic,06bbd4df6245,"dtype loop bool/i16/i32/i64/f64/complex128 (longdouble/clongdouble N-A); scalar-cond as 0-d bool tensors; 0-d broadcast; strided ::2/1::2/::3/1::3/::-2/::-3"
+_core/tests/test_multiarray.py,TestWhere,test_basic,v2.5.2,transferred,core_func/operators/test_where.rs::numpy_where::test_basic,06bbd4df6245,"dtype loop bool/i16/i32/i64/f64/complex128 (longdouble/clongdouble N-A); scalar-cond as 0-d bool tensors; 0-d broadcast; strided ::2/1::2/::3/1::3/::-2/::-3/1::-3"
 _core/tests/test_multiarray.py,TestWhere,test_ndim,v2.5.2,transferred,core_func/operators/test_where.rs::numpy_where::test_ndim,c5515b762895,"cond[:,None] 3-way broadcast + transposed-operand part with plain 1-D cond"
 _core/tests/test_multiarray.py,TestWhere,test_dtype_mix,v2.5.2,partial,core_func/operators/test_where.rs::numpy_where::test_dtype_mix,9c81c416e0f5,"u32 0-d + f64, f32 + i64 -> f64; non-bool-mask parts translated via ne(mask, 0) (rstsr cond is strict bool)"
-_core/tests/test_multiarray.py,TestWhere,test_error,v2.5.2,partial,core_func/operators/test_where.rs::numpy_where::test_error,f5841445383e,"non-broadcastable -> Err; scalar-cond case (c[0]) N-A: rstsr cond must be a tensor"
+_core/tests/test_multiarray.py,TestWhere,test_error,v2.5.2,transferred,core_func/operators/test_where.rs::numpy_where::test_error,f5841445383e,"non-broadcastable -> Err (cond-vs-x pair); scalar-cond x/y mismatch (c[0]) via 0-d bool cond -> Err (x-vs-y pair)"
 _core/tests/test_multiarray.py,TestWhere,test_exotic,v2.5.2,partial,core_func/operators/test_where.rs::numpy_where::test_exotic,f7bfead5bb38,"zero-size (0,3) cases; object-dtype and weak-NaN-scalar dtype-minimality parts N-A (no object dtype; strong scalars)"
 _core/tests/test_multiarray.py,TestWhere,test_foreign,v2.5.2,not-applicable,,347a60826252,byteorder (">i4"/">f8") has no rstsr counterpart
 _core/tests/test_multiarray.py,TestWhere,test_scalar_overflow,v2.5.2,not-applicable,,e7948d8c9311,Python-int overflow into fixed dtype N-A (rstsr scalars are Rust typed)

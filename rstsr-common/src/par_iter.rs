@@ -208,7 +208,13 @@ where
     Ok(())
 }
 
-pub fn layout_col_major_dim_dispatch_par_4<D, F>(la: &Layout<D>, lb: &Layout<D>, lc: &Layout<D>, ld: &Layout<D>, f: F) -> Result<()>
+pub fn layout_col_major_dim_dispatch_par_4<D, F>(
+    la: &Layout<D>,
+    lb: &Layout<D>,
+    lc: &Layout<D>,
+    ld: &Layout<D>,
+    f: F,
+) -> Result<()>
 where
     D: DimAPI,
     F: Fn((usize, usize, usize, usize)) + Send + Sync,

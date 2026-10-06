@@ -340,7 +340,12 @@ where
                             "blocked 2-D iter: c offset out of bounds"
                         );
                         unsafe {
-                            f(&mut *d_ptr.add(off_d as usize), &*a_ptr.add(off_a as usize), &*b_ptr.add(off_b as usize), &*c_ptr.add(off_c as usize))
+                            f(
+                                &mut *d_ptr.add(off_d as usize),
+                                &*a_ptr.add(off_a as usize),
+                                &*b_ptr.add(off_b as usize),
+                                &*c_ptr.add(off_c as usize),
+                            )
                         };
                         off_d += g.sd_fast;
                         off_a += g.sa_fast;
@@ -354,7 +359,6 @@ where
     pool.map_or_else(task, |pool| pool.install(task));
     Ok(())
 }
-
 
 /* #region op_func definition */
 

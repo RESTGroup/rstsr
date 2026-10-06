@@ -30,7 +30,6 @@ pub mod rstsr_traits {
         TensorGreaterEqualAPI, TensorHypotAPI, TensorLessAPI, TensorLessEqualAPI, TensorLogAddExpAPI, TensorMaximumAPI,
         TensorMinimumAPI, TensorNotEqualAPI, TensorPowAPI,
     };
-    pub use crate::tensor::operators::op_where::TensorWhereAPI;
     pub use crate::tensor::operators::op_unary_common::{
         TensorAbsAPI, TensorAcosAPI, TensorAcoshAPI, TensorAsinAPI, TensorAsinhAPI, TensorAtanAPI, TensorAtanhAPI,
         TensorCeilAPI, TensorConjAPI, TensorCosAPI, TensorCoshAPI, TensorExpAPI, TensorExpm1API, TensorFloorAPI,
@@ -38,6 +37,7 @@ pub mod rstsr_traits {
         TensorLogAPI, TensorRealAPI, TensorRoundAPI, TensorSignAPI, TensorSignBitAPI, TensorSinAPI, TensorSinhAPI,
         TensorSqrtAPI, TensorSquareAPI, TensorTanAPI, TensorTanhAPI, TensorTruncAPI,
     };
+    pub use crate::tensor::operators::op_where::TensorWhereAPI;
     pub use crate::tensor::ownership_conversion::{TensorIntoOwnedAPI, TensorViewAPI, TensorViewMutAPI};
     pub use crate::tensor::reduction::TensorSumBoolAPI;
 
