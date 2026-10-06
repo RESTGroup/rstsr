@@ -243,6 +243,13 @@ mod custom_where {
         let y = rt::tensor_from_nested!([false, false, true, true], &device);
         let r = rt::r#where(&c, &x, &y);
         assert_eq!(r.to_vec(), vec![true, false, false, true]);
+
+        // bool scalars: accepted since the scalar bound is DTypeScalarAPI
+        // (num::Num rejected bool)
+        let r = rt::r#where(&c, &x, false);
+        assert_eq!(r.to_vec(), vec![true, false, false, false]);
+        let r = rt::r#where(&c, true, &y);
+        assert_eq!(r.to_vec(), vec![true, false, true, true]);
     }
 
     #[test]

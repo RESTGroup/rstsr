@@ -138,7 +138,9 @@ where
     DA::Max: DimAPI,
     B: OpWhereAPI<TX, TY, DA::Max>,
     B: DeviceAPI<bool> + DeviceAPI<TX> + DeviceAPI<TY> + DeviceAPI<B::TOut> + DeviceCreationAnyAPI<B::TOut>,
-    TY: num::Num,
+    // scalar overloads accept any rstsr dtype (bool included); the marker is
+    // not implemented for tensor types, keeping the overloads disjoint
+    TY: DTypeScalarAPI,
 {
     type Output = Tensor<B::TOut, B, DA::Max>;
 
@@ -175,7 +177,7 @@ where
     DA::Max: DimAPI,
     B: OpWhereAPI<TX, TY, DA::Max>,
     B: DeviceAPI<bool> + DeviceAPI<TX> + DeviceAPI<TY> + DeviceAPI<B::TOut> + DeviceCreationAnyAPI<B::TOut>,
-    TX: num::Num,
+    TX: DTypeScalarAPI,
 {
     type Output = Tensor<B::TOut, B, DA::Max>;
 
