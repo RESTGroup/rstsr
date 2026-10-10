@@ -14,8 +14,8 @@
 //! general-`ord` norms) are absent from the namespace, never stubbed — they
 //! are rust-side gaps.
 
-use pyo3::prelude::*;
 use pyo3::exceptions::PyTypeError;
+use pyo3::prelude::*;
 use pyo3::types::{PySequence, PySequenceMethods};
 use rstsr::prelude::rt;
 use rstsr::prelude::*;
@@ -100,9 +100,7 @@ macro_rules! bin_numeric {
             (AnyTensor::C32($a), AnyTensor::C32($b)) => $body,
             (AnyTensor::C64($a), AnyTensor::C64($b)) => $body,
             (AnyTensor::Bool(_), AnyTensor::Bool(_)) => type_err(concat!($name, ": bool dtype is not defined")),
-            _ => {
-                type_err(concat!($name, ": operands must share one dtype (rstsr gap G-009); cast first"))
-            },
+            _ => type_err(concat!($name, ": operands must share one dtype (rstsr gap G-009); cast first")),
         }
     };
 }

@@ -40,8 +40,8 @@ where
     let offset_b = lb.offset();
 
     let shape_c = lc.shape().clone();
-    let stride_a = lam.stride().iter().copied().chain(core::iter::repeat(0isize).take(lbm.ndim())).collect_vec();
-    let stride_b = core::iter::repeat(0isize).take(lam.ndim()).chain(lbm.stride().iter().copied()).collect_vec();
+    let stride_a = lam.stride().iter().copied().chain(core::iter::repeat_n(0isize, lbm.ndim())).collect_vec();
+    let stride_b = core::iter::repeat_n(0isize, lam.ndim()).chain(lbm.stride().iter().copied()).collect_vec();
     // SAFETY: both are valid (read-only) broadcast views of real layouts.
     let lam_e = unsafe { Layout::<IxD>::new_unchecked(shape_c.clone(), stride_a, offset_a) };
     let lbm_e = unsafe { Layout::<IxD>::new_unchecked(shape_c, stride_b, offset_b) };

@@ -5,6 +5,12 @@ use core::ops::Mul;
 use num::Zero;
 use rstsr_common::layout::reshape::layout_reshapeable;
 
+/// `(contracted_a, free_a, contracted_b, free_b)` layouts of a contraction.
+pub type SplitTensordotAxes = (Layout<IxD>, Layout<IxD>, Layout<IxD>, Layout<IxD>);
+
+/// Canonical `(M, K)`, `(K, N)`, `(M, N)` layouts for a GEMM contraction.
+pub type GemmLayouts = (Layout<Ix2>, Layout<Ix2>, Layout<Ix2>);
+
 /// Split both operands into `(contracted, free)` layouts for the given axes,
 /// asserting that the paired contracted shapes agree.
 pub fn split_tensordot_axes<DA, DB>(
@@ -12,7 +18,7 @@ pub fn split_tensordot_axes<DA, DB>(
     axes_a: &[isize],
     lb: &Layout<DB>,
     axes_b: &[isize],
-) -> Result<(Layout<IxD>, Layout<IxD>, Layout<IxD>, Layout<IxD>)>
+) -> Result<SplitTensordotAxes>
 where
     DA: DimAPI,
     DB: DimAPI,
@@ -63,8 +69,8 @@ where
     // the *other* operand gets zero stride (a broadcast view). Only read, so
     // aliasing is sound.
     let shape_c = lc.shape().clone();
-    let stride_a = lam.stride().iter().copied().chain(core::iter::repeat(0isize).take(lbm.ndim())).collect_vec();
-    let stride_b = core::iter::repeat(0isize).take(lam.ndim()).chain(lbm.stride().iter().copied()).collect_vec();
+    let stride_a = lam.stride().iter().copied().chain(core::iter::repeat_n(0isize, lbm.ndim())).collect_vec();
+    let stride_b = core::iter::repeat_n(0isize, lam.ndim()).chain(lbm.stride().iter().copied()).collect_vec();
     // SAFETY: both are valid (read-only) broadcast views of real layouts.
     let lam_e = unsafe { Layout::<IxD>::new_unchecked(shape_c.clone(), stride_a, offset_a) };
     let lbm_e = unsafe { Layout::<IxD>::new_unchecked(shape_c, stride_b, offset_b) };
@@ -96,7 +102,7 @@ pub fn tensordot_gemm_layouts<DA, DB, DC>(
     axes_b: &[isize],
     lc: &Layout<DC>,
     order: FlagOrder,
-) -> Result<Option<(Layout<Ix2>, Layout<Ix2>, Layout<Ix2>)>>
+) -> Result<Option<GemmLayouts>>
 where
     DA: DimAPI,
     DB: DimAPI,

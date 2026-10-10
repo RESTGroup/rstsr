@@ -401,10 +401,10 @@ mod test {
         assert!(rt::allclose(&c, &target, None));
 
         let c = rt::tensordot(&a, &b, 2);
-        assert!(rt::allclose(&c, &rt::asarray((70.0, &device)), None));
+        assert!(rt::allclose(&c, rt::asarray((70.0, &device)), None));
 
         // swapped pairing: sum_{i,j} a[i,j] * b[j,i] = 5 + 14 + 18 + 32 = 69
         let c = rt::tensordot(&a, &b, ([1, 0], [0, 1]));
-        assert!(rt::allclose(&c, &rt::asarray((69.0, &device)), None));
+        assert!(rt::allclose(&c, rt::asarray((69.0, &device)), None));
     }
 }

@@ -12,7 +12,8 @@ mod numpy_tensordot {
 
     #[test]
     fn test_rejects_duplicate_axes() {
-        // numpy: v2.5.2 | _core/tests/test_numeric.py::TestTensordot::test_rejects_duplicate_axes (L4234)
+        // numpy: v2.5.2 | _core/tests/test_numeric.py::TestTensordot::test_rejects_duplicate_axes
+        // (L4234)
         crate::specify_test!("test_rejects_duplicate_axes");
 
         let mut device = TESTCFG.device.clone();
@@ -132,10 +133,8 @@ mod custom_tensordot {
         let a = rt::arange((60, &device)).into_shape((3, 4, 5));
         let b = rt::arange((24, &device)).into_shape((4, 3, 2));
         let actual = rt::tensordot(&a, &b, ([1, 0], [0, 1]));
-        let expected = rt::tensor_from_nested!(
-            [[4400, 4730], [4532, 4874], [4664, 5018], [4796, 5162], [4928, 5306]],
-            &device
-        );
+        let expected =
+            rt::tensor_from_nested!([[4400, 4730], [4532, 4874], [4664, 5018], [4796, 5162], [4928, 5306]], &device);
         assert_eq!(actual.shape(), &[5, 2]);
         assert_equal(&actual, &expected, None);
 
