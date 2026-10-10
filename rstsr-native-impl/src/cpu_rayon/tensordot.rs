@@ -18,7 +18,6 @@ pub fn tensordot_naive_cpu_rayon<TA, TB, TC, DA, DB, DC>(
     lb: &Layout<DB>,
     axes_a: &[isize],
     axes_b: &[isize],
-    order: FlagOrder,
     pool: Option<&ThreadPool>,
 ) -> Result<()>
 where
@@ -31,17 +30,10 @@ where
     TA: Mul<TB, Output = TC>,
 {
     if la.size().max(lb.size()) < PARALLEL_SWITCH || pool.is_none() {
-        return tensordot_naive_cpu_serial(c, lc, a, la, b, lb, axes_a, axes_b, order);
+        return tensordot_naive_cpu_serial(c, lc, a, la, b, lb, axes_a, axes_b);
     }
 
-    let (las, lam) = la.dim_split_axes(axes_a)?;
-    let (lbs, lbm) = lb.dim_split_axes(axes_b)?;
-    rstsr_assert_eq!(
-        las.shape(),
-        lbs.shape(),
-        InvalidLayout,
-        "the dimensions of a and b along the contracted axes should be the same"
-    )?;
+    let (las, lam, lbs, lbm) = split_tensordot_axes(la, axes_a, lb, axes_b)?;
 
     let lc = lc.to_dim::<IxD>()?;
     let offset_a = la.offset();
@@ -73,4 +65,31 @@ where
         })
     };
     pool.map_or_else(task, |pool| pool.install(task))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The parallel branch (operand size past `PARALLEL_SWITCH`) must agree with
+    /// the serial kernel element-for-element.
+    #[test]
+    fn test_parallel_branch_matches_serial() {
+        let pool = rayon::ThreadPoolBuilder::new().num_threads(2).build().unwrap();
+        let (m, k, n) = (24usize, 24usize, 24usize);
+        let la = Layout::<Ix2>::new([m, k], [k as isize, 1], 0).unwrap();
+        let lb = Layout::<Ix2>::new([k, n], [n as isize, 1], 0).unwrap();
+        let lc = Layout::<Ix2>::new([m, n], [n as isize, 1], 0).unwrap();
+        let a: Vec<f64> = (0..m * k).map(|i| (i % 7) as f64 - 3.0).collect();
+        let b: Vec<f64> = (0..k * n).map(|i| (i % 5) as f64 + 1.0).collect();
+
+        let mut c_par = vec![MaybeUninit::<f64>::uninit(); m * n];
+        let mut c_ser = vec![MaybeUninit::<f64>::uninit(); m * n];
+        tensordot_naive_cpu_rayon(&mut c_par, &lc, &a, &la, &b, &lb, &[1], &[0], Some(&pool)).unwrap();
+        tensordot_naive_cpu_serial(&mut c_ser, &lc, &a, &la, &b, &lb, &[1], &[0]).unwrap();
+
+        let c_par: Vec<f64> = c_par.into_iter().map(|x| unsafe { x.assume_init() }).collect();
+        let c_ser: Vec<f64> = c_ser.into_iter().map(|x| unsafe { x.assume_init() }).collect();
+        assert_eq!(c_par, c_ser);
+    }
 }

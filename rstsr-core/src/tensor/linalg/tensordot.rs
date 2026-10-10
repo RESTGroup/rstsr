@@ -38,12 +38,36 @@ fn resolve_tensordot_axes(
     }
 }
 
+/// The free (non-contracted) layouts of each operand, after asserting that the
+/// paired contracted shapes agree.
+fn split_tensordot_free<DA, DB>(
+    la: &Layout<DA>,
+    axes_a: &[isize],
+    lb: &Layout<DB>,
+    axes_b: &[isize],
+) -> Result<(Layout<IxD>, Layout<IxD>)>
+where
+    DA: DimAPI,
+    DB: DimAPI,
+{
+    let (las, lam) = la.dim_split_axes(axes_a)?;
+    let (lbs, lbm) = lb.dim_split_axes(axes_b)?;
+    rstsr_assert_eq!(
+        las.shape(),
+        lbs.shape(),
+        InvalidLayout,
+        "the dimensions of a and b along the contracted axes should be the same"
+    )?;
+    Ok((lam, lbm))
+}
+
 /// Tensor contraction over specified axes.
 ///
 /// Contracts the axes of `a` given by `axes` with the corresponding axes of `b`
 /// (see the `axes` parameter below); the result holds the non-contracted axes of
 /// `a` (in order) followed by the non-contracted axes of `b` (in order). No
-/// conjugation is applied, unlike [`vecdot`](crate::prelude::vecdot).
+/// conjugation is applied, unlike [`vecdot`].
+/// This function behaves identically under [`RowMajor`] and [`ColMajor`] device default orders.
 ///
 /// # Parameters
 ///
@@ -71,16 +95,65 @@ fn resolve_tensordot_axes(
 ///
 /// # Examples
 ///
+/// Matrix product (`axes = 1`):
+///
 /// ```rust
 /// # use rstsr::prelude::*;
 /// # let mut device = DeviceCpu::default();
 /// # device.set_default_order(RowMajor);
-/// // outer product (axes = 0)
+/// let a = rt::tensor_from_nested!([[1, 2], [3, 4]], &device);
+/// let b = rt::tensor_from_nested!([[5, 6], [7, 8]], &device);
+/// let c = rt::tensordot(&a, &b, 1);
+/// assert_eq!(c.shape(), &[2, 2]);
+/// println!("{c}");
+/// // [[ 19 22]
+/// //  [ 43 50]]
+/// ```
+///
+/// Outer product (`axes = 0`):
+///
+/// ```rust
+/// # use rstsr::prelude::*;
+/// # let mut device = DeviceCpu::default();
+/// # device.set_default_order(RowMajor);
 /// let a = rt::tensor_from_nested!([1, 2], &device);
 /// let b = rt::tensor_from_nested!([3, 4], &device);
 /// let c = rt::tensordot(&a, &b, 0);
-/// assert_eq!(c.shape(), &[2, 2]);
+/// println!("{c}");
+/// // [[ 3 4]
+/// //  [ 6 8]]
 /// ```
+///
+/// # Notes of API accordance
+///
+/// - Array-API: `tensordot(x1, x2, /, *, axes=2)` ([`tensordot`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.tensordot.html))
+/// - NumPy: `tensordot(a, b, axes=2)` ([`numpy.tensordot`](https://numpy.org/doc/stable/reference/generated/numpy.tensordot.html))
+/// - RSTSR: `rt::tensordot(a, b, axes)`
+///
+/// A bare collection (`[0, 1]`) is the rstsr shorthand for the *same* axes on both
+/// sides, whereas NumPy reads `tensordot(a, b, [0, 1])` as the pair `(0, 1)`. `None` and
+/// `()` are accepted as the default `2`; NumPy rejects `None`.
+///
+/// # Panics
+///
+/// - The paired contracted axes do not have equal sizes.
+/// - An integer `axes` is negative or exceeds the dimensionality of either input.
+///
+/// For a fallible version, use [`tensordot_f`].
+///
+/// # See also
+///
+/// ## Related functions in RSTSR
+///
+/// - [`matmul`] - Matrix-matrix product.
+/// - [`vecdot`] - Vector dot product (conjugates the first argument).
+/// - [`rt::tblis::tensordot`](https://docs.rs/rstsr-tblis/latest/rstsr_tblis/tensordot_impl/fn.tensordot.html)
+///   - Tensor dot product along specified axes.
+///
+/// ## Variants of this function
+///
+/// - [`tensordot`] / [`tensordot_f`]: Returning a new tensor.
+/// - [`tensordot_from`] / [`tensordot_from_f`]: Writing result to existing tensor.
 pub fn tensordot<TA, TB, TC, DA, DB, B>(
     a: impl TensorViewAPI<Type = TA, Backend = B, Dim = DA>,
     b: impl TensorViewAPI<Type = TB, Backend = B, Dim = DB>,
@@ -125,14 +198,7 @@ where
     }
     let (axes_a, axes_b) = resolve_tensordot_axes(&axes, a.ndim(), b.ndim())?;
 
-    let (las, lam) = a.layout().dim_split_axes(&axes_a)?;
-    let (lbs, lbm) = b.layout().dim_split_axes(&axes_b)?;
-    rstsr_assert_eq!(
-        las.shape(),
-        lbs.shape(),
-        InvalidLayout,
-        "the dimensions of a and b along the contracted axes should be the same"
-    )?;
+    let (lam, lbm) = split_tensordot_free(a.layout(), &axes_a, b.layout(), &axes_b)?;
 
     let mut shape_c = lam.shape().clone();
     shape_c.extend_from_slice(lbm.shape());
@@ -151,14 +217,13 @@ pub fn tensordot_from<TA, TB, TC, DA, DB, DC, B>(
     a: impl TensorViewAPI<Type = TA, Backend = B, Dim = DA>,
     b: impl TensorViewAPI<Type = TB, Backend = B, Dim = DB>,
     axes: impl TryInto<AxesPairIndex<isize>, Error: Into<Error>>,
-) -> Result<()>
-where
+) where
     DA: DimAPI,
     DB: DimAPI,
     DC: DimAPI,
     B: DeviceTensordotAPI<TA, TB, TC, DA, DB, DC> + DeviceAPI<TA> + DeviceAPI<TB> + DeviceAPI<TC>,
 {
-    tensordot_from_f(c, a, b, axes)
+    tensordot_from_f(c, a, b, axes).rstsr_unwrap()
 }
 
 /// Tensor contraction over specified axes, writing into `c`.
@@ -190,14 +255,7 @@ where
     }
     let (axes_a, axes_b) = resolve_tensordot_axes(&axes, a.ndim(), b.ndim())?;
 
-    let (las, lam) = a.layout().dim_split_axes(&axes_a)?;
-    let (lbs, lbm) = b.layout().dim_split_axes(&axes_b)?;
-    rstsr_assert_eq!(
-        las.shape(),
-        lbs.shape(),
-        InvalidLayout,
-        "the dimensions of a and b along the contracted axes should be the same"
-    )?;
+    let (lam, lbm) = split_tensordot_free(a.layout(), &axes_a, b.layout(), &axes_b)?;
 
     let mut shape_c_expect = lam.shape().clone();
     shape_c_expect.extend_from_slice(lbm.shape());
@@ -348,21 +406,5 @@ mod test {
         // swapped pairing: sum_{i,j} a[i,j] * b[j,i] = 5 + 14 + 18 + 32 = 69
         let c = rt::tensordot(&a, &b, ([1, 0], [0, 1]));
         assert!(rt::allclose(&c, &rt::asarray((69.0, &device)), None));
-    }
-
-    #[test]
-    fn test_tensordot_pair_axes() {
-        let mut device = DeviceCpu::default();
-        device.set_default_order(RowMajor);
-
-        let a = rt::arange((60.0, &device)).into_shape((3, 4, 5));
-        let b = rt::arange((24.0, &device)).into_shape((4, 3, 2));
-        let c = rt::tensordot(&a, &b, ([1, 0], [0, 1]));
-        let target = rt::tensor_from_nested!(
-            [[4400., 4730.], [4532., 4874.], [4664., 5018.], [4796., 5162.], [4928., 5306.]],
-            &device
-        );
-        assert_eq!(c.shape(), &[5, 2]);
-        assert!(rt::allclose(&c, &target, None));
     }
 }

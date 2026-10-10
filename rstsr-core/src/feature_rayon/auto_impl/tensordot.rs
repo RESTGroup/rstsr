@@ -32,6 +32,6 @@ where
             return self.matmul_uninit(c, &lc2, a, &la2, b, &lb2, TC::one());
         }
         let pool = self.get_current_pool();
-        tensordot_naive_cpu_rayon(c, lc, a, la, b, lb, axes_a, axes_b, order, pool)
+        tensordot_naive_cpu_rayon(c, lc, a, la, b, lb, axes_a, axes_b, pool)
     }
 }

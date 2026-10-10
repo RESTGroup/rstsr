@@ -31,6 +31,6 @@ where
         if let Some((la2, lb2, lc2)) = tensordot_gemm_layouts(la, axes_a, lb, axes_b, lc, order)? {
             return self.matmul_uninit(c, &lc2, a, &la2, b, &lb2, TC::one());
         }
-        tensordot_naive_cpu_serial(c, lc, a, la, b, lb, axes_a, axes_b, order)
+        tensordot_naive_cpu_serial(c, lc, a, la, b, lb, axes_a, axes_b)
     }
 }

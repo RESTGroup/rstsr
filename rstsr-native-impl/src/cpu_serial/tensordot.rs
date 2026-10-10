@@ -5,6 +5,29 @@ use core::ops::Mul;
 use num::Zero;
 use rstsr_common::layout::reshape::layout_reshapeable;
 
+/// Split both operands into `(contracted, free)` layouts for the given axes,
+/// asserting that the paired contracted shapes agree.
+pub fn split_tensordot_axes<DA, DB>(
+    la: &Layout<DA>,
+    axes_a: &[isize],
+    lb: &Layout<DB>,
+    axes_b: &[isize],
+) -> Result<(Layout<IxD>, Layout<IxD>, Layout<IxD>, Layout<IxD>)>
+where
+    DA: DimAPI,
+    DB: DimAPI,
+{
+    let (las, lam) = la.dim_split_axes(axes_a)?;
+    let (lbs, lbm) = lb.dim_split_axes(axes_b)?;
+    rstsr_assert_eq!(
+        las.shape(),
+        lbs.shape(),
+        InvalidLayout,
+        "the dimensions of a and b along the contracted axes should be the same"
+    )?;
+    Ok((las, lam, lbs, lbm))
+}
+
 /// Naive tensor contraction `c = tensordot(a, b, (axes_a, axes_b))`.
 ///
 /// `axes_a` and `axes_b` are already normalized non-negative axes, pairwise
@@ -20,7 +43,6 @@ pub fn tensordot_naive_cpu_serial<TA, TB, TC, DA, DB, DC>(
     lb: &Layout<DB>,
     axes_a: &[isize],
     axes_b: &[isize],
-    _order: FlagOrder,
 ) -> Result<()>
 where
     TA: Clone,
@@ -31,14 +53,7 @@ where
     DC: DimAPI,
     TA: Mul<TB, Output = TC>,
 {
-    let (las, lam) = la.dim_split_axes(axes_a)?;
-    let (lbs, lbm) = lb.dim_split_axes(axes_b)?;
-    rstsr_assert_eq!(
-        las.shape(),
-        lbs.shape(),
-        InvalidLayout,
-        "the dimensions of a and b along the contracted axes should be the same"
-    )?;
+    let (las, lam, lbs, lbm) = split_tensordot_axes(la, axes_a, lb, axes_b)?;
 
     let lc = lc.to_dim::<IxD>()?;
     let offset_a = la.offset();
@@ -87,14 +102,7 @@ where
     DB: DimAPI,
     DC: DimAPI,
 {
-    let (las, lam) = la.dim_split_axes(axes_a)?;
-    let (lbs, lbm) = lb.dim_split_axes(axes_b)?;
-    rstsr_assert_eq!(
-        las.shape(),
-        lbs.shape(),
-        InvalidLayout,
-        "the dimensions of a and b along the contracted axes should be the same"
-    )?;
+    let (las, lam, lbs, lbm) = split_tensordot_axes(la, axes_a, lb, axes_b)?;
     let lc = lc.to_dim::<IxD>()?;
     let (m, k, n) = (lam.size(), las.size(), lbm.size());
 

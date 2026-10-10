@@ -81,10 +81,11 @@ macro_rules! bin_fc {
     };
 }
 
-/// Same-dtype binary dispatch over the twelve numeric dtypes (matmul, vecdot);
-/// bool is declined (rstsr's product kernels are not defined on it).
+/// Same-dtype binary dispatch over the twelve numeric dtypes (matmul, vecdot,
+/// tensordot); bool is declined (rstsr's product kernels are not defined on it).
+/// `$name` names the calling function in the failure messages.
 macro_rules! bin_numeric {
-    ($x1:expr, $x2:expr, |$a:ident, $b:ident| $body:expr) => {
+    ($name:literal, $x1:expr, $x2:expr, |$a:ident, $b:ident| $body:expr) => {
         match (&$x1.t, &$x2.t) {
             (AnyTensor::I8($a), AnyTensor::I8($b)) => $body,
             (AnyTensor::I16($a), AnyTensor::I16($b)) => $body,
@@ -98,8 +99,10 @@ macro_rules! bin_numeric {
             (AnyTensor::F64($a), AnyTensor::F64($b)) => $body,
             (AnyTensor::C32($a), AnyTensor::C32($b)) => $body,
             (AnyTensor::C64($a), AnyTensor::C64($b)) => $body,
-            (AnyTensor::Bool(_), AnyTensor::Bool(_)) => type_err("matmul/vecdot: bool dtype is not defined"),
-            _ => type_err("matmul/vecdot: operands must share one dtype (rstsr gap G-009); cast first"),
+            (AnyTensor::Bool(_), AnyTensor::Bool(_)) => type_err(concat!($name, ": bool dtype is not defined")),
+            _ => {
+                type_err(concat!($name, ": operands must share one dtype (rstsr gap G-009); cast first"))
+            },
         }
     };
 }
@@ -227,14 +230,14 @@ pub fn linalg_slogdet(x: &NativeArray) -> PyResult<(NativeArray, NativeArray)> {
 /// Matrix product (also the `@` operator).
 #[pyfunction]
 pub fn linalg_matmul(x1: &NativeArray, x2: &NativeArray) -> PyResult<NativeArray> {
-    let t = bin_numeric!(x1, x2, |a, b| any_res(rt::matmul_f(a, b)))?;
+    let t = bin_numeric!("matmul", x1, x2, |a, b| any_res(rt::matmul_f(a, b)))?;
     Ok(NativeArray { t })
 }
 
 /// Vector dot product over `axis` (the first argument is conjugated).
 #[pyfunction]
 pub fn linalg_vecdot(x1: &NativeArray, x2: &NativeArray, axis: isize) -> PyResult<NativeArray> {
-    let t = bin_numeric!(x1, x2, |a, b| any_res(rt::vecdot_f(a, b, axis)))?;
+    let t = bin_numeric!("vecdot", x1, x2, |a, b| any_res(rt::vecdot_f(a, b, axis)))?;
     Ok(NativeArray { t })
 }
 
@@ -249,7 +252,7 @@ pub fn linalg_tensordot(
     axes: Option<&pyo3::Bound<'_, pyo3::PyAny>>,
 ) -> PyResult<NativeArray> {
     let axes = parse_tensordot_axes(axes)?;
-    let t = bin_numeric!(x1, x2, |a, b| match &axes {
+    let t = bin_numeric!("tensordot", x1, x2, |a, b| match &axes {
         TdAxes::Int(n) => any_res(rt::tensordot_f(a, b, *n)),
         TdAxes::Pair(va, vb) => any_res(rt::tensordot_f(a, b, (va.clone(), vb.clone()))),
     })?;
