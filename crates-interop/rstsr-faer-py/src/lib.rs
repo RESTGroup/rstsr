@@ -300,6 +300,7 @@ fn rstsr_faer(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(linalg::linalg_svdvals, m)?)?;
     m.add_function(wrap_pyfunction!(linalg::linalg_slogdet, m)?)?;
     m.add_function(wrap_pyfunction!(linalg::linalg_vecdot, m)?)?;
+    m.add_function(wrap_pyfunction!(linalg::linalg_tensordot, m)?)?;
 
     m.add_function(wrap_pyfunction!(finfo, m)?)?;
     m.add_function(wrap_pyfunction!(iinfo, m)?)?;

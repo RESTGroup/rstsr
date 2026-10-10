@@ -15,6 +15,8 @@
 //! are rust-side gaps.
 
 use pyo3::prelude::*;
+use pyo3::exceptions::PyTypeError;
+use pyo3::types::{PySequence, PySequenceMethods};
 use rstsr::prelude::rt;
 use rstsr::prelude::*;
 
@@ -234,6 +236,57 @@ pub fn linalg_matmul(x1: &NativeArray, x2: &NativeArray) -> PyResult<NativeArray
 pub fn linalg_vecdot(x1: &NativeArray, x2: &NativeArray, axis: isize) -> PyResult<NativeArray> {
     let t = bin_numeric!(x1, x2, |a, b| any_res(rt::vecdot_f(a, b, axis)))?;
     Ok(NativeArray { t })
+}
+
+/// Tensor contraction over `axes` — an integer (contract the last `n` axes of
+/// `x1` with the first `n` of `x2`) or a pair of per-operand axis sequences.
+/// Top-level array-API function (not part of the `linalg` namespace).
+#[pyfunction]
+#[pyo3(signature = (x1, x2, axes = None))]
+pub fn linalg_tensordot(
+    x1: &NativeArray,
+    x2: &NativeArray,
+    axes: Option<&pyo3::Bound<'_, pyo3::PyAny>>,
+) -> PyResult<NativeArray> {
+    let axes = parse_tensordot_axes(axes)?;
+    let t = bin_numeric!(x1, x2, |a, b| match &axes {
+        TdAxes::Int(n) => any_res(rt::tensordot_f(a, b, *n)),
+        TdAxes::Pair(va, vb) => any_res(rt::tensordot_f(a, b, (va.clone(), vb.clone()))),
+    })?;
+    Ok(NativeArray { t })
+}
+
+enum TdAxes {
+    Int(isize),
+    Pair(Vec<isize>, Vec<isize>),
+}
+
+fn side_to_vec(o: &pyo3::Bound<'_, pyo3::PyAny>) -> PyResult<Vec<isize>> {
+    if let Ok(n) = o.extract::<isize>() {
+        return Ok(vec![n]);
+    }
+    o.extract::<Vec<isize>>()
+        .map_err(|_| PyTypeError::new_err("tensordot: each axes entry must be an int or a sequence of ints"))
+}
+
+fn parse_tensordot_axes(axes: Option<&pyo3::Bound<'_, pyo3::PyAny>>) -> PyResult<TdAxes> {
+    let axes = match axes {
+        None => return Ok(TdAxes::Int(2)),
+        Some(a) if a.is_none() => return Ok(TdAxes::Int(2)),
+        Some(a) => a,
+    };
+    if let Ok(n) = axes.extract::<isize>() {
+        return Ok(TdAxes::Int(n));
+    }
+    let seq = axes
+        .cast::<PySequence>()
+        .map_err(|_| PyTypeError::new_err("tensordot: `axes` must be an int or a pair of sequences"))?;
+    if seq.len()? != 2 {
+        return Err(PyTypeError::new_err("tensordot: `axes` tuple must have length 2"));
+    }
+    let va = side_to_vec(&seq.get_item(0)?)?;
+    let vb = side_to_vec(&seq.get_item(1)?)?;
+    Ok(TdAxes::Pair(va, vb))
 }
 
 /// Transpose the last two axes (a stack of matrices transposed independently).

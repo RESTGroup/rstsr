@@ -163,6 +163,7 @@ from .rstsr_faer import (
     linalg_svdvals as _linalg_svdvals,
     linalg_slogdet as _linalg_slogdet,
     linalg_vecdot as _linalg_vecdot,
+    linalg_tensordot as _linalg_tensordot,
 )
 
 __array_api_version__ = "2025.12"
@@ -1833,8 +1834,8 @@ def iinfo(type, /):
 
 # ------------------------------------------------------------------- linalg --
 # array-API `linalg` extension, over rstsr's existing entries only. Members the
-# standard defines but rstsr/faer does not provide (qr, slogdet, eig, eigvals,
-# matrix_norm, matrix_power, matrix_rank, tensordot, outer, cross, trace, and
+# standard defines but rstsr/faer does not provide (qr, eig, eigvals,
+# matrix_norm, matrix_power, matrix_rank, outer, cross, trace, and
 # the general-`ord` norms) are absent here — rust-side gaps, recorded in the
 # gap register, never stubbed. None of these wrappers batch: rstsr's faer
 # factorizations are 2-D only, so a stacked input is passed through and
@@ -1855,6 +1856,10 @@ def matrix_transpose(x, /):
 
 def vecdot(x1, x2, /, *, axis=-1):
     return _wrap(_linalg_vecdot(_handle(x1), _handle(x2), axis))
+
+
+def tensordot(x1, x2, /, *, axes=2):
+    return _wrap(_linalg_tensordot(_handle(x1), _handle(x2), axes))
 
 
 def cholesky(x, /, *, upper=False):
@@ -1920,6 +1925,7 @@ class _LinalgNamespace:
     svd = staticmethod(svd)
     svdvals = staticmethod(svdvals)
     slogdet = staticmethod(slogdet)
+    tensordot = staticmethod(tensordot)
     vecdot = staticmethod(vecdot)
 
 
@@ -2046,7 +2052,7 @@ __all__ = [
     "concat", "stack", "unstack", "expand_dims", "squeeze", "flip", "moveaxis",
     "repeat", "roll", "tile", "diff",
     # linear algebra
-    "matmul", "matrix_transpose", "vecdot", "linalg",
+    "matmul", "matrix_transpose", "vecdot", "tensordot", "linalg",
     # sorting
     "sort", "argsort",
     # searching / indexing
