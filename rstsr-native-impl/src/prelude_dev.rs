@@ -25,6 +25,7 @@ pub use crate::cpu_serial::reduction::*;
 pub use crate::cpu_serial::searching::*;
 pub use crate::cpu_serial::set::*;
 pub use crate::cpu_serial::sorting::*;
+pub use crate::cpu_serial::tensordot::*;
 pub use crate::cpu_serial::transpose::*;
 pub use crate::cpu_serial::vecdot::*;
 
@@ -42,6 +43,7 @@ mod cpu_rayon {
     pub use crate::cpu_rayon::reduction::*;
     pub use crate::cpu_rayon::searching::*;
     pub use crate::cpu_rayon::sorting::*;
+    pub use crate::cpu_rayon::tensordot::*;
     pub use crate::cpu_rayon::transpose::*;
     pub use crate::cpu_rayon::vecdot::*;
 }

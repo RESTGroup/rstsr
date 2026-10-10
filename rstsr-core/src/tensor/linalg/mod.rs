@@ -7,6 +7,7 @@
 
 pub mod matmul;
 pub mod matrix_transpose;
+pub mod tensordot;
 pub mod vecdot;
 
 pub mod exports {
@@ -14,5 +15,6 @@ pub mod exports {
 
     pub use matmul::*;
     pub use matrix_transpose::*;
+    pub use tensordot::*;
     pub use vecdot::*;
 }

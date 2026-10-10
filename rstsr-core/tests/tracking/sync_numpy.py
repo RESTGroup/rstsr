@@ -234,6 +234,10 @@ SURFACE = [
     ("_core/tests/test_ufunc.py", "TestUfunc", "test_vecdot"),
     ("_core/tests/test_ufunc.py", "TestUfunc", "test_broadcast"),
     ("_core/tests/test_ufunc.py", "TestUfunc", "test_vecdot_matvec_vecmat_complex"),
+    # --- linalg: tensordot ---
+    ("_core/tests/test_numeric.py", "TestTensordot", "test_rejects_duplicate_axes"),
+    ("_core/tests/test_numeric.py", "TestTensordot", "test_zero_dimension"),
+    ("_core/tests/test_numeric.py", "TestTensordot", "test_zero_dimensional"),
     # --- indexing (basic indexing via Tensor::i) ---
     ("_core/tests/test_indexing.py", "TestIndexing", "test_single_int_index"),
     ("_core/tests/test_indexing.py", "TestIndexing", "test_ellipsis_index"),

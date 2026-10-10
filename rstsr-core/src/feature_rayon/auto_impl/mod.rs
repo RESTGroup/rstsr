@@ -15,4 +15,5 @@ pub mod searching;
 pub mod set;
 pub mod sorting;
 pub mod take_along_axis;
+pub mod tensordot;
 pub mod vecdot;

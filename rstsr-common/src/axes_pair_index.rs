@@ -38,6 +38,14 @@ impl<T> From<Option<T>> for AxesPairIndex<T> {
     }
 }
 
+// Mirrors `Option::None` as the "no explicit axes" default (house convention:
+// when `()` is a valid overload, `None` must be too).
+impl From<()> for AxesPairIndex<isize> {
+    fn from(_: ()) -> Self {
+        AxesPairIndex::None
+    }
+}
+
 /* #region AxesPairIndex from a single axes collection (same axes for both operands) */
 
 // A single `axes` collection is shorthand for the pair `(axes, axes)`: the same

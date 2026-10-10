@@ -517,3 +517,20 @@ The `None` wildcard borrows the tensor's own element type, so
 scalar bound still promotes (see *Scalar arguments promote like tensors*). NumPy's
 in-place `out=` / `casting=` variants are not provided (rstsr clip is
 out-of-place only).
+
+
+## `tensordot`'s bare axes collection means "same axes", not NumPy's pair
+
+- **numpy:** `_core/tests/test_numeric.py::TestTensordot` - `np.tensordot(a, b, [0, 1])`
+  treats a 2-element `axes` as the *pair* `(0, 1)` (contract `a` axis 0 with `b` axis 1),
+  identical to `axes=(0, 1)`.
+- **rstsr:** `rt::tensordot(&a, &b, [0, 1])` / `vec![0, 1]` is the `AxesPairIndex`
+  same-axes shorthand - contract `a` axes {0, 1} with `b` axes {0, 1}. For NumPy's pair
+  meaning use the explicit tuple `(0, 1)`. The array-API-valid forms (`int`, `(seq, seq)`)
+  are unaffected; this only touches the bare-collection spelling.
+- **tag:** intentional
+- **status:** open
+
+`axes = None` / `()` is accepted as the array-API default `2` (Rust has no default
+arguments); NumPy raises on `None`. This is a Rust-callers' convenience, not a behavioral
+divergence for the Python surface.

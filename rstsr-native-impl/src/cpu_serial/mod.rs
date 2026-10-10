@@ -12,5 +12,6 @@ pub mod reduction;
 pub mod searching;
 pub mod set;
 pub mod sorting;
+pub mod tensordot;
 pub mod transpose;
 pub mod vecdot;

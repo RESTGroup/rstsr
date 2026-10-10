@@ -207,8 +207,8 @@ pub mod rstsr_funcs {
     // linalg (array-api's basic linalg operations, not the rstsr-linalg-traits)
     pub use crate::tensor::linalg::exports::{
         into_matrix_transpose, into_matrix_transpose_f, matmul, matmul_f, matmul_from, matmul_from_f,
-        matmul_with_output, matmul_with_output_f, matrix_transpose, matrix_transpose_f, vecdot, vecdot_f, vecdot_from,
-        vecdot_from_f,
+        matmul_with_output, matmul_with_output_f, matrix_transpose, matrix_transpose_f, tensordot, tensordot_f,
+        tensordot_from, tensordot_from_f, vecdot, vecdot_f, vecdot_from, vecdot_from_f,
     };
 }
 
