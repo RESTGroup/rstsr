@@ -282,3 +282,5 @@ lib/tests/test_function_base.py,TestDiff,test_nd,v2.5.2,transferred,core_func/ma
 lib/tests/test_function_base.py,TestDiff,test_n,v2.5.2,transferred,core_func/manipulation/test_diff.rs::numpy_diff::test_n,3eabe5afc719,"n=0 copy; length max(0,len-n)"
 lib/tests/test_function_base.py,TestDiff,test_prepend,v2.5.2,transferred,core_func/manipulation/test_diff.rs::numpy_diff::test_prepend,ca3dc647521d,explicit-shape prepend (no scalar expansion)
 lib/tests/test_function_base.py,TestDiff,test_append,v2.5.2,transferred,core_func/manipulation/test_diff.rs::numpy_diff::test_append,3777c5c667a5,append variants
+_core/tests/test_numeric.py,TestAsType,test_astype,v2.5.2,transferred,core_func/dtype/test_astype.rs::numpy_astype::test_astype,0ebf4c326fb6,"value cast, same-dtype shares-memory, 0-d scalar; non-array TypeError N/A (typed API)"
+_core/tests/test_api.py,,test_astype_copyflag,v2.5.2,transferred,core_func/dtype/test_astype.rs::numpy_astype::test_astype_copyflag,6b25d055ef1e,"copy=True/False/float via Cow ownership + ptr::addr_eq; _CopyMode enum N/A"

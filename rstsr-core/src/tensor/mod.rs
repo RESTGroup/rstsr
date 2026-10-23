@@ -7,6 +7,7 @@ pub mod array_indexer;
 pub mod array_indexing;
 pub mod asarray;
 pub mod assignment;
+pub mod astype;
 pub mod creation;
 pub mod creation_from_tensor;
 pub mod device_conversion;
@@ -40,6 +41,7 @@ pub mod exports {
     pub use array_indexing::*;
     pub use asarray::*;
     pub use assignment::*;
+    pub use astype::*;
     pub use creation::*;
     pub use creation_from_tensor::*;
     pub use device_conversion::*;

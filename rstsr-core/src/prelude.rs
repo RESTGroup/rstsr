@@ -85,6 +85,7 @@ pub mod rstsr_funcs {
     };
     pub use crate::tensor::array_indexing::{array_index, array_index_assign, array_index_assign_f, array_index_f};
     pub use crate::tensor::asarray::{asarray, asarray_f};
+    pub use crate::tensor::astype::{astype, astype_f};
     pub use crate::tensor::creation::{
         arange, arange_f, assume_init, assume_init_f, empty, empty_f, empty_like, empty_like_f, eye, eye_f,
         from_scalar, from_scalar_f, full, full_f, full_like, full_like_f, linspace, linspace_f, ones, ones_f,

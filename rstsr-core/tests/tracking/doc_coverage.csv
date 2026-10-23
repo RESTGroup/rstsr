@@ -82,3 +82,4 @@ feature_rayon/,internals,minimal,done,na,module //! present; item docs stay oppo
 format/,internals,minimal,done,na,module //! added (format/mod.rs); item docs stay opportunistic
 src/docs/api_specification.md,docs,na,na,na,API index; maintained on API-surface change only
 src/docs/array_api_standard.md,docs,na,na,na,conformance matrix; maintained on API-surface change only
+tensor/astype.rs,dtype,full,done,na,new API (astype/astype_f + TensorAny methods); doc_draft twin doc_astype

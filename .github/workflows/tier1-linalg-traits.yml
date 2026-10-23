@@ -23,7 +23,9 @@ jobs:
     - uses: Swatinem/rust-cache@v2
       with:
         prefix-key: linalg-traits
-    - uses: conda-incubator/setup-miniconda@v2
+    - uses: conda-incubator/setup-miniconda@v4
+      with:
+        miniconda-version: "latest"
     - name: conda environment setup
       run: |
         conda init; source $HOME/.bashrc; conda activate

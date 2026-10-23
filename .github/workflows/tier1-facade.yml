@@ -37,7 +37,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - uses: conda-incubator/setup-miniconda@v2
+    - uses: conda-incubator/setup-miniconda@v4
+      with:
+        miniconda-version: "latest"
     # the parity script is print-only: this gates that it still runs against
     # current NumPy/SciPy, not numerical equality.
     - name: cheat-sheet parity script runs

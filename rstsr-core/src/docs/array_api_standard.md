@@ -157,12 +157,14 @@ The reference implementation (as in [`DeviceCpuSerial`] and [`DeviceFaer`]), fol
 
 | status | implementation | Python API | description |
 |-|-|-|-|
-| T | Rust type cast [`as`](https://doc.rust-lang.org/reference/expressions/operator-expr.html#type-cast-expressions)<br>[`DTypeCastAPI::into_cast`]<br>[`num::ToPrimitive`] | [`astype`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.astype.html) | Copies an array to a specified data type irrespective of Type Promotion Rules. |
+| P[^8] | [`astype`]<br>[`mapv`][TensorAny::mapv] | [`astype`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.astype.html) | Copies an array to a specified data type irrespective of Type Promotion Rules. |
 | T | [`DTypePromoteAPI::CAN_CAST_SELF`]<br>[`DTypePromoteAPI::CAN_CAST_OTHER`]<br>operator trait definition | [`can_cast`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.can_cast.html) | Determines if one data type can be cast to another data type according to Type Promotion Rules. |
 | T | [`num::Float`] | [`finfo`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.finfo.html) | Machine limits for floating-point data types. |
 | T | [`num::Integer`] | [`iinfo`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.iinfo.html) | Machine limits for integer data types. |
 | T | [`core::any::TypeId`] | [`isdtype`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.isdtype.html) | Returns a boolean indicating whether a provided dtype is of a specified data type "kind". |
 | T | [`DTypePromoteAPI::Res`] | [`result_type`](https://data-apis.org/array-api/latest/API_specification/generated/array_api.result_type.html) | Returns the dtype that results from applying the type promotion rules (see Type Promotion Rules) to the arguments. |
+
+[^8]: [`astype`] takes no `copy` and no `device` keyword argument: a same-dtype conversion is always a view and a dtype-changing conversion always allocates, so there is no separate copy control and no cast onto another device. Call [`TensorAny::into_owned`] on the result when an explicit copy is required. For a conversion outside the dtype-cast matrix (notably complex-to-real, which the Array API forbids), use [`mapv`][TensorAny::mapv] with an explicit converter such as `real` or `imag`.
 
 ### Data Type Categories
 

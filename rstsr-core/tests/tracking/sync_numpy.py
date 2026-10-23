@@ -227,6 +227,9 @@ SURFACE = [
     ("lib/tests/test_twodim_base.py", "TestEye", "test_basic"),
     ("lib/tests/test_twodim_base.py", "", "test_tril_triu_ndim2"),
     ("lib/tests/test_twodim_base.py", "", "test_tril_triu_ndim3"),
+    # --- dtype (astype) ---
+    ("_core/tests/test_numeric.py", "TestAsType", "test_astype"),
+    ("_core/tests/test_api.py", "", "test_astype_copyflag"),
     # --- linalg (matmul, matrix_transpose) ---
     ("_core/tests/test_multiarray.py", "MatmulCommon", "test_vector_vector_values"),
     ("_core/tests/test_multiarray.py", "MatmulCommon", "test_vector_matrix_values"),

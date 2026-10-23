@@ -600,3 +600,32 @@ different result on a column-major device. NumPy parity tests therefore pin
 device-default-order dependent (next section). For two-dimensional operands the two conventions
 coincide (`rt::matmul` is order-independent for matrices, as its docstring states); only stacked
 inputs with more than two axes are affected.
+
+
+## `astype` has no `copy` / `order` / `casting` / `subok` arguments
+
+- **numpy:** `_core/tests/test_numeric.py::TestAsType::test_astype` (L4258), `_core/tests/test_api.py::test_astype_copyflag` (L653)
+- **rstsr:** core_func::dtype::test_astype (`numpy_astype` cases)
+- **tag:** intentional
+- **status:** open
+
+rstsr's `astype` always returns a `TensorCow`: a view when the target dtype equals the
+input dtype (NumPy `copy=False`), otherwise a newly allocated dense copy in the input's
+memory order (NumPy `order='K'`). There is no `copy`, `order`, `casting` or `subok`
+argument (NumPy), nor a `copy` or `device` keyword (Array API); an explicit copy is
+`tensor.astype::<T>().into_owned()`. The cast is element-wise
+`DTypeCastAPI::into_cast`, so float-to-int follows Rust's saturating `as` semantics
+(NumPy leaves out-of-range float-to-int casts undefined under `casting='unsafe'`; the
+Array API also declares them implementation-defined).
+
+## complex-to-real `astype` is unavailable
+
+- **numpy:** `_core/tests/test_numeric.py::TestAsType::test_astype` (L4258)
+- **rstsr:** core_func::dtype::test_astype
+- **tag:** intentional
+- **status:** open
+
+`DTypeCastAPI` implements every real/bool/complex pair except complex-to-real, so
+`astype` from a complex tensor to a real dtype does not compile. NumPy allows it,
+discarding the imaginary part with a warning; the Array API explicitly forbids it, and
+the intended explicit form is `mapv` with `real` or `imag`.

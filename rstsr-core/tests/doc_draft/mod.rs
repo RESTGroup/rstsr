@@ -1,5 +1,6 @@
 pub mod creation;
 pub mod docs;
+pub mod dtype;
 pub mod indexing;
 pub mod linalg;
 pub mod manipulation;

@@ -141,6 +141,7 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 | assoc | [`to_scalar`][TensorAny::to_scalar] | Extract scalar value from tensor that only have one element. |
 | assoc | [`as_ptr`][TensorAny::as_ptr] <br/> [`as_mut_ptr`][TensorAny::as_mut_ptr] | Returns pointer to the first element in tensor. |
 | fn | [`asarray`] | Convert input (scalar, `Vec<T>`, `&[T]`, tensor) to an array, optionally with shape/layout specified. |
+| assoc/fn | [`astype`] <br/> [`astype_f`] | Cast a tensor to another data type; a view when the dtype is unchanged, otherwise a dense copy in the input's memory order. |
 | assoc | [`TensorBase::into_raw_parts`] | Destruct tensor into storage and layout. |
 | assoc | [`Storage::into_raw_parts`][rstsr_core::storage::device::Storage::into_raw_parts] | Destruct storage into data (with lifetime) and device. |
 | assoc | [`DataOwned::into_raw`][rstsr_core::storage::data::DataOwned::into_raw] | Destruct owned data and get the raw data (`Vec<T>` for CPU devices). |
