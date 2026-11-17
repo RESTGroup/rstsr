@@ -29,7 +29,7 @@ pub fn gemm_faer<T>(
 where
     T: ComplexField + Num + MulAssign<T>,
 {
-    let nthreads = pool.map_or_else(|| 1, |pool| pool.current_num_threads());
+    let nthreads = pool.map_or(1, |pool| pool.current_num_threads());
 
     // shape check
     let sc = lc.shape();
@@ -126,7 +126,7 @@ pub fn syrk_faer<T>(
 where
     T: ComplexField + Num + MulAssign<T>,
 {
-    let nthreads = pool.map_or_else(|| 1, |pool| pool.current_num_threads());
+    let nthreads = pool.map_or(1, |pool| pool.current_num_threads());
 
     // shape check
     let sc = lc.shape();
@@ -224,7 +224,7 @@ pub fn gemm_with_syrk_faer<T>(
 where
     T: ComplexField + Num + MulAssign<T>,
 {
-    let nthreads = pool.map_or_else(|| 1, |pool| pool.current_num_threads());
+    let nthreads = pool.map_or(1, |pool| pool.current_num_threads());
 
     // This function performs c = beta * c + alpha * a * a^T
     // Note that we do not assume c is symmetric, so if beta != 0, we fall back to
