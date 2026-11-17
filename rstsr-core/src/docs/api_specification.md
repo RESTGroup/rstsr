@@ -245,6 +245,8 @@ Device is designed to be able extended by other crates. The above devices [`Devi
 | assoc/fn | [`to_layout`] <br/> [`into_layout`] <br/> [`change_layout`] | Convert tensor to the other layout. |
 | assoc/fn | [`to_contig`] <br/> [`into_contig`] <br/> [`change_contig`] | Convert tensor to contiguous layout (C or F order). |
 | assoc/fn | [`to_prefer`] <br/> [`into_prefer`] <br/> [`change_prefer`] | Convert tensor to preferred layout only if not already contiguous. |
+| assoc/fn | [`pack_tri`] <br/> [`pack_tril`] <br/> [`pack_triu`] <br/> [`pack_tri_with_output`] | Packs a triangle of the trailing square matrices into vectors (or into a provided output). |
+| assoc/fn | [`unpack_tri`] <br/> [`unpack_tril`] <br/> [`unpack_triu`] <br/> [`unpack_tri_with_output`] | Unpacks packed triangular vectors back into square matrices (or into a provided output). |
 
 ### Storage-creation manipulation
 

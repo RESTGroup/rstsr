@@ -118,6 +118,12 @@ pub mod rstsr_funcs {
         to_shape_with_args_f, transpose, transpose_f, unsqueeze, unsqueeze_f,
     };
 
+    // triangular pack/unpack
+    pub use crate::tensor::operators::exports::{
+        pack_tri, pack_tri_f, pack_tri_with_output, pack_tri_with_output_f, pack_tril, pack_tril_f, pack_triu,
+        pack_triu_f, unpack_tri, unpack_tri_f, unpack_tri_with_output, unpack_tri_with_output_f, unpack_tril,
+        unpack_tril_f, unpack_triu, unpack_triu_f,
+    };
     // binary arithmetics
     pub use crate::tensor::operators::exports::{
         add, add_f, add_with_output, add_with_output_f, div, div_f, div_with_output, div_with_output_f, mul, mul_f,
