@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.10.4 -- 2026-11-17
+
+Dtype conversion, triangular pack/unpack free functions, and a device-API
+refactor for host copy and formatting.
+
+API breaking changes (user should not feel that)
+
+- Host copy and formatting move into the `DeviceToCpuAPI` and `DeviceFormatAPI`
+  capability traits; `Raw` and `Data` no longer have to be `Clone` on the device
+  API. (RESTGroup/rstsr#164)
+
+New features
+
+- `astype` / `astype_f` convert a tensor to another dtype. (RESTGroup/rstsr#165)
+- `pack_tri` / `pack_tril` / `pack_triu` and `unpack_tri` / `unpack_tril` /
+  `unpack_triu` are free functions, with `with_output` variants.
+  (RESTGroup/rstsr#166)
+
+Enhancement
+
+- `Debug` formats host-backed tensors in place. (RESTGroup/rstsr#164)
+
+Dev infrastructure
+
+- Test entries follow `entry_<order>_<device>`, and CI runs in tiers.
+  (RESTGroup/rstsr#163)
+
 ## v0.10.3 -- 2026-10-19
 
 Zero-size layouts get a stride and leading-dimension contract, and the BLAS-3 and
