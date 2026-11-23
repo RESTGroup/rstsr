@@ -16,6 +16,7 @@ pub mod threading;
 pub mod trait_def;
 pub mod util;
 
+pub mod blas2;
 pub mod blas3;
 
 pub mod lapack_eigh;
