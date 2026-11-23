@@ -13,29 +13,7 @@ use rstsr_common::prelude::*;
 impl GEMVDriverAPI<T> for DeviceBLAS {
     unsafe fn driver_gemv(
         order: FlagOrder,
-        trans: FlagTrans,
-        m: usize,
-        n: usize,
-        alpha: T,
-        a: *const T,
-        lda: usize,
-        x: *const T,
-        beta: T,
-        y: *mut T,
-    ) {
-        lapack_ffi::cblas::cblas_func(order.into(), trans.into(), m as _, n as _, alpha, a, lda as _, x, 1, beta, y, 1);
-    }
-}
-
-#[duplicate_item(
-    T              cblas_func  ;
-   [Complex<f32>] [cblas_cgemv];
-   [Complex<f64>] [cblas_zgemv];
-)]
-impl GEMVDriverAPI<T> for DeviceBLAS {
-    unsafe fn driver_gemv(
-        order: FlagOrder,
-        trans: FlagTrans,
+        transa: FlagTrans,
         m: usize,
         n: usize,
         alpha: T,
@@ -47,7 +25,42 @@ impl GEMVDriverAPI<T> for DeviceBLAS {
     ) {
         lapack_ffi::cblas::cblas_func(
             order.into(),
-            trans.into(),
+            transa.into(),
+            m as _,
+            n as _,
+            alpha,
+            a,
+            lda as _,
+            x,
+            1,
+            beta,
+            y,
+            1,
+        );
+    }
+}
+
+#[duplicate_item(
+    T              cblas_func  ;
+   [Complex<f32>] [cblas_cgemv];
+   [Complex<f64>] [cblas_zgemv];
+)]
+impl GEMVDriverAPI<T> for DeviceBLAS {
+    unsafe fn driver_gemv(
+        order: FlagOrder,
+        transa: FlagTrans,
+        m: usize,
+        n: usize,
+        alpha: T,
+        a: *const T,
+        lda: usize,
+        x: *const T,
+        beta: T,
+        y: *mut T,
+    ) {
+        lapack_ffi::cblas::cblas_func(
+            order.into(),
+            transa.into(),
             m as _,
             n as _,
             &alpha as *const _ as *const _,
