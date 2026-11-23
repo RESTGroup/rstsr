@@ -30,6 +30,7 @@ where
     TB: Clone + Send + Sync + 'static,
     TC: Clone + Send + Sync + 'static,
     TA: Mul<TB, Output = TC>,
+    TB: Mul<TA, Output = TC>,
     TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + PartialEq,
 {
     // check if syrk could be applicable
@@ -78,6 +79,91 @@ where
 }
 
 #[allow(clippy::too_many_arguments)]
+fn gemv_blas_ix1_no_conj_dispatch<TA, TB, TC>(
+    c: &mut [TC],
+    lc: &Layout<Ix1>,
+    a: &[TA],
+    la: &Layout<Ix2>,
+    b: &[TB],
+    lb: &Layout<Ix1>,
+    transa: FlagTrans,
+    alpha: TC,
+    beta: TC,
+    pool: Option<&ThreadPool>,
+) -> Result<()>
+where
+    TA: Clone + Send + Sync + 'static,
+    TB: Clone + Send + Sync + 'static,
+    TC: Clone + Send + Sync + 'static,
+    TA: Mul<TB, Output = TC>,
+    TB: Mul<TA, Output = TC>,
+    TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + PartialEq,
+{
+    // type check and dispatch
+    macro_rules! impl_gemv_dispatch {
+        ($ty: ty, $fn_gemv_name: ident) => {
+            if (same_type::<TA, $ty>() && same_type::<TB, $ty>() && same_type::<TC, $ty>()) {
+                let a_slice = unsafe { from_raw_parts(a.as_ptr() as *const $ty, a.len()) };
+                let b_slice = unsafe { from_raw_parts(b.as_ptr() as *const $ty, b.len()) };
+                let c_slice = unsafe { from_raw_parts_mut(c.as_mut_ptr() as *mut $ty, c.len()) };
+                let alpha = unsafe { *(&alpha as *const TC as *const $ty) };
+                let beta = unsafe { *(&beta as *const TC as *const $ty) };
+                return $fn_gemv_name(c_slice, lc, a_slice, la, b_slice, lb, transa, alpha, beta, pool);
+            }
+        };
+    }
+
+    impl_gemv_dispatch!(f32, gemv_blas_no_conj_f32);
+    impl_gemv_dispatch!(f64, gemv_blas_no_conj_f64);
+    impl_gemv_dispatch!(Complex<f32>, gemv_blas_no_conj_c32);
+    impl_gemv_dispatch!(Complex<f64>, gemv_blas_no_conj_c64);
+
+    // not able to be accelarated by blas_no_conj (mixed dtypes)
+    // fallback to naive implementation
+    match transa {
+        FlagTrans::N => gemv_naive_cpu_serial(c, lc, a, la, b, lb, alpha, beta),
+        FlagTrans::T => gevm_naive_cpu_serial(c, lc, b, lb, a, la, alpha, beta),
+        _ => rstsr_invalid!(transa),
+    }
+}
+
+/// 2-D BLAS matmul: route to `gemv` when the product collapses to a vector
+/// (`m == 1` or `n == 1`), otherwise to `gemm`.
+#[allow(clippy::too_many_arguments)]
+fn matmul_blas_ix2_no_conj_dispatch<TA, TB, TC>(
+    c: &mut [TC],
+    lc: &Layout<Ix2>,
+    a: &[TA],
+    la: &Layout<Ix2>,
+    b: &[TB],
+    lb: &Layout<Ix2>,
+    alpha: TC,
+    beta: TC,
+    pool: Option<&ThreadPool>,
+) -> Result<()>
+where
+    TA: Clone + Send + Sync + 'static,
+    TB: Clone + Send + Sync + 'static,
+    TC: Clone + Send + Sync + 'static,
+    TA: Mul<TB, Output = TC>,
+    TB: Mul<TA, Output = TC>,
+    TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + PartialEq,
+{
+    if lc.shape()[0] == 1 {
+        // c row: c(0, j) = sum_k a(0, k) b(k, j) = b^T a(0, :)
+        let lc = &lc.dim_eliminate(0)?;
+        let la = &la.dim_eliminate(0)?;
+        return gemv_blas_ix1_no_conj_dispatch(c, lc, b, lb, a, la, FlagTrans::T, alpha, beta, pool);
+    } else if lc.shape()[1] == 1 {
+        // c column: c(i, 0) = sum_k a(i, k) b(k, 0)
+        let lc = &lc.dim_eliminate(1)?;
+        let lb = &lb.dim_eliminate(1)?;
+        return gemv_blas_ix1_no_conj_dispatch(c, lc, a, la, b, lb, FlagTrans::N, alpha, beta, pool);
+    }
+    gemm_blas_ix2_no_conj_dispatch(c, lc, a, la, b, lb, alpha, beta, pool)
+}
+
+#[allow(clippy::too_many_arguments)]
 pub fn matmul_row_major_blas<TA, TB, TC, DA, DB, DC>(
     c: &mut [TC],
     lc: &Layout<DC>,
@@ -97,6 +183,7 @@ where
     DB: DimAPI,
     DC: DimAPI,
     TA: Mul<TB, Output = TC>,
+    TB: Mul<TA, Output = TC>,
     TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + PartialEq,
 {
     // NOTE: this only works for row-major layout
@@ -124,13 +211,31 @@ where
             let c_num = &mut c[lc.offset()];
             return with_num_threads(nthreads, || inner_dot_naive_cpu_rayon(c_num, a, la, b, lb, alpha, beta, pool));
         },
+        (2, 1, 1) => {
+            // rule 2a: matrix-vector
+            let la = &la.clone().into_dim::<Ix2>().unwrap();
+            let lb = &lb.clone().into_dim::<Ix1>().unwrap();
+            let lc = &lc.clone().into_dim::<Ix1>().unwrap();
+            return with_num_threads(nthreads, || {
+                gemv_blas_ix1_no_conj_dispatch(c, lc, a, la, b, lb, FlagTrans::N, alpha, beta, pool)
+            });
+        },
+        (1, 2, 1) => {
+            // rule 2b: vector-matrix
+            let la = &la.clone().into_dim::<Ix1>().unwrap();
+            let lb = &lb.clone().into_dim::<Ix2>().unwrap();
+            let lc = &lc.clone().into_dim::<Ix1>().unwrap();
+            return with_num_threads(nthreads, || {
+                gemv_blas_ix1_no_conj_dispatch(c, lc, b, lb, a, la, FlagTrans::T, alpha, beta, pool)
+            });
+        },
         (2, 2, 2) => {
-            // rule 2: matrix multiplication
+            // rule 2: matrix multiplication (vector-shaped products go to gemv)
             let la = &la.clone().into_dim::<Ix2>().unwrap();
             let lb = &lb.clone().into_dim::<Ix2>().unwrap();
             let lc = &lc.clone().into_dim::<Ix2>().unwrap();
             return with_num_threads(nthreads, || {
-                gemm_blas_ix2_no_conj_dispatch(c, lc, a, la, b, lb, alpha, beta, pool)
+                matmul_blas_ix2_no_conj_dispatch(c, lc, a, la, b, lb, alpha, beta, pool)
             });
         },
         _ => (),
@@ -154,7 +259,11 @@ where
     let ita_rest = IterLayoutColMajor::new(&la_rest)?;
     let itb_rest = IterLayoutColMajor::new(&lb_rest)?;
     let itc_rest = IterLayoutColMajor::new(&lc_rest)?;
-    if n_task >= 4 * nthreads {
+    // a vector-shaped inner product is memory-bound: iterate batches in the
+    // main thread and let BLAS use all threads instead of spreading the
+    // batches over rayon tasks with single-threaded BLAS
+    let vec_inner = lc_matmul.shape()[0] == 1 || lc_matmul.shape()[1] == 1;
+    if !vec_inner && n_task >= 4 * nthreads {
         // parallel outer, sequential matmul
         let c_ptr = AtomicPtr::new(c.as_mut_ptr());
         let c_len = c.len();
@@ -177,7 +286,7 @@ where
                     let alpha = alpha.clone();
                     let beta = beta.clone();
                     with_num_threads(1, || {
-                        gemm_blas_ix2_no_conj_dispatch(c, &lc_m, a, &la_m, b, &lb_m, alpha, beta, None)
+                        matmul_blas_ix2_no_conj_dispatch(c, &lc_m, a, &la_m, b, &lb_m, alpha, beta, None)
                     })
                 },
             )
@@ -202,7 +311,7 @@ where
                 // clone alpha and beta
                 let alpha = alpha.clone();
                 let beta = beta.clone();
-                gemm_blas_ix2_no_conj_dispatch(c, &lc_m, a, &la_m, b, &lb_m, alpha, beta, pool)
+                matmul_blas_ix2_no_conj_dispatch(c, &lc_m, a, &la_m, b, &lb_m, alpha, beta, pool)
             })
         })
     }
@@ -233,6 +342,7 @@ where
     DB: DimAPI,
     DC: DimAPI,
     TA: Mul<TB, Output = TC>,
+    TB: Mul<TA, Output = TC>,
     TC: Mul<TC, Output = TC> + Add<TC, Output = TC> + Zero + PartialEq,
 {
     // quick return for empty matrix
@@ -345,6 +455,7 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
+    use rstsr_core::prelude::rstsr_funcs::matmul_from;
 
     #[test]
     fn test_matmul() {
@@ -494,6 +605,196 @@ mod test {
         let b_big = b.to_broadcast(vec![2, 5, 3]);
         let c_ref = &a % &b_big;
         assert!(allclose_f64(&c, &c_ref));
+    }
+
+    /// `(2,1,1)`: `a @ x` goes through the BLAS-2 `gemv` arm.
+    #[test]
+    fn gemv_rule2a_matrix_vector() {
+        let device = DeviceBLAS::default();
+        let a = linspace((0.0, 11.0, 12, &device)).into_shape([3, 4]);
+        let x = asarray((&[1.0f64, 2.0, 3.0, 4.0][..], [4].c(), &device)).into_dim::<Ix1>();
+
+        let y = &a % &x;
+        assert_eq!(y.shape(), &[3]);
+        let want = asarray((&[20.0f64, 60.0, 100.0][..], [3].c(), &device)).into_dim::<Ix1>();
+        assert!(allclose_f64(&y, &want));
+    }
+
+    /// `(1,2,1)`: `x @ a` goes through the transposed `gemv` arm.
+    #[test]
+    fn gemv_rule2b_vector_matrix() {
+        let device = DeviceBLAS::default();
+        let a = linspace((0.0, 11.0, 12, &device)).into_shape([3, 4]);
+        let x = asarray((&[1.0f64, 2.0, 3.0][..], [3].c(), &device)).into_dim::<Ix1>();
+
+        let y = &x % &a;
+        assert_eq!(y.shape(), &[4]);
+        let want = asarray((&[32.0f64, 38.0, 44.0, 50.0][..], [4].c(), &device)).into_dim::<Ix1>();
+        assert!(allclose_f64(&y, &want));
+    }
+
+    /// f-prefer matrix, strided `x` and strided `y`.
+    #[test]
+    fn gemv_layout_variants() {
+        let device = DeviceBLAS::default();
+        let want = asarray((&[20.0f64, 60.0, 100.0][..], [3].c(), &device)).into_dim::<Ix1>();
+        let x = asarray((&[1.0f64, 2.0, 3.0, 4.0][..], [4].c(), &device)).into_dim::<Ix1>();
+        let a = linspace((0.0, 11.0, 12, &device)).into_shape([3, 4]);
+
+        // the same 3x4 matrix stored column-major
+        let a_f =
+            asarray((&[0.0f64, 4.0, 8.0, 1.0, 5.0, 9.0, 2.0, 6.0, 10.0, 3.0, 7.0, 11.0][..], [3, 4].f(), &device))
+                .into_dim::<Ix2>();
+        assert!(a_f.f_prefer());
+        assert!(allclose_f64(&(&a_f % &x), &want));
+
+        // strided `x`: column 0 of a c-prefer [4, 2] buffer
+        let base_x = asarray((&[1.0f64, 9.0, 2.0, 9.0, 3.0, 9.0, 4.0, 9.0][..], [4, 2].c(), &device)).into_dim::<Ix2>();
+        let x_strided = base_x.i((.., 0));
+        assert_eq!(x_strided.stride()[0], 2);
+        assert!(allclose_f64(&(&a % &x_strided.into_dim::<Ix1>()), &want));
+
+        // strided `y`: column 0 of a c-prefer [3, 2] buffer
+        let mut base_y: Tensor<f64, DeviceBLAS, Ix2> = zeros_f(([3, 2].c(), &device)).unwrap().into_dim();
+        matmul_from(base_y.i_mut((.., 0)).into_dim::<Ix1>(), a.view(), x.view(), 1.0, 0.0);
+        assert!(allclose_f64(&base_y.i((.., 0)), &want));
+        let zero = zeros_f(([3].c(), &device)).unwrap().into_dim::<Ix1>();
+        assert!(allclose_f64(&base_y.i((.., 1)), &zero));
+    }
+
+    /// `beta != 0` with a strided output: the staging buffer must carry `y` in.
+    #[test]
+    fn gemv_beta_with_strided_output() {
+        let device = DeviceBLAS::default();
+        let a = linspace((0.0, 11.0, 12, &device)).into_shape([3, 4]);
+        let x = asarray((&[1.0f64, 2.0, 3.0, 4.0][..], [4].c(), &device)).into_dim::<Ix1>();
+
+        // column 0 of a c-prefer [3, 2] linspace holds [1, 3, 5] at stride 2
+        let mut base = linspace((1.0, 6.0, 6, &device)).into_shape([3, 2]);
+        matmul_from(base.i_mut((.., 0)).into_dim::<Ix1>(), a.view(), x.view(), 1.0, 2.0);
+
+        let want = asarray((&[22.0f64, 66.0, 110.0][..], [3].c(), &device)).into_dim::<Ix1>();
+        assert!(allclose_f64(&base.i((.., 0)), &want));
+    }
+
+    /// Empty contraction: zeros for `%`, `beta * c` for `matmul_from`.
+    #[test]
+    fn gemv_empty_contraction() {
+        let device = DeviceBLAS::default();
+        let a: Tensor<f64, DeviceBLAS, Ix2> = zeros_f(([3, 0].c(), &device)).unwrap().into_dim();
+        let x: Tensor<f64, DeviceBLAS, Ix1> = zeros_f(([0].c(), &device)).unwrap().into_dim();
+
+        let y = &a % &x;
+        assert_eq!(y.shape(), &[3]);
+        let zero = zeros_f(([3].c(), &device)).unwrap().into_dim::<Ix1>();
+        assert!(allclose_f64(&y, &zero));
+
+        let mut c = linspace((1.0, 3.0, 3, &device)).into_shape([3]);
+        matmul_from(c.view_mut(), a.view(), x.view(), 1.0, 2.0);
+        let want = asarray((&[2.0f64, 4.0, 6.0][..], [3].c(), &device)).into_dim::<Ix1>();
+        assert!(allclose_f64(&c, &want));
+    }
+
+    #[test]
+    fn gemv_complex_matrix_vector() {
+        let device = DeviceBLAS::default();
+        let a_vals = [Complex::new(1.0, 1.0), Complex::new(2.0, 0.0), Complex::new(3.0, 0.0), Complex::new(4.0, -1.0)];
+        let x_vals = [Complex::new(1.0, 0.0), Complex::new(0.0, 1.0)];
+        let a = asarray((&a_vals[..], [2, 2].c(), &device)).into_dim::<Ix2>();
+        let x = asarray((&x_vals[..], [2].c(), &device)).into_dim::<Ix1>();
+
+        // (1+i)*1 + 2*i = 1+3i ; 3*1 + (4-i)*i = 4+4i
+        let y = (&a % &x).to_vec();
+        let want = [Complex::new(1.0, 3.0), Complex::new(4.0, 4.0)];
+        assert!((0..2).all(|i| (y[i] - want[i]).norm() < 1e-12), "got {:?}", y);
+    }
+
+    /// `(2,2,2)` products with a size-1 output axis collapse to `gemv`; `k == 1`
+    /// stays an outer product.
+    #[test]
+    fn gemv_gemm_shapes_collapse() {
+        let device = DeviceBLAS::default();
+        let a = linspace((0.0, 11.0, 12, &device)).into_shape([3, 4]);
+
+        let x_col = linspace((1.0, 4.0, 4, &device)).into_shape([4, 1]);
+        let y_col = &a % &x_col;
+        assert_eq!(y_col.shape(), &[3, 1]);
+        let want_col = asarray((&[20.0f64, 60.0, 100.0][..], [3].c(), &device)).into_dim::<Ix1>();
+        assert!(allclose_f64(&y_col.i((.., 0)), &want_col));
+
+        let x_row = linspace((1.0, 3.0, 3, &device)).into_shape([1, 3]);
+        let y_row = &x_row % &a;
+        assert_eq!(y_row.shape(), &[1, 4]);
+        let want_row = asarray((&[32.0f64, 38.0, 44.0, 50.0][..], [4].c(), &device)).into_dim::<Ix1>();
+        assert!(allclose_f64(&y_row.i((0, ..)), &want_row));
+
+        let b_col = linspace((1.0, 3.0, 3, &device)).into_shape([3, 1]);
+        let dot = &x_row % &b_col;
+        assert_eq!(dot.shape(), &[1, 1]);
+        assert!(allclose_f64(&dot, &asarray((&[14.0f64][..], [1, 1].c(), &device)).into_dim::<Ix2>()));
+
+        let u = linspace((1.0, 3.0, 3, &device)).into_shape([3, 1]);
+        let v = linspace((1.0, 4.0, 4, &device)).into_shape([1, 4]);
+        let outer = &u % &v;
+        assert_eq!(outer.shape(), &[3, 4]);
+        let want =
+            asarray((&[1.0f64, 2.0, 3.0, 4.0, 2.0, 4.0, 6.0, 8.0, 3.0, 6.0, 9.0, 12.0][..], [3, 4].c(), &device))
+                .into_dim::<Ix2>();
+        assert!(allclose_f64(&outer, &want));
+    }
+
+    /// A batch far larger than `4 * nthreads` still runs in the main thread
+    /// for vector-shaped products.
+    #[test]
+    fn gemv_batched_vector_shapes_large_batch() {
+        let device = DeviceBLAS::default();
+        let a = linspace((0.0, 3071.0, 3072, &device)).into_shape([256, 3, 4]);
+        let b = linspace((1.0, 1024.0, 1024, &device)).into_shape([256, 4, 1]);
+
+        let c = &a % &b;
+        assert_eq!(c.shape(), &[256, 3, 1]);
+        for i in [0, 127, 255] {
+            let c_ref = &a.i(i) % &b.i(i);
+            assert!(allclose_f64(&c.i(i), &c_ref));
+        }
+    }
+
+    /// Neither f- nor c-prefer matrix (broadcast rows) is copied before `gemv`.
+    #[test]
+    fn gemv_matrix_copy_branch() {
+        let device = DeviceBLAS::default();
+        let row = asarray((&[1.0f64, 2.0, 3.0, 4.0][..], [1, 4].c(), &device)).into_dim::<Ix2>();
+        let a = row.to_broadcast(vec![3, 4]);
+        let x = asarray((&[1.0f64, 2.0, 3.0, 4.0][..], [4].c(), &device)).into_dim::<Ix1>();
+
+        let y = &a % &x;
+        assert_eq!(y.shape(), &[3]);
+        let want = asarray((&[30.0f64, 30.0, 30.0][..], [3].c(), &device)).into_dim::<Ix1>();
+        assert!(allclose_f64(&y, &want));
+    }
+
+    /// Batched vector-shaped products go through the serial-over-batches path.
+    #[test]
+    fn gemv_batched_vector_shapes() {
+        let device = DeviceBLAS::default();
+        let a = linspace((0.0, 23.0, 24, &device)).into_shape([2, 3, 4]);
+        let b = linspace((1.0, 8.0, 8, &device)).into_shape([2, 4, 1]);
+
+        let c = &a % &b;
+        assert_eq!(c.shape(), &[2, 3, 1]);
+        for i in 0..2 {
+            let c_ref = &a.i(i) % &b.i(i);
+            assert!(allclose_f64(&c.i(i), &c_ref));
+        }
+
+        // a 1-D operand broadcast over the batch still takes the gemv path
+        let b1 = linspace((1.0, 4.0, 4, &device));
+        let c1 = &a % &b1;
+        assert_eq!(c1.shape(), &[2, 3]);
+        for i in 0..2 {
+            let c1_ref = &a.i(i) % &b1;
+            assert!(allclose_f64(&c1.i(i), &c1_ref));
+        }
     }
 
     #[test]

@@ -6,6 +6,7 @@ use lapack_ffi::cblas;
 use num::complex::Complex;
 use num::traits::ConstZero;
 use rayon::prelude::*;
+use rstsr_blas_traits::prelude::GEMVDriverAPI;
 use rstsr_core::prelude_dev::uninitialized_vec;
 use std::ffi::c_void;
 
@@ -278,6 +279,132 @@ unsafe fn cblas_zgemm_wrap(
             ldc as cblas::blas_int,
         );
     }
+}
+
+/* #endregion */
+
+/* #region gemv */
+
+#[duplicate_item(
+     ty    fn_name                  ;
+    [f32] [gemv_blas_no_conj_f32];
+    [f64] [gemv_blas_no_conj_f64];
+    [c32] [gemv_blas_no_conj_c32];
+    [c64] [gemv_blas_no_conj_c64];
+)]
+#[allow(clippy::too_many_arguments)]
+pub fn fn_name(
+    y: &mut [ty],
+    ly: &Layout<Ix1>,
+    a: &[ty],
+    la: &Layout<Ix2>,
+    x: &[ty],
+    lx: &Layout<Ix1>,
+    transa: FlagTrans,
+    alpha: ty,
+    beta: ty,
+    pool: Option<&ThreadPool>,
+) -> Result<()> {
+    // contracted length and output length of `y = alpha * op(A) x + beta * y`
+    let (m, n) = (la.shape()[0], la.shape()[1]);
+    let (len_x, len_y) = match transa {
+        FlagTrans::N => (n, m),
+        FlagTrans::T => (m, n),
+        _ => rstsr_invalid!(transa)?,
+    };
+    rstsr_assert_eq!(ly.size(), len_y, InvalidLayout)?;
+    rstsr_assert_eq!(lx.size(), len_x, InvalidLayout)?;
+
+    // empty contraction: `op(A) x` is zero and BLAS returns without scaling
+    // `y`, so apply `y := beta * y` here
+    if len_x == 0 {
+        if beta == <ty>::ZERO {
+            return fill_cpu_rayon(y, ly, <ty>::ZERO, pool);
+        }
+        for i in IterLayoutColMajor::new(ly)? {
+            y[i] *= beta;
+        }
+        return Ok(());
+    }
+
+    // `y` is read by the `beta` scaling, so a non-unit-stride `y` is staged
+    // through a contiguous buffer; `beta == 0` never reads it
+    let mut y_data: Option<Vec<ty>> = None;
+    let ly_blas = if ly.size() > 1 && ly.stride()[0] != 1 {
+        let ly_contig = ly.shape().new_f_contig(None);
+        let mut y_buffer = unsafe { uninitialized_vec(ly.size())? };
+        if beta == <ty>::ZERO {
+            fill_cpu_rayon(&mut y_buffer, &ly_contig, <ty>::ZERO, pool)?;
+        } else {
+            assign_cpu_rayon(&mut y_buffer, &ly_contig, y, ly, pool)?;
+        }
+        y_data = Some(y_buffer);
+        ly_contig
+    } else {
+        ly.clone()
+    };
+
+    // `x` is read-only: a non-unit-stride vector is copied once
+    let mut x_data: Option<Vec<ty>> = None;
+    let lx_blas = if lx.size() > 1 && lx.stride()[0] != 1 {
+        let lx_contig = lx.shape().new_f_contig(None);
+        let mut x_buffer = unsafe { uninitialized_vec(lx.size())? };
+        assign_cpu_rayon(&mut x_buffer, &lx_contig, x, lx, pool)?;
+        x_data = Some(x_buffer);
+        lx_contig
+    } else {
+        lx.clone()
+    };
+
+    // c-prefer matrix is viewed transposed with the flag flipped, otherwise
+    // it is copied to f-prefer
+    let mut a_data: Option<Vec<ty>> = None;
+    let (a_trans, la_blas) = if la.f_prefer() {
+        (transa, la.clone())
+    } else if la.c_prefer() {
+        (transa.flip(false)?, la.reverse_axes())
+    } else {
+        let la_contig = la.shape().new_f_contig(None);
+        let mut a_buffer = unsafe { uninitialized_vec(la.size())? };
+        assign_cpu_rayon(&mut a_buffer, &la_contig, a, la, pool)?;
+        a_data = Some(a_buffer);
+        (transa, la_contig)
+    };
+
+    let lda = if la_blas.shape()[1] != 1 { la_blas.stride()[1] } else { la_blas.shape()[0] as isize };
+
+    let ptr_a = match a_data.as_ref() {
+        Some(a_data) => a_data.as_ptr(),
+        None => unsafe { a.as_ptr().add(la_blas.offset()) },
+    };
+    let ptr_x = match x_data.as_ref() {
+        Some(x_data) => x_data.as_ptr(),
+        None => unsafe { x.as_ptr().add(lx_blas.offset()) },
+    };
+    let ptr_y = match y_data.as_mut() {
+        Some(y_data) => y_data.as_mut_ptr(),
+        None => unsafe { y.as_mut_ptr().add(ly_blas.offset()) },
+    };
+
+    unsafe {
+        DeviceBLAS::driver_gemv(
+            FlagOrder::ColMajor,
+            a_trans,
+            la_blas.shape()[0],
+            la_blas.shape()[1],
+            alpha,
+            ptr_a,
+            lda as usize,
+            ptr_x,
+            beta,
+            ptr_y,
+        );
+    }
+
+    if let Some(y_data) = y_data.as_ref() {
+        assign_cpu_rayon(y, ly, y_data, &ly_blas, pool)?;
+    }
+    Ok(())
 }
 
 /* #endregion */
