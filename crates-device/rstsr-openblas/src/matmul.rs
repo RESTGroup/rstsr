@@ -119,10 +119,12 @@ where
     impl_gemv_dispatch!(Complex<f64>, gemv_blas_no_conj_c64);
 
     // not able to be accelarated by blas_no_conj (mixed dtypes)
-    // fallback to naive implementation
+    // fallback to rayon naive gemm, with vector operands promoted
+    let lc2 = &lc.dim_insert(1)?;
+    let lb2 = &lb.dim_insert(1)?;
     match transa {
-        FlagTrans::N => gemv_naive_cpu_serial(c, lc, a, la, b, lb, alpha, beta),
-        FlagTrans::T => gevm_naive_cpu_serial(c, lc, b, lb, a, la, alpha, beta),
+        FlagTrans::N => gemm_ix2_naive_cpu_rayon(c, lc2, a, la, b, lb2, alpha, beta, pool),
+        FlagTrans::T => gemm_ix2_naive_cpu_rayon(c, lc2, a, &la.reverse_axes(), b, lb2, alpha, beta, pool),
         _ => rstsr_invalid!(transa),
     }
 }
