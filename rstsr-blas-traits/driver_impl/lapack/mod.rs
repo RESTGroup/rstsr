@@ -2,5 +2,6 @@
 #![allow(clippy::missing_safety_doc)]
 
 pub mod eigh;
+pub mod qr;
 pub mod solve;
 pub mod svd;

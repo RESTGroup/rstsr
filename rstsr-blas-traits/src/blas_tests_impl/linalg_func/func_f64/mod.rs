@@ -10,6 +10,7 @@ mod eigh;
 mod eigvalsh;
 mod inv;
 mod pinv;
+mod qr;
 mod slogdet;
 mod solve_general;
 mod solve_symmetric;

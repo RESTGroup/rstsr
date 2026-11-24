@@ -9,8 +9,9 @@ use rstsr_linalg_traits::prelude_dev::*;
 /// slices may be rectangular `(M, N)`.
 ///
 /// The whole stack goes through `overwritable_convert` once: an immutable
-/// input is factored from a fresh contiguous buffer; a mutable input is
-/// destroyed by the per-slice SVD.
+/// input is factored from a fresh contiguous buffer; a mutable input whose
+/// layout matches the device order is destroyed by the per-slice SVD (the
+/// `SVDAPI` overloads take immutable inputs only).
 #[allow(clippy::type_complexity)]
 pub fn blas_impl_svd_f<T>(
     a: TensorReference<'_, T, DeviceBLAS, IxD>,

@@ -9,8 +9,9 @@ use rstsr_linalg_traits::prelude_dev::*;
 /// batch shape; slices may be rectangular `(M, N)`.
 ///
 /// The whole stack goes through `overwritable_convert` once: an immutable
-/// input is factored from a fresh contiguous buffer; a mutable input is
-/// destroyed by the per-slice SVD.
+/// input is factored from a fresh contiguous buffer; a mutable input whose
+/// layout matches the device order is destroyed by the per-slice SVD (the
+/// `SVDvalsAPI` overloads take immutable inputs only).
 pub fn blas_impl_svdvals_f<T>(a: TensorReference<'_, T, DeviceBLAS, IxD>) -> Result<Tensor<T::Real, DeviceBLAS, IxD>>
 where
     T: BlasFloat,

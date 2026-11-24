@@ -23,6 +23,7 @@ mod eigvalsh;
 mod generalized_eigh;
 mod inv;
 mod pinv;
+mod qr;
 mod slogdet;
 mod solve_general;
 mod solve_symmetric;

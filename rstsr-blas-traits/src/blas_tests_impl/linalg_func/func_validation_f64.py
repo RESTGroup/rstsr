@@ -244,4 +244,10 @@ fingerprint(np.abs(q[:, :512]))
 assert np.isclose(fingerprint(r), 405.0109813743518)
 fingerprint(r)
 
-
+a = a_raw[:1024*512].copy().reshape(512, 1024)
+q, r = np.linalg.qr(a, mode="complete")
+q, r = _qr_canon(q, r)
+assert np.isclose(fingerprint(np.abs(q[:, :512])), -0.9769304656721726)
+fingerprint(np.abs(q[:, :512]))
+assert np.isclose(fingerprint(r), 405.0109813743518)
+fingerprint(r)
