@@ -9,9 +9,10 @@ use rstsr_linalg_traits::prelude_dev::*;
 /// row-major device, the first two under a column-major one); the batch dims
 /// of `a` and `b` broadcast against each other.
 ///
-/// The factorization destroys `a`: an immutable `a` factors from a freshly
-/// allocated broadcast buffer; a mutable `a` is destroyed in place and must
-/// already fit the broadcast batch (it cannot grow). `b` follows the shared
+/// `a` is never written through: an immutable `a` is materialized into a
+/// freshly allocated broadcast buffer; a mutable `a` is factored from a
+/// per-slice copy and must already fit the broadcast batch (it cannot grow).
+/// `b` follows the shared
 /// solve ownership rule: an immutable `b` is solved into a freshly allocated
 /// broadcast solution; a mutable `b` is solved in place when its batch fits
 /// the broadcast batch, or in a contiguous work buffer written back by
