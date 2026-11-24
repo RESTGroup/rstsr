@@ -1,2 +1,3 @@
 pub use crate::ref_impl_blas::*;
+pub use crate::stack::*;
 pub use crate::traits_def::*;
