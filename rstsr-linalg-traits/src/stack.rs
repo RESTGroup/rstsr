@@ -11,7 +11,7 @@
 //! loop, so no per-arity walker is needed.
 
 use num::Num;
-use rstsr_blas_traits::util::util_tensor::overwritable_convert_with_order;
+use rstsr_blas_traits::prelude::*;
 use rstsr_core::prelude_dev::*;
 
 /// Split a stacked shape into its batch shape and the `inner_ndim` per-matrix

@@ -1,6 +1,5 @@
 use crate::DeviceBLAS;
 use rstsr_blas_traits::prelude::*;
-use rstsr_blas_traits::util::util_tensor::overwritable_convert_with_order;
 use rstsr_core::prelude_dev::*;
 use rstsr_linalg_traits::prelude_dev::*;
 
