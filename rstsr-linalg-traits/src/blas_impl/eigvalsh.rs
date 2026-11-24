@@ -10,8 +10,9 @@ use rstsr_linalg_traits::prelude_dev::*;
 ///
 /// The whole stack goes through `overwritable_convert` once: an immutable
 /// input is factored from a fresh contiguous buffer; a mutable input whose
-/// layout matches the device order is destroyed in place by the per-slice
-/// eigendecomposition.
+/// layout matches the device order is used as scratch and must be treated as
+/// destroyed (LAPACK may leave it untouched when only eigenvalues are
+/// requested).
 pub fn blas_impl_eigvalsh_f<T>(
     a: TensorReference<'_, T, DeviceBLAS, IxD>,
     uplo: FlagUpLo,

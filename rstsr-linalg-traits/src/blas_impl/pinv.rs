@@ -10,9 +10,9 @@ use rstsr_linalg_traits::prelude_dev::*;
 /// slices may be rectangular `(M, N)`. The `rank` scalar reports the largest
 /// per-matrix rank in the stack.
 ///
-/// The whole stack goes through `overwritable_convert` once: an immutable
-/// input is factored from a fresh contiguous buffer; a mutable input is
-/// destroyed by the per-slice SVD.
+/// The input is never written through: the whole stack goes through
+/// `overwritable_convert` once, and each slice is factored from a fresh
+/// contiguous buffer.
 pub fn blas_impl_pinv_f<T>(
     a: TensorReference<'_, T, DeviceBLAS, IxD>,
     atol: Option<T::Real>,
