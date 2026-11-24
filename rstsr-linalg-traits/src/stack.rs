@@ -10,6 +10,8 @@
 //! zips any arity of inputs and outputs with a plain `for i in 0..stack.len()`
 //! loop, so no per-arity walker is needed.
 
+use num::Num;
+use rstsr_blas_traits::util::util_tensor::overwritable_convert_with_order;
 use rstsr_core::prelude_dev::*;
 
 /// Split a stacked shape into its batch shape and the `inner_ndim` per-matrix
@@ -137,6 +139,151 @@ where
     let (storage, _) = a.into_raw_parts();
     // SAFETY: `slice_layout` only advances the offset within the parent buffer.
     Ok(unsafe { TensorMut::new_unchecked(storage, layout) })
+}
+
+/// Broadcast plan for a batched solve: `a` is `(batch_a, M, M)` and `b` is
+/// `(batch_b, M, K)` or the vector form `(M,)`; the two batch shapes broadcast
+/// to `batch_out`. Matrix axes follow `order` (last two under `RowMajor`,
+/// first two under `ColMajor`).
+#[derive(Clone, Debug)]
+pub struct SolvePlan {
+    pub batch_out: Vec<usize>,
+    pub m: usize,
+    pub k: usize,
+    pub is_vec: bool,
+}
+
+impl SolvePlan {
+    /// Shape of the broadcast solution: `batch_out ++ [M, K]`, or
+    /// `batch_out ++ [M]` for the vector form, per `order`.
+    pub fn out_shape(&self, order: FlagOrder) -> Vec<usize> {
+        let inner = if self.is_vec { vec![self.m] } else { vec![self.m, self.k] };
+        stack_shape(&self.batch_out, &inner, order)
+    }
+
+    /// Shape of the broadcast matrix stack: `batch_out ++ [M, M]`, per `order`.
+    pub fn a_shape(&self, order: FlagOrder) -> Vec<usize> {
+        stack_shape(&self.batch_out, &[self.m, self.m], order)
+    }
+}
+
+/// Validate shapes of a batched solve and plan its broadcast.
+pub fn solve_plan(a: &[usize], b: &[usize], order: FlagOrder, op: &str) -> Result<SolvePlan> {
+    let ndim_a = a.len();
+    let ndim_b = b.len();
+    rstsr_assert!(ndim_a >= 2, InvalidLayout, "{op}: a must be at least 2-D, got {ndim_a}")?;
+    rstsr_assert!(ndim_b >= 1, InvalidLayout, "{op}: b must have at least 1 dimension")?;
+    // the vector form is relative to a: b has one fewer inner axis than a
+    // (a 2-D a with 1-D b, or a batched a with a batched-vector b)
+    let inner_ndim_b = ndim_b + 2 - ndim_a;
+    rstsr_pattern!(inner_ndim_b, 1..=2, InvalidLayout, "{op}: b must be (..., M, K) or (..., M) for a's rank")?;
+    let is_vec = inner_ndim_b == 1;
+    let (batch_a, inner_a) = stack_split_shape(a, 2, order)?;
+    rstsr_assert_eq!(
+        inner_a[0],
+        inner_a[1],
+        InvalidLayout,
+        "{op}: a must be square, got {}x{}",
+        inner_a[0],
+        inner_a[1]
+    )?;
+    let m = inner_a[0];
+
+    let (batch_b, k) = if is_vec {
+        let (batch_b, inner_b) = stack_split_shape(b, inner_ndim_b, order)?;
+        rstsr_assert_eq!(
+            inner_b[0],
+            m,
+            InvalidLayout,
+            "{op}: vector b length must match a, got {} vs {m}",
+            inner_b[0]
+        )?;
+        (batch_b, 1)
+    } else {
+        let (batch_b, inner_b) = stack_split_shape(b, inner_ndim_b, order)?;
+        rstsr_assert_eq!(
+            inner_b[0],
+            m,
+            InvalidLayout,
+            "{op}: b's row dimension must match a, got {} vs {m}",
+            inner_b[0]
+        )?;
+        (batch_b, inner_b[1])
+    };
+    let batch_out = broadcast_shapes_f(&[batch_a, batch_b], order)?;
+    Ok(SolvePlan { batch_out, m, k, is_vec })
+}
+
+/// Solve every system of the planned stack: run `kernel` on the matrix slice
+/// of `a` (broadcast to the plan) and the matching solution buffer.
+///
+/// The whole `b` goes through `overwritable_convert_with_order` once: an
+/// immutable input gets a freshly allocated solution; a mutable input is
+/// solved in place when its batch fits the broadcast batch (the in-place
+/// solve cannot grow), or in a contiguous work buffer otherwise. The vector
+/// form `(M,)` is solved as one `(M, 1)` column per slice.
+pub fn solve_stack_f<'b, T, B, F>(
+    a: TensorView<'_, T, B, IxD>,
+    b: TensorReference<'b, T, B, IxD>,
+    plan: &SolvePlan,
+    order: FlagOrder,
+    mut kernel: F,
+) -> Result<TensorMutable<'b, T, B, IxD>>
+where
+    T: Num + Clone,
+    B: DeviceAPI<T, Raw = Vec<T>>
+        + DeviceCreationAnyAPI<T>
+        + DeviceCreationNumAPI<T>
+        + OpAssignArbitaryAPI<T, IxD, IxD>
+        + OpAssignAPI<T, IxD>,
+    F: FnMut(TensorView<'_, T, B, Ix2>, TensorMut<'_, T, B, Ix2>) -> Result<()>,
+{
+    rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch, "solve: a and b are on different devices")?;
+
+    let a_full = a.broadcast_to(plan.a_shape(order));
+    let a_stack = StackLayout::new(a_full.layout(), 2, order)?;
+
+    let b_is_ref = b.is_ref();
+    if b_is_ref {
+        // the solution cannot fit into an immutable input: allocate it and
+        // materialize the (broadcast) right-hand side into the buffer — b is
+        // both the solve's input and its output
+        let mut out: Tensor<T, B, IxD> = zeros_f((plan.out_shape(order), a.device()))?;
+        out.assign_f(b.broadcast_to(plan.out_shape(order)))?;
+        let out_stack = StackLayout::new(out.layout(), if plan.is_vec { 1 } else { 2 }, order)?;
+        for i in 0..a_stack.len() {
+            let a_slice = stack_slice_at(a_full.view(), &a_stack, i)?.into_dim::<Ix2>();
+            let mut b_slice = stack_slice_at_mut(out.view_mut(), &out_stack, i)?;
+            if plan.is_vec {
+                kernel(a_slice, b_slice.i_mut((.., None)).into_dim::<Ix2>())?;
+            } else {
+                kernel(a_slice, b_slice.into_dim::<Ix2>())?;
+            }
+        }
+        Ok(TensorMutable::Owned(out))
+    } else {
+        let mut converted_b = overwritable_convert_with_order(b, order)?;
+        // in place (or work buffer with write-back): b's batch must fit
+        let b_inner = if plan.is_vec { 1 } else { 2 };
+        let (batch_b, _) = stack_split_shape(converted_b.view().shape(), b_inner, order)?;
+        rstsr_assert_eq!(
+            batch_b.as_slice(),
+            plan.batch_out.as_slice(),
+            InvalidLayout,
+            "solve: in-place solve cannot grow b's batch to the broadcast shape; pass an immutable b"
+        )?;
+        let b_stack = StackLayout::new(converted_b.view().layout(), b_inner, order)?;
+        for i in 0..a_stack.len() {
+            let a_slice = stack_slice_at(a_full.view(), &a_stack, i)?.into_dim::<Ix2>();
+            let mut b_slice = stack_slice_at_mut(converted_b.view_mut(), &b_stack, i)?;
+            if plan.is_vec {
+                kernel(a_slice, b_slice.i_mut((.., None)).into_dim::<Ix2>())?;
+            } else {
+                kernel(a_slice, b_slice.into_dim::<Ix2>())?;
+            }
+        }
+        Ok(converted_b)
+    }
 }
 
 #[cfg(test)]
