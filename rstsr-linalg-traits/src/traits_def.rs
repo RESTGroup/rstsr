@@ -360,7 +360,8 @@ impl<Q, R> From<QrResult<Q, R>> for (Q, R) {
 }
 
 /// The [`qr`] factorization mode, named by the array-API string `'reduced'`
-/// (default) or `'complete'`.
+/// (default) or `'complete'`. Both the faer device and the BLAS devices
+/// implement these two modes.
 ///
 /// `#[non_exhaustive]`: only these two modes exist today, but further modes can
 /// be added without a breaking change.

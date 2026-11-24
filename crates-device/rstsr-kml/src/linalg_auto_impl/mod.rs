@@ -3,6 +3,7 @@ pub mod det;
 pub mod eigh;
 pub mod inv;
 pub mod pinv;
+pub mod qr;
 pub mod slogdet;
 pub mod solve_general;
 pub mod solve_symmetric;
