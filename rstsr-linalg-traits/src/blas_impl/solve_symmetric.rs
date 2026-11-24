@@ -3,6 +3,64 @@ use rstsr_blas_traits::prelude::*;
 use rstsr_core::prelude_dev::*;
 use rstsr_linalg_traits::prelude_dev::*;
 
+/// n-dim `solve_symmetric`: solve `a x = b` for a stack `a` of `(M, M)`
+/// symmetric/Hermitian matrices and right-hand side `b` of `(M, K)` matrices
+/// or `(M)` vectors (the two matrix axes are the last two shape axes under a
+/// row-major device, the first two under a column-major one); the batch dims
+/// of `a` and `b` broadcast against each other.
+///
+/// The factorization destroys `a`: an immutable `a` factors from a freshly
+/// allocated broadcast buffer; a mutable `a` is destroyed in place and must
+/// already fit the broadcast batch (it cannot grow). `b` follows the shared
+/// solve ownership rule: an immutable `b` is solved into a freshly allocated
+/// broadcast solution; a mutable `b` is solved in place when its batch fits
+/// the broadcast batch, or in a contiguous work buffer written back by
+/// `clone_to_mut` at the call site.
+#[allow(clippy::type_complexity)]
+pub fn blas_impl_solve_symmetric_f<'b, T>(
+    a: TensorReference<'b, T, DeviceBLAS, IxD>,
+    b: TensorReference<'b, T, DeviceBLAS, IxD>,
+    hermi: bool,
+    uplo: Option<FlagUpLo>,
+) -> Result<TensorMutable<'b, T, DeviceBLAS, IxD>>
+where
+    T: BlasFloat,
+    DeviceBLAS: LapackDriverAPI<T>
+        + DeviceCreationAnyAPI<T>
+        + DeviceCreationNumAPI<T>
+        + OpAssignArbitaryAPI<T, IxD, IxD>
+        + OpAssignAPI<T, IxD>,
+{
+    let order = a.device().default_order();
+    let plan = solve_plan(a.shape(), b.shape(), order, "solve_symmetric")?;
+
+    let a_buffer: Option<Tensor<T, DeviceBLAS, IxD>>;
+    let a_converted: Option<TensorMutable<'b, T, DeviceBLAS, IxD>>;
+    let a_view = if a.is_ref() {
+        let mut full: Tensor<T, DeviceBLAS, IxD> = zeros_f((plan.a_shape(order), a.device()))?;
+        full.assign_f(a.broadcast_to(plan.a_shape(order)))?;
+        a_buffer = Some(full);
+        a_buffer.as_ref().unwrap().view()
+    } else {
+        let converted = overwritable_convert_with_order(a, order)?;
+        let (batch_a, _) = stack_split_shape(converted.view().shape(), 2, order)?;
+        rstsr_assert_eq!(
+            batch_a.as_slice(),
+            plan.batch_out.as_slice(),
+            InvalidLayout,
+            "solve_symmetric: mutable a cannot grow to the broadcast batch; pass an immutable a"
+        )?;
+        a_converted = Some(converted);
+        a_converted.as_ref().unwrap().view()
+    };
+
+    solve_stack_f(a_view, b, &plan, order, |a_slice, b_slice| {
+        let result = ref_impl_solve_symmetric_f(a_slice.into(), b_slice.into(), hermi, uplo)?;
+        result.clone_to_mut();
+        Ok(())
+    })
+}
+
 /* #region full-args */
 
 #[duplicate_item(
@@ -17,25 +75,20 @@ where
     T: BlasFloat,
     DA: DimAPI,
     DB: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>,
+    DeviceBLAS: LapackDriverAPI<T>
+        + DeviceCreationAnyAPI<T>
+        + DeviceCreationNumAPI<T>
+        + OpAssignArbitaryAPI<T, IxD, IxD>
+        + OpAssignAPI<T, IxD>,
 {
-    type Out = Tensor<T, DeviceBLAS, DB>;
+    type Out = Tensor<T, DeviceBLAS, IxD>;
     fn solve_symmetric_f(self) -> Result<Self::Out> {
         let (a, b, hermi, uplo) = self;
-        rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
-        rstsr_pattern!(b.ndim(), 1..=2, InvalidLayout, "Currently we can only handle 1/2-D matrix.")?;
-        let is_b_vec = b.ndim() == 1;
-        let a_view = a.view().into_dim::<Ix2>();
-        let b_view = match is_b_vec {
-            true => b.i((.., None)).into_dim::<Ix2>(),
-            false => b.view().into_dim::<Ix2>(),
-        };
-        let result = ref_impl_solve_symmetric_f(a_view.into(), b_view.into(), hermi, uplo)?;
-        let result = result.into_owned().into_dim::<IxD>();
-        match is_b_vec {
-            true => Ok(result.into_shape(-1).into_dim::<DB>()),
-            false => Ok(result.into_dim::<DB>()),
-        }
+        let a_view = a.view();
+        let a_dyn = a_view.to_dyn();
+        let b_view = b.view();
+        let b_dyn = b_view.to_dyn();
+        Ok(blas_impl_solve_symmetric_f(a_dyn.into(), b_dyn.into(), hermi, uplo)?.into_owned())
     }
 }
 
@@ -51,20 +104,19 @@ where
     T: BlasFloat,
     DA: DimAPI,
     DB: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>,
+    DeviceBLAS: LapackDriverAPI<T>
+        + DeviceCreationAnyAPI<T>
+        + DeviceCreationNumAPI<T>
+        + OpAssignArbitaryAPI<T, IxD, IxD>
+        + OpAssignAPI<T, IxD>,
 {
     type Out = TrB;
     fn solve_symmetric_f(self) -> Result<Self::Out> {
         let (a, mut b, hermi, uplo) = self;
-        rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
-        rstsr_pattern!(b.ndim(), 1..=2, InvalidLayout, "Currently we can only handle 1/2-D matrix.")?;
-        let is_b_vec = b.ndim() == 1;
-        let a_view = a.view().into_dim::<Ix2>();
-        let b_view = match is_b_vec {
-            true => b.i_mut((.., None)).into_dim::<Ix2>(),
-            false => b.view_mut().into_dim::<Ix2>(),
-        };
-        let result = ref_impl_solve_symmetric_f(a_view.into(), b_view.into(), hermi, uplo)?;
+        let a_view = a.view();
+        let a_dyn = a_view.to_dyn();
+        let b_ref = b.view_mut().into_dim::<IxD>();
+        let result = blas_impl_solve_symmetric_f(a_dyn.into(), b_ref.into(), hermi, uplo)?;
         result.clone_to_mut();
         Ok(b)
     }
@@ -82,25 +134,19 @@ where
     T: BlasFloat,
     DA: DimAPI,
     DB: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>,
+    DeviceBLAS: LapackDriverAPI<T>
+        + DeviceCreationAnyAPI<T>
+        + DeviceCreationNumAPI<T>
+        + OpAssignArbitaryAPI<T, IxD, IxD>
+        + OpAssignAPI<T, IxD>,
 {
-    type Out = Tensor<T, DeviceBLAS, DB>;
+    type Out = Tensor<T, DeviceBLAS, IxD>;
     fn solve_symmetric_f(self) -> Result<Self::Out> {
         let (mut a, b, hermi, uplo) = self;
-        rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
-        rstsr_pattern!(b.ndim(), 1..=2, InvalidLayout, "Currently we can only handle 1/2-D matrix.")?;
-        let is_b_vec = b.ndim() == 1;
-        let a_view = a.view_mut().into_dim::<Ix2>();
-        let b_view = match is_b_vec {
-            true => b.i((.., None)).into_dim::<Ix2>(),
-            false => b.view().into_dim::<Ix2>(),
-        };
-        let result = ref_impl_solve_symmetric_f(a_view.into(), b_view.into(), hermi, uplo)?;
-        let result = result.into_owned().into_dim::<IxD>();
-        match is_b_vec {
-            true => Ok(result.into_shape(-1).into_dim::<DB>()),
-            false => Ok(result.into_dim::<DB>()),
-        }
+        let a_ref = a.view_mut().into_dim::<IxD>();
+        let b_view = b.view();
+        let b_dyn = b_view.to_dyn();
+        Ok(blas_impl_solve_symmetric_f(a_ref.into(), b_dyn.into(), hermi, uplo)?.into_owned())
     }
 }
 
@@ -116,20 +162,18 @@ where
     T: BlasFloat,
     DA: DimAPI,
     DB: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>,
+    DeviceBLAS: LapackDriverAPI<T>
+        + DeviceCreationAnyAPI<T>
+        + DeviceCreationNumAPI<T>
+        + OpAssignArbitaryAPI<T, IxD, IxD>
+        + OpAssignAPI<T, IxD>,
 {
     type Out = TrB;
     fn solve_symmetric_f(self) -> Result<Self::Out> {
         let (mut a, mut b, hermi, uplo) = self;
-        rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
-        rstsr_pattern!(b.ndim(), 1..=2, InvalidLayout, "Currently we can only handle 1/2-D matrix.")?;
-        let is_b_vec = b.ndim() == 1;
-        let a_view = a.view_mut().into_dim::<Ix2>();
-        let b_view = match is_b_vec {
-            true => b.i_mut((.., None)).into_dim::<Ix2>(),
-            false => b.view_mut().into_dim::<Ix2>(),
-        };
-        let result = ref_impl_solve_symmetric_f(a_view.into(), b_view.into(), hermi, uplo)?;
+        let a_ref = a.view_mut().into_dim::<IxD>();
+        let b_ref = b.view_mut().into_dim::<IxD>();
+        let result = blas_impl_solve_symmetric_f(a_ref.into(), b_ref.into(), hermi, uplo)?;
         result.clone_to_mut();
         Ok(b)
     }

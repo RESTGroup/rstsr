@@ -3,6 +3,47 @@ use rstsr_blas_traits::prelude::*;
 use rstsr_core::prelude_dev::*;
 use rstsr_linalg_traits::prelude_dev::*;
 
+/// n-dim `svdvals`: the singular values of every matrix slice of the stack
+/// (the two matrix axes are the last two shape axes under a row-major device,
+/// the first two under a column-major one; the rest is the batch), with the
+/// batch shape; slices may be rectangular `(M, N)`.
+///
+/// The whole stack goes through `overwritable_convert` once: an immutable
+/// input is factored from a fresh contiguous buffer; a mutable input is
+/// destroyed by the per-slice SVD.
+pub fn blas_impl_svdvals_f<T>(a: TensorReference<'_, T, DeviceBLAS, IxD>) -> Result<Tensor<T::Real, DeviceBLAS, IxD>>
+where
+    T: BlasFloat,
+    DeviceBLAS: LapackDriverAPI<T>
+        + DeviceCreationAnyAPI<T::Real>
+        + OpAssignArbitaryAPI<T::Real, Ix1, Ix1>
+        + OpAssignAPI<T::Real, Ix1>
+        + OpAssignArbitaryAPI<T, IxD, IxD>
+        + OpAssignAPI<T, IxD>,
+{
+    let device = a.device().clone();
+    let order = device.default_order();
+    let stack = StackLayout::new(a.layout(), 2, order)?;
+    let inner_shape = stack.inner_shape();
+    let m = inner_shape[0];
+    let n = inner_shape[1];
+
+    let mut converted = overwritable_convert_with_order(a, order)?;
+    let converted_stack = StackLayout::new(converted.view().layout(), 2, order)?;
+    let mut out: Tensor<T::Real, DeviceBLAS, IxD> =
+        zeros_f((stack_shape(stack.batch_shape(), &[Ord::min(m, n)], order), &device))?;
+    let out_stack = StackLayout::new(out.layout(), 1, order)?;
+
+    for i in 0..stack.len() {
+        let slice = stack_slice_at_mut(converted.view_mut(), &converted_stack, i)?.into_dim::<Ix2>();
+        let svd_args = SVDArgs::default().a(TensorReference::from(slice)).full_matrices(None).build()?;
+        let (_, s, _) = ref_impl_svd_simple_f(svd_args)?;
+        let mut out_slice = stack_slice_at_mut(out.view_mut(), &out_stack, i)?.into_dim::<Ix1>();
+        out_slice.assign_f(s)?;
+    }
+    Ok(out)
+}
+
 /* #region full-args */
 
 impl<T, D, R> SVDvalsAPI<DeviceBLAS> for &TensorAny<R, T, DeviceBLAS, D>
@@ -11,18 +52,16 @@ where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>,
+    DeviceBLAS: LapackDriverAPI<T>
+        + DeviceCreationAnyAPI<T::Real>
+        + OpAssignArbitaryAPI<T::Real, Ix1, Ix1>
+        + OpAssignAPI<T::Real, Ix1>
+        + OpAssignArbitaryAPI<T, IxD, IxD>
+        + OpAssignAPI<T, IxD>,
 {
     type Out = Tensor<T::Real, DeviceBLAS, D::SmallerOne>;
     fn svdvals_f(self) -> Result<Self::Out> {
-        let a = self;
-        rstsr_assert_eq!(a.ndim(), 2, InvalidLayout, "Currently we can only handle 2-D matrix.")?;
-        let a = a.view().into_dim::<Ix2>();
-        let svd_args = SVDArgs::default().a(a).full_matrices(None).build()?;
-        let (_, s, _) = ref_impl_svd_simple_f(svd_args)?;
-        // convert dimensions
-        let s = s.into_dim::<IxD>().into_dim::<D::SmallerOne>();
-        Ok(s)
+        blas_impl_svdvals_f(self.view().to_dyn().into()).map(|t| t.into_dim::<D::SmallerOne>())
     }
 }
 
@@ -34,7 +73,12 @@ where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>,
+    DeviceBLAS: LapackDriverAPI<T>
+        + DeviceCreationAnyAPI<T::Real>
+        + OpAssignArbitaryAPI<T::Real, Ix1, Ix1>
+        + OpAssignAPI<T::Real, Ix1>
+        + OpAssignArbitaryAPI<T, IxD, IxD>
+        + OpAssignAPI<T, IxD>,
 {
     type Out = Tensor<T::Real, DeviceBLAS, D::SmallerOne>;
     fn svdvals_f(self) -> Result<Self::Out> {

@@ -8,3 +8,4 @@ pub use crate::lapack_eigh::*;
 pub use crate::lapack_solve::*;
 pub use crate::lapack_svd::*;
 pub use crate::trait_def::*;
+pub use crate::util::util_tensor::*;
