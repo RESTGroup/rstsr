@@ -43,6 +43,9 @@
   in backend order (unsorted). `eigvals((a, Homogeneous))` returns the `(α, β)` pair
   stacked as `(..., 2, n)` instead of `λ = α / β`. The `EigSide` and `Homogeneous` forms
   are available on the BLAS devices only.
+- `rt::linalg::lstsq` (NumPy/SciPy least squares, returning `(x, residuals, rank, s)`)
+  is an RSTSR extension outside the standard; it is implemented by the BLAS
+  devices only.
 - The `rt::linalg::*` functions require the `linalg` cargo feature.
 
 ## Fast Fourier Transform (extensions)

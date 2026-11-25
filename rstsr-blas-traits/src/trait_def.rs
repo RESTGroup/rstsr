@@ -4,6 +4,7 @@ use crate::blas2::*;
 use crate::blas3::*;
 use crate::lapack_eig::*;
 use crate::lapack_eigh::*;
+use crate::lapack_lstsq::*;
 use crate::lapack_qr::*;
 use crate::lapack_solve::*;
 use crate::lapack_svd::*;
@@ -76,6 +77,8 @@ pub trait LapackDriverAPI<T>:
     + GETRIDriverAPI<T>
     + SYSVDriverAPI<T, false>
     + SYSVDriverAPI<T, true>
+    // lapack_lstsq
+    + GELSDDriverAPI<T>
     // lapack_svd
     + GESVDDriverAPI<T>
     + GESDDDriverAPI<T>

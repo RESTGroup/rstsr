@@ -312,3 +312,58 @@ assert np.isclose(fingerprint(np.abs(q[:, :512])), -0.9769304656721726)
 fingerprint(np.abs(q[:, :512]))
 assert np.isclose(fingerprint(r), 405.0109813743518)
 fingerprint(r)
+
+# ### lstsq
+
+# the entry default rcond is eps * max(m, n); a vector right-hand side gives a
+# scalar residual (the driver returns none when rank < min(m, n))
+eps = np.finfo(np.float64).eps
+
+a = a_raw[:1024*512].copy().reshape(1024, 512)
+b = b_raw[:1024].copy().reshape(1024)
+x, residuals, rank, s = scipy.linalg.lstsq(a, b, cond=eps*1024, lapack_driver="gelsd", check_finite=False)
+assert np.isclose(fingerprint(x), 0.6714195293796388)
+assert np.isclose(fingerprint(s), 33.96933907104208)
+assert np.isclose(fingerprint(residuals), 495.06381572902126)
+assert rank == 512
+fingerprint(x), fingerprint(s), fingerprint(residuals), rank
+
+a = a_raw[:1024*512].copy().reshape(1024, 512)
+b = b_raw[:1024*3].copy().reshape(1024, 3)
+x, residuals, rank, s = scipy.linalg.lstsq(a, b, cond=eps*1024, lapack_driver="gelsd", check_finite=False)
+assert np.isclose(fingerprint(x), -2.417996890572109)
+assert np.isclose(fingerprint(s), 33.96933907104208)
+assert np.isclose(fingerprint(residuals), 544.9834618414125)
+assert rank == 512
+fingerprint(x), fingerprint(s), fingerprint(residuals), rank
+
+a = a_raw[:512*1024].copy().reshape(512, 1024)
+b = b_raw[:512].copy().reshape(512)
+x, residuals, rank, s = scipy.linalg.lstsq(a, b, cond=eps*1024, lapack_driver="gelsd", check_finite=False)
+assert np.isclose(fingerprint(x), 0.1316952775202293)
+assert np.isclose(fingerprint(s), 32.27742168207754)
+assert residuals.size == 0
+assert rank == 512
+fingerprint(x), fingerprint(s), fingerprint(residuals), rank
+
+a = a_raw[:1024*512].copy().reshape(1024, 512)
+a[:, 2] = a[:, 0] + a[:, 1]
+b = b_raw[:1024].copy().reshape(1024)
+x, residuals, rank, s = scipy.linalg.lstsq(a, b, cond=eps*1024, lapack_driver="gelsd", check_finite=False)
+assert np.isclose(fingerprint(x), 0.6203201140848792)
+assert np.isclose(fingerprint(s), 46.463897960241695)
+assert np.isnan(residuals)
+assert rank == 511
+fingerprint(x), fingerprint(s), rank
+
+# matrix b with a rank-deficient a: every residual column is NaN
+
+a = a_raw[:1024*512].copy().reshape(1024, 512)
+a[:, 2] = a[:, 0] + a[:, 1]
+b = b_raw[:1024*3].copy().reshape(1024, 3)
+x, residuals, rank, s = scipy.linalg.lstsq(a, b, cond=eps*1024, lapack_driver="gelsd", check_finite=False)
+assert np.isclose(fingerprint(x), -2.475933070459636)
+assert np.isclose(fingerprint(s), 46.463897960241695)
+assert np.isnan(residuals).all()
+assert rank == 511
+fingerprint(x), fingerprint(s), rank, residuals

@@ -14,6 +14,7 @@ use rstsr_core::prelude_dev::*;
    [EigvalsAPI        ] [eigvals         ] [eigvals_f         ];
    [EigvalshAPI       ] [eigvalsh        ] [eigvalsh_f        ];
    [InvAPI            ] [inv             ] [inv_f             ];
+   [LstsqAPI          ] [lstsq           ] [lstsq_f           ];
    [MatrixNormAPI     ] [matrix_norm     ] [matrix_norm_f     ];
    [MatrixPowerAPI    ] [matrix_power    ] [matrix_power_f    ];
    [MatrixRankAPI     ] [matrix_rank     ] [matrix_rank_f     ];
@@ -47,6 +48,7 @@ pub trait LinalgAPI<Inp> {
    [EigvalsAPI        ] [eigvals         ] [eigvals_f         ];
    [EigvalshAPI       ] [eigvalsh        ] [eigvalsh_f        ];
    [InvAPI            ] [inv             ] [inv_f             ];
+   [LstsqAPI          ] [lstsq           ] [lstsq_f           ];
    [MatrixNormAPI     ] [matrix_norm     ] [matrix_norm_f     ];
    [MatrixPowerAPI    ] [matrix_power    ] [matrix_power_f    ];
    [MatrixRankAPI     ] [matrix_rank     ] [matrix_rank_f     ];
@@ -76,6 +78,7 @@ where
    [EigvalsAPI        ] [eigvals         ] [eigvals_f         ];
    [EigvalshAPI       ] [eigvalsh        ] [eigvalsh_f        ];
    [InvAPI            ] [inv             ] [inv_f             ];
+   [LstsqAPI          ] [lstsq           ] [lstsq_f           ];
    [MatrixNormAPI     ] [matrix_norm     ] [matrix_norm_f     ];
    [MatrixPowerAPI    ] [matrix_power    ] [matrix_power_f    ];
    [MatrixRankAPI     ] [matrix_rank     ] [matrix_rank_f     ];
@@ -411,6 +414,42 @@ where
     /// `None` is equivalent to `()`: both request the default tolerance.
     fn from(_: Option<()>) -> Self {
         Self::None
+    }
+}
+
+/* #endregion */
+
+/* #region lstsq */
+
+/// Result of a least-squares solve: the solution `x`, the residual
+/// sum-of-squares per right-hand side, the numerical rank and the singular
+/// values.
+///
+/// The shapes follow NumPy and SciPy. With a matrix right-hand side `b` the
+/// solution is `(..., N, K)` and `residuals` is `(..., K)`; a vector `b`
+/// squeezes the last axis, so `residuals` takes the batch shape (0-d when
+/// unbatched). Residuals are real even for complex inputs, are `NaN` on
+/// slices whose rank is below `N`, and are empty when `M <= N`. `rank` keeps
+/// one value per matrix slice. The conversions below destructure the four
+/// fields.
+///
+/// See also [`lstsq`], [`LstsqAPI`].
+pub struct LstsqResult<X, Res, Rank, S> {
+    pub x: X,
+    pub residuals: Res,
+    pub rank: Rank,
+    pub s: S,
+}
+
+impl<X, Res, Rank, S> From<(X, Res, Rank, S)> for LstsqResult<X, Res, Rank, S> {
+    fn from((x, residuals, rank, s): (X, Res, Rank, S)) -> Self {
+        Self { x, residuals, rank, s }
+    }
+}
+
+impl<X, Res, Rank, S> From<LstsqResult<X, Res, Rank, S>> for (X, Res, Rank, S) {
+    fn from(lstsq_result: LstsqResult<X, Res, Rank, S>) -> Self {
+        (lstsq_result.x, lstsq_result.residuals, lstsq_result.rank, lstsq_result.s)
     }
 }
 

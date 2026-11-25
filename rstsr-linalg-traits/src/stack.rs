@@ -143,6 +143,23 @@ where
     Ok(unsafe { TensorMut::new_unchecked(storage, layout) })
 }
 
+/// Split the right-hand side of a batched solve: `b` is `(batch_b, M, K)` or
+/// the vector form `(batch_b, M)`, relative to `a`'s rank. Returns the batch
+/// shape, the number of right-hand sides (1 for the vector form) and whether
+/// `b` is a vector.
+fn split_rhs(b: &[usize], ndim_a: usize, m: usize, order: FlagOrder, op: &str) -> Result<(Vec<usize>, usize, bool)> {
+    let ndim_b = b.len();
+    rstsr_assert!(ndim_b >= 1, InvalidLayout, "{op}: b must have at least 1 dimension")?;
+    // the vector form is relative to a: b has one fewer inner axis than a
+    let inner_ndim_b = ndim_b + 2 - ndim_a;
+    rstsr_pattern!(inner_ndim_b, 1..=2, InvalidLayout, "{op}: b must be (..., M, K) or (..., M) for a's rank")?;
+    let is_vec = inner_ndim_b == 1;
+    let (batch_b, inner_b) = stack_split_shape(b, inner_ndim_b, order)?;
+    rstsr_assert_eq!(inner_b[0], m, InvalidLayout, "{op}: b's row dimension must match a, got {} vs {m}", inner_b[0])?;
+    let k = if is_vec { 1 } else { inner_b[1] };
+    Ok((batch_b, k, is_vec))
+}
+
 /// Broadcast plan for a batched solve: `a` is `(batch_a, M, M)` and `b` is
 /// `(batch_b, M, K)` or the vector form `(M,)`; the two batch shapes broadcast
 /// to `batch_out`. Matrix axes follow `order` (last two under `RowMajor`,
@@ -172,14 +189,7 @@ impl SolvePlan {
 /// Validate shapes of a batched solve and plan its broadcast.
 pub fn solve_plan(a: &[usize], b: &[usize], order: FlagOrder, op: &str) -> Result<SolvePlan> {
     let ndim_a = a.len();
-    let ndim_b = b.len();
     rstsr_assert!(ndim_a >= 2, InvalidLayout, "{op}: a must be at least 2-D, got {ndim_a}")?;
-    rstsr_assert!(ndim_b >= 1, InvalidLayout, "{op}: b must have at least 1 dimension")?;
-    // the vector form is relative to a: b has one fewer inner axis than a
-    // (a 2-D a with 1-D b, or a batched a with a batched-vector b)
-    let inner_ndim_b = ndim_b + 2 - ndim_a;
-    rstsr_pattern!(inner_ndim_b, 1..=2, InvalidLayout, "{op}: b must be (..., M, K) or (..., M) for a's rank")?;
-    let is_vec = inner_ndim_b == 1;
     let (batch_a, inner_a) = stack_split_shape(a, 2, order)?;
     rstsr_assert_eq!(
         inner_a[0],
@@ -190,30 +200,76 @@ pub fn solve_plan(a: &[usize], b: &[usize], order: FlagOrder, op: &str) -> Resul
         inner_a[1]
     )?;
     let m = inner_a[0];
-
-    let (batch_b, k) = if is_vec {
-        let (batch_b, inner_b) = stack_split_shape(b, inner_ndim_b, order)?;
-        rstsr_assert_eq!(
-            inner_b[0],
-            m,
-            InvalidLayout,
-            "{op}: vector b length must match a, got {} vs {m}",
-            inner_b[0]
-        )?;
-        (batch_b, 1)
-    } else {
-        let (batch_b, inner_b) = stack_split_shape(b, inner_ndim_b, order)?;
-        rstsr_assert_eq!(
-            inner_b[0],
-            m,
-            InvalidLayout,
-            "{op}: b's row dimension must match a, got {} vs {m}",
-            inner_b[0]
-        )?;
-        (batch_b, inner_b[1])
-    };
+    let (batch_b, k, is_vec) = split_rhs(b, ndim_a, m, order, op)?;
     let batch_out = broadcast_shapes_f(&[batch_a, batch_b], order)?;
     Ok(SolvePlan { batch_out, m, k, is_vec })
+}
+
+/// Broadcast plan for a batched least-squares solve: `a` is `(batch_a, M, N)`
+/// and `b` is `(batch_b, M, K)` or the vector form `(batch_b, M)`; the two
+/// batch shapes broadcast to `batch_out`. Matrix axes follow `order` (last two
+/// under `RowMajor`, first two under `ColMajor`).
+#[derive(Clone, Debug)]
+pub struct LstsqPlan {
+    pub batch_out: Vec<usize>,
+    pub m: usize,
+    pub n: usize,
+    pub k: usize,
+    pub is_vec: bool,
+}
+
+impl LstsqPlan {
+    /// Shape of the broadcast solution: `batch_out ++ [N, K]`, or
+    /// `batch_out ++ [N]` for the vector form, per `order`.
+    pub fn x_shape(&self, order: FlagOrder) -> Vec<usize> {
+        let inner = if self.is_vec { vec![self.n] } else { vec![self.n, self.k] };
+        stack_shape(&self.batch_out, &inner, order)
+    }
+
+    /// Shape of the singular values: `batch_out ++ [min(M, N)]`, per `order`.
+    pub fn s_shape(&self, order: FlagOrder) -> Vec<usize> {
+        stack_shape(&self.batch_out, &[self.m.min(self.n)], order)
+    }
+
+    /// Shape of the per-slice numerical ranks: the batch shape.
+    pub fn rank_shape(&self) -> Vec<usize> {
+        self.batch_out.clone()
+    }
+
+    /// Shape of the residual sums: `batch_out ++ [K]` for a matrix `b`, the
+    /// batch shape for a vector `b`, and empty when `M <= N`.
+    pub fn residual_shape(&self, order: FlagOrder) -> Vec<usize> {
+        if self.m <= self.n {
+            stack_shape(&self.batch_out, &[0], order)
+        } else if self.is_vec {
+            self.batch_out.clone()
+        } else {
+            stack_shape(&self.batch_out, &[self.k], order)
+        }
+    }
+
+    /// Shape of the broadcast matrix stack: `batch_out ++ [M, N]`, per `order`.
+    pub fn a_shape(&self, order: FlagOrder) -> Vec<usize> {
+        stack_shape(&self.batch_out, &[self.m, self.n], order)
+    }
+
+    /// Shape of the broadcast right-hand-side stack: `batch_out ++ [M, K]`, or
+    /// `batch_out ++ [M]` for the vector form, per `order`.
+    pub fn b_shape(&self, order: FlagOrder) -> Vec<usize> {
+        let inner = if self.is_vec { vec![self.m] } else { vec![self.m, self.k] };
+        stack_shape(&self.batch_out, &inner, order)
+    }
+}
+
+/// Validate shapes of a batched least-squares solve and plan its broadcast.
+pub fn lstsq_plan(a: &[usize], b: &[usize], order: FlagOrder, op: &str) -> Result<LstsqPlan> {
+    let ndim_a = a.len();
+    rstsr_assert!(ndim_a >= 2, InvalidLayout, "{op}: a must be at least 2-D, got {ndim_a}")?;
+    let (batch_a, inner_a) = stack_split_shape(a, 2, order)?;
+    let (m, n) = (inner_a[0], inner_a[1]);
+    let (batch_b, k, is_vec) = split_rhs(b, ndim_a, m, order, op)?;
+    let batch_out = broadcast_shapes_f(&[batch_a, batch_b], order)?;
+    Ok(LstsqPlan { batch_out, m, n, k, is_vec })
 }
 
 /// Solve every system of the planned stack: run `kernel` on the matrix slice

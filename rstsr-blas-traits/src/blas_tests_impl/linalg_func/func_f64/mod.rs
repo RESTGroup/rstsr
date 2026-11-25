@@ -11,6 +11,7 @@ mod eigh;
 mod eigvals;
 mod eigvalsh;
 mod inv;
+mod lstsq;
 mod pinv;
 mod qr;
 mod slogdet;

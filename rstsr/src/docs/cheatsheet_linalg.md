@@ -18,7 +18,7 @@ let device = DeviceFaer::default(); // requires the `linalg` + `faer` features
   order: [`Lower`] under `RowMajor` (`[`Upper`]` under `ColMajor`). The enum is
   [`FlagUpLo`], with `FlagUpLo::U` / `FlagUpLo::L` aliased as `Upper` / `Lower`.
 - Multi-output functions return a named struct (`EighResult`, `SVDResult`,
-  `QrResult`, `SLogDetResult`, `PinvResult`, `EigResult`); each converts to a
+  `QrResult`, `SLogDetResult`, `PinvResult`, `EigResult`, `LstsqResult`); each converts to a
   plain tuple with `.into()`.
 - Every function has a fallible `_f` twin returning `rt::Result`.
 
@@ -87,6 +87,11 @@ Note `A` is the **first** argument (RSTSR solves `A x = B`), matching SciPy.
 
 ## `DeviceFaer` backend notes
 
+- **`lstsq`** is **BLAS-only** (LAPACK `GELSD`): there is no `DeviceFaer`
+  least-squares entry. `lstsq((&a, &b))` uses `rcond = eps·max(M, N)`;
+  `lstsq((&a, &b, rcond))` sets it explicitly. `a` is destroyed by the
+  factorization (an owned or mutable input whose layout already matches the
+  device order is consumed in place).
 - **`solve_symmetric`** has **no `DeviceFaer` implementation** (it is
   BLAS-only). Use `solve_general`, or an eigensolver-based approach.
 - **`eigvalsh`** on faer handles the **standard** problem only; generalized

@@ -4,6 +4,7 @@ pub mod eig;
 pub mod eigh;
 pub mod eigvals;
 pub mod inv;
+pub mod lstsq;
 pub mod pinv;
 pub mod qr;
 pub mod slogdet;
