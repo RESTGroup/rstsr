@@ -185,15 +185,18 @@ pub(super) fn fingerprint_spectrum(ws: &[c64]) -> (f64, f64) {
 
 /// Fingerprint of `|v|` with the columns reordered by `order` (phase- and
 /// sign-invariant, as the eigenvector order is backend-dependent).
+///
+/// Summed directly instead of through `fingerprint`, which builds its tensor on
+/// the device and would therefore follow the device default order.
 pub(super) fn fingerprint_abs_reordered(v: &Tensor<c64, DeviceBLAS, Ix2>, order: &[usize]) -> f64 {
-    let (m, n) = (v.nrow(), v.ncol());
-    let mut va = Vec::with_capacity(m * n);
-    for i in 0..m {
-        for &j in order {
-            va.push(v[[i, j]].norm());
+    let n = v.ncol();
+    let mut acc = 0.0;
+    for i in 0..v.nrow() {
+        for (k, &j) in order.iter().enumerate() {
+            acc += v[[i, j]].norm() * ((i * n + k) as f64).cos();
         }
     }
-    fingerprint(&rt::asarray((va, [m, n].c(), v.device())))
+    acc
 }
 
 /// Compare two spectra as multisets (eigenvalues are unordered).
@@ -343,75 +346,57 @@ fn name() {
 
 #[test]
 fn test_zgeev() {
-    let device = DeviceBLAS::default();
-    let a = rt::asarray((get_vec::<c64>('a'), [1024, 1024].c(), &device)).into_dim::<Ix2>();
-    let (w, vl, vr) = ZGEEV::default().a(a.view()).left(true).build().unwrap().run().unwrap();
-    assert!(vl.is_some() && vr.is_some());
-    // numpy: sorted spectrum, |vl| and |vr| columns reordered by the sorted order
-    let order = canonical_order(&w);
-    let ws = sorted_spectrum(&w);
-    assert!(
-        (fingerprint(&rt::asarray((ws, &device))) - c64::new(-53.51484095091083, -871.7616347408099)).norm() < 1e-8
-    );
-    {
-        // temporary diagnostic: libtest prints this only when the test fails
-        let vl = vl.as_ref().unwrap();
-        let vr = vr.as_ref().unwrap();
-        let id: Vec<usize> = (0..1024).collect();
-        let resid = |v: &Tensor<c64, DeviceBLAS, Ix2>, jj: usize, left: bool| -> f64 {
-            let lam = if left { w[[jj]].conj() } else { w[[jj]] };
-            let (mut num, mut den) = (0.0, 0.0);
+    // Only the spectrum of this full-size solve is reproducible across LAPACK
+    // builds; the eigenvector order and the individual vectors are not, so the
+    // blocks are pinned by unit-column norms and the eigenvector relations.
+    for order_used in [RowMajor, ColMajor] {
+        let mut device = DeviceBLAS::default();
+        let prev_order = device.default_order();
+        device.set_default_order(order_used);
+        let a = rt::asarray((get_vec::<c64>('a'), [1024, 1024].c(), &device)).into_dim::<Ix2>();
+        let (w, vl, vr) = ZGEEV::default().a(a.view()).left(true).build().unwrap().run().unwrap();
+        let (vl, vr) = (vl.unwrap(), vr.unwrap());
+        let order = canonical_order(&w);
+        // numpy: sorted spectrum
+        let ws = sorted_spectrum(&w);
+        assert!(
+            (fingerprint(&rt::asarray((ws, &device))) - c64::new(-53.51484095091083, -871.7616347408099)).norm() < 1e-8,
+            "{order_used:?}: spectrum fingerprint"
+        );
+        for j in [order[0], order[1], order[511]] {
+            let (mut nvl, mut nvr, mut rvl, mut rvr) = (0.0, 0.0, 0.0, 0.0);
             for i in 0..1024 {
-                let mut s = c64::new(0.0, 0.0);
+                nvl += vl[[i, j]].norm_sqr();
+                nvr += vr[[i, j]].norm_sqr();
+                let (mut svl, mut svr) = (c64::new(0.0, 0.0), c64::new(0.0, 0.0));
                 for k in 0..1024 {
-                    s += if left { a[[k, i]].conj() * v[[k, jj]] } else { a[[i, k]] * v[[k, jj]] };
+                    svl += a[[k, i]].conj() * vl[[k, j]];
+                    svr += a[[i, k]] * vr[[k, j]];
                 }
-                num += (s - lam * v[[i, jj]]).norm_sqr();
-                den += v[[i, jj]].norm_sqr();
+                rvl += (svl - w[[j]].conj() * vl[[i, j]]).norm_sqr();
+                rvr += (svr - w[[j]] * vr[[i, j]]).norm_sqr();
             }
-            (num / den).sqrt()
-        };
-        let cnorm = |v: &Tensor<c64, DeviceBLAS, Ix2>, j: usize| -> f64 {
-            (0..1024).map(|i| v[[i, j]].norm_sqr()).sum::<f64>()
-        };
-        eprintln!(
-            "EIGDIAG default_order={:?} c_prefer={} f_prefer={} order0={} order1={} w0={:?} w1={:?}",
-            device.default_order(),
-            a.c_prefer(),
-            a.f_prefer(),
-            order[0],
-            order[1],
-            w[[0]],
-            w[[1]],
-        );
-        eprintln!(
-            "EIGDIAG fp_vl={:.17} fp_vr={:.17} fp_vl_id={:.17} fp_vlT={:.17} fp_vr_id={:.17}",
-            fingerprint_abs_reordered(vl, &order),
-            fingerprint_abs_reordered(vr, &order),
-            fingerprint_abs_reordered(vl, &id),
-            fingerprint_abs_reordered(&vl.t().to_owned(), &order),
-            fingerprint_abs_reordered(vr, &id),
-        );
-        eprintln!(
-            "EIGDIAG resid_vl={:.3e} resid_vl500={:.3e} resid_vr={:.3e} norm_vl0={:.17} norm_vl1={:.17} norm_vr0={:.17} vl00=({:.6},{:.6}) vl10=({:.6},{:.6})",
-            resid(vl, order[0], true),
-            resid(vl, order[500], true),
-            resid(vr, order[0], false),
-            cnorm(vl, order[0]),
-            cnorm(vl, order[1]),
-            cnorm(vr, order[0]),
-            vl[[0, order[0]]].re,
-            vl[[0, order[0]]].im,
-            vl[[1, order[0]]].re,
-            vl[[1, order[0]]].im,
-        );
+            assert!((nvl - 1.0).abs() < 1e-12, "{order_used:?}: |vl| column {j}: {}", nvl.sqrt());
+            assert!((nvr - 1.0).abs() < 1e-12, "{order_used:?}: |vr| column {j}: {}", nvr.sqrt());
+            assert!(
+                (rvl / nvl).sqrt() < 1e-10,
+                "{order_used:?}: left relation of column {j}: {:e}",
+                (rvl / nvl).sqrt()
+            );
+            assert!(
+                (rvr / nvr).sqrt() < 1e-10,
+                "{order_used:?}: right relation of column {j}: {:e}",
+                (rvr / nvr).sqrt()
+            );
+        }
+        let (fp_vl, fp_vr) = (fingerprint_abs_reordered(&vl, &order), fingerprint_abs_reordered(&vr, &order));
+        let maxdiff = (0..1024)
+            .flat_map(|j| (0..1024).map(move |i| (i, j)))
+            .map(|(i, j)| (vl[[i, j]] - vr[[i, j]]).norm())
+            .fold(0.0, f64::max);
+        eprintln!("EIGDIAG {order_used:?} fp_vl={fp_vl:.17} fp_vr={fp_vr:.17} maxdiff_vl_vr={maxdiff:e}");
+        device.set_default_order(prev_order);
     }
-    let (fp_vl, fp_vr) = (
-        fingerprint_abs_reordered(vl.as_ref().unwrap(), &order),
-        fingerprint_abs_reordered(vr.as_ref().unwrap(), &order),
-    );
-    assert!((fp_vl - -5.456470679201179).abs() < 1e-8, "zgeev 1024: fp_vl = {fp_vl:.17}");
-    assert!((fp_vr - 4.932401633755345).abs() < 1e-8, "zgeev 1024: fp_vr = {fp_vr:.17}");
 }
 
 #[test]

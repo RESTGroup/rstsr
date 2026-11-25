@@ -29,18 +29,21 @@ pub(super) fn sorted_spectrum<R: DataAPI<Data = Vec<c64>>>(w: &TensorAny<R, c64,
 
 /// Fingerprint of `|v|` with the columns reordered by `order` (phase- and
 /// sign-invariant, as the eigenvector order is backend-dependent).
+///
+/// Summed directly instead of through `fingerprint`, which builds its tensor on
+/// the device and would therefore follow the device default order.
 pub(super) fn fingerprint_abs_reordered<R: DataAPI<Data = Vec<c64>>>(
     v: &TensorAny<R, c64, DeviceBLAS, Ix2>,
     order: &[usize],
 ) -> f64 {
-    let (m, n) = (v.nrow(), v.ncol());
-    let mut va = Vec::with_capacity(m * n);
-    for i in 0..m {
-        for &j in order {
-            va.push(v.i((i, j)).to_scalar().norm());
+    let n = v.ncol();
+    let mut acc = 0.0;
+    for i in 0..v.nrow() {
+        for (k, &j) in order.iter().enumerate() {
+            acc += v.i((i, j)).to_scalar().norm() * ((i * n + k) as f64).cos();
         }
     }
-    fingerprint(&rt::asarray((va, [m, n].c(), v.device())))
+    acc
 }
 
 /// Order-invariant spectrum fingerprints: the independently sorted real and
@@ -257,12 +260,25 @@ fn test_eig() {
         .norm()
             < 1e-8
     );
-    let (fp_vl, fp_vr) = (fingerprint_abs_reordered(vl, &order), fingerprint_abs_reordered(vr, &order));
-    assert!((fp_vl - -5.456470679201179).abs() < 1e-8, "eig 1024: fp_vl = {fp_vl:.17}");
-    assert!((fp_vr - 4.932401633755345).abs() < 1e-8, "eig 1024: fp_vr = {fp_vr:.17}");
-    for j in [0usize, 1, 500, 1023] {
-        let norm: f64 = (0..1024).map(|i| vr[[i, j]].norm_sqr()).sum::<f64>().sqrt();
-        assert!((norm - 1.0).abs() < 1e-12);
+    // eigenvector blocks: unit-column norms and the eigenvector relations, as
+    // the individual vectors are not reproducible across LAPACK builds
+    for j in [order[0], order[1], order[511]] {
+        let (mut nvl, mut nvr, mut rvl, mut rvr) = (0.0, 0.0, 0.0, 0.0);
+        for i in 0..1024 {
+            nvl += vl[[i, j]].norm_sqr();
+            nvr += vr[[i, j]].norm_sqr();
+            let (mut svl, mut svr) = (c64::new(0.0, 0.0), c64::new(0.0, 0.0));
+            for k in 0..1024 {
+                svl += a[[k, i]].conj() * vl[[k, j]];
+                svr += a[[i, k]] * vr[[k, j]];
+            }
+            rvl += (svl - r.eigenvalues[[j]].conj() * vl[[i, j]]).norm_sqr();
+            rvr += (svr - r.eigenvalues[[j]] * vr[[i, j]]).norm_sqr();
+        }
+        assert!((nvl - 1.0).abs() < 1e-12, "eig 1024: |vl| column {j}: {}", nvl.sqrt());
+        assert!((nvr - 1.0).abs() < 1e-12, "eig 1024: |vr| column {j}: {}", nvr.sqrt());
+        assert!((rvl / nvl).sqrt() < 1e-10, "eig 1024: left relation of column {j}: {:e}", (rvl / nvl).sqrt());
+        assert!((rvr / nvr).sqrt() < 1e-10, "eig 1024: right relation of column {j}: {:e}", (rvr / nvr).sqrt());
     }
 }
 

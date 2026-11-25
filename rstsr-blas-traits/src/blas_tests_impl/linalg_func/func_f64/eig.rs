@@ -29,18 +29,21 @@ pub(super) fn sorted_spectrum<R: DataAPI<Data = Vec<c64>>>(w: &TensorAny<R, c64,
 
 /// Fingerprint of `|v|` with the columns reordered by `order` (phase- and
 /// sign-invariant, as the eigenvector order is backend-dependent).
+///
+/// Summed directly instead of through `fingerprint`, which builds its tensor on
+/// the device and would therefore follow the device default order.
 pub(super) fn fingerprint_abs_reordered<R: DataAPI<Data = Vec<c64>>>(
     v: &TensorAny<R, c64, DeviceBLAS, Ix2>,
     order: &[usize],
 ) -> f64 {
-    let (m, n) = (v.nrow(), v.ncol());
-    let mut va = Vec::with_capacity(m * n);
-    for i in 0..m {
-        for &j in order {
-            va.push(v.i((i, j)).to_scalar().norm());
+    let n = v.ncol();
+    let mut acc = 0.0;
+    for i in 0..v.nrow() {
+        for (k, &j) in order.iter().enumerate() {
+            acc += v.i((i, j)).to_scalar().norm() * ((i * n + k) as f64).cos();
         }
     }
-    fingerprint(&rt::asarray((va, [m, n].c(), v.device())))
+    acc
 }
 
 /// Order-invariant spectrum fingerprints: the independently sorted real and
