@@ -260,8 +260,9 @@ fn test_eig() {
         .norm()
             < 1e-8
     );
-    // eigenvector blocks: unit-column norms; the individual vectors are not
-    // reproducible across builds (the relations are checked at driver level)
+    let (fp_vl, fp_vr) = (fingerprint_abs_reordered(vl, &order), fingerprint_abs_reordered(vr, &order));
+    assert!((fp_vl - -5.456470679201179).abs() < 1e-8, "eig 1024: fp_vl = {fp_vl:.17}");
+    assert!((fp_vr - 4.932401633755345).abs() < 1e-8, "eig 1024: fp_vr = {fp_vr:.17}");
     for j in [order[0], order[1], order[511]] {
         let nvl: f64 = (0..1024).map(|i| vl[[i, j]].norm_sqr()).sum::<f64>();
         let nvr: f64 = (0..1024).map(|i| vr[[i, j]].norm_sqr()).sum::<f64>();

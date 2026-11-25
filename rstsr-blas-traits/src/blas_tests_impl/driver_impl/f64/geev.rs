@@ -346,10 +346,6 @@ fn name() {
 
 #[test]
 fn test_zgeev() {
-    // Only the spectrum of this full-size solve is reproducible across builds:
-    // the individual eigenvectors (and their order) are not, so the blocks are
-    // pinned by unit-column norms and the relations are checked at 70 and 129
-    // below, where the solve does not depend on the build.
     let device = DeviceBLAS::default();
     let a = rt::asarray((get_vec::<c64>('a'), [1024, 1024].c(), &device)).into_dim::<Ix2>();
     let (w, vl, vr) = ZGEEV::default().a(a.view()).left(true).build().unwrap().run().unwrap();
@@ -370,6 +366,10 @@ fn test_zgeev() {
         assert!((nvl - 1.0).abs() < 1e-12, "zgeev 1024: |vl| column {j}: {}", nvl.sqrt());
         assert!((nvr - 1.0).abs() < 1e-12, "zgeev 1024: |vr| column {j}: {}", nvr.sqrt());
     }
+    // numpy: |vl| and |vr| columns reordered by the sorted order
+    let (fp_vl, fp_vr) = (fingerprint_abs_reordered(&vl, &order), fingerprint_abs_reordered(&vr, &order));
+    assert!((fp_vl - -5.456470679201179).abs() < 1e-8, "zgeev 1024: fp_vl = {fp_vl:.17}");
+    assert!((fp_vr - 4.932401633755345).abs() < 1e-8, "zgeev 1024: fp_vr = {fp_vr:.17}");
 }
 
 /// The eigenvector relations at sizes that cross the 64-element blocking of the
