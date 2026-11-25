@@ -226,7 +226,8 @@ fn test_dgeev() {
     assert!(
         (fingerprint(&rt::asarray((ws, &device))) - c64::new(-36.380652131982586, -116.87071686473277)).norm() < 1e-8
     );
-    assert!((fingerprint_abs_reordered(&vr, &order) - -12.000277853410061).abs() < 1e-8);
+    let fp_vr = fingerprint_abs_reordered(&vr, &order);
+    assert!((fp_vr - -12.000277853410061).abs() < 1e-8, "dgeev 1024: fp_vr = {fp_vr:.17}");
 
     // the conjugate pairs are consecutive (positive imaginary part first)
     let mut j = 0;
@@ -352,8 +353,12 @@ fn test_zgeev() {
     assert!(
         (fingerprint(&rt::asarray((ws, &device))) - c64::new(-53.51484095091083, -871.7616347408099)).norm() < 1e-8
     );
-    assert!((fingerprint_abs_reordered(vl.as_ref().unwrap(), &order) - -5.456470679201179).abs() < 1e-8);
-    assert!((fingerprint_abs_reordered(vr.as_ref().unwrap(), &order) - 4.932401633755345).abs() < 1e-8);
+    let (fp_vl, fp_vr) = (
+        fingerprint_abs_reordered(vl.as_ref().unwrap(), &order),
+        fingerprint_abs_reordered(vr.as_ref().unwrap(), &order),
+    );
+    assert!((fp_vl - -5.456470679201179).abs() < 1e-8, "zgeev 1024: fp_vl = {fp_vl:.17}");
+    assert!((fp_vr - 4.932401633755345).abs() < 1e-8, "zgeev 1024: fp_vr = {fp_vr:.17}");
 }
 
 #[test]

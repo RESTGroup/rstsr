@@ -256,8 +256,9 @@ fn test_eig() {
         .norm()
             < 1e-8
     );
-    assert!((fingerprint_abs_reordered(vl, &order) - -15.906522814903258).abs() < 1e-8);
-    assert!((fingerprint_abs_reordered(vr, &order) - -12.000277853410061).abs() < 1e-8);
+    let (fp_vl, fp_vr) = (fingerprint_abs_reordered(vl, &order), fingerprint_abs_reordered(vr, &order));
+    assert!((fp_vl - -15.906522814903258).abs() < 1e-8, "eig 1024: fp_vl = {fp_vl:.17}");
+    assert!((fp_vr - -12.000277853410061).abs() < 1e-8, "eig 1024: fp_vr = {fp_vr:.17}");
     for j in [0usize, 1, 500, 1023] {
         let norm: f64 = (0..1024).map(|i| vr[[i, j]].norm_sqr()).sum::<f64>().sqrt();
         assert!((norm - 1.0).abs() < 1e-12);
