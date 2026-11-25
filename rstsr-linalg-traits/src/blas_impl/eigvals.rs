@@ -1,9 +1,10 @@
 //! n-dim `eigvals` on the BLAS device: the eigenvalues of every square matrix
-//! slice of the stack (the two matrix axes are the last two shape axes under a
-//! row-major device, the first two under a column-major one; the rest is the
-//! batch), or of the generalized problem `A v = λ B v` when a second matrix
-//! is given (the batch dims of `a` and `b` broadcast against each other;
-//! under a column-major device they align from the left).
+//! slice, standard or generalized `A v = λ B v`.
+//!
+//! Matrix slices: the two matrix axes are the last two shape axes under a
+//! row-major device and the first two under a column-major one; the rest is
+//! the batch. The batch dims of `a` and `b` broadcast against each other;
+//! under a column-major device they align from the left.
 //!
 //! The spectrum is always complex (`Complex<T::Real>`), in LAPACK's order and
 //! unsorted, shaped `(..., M)` — or `(..., 2, M)` holding `(alpha, beta)` with

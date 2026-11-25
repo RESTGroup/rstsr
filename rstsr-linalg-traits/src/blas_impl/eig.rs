@@ -1,11 +1,11 @@
-//! n-dim `eig` on the BLAS device: the eigenvalues and the requested left /
-//! right eigenvector blocks of every square matrix slice of the stack (the two
-//! matrix axes are the last two shape axes under a row-major device, the
-//! first two under a column-major one; the rest is the batch), or of the
-//! generalized problem `A v = λ B v` when a second matrix is given (the batch
-//! dims of `a` and `b` broadcast against each other; under a column-major
-//! device they align from the left, so a `b` of shape `(M, M, k)` pairs with
-//! the first batch axis of `a`).
+//! n-dim `eig` on the BLAS device: eigenvalues and the requested eigenvector
+//! blocks of every square matrix slice, standard or generalized `A v = λ B v`.
+//!
+//! Matrix slices: the two matrix axes are the last two shape axes under a
+//! row-major device and the first two under a column-major one; the rest is
+//! the batch. The batch dims of `a` and `b` broadcast against each other;
+//! under a column-major device they align from the left, so a `b` of shape
+//! `(M, M, k)` pairs with the first batch axis of `a`.
 //!
 //! The spectrum is always complex (`Complex<T::Real>`), in LAPACK's order and
 //! unsorted; the result is [`EigResult`] with `Some` exactly for the requested
