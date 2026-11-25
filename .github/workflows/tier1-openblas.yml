@@ -18,7 +18,11 @@ env:
 
 jobs:
   unittests:
-    runs-on: ubuntu-latest
+    # Pinned to noble: the resolute runner image installs the `amd64v3` OpenBLAS
+    # (0.3.32+ds-5), whose zgeev returns wrong eigenvectors (calling zgeev_
+    # directly on it gives 1e-1 residuals, against 1e-14 for the plain amd64
+    # package of the same version).
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v4
     - uses: Swatinem/rust-cache@v2
@@ -54,7 +58,8 @@ jobs:
   # them against a pthread-built OpenBLAS, which takes the `OPENBLAS_THREAD`
   # runtime path (the OpenMP runtime is still linked, but unused by OpenBLAS).
   unittests-pthread:
-    runs-on: ubuntu-latest
+    # see the runner-image note above
+    runs-on: ubuntu-24.04
     steps:
     - uses: actions/checkout@v4
     - uses: Swatinem/rust-cache@v2
