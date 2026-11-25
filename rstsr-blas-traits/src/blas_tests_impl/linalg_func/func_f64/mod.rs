@@ -6,7 +6,9 @@ pub use rstsr_test_manifest::get_vec;
 
 mod cholesky;
 mod det;
+mod eig;
 mod eigh;
+mod eigvals;
 mod eigvalsh;
 mod inv;
 mod pinv;

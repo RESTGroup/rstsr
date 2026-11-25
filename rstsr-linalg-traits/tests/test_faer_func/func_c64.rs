@@ -89,7 +89,7 @@ mod test {
         let device = DeviceFaer::default();
         let a = rt::asarray((get_vec::<c64>('a'), [1024, 1024].c(), &device));
         let r = rt::linalg::eig(a.view());
-        let (w, v) = (r.eigenvalues, r.eigenvectors);
+        let (w, v) = r.into();
 
         // a non-Hermitian spectrum is unordered, and numpy's and faer's orders
         // differ; sort to a canonical order (lexicographic by real then

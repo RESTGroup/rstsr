@@ -100,22 +100,158 @@ where
 
 /* #region eig */
 
-pub struct EigResult<W, V> {
+/// Result of a general (non-Hermitian) eigenproblem: the eigenvalues `W` and
+/// the left (`VL`) and right (`VR`) eigenvector blocks of the requested sides.
+///
+/// One type describes every form of [`eig`]: `W` is the spectrum (the
+/// homogeneous form carries `(alpha, beta)` instead), and `VL`/`VR` are
+/// whatever the form returns. `left` is `None` on the faer device (right
+/// eigenvectors only), and every side that was not requested is `None`. The fields are
+/// public, and the conversions below destructure the common shapes:
+///
+/// - `(W, VL, VR)` — always available, type-preserving.
+/// - `(W, T)` — from `EigResult<W, Option<T>, Option<T>>` when exactly one side is present (the
+///   default form gives `(w, vr)`); panics otherwise.
+/// - `(W, T, T)` — from `EigResult<W, Option<T>, Option<T>>` when both sides are present; panics
+///   otherwise.
+///
+/// See also [`eig`], [`eigvals`], [`EigSide`].
+pub struct EigResult<W, VL, VR> {
     pub eigenvalues: W,
-    pub eigenvectors: V,
+    pub left: VL,
+    pub right: VR,
 }
 
-impl<W, V> From<(W, V)> for EigResult<W, V> {
-    fn from((vals, vecs): (W, V)) -> Self {
-        Self { eigenvalues: vals, eigenvectors: vecs }
+impl<W, VL, VR> From<(W, VL, VR)> for EigResult<W, VL, VR> {
+    fn from((eigenvalues, left, right): (W, VL, VR)) -> Self {
+        Self { eigenvalues, left, right }
     }
 }
 
-impl<W, V> From<EigResult<W, V>> for (W, V) {
-    fn from(eig_result: EigResult<W, V>) -> Self {
-        (eig_result.eigenvalues, eig_result.eigenvectors)
+impl<W, VL, VR> From<EigResult<W, VL, VR>> for (W, VL, VR) {
+    fn from(eig_result: EigResult<W, VL, VR>) -> Self {
+        (eig_result.eigenvalues, eig_result.left, eig_result.right)
     }
 }
+
+impl<W, T> From<EigResult<W, Option<T>, Option<T>>> for (W, T) {
+    /// Destructures a one-sided result into `(eigenvalues, eigenvectors)`.
+    ///
+    /// # Panics
+    ///
+    /// Panics when both sides are present (use the `(W, T, T)` conversion) or
+    /// neither is (the spectrum is still available as `.eigenvalues`).
+    fn from(eig_result: EigResult<W, Option<T>, Option<T>>) -> Self {
+        let EigResult { eigenvalues, left, right } = eig_result;
+        match (left, right) {
+            (Some(v), None) => (eigenvalues, v),
+            (None, Some(v)) => (eigenvalues, v),
+            (Some(_), Some(_)) => panic!("EigResult: both eigenvector sides are present; convert to (W, T, T) instead"),
+            (None, None) => panic!("EigResult: no eigenvector side is present; read `eigenvalues` directly"),
+        }
+    }
+}
+
+impl<W, T> From<EigResult<W, Option<T>, Option<T>>> for (W, T, T) {
+    /// Destructures a two-sided result into `(eigenvalues, left, right)`.
+    ///
+    /// # Panics
+    ///
+    /// Panics unless both sides are present.
+    fn from(eig_result: EigResult<W, Option<T>, Option<T>>) -> Self {
+        let EigResult { eigenvalues, left, right } = eig_result;
+        match (left, right) {
+            (Some(vl), Some(vr)) => (eigenvalues, vl, vr),
+            (Some(_), None) => panic!("EigResult: only the left eigenvectors are present; convert to (W, T) instead"),
+            (None, Some(_)) => panic!("EigResult: only the right eigenvectors are present; convert to (W, T) instead"),
+            (None, None) => panic!("EigResult: no eigenvector side is present; read `eigenvalues` directly"),
+        }
+    }
+}
+
+/// Which eigenvector blocks [`eig`] returns.
+///
+/// The default is [`EigSide::Right`] (the NumPy `eig` convention
+/// `A v = λ v`). [`EigSide::Left`] returns `u` with
+/// `uᴴ A = λ uᴴ` (the SciPy `left=True, right=False` form),
+/// [`EigSide::Both`] returns the two blocks, and [`EigSide::None`] returns the
+/// spectrum alone. On the BLAS devices [`eig`] accepts the enum, the
+/// `"none"`/`"left"`/`"right"`/`"both"` strings, and [`FlagSide::L`]/
+/// [`FlagSide::R`] in the side slot; the faer device takes the bare `eig(a)`
+/// (right eigenvectors) only.
+///
+/// `#[non_exhaustive]`: further sides (if any) can be added without a
+/// breaking change.
+///
+/// See also [`eig`], [`eigvals`].
+#[non_exhaustive]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum EigSide {
+    /// Neither block: the eigenvalues only.
+    None,
+    /// Left eigenvectors only: `u(j)ᴴ A = λ(j) u(j)ᴴ`.
+    Left,
+    /// Right eigenvectors only: `A v(j) = λ(j) v(j)` (the default).
+    #[default]
+    Right,
+    /// Both the left and the right eigenvectors.
+    Both,
+}
+
+impl EigSide {
+    /// Whether the left eigenvector block is requested.
+    pub fn wants_left(self) -> bool {
+        matches!(self, EigSide::Left | EigSide::Both)
+    }
+
+    /// Whether the right eigenvector block is requested.
+    pub fn wants_right(self) -> bool {
+        matches!(self, EigSide::Right | EigSide::Both)
+    }
+}
+
+impl TryFrom<&str> for EigSide {
+    type Error = Error;
+    fn try_from(s: &str) -> Result<Self> {
+        match s {
+            "none" => Ok(EigSide::None),
+            "left" => Ok(EigSide::Left),
+            "right" => Ok(EigSide::Right),
+            "both" => Ok(EigSide::Both),
+            _ => Err(rstsr_error!(InvalidValue, "invalid eig side '{s}'")),
+        }
+    }
+}
+
+impl FromStr for EigSide {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Self> {
+        Self::try_from(s)
+    }
+}
+
+impl From<FlagSide> for EigSide {
+    fn from(side: FlagSide) -> Self {
+        match side {
+            FlagSide::L => EigSide::Left,
+            FlagSide::R => EigSide::Right,
+        }
+    }
+}
+
+/// Marker for the SciPy `homogeneous_eigvals=True` form of [`eig`] and
+/// [`eigvals`] (BLAS devices only): the eigenvalues come as the `(alpha,
+/// beta)` pair stacked on a new second-to-last axis (shape `(..., 2, M)`,
+/// `(2, M, ...)` under a column-major device), so that
+/// `lambda = alpha / beta` is never divided out.
+///
+/// For the standard problem `beta` is identically `1`; for the generalized
+/// problem `A v = lambda B v` the pair is the LAPACK `(alpha, beta)`
+/// representation (a singular `B` gives `beta(j) = 0` for some `j`, without an `inf` appearing).
+///
+/// See also [`eig`], [`eigvals`], [`EigResult`].
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct Homogeneous;
 
 /* #endregion */
 

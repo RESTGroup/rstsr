@@ -44,6 +44,48 @@ fn eigvalsh_standard() {
     assert!(rt::allclose(&w, &rt::tensor_from_nested!([1.0, 3.0], &device), None));
 }
 
+/// A 3x3 matrix with the real eigenvalue `1` and the conjugate pair `2 ± i`
+/// (companion form).
+fn companion(device: &DeviceFaer) -> Tensor<f64, DeviceFaer, IxD> {
+    rt::tensor_from_nested!([[1.0, 0.0, 0.0], [0.0, 2.0, -1.0], [0.0, 1.0, 2.0]], device)
+}
+
+/// The spectrum given as its real and imaginary parts equals `expected` (pairs
+/// sorted by real then imaginary part, as the parity script prints them).
+fn assert_spectrum(re: &Tensor<f64, DeviceFaer, IxD>, im: &Tensor<f64, DeviceFaer, IxD>, expected: &[(f64, f64)]) {
+    let mut ws: Vec<(f64, f64)> = re.to_vec().into_iter().zip(im.to_vec()).collect();
+    ws.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap().then(a.1.partial_cmp(&b.1).unwrap()));
+    assert_eq!(ws.len(), expected.len());
+    for ((re, im), (ere, eim)) in ws.into_iter().zip(expected) {
+        assert!((re - ere).abs() < 1e-12 && (im - eim).abs() < 1e-12, "{re} + {im}i vs {ere} + {eim}i");
+    }
+}
+
+#[test]
+fn eig_standard() {
+    let device = device();
+    let a = companion(&device);
+    let (w, v): (Tensor<_, DeviceFaer, _>, Tensor<_, DeviceFaer, _>) = rt::linalg::eig(&a).into();
+    assert_eq!(w.shape(), &[3]);
+    assert_eq!(v.shape(), &[3, 3]);
+    assert_spectrum(&w.map(|z| z.re), &w.map(|z| z.im), &[(1.0, 0.0), (2.0, -1.0), (2.0, 1.0)]);
+    // A V = V diag(w) with V = X + iY and w = lambda + i mu, in real arithmetic:
+    // A X = X diag(lambda) - Y diag(mu)  and  A Y = X diag(mu) + Y diag(lambda)
+    let (x, y) = (v.map(|z| z.re), v.map(|z| z.im));
+    let (lam, mu) = (w.map(|z| z.re), w.map(|z| z.im));
+    assert!(rt::allclose(&(&a % &x), &(&x % &rt::diag(&lam)) - &(&y % &rt::diag(&mu)), None));
+    assert!(rt::allclose(&(&a % &y), &(&x % &rt::diag(&mu)) + &(&y % &rt::diag(&lam)), None));
+}
+
+#[test]
+fn eigvals_standard() {
+    let device = device();
+    let a = companion(&device);
+    let w = rt::linalg::eigvals(&a);
+    assert_eq!(w.shape(), &[3]);
+    assert_spectrum(&w.map(|z| z.re), &w.map(|z| z.im), &[(1.0, 0.0), (2.0, -1.0), (2.0, 1.0)]);
+}
+
 #[test]
 fn eigh_generalized() {
     let device = device();

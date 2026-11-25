@@ -42,7 +42,8 @@ let device = DeviceFaer::default(); // requires the `linalg` + `faer` features
 | `np.linalg.eig(a)` | `rt::linalg::eig(&a)` | Eigenvalues and (right) eigenvectors |
 | `np.linalg.eigvals(a)` | `rt::linalg::eigvals(&a)` | Eigenvalues only |
 
-`eig(...)` returns `EigResult { eigenvalues, eigenvectors }` (complex dtype).
+`eig(...)` returns `EigResult { eigenvalues, left, right }` (complex dtype; `left`
+is `None` here), and `.into()` yields `(w, v)`.
 
 ## Matrix decomposition
 
@@ -90,5 +91,14 @@ Note `A` is the **first** argument (RSTSR solves `A x = B`), matching SciPy.
   BLAS-only). Use `solve_general`, or an eigensolver-based approach.
 - **`eigvalsh`** on faer handles the **standard** problem only; generalized
   eigenvalues go through `eigh((&a, &b, uplo, type))`.
+- **`eig` / `eigvals`** on faer handle the **standard** problem only
+  (`eig(&a)`, `eigvals(&a)`; right eigenvectors). The generalized form
+  (`eig((&a, &b, side))`, `eigvals((&a, &b))`), the `EigSide` selections
+  (`EigSide::Left` / `Both` / `None`) and the `Homogeneous` `(α, β)` spectrum are
+  **BLAS-only**. The eigenvalues are always complex and unsorted on both
+  backends (NumPy and SciPy return real arrays for a real spectrum); the
+  generalized eigenvectors are rescaled to unit 2-norm (as SciPy does). On the
+  BLAS devices the inputs are consumed as scratch: an in-order owned or
+  mutable input is destroyed when its batch needs no broadcast.
 - The builder structs (`EighArgs`, `SVDArgs`) are BLAS-only. On faer, use the
   tuple overloads shown above.

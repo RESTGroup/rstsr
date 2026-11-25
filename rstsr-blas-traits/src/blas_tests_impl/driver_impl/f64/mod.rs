@@ -4,11 +4,13 @@ pub use rstsr::prelude::*;
 pub use rstsr_core::prelude_dev::fingerprint;
 pub use rstsr_test_manifest::get_vec;
 
+pub mod geev;
 mod geqrf;
 mod gesdd;
 mod gesv;
 mod gesvd;
 mod getrf_getri;
+mod ggev;
 pub mod orgqr;
 mod potrf;
 mod syev;

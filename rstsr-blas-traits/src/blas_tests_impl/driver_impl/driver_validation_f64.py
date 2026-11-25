@@ -140,4 +140,91 @@ assert np.isclose(fingerprint(s), 33.969339071043095)
 assert np.isclose(fingerprint(np.abs(vt)), 13.465522484136157)
 fingerprint(np.abs(u)), fingerprint(s), fingerprint(np.abs(vt))
 
+# ## eig driver tests
 
+# the packed real eigenvector matrix of a real driver is expanded to complex
+# columns: v(j) = v[:, j] (+|-) 1j * v[:, j + 1] for a conjugate pair
+
+
+def _unpack_real_eigvecs(v, wi):
+    n = v.shape[0]
+    out = np.zeros((n, n), dtype=complex)
+    j = 0
+    while j < n:
+        if wi[j] == 0:
+            out[:, j] = v[:, j]
+            j += 1
+        else:
+            out[:, j] = v[:, j] + 1j * v[:, j + 1]
+            out[:, j + 1] = v[:, j] - 1j * v[:, j + 1]
+            j += 2
+    return out
+
+
+# ### dgeev
+
+a = a_raw.copy().reshape(1024, 1024)
+wr, wi, vl, vr, info = scipy.linalg.lapack.dgeev(a, compute_vl=1, compute_vr=1)
+w = wr + 1j * wi
+order = np.argsort(w)
+vl = _unpack_real_eigvecs(vl, wi)
+vr = _unpack_real_eigvecs(vr, wi)
+assert np.isclose(fingerprint(np.sort(w)), -36.380652131982586-116.87071686473277j)
+assert np.isclose(fingerprint(np.abs(vl[:, order])), -15.906522814903258)
+assert np.isclose(fingerprint(np.abs(vr[:, order])), -12.000277853410061)
+fingerprint(np.sort(w)), fingerprint(np.abs(vl[:, order])), fingerprint(np.abs(vr[:, order]))
+
+# ### zgeev
+
+ac = np.load(f"{root}/a-c64.npy").reshape(1024, 1024)
+w, vl, vr, info = scipy.linalg.lapack.zgeev(ac, compute_vl=1, compute_vr=1)
+order = np.argsort(w)
+assert np.isclose(fingerprint(np.sort(w)), -53.51484095091083-871.7616347408099j)
+assert np.isclose(fingerprint(np.abs(vl[:, order])), -5.456470679201179)
+assert np.isclose(fingerprint(np.abs(vr[:, order])), 4.932401633755345)
+fingerprint(np.sort(w)), fingerprint(np.abs(vl[:, order])), fingerprint(np.abs(vr[:, order]))
+
+# ### dggev (256x256, B = M^T M + 256 I well-conditioned; LAPACK scaling kept)
+
+# the real parts of a conjugate pair may differ in the last bit, so the order
+# of the two members after sorting is not defined; fingerprint the sorted real
+# parts and the sorted |imaginary parts| (robust), not the complex spectrum
+m = a_raw.copy()[:256*256].reshape(256, 256)
+b = m.T @ m + 256 * np.eye(256)
+alphar, alphai, beta, vl, vr, work, info = scipy.linalg.lapack.dggev(m, b, compute_vl=1, compute_vr=1)
+alpha = alphar + 1j * alphai
+w = alpha / beta
+order = np.argsort(w)
+vl = _unpack_real_eigvecs(vl, alphai)
+vr = _unpack_real_eigvecs(vr, alphai)
+# the eigenvector order is backend-dependent and the raw scaling of the GGEV
+# vectors differs between LAPACK builds (observed MKL vs OpenBLAS): rescale
+# every column to unit 2-norm, then fingerprint the columns of |v| one by one
+# and sort (order-invariant)
+
+
+def _fp_vecs(v):
+    v = v / np.linalg.norm(v, axis=0)
+    fp = np.array([fingerprint(np.abs(v[:, j])) for j in range(v.shape[1])])
+    return fingerprint(np.sort(fp))
+
+
+assert np.isclose(fingerprint(np.sort(w.real)), -0.03604323300216897)
+assert np.isclose(fingerprint(np.sort(np.abs(w.imag))), -0.026149942284387048)
+assert np.isclose(_fp_vecs(vl), -0.8719042678843263)
+assert np.isclose(_fp_vecs(vr), -1.225589423351893)
+fingerprint(np.sort(w.real)), fingerprint(np.sort(np.abs(w.imag))), _fp_vecs(vl), _fp_vecs(vr)
+
+# ### zggev (256x256 leading blocks, B = data + 256 I; LAPACK scaling kept)
+
+ac = np.load(f"{root}/a-c64.npy")[:256*256].reshape(256, 256)
+bc = np.load(f"{root}/b-c64.npy")[:256*256].reshape(256, 256) + 256 * np.eye(256)
+alpha, beta, vl, vr, rwork, info = scipy.linalg.lapack.zggev(ac, bc, compute_vl=1, compute_vr=1)
+w = alpha / beta
+# the spectrum is fingerprinted as the independently sorted real and imaginary
+# parts, the eigenvectors as above (order-invariant)
+assert np.isclose(fingerprint(np.sort(w.real)), -0.11836546248737323)
+assert np.isclose(fingerprint(np.sort(w.imag)), -0.11210131721328423)
+assert np.isclose(_fp_vecs(vl), -1.3881039015638714)
+assert np.isclose(_fp_vecs(vr), -1.9454332085201405)
+fingerprint(np.sort(w.real)), fingerprint(np.sort(w.imag)), _fp_vecs(vl), _fp_vecs(vr)

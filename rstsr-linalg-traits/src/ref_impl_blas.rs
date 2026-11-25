@@ -1,5 +1,6 @@
-use crate::traits_def::{EighArgs_, PinvResult, QrMode, SVDArgs_};
-use num::{Float, FromPrimitive, Zero};
+use crate::stack::{stack_shape, stack_slice_at, stack_slice_at_mut, StackLayout};
+use crate::traits_def::{EigSide, EighArgs_, PinvResult, QrMode, SVDArgs_};
+use num::{Complex, Float, FromPrimitive, One, Zero};
 use rstsr_blas_traits::prelude::*;
 use rstsr_core::prelude::rt;
 use rstsr_core::prelude_dev::*;
@@ -80,6 +81,377 @@ where
             false => Ok((w, Some(v.clone_to_mut()))),
         }
     }
+}
+
+/* #endregion */
+
+/* #region eig */
+
+/// Eigenvalues (and the requested eigenvector blocks) of one 2-D matrix; the
+/// input is consumed as scratch (destroyed by `GEEV`).
+pub fn ref_impl_eig_simple_f<T, B>(
+    a: TensorReference<'_, T, B, Ix2>,
+    left: bool,
+    right: bool,
+) -> Result<(
+    Tensor<Complex<T::Real>, B, Ix1>,
+    Option<Tensor<Complex<T::Real>, B, Ix2>>,
+    Option<Tensor<Complex<T::Real>, B, Ix2>>,
+)>
+where
+    T: BlasFloat,
+    B: LapackDriverAPI<T>
+        + DeviceAPI<Complex<T::Real>, Raw = Vec<Complex<T::Real>>>
+        + DeviceCreationAnyAPI<Complex<T::Real>>
+        + DeviceCreationNumAPI<Complex<T::Real>>,
+{
+    let device = a.device().clone();
+    let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
+    device.with_blas_num_threads(nthreads, || GEEV::default().a(a).left(left).right(right).build()?.run())
+}
+
+/// Rescale every column of `v` to unit 2-norm (SciPy's convention for `GGEV`;
+/// LAPACK scales the largest component to `abs(re) + abs(im) = 1`).
+fn normalize_eigvec_columns<R, B>(mut v: Tensor<Complex<R>, B, Ix2>) -> Tensor<Complex<R>, B, Ix2>
+where
+    R: Float,
+    B: DeviceAPI<Complex<R>, Raw = Vec<Complex<R>>>,
+{
+    let (m, n) = (v.nrow(), v.ncol());
+    let offset = v.offset();
+    let (rs, cs) = (v.stride()[0], v.stride()[1]);
+    let raw = v.raw_mut();
+    for j in 0..n {
+        let col = |i: usize| (offset as isize + i as isize * rs + j as isize * cs) as usize;
+        let norm_sq = (0..m).map(|i| raw[col(i)].norm_sqr()).fold(R::zero(), |acc, x| acc + x);
+        let norm = norm_sq.sqrt();
+        for i in 0..m {
+            raw[col(i)] = raw[col(i)] / norm;
+        }
+    }
+    v
+}
+
+/// Generalized eigenvalues of `A v = lambda B v` (and the requested
+/// eigenvector blocks) of one pair of 2-D matrices; both inputs are consumed
+/// as scratch (destroyed by `GGEV`). Returns the raw `(alpha, beta)` pair
+/// (`lambda = alpha / beta`, see [`write_generalized_eigenvalues`]) with the
+/// eigenvectors rescaled to unit 2-norm.
+pub fn ref_impl_eig_generalized_simple_f<'b, T, B>(
+    a: TensorReference<'_, T, B, Ix2>,
+    b: TensorReference<'b, T, B, Ix2>,
+    left: bool,
+    right: bool,
+) -> Result<(
+    Tensor<Complex<T::Real>, B, Ix1>,
+    Tensor<Complex<T::Real>, B, Ix1>,
+    Option<Tensor<Complex<T::Real>, B, Ix2>>,
+    Option<Tensor<Complex<T::Real>, B, Ix2>>,
+)>
+where
+    T: BlasFloat,
+    B: LapackDriverAPI<T>
+        + DeviceAPI<Complex<T::Real>, Raw = Vec<Complex<T::Real>>>
+        + DeviceCreationAnyAPI<Complex<T::Real>>
+        + DeviceCreationNumAPI<Complex<T::Real>>,
+{
+    let device = a.device().clone();
+    let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
+    let (alpha, beta, vl, vr) =
+        device.with_blas_num_threads(nthreads, || GGEV::default().a(a).b(b).left(left).right(right).build()?.run())?;
+    let vl = vl.map(normalize_eigvec_columns);
+    let vr = vr.map(normalize_eigvec_columns);
+    // LAPACK's `beta` is real for a real routine and complex otherwise; the
+    // composition passes it on as complex
+    let beta: Tensor<Complex<T::Real>, B, Ix1> = rt::asarray((
+        beta.raw().iter().map(|&x| Complex::new(x.re(), x.im())).collect::<Vec<_>>(),
+        beta.shape().to_vec(),
+        &device,
+    ))
+    .into_dim::<Ix1>();
+    Ok((alpha, beta, vl, vr))
+}
+
+/// `a / b` in the overflow- and underflow-safe form (as NumPy divides):
+/// `num`'s `|b|^2` factor loses the quotient as soon as `|b|` leaves about
+/// `1e±154` for `f64` or `1e±19` for `f32`. A real `b` divides component-wise,
+/// a complex one by Smith's algorithm.
+fn cdiv<R: Float>(a: Complex<R>, b: Complex<R>) -> Complex<R> {
+    if b.im.is_zero() {
+        Complex::new(a.re / b.re, a.im / b.re)
+    } else if b.re.abs() >= b.im.abs() {
+        let r = b.im / b.re;
+        let d = b.re + r * b.im;
+        Complex::new((a.re + a.im * r) / d, (a.im - a.re * r) / d)
+    } else {
+        let r = b.re / b.im;
+        let d = b.im + r * b.re;
+        Complex::new((a.re * r + a.im) / d, (a.im * r - a.re) / d)
+    }
+}
+
+/// Write `w = alpha / beta` into `w` with SciPy's rules for a vanishing
+/// `beta`: `alpha != 0` gives (projective) infinity, `alpha = beta = 0` gives
+/// `nan` (`nan + 0j` when every `alpha` is real, `nan + nan j` otherwise;
+/// decided for this slice — SciPy decides over the whole stack). The quotient
+/// is taken in an overflow- and underflow-safe form.
+pub fn write_generalized_eigenvalues<R, B>(
+    alpha: &[Complex<R>],
+    beta: &[Complex<R>],
+    w: &mut TensorMut<'_, Complex<R>, B, Ix1>,
+) -> Result<()>
+where
+    R: Float,
+    B: DeviceAPI<Complex<R>, Raw = Vec<Complex<R>>>,
+{
+    assert_eq!(w.shape(), &[alpha.len()]);
+    assert_eq!(alpha.len(), beta.len());
+    let all_real = alpha.iter().all(|a| a.im == R::zero());
+    let offsets: Vec<usize> = IterLayout::new(w.layout(), TensorIterOrder::C)?.collect();
+    let raw = w.raw_mut();
+    for (k, off) in offsets.into_iter().enumerate() {
+        let (a, b) = (alpha[k], beta[k]);
+        raw[off] = if b != Complex::<R>::zero() {
+            cdiv(a, b)
+        } else if a != Complex::<R>::zero() {
+            Complex::<R>::new(R::infinity(), R::zero())
+        } else if all_real {
+            Complex::<R>::new(R::nan(), R::zero())
+        } else {
+            Complex::<R>::new(R::nan(), R::nan())
+        };
+    }
+    Ok(())
+}
+
+/// Write row `r` of a `(..., 2, n)` homogeneous spectrum slice, element `k`
+/// taking `f(k)`.
+fn write_spectrum_row<R, B>(dst: &mut TensorMut<'_, Complex<R>, B, Ix2>, r: usize, f: impl FnMut(usize) -> Complex<R>)
+where
+    R: Float,
+    B: DeviceAPI<Complex<R>, Raw = Vec<Complex<R>>>,
+{
+    let layout = dst.layout().clone();
+    let n = layout.shape()[1];
+    let base = layout.offset() as isize + r as isize * layout.stride()[0];
+    let cs = layout.stride()[1];
+    let raw = dst.raw_mut();
+    let mut f = f;
+    for k in 0..n {
+        raw[(base + k as isize * cs) as usize] = f(k);
+    }
+}
+
+/// Allocate the zero-filled `eig` outputs for a stack of `n x n` matrices:
+/// the spectrum `(..., n)` or the homogeneous `(..., 2, n)` stack, and the
+/// requested eigenvector blocks `(..., n, n)`.
+#[allow(clippy::type_complexity)]
+fn eig_outputs<T, B>(
+    batch_shape: &[usize],
+    n: usize,
+    left: bool,
+    right: bool,
+    homogeneous: bool,
+    order: FlagOrder,
+    device: &B,
+) -> Result<(
+    Tensor<Complex<T::Real>, B, IxD>,
+    Option<Tensor<Complex<T::Real>, B, IxD>>,
+    Option<Tensor<Complex<T::Real>, B, IxD>>,
+)>
+where
+    T: BlasFloat,
+    B: DeviceAPI<Complex<T::Real>, Raw = Vec<Complex<T::Real>>> + DeviceCreationNumAPI<Complex<T::Real>>,
+{
+    let w_inner = if homogeneous { vec![2, n] } else { vec![n] };
+    let w = zeros_f((stack_shape(batch_shape, &w_inner, order), device))?;
+    let block = || zeros_f((stack_shape(batch_shape, &[n, n], order), device));
+    let vl = if left { Some(block()?) } else { None };
+    let vr = if right { Some(block()?) } else { None };
+    Ok((w, vl, vr))
+}
+
+/// The static-dim `eig`/`eigvals` overloads type the result by `a`: a `b`
+/// with more batch axes than `a` has no static result rank and is rejected
+/// there (`static_ndim_a` is `Some`), while the dynamic-dim overloads
+/// broadcast instead (`static_ndim_a` is `None`).
+pub fn check_static_generalized_ranks(
+    ndim_a: usize,
+    ndim_b: usize,
+    static_ndim_a: Option<usize>,
+    entry: &str,
+) -> Result<()> {
+    rstsr_assert!(
+        static_ndim_a.is_none() || ndim_a >= ndim_b,
+        InvalidLayout,
+        "{entry}: the static-dim overloads type the result by `a`, so `b` cannot have more batch axes than `a` (a is {ndim_a}-D, b is {ndim_b}-D); use dynamic dims"
+    )
+}
+
+/// n-dim `eig`: the eigenvalues and the requested eigenvector blocks of every
+/// square matrix slice of the stack (the two matrix axes are the last two
+/// shape axes under a row-major device, the first two under a column-major
+/// one; the rest is the batch). With a second matrix `b` the problem is the
+/// generalized `A v = lambda B v`, and the batch dims of `a` and `b` broadcast
+/// against each other (aligned from the left under a column-major device).
+///
+/// `left`/`right` select the eigenvector blocks; `homogeneous` gives the
+/// `(alpha, beta)` spectrum stacked on the second-to-last axis `(..., 2, n)`
+/// (`beta` identically one for the standard problem) instead of the
+/// eigenvalues `(..., n)` (the quotient is taken in an overflow- and
+/// underflow-safe form; see [`write_generalized_eigenvalues`]).
+///
+/// The inputs are consumed as scratch: an in-order owned or mutable input is
+/// destroyed by the per-slice driver call when its batch needs no broadcast,
+/// and nothing is written back; all other inputs are copied into the call
+/// order. `entry` names the calling entry (`"eig"` or `"eigvals"`) in the
+/// error messages.
+#[allow(clippy::type_complexity)]
+pub fn ref_impl_eig_nd_f<T, B>(
+    a: TensorReference<'_, T, B, IxD>,
+    b: Option<TensorReference<'_, T, B, IxD>>,
+    side: EigSide,
+    homogeneous: bool,
+    entry: &str,
+) -> Result<(
+    Tensor<Complex<T::Real>, B, IxD>,
+    Option<Tensor<Complex<T::Real>, B, IxD>>,
+    Option<Tensor<Complex<T::Real>, B, IxD>>,
+)>
+where
+    T: BlasFloat,
+    B: LapackDriverAPI<T>
+        + DeviceAPI<Complex<T::Real>, Raw = Vec<Complex<T::Real>>>
+        + DeviceCreationAnyAPI<Complex<T::Real>>
+        + DeviceCreationNumAPI<Complex<T::Real>>
+        + OpAssignArbitaryAPI<Complex<T::Real>, Ix1, Ix1>
+        + OpAssignAPI<Complex<T::Real>, Ix1>
+        + OpAssignArbitaryAPI<Complex<T::Real>, Ix2, Ix2>
+        + OpAssignAPI<Complex<T::Real>, Ix2>,
+{
+    let (left, right) = (side.wants_left(), side.wants_right());
+    let device = a.device().clone();
+    let order = device.default_order();
+
+    // the inputs go through `overwritable_convert` once
+    let mut converted_a = overwritable_convert_with_order(a, order)?;
+    let a_stack = StackLayout::new(converted_a.view().layout(), 2, order)?;
+    let inner_a = a_stack.inner_shape();
+    rstsr_assert_eq!(
+        inner_a[0],
+        inner_a[1],
+        InvalidLayout,
+        "{entry}: matrix a must be square, got {}x{}",
+        inner_a[0],
+        inner_a[1]
+    )?;
+    let mut converted_b = match b {
+        Some(b) => {
+            rstsr_assert!(device.same_device(b.device()), DeviceMismatch, "{entry}: a and b are on different devices")?;
+            let converted_b = overwritable_convert_with_order(b, order)?;
+            let inner_b = StackLayout::new(converted_b.view().layout(), 2, order)?.inner_shape().to_vec();
+            rstsr_assert_eq!(
+                inner_a,
+                inner_b.as_slice(),
+                InvalidLayout,
+                "{entry}: a and b must share the matrix shape, got {:?} vs {:?}",
+                inner_a,
+                inner_b
+            )?;
+            Some(converted_b)
+        },
+        None => None,
+    };
+    let b_stack = converted_b.as_ref().map(|cb| StackLayout::new(cb.view().layout(), 2, order)).transpose()?;
+    let batch_out = match &b_stack {
+        Some(stack) => broadcast_shapes_f(&[a_stack.batch_shape().to_vec(), stack.batch_shape().to_vec()], order)?,
+        None => a_stack.batch_shape().to_vec(),
+    };
+    let n = inner_a[0];
+    let (mut w, mut vl, mut vr) = eig_outputs::<T, B>(&batch_out, n, left, right, homogeneous, order, &device)?;
+    let n_batch = batch_out.iter().product::<usize>();
+    // empty matrix or empty batch: zero-filled outputs, the drivers are not called
+    if n == 0 || n_batch == 0 {
+        return Ok((w, vl, vr));
+    }
+    let w_stack = StackLayout::new(w.layout(), if homogeneous { 2 } else { 1 }, order)?;
+    let vl_stack = vl.as_ref().map(|v| StackLayout::new(v.layout(), 2, order)).transpose()?;
+    let vr_stack = vr.as_ref().map(|v| StackLayout::new(v.layout(), 2, order)).transpose()?;
+
+    // one batch element: the driver call and the output slices
+    let mut kernel =
+        |a: TensorReference<'_, T, B, Ix2>, b: Option<TensorReference<'_, T, B, Ix2>>, i: usize| -> Result<()> {
+            let (alpha, beta, vl_i, vr_i) = match b {
+                Some(b) => {
+                    let (alpha, beta, vl_i, vr_i) = ref_impl_eig_generalized_simple_f(a, b, left, right)?;
+                    (alpha, Some(beta), vl_i, vr_i)
+                },
+                None => {
+                    let (w_i, vl_i, vr_i) = ref_impl_eig_simple_f(a, left, right)?;
+                    (w_i, None, vl_i, vr_i)
+                },
+            };
+            // spectrum: (alpha, beta) stack, or eigenvalues (beta = 1 for GEEV)
+            match beta {
+                Some(beta) if homogeneous => {
+                    let mut w_slice = stack_slice_at_mut(w.view_mut(), &w_stack, i)?.into_dim::<Ix2>();
+                    write_spectrum_row(&mut w_slice, 0, |k| alpha.raw()[k]);
+                    write_spectrum_row(&mut w_slice, 1, |k| beta.raw()[k]);
+                },
+                Some(beta) => {
+                    let mut w_slice = stack_slice_at_mut(w.view_mut(), &w_stack, i)?.into_dim::<Ix1>();
+                    write_generalized_eigenvalues(alpha.raw(), beta.raw(), &mut w_slice)?;
+                },
+                None if homogeneous => {
+                    let mut w_slice = stack_slice_at_mut(w.view_mut(), &w_stack, i)?.into_dim::<Ix2>();
+                    write_spectrum_row(&mut w_slice, 0, |k| alpha.raw()[k]);
+                    write_spectrum_row(&mut w_slice, 1, |_| Complex::one());
+                },
+                None => stack_slice_at_mut(w.view_mut(), &w_stack, i)?.into_dim::<Ix1>().assign_f(alpha)?,
+            }
+            if let (Some(vl), Some(vl_i)) = (vl.as_mut(), vl_i) {
+                stack_slice_at_mut(vl.view_mut(), vl_stack.as_ref().unwrap(), i)?.into_dim::<Ix2>().assign_f(vl_i)?;
+            }
+            if let (Some(vr), Some(vr_i)) = (vr.as_mut(), vr_i) {
+                stack_slice_at_mut(vr.view_mut(), vr_stack.as_ref().unwrap(), i)?.into_dim::<Ix2>().assign_f(vr_i)?;
+            }
+            Ok(())
+        };
+
+    // an input is destroyed in place only when each of its slices is used once
+    // (its batch is the output batch); a slice of a broadcast input is copied
+    // out of a view broadcast to the output batch
+    let a_in_place = a_stack.batch_shape() == batch_out.as_slice();
+    let b_in_place = b_stack.as_ref().is_none_or(|stack| stack.batch_shape() == batch_out.as_slice());
+    let full = stack_shape(&batch_out, &[n, n], order);
+    for i in 0..n_batch {
+        // a slice copied out of a broadcast view lives in these bindings
+        #[allow(unused_assignments)]
+        let (mut a_copy, mut b_copy) = (None::<Tensor<T, B, Ix2>>, None);
+        let a_slice: TensorReference<'_, T, B, Ix2> = if a_in_place {
+            stack_slice_at_mut(converted_a.view_mut(), &a_stack, i)?.into_dim::<Ix2>().into()
+        } else {
+            let a_view = converted_a.view();
+            let a_full = a_view.broadcast_to(full.clone());
+            let a_full_stack = StackLayout::new(a_full.layout(), 2, order)?;
+            a_copy = Some(stack_slice_at(a_full.view(), &a_full_stack, i)?.into_dim::<Ix2>().into_owned());
+            a_copy.as_mut().unwrap().view_mut().into()
+        };
+        let b_slice: Option<TensorReference<'_, T, B, Ix2>> = match converted_b.as_mut() {
+            Some(converted_b) => Some(if b_in_place {
+                stack_slice_at_mut(converted_b.view_mut(), b_stack.as_ref().unwrap(), i)?.into_dim::<Ix2>().into()
+            } else {
+                let b_view = converted_b.view();
+                let b_full = b_view.broadcast_to(full.clone());
+                let b_full_stack = StackLayout::new(b_full.layout(), 2, order)?;
+                b_copy = Some(stack_slice_at(b_full.view(), &b_full_stack, i)?.into_dim::<Ix2>().into_owned());
+                b_copy.as_mut().unwrap().view_mut().into()
+            }),
+            None => None,
+        };
+        kernel(a_slice, b_slice, i)?;
+    }
+    Ok((w, vl, vr))
 }
 
 /* #endregion */
