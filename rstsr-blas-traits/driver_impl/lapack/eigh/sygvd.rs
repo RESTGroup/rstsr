@@ -163,9 +163,25 @@ impl SYGVDDriverAPI<T> for DeviceBLAS {
         let mut info: blas_int = 0;
         let mut work_query: T = <T as Zero>::zero();
         let mut iwork_query: blas_int = 0;
-        fn_work(order, itype, jobz, uplo, n, a, lda, b, ldb, w, &mut work_query, -1, &mut iwork_query, -1, &mut info);
-        if info != 0 {
-            return info;
+        let info_query = fn_work(
+            order,
+            itype,
+            jobz,
+            uplo,
+            n,
+            a,
+            lda,
+            b,
+            ldb,
+            w,
+            &mut work_query,
+            -1,
+            &mut iwork_query,
+            -1,
+            &mut info,
+        );
+        if info_query != 0 {
+            return info_query;
         }
         let Some(lwork) = lwork_from_query(work_query) else {
             return -1010;
@@ -368,7 +384,7 @@ impl SYGVDDriverAPI<T> for DeviceBLAS {
         let mut work_query: T = <T as Zero>::zero();
         let mut rwork_query: <T as ComplexFloat>::Real = <T as ComplexFloat>::Real::zero();
         let mut iwork_query: blas_int = 0;
-        fn_work(
+        let info_query = fn_work(
             order,
             itype,
             jobz,
@@ -387,8 +403,8 @@ impl SYGVDDriverAPI<T> for DeviceBLAS {
             -1,
             &mut info,
         );
-        if info != 0 {
-            return info;
+        if info_query != 0 {
+            return info_query;
         }
         let Some(lwork) = lwork_from_query(work_query) else {
             return -1010;

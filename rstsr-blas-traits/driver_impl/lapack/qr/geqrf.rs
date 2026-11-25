@@ -81,9 +81,9 @@ impl GEQRFDriverAPI<T> for DeviceBLAS {
         // query optimal workspace size
         let mut info: blas_int = 0;
         let mut work_query: T = <T as Zero>::zero();
-        fn_work(order, m, n, a, lda, tau, &mut work_query, -1, &mut info);
-        if info != 0 {
-            return info;
+        let info_query = fn_work(order, m, n, a, lda, tau, &mut work_query, -1, &mut info);
+        if info_query != 0 {
+            return info_query;
         }
         let Some(lwork) = lwork_from_query(work_query) else {
             return -1010;
@@ -96,8 +96,7 @@ impl GEQRFDriverAPI<T> for DeviceBLAS {
         };
 
         // call LAPACK routine
-        fn_work(order, m, n, a, lda, tau, work.as_mut_ptr(), lwork as blas_int, &mut info);
-        info
+        fn_work(order, m, n, a, lda, tau, work.as_mut_ptr(), lwork as blas_int, &mut info)
     }
 }
 
@@ -182,9 +181,9 @@ impl GEQRFDriverAPI<T> for DeviceBLAS {
         // query optimal workspace size
         let mut info: blas_int = 0;
         let mut work_query: T = <T as Zero>::zero();
-        fn_work(order, m, n, a, lda, tau, &mut work_query, -1, &mut info);
-        if info != 0 {
-            return info;
+        let info_query = fn_work(order, m, n, a, lda, tau, &mut work_query, -1, &mut info);
+        if info_query != 0 {
+            return info_query;
         }
         let Some(lwork) = lwork_from_query(work_query) else {
             return -1010;
@@ -197,7 +196,6 @@ impl GEQRFDriverAPI<T> for DeviceBLAS {
         };
 
         // call LAPACK routine
-        fn_work(order, m, n, a, lda, tau, work.as_mut_ptr(), lwork as blas_int, &mut info);
-        info
+        fn_work(order, m, n, a, lda, tau, work.as_mut_ptr(), lwork as blas_int, &mut info)
     }
 }

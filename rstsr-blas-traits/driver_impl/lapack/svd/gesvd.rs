@@ -213,9 +213,9 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
         // query optimal workspace size
         let mut info: blas_int = 0;
         let mut work_query: T = <T as Zero>::zero();
-        fn_work(order, jobu, jobvt, m, n, a, lda, s, u, ldu, vt, ldvt, &mut work_query, -1, &mut info);
-        if info != 0 {
-            return info;
+        let info_query = fn_work(order, jobu, jobvt, m, n, a, lda, s, u, ldu, vt, ldvt, &mut work_query, -1, &mut info);
+        if info_query != 0 {
+            return info_query;
         }
         let Some(lwork) = lwork_from_query(work_query) else {
             return -1010;
@@ -464,7 +464,7 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
         // query optimal workspace size
         let mut info: blas_int = 0;
         let mut work_query: T = <T as Zero>::zero();
-        fn_work(
+        let info_query = fn_work(
             order,
             jobu,
             jobvt,
@@ -482,8 +482,8 @@ impl GESVDDriverAPI<T> for DeviceBLAS {
             rwork.as_mut_ptr(),
             &mut info,
         );
-        if info != 0 {
-            return info;
+        if info_query != 0 {
+            return info_query;
         }
         let Some(lwork) = lwork_from_query(work_query) else {
             return -1010;
