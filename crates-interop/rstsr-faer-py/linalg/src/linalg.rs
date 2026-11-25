@@ -121,7 +121,7 @@ pub fn linalg_det(x: &NativeArray) -> PyResult<NativeArray> {
 pub fn linalg_eig(x: &NativeArray) -> PyResult<(NativeArray, NativeArray)> {
     let (w, v) = unary_fc!(x, |a| {
         let r = err_py(rt::linalg::eig_f(a))?;
-        Ok((any_of(r.eigenvalues), any_of(r.eigenvectors)))
+        Ok((any_of(r.eigenvalues), any_of(r.right.unwrap())))
     })?;
     Ok((NativeArray { t: w }, NativeArray { t: v }))
 }

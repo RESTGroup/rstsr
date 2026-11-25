@@ -11,6 +11,7 @@ pub use crate::blas_scalar::*;
 pub use crate::cblas_flags::*;
 pub use crate::threading::*;
 pub use crate::trait_def::*;
+pub use crate::util::util_eig::*;
 pub use crate::util::util_error::*;
 pub use crate::util::util_layout::*;
 pub use crate::util::util_tensor::*;

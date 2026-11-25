@@ -18,7 +18,9 @@ macro_rules! c64 {
 
 mod cholesky;
 mod det;
+mod eig;
 mod eigh;
+mod eigvals;
 mod eigvalsh;
 mod generalized_eigh;
 mod inv;

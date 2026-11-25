@@ -138,6 +138,85 @@ w = np.linalg.eigvals(a)
 assert np.isclose(fingerprint(np.sort(w)), -53.51484095091083-871.7616347408099j)
 fingerprint(np.sort(w))
 
+# ### eig (left / both)
+
+a = a_raw.copy().reshape(1024, 1024)
+w, vl = scipy.linalg.eig(a, left=True, right=False)
+order = np.argsort(w)
+assert np.isclose(fingerprint(np.sort(w)), -53.51484095091083-871.7616347408099j)
+assert np.isclose(fingerprint(np.abs(vl[:, order])), -5.456470679201179)
+fingerprint(np.sort(w)), fingerprint(np.abs(vl[:, order]))
+
+a = a_raw.copy().reshape(1024, 1024)
+w, vl, vr = scipy.linalg.eig(a, left=True, right=True)
+order = np.argsort(w)
+assert np.isclose(fingerprint(np.abs(vl[:, order])), -5.456470679201179)
+assert np.isclose(fingerprint(np.abs(vr[:, order])), 4.932401633755345)
+fingerprint(np.abs(vl[:, order])), fingerprint(np.abs(vr[:, order]))
+
+
+# ### eig (generalized A v = lambda B v; SciPy rescales the vectors to unit 2-norm)
+
+# the sorted complex order is not robust when distinct eigenvalues share a real
+# part, so the spectrum is fingerprinted as the independently sorted real and
+# imaginary parts, and the eigenvector block as the sorted per-column
+# fingerprints of |v| (both order-invariant)
+def _fp_spectrum(w):
+    return fingerprint(np.sort(w.real)), fingerprint(np.sort(w.imag))
+
+
+def _fp_vecs(v):
+    fp = np.array([fingerprint(np.abs(v[:, j])) for j in range(v.shape[1])])
+    return fingerprint(np.sort(fp))
+
+
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw.copy().reshape(1024, 1024)
+
+w, vr = scipy.linalg.eig(a, b)
+assert np.isclose(_fp_spectrum(w)[0], -27.59161731816745)
+assert np.isclose(_fp_spectrum(w)[1], -19.504398285092513)
+assert np.isclose(_fp_vecs(vr), -1.263975164568733)
+_fp_spectrum(w), _fp_vecs(vr)
+
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw.copy().reshape(1024, 1024)
+
+w, vl, vr = scipy.linalg.eig(a, b, left=True, right=True)
+assert np.isclose(_fp_vecs(vl), -1.0729412595886967)
+assert np.isclose(_fp_vecs(vr), -1.263975164568733)
+_fp_vecs(vl), _fp_vecs(vr)
+
+# ### eigvals (generalized / homogeneous)
+
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw.copy().reshape(1024, 1024)
+
+w = scipy.linalg.eigvals(a, b)
+assert np.isclose(_fp_spectrum(w)[0], -27.59161731816745)
+assert np.isclose(_fp_spectrum(w)[1], -19.504398285092513)
+_fp_spectrum(w)
+
+# homogeneous (alpha, beta) stack of shape (2, M): absolute value (phase-
+# invariant), scaled by 1 / (|alpha| + |beta|) so the reference does not
+# depend on the LAPACK scaling convention; rows sorted independently
+# (order-invariant)
+a = a_raw.copy().reshape(1024, 1024)
+w2 = scipy.linalg.eigvals(a, homogeneous_eigvals=True)
+w2n = np.abs(w2) / (np.abs(w2[0]) + np.abs(w2[1]))
+w2n = np.sort(w2n, axis=1)  # rows sorted independently: order-invariant
+assert np.isclose(fingerprint(w2n), np.float64(-0.6191999034499596))
+fingerprint(w2n)
+
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw.copy().reshape(1024, 1024)
+
+w2 = scipy.linalg.eigvals(a, b, homogeneous_eigvals=True)
+w2n = np.abs(w2) / (np.abs(w2[0]) + np.abs(w2[1]))
+w2n = np.sort(w2n, axis=1)  # rows sorted independently: order-invariant
+assert np.isclose(fingerprint(w2n), np.float64(-1.3522939501084459))
+fingerprint(w2n)
+
 # ### inv
 
 a = a_raw.copy().reshape(1024, 1024)

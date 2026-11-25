@@ -17,7 +17,8 @@ pub mod rstsr_funcs {
 
 pub mod rstsr_structs {
     pub use crate::traits_def::{
-        EigResult, EighArgs, EighArgs_, EighArgs_Builder, EighResult, MatrixNormArgs, MatrixRankRtol, NormOrd,
-        PinvRtol, QrMode, QrResult, SLogDetResult, SVDArgs, SVDArgs_, SVDArgs_Builder, SVDResult, VectorNormArgs,
+        EigResult, EigSide, EighArgs, EighArgs_, EighArgs_Builder, EighResult, Homogeneous, MatrixNormArgs,
+        MatrixRankRtol, NormOrd, PinvRtol, QrMode, QrResult, SLogDetResult, SVDArgs, SVDArgs_, SVDArgs_Builder,
+        SVDResult, VectorNormArgs,
     };
 }

@@ -90,5 +90,11 @@ Note `A` is the **first** argument (RSTSR solves `A x = B`), matching SciPy.
   BLAS-only). Use `solve_general`, or an eigensolver-based approach.
 - **`eigvalsh`** on faer handles the **standard** problem only; generalized
   eigenvalues go through `eigh((&a, &b, uplo, type))`.
+- **`eig` / `eigvals`** are available on both faer and BLAS devices, for real
+  and complex inputs, standard and generalized (`eig((&a, &b, side))`,
+  `eigvals((&a, &b))`). The eigenvalues are always complex and unsorted; the
+  generalized eigenvectors are rescaled to unit 2-norm (as SciPy does). On the
+  BLAS devices the inputs are consumed as scratch: an in-order owned or
+  mutable input is destroyed when its batch needs no broadcast.
 - The builder structs (`EighArgs`, `SVDArgs`) are BLAS-only. On faer, use the
   tuple overloads shown above.

@@ -8,6 +8,12 @@
 //! faer's (LAPACK-like) order — no sorting — and each eigenvector column is
 //! rescaled to unit 2-norm (faer does not normalize; numpy and the array API
 //! expect unit-norm columns). The array API grades neither order nor values.
+//!
+//! The result is the shared [`EigResult`] with the **right** eigenvectors
+//! only: `left` is always `None` (faer computes no left eigenvectors) and
+//! `right` is `Some(vr)`, so `.into()` gives the `(w, vr)` pair. The generalized
+//! problem, the left/both sides and the homogeneous spectrum are BLAS-device
+//! forms (see [`eig`](crate::traits_def::eig)).
 
 use crate::faer_impl::batch::{batch_and_matrix_shape, map_stack_slices2, stack_shape, with_parallel};
 use crate::traits_def::{EigAPI, EigResult};
@@ -104,10 +110,14 @@ where
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
 {
-    type Out = EigResult<Tensor<Complex<T::Real>, DeviceFaer, D::SmallerOne>, Tensor<Complex<T::Real>, DeviceFaer, D>>;
+    type Out = EigResult<
+        Tensor<Complex<T::Real>, DeviceFaer, D::SmallerOne>,
+        Option<Tensor<Complex<T::Real>, DeviceFaer, D>>,
+        Option<Tensor<Complex<T::Real>, DeviceFaer, D>>,
+    >;
     fn eig_f(self) -> Result<Self::Out> {
         let a = self;
         let (w, v) = faer_impl_eig_f(a.view().to_dyn())?;
-        Ok(EigResult { eigenvalues: w.into_dim::<D::SmallerOne>(), eigenvectors: v.into_dim::<D>() })
+        Ok(EigResult { eigenvalues: w.into_dim::<D::SmallerOne>(), left: None, right: Some(v.into_dim::<D>()) })
     }
 }

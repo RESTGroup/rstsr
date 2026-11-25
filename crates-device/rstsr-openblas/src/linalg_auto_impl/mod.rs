@@ -1,6 +1,8 @@
 pub mod cholesky;
 pub mod det;
+pub mod eig;
 pub mod eigh;
+pub mod eigvals;
 pub mod eigvalsh;
 pub mod inv;
 pub mod pinv;

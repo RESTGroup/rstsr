@@ -88,6 +88,85 @@ w = np.linalg.eigvals(a)
 assert np.isclose(fingerprint(np.sort(w)), -36.380652131982586-116.87071686473277j)
 fingerprint(np.sort(w))
 
+# ### eig (left / both)
+
+a = a_raw.copy().reshape(1024, 1024)
+w, vl = scipy.linalg.eig(a, left=True, right=False)
+order = np.argsort(w)
+assert np.isclose(fingerprint(np.sort(w)), -36.380652131982586-116.87071686473277j)
+assert np.isclose(fingerprint(np.abs(vl[:, order])), -15.906522814903258)
+fingerprint(np.sort(w)), fingerprint(np.abs(vl[:, order]))
+
+a = a_raw.copy().reshape(1024, 1024)
+w, vl, vr = scipy.linalg.eig(a, left=True, right=True)
+order = np.argsort(w)
+assert np.isclose(fingerprint(np.abs(vl[:, order])), -15.906522814903258)
+assert np.isclose(fingerprint(np.abs(vr[:, order])), -12.000277853410061)
+fingerprint(np.abs(vl[:, order])), fingerprint(np.abs(vr[:, order]))
+
+
+# ### eig (generalized A v = lambda B v; SciPy rescales the vectors to unit 2-norm)
+
+# the sorted complex order is not robust when distinct eigenvalues share a real
+# part, so the spectrum is fingerprinted as the independently sorted real and
+# imaginary parts, and the eigenvector block as the sorted per-column
+# fingerprints of |v| (both order-invariant)
+def _fp_spectrum(w):
+    return fingerprint(np.sort(w.real)), fingerprint(np.sort(w.imag))
+
+
+def _fp_vecs(v):
+    fp = np.array([fingerprint(np.abs(v[:, j])) for j in range(v.shape[1])])
+    return fingerprint(np.sort(fp))
+
+
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw.reshape(1024, 1024) @ b_raw.reshape(1024, 1024).T + 1024 * np.eye(1024)  # SPD, a well-conditioned pencil
+
+w, vr = scipy.linalg.eig(a, b)
+assert np.isclose(_fp_spectrum(w)[0], -0.024055003148234604)
+assert np.isclose(_fp_spectrum(w)[1], -0.024671786680918184)
+assert np.isclose(_fp_vecs(vr), -1.6364926089445353)
+_fp_spectrum(w), _fp_vecs(vr)
+
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw.reshape(1024, 1024) @ b_raw.reshape(1024, 1024).T + 1024 * np.eye(1024)  # SPD, a well-conditioned pencil
+
+w, vl, vr = scipy.linalg.eig(a, b, left=True, right=True)
+assert np.isclose(_fp_vecs(vl), -1.2332361143744368)
+assert np.isclose(_fp_vecs(vr), -1.6364926089445353)
+_fp_vecs(vl), _fp_vecs(vr)
+
+# ### eigvals (generalized / homogeneous)
+
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw.reshape(1024, 1024) @ b_raw.reshape(1024, 1024).T + 1024 * np.eye(1024)  # SPD, a well-conditioned pencil
+
+w = scipy.linalg.eigvals(a, b)
+assert np.isclose(_fp_spectrum(w)[0], -0.024055003148234604)
+assert np.isclose(_fp_spectrum(w)[1], -0.024671786680918184)
+_fp_spectrum(w)
+
+# homogeneous (alpha, beta) stack of shape (2, M): absolute value (phase-
+# invariant), scaled by 1 / (|alpha| + |beta|) so the reference does not
+# depend on the LAPACK scaling convention; rows sorted independently
+# (order-invariant)
+a = a_raw.copy().reshape(1024, 1024)
+w2 = scipy.linalg.eigvals(a, homogeneous_eigvals=True)
+w2n = np.abs(w2) / (np.abs(w2[0]) + np.abs(w2[1]))
+w2n = np.sort(w2n, axis=1)  # rows sorted independently: order-invariant
+assert np.isclose(fingerprint(w2n), np.float64(-0.8153609430192674))
+fingerprint(w2n)
+
+a = a_raw.copy().reshape(1024, 1024)
+b = b_raw.reshape(1024, 1024) @ b_raw.reshape(1024, 1024).T + 1024 * np.eye(1024)  # SPD, a well-conditioned pencil
+
+w2 = scipy.linalg.eigvals(a, b, homogeneous_eigvals=True)
+w2n = np.abs(w2) / (np.abs(w2[0]) + np.abs(w2[1]))
+w2n = np.sort(w2n, axis=1)  # rows sorted independently: order-invariant
+assert np.isclose(fingerprint(w2n), np.float64(-0.14886891648651965))
+fingerprint(w2n)
+
 # ### inv
 
 a = a_raw.copy().reshape(1024, 1024)
