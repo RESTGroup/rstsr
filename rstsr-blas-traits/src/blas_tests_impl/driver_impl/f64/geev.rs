@@ -353,6 +353,59 @@ fn test_zgeev() {
     assert!(
         (fingerprint(&rt::asarray((ws, &device))) - c64::new(-53.51484095091083, -871.7616347408099)).norm() < 1e-8
     );
+    {
+        // temporary diagnostic: libtest prints this only when the test fails
+        let vl = vl.as_ref().unwrap();
+        let vr = vr.as_ref().unwrap();
+        let id: Vec<usize> = (0..1024).collect();
+        let resid = |v: &Tensor<c64, DeviceBLAS, Ix2>, jj: usize, left: bool| -> f64 {
+            let lam = if left { w[[jj]].conj() } else { w[[jj]] };
+            let (mut num, mut den) = (0.0, 0.0);
+            for i in 0..1024 {
+                let mut s = c64::new(0.0, 0.0);
+                for k in 0..1024 {
+                    s += if left { a[[k, i]].conj() * v[[k, jj]] } else { a[[i, k]] * v[[k, jj]] };
+                }
+                num += (s - lam * v[[i, jj]]).norm_sqr();
+                den += v[[i, jj]].norm_sqr();
+            }
+            (num / den).sqrt()
+        };
+        let cnorm = |v: &Tensor<c64, DeviceBLAS, Ix2>, j: usize| -> f64 {
+            (0..1024).map(|i| v[[i, j]].norm_sqr()).sum::<f64>()
+        };
+        eprintln!(
+            "EIGDIAG default_order={:?} c_prefer={} f_prefer={} order0={} order1={} w0={:?} w1={:?}",
+            device.default_order(),
+            a.c_prefer(),
+            a.f_prefer(),
+            order[0],
+            order[1],
+            w[[0]],
+            w[[1]],
+        );
+        eprintln!(
+            "EIGDIAG fp_vl={:.17} fp_vr={:.17} fp_vl_id={:.17} fp_vlT={:.17} fp_vr_id={:.17}",
+            fingerprint_abs_reordered(vl, &order),
+            fingerprint_abs_reordered(vr, &order),
+            fingerprint_abs_reordered(vl, &id),
+            fingerprint_abs_reordered(&vl.t().to_owned(), &order),
+            fingerprint_abs_reordered(vr, &id),
+        );
+        eprintln!(
+            "EIGDIAG resid_vl={:.3e} resid_vl500={:.3e} resid_vr={:.3e} norm_vl0={:.17} norm_vl1={:.17} norm_vr0={:.17} vl00=({:.6},{:.6}) vl10=({:.6},{:.6})",
+            resid(vl, order[0], true),
+            resid(vl, order[500], true),
+            resid(vr, order[0], false),
+            cnorm(vl, order[0]),
+            cnorm(vl, order[1]),
+            cnorm(vr, order[0]),
+            vl[[0, order[0]]].re,
+            vl[[0, order[0]]].im,
+            vl[[1, order[0]]].re,
+            vl[[1, order[0]]].im,
+        );
+    }
     let (fp_vl, fp_vr) = (
         fingerprint_abs_reordered(vl.as_ref().unwrap(), &order),
         fingerprint_abs_reordered(vr.as_ref().unwrap(), &order),
