@@ -37,11 +37,12 @@
 - `eigh` / `eig` / `eigvalsh` / `eigvals` fulfill the standard (non-generalized) form; the
   generalized eigenvalue problem is an RSTSR extension via `eigh((a, b, uplo, type))` for
   Hermitian pencils, and via `eig((a, b, side))` / `eigvals((a, b))` (`A v = λ B v`) for
-  general ones.
+  general ones (BLAS devices only).
 - `eig` / `eigvals` always return complex eigenvalues (and, for `eig`, the requested
   `EigSide::Left` / `EigSide::Right` eigenvector blocks, `EigSide::Right` by default),
   in backend order (unsorted). `eigvals((a, Homogeneous))` returns the `(α, β)` pair
-  stacked as `(2, n)` instead of `λ = α / β`.
+  stacked as `(..., 2, n)` instead of `λ = α / β`. The `EigSide` and `Homogeneous` forms
+  are available on the BLAS devices only.
 - The `rt::linalg::*` functions require the `linalg` cargo feature.
 
 ## Fast Fourier Transform (extensions)

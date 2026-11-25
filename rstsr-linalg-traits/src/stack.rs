@@ -39,6 +39,8 @@ pub fn stack_split_layout(
     inner_ndim: usize,
     order: FlagOrder,
 ) -> Result<(Layout<IxD>, Layout<IxD>)> {
+    let ndim = layout.ndim();
+    rstsr_assert!(ndim >= inner_ndim, InvalidLayout, "linalg: expected at least {inner_ndim} dimensions, got {ndim}")?;
     let axis = inner_ndim as isize;
     match order {
         RowMajor => layout.dim_split_at(-axis),

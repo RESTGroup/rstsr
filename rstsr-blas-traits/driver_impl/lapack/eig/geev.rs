@@ -222,7 +222,7 @@ impl GEEVDriverAPI<T> for DeviceBLAS {
         // query optimal workspace size
         let mut info: blas_int = 0;
         let mut work_query: T = <T as Zero>::zero();
-        fn_work(
+        let info_query = fn_work(
             order,
             jobvl,
             jobvr,
@@ -239,8 +239,8 @@ impl GEEVDriverAPI<T> for DeviceBLAS {
             -1,
             &mut info,
         );
-        if info != 0 {
-            return info;
+        if info_query != 0 {
+            return info_query;
         }
         let Some(lwork) = lwork_from_query(work_query) else {
             return -1010;
@@ -252,8 +252,8 @@ impl GEEVDriverAPI<T> for DeviceBLAS {
             Err(_) => return -1010,
         };
 
-        // call LAPACK routine
-        fn_work(
+        // call LAPACK routine (the return value carries the bridge sentinels)
+        let info = fn_work(
             order,
             jobvl,
             jobvr,
@@ -475,7 +475,7 @@ impl GEEVDriverAPI<T> for DeviceBLAS {
         // query optimal workspace size
         let mut info: blas_int = 0;
         let mut work_query: T = <T as Zero>::zero();
-        fn_work(
+        let info_query = fn_work(
             order,
             jobvl,
             jobvr,
@@ -492,8 +492,8 @@ impl GEEVDriverAPI<T> for DeviceBLAS {
             rwork.as_mut_ptr(),
             &mut info,
         );
-        if info != 0 {
-            return info;
+        if info_query != 0 {
+            return info_query;
         }
         let Some(lwork) = lwork_from_query(work_query) else {
             return -1010;

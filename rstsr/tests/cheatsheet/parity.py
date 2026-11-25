@@ -124,6 +124,12 @@ def linalg_blocks():
 
     block("cheatsheet-linalg", "eigvalsh_standard", eigenvalues=np.linalg.eigvalsh(sym))
 
+    comp = np.array([[1.0, 0.0, 0.0], [0.0, 2.0, -1.0], [0.0, 1.0, 2.0]])
+    w, v = np.linalg.eig(comp)
+    block("cheatsheet-linalg", "eig_standard", eigenvalues=w, eigenvectors=v)
+
+    block("cheatsheet-linalg", "eigvals_standard", eigenvalues=np.linalg.eigvals(comp))
+
     if HAVE_SCIPY:
         wg, vg = sla.eigh(sym, np.eye(2), lower=True)
         block("cheatsheet-linalg", "eigh_generalized", eigenvalues=wg, eigenvectors=vg)

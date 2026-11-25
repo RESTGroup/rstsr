@@ -26,7 +26,8 @@ where
 /// `out` receives the complex columns in the same order and leading dimension.
 /// A real eigenvalue `j` takes the column `v_real[:, j]`; a conjugate pair
 /// `(j, j+1)` (positive imaginary part first) gives
-/// `v_real[:, j] ± i v_real[:, j+1]`.
+/// `v_real[:, j] ± i v_real[:, j+1]`. A non-zero imaginary part without its
+/// partner (never emitted by a conforming LAPACK) keeps a real column.
 pub fn unpack_real_eigvecs<R>(order: FlagOrder, n: usize, ldv: usize, v_real: &[R], wi: &[R], out: &mut [Complex<R>])
 where
     R: ComplexFloat,
@@ -41,14 +42,16 @@ where
     };
     let mut j = 0;
     while j < n {
-        if wi[j].is_zero() {
+        // LAPACK emits pairs as (positive imaginary part, its conjugate)
+        let paired = !wi[j].is_zero() && j + 1 < n && !wi[j + 1].is_zero();
+        debug_assert!(paired || wi[j].is_zero(), "unpaired complex eigenvalue");
+        if !paired {
             for i in 0..n {
                 let k = i * row_stride + j * col_stride;
                 out[k] = Complex::new(v_real[k], R::zero());
             }
             j += 1;
         } else {
-            debug_assert!(j + 1 < n && !wi[j + 1].is_zero(), "unpaired complex eigenvalue");
             for i in 0..n {
                 let k0 = i * row_stride + j * col_stride;
                 let k1 = i * row_stride + (j + 1) * col_stride;
@@ -112,5 +115,22 @@ mod tests {
         assert_eq!(out[2], Complex::new(3.0, 0.0));
         assert_eq!(out[5], Complex::new(5.0, 8.0));
         assert_eq!(out[9], Complex::new(5.0, -8.0));
+    }
+
+    // a non-zero imaginary part without its partner stays a real column
+    // (release builds read no column beyond `n`; debug builds assert instead)
+    #[cfg(not(debug_assertions))]
+    #[test]
+    fn unpack_unpaired_keeps_real_column() {
+        let wi = [0.0, 4.0];
+        let v_real = [1.0, 2.0, 3.0, 4.0];
+        let mut out = vec![Complex::new(0.0, 0.0); 4];
+        unpack_real_eigvecs(ColMajor, 2, 2, &v_real, &wi, &mut out);
+        assert_eq!(out, vec![
+            Complex::new(1.0, 0.0),
+            Complex::new(2.0, 0.0),
+            Complex::new(3.0, 0.0),
+            Complex::new(4.0, 0.0)
+        ]);
     }
 }

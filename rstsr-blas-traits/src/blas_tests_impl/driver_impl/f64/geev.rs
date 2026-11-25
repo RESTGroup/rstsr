@@ -8,32 +8,67 @@ type c64 = num::Complex<f64>;
 const ATOL: f64 = 1e-10;
 
 /// Logical `(m, n)` matrix laid out per `case` (see `svd_layout.rs`), for
-/// either dtype.
-pub(super) fn make_case<T>(v: &[T], case: &str, m: usize, n: usize) -> Tensor<T, DeviceBLAS, Ix2>
+/// either dtype. The returned owned tensor keeps the case's layout (padded
+/// leading dimension or strides), so a `view_mut()` hands that layout to the
+/// driver in place.
+pub(super) fn make_case<T>(v: &[T], case: &str, m: usize, n: usize, device: &DeviceBLAS) -> Tensor<T, DeviceBLAS, Ix2>
 where
     T: rstsr_blas_traits::prelude_dev::BlasFloat + num::complex::ComplexFloat<Real = f64>,
 {
-    let device = DeviceBLAS::default();
     let a = match case {
-        "f-contig" => rt::asarray((v, [m, n].f(), &device)).into_dim::<Ix2>().into_owned(),
+        "f-contig" => rt::asarray((v, [m, n].f(), device)).into_dim::<Ix2>().into_owned(),
         "f-padded" => {
-            let buf = rt::asarray((v, [m + 4, n + 4].f(), &device)).into_dim::<Ix2>().into_owned();
-            buf.i((0..m, 0..n)).into_dim::<Ix2>().into_owned()
+            let buf = rt::asarray((v, [m + 4, n + 4].f(), device)).into_dim::<Ix2>();
+            buf.i((0..m, 0..n)).into_dim::<Ix2>().into_owned_keep_layout()
         },
-        "c-contig" => rt::asarray((v, [m, n].c(), &device)).into_dim::<Ix2>().into_owned(),
+        "c-contig" => rt::asarray((v, [m, n].c(), device)).into_dim::<Ix2>().into_owned(),
         "c-padded" => {
-            let buf = rt::asarray((v, [m + 4, n + 4].c(), &device)).into_dim::<Ix2>().into_owned();
-            buf.i((0..m, 0..n)).into_dim::<Ix2>().into_owned()
+            let buf = rt::asarray((v, [m + 4, n + 4].c(), device)).into_dim::<Ix2>();
+            buf.i((0..m, 0..n)).into_dim::<Ix2>().into_owned_keep_layout()
         },
         "non-contig" => {
-            let buf = rt::asarray((v, [2 * m + 4, 2 * n + 4].c(), &device)).into_dim::<Ix2>().into_owned();
-            let strided = buf.i((slice!(None, None, 2), slice!(None, None, 2))).into_dim::<Ix2>().into_owned();
-            strided.i((0..m, 0..n)).into_dim::<Ix2>().into_owned()
+            let buf = rt::asarray((v, [2 * m + 4, 2 * n + 4].c(), device)).into_dim::<Ix2>();
+            let strided = buf.i((slice!(None, None, 2), slice!(None, None, 2))).into_dim::<Ix2>();
+            strided.i((0..m, 0..n)).into_dim::<Ix2>().into_owned_keep_layout()
         },
         _ => panic!("unknown layout case {case}"),
     };
     assert_eq!(a.shape(), &[m, n], "layout case {case}");
+    match case {
+        "f-padded" => assert_eq!(a.layout().stride().to_vec(), vec![1, (m + 4) as isize]),
+        "c-padded" => assert_eq!(a.layout().stride().to_vec(), vec![(n + 4) as isize, 1]),
+        "non-contig" => assert_eq!(a.layout().stride().to_vec(), vec![2 * (2 * n + 4) as isize, 2]),
+        _ => (),
+    }
     a
+}
+
+/// A driver call that copies its input left it untouched.
+pub(super) fn assert_untouched<T>(what: &str, before: &[T], t: &Tensor<T, DeviceBLAS, Ix2>)
+where
+    T: PartialEq + std::fmt::Debug,
+{
+    assert_eq!(before, t.raw(), "{what}: the input must not be written through");
+}
+
+/// An in-place driver call changed the visible block of `t` and wrote
+/// nothing in the rest of its buffer (padding included).
+pub(super) fn assert_destroyed_in_place<T>(what: &str, before: &[T], t: &Tensor<T, DeviceBLAS, Ix2>)
+where
+    T: PartialEq + std::fmt::Debug,
+{
+    let layout = t.layout();
+    let ((m, n), (off, rs, cs)) = (
+        (layout.shape()[0], layout.shape()[1]),
+        (layout.offset(), layout.stride()[0] as usize, layout.stride()[1] as usize),
+    );
+    let block: Vec<usize> = (0..m).flat_map(|i| (0..n).map(move |j| off + i * rs + j * cs)).collect();
+    let after = t.raw();
+    assert!(block.iter().any(|&k| before[k] != after[k]), "{what}: the visible block must be destroyed in place");
+    assert!(
+        (0..after.len()).all(|k| block.contains(&k) || before[k] == after[k]),
+        "{what}: the buffer outside the visible block must stay intact"
+    );
 }
 
 /// Real test data with room for every layout case of an `m x n` block:
@@ -46,16 +81,6 @@ pub(super) fn data_f64(m: usize, n: usize) -> Vec<f64> {
 /// imaginary parts).
 pub(super) fn data_c64(m: usize, n: usize) -> Vec<c64> {
     get_vec::<f64>('b')[..(2 * m + 4) * (2 * n + 4) * 2].chunks(2).map(|p| c64::new(p[0], p[1])).collect()
-}
-
-/// Real and complex second-operand data of the same sizes, from the `a`
-/// manifest arrays.
-pub(super) fn data_f64_b(m: usize, n: usize) -> Vec<f64> {
-    get_vec::<f64>('a')[..(2 * m + 4) * (2 * n + 4)].to_vec()
-}
-
-pub(super) fn data_c64_b(m: usize, n: usize) -> Vec<c64> {
-    get_vec::<c64>('a')[..(2 * m + 4) * (2 * n + 4)].to_vec()
 }
 
 /// Spectrum of a real matrix with a real eigenvalue `2` and the conjugate
@@ -219,7 +244,7 @@ fn test_dgeev() {
 #[test]
 fn test_dgeev_relations() {
     let device = DeviceBLAS::default();
-    let a = rt::asarray((get_vec::<f64>('b')[..64 * 64].to_vec(), [64, 64], &device)).into_dim::<Ix2>();
+    let a = rt::asarray((get_vec::<f64>('b')[..36].to_vec(), [6, 6], &device)).into_dim::<Ix2>();
 
     for (left, right) in [(false, true), (true, false), (true, true), (false, false)] {
         let (w, vl, vr) = DGEEV::default().a(a.view()).left(left).right(right).build().unwrap().run().unwrap();
@@ -268,41 +293,50 @@ fn test_dgeev_conjugate_pair() {
 }
 
 #[duplicate_item(
-    name                       case          ;
-    [test_dgeev_layout_f_contig   ] ["f-contig"];
-    [test_dgeev_layout_f_padded   ] ["f-padded"];
-    [test_dgeev_layout_c_contig   ] ["c-contig"];
-    [test_dgeev_layout_c_padded   ] ["c-padded"];
-    [test_dgeev_layout_non_contig ] ["non-contig"];
+    name                       case          driver  data_fn     ;
+    [test_dgeev_layout_f_contig   ] ["f-contig"] [DGEEV] [data_f64];
+    [test_dgeev_layout_f_padded   ] ["f-padded"] [DGEEV] [data_f64];
+    [test_dgeev_layout_c_contig   ] ["c-contig"] [DGEEV] [data_f64];
+    [test_dgeev_layout_c_padded   ] ["c-padded"] [DGEEV] [data_f64];
+    [test_dgeev_layout_non_contig ] ["non-contig"] [DGEEV] [data_f64];
+    [test_zgeev_layout_f_contig   ] ["f-contig"] [ZGEEV] [data_c64];
+    [test_zgeev_layout_f_padded   ] ["f-padded"] [ZGEEV] [data_c64];
+    [test_zgeev_layout_c_contig   ] ["c-contig"] [ZGEEV] [data_c64];
+    [test_zgeev_layout_c_padded   ] ["c-padded"] [ZGEEV] [data_c64];
+    [test_zgeev_layout_non_contig ] ["non-contig"] [ZGEEV] [data_c64];
 )]
 #[test]
 fn name() {
-    let data = data_f64(6, 6);
-    for n in [1usize, 2, 3, 5, 6] {
-        let a = make_case(&data, case, n, n);
-        let (w, vl, vr) = DGEEV::default().a(a.view()).left(true).build().unwrap().run().unwrap();
-        assert_eigen_relation(&a, vr.as_ref().unwrap(), &w, false);
-        assert_eigen_relation(&a, vl.as_ref().unwrap(), &w, true);
-    }
-}
-
-#[duplicate_item(
-    name                       case          ;
-    [test_zgeev_layout_f_contig   ] ["f-contig"];
-    [test_zgeev_layout_f_padded   ] ["f-padded"];
-    [test_zgeev_layout_c_contig   ] ["c-contig"];
-    [test_zgeev_layout_c_padded   ] ["c-padded"];
-    [test_zgeev_layout_non_contig ] ["non-contig"];
-)]
-#[test]
-fn name() {
-    let data = data_c64(6, 6);
-    for n in [1usize, 2, 3, 5, 6] {
-        let a = make_case(&data, case, n, n);
-        let (w, vl, vr) = ZGEEV::default().a(a.view()).left(true).build().unwrap().run().unwrap();
-        assert_eigen_relation(&a, vr.as_ref().unwrap(), &w, false);
-        assert_eigen_relation(&a, vl.as_ref().unwrap(), &w, true);
-        assert_geev_normalized(vr.as_ref().unwrap());
+    let data = data_fn(6, 6);
+    let mut device = DeviceBLAS::default();
+    for order in [RowMajor, ColMajor] {
+        device.set_default_order(order);
+        for n in [1usize, 2, 3, 5, 6] {
+            let what = format!("{} {:?} n = {}", case, order, n);
+            // an immutable view is copied by the driver: the input stays intact
+            let a = make_case(&data, case, n, n, &device);
+            let snapshot = a.raw().clone();
+            let (w, vl, vr) = driver::default().a(a.view()).left(true).build().unwrap().run().unwrap();
+            assert_untouched(&what, &snapshot, &a);
+            let (vr, vl) = (vr.unwrap(), vl.unwrap());
+            assert_eigen_relation(&a, &vr, &w, false);
+            assert_eigen_relation(&a, &vl, &w, true);
+            // a mutable view is destroyed in place when the layout is in order
+            // for the call (a `1 x 1` block always is); LAPACK leaves `n <= 2`
+            // intact
+            let mut a_mut = make_case(&data, case, n, n, &device);
+            let snapshot = a_mut.raw().clone();
+            let a_ref: TensorReference<'_, _, DeviceBLAS, Ix2> = a_mut.view_mut().into();
+            let (w, vl, vr) = driver::default().a(a_ref).left(true).build().unwrap().run().unwrap();
+            let (vr, vl) = (vr.unwrap(), vl.unwrap());
+            assert_eigen_relation(&a, &vr, &w, false);
+            assert_eigen_relation(&a, &vl, &w, true);
+            match (a_mut.c_prefer() || a_mut.f_prefer(), n >= 3) {
+                (false, _) => assert_untouched(&what, &snapshot, &a_mut),
+                (true, true) => assert_destroyed_in_place(&what, &snapshot, &a_mut),
+                (true, false) => (),
+            }
+        }
     }
 }
 

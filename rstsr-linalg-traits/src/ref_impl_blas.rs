@@ -172,9 +172,29 @@ where
     Ok((alpha, beta, vl, vr))
 }
 
+/// `a / b` in the overflow- and underflow-safe form (as NumPy divides):
+/// `num`'s `|b|^2` factor loses the quotient as soon as `|b|` leaves about
+/// `1e±154` for `f64` or `1e±19` for `f32`. A real `b` divides component-wise,
+/// a complex one by Smith's algorithm.
+fn cdiv<R: Float>(a: Complex<R>, b: Complex<R>) -> Complex<R> {
+    if b.im.is_zero() {
+        Complex::new(a.re / b.re, a.im / b.re)
+    } else if b.re.abs() >= b.im.abs() {
+        let r = b.im / b.re;
+        let d = b.re + r * b.im;
+        Complex::new((a.re + a.im * r) / d, (a.im - a.re * r) / d)
+    } else {
+        let r = b.re / b.im;
+        let d = b.im + r * b.re;
+        Complex::new((a.re * r + a.im) / d, (a.im * r - a.re) / d)
+    }
+}
+
 /// Write `w = alpha / beta` into `w` with SciPy's rules for a vanishing
 /// `beta`: `alpha != 0` gives (projective) infinity, `alpha = beta = 0` gives
-/// `nan` (`nan + 0j` when every `alpha` is real, `nan + nan j` otherwise).
+/// `nan` (`nan + 0j` when every `alpha` is real, `nan + nan j` otherwise;
+/// decided for this slice — SciPy decides over the whole stack). The quotient
+/// is taken in an overflow- and underflow-safe form.
 pub fn write_generalized_eigenvalues<R, B>(
     alpha: &[Complex<R>],
     beta: &[Complex<R>],
@@ -192,7 +212,7 @@ where
     for (k, off) in offsets.into_iter().enumerate() {
         let (a, b) = (alpha[k], beta[k]);
         raw[off] = if b != Complex::<R>::zero() {
-            a / b
+            cdiv(a, b)
         } else if a != Complex::<R>::zero() {
             Complex::<R>::new(R::infinity(), R::zero())
         } else if all_real {
@@ -251,28 +271,48 @@ where
     Ok((w, vl, vr))
 }
 
+/// The static-dim `eig`/`eigvals` overloads type the result by `a`: a `b`
+/// with more batch axes than `a` has no static result rank and is rejected
+/// there (`static_ndim_a` is `Some`), while the dynamic-dim overloads
+/// broadcast instead (`static_ndim_a` is `None`).
+pub fn check_static_generalized_ranks(
+    ndim_a: usize,
+    ndim_b: usize,
+    static_ndim_a: Option<usize>,
+    entry: &str,
+) -> Result<()> {
+    rstsr_assert!(
+        static_ndim_a.is_none() || ndim_a >= ndim_b,
+        InvalidLayout,
+        "{entry}: the static-dim overloads type the result by `a`, so `b` cannot have more batch axes than `a` (a is {ndim_a}-D, b is {ndim_b}-D); use dynamic dims"
+    )
+}
+
 /// n-dim `eig`: the eigenvalues and the requested eigenvector blocks of every
 /// square matrix slice of the stack (the two matrix axes are the last two
 /// shape axes under a row-major device, the first two under a column-major
 /// one; the rest is the batch). With a second matrix `b` the problem is the
 /// generalized `A v = lambda B v`, and the batch dims of `a` and `b` broadcast
-/// against each other.
+/// against each other (aligned from the left under a column-major device).
 ///
 /// `left`/`right` select the eigenvector blocks; `homogeneous` gives the
 /// `(alpha, beta)` spectrum stacked on the second-to-last axis `(..., 2, n)`
 /// (`beta` identically one for the standard problem) instead of the
-/// eigenvalues `(..., n)`.
+/// eigenvalues `(..., n)` (the quotient is taken in an overflow- and
+/// underflow-safe form; see [`write_generalized_eigenvalues`]).
 ///
 /// The inputs are consumed as scratch: an in-order owned or mutable input is
 /// destroyed by the per-slice driver call when its batch needs no broadcast,
 /// and nothing is written back; all other inputs are copied into the call
-/// order.
+/// order. `entry` names the calling entry (`"eig"` or `"eigvals"`) in the
+/// error messages.
 #[allow(clippy::type_complexity)]
 pub fn ref_impl_eig_nd_f<T, B>(
     a: TensorReference<'_, T, B, IxD>,
     b: Option<TensorReference<'_, T, B, IxD>>,
     side: EigSide,
     homogeneous: bool,
+    entry: &str,
 ) -> Result<(
     Tensor<Complex<T::Real>, B, IxD>,
     Option<Tensor<Complex<T::Real>, B, IxD>>,
@@ -301,20 +341,20 @@ where
         inner_a[0],
         inner_a[1],
         InvalidLayout,
-        "eig: matrix a must be square, got {}x{}",
+        "{entry}: matrix a must be square, got {}x{}",
         inner_a[0],
         inner_a[1]
     )?;
     let mut converted_b = match b {
         Some(b) => {
-            rstsr_assert!(device.same_device(b.device()), DeviceMismatch, "eig: a and b are on different devices")?;
+            rstsr_assert!(device.same_device(b.device()), DeviceMismatch, "{entry}: a and b are on different devices")?;
             let converted_b = overwritable_convert_with_order(b, order)?;
             let inner_b = StackLayout::new(converted_b.view().layout(), 2, order)?.inner_shape().to_vec();
             rstsr_assert_eq!(
                 inner_a,
                 inner_b.as_slice(),
                 InvalidLayout,
-                "eig: a and b must share the matrix shape, got {:?} vs {:?}",
+                "{entry}: a and b must share the matrix shape, got {:?} vs {:?}",
                 inner_a,
                 inner_b
             )?;

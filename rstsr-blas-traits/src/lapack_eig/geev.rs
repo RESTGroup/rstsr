@@ -51,7 +51,9 @@ where
         + DeviceCreationNumAPI<Complex<T::Real>>,
 {
     /// Run `?GEEV`: the spectrum and the requested eigenvector blocks, all in
-    /// the call order; the input is destroyed.
+    /// the call order. An owned or `view_mut()` input whose layout is in the
+    /// call order is consumed as scratch (destroyed); any other input is
+    /// decomposed from a copy and left intact.
     pub fn internal_run(
         self,
     ) -> Result<(ComplexEigvals<B, T>, Option<ComplexEigvecs<B, T>>, Option<ComplexEigvecs<B, T>>)> {

@@ -3,7 +3,9 @@
 //! matrix axes are the last two shape axes under a row-major device, the
 //! first two under a column-major one; the rest is the batch), or of the
 //! generalized problem `A v = λ B v` when a second matrix is given (the batch
-//! dims of `a` and `b` broadcast against each other).
+//! dims of `a` and `b` broadcast against each other; under a column-major
+//! device they align from the left, so a `b` of shape `(M, M, k)` pairs with
+//! the first batch axis of `a`).
 //!
 //! The spectrum is always complex (`Complex<T::Real>`), in LAPACK's order and
 //! unsorted; the result is [`EigResult`] with `Some` exactly for the requested
@@ -12,12 +14,23 @@
 //! given (`beta` is identically `1` for the standard problem; the generalized
 //! eigenvalues are `alpha / beta`).
 //!
+//! This follows SciPy's `eig`, except that the result is complex in every
+//! case: SciPy and NumPy return real-typed eigenvalues and eigenvectors when a
+//! real input has a real spectrum. Standard eigenvectors are `GEEV`'s (unit
+//! 2-norm, largest component real); generalized ones are rescaled to unit
+//! 2-norm on both sides. A vanishing `beta` gives `inf` (`nan` for
+//! `alpha = beta = 0`; its form is decided per matrix slice).
+//!
 //! Overloads (positional order `a, b, side, homogeneous`; every matrix slot
 //! takes `&TensorAny`, `TensorView`, `Tensor` or `TensorMut`):
 //!
-//! - `eig(a)`, `eig((a, EigSide))`, `eig((a, "left"))`, `eig((a, Left))`
+//! - `eig(a)`, `eig((a, EigSide))`, `eig((a, "left"))`, `eig((a, FlagSide::L))`
 //! - `eig((a, Homogeneous))`, `eig((a, EigSide, Homogeneous))`, ...
 //! - the same eight forms with `b` after `a`: `eig((a, b))`, ...
+//!
+//! The static-dim overloads type the result by `a`: a `b` with more batch
+//! axes than `a` is rejected there with `InvalidLayout` (use dynamic dims for
+//! that broadcast).
 //!
 //! The inputs are consumed as scratch: an in-order owned or mutable input is
 //! destroyed by the per-slice driver call when its batch needs no broadcast
@@ -58,7 +71,7 @@ where
         + OpAssignArbitaryAPI<Complex<T::Real>, Ix2, Ix2>
         + OpAssignAPI<Complex<T::Real>, Ix2>,
 {
-    let (eigenvalues, left, right) = ref_impl_eig_nd_f(a, b, side, homogeneous)?;
+    let (eigenvalues, left, right) = ref_impl_eig_nd_f(a, b, side, homogeneous, "eig")?;
     Ok(EigResult { eigenvalues, left, right })
 }
 
@@ -304,6 +317,7 @@ where
     #[allow(unused_mut)]
     fn eig_f(self) -> Result<Self::Out> {
         let (mut a, mut b, side) = self;
+        check_static_generalized_ranks(a.ndim(), b.ndim(), a.layout().shape().const_ndim(), "eig")?;
         let EigResult { eigenvalues, left, right } = blas_impl_eig_f(ToRefA, Some(ToRefB), side, false)?;
         Ok(EigResult {
             eigenvalues: eigenvalues.into_dim::<DA::SmallerOne>(),
@@ -354,6 +368,7 @@ where
     #[allow(unused_mut)]
     fn eig_f(self) -> Result<Self::Out> {
         let (mut a, mut b, side, _) = self;
+        check_static_generalized_ranks(a.ndim(), b.ndim(), a.layout().shape().const_ndim(), "eig")?;
         let EigResult { eigenvalues, left, right } = blas_impl_eig_f(ToRefA, Some(ToRefB), side, true)?;
         Ok(EigResult {
             eigenvalues: eigenvalues.into_dim::<DA>(),

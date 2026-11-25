@@ -60,8 +60,10 @@ where
 {
     /// Run `?GGEV` for `A v = λ B v`: the `(alpha, beta)` pair with
     /// `lambda = alpha / beta` and the requested eigenvector blocks, all in
-    /// the call order; both inputs are destroyed. LAPACK's scaling of the
-    /// vectors (largest component with `abs(re) + abs(im) = 1`) is kept.
+    /// the call order. An owned or `view_mut()` input whose layout is in the
+    /// call order is consumed as scratch (destroyed); every other input is
+    /// decomposed from a copy and left intact. LAPACK's scaling of the vectors
+    /// (largest component with `abs(re) + abs(im) = 1`) is kept.
     /// `beta` is real for a real `T` and complex otherwise (LAPACK's `BETA`).
     pub fn internal_run(
         self,

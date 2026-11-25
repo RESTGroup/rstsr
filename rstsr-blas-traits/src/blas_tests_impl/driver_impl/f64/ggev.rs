@@ -82,6 +82,17 @@ fn spd_b(n: usize) -> Vec<f64> {
     b
 }
 
+/// Second-operand data of the GGEV layout cases, with room for every layout
+/// case of an `m x n` block (the `a` manifest arrays; `data_f64` / `data_c64`
+/// in `geev.rs` supply the first operand).
+fn data_f64_second(m: usize, n: usize) -> Vec<f64> {
+    get_vec::<f64>('a')[..(2 * m + 4) * (2 * n + 4)].to_vec()
+}
+
+fn data_c64_second(m: usize, n: usize) -> Vec<c64> {
+    get_vec::<c64>('a')[..(2 * m + 4) * (2 * n + 4)].to_vec()
+}
+
 /// `b`-side complex data of `n x n` elements with a dominant diagonal
 /// (`B = data + n I`).
 fn diag_dominant_c64(n: usize) -> Vec<c64> {
@@ -108,12 +119,10 @@ fn test_dggev() {
     assert_eq!(vr.shape(), &[256, 256]);
     assert!(beta.raw().iter().all(|&x| x > 0.0));
     assert_ggev_scaled(&vr);
-    // scipy: the sorted spectrum alpha / beta and |vr| (the LAPACK scaling is
-    // kept at the driver tier). The real parts of a conjugate pair may differ
-    // in the last bit, so the order of the two members is not defined:
-    // fingerprint the real parts, the |imaginary parts| and the unit-norm
-    // columns of |vr| one by one (all order-invariant; the raw GGEV scaling
-    // differs between LAPACK builds)
+    // SciPy: the sorted spectrum alpha / beta and |vr| (the LAPACK scaling is
+    // kept at the driver tier). The order inside a conjugate pair is not
+    // defined (real parts may differ in the last bit), so the fingerprints
+    // are order-invariant; the raw GGEV scaling differs between LAPACK builds
     let w = rt::asarray(((0..256).map(|j| alpha[[j]] / beta[[j]]).collect::<Vec<_>>(), &device)).into_dim::<Ix1>();
     let ws = super::geev::sorted_spectrum(&w);
     let fp = |v: Vec<f64>| fingerprint(&rt::asarray((v, &device)));
@@ -174,52 +183,138 @@ fn test_dggev_singular_b() {
 }
 
 #[duplicate_item(
-    name                       case          ;
-    [test_dggev_layout_f_contig   ] ["f-contig"];
-    [test_dggev_layout_f_padded   ] ["f-padded"];
-    [test_dggev_layout_c_contig   ] ["c-contig"];
-    [test_dggev_layout_c_padded   ] ["c-padded"];
-    [test_dggev_layout_non_contig ] ["non-contig"];
+    name                       case          driver  data_a     data_b       ;
+    [test_dggev_layout_f_contig   ] ["f-contig"] [DGGEV] [super::geev::data_f64] [data_f64_second];
+    [test_dggev_layout_f_padded   ] ["f-padded"] [DGGEV] [super::geev::data_f64] [data_f64_second];
+    [test_dggev_layout_c_contig   ] ["c-contig"] [DGGEV] [super::geev::data_f64] [data_f64_second];
+    [test_dggev_layout_c_padded   ] ["c-padded"] [DGGEV] [super::geev::data_f64] [data_f64_second];
+    [test_dggev_layout_non_contig ] ["non-contig"] [DGGEV] [super::geev::data_f64] [data_f64_second];
+    [test_zggev_layout_f_contig   ] ["f-contig"] [ZGGEV] [super::geev::data_c64] [data_c64_second];
+    [test_zggev_layout_f_padded   ] ["f-padded"] [ZGGEV] [super::geev::data_c64] [data_c64_second];
+    [test_zggev_layout_c_contig   ] ["c-contig"] [ZGGEV] [super::geev::data_c64] [data_c64_second];
+    [test_zggev_layout_c_padded   ] ["c-padded"] [ZGGEV] [super::geev::data_c64] [data_c64_second];
+    [test_zggev_layout_non_contig ] ["non-contig"] [ZGGEV] [super::geev::data_c64] [data_c64_second];
 )]
 #[test]
 fn name() {
-    let data = super::geev::data_f64(6, 6);
-    let bdata = super::geev::data_f64_b(6, 6);
-    for n in [1usize, 2, 3, 5, 6] {
-        // the layout cases of a and b are independent
-        let a = super::geev::make_case(&data, case, n, n);
-        let b = super::geev::make_case(&bdata, case, n, n);
-        let (alpha, beta, vl, vr) = DGGEV::default().a(a.view()).b(b.view()).left(true).build().unwrap().run().unwrap();
-        assert_ggev_relation(&a, &b, vr.as_ref().unwrap(), &alpha, &beta, false);
-        assert_ggev_relation(&a, &b, vl.as_ref().unwrap(), &alpha, &beta, true);
-        let a = super::geev::make_case(&data, "f-padded", n, n);
-        let b = super::geev::make_case(&bdata, "non-contig", n, n);
-        let (alpha, beta, vl, vr) = DGGEV::default().a(a.view()).b(b.view()).left(true).build().unwrap().run().unwrap();
-        assert_ggev_relation(&a, &b, vr.as_ref().unwrap(), &alpha, &beta, false);
-        assert_ggev_relation(&a, &b, vl.as_ref().unwrap(), &alpha, &beta, true);
+    use super::geev::{assert_destroyed_in_place, assert_untouched, make_case};
+    let data = data_a(6, 6);
+    let bdata = data_b(6, 6);
+    let mut device = DeviceBLAS::default();
+    for order in [RowMajor, ColMajor] {
+        device.set_default_order(order);
+        for n in [1usize, 2, 3, 5, 6] {
+            let what = format!("{} {:?} n = {}", case, order, n);
+            // immutable views are copied by the driver: the inputs stay intact
+            let a = make_case(&data, case, n, n, &device);
+            let b = make_case(&bdata, case, n, n, &device);
+            let (a_snap, b_snap) = (a.raw().clone(), b.raw().clone());
+            let (alpha, beta, vl, vr) =
+                driver::default().a(a.view()).b(b.view()).left(true).build().unwrap().run().unwrap();
+            assert_untouched(&what, &a_snap, &a);
+            assert_untouched(&what, &b_snap, &b);
+            let (vr, vl) = (vr.unwrap(), vl.unwrap());
+            assert_ggev_relation(&a, &b, &vr, &alpha, &beta, false);
+            assert_ggev_relation(&a, &b, &vl, &alpha, &beta, true);
+            assert_ggev_scaled(&vr);
+            // the layout cases of a and b are independent, also when the two
+            // operands prefer different orders
+            for (case_a, case_b) in [("f-padded", "non-contig"), ("f-padded", "c-padded"), ("c-padded", "f-padded")] {
+                let what = format!("{what} mix {case_a} x {case_b}");
+                let a_mix = make_case(&data, case_a, n, n, &device);
+                let b_mix = make_case(&bdata, case_b, n, n, &device);
+                let (a_snap, b_snap) = (a_mix.raw().clone(), b_mix.raw().clone());
+                let (alpha, beta, vl, vr) =
+                    driver::default().a(a_mix.view()).b(b_mix.view()).left(true).build().unwrap().run().unwrap();
+                assert_untouched(&what, &a_snap, &a_mix);
+                assert_untouched(&what, &b_snap, &b_mix);
+                assert_ggev_relation(&a_mix, &b_mix, vr.as_ref().unwrap(), &alpha, &beta, false);
+                assert_ggev_relation(&a_mix, &b_mix, vl.as_ref().unwrap(), &alpha, &beta, true);
+                // a mutable operand of a conflicting-order pencil is consumed
+                // only if its own order is the call order
+                let mut a_mix = a_mix;
+                let mut b_mix = b_mix;
+                let a_ref: TensorReference<'_, _, DeviceBLAS, Ix2> = a_mix.view_mut().into();
+                let b_ref: TensorReference<'_, _, DeviceBLAS, Ix2> = b_mix.view_mut().into();
+                driver::default().a(a_ref).b(b_ref).left(true).build().unwrap().run().unwrap();
+                let destroyed = [("a", &a_snap, &a_mix), ("b", &b_snap, &b_mix)].map(|(operand, before, t)| {
+                    let what = format!("{what} {operand}");
+                    let block_changed = before.iter().zip(t.raw()).any(|(x, y)| x != y);
+                    if block_changed {
+                        assert_destroyed_in_place(&what, before, t);
+                    } else {
+                        assert_untouched(&what, before, t);
+                    }
+                    block_changed
+                });
+                assert!(n < 3 || destroyed.iter().any(|&d| d), "{what}: one operand must be consumed");
+            }
+            // mutable views are destroyed in place when their layout is in
+            // order for the call (a `1 x 1` block always is); LAPACK leaves
+            // `n <= 2` intact
+            let mut a_mut = make_case(&data, case, n, n, &device);
+            let mut b_mut = make_case(&bdata, case, n, n, &device);
+            let (a_snap, b_snap) = (a_mut.raw().clone(), b_mut.raw().clone());
+            let a_ref: TensorReference<'_, _, DeviceBLAS, Ix2> = a_mut.view_mut().into();
+            let b_ref: TensorReference<'_, _, DeviceBLAS, Ix2> = b_mut.view_mut().into();
+            let (alpha, beta, vl, vr) = driver::default().a(a_ref).b(b_ref).left(true).build().unwrap().run().unwrap();
+            assert_ggev_relation(&a, &b, vr.as_ref().unwrap(), &alpha, &beta, false);
+            assert_ggev_relation(&a, &b, vl.as_ref().unwrap(), &alpha, &beta, true);
+            for (operand, before, t) in [("a", &a_snap, &a_mut), ("b", &b_snap, &b_mut)] {
+                let what = format!("{what} {operand}");
+                match (t.c_prefer() || t.f_prefer(), n >= 3) {
+                    (false, _) => assert_untouched(&what, before, t),
+                    (true, true) => assert_destroyed_in_place(&what, before, t),
+                    (true, false) => (),
+                }
+            }
+        }
     }
 }
 
-#[duplicate_item(
-    name                       case          ;
-    [test_zggev_layout_f_contig   ] ["f-contig"];
-    [test_zggev_layout_f_padded   ] ["f-padded"];
-    [test_zggev_layout_c_contig   ] ["c-contig"];
-    [test_zggev_layout_c_padded   ] ["c-padded"];
-    [test_zggev_layout_non_contig ] ["non-contig"];
-)]
+/// Non-square or mismatched operands are rejected before the driver call.
 #[test]
-fn name() {
-    let data = super::geev::data_c64(6, 6);
-    let bdata = super::geev::data_c64_b(6, 6);
-    for n in [1usize, 2, 3, 5, 6] {
-        let a = super::geev::make_case(&data, case, n, n);
-        let b = super::geev::make_case(&bdata, case, n, n);
-        let (alpha, beta, vl, vr) = ZGGEV::default().a(a.view()).b(b.view()).left(true).build().unwrap().run().unwrap();
-        assert_ggev_relation(&a, &b, vr.as_ref().unwrap(), &alpha, &beta, false);
-        assert_ggev_relation(&a, &b, vl.as_ref().unwrap(), &alpha, &beta, true);
-        assert_ggev_scaled(vr.as_ref().unwrap());
+fn test_ggev_rejects_shapes() {
+    let device = DeviceBLAS::default();
+    // (shape of a, shape of b): non-square a, non-square b, mismatched
+    for ([ma, na], [mb, nb]) in [([5, 6], [6, 6]), ([5, 5], [6, 5]), ([5, 5], [6, 6])] {
+        let (av, bv) = (get_vec::<f64>('a')[..ma * na].to_vec(), get_vec::<f64>('b')[..mb * nb].to_vec());
+        let a = rt::asarray((av, [ma, na].c(), &device)).into_dim::<Ix2>();
+        let b = rt::asarray((bv, [mb, nb].c(), &device)).into_dim::<Ix2>();
+        assert!(DGGEV::default().a(a.view()).b(b.view()).build().unwrap().run().is_err());
+        let (av, bv) = (get_vec::<c64>('a')[..ma * na].to_vec(), get_vec::<c64>('b')[..mb * nb].to_vec());
+        let a = rt::asarray((av, [ma, na].c(), &device)).into_dim::<Ix2>();
+        let b = rt::asarray((bv, [mb, nb].c(), &device)).into_dim::<Ix2>();
+        assert!(ZGGEV::default().a(a.view()).b(b.view()).build().unwrap().run().is_err());
     }
+}
+
+/// An empty pencil gives empty `(alpha, beta)` and eigenvector blocks.
+#[test]
+fn test_ggev_zero_size() {
+    let device = DeviceBLAS::default();
+    let a: Tensor<f64, DeviceBLAS, Ix2> = rt::zeros(([0, 0], &device)).into_dim::<Ix2>();
+    let b: Tensor<f64, DeviceBLAS, Ix2> = rt::zeros(([0, 0], &device)).into_dim::<Ix2>();
+    for (left, right) in [(false, true), (true, false), (true, true), (false, false)] {
+        let (alpha, beta, vl, vr) =
+            DGGEV::default().a(a.view()).b(b.view()).left(left).right(right).build().unwrap().run().unwrap();
+        assert_eq!(alpha.shape(), &[0]);
+        assert_eq!(beta.shape(), &[0]);
+        assert_eq!(vl.is_some(), left);
+        assert_eq!(vr.is_some(), right);
+        if let Some(v) = vl {
+            assert_eq!(v.shape(), &[0, 0]);
+        }
+        if let Some(v) = vr {
+            assert_eq!(v.shape(), &[0, 0]);
+        }
+    }
+    let a: Tensor<c64, DeviceBLAS, Ix2> = rt::zeros(([0, 0], &device)).into_dim::<Ix2>();
+    let b: Tensor<c64, DeviceBLAS, Ix2> = rt::zeros(([0, 0], &device)).into_dim::<Ix2>();
+    let (alpha, beta, _, vr) = ZGGEV::default().a(a.view()).b(b.view()).build().unwrap().run().unwrap();
+    assert_eq!(alpha.shape(), &[0]);
+    assert_eq!(beta.shape(), &[0]);
+    assert_eq!(vr.unwrap().shape(), &[0, 0]);
 }
 
 #[test]

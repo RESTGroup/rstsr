@@ -1,5 +1,5 @@
 use super::*;
-use rstsr::prelude::linalg::{EigSide, Homogeneous};
+use rstsr::prelude::linalg::{EigResult, EigSide, Homogeneous};
 
 #[allow(non_camel_case_types)]
 type c64 = num::Complex<f64>;
@@ -69,29 +69,14 @@ pub(super) fn fingerprint_abs_columns<R: DataAPI<Data = Vec<c64>>>(v: &TensorAny
     fingerprint(&rt::asarray((fps, v.device())))
 }
 
-/// Order-invariant fingerprint of a homogeneous `(alpha, beta)` stack of
-/// shape `(2, n)`: `|alpha|` and `|beta|` scaled by `1 / (|alpha| + |beta|)`
-/// per column, each row sorted.
-pub(super) fn fingerprint_homogeneous<R: DataAPI<Data = Vec<c64>>>(w2: &TensorAny<R, c64, DeviceBLAS, Ix2>) -> f64 {
-    let n = w2.shape()[1];
-    let scaled = |row: usize| -> Vec<f64> {
-        let mut v: Vec<f64> = (0..n)
-            .map(|j| {
-                let (al, be) = (w2.i((row, j)).to_scalar().norm(), w2.i((1 - row, j)).to_scalar().norm());
-                al / (al + be)
-            })
-            .collect();
-        v.sort_by(|x, y| x.partial_cmp(y).unwrap());
-        v
-    };
-    let mut rows = scaled(0);
-    rows.extend(scaled(1));
-    fingerprint(&rt::asarray((rows, [2, n].c(), w2.device())))
-}
-
 /// The spectra agree as multisets (each expected value consumes its nearest
 /// actual value, so a roundoff difference in the sort key does not matter).
-fn assert_same_spectrum(ws: &[c64], expected: &[c64], what: &str) {
+pub(super) fn assert_same_spectrum(ws: &[c64], expected: &[c64], what: &str) {
+    assert_same_spectrum_within(ws, expected, 1e-9, what);
+}
+
+/// As [`assert_same_spectrum`], with the tolerance `tol * sum(1 + |expected|)`.
+pub(super) fn assert_same_spectrum_within(ws: &[c64], expected: &[c64], tol: f64, what: &str) {
     assert_eq!(ws.len(), expected.len(), "{what}: spectrum length");
     let scale: f64 = expected.iter().map(|z| 1.0 + z.norm()).sum();
     let mut rest: Vec<c64> = ws.to_vec();
@@ -102,7 +87,7 @@ fn assert_same_spectrum(ws: &[c64], expected: &[c64], what: &str) {
             .min_by(|(_, a), (_, b)| (**a - *e).norm().partial_cmp(&(**b - *e).norm()).unwrap())
             .unwrap();
         let a = rest.swap_remove(k);
-        assert!((a - *e).norm() < 1e-9 * scale, "{what}: {ws:?} vs {expected:?}");
+        assert!((a - *e).norm() < tol * scale, "{what}: {ws:?} vs {expected:?}");
     }
 }
 
@@ -154,6 +139,36 @@ fn unravel(mut k: usize, batch: &[usize]) -> Vec<isize> {
 }
 
 type EigVecs<D> = Option<Tensor<c64, DeviceBLAS, D>>;
+type Spec = Tensor<c64, DeviceBLAS, Ix1>;
+type Block = Tensor<c64, DeviceBLAS, Ix2>;
+
+/// The residual identities of one stack slot against its input data, column
+/// `j` taking the slot's own `w[j]` (the per-slice LAPACK order): right
+/// vectors `A v(j) = w(j) v(j)` (`A v(j) = w(j) B v(j)`), left vectors
+/// `Aᴴ u(j) = conj(w(j)) u(j)` (`Aᴴ u(j) = conj(w(j)) Bᴴ u(j)`).
+fn assert_slot_relation<R>(a: &[f64], b: &[f64], v: &TensorAny<R, c64, DeviceBLAS, Ix2>, w: &[c64], left: bool)
+where
+    R: DataAPI<Data = Vec<c64>>,
+{
+    let n = w.len();
+    let lam_max = w.iter().fold(0.0f64, |m, z| m.max(z.norm()));
+    let scale: f64 = a.iter().map(|x| 1.0 + x.abs()).sum::<f64>() + lam_max * b.iter().map(|x| x.abs()).sum::<f64>();
+    for (j, &wj) in w.iter().enumerate() {
+        let lam = if left { wj.conj() } else { wj };
+        for i in 0..n {
+            let (mut av, mut bv) = (c64::new(0.0, 0.0), c64::new(0.0, 0.0));
+            for k in 0..n {
+                let bk_of = |r: usize, c: usize| if b.is_empty() { 0.0 } else { b[r * n + c] };
+                let (ak, bk) = if left { (a[k * n + i], bk_of(k, i)) } else { (a[i * n + k], bk_of(i, k)) };
+                let vkj = v.i((k, j)).to_scalar();
+                av += ak * vkj;
+                bv += bk * vkj;
+            }
+            let residual = if b.is_empty() { av - lam * v.i((i, j)).to_scalar() } else { av - lam * bv };
+            assert!(residual.norm() < 1e-10 * scale, "residual of column {j} (left = {left}): {}", residual.norm());
+        }
+    }
+}
 
 /// The slot `idx` (batch multi-index, at most two dims) of a stacked result
 /// (copied). Under a column-major device the batch dims are the last axes.
@@ -194,20 +209,25 @@ pub(super) fn assert_parity(
         let idx = unravel(k, batch);
         let device = w.device();
         let a = rt::asarray((slot_a.clone(), [n, n].c(), device)).into_dim::<Ix2>();
+        // a single batch dim of b pairs with the last batch axis (row-major
+        // semantics) or with the first one (column-major semantics)
+        let b_slot: &[f64] = if slots_b.is_empty() {
+            &[]
+        } else if order == RowMajor {
+            &slots_b[k % batch[batch.len() - 1]]
+        } else {
+            &slots_b[k / batch[1..].iter().product::<usize>()]
+        };
         let r = if slots_b.is_empty() {
             rt::linalg::eig(a.view())
         } else {
-            // a single batch dim of b pairs with the last batch axis (row-major
-            // semantics) or with the first one (column-major semantics)
-            let kb =
-                if order == RowMajor { k % batch[batch.len() - 1] } else { k / batch[1..].iter().product::<usize>() };
-            let b = rt::asarray((slots_b[kb].clone(), [n, n].c(), device)).into_dim::<Ix2>();
+            let b = rt::asarray((b_slot.to_vec(), [n, n].c(), device)).into_dim::<Ix2>();
             rt::linalg::eig((a.view(), b.view(), EigSide::Both))
         };
         let w_slot = batch_slot(w, &idx).into_dim::<Ix1>();
         assert_same_spectrum(w_slot.raw(), &sorted_spectrum(&r.eigenvalues), &format!("slot {k}"));
         let (order1, order2) = (canonical_order(&w_slot), canonical_order(&r.eigenvalues));
-        for (v, v2) in [(vl.as_ref(), r.left.as_ref()), (vr.as_ref(), r.right.as_ref())] {
+        for (left, v, v2) in [(true, vl.as_ref(), r.left.as_ref()), (false, vr.as_ref(), r.right.as_ref())] {
             if let (Some(v), Some(v2)) = (v, v2) {
                 assert_eq!(v.shape(), &stack_shape(order, batch, &[n, n])[..]);
                 let v_slot = batch_slot(v, &idx).into_dim::<Ix2>();
@@ -215,23 +235,20 @@ pub(super) fn assert_parity(
                     (fingerprint_abs_reordered(&v_slot, &order1) - fingerprint_abs_reordered(v2, &order2)).abs() < 1e-8,
                     "slot {k}"
                 );
+                assert_slot_relation(slot_a, b_slot, &v_slot, w_slot.raw(), left);
             }
         }
     }
 }
 
+/// SciPy fingerprints of one full-size solve with both sides: the sorted
+/// spectrum, `|vl|` / `|vr|` in spectrum order, and GEEV's unit-norm columns.
 #[test]
-#[allow(clippy::type_complexity)]
 fn test_eig() {
     let device = DeviceBLAS::default();
     let a = rt::asarray((get_vec::<f64>('a'), [1024, 1024].c(), &device)).into_dim::<Ix2>();
-    let n = 1024usize;
-
-    // default: right eigenvectors
-    let r = rt::linalg::eig(a.view());
-    assert!(r.left.is_none() && r.right.is_some());
-    assert_eq!(r.eigenvalues.shape(), &[n]);
-    assert_eq!(r.right.as_ref().unwrap().shape(), &[n, n]);
+    let r = rt::linalg::eig((a.view(), EigSide::Both));
+    let (vl, vr) = (r.left.as_ref().unwrap(), r.right.as_ref().unwrap());
     let order = canonical_order(&r.eigenvalues);
     assert!(
         (fingerprint(&rt::asarray((sorted_spectrum(&r.eigenvalues), &device)))
@@ -239,165 +256,206 @@ fn test_eig() {
         .norm()
             < 1e-8
     );
-    assert!((fingerprint_abs_reordered(r.right.as_ref().unwrap(), &order) - -12.000277853410061).abs() < 1e-8);
-    // unit 2-norm columns (GEEV normalization)
+    assert!((fingerprint_abs_reordered(vl, &order) - -15.906522814903258).abs() < 1e-8);
+    assert!((fingerprint_abs_reordered(vr, &order) - -12.000277853410061).abs() < 1e-8);
     for j in [0usize, 1, 500, 1023] {
-        let norm: f64 = (0..n).map(|i| r.right.as_ref().unwrap()[[i, j]].norm_sqr()).sum::<f64>().sqrt();
+        let norm: f64 = (0..1024).map(|i| vr[[i, j]].norm_sqr()).sum::<f64>().sqrt();
         assert!((norm - 1.0).abs() < 1e-12);
     }
+}
 
-    // a one-sided result destructures into (w, v)
-    let (w, _v): (Tensor<c64, DeviceBLAS, Ix1>, Tensor<c64, DeviceBLAS, Ix2>) = rt::linalg::eig(a.view()).into();
-    assert!(
-        (fingerprint(&rt::asarray((sorted_spectrum(&w), &device)))
-            - c64::new(-36.380652131982586, -116.87071686473277))
-        .norm()
-            < 1e-8
-    );
+/// SciPy fingerprints of a 256 x 256 generalized solve (the leading blocks
+/// of the manifest arrays; a full-size QZ solve is far costlier than GEEV)
+/// with both sides: the sorted spectrum and `|vl|` / `|vr|` (order-invariant),
+/// the vectors rescaled to unit 2-norm as SciPy does.
+#[test]
+fn test_eig_generalized() {
+    let device = DeviceBLAS::default();
+    let a = rt::asarray((get_vec::<f64>('a')[..256 * 256].to_vec(), [256, 256].c(), &device)).into_dim::<Ix2>();
+    // SPD B (a well-conditioned pencil; the raw random b gives clustered eigenvalues)
+    let b0 = rt::asarray((get_vec::<f64>('b')[..256 * 256].to_vec(), [256, 256].c(), &device)).into_dim::<Ix2>();
+    let mut b = &b0 % b0.view().t();
+    for i in 0..256 {
+        b[[i, i]] += 256.0;
+    }
+    let b = &b;
+    let r = rt::linalg::eig((a.view(), b.view(), EigSide::Both));
+    let (vl, vr) = (r.left.as_ref().unwrap(), r.right.as_ref().unwrap());
+    let (fp_re, fp_im) = fingerprint_spectrum(r.eigenvalues.raw());
+    assert!((fp_re - -0.08043969532621999).abs() < 1e-8 && (fp_im - -0.07080695445332981).abs() < 1e-8);
+    assert!((fingerprint_abs_columns(vl) - -1.2719566873337649).abs() < 1e-8);
+    assert!((fingerprint_abs_columns(vr) - -1.5688154447109144).abs() < 1e-8);
+    for j in [0usize, 1, 255] {
+        let norm: f64 = (0..256).map(|i| vr[[i, j]].norm_sqr()).sum::<f64>().sqrt();
+        assert!((norm - 1.0).abs() < 1e-12);
+    }
+}
 
-    // left only
-    let r = rt::linalg::eig((a.view(), EigSide::Left));
-    assert!(r.left.is_some() && r.right.is_none());
-    assert!(
-        (fingerprint_abs_reordered(r.left.as_ref().unwrap(), &canonical_order(&r.eigenvalues)) - -15.906522814903258)
-            .abs()
-            < 1e-8
-    );
+/// Small operands of the overload and parameter tests: 4x4 blocks of the
+/// manifest data, with a regular `b` for the generalized problem.
+pub(super) fn small_operands(device: &DeviceBLAS) -> (Tensor<f64, DeviceBLAS, Ix2>, Tensor<f64, DeviceBLAS, Ix2>) {
+    let a = rt::asarray((get_vec::<f64>('b')[..16].to_vec(), [4, 4].c(), device)).into_dim::<Ix2>();
+    // SPD B (a well-conditioned pencil)
+    let m = rt::asarray((get_vec::<f64>('a')[..16].to_vec(), [4, 4].c(), device)).into_dim::<Ix2>();
+    let mut b = &m % m.view().t();
+    for i in 0..4 {
+        b[[i, i]] += 4.0;
+    }
+    let b = b;
+    (a, b)
+}
 
-    // both sides
-    let r = rt::linalg::eig((a.view(), EigSide::Both));
-    assert!(r.left.is_some() && r.right.is_some());
-    let order = canonical_order(&r.eigenvalues);
-    assert!((fingerprint_abs_reordered(r.left.as_ref().unwrap(), &order) - -15.906522814903258).abs() < 1e-8);
-    assert!((fingerprint_abs_reordered(r.right.as_ref().unwrap(), &order) - -12.000277853410061).abs() < 1e-8);
-    let (_w, _vl, _vr): (Tensor<c64, DeviceBLAS, Ix1>, Tensor<c64, DeviceBLAS, Ix2>, Tensor<c64, DeviceBLAS, Ix2>) =
-        r.into();
+type EigOut = EigResult<Spec, Option<Block>, Option<Block>>;
+type EigOutH = EigResult<Block, Option<Block>, Option<Block>>;
 
-    // string and flag sides
-    let r = rt::linalg::eig((a.view(), "left"));
-    assert!(r.left.is_some() && r.right.is_none());
-    let r = rt::linalg::eig((a.view(), "both"));
-    assert!(r.left.is_some() && r.right.is_some());
-    let r = rt::linalg::eig((a.view(), "none"));
-    assert!(r.left.is_none() && r.right.is_none());
-    let r = rt::linalg::eig((a.view(), FlagSide::L));
-    assert!(r.left.is_some() && r.right.is_none());
-    let r = rt::linalg::eig((a.view(), FlagSide::R));
-    assert!(r.left.is_none() && r.right.is_some());
-    let r = rt::linalg::eig((a.view(), EigSide::None));
-    assert!(r.left.is_none() && r.right.is_none());
-    assert!(
-        (fingerprint(&rt::asarray((sorted_spectrum(&r.eigenvalues), &device)))
-            - c64::new(-36.380652131982586, -116.87071686473277))
-        .norm()
-            < 1e-8
-    );
+/// `r` carries exactly the requested blocks, which equal the reference's
+/// (any spectrum type `W`, plain or homogeneous).
+fn assert_blocks<W>(r: &EigResult<W, Option<Block>, Option<Block>>, left: bool, right: bool, re: &EigOut, what: &str) {
+    assert_eq!((r.left.is_some(), r.right.is_some()), (left, right), "{what}: requested blocks");
+    if left {
+        assert!(rt::allclose(r.left.as_ref().unwrap(), re.left.as_ref().unwrap(), None), "{what}: left vectors");
+    }
+    if right {
+        assert!(rt::allclose(r.right.as_ref().unwrap(), re.right.as_ref().unwrap(), None), "{what}: right vectors");
+    }
+}
+
+/// A plain form: the reference spectrum (up to roundoff) and blocks.
+fn assert_form(r: &EigOut, left: bool, right: bool, re: &EigOut, what: &str) {
+    assert_blocks(r, left, right, re, what);
+    assert_same_spectrum_within(r.eigenvalues.raw(), re.eigenvalues.raw(), 1e-12, what);
+}
+
+/// The homogeneous form of the standard problem: `alpha` is the spectrum and
+/// `beta` is exactly `1`.
+fn assert_form_h(r: &EigOutH, left: bool, right: bool, re: &EigOut, what: &str) {
+    assert_blocks(r, left, right, re, what);
+    assert_eq!(r.eigenvalues.shape(), &[2, 4], "{what}: shape");
+    assert!(rt::allclose(r.eigenvalues.i((0, ..)).into_dim::<Ix1>(), &re.eigenvalues, None), "{what}: alpha");
+    assert!(r.eigenvalues.raw()[4..].iter().all(|&x| x == c64::new(1.0, 0.0)), "{what}: beta");
+}
+
+/// The homogeneous form of the generalized problem: `alpha / beta` is the
+/// reference spectrum.
+fn assert_form_gh(r: &EigOutH, left: bool, right: bool, re: &EigOut, what: &str) {
+    assert_blocks(r, left, right, re, what);
+    assert_eq!(r.eigenvalues.shape(), &[2, 4], "{what}: shape");
+    let lambda: Vec<c64> = (0..4).map(|j| r.eigenvalues[[0, j]] / r.eigenvalues[[1, j]]).collect();
+    assert_same_spectrum_within(&lambda, re.eigenvalues.raw(), 1e-12, what);
+}
+
+/// The overload matrix and the side / homogeneous parameters on a small
+/// matrix: every form gives the spectrum and the requested blocks of one
+/// `Both` call, for every operand kind (mutable operands are reset before
+/// each form, since they are consumed as scratch).
+#[test]
+fn test_eig_overloads() {
+    let device = DeviceBLAS::default();
+    let (a, b) = small_operands(&device);
+    let sa = rt::linalg::eig((a.view(), EigSide::Both));
+    let ga = rt::linalg::eig((a.view(), b.view(), EigSide::Both));
+    let (mut am, mut bm) = (a.clone(), b.clone());
+
+    // the default form takes `b` only in the generalized problem
+    macro_rules! default_call {
+        ($a:expr) => {
+            rt::linalg::eig($a)
+        };
+        ($a:expr, $b:expr) => {
+            rt::linalg::eig(($a, $b))
+        };
+    }
+    macro_rules! forms {
+        ($re:ident, $homogeneous:ident, $what:expr, $a:expr $(, $b:expr)?) => {{
+            let f = |r: EigOut, left: bool, right: bool, what: &str| {
+                assert_form(&r, left, right, &$re, &format!("{}: {}", $what, what))
+            };
+            let h = |r: EigOutH, left: bool, right: bool, what: &str| {
+                $homogeneous(&r, left, right, &$re, &format!("{}: {}", $what, what))
+            };
+            f(default_call!($a $(, $b)?), false, true, "default");
+            f(rt::linalg::eig(($a $(, $b)?, EigSide::Left)), true, false, "EigSide::Left");
+            f(rt::linalg::eig(($a $(, $b)?, EigSide::Right)), false, true, "EigSide::Right");
+            f(rt::linalg::eig(($a $(, $b)?, EigSide::Both)), true, true, "EigSide::Both");
+            f(rt::linalg::eig(($a $(, $b)?, EigSide::None)), false, false, "EigSide::None");
+            f(rt::linalg::eig(($a $(, $b)?, "left")), true, false, "\"left\"");
+            f(rt::linalg::eig(($a $(, $b)?, "right")), false, true, "\"right\"");
+            f(rt::linalg::eig(($a $(, $b)?, "both")), true, true, "\"both\"");
+            f(rt::linalg::eig(($a $(, $b)?, "none")), false, false, "\"none\"");
+            f(rt::linalg::eig(($a $(, $b)?, FlagSide::L)), true, false, "FlagSide::L");
+            f(rt::linalg::eig(($a $(, $b)?, FlagSide::R)), false, true, "FlagSide::R");
+            h(rt::linalg::eig(($a $(, $b)?, Homogeneous)), false, true, "Homogeneous");
+            h(rt::linalg::eig(($a $(, $b)?, EigSide::Left, Homogeneous)), true, false, "EigSide::Left, Homogeneous");
+            h(rt::linalg::eig(($a $(, $b)?, EigSide::Right, Homogeneous)), false, true, "EigSide::Right, Homogeneous");
+            h(rt::linalg::eig(($a $(, $b)?, EigSide::Both, Homogeneous)), true, true, "EigSide::Both, Homogeneous");
+            h(rt::linalg::eig(($a $(, $b)?, EigSide::None, Homogeneous)), false, false, "EigSide::None, Homogeneous");
+            h(rt::linalg::eig(($a $(, $b)?, FlagSide::L, Homogeneous)), true, false, "FlagSide::L, Homogeneous");
+            h(rt::linalg::eig(($a $(, $b)?, FlagSide::R, Homogeneous)), false, true, "FlagSide::R, Homogeneous");
+            h(rt::linalg::eig(($a $(, $b)?, "left", Homogeneous)), true, false, "\"left\", Homogeneous");
+            h(rt::linalg::eig(($a $(, $b)?, "right", Homogeneous)), false, true, "\"right\", Homogeneous");
+            h(rt::linalg::eig(($a $(, $b)?, "both", Homogeneous)), true, true, "\"both\", Homogeneous");
+            h(rt::linalg::eig(($a $(, $b)?, "none", Homogeneous)), false, false, "\"none\", Homogeneous");
+        }};
+    }
+    macro_rules! with_b_kinds {
+        ($what:expr, $a:expr) => {
+            forms!(ga, assert_form_gh, concat!($what, ", owned b"), $a, b.clone());
+            forms!(ga, assert_form_gh, concat!($what, ", ref b"), $a, &b);
+            forms!(ga, assert_form_gh, concat!($what, ", view b"), $a, b.view());
+            forms!(ga, assert_form_gh, concat!($what, ", mut b"), $a, {
+                bm.clone_from(&b);
+                bm.view_mut()
+            });
+        };
+    }
+
+    forms!(sa, assert_form_h, "owned a", a.clone());
+    forms!(sa, assert_form_h, "ref a", &a);
+    forms!(sa, assert_form_h, "view a", a.view());
+    forms!(sa, assert_form_h, "mut a", {
+        am.clone_from(&a);
+        am.view_mut()
+    });
+    with_b_kinds!("owned a", a.clone());
+    with_b_kinds!("ref a", &a);
+    with_b_kinds!("view a", a.view());
+    with_b_kinds!("mut a", {
+        am.clone_from(&a);
+        am.view_mut()
+    });
 
     // a mutable input is consumed as scratch
-    let mut a2 = a.clone();
-    let r = rt::linalg::eig(a2.view_mut());
-    assert!(!rt::allclose(a2.view(), a.view(), None));
-    assert!(
-        (fingerprint_abs_reordered(r.right.as_ref().unwrap(), &canonical_order(&r.eigenvalues)) - -12.000277853410061)
-            .abs()
-            < 1e-8
-    );
+    am.clone_from(&a);
+    let r = rt::linalg::eig(am.view_mut());
+    assert!(!rt::allclose(am.view(), a.view(), None), "standard: the input must be destroyed");
+    assert_form(&r, false, true, &sa, "standard, in place");
+    am.clone_from(&a);
+    bm.clone_from(&b);
+    let r = rt::linalg::eig((am.view_mut(), bm.view_mut()));
+    assert!(!rt::allclose(am.view(), a.view(), None), "generalized: a must be destroyed");
+    assert!(!rt::allclose(bm.view(), b.view(), None), "generalized: b must be destroyed");
+    assert_form(&r, false, true, &ga, "generalized, in place");
 
-    // invalid side string
+    // an unknown side string panics
     let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let _ = rt::linalg::eig((a.view(), "diagonal"));
     }));
     assert!(result.is_err());
 }
 
+/// The homogeneous spectrum `(alpha, beta)`: `eig` and `eigvals` agree on it
+/// for the standard and the generalized problem.
 #[test]
 fn test_eig_homogeneous() {
     let device = DeviceBLAS::default();
-    let a = rt::asarray((get_vec::<f64>('a'), [1024, 1024].c(), &device)).into_dim::<Ix2>();
-    let one = c64::new(1.0, 0.0);
-
-    // (alpha, beta) stacked as (2, n) with the default right eigenvectors
+    let (a, b) = small_operands(&device);
     let r = rt::linalg::eig((a.view(), Homogeneous));
-    assert_eq!(r.eigenvalues.shape(), &[2, 1024]);
-    assert!(r.left.is_none() && r.right.is_some());
-    assert_eq!(r.right.as_ref().unwrap().shape(), &[1024, 1024]);
-    let ws = sorted_spectrum(&r.eigenvalues.i((0, ..)).into_dim::<Ix1>());
-    assert!(
-        (fingerprint(&rt::asarray((ws, &device))) - c64::new(-36.380652131982586, -116.87071686473277)).norm() < 1e-8
-    );
-    assert!((0..1024).all(|j| r.eigenvalues[[1, j]] == one));
-    assert!((fingerprint_homogeneous(&r.eigenvalues) - -0.8153609430192674).abs() < 1e-8);
-
-    // the eigenvector block follows the side marker as usual
-    let r = rt::linalg::eig((a.view(), EigSide::None, Homogeneous));
-    assert!(r.left.is_none() && r.right.is_none());
-    let r = rt::linalg::eig((a.view(), "both", Homogeneous));
-    assert_eq!(r.eigenvalues.shape(), &[2, 1024]);
-    assert!(r.left.is_some() && r.right.is_some());
-    let r = rt::linalg::eig((a.view(), FlagSide::L, Homogeneous));
-    assert!(r.left.is_some() && r.right.is_none());
-
-    // eigvals: the same homogeneous spectrum
-    let w = rt::linalg::eigvals(a.view());
-    let w2 = rt::linalg::eigvals((a.view(), Homogeneous));
-    assert_eq!(w.shape(), &[1024]);
-    assert_eq!(w2.shape(), &[2, 1024]);
-    assert!(rt::allclose(w2.i((0, ..)).into_dim::<Ix1>(), &w, None));
-    assert!((0..1024).all(|j| w2[[1, j]] == one));
-    assert!((fingerprint_homogeneous(&w2) - -0.8153609430192674).abs() < 1e-8);
-}
-
-#[test]
-fn test_eig_generalized() {
-    let device = DeviceBLAS::default();
-    let a = rt::asarray((get_vec::<f64>('a'), [1024, 1024].c(), &device)).into_dim::<Ix2>();
-    // SPD B (a well-conditioned pencil; the raw random b gives clustered eigenvalues)
-    let b0 = rt::asarray((get_vec::<f64>('b'), [1024, 1024].c(), &device)).into_dim::<Ix2>();
-    let mut b = &b0 % b0.view().t();
-    for i in 0..1024 {
-        b[[i, i]] += 1024.0;
-    }
-    let b = &b;
-    // default: right eigenvectors, rescaled to unit 2-norm as SciPy does
-    let r = rt::linalg::eig((a.view(), b.view()));
-    assert!(r.left.is_none() && r.right.is_some());
-    let (fp_re, fp_im) = fingerprint_spectrum(r.eigenvalues.raw());
-    assert!((fp_re - -0.024055003148234604).abs() < 1e-8 && (fp_im - -0.024671786680918184).abs() < 1e-8);
-    assert!((fingerprint_abs_columns(r.right.as_ref().unwrap()) - -1.6364926089445353).abs() < 1e-8);
-    for j in [0usize, 1, 1000] {
-        let norm: f64 = (0..1024).map(|i| r.right.as_ref().unwrap()[[i, j]].norm_sqr()).sum::<f64>().sqrt();
-        assert!((norm - 1.0).abs() < 1e-12);
-    }
-
-    // both sides; copies of a and b are consumed as scratch
-    let (mut a2, mut b2) = (a.clone(), b.clone());
-    let r = rt::linalg::eig((a2.view_mut(), b2.view_mut(), EigSide::Both));
-    assert!(!rt::allclose(a2.view(), a.view(), None) && !rt::allclose(b2.view(), b.view(), None));
-    assert!((fingerprint_abs_columns(r.left.as_ref().unwrap()) - -1.2332361143744368).abs() < 1e-8);
-    assert!((fingerprint_abs_columns(r.right.as_ref().unwrap()) - -1.6364926089445353).abs() < 1e-8);
-    let r = rt::linalg::eig((a.view(), b.view(), "left"));
-    assert!(r.left.is_some() && r.right.is_none());
-    assert!((fingerprint_abs_columns(r.left.as_ref().unwrap()) - -1.2332361143744368).abs() < 1e-8);
-
-    // homogeneous: rows (alpha, beta), alpha / beta is the spectrum
+    assert_eq!(r.eigenvalues.shape(), &[2, 4]);
+    assert!(rt::allclose(rt::linalg::eigvals((a.view(), Homogeneous)), &r.eigenvalues, None));
     let r = rt::linalg::eig((a.view(), b.view(), Homogeneous));
-    assert_eq!(r.eigenvalues.shape(), &[2, 1024]);
-    let w = rt::linalg::eigvals((a.view(), b.view()));
-    let mut lambda: Vec<c64> = (0..1024).map(|j| r.eigenvalues[[0, j]] / r.eigenvalues[[1, j]]).collect();
-    sort_in_place(&mut lambda);
-    let mut ws = sorted_spectrum(&w);
-    sort_in_place(&mut ws);
-    let scale: f64 = ws.iter().map(|z| 1.0 + z.norm()).sum();
-    for (x, y) in lambda.iter().zip(ws.iter()) {
-        assert!((*x - *y).norm() < 1e-12 * scale);
-    }
-    // eigvals shares the homogeneous form
-    let w2 = rt::linalg::eigvals((a.view(), b.view(), Homogeneous));
-    assert_eq!(w2.shape(), &[2, 1024]);
-    assert!(rt::allclose(&w2, &r.eigenvalues, None));
-    assert!((fingerprint_homogeneous(&w2) - -0.14886891648651965).abs() < 1e-8);
+    assert_eq!(r.eigenvalues.shape(), &[2, 4]);
+    assert!(rt::allclose(rt::linalg::eigvals((a.view(), b.view(), Homogeneous)), &r.eigenvalues, None));
 }
-
 /// The docstring example: a 90-degree rotation has the eigenvalues `±i`.
 #[test]
 fn test_eig_docstring() {
@@ -504,12 +562,12 @@ fn test_eig_nd() {
         assert_eq!(r.eigenvalues.shape(), &shape(&[0], &[n])[..]);
         assert_eq!(r.right.as_ref().unwrap().shape(), &shape(&[0], &[n, n])[..]);
 
-        // non-square matrices are rejected
+        // non-square matrices and inputs of fewer than two dims are rejected
         let a_bad: Tensor<f64, DeviceBLAS, IxD> = rt::zeros((shape(&[2], &[3, 4]), &device));
-        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            let _ = rt::linalg::eig(a_bad.view());
-        }));
-        assert!(result.is_err());
+        assert!(rt::linalg::eig_f(a_bad.view()).is_err());
+        let a1: Tensor<f64, DeviceBLAS, IxD> = rt::zeros((shape(&[2], &[]), &device));
+        let err = rt::linalg::eig_f(a1.view()).err().unwrap();
+        assert!(err.to_string().contains("InvalidLayout"), "{err}");
     }
 }
 
@@ -596,11 +654,108 @@ fn test_eig_nd_generalized() {
         assert_eq!(r.eigenvalues.shape(), &shape(&[3], &[0])[..]);
         assert_eq!(r.left.as_ref().unwrap().shape(), &shape(&[3], &[0, 0])[..]);
 
-        // mismatched matrix shapes are rejected
+        // mismatched matrix shapes are rejected: a square `a` of another size
+        // than `b`, a non-square `a`, a non-square `b`, and a `b` of one dim
+        let a_bad: Tensor<f64, DeviceBLAS, IxD> = rt::zeros((shape(&[3], &[n + 1, n + 1]), &device));
+        let err = rt::linalg::eig_f((a_bad.view(), b.view())).err().unwrap();
+        assert!(err.to_string().contains("InvalidLayout"), "{err}");
         let a_bad: Tensor<f64, DeviceBLAS, IxD> = rt::zeros((shape(&[3], &[n, n + 1]), &device));
-        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            let _ = rt::linalg::eig((a_bad.view(), b.view()));
-        }));
-        assert!(result.is_err());
+        assert!(rt::linalg::eig_f((a_bad.view(), b.view())).is_err());
+        let b_bad: Tensor<f64, DeviceBLAS, IxD> = rt::zeros((shape(&[nb], &[n, n + 1]), &device));
+        assert!(rt::linalg::eig_f((a.view(), b_bad.view())).is_err());
+        let b1: Tensor<f64, DeviceBLAS, IxD> = rt::zeros((shape(&[], &[n]), &device));
+        assert!(rt::linalg::eig_f((a.view(), b1.view())).is_err());
     }
+}
+
+/// A `Both` result destructures into `(w, vl, vr)` and a one-sided result
+/// into `(w, v)`.
+#[test]
+fn test_eig_result_conversions() {
+    let device = DeviceBLAS::default();
+    let a = rt::asarray((get_vec::<f64>('b')[..16].to_vec(), [4, 4].c(), &device)).into_dim::<Ix2>();
+    let (w, vl, vr): (Spec, Block, Block) = rt::linalg::eig((a.view(), EigSide::Both)).into();
+    assert_eq!((w.shape().to_vec(), vl.shape().to_vec(), vr.shape().to_vec()), (vec![4], vec![4, 4], vec![4, 4]));
+    for side in [EigSide::Left, EigSide::Right] {
+        let (w, v): (Spec, Block) = rt::linalg::eig((a.view(), side)).into();
+        assert_eq!((w.shape().to_vec(), v.shape().to_vec()), (vec![4], vec![4, 4]));
+    }
+}
+
+#[test]
+#[should_panic(expected = "EigResult: both eigenvector sides are present")]
+fn test_eig_result_pair_rejects_both() {
+    let device = DeviceBLAS::default();
+    let a = rt::asarray((get_vec::<f64>('b')[..16].to_vec(), [4, 4].c(), &device)).into_dim::<Ix2>();
+    let _: (Spec, Block) = rt::linalg::eig((a.view(), EigSide::Both)).into();
+}
+
+#[test]
+#[should_panic(expected = "EigResult: no eigenvector side is present")]
+fn test_eig_result_pair_rejects_none() {
+    let device = DeviceBLAS::default();
+    let a = rt::asarray((get_vec::<f64>('b')[..16].to_vec(), [4, 4].c(), &device)).into_dim::<Ix2>();
+    let _: (Spec, Block) = rt::linalg::eig((a.view(), EigSide::None)).into();
+}
+
+#[test]
+#[should_panic(expected = "EigResult: only the left eigenvectors are present")]
+fn test_eig_result_triple_rejects_left() {
+    let device = DeviceBLAS::default();
+    let a = rt::asarray((get_vec::<f64>('b')[..16].to_vec(), [4, 4].c(), &device)).into_dim::<Ix2>();
+    let r = rt::linalg::eig((a.view(), EigSide::Left));
+    let _: (Spec, Block, Block) = r.into();
+}
+
+#[test]
+#[should_panic(expected = "EigResult: only the right eigenvectors are present")]
+fn test_eig_result_triple_rejects_right() {
+    let device = DeviceBLAS::default();
+    let a = rt::asarray((get_vec::<f64>('b')[..16].to_vec(), [4, 4].c(), &device)).into_dim::<Ix2>();
+    let r = rt::linalg::eig((a.view(), EigSide::Right));
+    let _: (Spec, Block, Block) = r.into();
+}
+
+#[test]
+#[should_panic(expected = "EigResult: no eigenvector side is present")]
+fn test_eig_result_triple_rejects_none() {
+    let device = DeviceBLAS::default();
+    let a = rt::asarray((get_vec::<f64>('b')[..16].to_vec(), [4, 4].c(), &device)).into_dim::<Ix2>();
+    let r = rt::linalg::eig((a.view(), EigSide::None));
+    let _: (Spec, Block, Block) = r.into();
+}
+
+/// The static-dim overloads type the result by `a`: a `b` with more batch
+/// axes than `a` is rejected there, while the dynamic-dim call broadcasts.
+#[test]
+fn test_eig_static_dim_b_with_more_batch_axes() {
+    let device = DeviceBLAS::default();
+    let a: Tensor<f64, DeviceBLAS, Ix2> =
+        rt::asarray((get_vec::<f64>('b')[..16].to_vec(), [4, 4].c(), &device)).into_dim::<Ix2>();
+    let mut b_data = vec![0.0; 32];
+    for k in 0..2 {
+        for i in 0..4 {
+            b_data[k * 16 + i * 4 + i] = (k + 1) as f64;
+        }
+    }
+    let b: Tensor<f64, DeviceBLAS, Ix3> = rt::asarray((b_data, [2usize, 4, 4].c(), &device)).into_dim::<Ix3>();
+    type Pair = Result<Spec, rt::Error>;
+    let forms: Vec<rt::Error> = vec![
+        rt::linalg::eigvals_f((a.view(), b.view())).err().unwrap(),
+        rt::linalg::eigvals_f((a.view(), b.view(), Homogeneous)).err().unwrap(),
+        rt::linalg::eig_f((a.view(), b.view(), EigSide::Both)).err().unwrap(),
+        rt::linalg::eig_f((a.view(), b.view(), "left", Homogeneous)).err().unwrap(),
+    ];
+    assert!(forms.iter().all(|e| e.to_string().contains("more batch axes")), "{forms:?}");
+    // equal ranks keep the static result type; the dynamic-dim call broadcasts
+    let w: Pair = rt::linalg::eigvals_f((a.view(), b.i(0).into_dim::<Ix2>().view()));
+    assert_eq!(w.unwrap().shape(), &[4]);
+    let w = rt::linalg::eigvals((a.view().to_dyn(), b.view().to_dyn()));
+    assert_eq!(w.shape(), &[2, 4]);
+    // the slots pair `a` with `I` and with `2 I`: the spectrum of `a` and its half
+    let w1 = rt::linalg::eigvals(a.view());
+    let slot = |k: usize| (0..4).map(|j| w[[k, j]]).collect::<Vec<c64>>();
+    assert_same_spectrum(&slot(0), w1.raw(), "a against I");
+    let half: Vec<c64> = w1.raw().iter().map(|z| z / c64::new(2.0, 0.0)).collect();
+    assert_same_spectrum(&slot(1), &half, "a against 2 I");
 }

@@ -105,9 +105,8 @@ where
 ///
 /// One type describes every form of [`eig`]: `W` is the spectrum (the
 /// homogeneous form carries `(alpha, beta)` instead), and `VL`/`VR` are
-/// whatever the form returns. On the faer device and for the bare BLAS form
-/// both are `Option`, with `left` holding `None` and `right` the eigenvectors;
-/// the BLAS side-marked forms fill exactly the requested sides. The fields are
+/// whatever the form returns. `left` is `None` on the faer device (right
+/// eigenvectors only), and every side that was not requested is `None`. The fields are
 /// public, and the conversions below destructure the common shapes:
 ///
 /// - `(W, VL, VR)` — always available, type-preserving.
@@ -176,8 +175,10 @@ impl<W, T> From<EigResult<W, Option<T>, Option<T>>> for (W, T, T) {
 /// `A v = λ v`). [`EigSide::Left`] returns `u` with
 /// `uᴴ A = λ uᴴ` (the SciPy `left=True, right=False` form),
 /// [`EigSide::Both`] returns the two blocks, and [`EigSide::None`] returns the
-/// spectrum alone. [`eig`] accepts the enum, the `"none"`/`"left"`/`"right"`/
-/// `"both"` strings, and [`FlagSide::L`]/[`FlagSide::R`] in the side slot.
+/// spectrum alone. On the BLAS devices [`eig`] accepts the enum, the
+/// `"none"`/`"left"`/`"right"`/`"both"` strings, and [`FlagSide::L`]/
+/// [`FlagSide::R`] in the side slot; the faer device takes the bare `eig(a)`
+/// (right eigenvectors) only.
 ///
 /// `#[non_exhaustive]`: further sides (if any) can be added without a
 /// breaking change.
@@ -239,13 +240,14 @@ impl From<FlagSide> for EigSide {
 }
 
 /// Marker for the SciPy `homogeneous_eigvals=True` form of [`eig`] and
-/// [`eigvals`]: the eigenvalues come as the `(alpha, beta)` pair stacked on a
-/// new second-to-last axis (shape `(..., 2, M)`), so that
+/// [`eigvals`] (BLAS devices only): the eigenvalues come as the `(alpha,
+/// beta)` pair stacked on a new second-to-last axis (shape `(..., 2, M)`,
+/// `(2, M, ...)` under a column-major device), so that
 /// `lambda = alpha / beta` is never divided out.
 ///
 /// For the standard problem `beta` is identically `1`; for the generalized
 /// problem `A v = lambda B v` the pair is the LAPACK `(alpha, beta)`
-/// representation (a singular `B` gives `beta = 0` without an `inf` appearing).
+/// representation (a singular `B` gives `beta(j) = 0` for some `j`, without an `inf` appearing).
 ///
 /// See also [`eig`], [`eigvals`], [`EigResult`].
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
