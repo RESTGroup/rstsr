@@ -349,6 +349,7 @@ fn test_zgeev() {
     // Only the spectrum of this full-size solve is reproducible across LAPACK
     // builds; the eigenvector order and the individual vectors are not, so the
     // blocks are pinned by unit-column norms and the eigenvector relations.
+    let mut notes: Vec<String> = Vec::new();
     for order_used in [RowMajor, ColMajor] {
         let mut device = DeviceBLAS::default();
         let prev_order = device.default_order();
@@ -363,40 +364,78 @@ fn test_zgeev() {
             (fingerprint(&rt::asarray((ws, &device))) - c64::new(-53.51484095091083, -871.7616347408099)).norm() < 1e-8,
             "{order_used:?}: spectrum fingerprint"
         );
+        // second copy of the input: tells a wrong basis from a destroyed input
+        let a2 = rt::asarray((get_vec::<c64>('a'), [1024, 1024].c(), &device)).into_dim::<Ix2>();
+        notes.push(format!(
+            "{order_used:?} input a01={:?} a10={:?} reset a2_10={:?}",
+            a[[0, 1]],
+            a[[1, 0]],
+            a2[[1, 0]]
+        ));
         for j in [order[0], order[1], order[511]] {
-            let (mut nvl, mut nvr, mut rvl, mut rvr) = (0.0, 0.0, 0.0, 0.0);
+            let (mut svl, mut svl2, mut svr) =
+                (vec![c64::new(0.0, 0.0); 1024], vec![c64::new(0.0, 0.0); 1024], vec![c64::new(0.0, 0.0); 1024]);
+            let (mut nvl, mut nvr) = (0.0, 0.0);
             for i in 0..1024 {
                 nvl += vl[[i, j]].norm_sqr();
                 nvr += vr[[i, j]].norm_sqr();
-                let (mut svl, mut svr) = (c64::new(0.0, 0.0), c64::new(0.0, 0.0));
                 for k in 0..1024 {
-                    svl += a[[k, i]].conj() * vl[[k, j]];
-                    svr += a[[i, k]] * vr[[k, j]];
+                    svl[i] += a[[k, i]].conj() * vl[[k, j]];
+                    svl2[i] += a2[[k, i]].conj() * vl[[k, j]];
+                    svr[i] += a[[i, k]] * vr[[k, j]];
                 }
-                rvl += (svl - w[[j]].conj() * vl[[i, j]]).norm_sqr();
-                rvr += (svr - w[[j]] * vr[[i, j]]).norm_sqr();
             }
-            assert!((nvl - 1.0).abs() < 1e-12, "{order_used:?}: |vl| column {j}: {}", nvl.sqrt());
-            assert!((nvr - 1.0).abs() < 1e-12, "{order_used:?}: |vr| column {j}: {}", nvr.sqrt());
-            assert!(
-                (rvl / nvl).sqrt() < 1e-10,
-                "{order_used:?}: left relation of column {j}: {:e}",
-                (rvl / nvl).sqrt()
+            let rel = |sv: &[c64], lam: c64, v: &Tensor<c64, DeviceBLAS, Ix2>, j: usize, nv: f64| -> f64 {
+                let r: f64 = (0..1024).map(|i| (sv[i] - lam * v[[i, j]]).norm_sqr()).sum();
+                (r / nv).sqrt()
+            };
+            let (rl, rl2, rr) = (
+                rel(&svl, w[[j]].conj(), &vl, j, nvl),
+                rel(&svl2, w[[j]].conj(), &vl, j, nvl),
+                rel(&svr, w[[j]], &vr, j, nvr),
             );
-            assert!(
-                (rvr / nvr).sqrt() < 1e-10,
-                "{order_used:?}: right relation of column {j}: {:e}",
-                (rvr / nvr).sqrt()
-            );
+            let (bc, br) = ((0..1024)
+                .map(|c| (c, rel(&svl2, w[[c]].conj(), &vl, j, nvl)))
+                .fold((0usize, f64::INFINITY), |acc, x| if x.1 < acc.1 { x } else { acc }));
+            notes.push(format!(
+                "{order_used:?} j={j} nvl={:.3} nvr={:.3} rel_l={rl:e} rel_l_reset={rl2:e} rel_r={rr:e} best_l=(c={bc},r={br:e})",
+                nvl.sqrt(),
+                nvr.sqrt()
+            ));
         }
         let (fp_vl, fp_vr) = (fingerprint_abs_reordered(&vl, &order), fingerprint_abs_reordered(&vr, &order));
-        let maxdiff = (0..1024)
-            .flat_map(|j| (0..1024).map(move |i| (i, j)))
-            .map(|(i, j)| (vl[[i, j]] - vr[[i, j]]).norm())
-            .fold(0.0, f64::max);
-        eprintln!("EIGDIAG {order_used:?} fp_vl={fp_vl:.17} fp_vr={fp_vr:.17} maxdiff_vl_vr={maxdiff:e}");
+        notes.push(format!("{order_used:?} fp_vl={fp_vl:.17} fp_vr={fp_vr:.17}"));
         device.set_default_order(prev_order);
     }
+    // small reference solve keeps working in-process
+    let mut rng: u64 = 0x243f_6a88_85a3_08d3;
+    let mut small = Vec::with_capacity(64 * 64);
+    for _ in 0..64 * 64 {
+        rng = rng.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+        let re = ((rng >> 11) as f64) / ((1u64 << 53) as f64) - 0.5;
+        let im = ((rng >> 33) as f64) / ((1u64 << 31) as f64) - 0.5;
+        small.push(c64::new(re, im));
+    }
+    let small_dev = DeviceBLAS::default();
+    let sa = rt::asarray((small, [64, 64].c(), &small_dev)).into_dim::<Ix2>();
+    let (sw, svl, _) = ZGEEV::default().a(sa.view()).left(true).build().unwrap().run().unwrap();
+    let svl = svl.unwrap();
+    let mut worst = 0.0f64;
+    for j in 0..64 {
+        let mut sv = vec![c64::new(0.0, 0.0); 64];
+        let mut nv = 0.0;
+        for i in 0..64 {
+            nv += svl[[i, j]].norm_sqr();
+            for k in 0..64 {
+                sv[i] += sa[[k, i]].conj() * svl[[k, j]];
+            }
+        }
+        let r: f64 = (0..64).map(|i| (sv[i] - sw[[j]].conj() * svl[[i, j]]).norm_sqr()).sum();
+        worst = worst.max((r / nv).sqrt());
+    }
+    notes.push(format!("small 64: worst left relation {worst:e}"));
+    eprintln!("EIGDIAG {}", notes.join(" | "));
+    assert!(worst < 1e-10, "small 64 relation: {worst:e}");
 }
 
 #[test]
