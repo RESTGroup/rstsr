@@ -75,6 +75,8 @@ pub trait LapackDriverAPI<T>:
     + GESVDriverAPI<T>
     + GETRFDriverAPI<T>
     + GETRIDriverAPI<T>
+    + SYTRFDriverAPI<T, false>
+    + SYTRFDriverAPI<T, true>
     + SYSVDriverAPI<T, false>
     + SYSVDriverAPI<T, true>
     // lapack_lstsq

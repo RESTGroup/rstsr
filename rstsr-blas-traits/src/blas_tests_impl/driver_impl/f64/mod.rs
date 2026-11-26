@@ -19,6 +19,7 @@ mod syev;
 mod syevd;
 mod sygv;
 mod sygvd;
+mod sytrf;
 mod sysv;
 
 // layout tests
