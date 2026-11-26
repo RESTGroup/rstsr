@@ -50,7 +50,8 @@ pub unsafe fn fn_work(
             }
             // Call LAPACK function and adjust info
             func_(&(m as _), &(n as _), a_t.as_mut_ptr(), &(lda_t as _), ipiv, info);
-            if *info != 0 {
+            // info > 0: complete factorization with a zero pivot, written back like LAPACKE
+            if *info < 0 {
                 return *info;
             }
             // Transpose output matrices
@@ -124,7 +125,8 @@ pub unsafe fn fn_work(
             }
             // Call LAPACK function and adjust info
             func_(&(m as _), &(n as _), a_t.as_mut_ptr() as *mut _, &(lda_t as _), ipiv, info);
-            if *info != 0 {
+            // info > 0: complete factorization with a zero pivot, written back like LAPACKE
+            if *info < 0 {
                 return *info;
             }
             // Transpose output matrices

@@ -10,6 +10,7 @@ mod geqrf;
 mod gesdd;
 mod gesv;
 mod gesvd;
+mod getrf;
 mod getrf_getri;
 mod ggev;
 pub mod orgqr;
