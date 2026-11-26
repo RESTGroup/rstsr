@@ -4,6 +4,7 @@ pub mod eig;
 pub mod eigh;
 pub mod eigvals;
 pub mod inv;
+pub mod ldl;
 pub mod lstsq;
 pub mod lu;
 pub mod lu_factor;
