@@ -100,6 +100,28 @@ Note `A` is the **first** argument (RSTSR solves `A x = B`), matching SciPy.
   and destroyed by the factorization (use `a.view()` to keep it).
 - **`solve_symmetric`** has **no `DeviceFaer` implementation** (it is
   BLAS-only). Use `solve_general`, or an eigensolver-based approach.
+- **`lu` / `lu_factor` / `lu_solve`** (SciPy-style LU, LAPACK `GETRF`) are
+  **BLAS-only**: there are no `DeviceFaer` entries.
+  - `lu(&a)` returns `LuResult { p, l, u }` (destructurable as a 3-tuple)
+    with `A = L[P] @ U`: `p` holds the **0-based row indices** (SciPy's
+    `p_indices=True`), `l` is `(..., M, K)` and `u` is `(..., K, N)` with
+    `K = min(M, N)`. `lu((&a, true))` (SciPy's `permute_l=True`) returns
+    `p = None` and `l = P @ L`, so that `A = L @ U`.
+  - `lu_factor(&a)` returns `LuFactorResult { lu, piv }` (a 2-tuple): the
+    packed factors (`L` strictly below the diagonal, `U` on and above it)
+    and the 0-based pivot indices.
+  - `lu_solve((&lu, &piv, &b))` solves `op(A) X = b` from them. SciPy's
+    `lu_solve((lu, piv), b)` is `lu_solve(((&lu, &piv), &b))`, and the
+    result of `lu_factor` may be passed as it is. An optional last
+    [`FlagTrans`] (`N`, `T`, `C`) selects `op`. The explicit factors of `lu`
+    work as well: `lu_solve((&factors, &b[, FlagTrans]))`.
+  - A singular matrix is no error for `lu` / `lu_factor` (the factors are
+    complete, with a zero on `U`'s diagonal); `lu_solve` then returns
+    `inf` / `NaN`.
+  - An in-order owned or mutable input of `lu_factor` is factored in place
+    and destroyed, as is such an input of `lu`; an owned or mutable `b` of
+    `lu_solve` receives the solution in place when its batch needs no
+    broadcast. Pass `a.view()` / `&b` to keep the inputs.
 - **`eigvalsh`** on faer handles the **standard** problem only; generalized
   eigenvalues go through `eigh((&a, &b, uplo, type))`.
 - **`eig` / `eigvals`** on faer handle the **standard** problem only
