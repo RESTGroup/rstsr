@@ -15,6 +15,9 @@ use rstsr_core::prelude_dev::*;
    [EigvalshAPI       ] [eigvalsh        ] [eigvalsh_f        ];
    [InvAPI            ] [inv             ] [inv_f             ];
    [LstsqAPI          ] [lstsq           ] [lstsq_f           ];
+   [LuAPI             ] [lu              ] [lu_f             ];
+   [LuFactorAPI       ] [lu_factor       ] [lu_factor_f       ];
+   [LuSolveAPI        ] [lu_solve        ] [lu_solve_f        ];
    [MatrixNormAPI     ] [matrix_norm     ] [matrix_norm_f     ];
    [MatrixPowerAPI    ] [matrix_power    ] [matrix_power_f    ];
    [MatrixRankAPI     ] [matrix_rank     ] [matrix_rank_f     ];
@@ -49,6 +52,9 @@ pub trait LinalgAPI<Inp> {
    [EigvalshAPI       ] [eigvalsh        ] [eigvalsh_f        ];
    [InvAPI            ] [inv             ] [inv_f             ];
    [LstsqAPI          ] [lstsq           ] [lstsq_f           ];
+   [LuAPI             ] [lu              ] [lu_f             ];
+   [LuFactorAPI       ] [lu_factor       ] [lu_factor_f       ];
+   [LuSolveAPI        ] [lu_solve        ] [lu_solve_f        ];
    [MatrixNormAPI     ] [matrix_norm     ] [matrix_norm_f     ];
    [MatrixPowerAPI    ] [matrix_power    ] [matrix_power_f    ];
    [MatrixRankAPI     ] [matrix_rank     ] [matrix_rank_f     ];
@@ -79,6 +85,9 @@ where
    [EigvalshAPI       ] [eigvalsh        ] [eigvalsh_f        ];
    [InvAPI            ] [inv             ] [inv_f             ];
    [LstsqAPI          ] [lstsq           ] [lstsq_f           ];
+   [LuAPI             ] [lu              ] [lu_f             ];
+   [LuFactorAPI       ] [lu_factor       ] [lu_factor_f       ];
+   [LuSolveAPI        ] [lu_solve        ] [lu_solve_f        ];
    [MatrixNormAPI     ] [matrix_norm     ] [matrix_norm_f     ];
    [MatrixPowerAPI    ] [matrix_power    ] [matrix_power_f    ];
    [MatrixRankAPI     ] [matrix_rank     ] [matrix_rank_f     ];
@@ -454,6 +463,104 @@ impl<X, Res, Rank, S> From<(X, Res, Rank, S)> for LstsqResult<X, Res, Rank, S> {
 impl<X, Res, Rank, S> From<LstsqResult<X, Res, Rank, S>> for (X, Res, Rank, S) {
     fn from(lstsq_result: LstsqResult<X, Res, Rank, S>) -> Self {
         (lstsq_result.x, lstsq_result.residuals, lstsq_result.rank, lstsq_result.s)
+    }
+}
+
+/* #endregion */
+
+/* #region lu */
+
+/// Result of an LU decomposition: the row permutation, the unit lower
+/// trapezoidal factor `L` and the upper trapezoidal `U`.
+///
+/// `A = L[P] @ U`, equivalently `A = Π L U` where `Π` is the permutation
+/// matrix with `Π[i, p[i]] = 1` (the SciPy `lu(a, p_indices=True)`
+/// convention). With `K = min(M, N)`, `p` has shape `(..., M)`, `l` `(..., M,
+/// K)` and `u` `(..., K, N)` under a row-major device; under a column-major
+/// device the matrix axes lead.
+///
+/// One type describes every form of [`lu`]: `p` is `None` for the `permute_l`
+/// form, whose `l` is the already permuted `Π L`, so that `A = L @ U`. The
+/// fields are public; the struct converts into `(P, L, U)` when `p` is
+/// present and into `(L, U)` when it is `None` (each panics on the other
+/// input).
+///
+/// See also [`lu`], [`LuFactorResult`], [`lu_solve`].
+pub struct LuResult<P, L, U> {
+    pub p: P,
+    pub l: L,
+    pub u: U,
+}
+
+impl<P, L, U> From<(P, L, U)> for LuResult<P, L, U> {
+    fn from((p, l, u): (P, L, U)) -> Self {
+        Self { p, l, u }
+    }
+}
+
+impl<P, L, U> From<LuResult<P, L, U>> for (P, L, U) {
+    fn from(lu_result: LuResult<P, L, U>) -> Self {
+        (lu_result.p, lu_result.l, lu_result.u)
+    }
+}
+
+impl<P, L, U> From<LuResult<Option<P>, L, U>> for (P, L, U) {
+    /// Destructures an unpermuted result into `(p, l, u)`.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `p` is `None` (the `permute_l` form); convert to `(L, U)`
+    /// instead.
+    fn from(lu_result: LuResult<Option<P>, L, U>) -> Self {
+        let LuResult { p, l, u } = lu_result;
+        match p {
+            Some(p) => (p, l, u),
+            None => panic!("LuResult: the factors are permuted (permute_l); convert to (L, U) instead"),
+        }
+    }
+}
+
+impl<P, L, U> From<LuResult<Option<P>, L, U>> for (L, U) {
+    /// Destructures a permuted result into `(pl, u)`.
+    ///
+    /// # Panics
+    ///
+    /// Panics when `p` is present: the 2-tuple would drop the permutation.
+    /// Convert to `(P, L, U)` instead.
+    fn from(lu_result: LuResult<Option<P>, L, U>) -> Self {
+        let LuResult { p, l, u } = lu_result;
+        match p {
+            None => (l, u),
+            Some(_) => panic!("LuResult: the factors are not permuted; convert to (P, L, U) instead"),
+        }
+    }
+}
+
+/// Result of a packed LU factorization: the factors `lu` in one matrix and the pivot indices `piv`.
+///
+/// The SciPy `lu_factor` convention. `lu` has shape `(..., M, N)` and holds
+/// `U` in its upper triangle (diagonal included) and the multipliers of the
+/// unit lower trapezoidal `L` below it. `piv` has shape `(..., min(M, N))`
+/// and lists, 0-based, the row that was interchanged with row `i` at step
+/// `i`. Together they are the packed factor form that [`lu_solve`] takes.
+///
+/// The fields are public; `(LU, Piv)` converts both ways.
+///
+/// See also [`lu_factor`], [`lu_solve`], [`LuResult`].
+pub struct LuFactorResult<LU, Piv> {
+    pub lu: LU,
+    pub piv: Piv,
+}
+
+impl<LU, Piv> From<(LU, Piv)> for LuFactorResult<LU, Piv> {
+    fn from((lu, piv): (LU, Piv)) -> Self {
+        Self { lu, piv }
+    }
+}
+
+impl<LU, Piv> From<LuFactorResult<LU, Piv>> for (LU, Piv) {
+    fn from(lu_factor_result: LuFactorResult<LU, Piv>) -> Self {
+        (lu_factor_result.lu, lu_factor_result.piv)
     }
 }
 
