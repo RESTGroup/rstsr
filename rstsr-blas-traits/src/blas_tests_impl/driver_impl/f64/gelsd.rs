@@ -1,4 +1,7 @@
 use super::*;
+use duplicate::duplicate_item;
+use num::complex::ComplexFloat;
+use num::Complex;
 use rstsr_blas_traits::lapack_lstsq::*;
 use rstsr_blas_traits::lapack_svd::DGESDD;
 
@@ -192,6 +195,64 @@ fn test_dgelsd_layout() {
         for i in 0..m {
             for j in 0..n {
                 assert!((a_padded[[i, j]] - a_cm[[i, j]]).abs() < 1e-10, "destroyed a ({i}, {j})");
+            }
+        }
+    }
+}
+
+// complex twins: exercise the c32/c64 lrwork query and the complex bridge
+#[duplicate_item(
+    name              dt              drv      tol    ;
+    [test_cgelsd_layouts] [Complex<f32>] [CGELSD] [1e-3];
+    [test_zgelsd_layouts] [Complex<f64>] [ZGELSD] [1e-10];
+)]
+#[test]
+fn name() {
+    let device = DeviceBLAS::default();
+    let rcond = <<dt as ComplexFloat>::Real as num::Float>::epsilon();
+    for (m, n, k) in [(8usize, 5usize, 2usize), (5, 8, 1)] {
+        let a_vec = &get_vec::<dt>('a')[..(m + 4) * (n + 4)];
+        let b_vec = &get_vec::<dt>('b')[..(m + 4) * (k + 4)];
+        let make_mat =
+            |v: &[dt], rows: usize, cols: usize, f_order: bool, padded: bool| -> Tensor<dt, DeviceBLAS, Ix2> {
+                let base = rt::asarray((&v[..rows * cols], [rows, cols].c(), &device)).into_dim::<Ix2>();
+                let base = if f_order { base.to_contig_f(ColMajor).unwrap().into_owned() } else { base.into_owned() };
+                if !padded {
+                    return base;
+                }
+                let mut buf = if f_order {
+                    rt::zeros_f(([rows + 4, cols + 4], ColMajor, &device)).unwrap().into_dim::<Ix2>()
+                } else {
+                    rt::zeros_f(([rows + 4, cols + 4], RowMajor, &device)).unwrap().into_dim::<Ix2>()
+                };
+                buf.i_mut((0..rows, 0..cols)).assign_f(base.view()).unwrap();
+                buf.i((0..rows, 0..cols)).into_owned_keep_layout().into_dim::<Ix2>()
+            };
+
+        // compact f-contiguous inputs: the direct column-major call is the reference
+        let a = make_mat(a_vec, m, n, false, false);
+        let b = make_mat(b_vec, m, k, false, false);
+        let (x, s, rank, residuals) =
+            drv::default().a(a.view()).b(b.view()).rcond(rcond).build().unwrap().run().unwrap();
+        let reference = (fingerprint(&x), fingerprint(&s), rank, residuals.map(|r| fingerprint(&r)));
+
+        for f_order_a in [false, true] {
+            for f_order_b in [false, true] {
+                for padded in [false, true] {
+                    let a = make_mat(a_vec, m, n, f_order_a, padded);
+                    let b = make_mat(b_vec, m, k, f_order_b, padded);
+                    let (x, s, rank, residuals) =
+                        drv::default().a(a.view()).b(b.view()).rcond(rcond).build().unwrap().run().unwrap();
+                    let at = format!("a f-order {f_order_a}, b f-order {f_order_b}, padded {padded}, ({m}, {n}, {k})");
+                    assert!((fingerprint(&x) - reference.0).norm() < tol, "x, {at}");
+                    assert!((fingerprint(&s) - reference.1).abs() < tol, "s, {at}");
+                    assert_eq!(rank, reference.2, "rank, {at}");
+                    match (residuals.map(|r| fingerprint(&r)), reference.3) {
+                        (Some(r), Some(r0)) => assert!((r - r0).abs() < tol, "residuals, {at}"),
+                        (None, None) => {},
+                        _ => panic!("residual presence mismatch, {at}"),
+                    }
+                }
             }
         }
     }
