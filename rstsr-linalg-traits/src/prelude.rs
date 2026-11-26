@@ -1,8 +1,8 @@
 pub mod rstsr_traits {
     pub use crate::traits_def::{
         CholeskyAPI, DetAPI, EigAPI, EighAPI, EigvalsAPI, EigvalshAPI, InvAPI, LdlAPI, LstsqAPI, LuAPI, LuFactorAPI,
-        LuSolveAPI, MatrixNormAPI, MatrixPowerAPI, MatrixRankAPI, PinvAPI, QrAPI, SLogDetAPI, SVDvalsAPI, SolveGeneralAPI,
-        SolveSymmetricAPI, SolveTriangularAPI, VectorNormAPI, SVDAPI,
+        LuSolveAPI, MatrixNormAPI, MatrixPowerAPI, MatrixRankAPI, PinvAPI, QrAPI, SLogDetAPI, SVDvalsAPI,
+        SolveGeneralAPI, SolveSymmetricAPI, SolveTriangularAPI, VectorNormAPI, SVDAPI,
     };
 }
 

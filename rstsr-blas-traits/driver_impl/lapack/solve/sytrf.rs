@@ -130,16 +130,7 @@ pub unsafe fn fn_work(
 
     match order {
         ColMajor => {
-            func_(
-                &uplo.into(),
-                &(n as _),
-                a as *mut _,
-                &(lda as _),
-                ipiv,
-                work as *mut _,
-                &lwork,
-                info,
-            );
+            func_(&uplo.into(), &(n as _), a as *mut _, &(lda as _), ipiv, work as *mut _, &lwork, info);
             *info
         },
         RowMajor => {

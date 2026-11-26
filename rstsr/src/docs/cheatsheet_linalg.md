@@ -122,6 +122,16 @@ Note `A` is the **first** argument (RSTSR solves `A x = B`), matching SciPy.
     and destroyed, as is such an input of `lu`; an owned or mutable `b` of
     `lu_solve` receives the solution in place when its batch needs no
     broadcast. Pass `a.view()` / `&b` to keep the inputs.
+- **`ldl`** (SciPy `ldl`, LAPACK `SYTRF` / `HETRF`) is **BLAS-only**: there
+  is no `DeviceFaer` entry. `ldl(&a)` returns `LdlResult { lu, d, perm }`
+  (destructurable as a 3-tuple) with `A = lu @ d @ luᴴ` and `lu[perm, :]`
+  unit lower triangular; `d` is the dense block-diagonal matrix with 1×1 and
+  2×2 blocks. `ldl((&a, Lower))` / `Upper` selects the triangle of `a` that
+  is read and the outer factor (default `Lower`, on both device orders);
+  `ldl((&a, false))` factorizes a complex **symmetric** matrix
+  (`A = lu @ d @ luᵀ`). Only the selected triangle is read; a singular `d`
+  (`info > 0`) is no error; an in-order owned or mutable input is consumed
+  and destroyed (pass `a.view()` to keep it).
 - **`eigvalsh`** on faer handles the **standard** problem only; generalized
   eigenvalues go through `eigh((&a, &b, uplo, type))`.
 - **`eig` / `eigvals`** on faer handle the **standard** problem only

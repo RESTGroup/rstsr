@@ -3,6 +3,7 @@ use rstsr::prelude::linalg::LdlResult;
 
 // the result types follow the dims of a 2-D input
 type LdlOutC = LdlResult<Tensor<c64, DeviceBLAS, Ix2>, Tensor<c64, DeviceBLAS, Ix2>, Tensor<usize, DeviceBLAS, Ix1>>;
+type LdlTupleC = (Tensor<c64, DeviceBLAS, Ix2>, Tensor<c64, DeviceBLAS, Ix2>, Tensor<usize, DeviceBLAS, Ix1>);
 
 /// Hermitian matrix (`n`, `n`) from `a`: `a + aᴴ`.
 fn hermitize(a: TensorView<'_, c64, DeviceBLAS, Ix2>) -> Tensor<c64, DeviceBLAS, Ix2> {
@@ -26,18 +27,6 @@ fn symmetrize(a: TensorView<'_, c64, DeviceBLAS, Ix2>) -> Tensor<c64, DeviceBLAS
         }
     }
     s
-}
-
-/// The conjugate transpose of `a` (`aᴴ`).
-fn conj_transpose(a: &Tensor<c64, DeviceBLAS, Ix2>) -> Tensor<c64, DeviceBLAS, Ix2> {
-    let n = a.shape()[0];
-    let mut t = a.view().to_owned();
-    for i in 0..n {
-        for j in 0..n {
-            t[[i, j]] = a[[j, i]].conj();
-        }
-    }
-    t
 }
 
 /// Self-validation of one Hermitian result: `lu[perm, :]` unit triangular,
@@ -94,7 +83,7 @@ fn check_ldl(
             assert_eq!(d[[i, j]], expected, "d Hermitian/symmetric ({i}, {j}), {at}");
         }
     }
-    let prod = rt::matmul(&rt::matmul(lu.view(), d.view()), conj_transpose_for(lu, hermitian).view());
+    let prod = rt::matmul(rt::matmul(lu.view(), d.view()), conj_transpose_for(lu, hermitian).view());
     assert!(rt::allclose(prod.view(), a.view(), Some(1e-12)), "A = lu @ d @ luᴴ/luᵀ ({blocks} 2x2 blocks), {at}");
 }
 
@@ -122,23 +111,23 @@ fn test_ldl() {
     assert_eq!(result.lu.shape(), &[1024, 1024], "lu shape");
     assert_eq!(result.perm.shape(), &[1024], "perm shape");
     assert!((fingerprint(&result.lu.abs()) - -40.081477868486445).abs() < 1e-8, "fp(lu)");
-    assert!((fingerprint(&result.d.abs()) - -755.721723672091912).abs() < 1e-8, "fp(d)");
-    assert!((fingerprint(&result.perm.map(|&v| v as f64)) - -5295.552240978868213).abs() < 1e-8, "fp(perm)");
+    assert!((fingerprint(&result.d.abs()) - -755.7217236720919).abs() < 1e-8, "fp(d)");
+    assert!((fingerprint(&result.perm.map(|&v| v as f64)) - -5295.552240978868).abs() < 1e-8, "fp(perm)");
     check_ldl(&h, &result.lu, &result.d, &result.perm, true, true, "hermitian lower");
 
     // Hermitian upper
     let result: LdlOutC = rt::linalg::ldl((h.view(), Upper));
-    assert!((fingerprint(&result.lu.abs()) - 51.808720927208192).abs() < 1e-8, "fp(lu), upper");
-    assert!((fingerprint(&result.d.abs()) - -180.086817996708049).abs() < 1e-8, "fp(d), upper");
-    assert!((fingerprint(&result.perm.map(|&v| v as f64)) - 2583.421176397792806).abs() < 1e-8, "fp(perm), upper");
+    assert!((fingerprint(&result.lu.abs()) - 51.80872092720819).abs() < 1e-8, "fp(lu), upper");
+    assert!((fingerprint(&result.d.abs()) - -180.08681799670805).abs() < 1e-8, "fp(d), upper");
+    assert!((fingerprint(&result.perm.map(|&v| v as f64)) - 2583.421176397793).abs() < 1e-8, "fp(perm), upper");
     check_ldl(&h, &result.lu, &result.d, &result.perm, false, true, "hermitian upper");
 
     // complex symmetric (hermitian = false), lower
     let s = symmetrize(base.view());
     let result: LdlOutC = rt::linalg::ldl((s.view(), false));
-    assert!((fingerprint(&result.lu.abs()) - 33.914606804494227).abs() < 1e-8, "fp(lu), symmetric");
-    assert!((fingerprint(&result.d.abs()) - 184.865319971126183).abs() < 1e-8, "fp(d), symmetric");
-    assert!((fingerprint(&result.perm.map(|&v| v as f64)) - 1695.094480873951852).abs() < 1e-8, "fp(perm), symmetric");
+    assert!((fingerprint(&result.lu.abs()) - 33.91460680449423).abs() < 1e-8, "fp(lu), symmetric");
+    assert!((fingerprint(&result.d.abs()) - 184.86531997112618).abs() < 1e-8, "fp(d), symmetric");
+    assert!((fingerprint(&result.perm.map(|&v| v as f64)) - 1695.0944808739519).abs() < 1e-8, "fp(perm), symmetric");
     check_ldl(&s, &result.lu, &result.d, &result.perm, true, false, "symmetric lower");
 }
 
@@ -166,10 +155,9 @@ fn test_ldl_relations() {
 fn test_ldl_2x2_blocks() {
     let device = DeviceBLAS::default();
     // zero-diagonal Hermitian 2x2: the block is [[0, 1 + 1j], [1 - 1j, 0]]
-    let a = rt::asarray(
-        (vec![c64!(0.0, 0.0), c64!(1.0, 1.0), c64!(1.0, -1.0), c64!(0.0, 0.0)], [2usize, 2].c(), &device),
-    )
-    .into_dim::<Ix2>();
+    let a =
+        rt::asarray((vec![c64!(0.0, 0.0), c64!(1.0, 1.0), c64!(1.0, -1.0), c64!(0.0, 0.0)], [2usize, 2].c(), &device))
+            .into_dim::<Ix2>();
     for lower in [true, false] {
         let uplo = if lower { Lower } else { Upper };
         let at = format!("hermitian 2x2, {}", if lower { "lower" } else { "upper" });
@@ -196,14 +184,12 @@ fn test_ldl_2x2_blocks() {
 
     // a complex diagonal is ignored for the Hermitian form: the result equals
     // the factorization of the real-diagonal matrix
-    let complex = rt::asarray(
-        (vec![c64!(1.0, 5.0), c64!(2.0, 1.0), c64!(2.0, -1.0), c64!(3.0, 7.0)], [2usize, 2].c(), &device),
-    )
-    .into_dim::<Ix2>();
-    let real_diag = rt::asarray(
-        (vec![c64!(1.0, 0.0), c64!(2.0, 1.0), c64!(2.0, -1.0), c64!(3.0, 0.0)], [2usize, 2].c(), &device),
-    )
-    .into_dim::<Ix2>();
+    let complex =
+        rt::asarray((vec![c64!(1.0, 5.0), c64!(2.0, 1.0), c64!(2.0, -1.0), c64!(3.0, 7.0)], [2usize, 2].c(), &device))
+            .into_dim::<Ix2>();
+    let real_diag =
+        rt::asarray((vec![c64!(1.0, 0.0), c64!(2.0, 1.0), c64!(2.0, -1.0), c64!(3.0, 0.0)], [2usize, 2].c(), &device))
+            .into_dim::<Ix2>();
     let result: LdlOutC = rt::linalg::ldl(complex.view());
     let reference: LdlOutC = rt::linalg::ldl(real_diag.view());
     assert!(rt::allclose(result.lu.view(), reference.lu.view(), Some(1e-14)), "lu, complex diagonal ignored");
@@ -223,7 +209,11 @@ fn test_ldl_singular() {
     assert_eq!(result.perm.raw().to_vec(), vec![0, 1, 2], "perm, zeros");
     for i in 0..3 {
         for j in 0..3 {
-            assert_eq!(result.lu[[i, j]], if i == j { c64!(1.0, 0.0) } else { c64!(0.0, 0.0) }, "lu = I, zeros ({i}, {j})");
+            assert_eq!(
+                result.lu[[i, j]],
+                if i == j { c64!(1.0, 0.0) } else { c64!(0.0, 0.0) },
+                "lu = I, zeros ({i}, {j})"
+            );
             assert_eq!(result.d[[i, j]], c64!(0.0, 0.0), "d = 0, zeros ({i}, {j})");
         }
     }
@@ -255,7 +245,12 @@ fn test_ldl_batch() {
             device.set_default_order(order);
             let tag = format!("{order:?} device, {stored:?} stack");
             // Hermitianize every slot of the stack
-            let make = || hermitize_stack(stack_tensor_c64(&a_vec[..2 * 3 * n * n], &[2, 3], &[n, n], order, stored, &device), order);
+            let make = || {
+                hermitize_stack(
+                    stack_tensor_c64(&a_vec[..2 * 3 * n * n], &[2, 3], &[n, n], order, stored, &device),
+                    order,
+                )
+            };
             let a = make();
             let result = rt::linalg::ldl(a.view());
             assert_eq!(result.lu.shape(), a.shape(), "lu shape, {tag}");
@@ -263,8 +258,16 @@ fn test_ldl_batch() {
                 for j in 0..3 {
                     let at = format!("slot ({i}, {j}), {tag}");
                     let (a_ij, lu_ij, perm_ij) = match order {
-                        RowMajor => (a.i((i, j, .., ..)).into_owned().into_dim::<Ix2>(), result.lu.i((i, j, .., ..)), result.perm.i((i, j, ..))),
-                        ColMajor => (a.i((.., .., i, j)).into_owned().into_dim::<Ix2>(), result.lu.i((.., .., i, j)), result.perm.i((.., i, j))),
+                        RowMajor => (
+                            a.i((i, j, .., ..)).into_owned().into_dim::<Ix2>(),
+                            result.lu.i((i, j, .., ..)),
+                            result.perm.i((i, j, ..)),
+                        ),
+                        ColMajor => (
+                            a.i((.., .., i, j)).into_owned().into_dim::<Ix2>(),
+                            result.lu.i((.., .., i, j)),
+                            result.perm.i((.., i, j)),
+                        ),
                     };
                     let single: LdlOutC = rt::linalg::ldl(a_ij.view());
                     check_ldl(&a_ij, &single.lu, &single.d, &single.perm, true, true, &at);
@@ -273,9 +276,7 @@ fn test_ldl_batch() {
                 }
             }
             // owned and reference inputs give the same result as the view call
-            for (at, candidate) in
-                [("owned", rt::linalg::ldl(make())), ("reference", rt::linalg::ldl(&make()))]
-            {
+            for (at, candidate) in [("owned", rt::linalg::ldl(make())), ("reference", rt::linalg::ldl(&make()))] {
                 assert!(rt::allclose(candidate.lu.view(), result.lu.view(), Some(1e-14)), "lu, {at}, {tag}");
                 assert_eq!(candidate.perm.raw().to_vec(), result.perm.raw().to_vec(), "perm, {at}, {tag}");
             }
@@ -365,11 +366,7 @@ fn test_ldl_overloads() {
             assert!(rt::allclose(candidate.lu.view(), reference.lu.view(), Some(1e-14)), "lu, {at}");
             assert!(rt::allclose(candidate.d.view(), reference.d.view(), Some(1e-14)), "d, {at}");
             assert_eq!(candidate.perm.raw().to_vec(), reference.perm.raw().to_vec(), "perm, {at}");
-            let (lu, d, perm): (
-                Tensor<c64, DeviceBLAS, Ix2>,
-                Tensor<c64, DeviceBLAS, Ix2>,
-                Tensor<usize, DeviceBLAS, Ix1>,
-            ) = candidate.into();
+            let (lu, d, perm): LdlTupleC = candidate.into();
             assert!(rt::allclose(lu.view(), reference.lu.view(), Some(1e-14)), "tuple lu, {at}");
             assert!(rt::allclose(d.view(), reference.d.view(), Some(1e-14)), "tuple d, {at}");
             assert_eq!(perm.raw().to_vec(), reference.perm.raw().to_vec(), "tuple perm, {at}");

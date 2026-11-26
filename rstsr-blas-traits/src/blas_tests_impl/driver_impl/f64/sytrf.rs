@@ -60,7 +60,11 @@ fn layout_buffer(device: &DeviceBLAS, case: &str, a: &[f64], n: usize) -> Tensor
 }
 
 /// The logical `n x n` matrix as an immutable view of a buffer of [`layout_buffer`].
-fn layout_view<'a>(buf: &'a Tensor<f64, DeviceBLAS, Ix2>, case: &str, n: usize) -> TensorView<'a, f64, DeviceBLAS, Ix2> {
+fn layout_view<'a>(
+    buf: &'a Tensor<f64, DeviceBLAS, Ix2>,
+    case: &str,
+    n: usize,
+) -> TensorView<'a, f64, DeviceBLAS, Ix2> {
     match case {
         "f-contig" | "c-contig" => buf.view(),
         "f-padded" | "c-padded" => buf.i((0..n, 0..n)).into_dim::<Ix2>(),
@@ -149,7 +153,13 @@ fn packed_triangle(lu: &TensorView<'_, f64, DeviceBLAS, Ix2>, lower: bool) -> Ve
 /// 2x2 block `[[d11, b], [b, d22]]` is symmetric (real case), and only the
 /// selected triangle holds the factor's `b` — the other triangle of the
 /// buffer still holds the input, moved around by the interchanges.
-fn check_block_determinant(lu: &TensorView<'_, f64, DeviceBLAS, Ix2>, ipiv: &[blas_int], a: &[f64], lower: bool, at: &str) {
+fn check_block_determinant(
+    lu: &TensorView<'_, f64, DeviceBLAS, Ix2>,
+    ipiv: &[blas_int],
+    a: &[f64],
+    lower: bool,
+    at: &str,
+) {
     let n = lu.shape()[0];
     let mut det_prod = 1.0;
     for (k, size) in block_starts(ipiv, lower) {
@@ -272,12 +282,10 @@ fn test_dsytrf_singular() {
             let at = format!("{order:?}, {}", if lower { "lower" } else { "upper" });
             let buf = layout_buffer(&device, "c-contig", &a, 3);
             // run: the singularity is an error
-            let err =
-                DSYTRF::default().a(buf.view()).uplo(uplo).build().unwrap().run().err().expect("run must error");
+            let err = DSYTRF::default().a(buf.view()).uplo(uplo).build().unwrap().run().err().expect("run must error");
             assert!(format!("{err}").contains("info = "), "run error message, {at}");
             // run_with_info: complete factors plus the index of the zero pivot
-            let (lu, ipiv, info) =
-                DSYTRF::default().a(buf.view()).uplo(uplo).build().unwrap().run_with_info().unwrap();
+            let (lu, ipiv, info) = DSYTRF::default().a(buf.view()).uplo(uplo).build().unwrap().run_with_info().unwrap();
             assert!(info > 0 && info <= 3, "info = {info}, {at}");
             assert!(lu.view().raw().iter().all(|v| v.is_finite()), "factors finite, {at}");
             // the block decode covers all rows

@@ -116,8 +116,7 @@ where
         + OpAssignArbitaryAPI<T, IxD, IxD>
         + OpAssignAPI<T, IxD>,
 {
-    type Out =
-        LdlResult<Tensor<T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>, Tensor<usize, DeviceBLAS, D::SmallerOne>>;
+    type Out = LdlResult<Tensor<T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>, Tensor<usize, DeviceBLAS, D::SmallerOne>>;
     // the mutable rows hand the scratch to the factorization in place
     #[allow(unused_mut)]
     fn ldl_f(self) -> Result<Self::Out> {
@@ -146,6 +145,31 @@ where
     fn ldl_f(self) -> Result<Self::Out> {
         let args_tuple = self;
         LdlAPI::<DeviceBLAS>::ldl_f(internal_tuple)
+    }
+}
+
+/* #endregion */
+
+/* #region bare */
+
+#[duplicate_item(
+    ImplType                              Tr;
+   ['a, T, D, R: DataAPI<Data = Vec<T>>] [&'a TensorAny<R, T, DeviceBLAS, D>];
+   ['a, T, D,                          ] [TensorView<'a, T, DeviceBLAS, D>  ];
+   [    T, D                           ] [Tensor<T, DeviceBLAS, D>          ];
+   ['a, T, D                           ] [TensorMut<'a, T, DeviceBLAS, D>   ];
+)]
+impl<ImplType> LdlAPI<DeviceBLAS> for Tr
+where
+    T: BlasFloat,
+    D: DimAPI + DimSmallerOneAPI,
+    D::SmallerOne: DimAPI,
+    (Tr, bool, Option<FlagUpLo>): LdlAPI<DeviceBLAS>,
+{
+    type Out = <(Tr, bool, Option<FlagUpLo>) as LdlAPI<DeviceBLAS>>::Out;
+    fn ldl_f(self) -> Result<Self::Out> {
+        let a = self;
+        LdlAPI::<DeviceBLAS>::ldl_f((a, true, None))
     }
 }
 

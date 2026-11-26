@@ -3,6 +3,7 @@ use rstsr::prelude::linalg::LdlResult;
 
 // the result types follow the dims of a 2-D input
 type LdlOut = LdlResult<Tensor<f64, DeviceBLAS, Ix2>, Tensor<f64, DeviceBLAS, Ix2>, Tensor<usize, DeviceBLAS, Ix1>>;
+type LdlTuple = (Tensor<f64, DeviceBLAS, Ix2>, Tensor<f64, DeviceBLAS, Ix2>, Tensor<usize, DeviceBLAS, Ix1>);
 
 /// Symmetric matrix (`n`, `n`) from `a`: `a + aᵀ`.
 fn symmetrize(a: TensorView<'_, f64, DeviceBLAS, Ix2>) -> Tensor<f64, DeviceBLAS, Ix2> {
@@ -67,7 +68,7 @@ fn check_ldl(
             assert_eq!(d[[i, j]], d[[j, i]], "d symmetric ({i}, {j}), {at}");
         }
     }
-    let prod = rt::matmul(&rt::matmul(lu.view(), d.view()), lu.view().into_reverse_axes());
+    let prod = rt::matmul(rt::matmul(lu.view(), d.view()), lu.view().into_reverse_axes());
     assert!(rt::allclose(prod.view(), a.view(), Some(1e-12)), "A = lu @ d @ luᵀ ({blocks} 2x2 blocks), {at}");
 }
 
@@ -83,16 +84,16 @@ fn test_ldl() {
     assert_eq!(result.lu.shape(), &[1024, 1024], "lu shape");
     assert_eq!(result.d.shape(), &[1024, 1024], "d shape");
     assert_eq!(result.perm.shape(), &[1024], "perm shape");
-    assert!((fingerprint(&result.lu) - 278.035031382680529).abs() < 1e-8, "fp(lu)");
-    assert!((fingerprint(&result.d) - -1206.931902682589453).abs() < 1e-8, "fp(d)");
-    assert!((fingerprint(&result.perm.map(|&v| v as f64)) - -868.556995521615590).abs() < 1e-8, "fp(perm)");
+    assert!((fingerprint(&result.lu) - 278.03503138268053).abs() < 1e-8, "fp(lu)");
+    assert!((fingerprint(&result.d) - -1206.9319026825895).abs() < 1e-8, "fp(d)");
+    assert!((fingerprint(&result.perm.map(|&v| v as f64)) - -868.5569955216156).abs() < 1e-8, "fp(perm)");
     check_ldl(&sym, &result.lu, &result.d, &result.perm, true, "lower");
 
     // upper
     let result: LdlOut = rt::linalg::ldl((sym.view(), Upper));
-    assert!((fingerprint(&result.lu) - -40.674750563392962).abs() < 1e-8, "fp(lu), upper");
-    assert!((fingerprint(&result.d) - 1613.307271287987533).abs() < 1e-8, "fp(d), upper");
-    assert!((fingerprint(&result.perm.map(|&v| v as f64)) - -1842.922385966796355).abs() < 1e-8, "fp(perm), upper");
+    assert!((fingerprint(&result.lu) - -40.67475056339296).abs() < 1e-8, "fp(lu), upper");
+    assert!((fingerprint(&result.d) - 1613.3072712879875).abs() < 1e-8, "fp(d), upper");
+    assert!((fingerprint(&result.perm.map(|&v| v as f64)) - -1842.9223859667964).abs() < 1e-8, "fp(perm), upper");
     check_ldl(&sym, &result.lu, &result.d, &result.perm, false, "upper");
 }
 
@@ -106,10 +107,10 @@ fn test_ldl_relations() {
         for lower in [true, false] {
             let uplo = if lower { Lower } else { Upper };
             let at = format!("{n}, {}", if lower { "lower" } else { "upper" });
-            let result: LdlOut = rt::linalg::ldl((sym.view(), uplo)).into();
+            let result: LdlOut = rt::linalg::ldl((sym.view(), uplo));
             check_ldl(&sym, &result.lu, &result.d, &result.perm, lower, &at);
             // `hermitian = false` equals the default on real input
-            let symm: LdlOut = rt::linalg::ldl((sym.view(), false, uplo)).into();
+            let symm: LdlOut = rt::linalg::ldl((sym.view(), false, uplo));
             assert_eq!(symm.perm.raw().to_vec(), result.perm.raw().to_vec(), "perm, hermitian = false, {at}");
             assert!(rt::allclose(symm.lu.view(), result.lu.view(), Some(1e-14)), "lu, hermitian = false, {at}");
             assert!(rt::allclose(symm.d.view(), result.d.view(), Some(1e-14)), "d, hermitian = false, {at}");
@@ -122,9 +123,9 @@ fn test_ldl_relations() {
 fn test_ldl_2x2_blocks() {
     let device = DeviceBLAS::default();
     // zero diagonal: the off-diagonal pair must form a 2x2 block
-    let a = rt::asarray((vec![0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 3.0], [3usize, 3].c(), &device))
-        .into_dim::<Ix2>();
-    let result: LdlOut = rt::linalg::ldl((a.view(), Lower)).into();
+    let a =
+        rt::asarray((vec![0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 3.0], [3usize, 3].c(), &device)).into_dim::<Ix2>();
+    let result: LdlOut = rt::linalg::ldl((a.view(), Lower));
     assert_eq!(result.perm.raw().to_vec(), vec![0, 1, 2], "perm, zero diagonal");
     for i in 0..3 {
         assert!((result.lu[[i, i]] - 1.0).abs() < 1e-14, "unit diagonal, zero diagonal lower");
@@ -136,21 +137,21 @@ fn test_ldl_2x2_blocks() {
     }
     assert_eq!(result.d[[1, 0]], 1.0, "d[1, 0], zero diagonal lower");
     assert_eq!(result.d[[0, 1]], 1.0, "d[0, 1], zero diagonal lower");
-    let result: LdlOut = rt::linalg::ldl((a.view(), Upper)).into();
+    let result: LdlOut = rt::linalg::ldl((a.view(), Upper));
     assert_eq!(result.d[[0, 1]], 1.0, "d[0, 1], zero diagonal upper");
 
     // SciPy docstring example (upper): A = [[2, -1, 3], [0, 2, 0], [0, 0, 1]]
-    let a = rt::asarray((vec![2.0, -1.0, 3.0, 0.0, 2.0, 0.0, 0.0, 0.0, 1.0], [3usize, 3].c(), &device))
-        .into_dim::<Ix2>();
-    let result: LdlOut = rt::linalg::ldl((a.view(), Upper)).into();
+    let a =
+        rt::asarray((vec![2.0, -1.0, 3.0, 0.0, 2.0, 0.0, 0.0, 0.0, 1.0], [3usize, 3].c(), &device)).into_dim::<Ix2>();
+    let result: LdlOut = rt::linalg::ldl((a.view(), Upper));
     assert_eq!(result.perm.raw().to_vec(), vec![2, 1, 0], "perm, doc example");
-    let lu_expected = vec![[0.0, 0.0, 1.0], [0.0, 1.0, -0.5], [1.0, 1.0, 1.5]];
+    let lu_expected = [[0.0, 0.0, 1.0], [0.0, 1.0, -0.5], [1.0, 1.0, 1.5]];
     for i in 0..3 {
         for j in 0..3 {
             assert!((result.lu[[i, j]] - lu_expected[i][j]).abs() < 1e-14, "lu doc example ({i}, {j})");
         }
     }
-    let d_expected = [vec![-5.0, 0.0, 0.0], vec![0.0, 1.5, 0.0], vec![0.0, 0.0, 2.0]];
+    let d_expected = [[-5.0, 0.0, 0.0], [0.0, 1.5, 0.0], [0.0, 0.0, 2.0]];
     for i in 0..3 {
         for j in 0..3 {
             assert!((result.d[[i, j]] - d_expected[i][j]).abs() < 1e-14, "d doc example ({i}, {j})");
@@ -159,18 +160,18 @@ fn test_ldl_2x2_blocks() {
 
     // the symmetrized doc matrix: both forms, exact expectations from SciPy
     let s = symmetrize(a.view());
-    let result: LdlOut = rt::linalg::ldl((s.view(), Lower)).into();
-    let lu_lower = vec![[1.0, 0.0, 0.0], [-0.25, 1.0, 0.0], [0.75, 0.2, 1.0]];
-    let d_lower = [vec![4.0, 0.0, 0.0], vec![0.0, 3.75, 0.0], vec![0.0, 0.0, -0.4]];
+    let result: LdlOut = rt::linalg::ldl((s.view(), Lower));
+    let lu_lower = [[1.0, 0.0, 0.0], [-0.25, 1.0, 0.0], [0.75, 0.2, 1.0]];
+    let d_lower = [[4.0, 0.0, 0.0], [0.0, 3.75, 0.0], [0.0, 0.0, -0.4]];
     for i in 0..3 {
         for j in 0..3 {
             assert!((result.lu[[i, j]] - lu_lower[i][j]).abs() < 1e-14, "lu sym lower ({i}, {j})");
             assert!((result.d[[i, j]] - d_lower[i][j]).abs() < 1e-14, "d sym lower ({i}, {j})");
         }
     }
-    let result: LdlOut = rt::linalg::ldl((s.view(), Upper)).into();
-    let lu_upper = vec![[1.0, -0.25, 1.5], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
-    let d_upper = [vec![-0.75, 0.0, 0.0], vec![0.0, 4.0, 0.0], vec![0.0, 0.0, 2.0]];
+    let result: LdlOut = rt::linalg::ldl((s.view(), Upper));
+    let lu_upper = [[1.0, -0.25, 1.5], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]];
+    let d_upper = [[-0.75, 0.0, 0.0], [0.0, 4.0, 0.0], [0.0, 0.0, 2.0]];
     for i in 0..3 {
         for j in 0..3 {
             assert!((result.lu[[i, j]] - lu_upper[i][j]).abs() < 1e-14, "lu sym upper ({i}, {j})");
@@ -184,7 +185,7 @@ fn test_ldl_singular() {
     let device = DeviceBLAS::default();
     // all-zero input: D(i,i) exactly zero on the first pivot, lu = I
     let a = rt::zeros_f(([3usize, 3], &device)).unwrap().into_dim::<Ix2>();
-    let result: LdlOut = rt::linalg::ldl(a.view()).into();
+    let result: LdlOut = rt::linalg::ldl(a.view());
     assert_eq!(result.perm.raw().to_vec(), vec![0, 1, 2], "perm, zeros");
     for i in 0..3 {
         for j in 0..3 {
@@ -193,10 +194,10 @@ fn test_ldl_singular() {
         }
     }
     // rank-2 symmetric: complete factors with a singular d
-    let a = rt::asarray((vec![1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0], [3usize, 3].c(), &device))
-        .into_dim::<Ix2>();
+    let a =
+        rt::asarray((vec![1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0], [3usize, 3].c(), &device)).into_dim::<Ix2>();
     let sym = symmetrize(a.view());
-    let result: LdlOut = rt::linalg::ldl(sym.view()).into();
+    let result: LdlOut = rt::linalg::ldl(sym.view());
     assert!(result.lu.raw().iter().all(|v| v.is_finite()), "lu finite");
     assert!(result.d.raw().iter().all(|v| v.is_finite()), "d finite");
     assert!((0..3).any(|k| result.d[[k, k]] == 0.0), "d has an exactly-zero pivot");
@@ -230,7 +231,9 @@ fn test_ldl_batch() {
             let tag = format!("{order:?} device, {stored:?} stack");
             // symmetrize every slot of the stack, so the owned / reference /
             // view calls and the rebuilt stacks all factor the same matrix
-            let make = || symmetrize_stack(stack_tensor(&a_vec[..2 * 3 * n * n], &[2, 3], &[n, n], order, stored, &device), order);
+            let make = || {
+                symmetrize_stack(stack_tensor(&a_vec[..2 * 3 * n * n], &[2, 3], &[n, n], order, stored, &device), order)
+            };
             let a = make();
             let result = rt::linalg::ldl(a.view());
             // owned and reference inputs give the same result as the view call
@@ -260,9 +263,7 @@ fn test_ldl_batch() {
                 }
             }
             // owned and reference inputs give the same result as the view call
-            for (at, candidate) in
-                [("owned", rt::linalg::ldl(make())), ("reference", rt::linalg::ldl(&make()))]
-            {
+            for (at, candidate) in [("owned", rt::linalg::ldl(make())), ("reference", rt::linalg::ldl(&make()))] {
                 assert!(rt::allclose(candidate.lu.view(), result.lu.view(), Some(1e-14)), "lu, {at}, {tag}");
                 assert!(rt::allclose(candidate.d.view(), result.d.view(), Some(1e-14)), "d, {at}, {tag}");
                 assert_eq!(candidate.perm.raw().to_vec(), result.perm.raw().to_vec(), "perm, {at}, {tag}");
@@ -402,11 +403,7 @@ fn test_ldl_overloads() {
                 assert!(rt::allclose(candidate.d.view(), reference.d.view(), Some(1e-14)), "d, {at}");
                 assert_eq!(candidate.perm.raw().to_vec(), reference.perm.raw().to_vec(), "perm, {at}");
                 // the tuple conversion destructures all three
-                let (lu, d, perm): (
-                    Tensor<f64, DeviceBLAS, Ix2>,
-                    Tensor<f64, DeviceBLAS, Ix2>,
-                    Tensor<usize, DeviceBLAS, Ix1>,
-                ) = candidate.into();
+                let (lu, d, perm): LdlTuple = candidate.into();
                 assert!(rt::allclose(lu.view(), reference.lu.view(), Some(1e-14)), "tuple lu, {at}");
                 assert!(rt::allclose(d.view(), reference.d.view(), Some(1e-14)), "tuple d, {at}");
                 assert_eq!(perm.raw().to_vec(), reference.perm.raw().to_vec(), "tuple perm, {at}");

@@ -1135,8 +1135,7 @@ where
             };
             let offs_a: Vec<usize> =
                 IterLayout::new(lu.i((s_ind, col_s..col_e)).layout(), TensorIterOrder::C)?.collect();
-            let offs_b: Vec<usize> =
-                IterLayout::new(lu.i((ind, col_s..col_e)).layout(), TensorIterOrder::C)?.collect();
+            let offs_b: Vec<usize> = IterLayout::new(lu.i((ind, col_s..col_e)).layout(), TensorIterOrder::C)?.collect();
             let raw = lu.raw_mut();
             for (ka, &oa) in offs_a.iter().enumerate() {
                 raw.swap(oa, offs_b[ka]);

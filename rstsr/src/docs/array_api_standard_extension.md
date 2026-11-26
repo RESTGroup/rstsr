@@ -50,6 +50,9 @@
   factor-reuse pair `rt::linalg::lu_factor` / `rt::linalg::lu_solve` (SciPy
   `lu_factor` / `lu_solve`) are RSTSR extensions beyond the Array API and
   NumPy; they are implemented by the BLAS devices only.
+- `rt::linalg::ldl` (SciPy `ldl`, the pivoted block `L D Lᴴ` factorization)
+  is an RSTSR extension beyond the Array API and NumPy; it is implemented by
+  the BLAS devices only.
 - The `rt::linalg::*` functions require the `linalg` cargo feature.
 
 ## Fast Fourier Transform (extensions)
