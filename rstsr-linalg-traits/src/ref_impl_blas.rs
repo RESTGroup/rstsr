@@ -1013,6 +1013,148 @@ where
 
 /* #endregion */
 
+/* #region ldl */
+
+/// LAPACK `?SYTRF` / `?HETRF` pivot array → the row-swap sequence and the
+/// block sizes of `D` (the port of SciPy's `_ldl_sanitize_ipiv`): `swap` is
+/// the row-interchange sequence read in block order, `pivots[k]` is the size
+/// of the pivot block starting at row `k` (0 marks the second row of a 2x2
+/// block). The scan direction is part of the contract because `swap` is read
+/// sequentially.
+pub fn ldl_sanitize_ipiv(ipiv: &[blas_int], lower: bool) -> Result<(Vec<usize>, Vec<u8>)> {
+    let n = ipiv.len();
+    let mut swap: Vec<usize> = (0..n).collect();
+    let mut pivots = vec![0u8; n];
+    let mut skip_2x2 = false;
+    // partner-row and block-start offsets; lower scans indices ascending, upper descending
+    let (x, y) = if lower { (1isize, 0isize) } else { (-1isize, -1isize) };
+    let step = if lower { 1isize } else { -1isize };
+    let mut ind = if lower { 0isize } else { n as isize - 1 };
+    for _ in 0..n {
+        if skip_2x2 {
+            skip_2x2 = false;
+        } else {
+            let k = ind as usize;
+            let cur_val = ipiv[k];
+            if cur_val > 0 {
+                if cur_val as usize != k + 1 {
+                    // index value != array value: permutation required
+                    swap[k] = swap[cur_val as usize - 1];
+                }
+                pivots[k] = 1;
+            } else if cur_val < 0 && (0..n as isize).contains(&(ind + x)) && cur_val == ipiv[(ind + x) as usize] {
+                // first row of a 2x2 block; the interchanged rows are (-cur-1, -cur)
+                if -cur_val != (ind + 2) as blas_int {
+                    swap[(ind + x) as usize] = swap[(-cur_val) as usize - 1];
+                }
+                pivots[(ind + y) as usize] = 2;
+                skip_2x2 = true;
+            } else {
+                return Err(rstsr_error!(InvalidValue, "ldl: invalid pivot array returned by the factorization"));
+            }
+        }
+        ind += step;
+    }
+    Ok((swap, pivots))
+}
+
+/// SciPy `ldl` of one 2-D slice, written into the pre-zeroed `lu` and `d`
+/// (`N`, `N`) and `perm` (`N,`): the compact `?SYTRF` / `?HETRF` output is
+/// expanded to the explicit block-diagonal `d` and the permuted unit
+/// triangular `lu`, with `A = lu @ d @ luᴴ` (or `luᵀ` for the symmetric
+/// form) and `lu[perm, :]` triangular. Returns LAPACK's `info` (`i > 0`:
+/// `D(i,i)` is exactly zero, the factors are complete).
+#[allow(clippy::too_many_arguments)]
+pub fn ref_impl_ldl_into_f<T, B>(
+    a: TensorReference<'_, T, B, Ix2>,
+    hermitian: bool,
+    uplo: FlagUpLo,
+    mut lu: TensorMut<'_, T, B, Ix2>,
+    mut d: TensorMut<'_, T, B, Ix2>,
+    mut perm: TensorMut<'_, usize, B, Ix1>,
+) -> Result<usize>
+where
+    T: BlasFloat,
+    B: LapackDriverAPI<T> + DeviceAPI<usize, Raw = Vec<usize>>,
+{
+    let n = a.shape()[0];
+    let device = a.device().clone();
+    let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
+    let task = || match hermitian {
+        false => SYTRF::<_, _, false>::default().a(a.view()).uplo(uplo).build()?.run_with_info(),
+        true => SYTRF::<_, _, true>::default().a(a.view()).uplo(uplo).build()?.run_with_info(),
+    };
+    let (ldu, ipiv, info) = device.with_blas_num_threads(nthreads, task)?;
+    let lower = uplo == Lower;
+    let (swap, pivots) = ldl_sanitize_ipiv(ipiv.raw(), lower)?;
+    let ldu_v = ldu.view();
+
+    // diagonal of `d`, unit diagonal of `lu`
+    for k in 0..n {
+        d[[k, k]] = ldu_v[[k, k]];
+        lu[[k, k]] = T::one();
+    }
+    // strict triangle
+    if lower {
+        for j in 0..n - 1 {
+            lu.i_mut((j + 1..n, j)).assign_f(ldu_v.i((j + 1..n, j)))?;
+        }
+    } else {
+        for i in 0..n - 1 {
+            lu.i_mut((i, i + 1..n)).assign_f(ldu_v.i((i, i + 1..n)))?;
+        }
+    }
+    // 2x2 blocks: `d` gets both off-diagonal entries (conjugated for the
+    // Hermitian form), `lu` clears the cross entry of the outer factor
+    let (x, y) = if lower { (1usize, 0usize) } else { (0usize, 1usize) };
+    let mut blk_i = 0;
+    for &p in pivots.iter().filter(|&&p| p != 0) {
+        let inc = blk_i + p as usize;
+        if p == 2 {
+            let v = ldu_v[[blk_i + x, blk_i + y]];
+            d[[blk_i + x, blk_i + y]] = v;
+            d[[blk_i + y, blk_i + x]] = if hermitian { v.conj() } else { v };
+            lu[[blk_i + x, blk_i + y]] = T::zero();
+        }
+        blk_i = inc;
+    }
+    // row interchanges of the outer factor, and the permutation that
+    // restores the triangular order (SciPy `_ldl_construct_tri_factor`)
+    let mut perm_v: Vec<usize> = (0..n).collect();
+    let inds: Vec<usize> = if lower { (0..n).rev().collect() } else { (0..n).collect() };
+    for ind in inds {
+        let s_ind = swap[ind];
+        if s_ind != ind {
+            let (col_s, col_e) = match (lower, pivots[ind]) {
+                (true, 0) => (ind - 1, n),
+                (true, _) => (ind, n),
+                (false, 2) => (0, ind + 2),
+                (false, _) => (0, ind + 1),
+            };
+            let offs_a: Vec<usize> =
+                IterLayout::new(lu.i((s_ind, col_s..col_e)).layout(), TensorIterOrder::C)?.collect();
+            let offs_b: Vec<usize> =
+                IterLayout::new(lu.i((ind, col_s..col_e)).layout(), TensorIterOrder::C)?.collect();
+            let raw = lu.raw_mut();
+            for (ka, &oa) in offs_a.iter().enumerate() {
+                raw.swap(oa, offs_b[ka]);
+            }
+            perm_v.swap(s_ind, ind);
+        }
+    }
+    // `perm` = argsort of the applied permutation, written through the output view
+    let mut idx: Vec<usize> = (0..n).collect();
+    idx.sort_by_key(|&i| perm_v[i]);
+    let offsets: Vec<usize> = IterLayout::new(perm.layout(), TensorIterOrder::C)?.collect();
+    let raw = perm.raw_mut();
+    for (dst, &src) in offsets.iter().zip(idx.iter()) {
+        raw[*dst] = src;
+    }
+    Ok(usize::try_from(info).unwrap_or(0))
+}
+
+/* #endregion */
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1047,6 +1189,31 @@ mod tests {
                 assert_eq!(&round[..k], ipiv.as_slice());
                 assert!(round[k..].iter().enumerate().all(|(i, &v)| v == k + i));
             }
+        }
+    }
+
+    #[test]
+    fn ldl_sanitize_ipiv_matches_scipy() {
+        // ground truth generated with SciPy 1.18.1 `_ldl_sanitize_ipiv`
+        let cases: Vec<(bool, Vec<blas_int>, Vec<usize>, Vec<u8>)> = vec![
+            (true, vec![1, 2, 3], vec![0, 1, 2], vec![1, 1, 1]),
+            (true, vec![3, 2, 3], vec![2, 1, 2], vec![1, 1, 1]),
+            (true, vec![-2, -2, 3], vec![0, 1, 2], vec![2, 0, 1]),
+            (true, vec![1, -3, -3, 4], vec![0, 1, 2, 3], vec![1, 2, 0, 1]),
+            (true, vec![2, 2, -3, -3], vec![1, 1, 2, 2], vec![1, 1, 2, 0]),
+            (false, vec![1, 2, 3], vec![0, 1, 2], vec![1, 1, 1]),
+            (false, vec![3, 2, 3], vec![2, 1, 2], vec![1, 1, 1]),
+            (false, vec![1, -2, -2], vec![0, 1, 2], vec![1, 2, 0]),
+            (false, vec![1, -3, -3, 4], vec![0, 2, 2, 3], vec![1, 2, 0, 1]),
+            (false, vec![3, 3, 1, 4], vec![0, 0, 0, 3], vec![1, 1, 1, 1]),
+        ];
+        for (lower, ipiv, swap, pivots) in cases {
+            let (swap_got, pivots_got) = ldl_sanitize_ipiv(&ipiv, lower).unwrap();
+            assert_eq!(swap_got, swap, "swap, ipiv {ipiv:?}, lower {lower}");
+            assert_eq!(pivots_got, pivots, "pivots, ipiv {ipiv:?}, lower {lower}");
+        }
+        for bad in [vec![1, -2, 3], vec![1, 2, 0], vec![1, 0, 2]] {
+            assert!(ldl_sanitize_ipiv(&bad, true).is_err(), "invalid ipiv {bad:?}");
         }
     }
 }

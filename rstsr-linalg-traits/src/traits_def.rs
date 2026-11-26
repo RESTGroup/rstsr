@@ -14,6 +14,7 @@ use rstsr_core::prelude_dev::*;
    [EigvalsAPI        ] [eigvals         ] [eigvals_f         ];
    [EigvalshAPI       ] [eigvalsh        ] [eigvalsh_f        ];
    [InvAPI            ] [inv             ] [inv_f             ];
+   [LdlAPI            ] [ldl             ] [ldl_f             ];
    [LstsqAPI          ] [lstsq           ] [lstsq_f           ];
    [LuAPI             ] [lu              ] [lu_f             ];
    [LuFactorAPI       ] [lu_factor       ] [lu_factor_f       ];
@@ -51,6 +52,7 @@ pub trait LinalgAPI<Inp> {
    [EigvalsAPI        ] [eigvals         ] [eigvals_f         ];
    [EigvalshAPI       ] [eigvalsh        ] [eigvalsh_f        ];
    [InvAPI            ] [inv             ] [inv_f             ];
+   [LdlAPI            ] [ldl             ] [ldl_f             ];
    [LstsqAPI          ] [lstsq           ] [lstsq_f           ];
    [LuAPI             ] [lu              ] [lu_f             ];
    [LuFactorAPI       ] [lu_factor       ] [lu_factor_f       ];
@@ -84,6 +86,7 @@ where
    [EigvalsAPI        ] [eigvals         ] [eigvals_f         ];
    [EigvalshAPI       ] [eigvalsh        ] [eigvalsh_f        ];
    [InvAPI            ] [inv             ] [inv_f             ];
+   [LdlAPI            ] [ldl             ] [ldl_f             ];
    [LstsqAPI          ] [lstsq           ] [lstsq_f           ];
    [LuAPI             ] [lu              ] [lu_f             ];
    [LuFactorAPI       ] [lu_factor       ] [lu_factor_f       ];
@@ -463,6 +466,43 @@ impl<X, Res, Rank, S> From<(X, Res, Rank, S)> for LstsqResult<X, Res, Rank, S> {
 impl<X, Res, Rank, S> From<LstsqResult<X, Res, Rank, S>> for (X, Res, Rank, S) {
     fn from(lstsq_result: LstsqResult<X, Res, Rank, S>) -> Self {
         (lstsq_result.x, lstsq_result.residuals, lstsq_result.rank, lstsq_result.s)
+    }
+}
+
+/* #endregion */
+
+/* #region ldl */
+
+/// Result of an LDL factorization: the permuted unit triangular outer factor
+/// `lu`, the block diagonal `d` and the row permutation `perm`.
+///
+/// The SciPy `ldl` convention: `A = lu @ d @ luᴴ` (or `lu @ d @ luᵀ` for a
+/// complex symmetric input, `hermitian = false`) and `lu[perm, :]` is unit
+/// lower (or upper) triangular. With `N` the matrix size, `lu` and `d` have
+/// shape `(..., N, N)` and `perm` `(..., N)`, 0-based; under a column-major
+/// device the matrix axes lead. `d` carries 1x1 and 2x2 blocks (Hermitian,
+/// or symmetric for `hermitian = false`) in factored order. A slice whose
+/// `D` has an exactly-zero pivot factors completely: the result is
+/// singular, not an error.
+///
+/// The fields are public; `(LU, D, Perm)` converts both ways.
+///
+/// See also [`ldl`], [`solve_symmetric`].
+pub struct LdlResult<LU, D, Perm> {
+    pub lu: LU,
+    pub d: D,
+    pub perm: Perm,
+}
+
+impl<LU, D, Perm> From<(LU, D, Perm)> for LdlResult<LU, D, Perm> {
+    fn from((lu, d, perm): (LU, D, Perm)) -> Self {
+        Self { lu, d, perm }
+    }
+}
+
+impl<LU, D, Perm> From<LdlResult<LU, D, Perm>> for (LU, D, Perm) {
+    fn from(ldl_result: LdlResult<LU, D, Perm>) -> Self {
+        (ldl_result.lu, ldl_result.d, ldl_result.perm)
     }
 }
 
