@@ -776,3 +776,22 @@ where
 }
 
 /* #endregion */
+
+/* #region lstsq */
+
+/// Single-slice GELSD under the device BLAS thread policy (same pattern as
+/// the `svd` entries of this module).
+pub fn ref_impl_lstsq_f<'a, T, B>(
+    lstsq_args: GELSD_<'a, B, T>,
+) -> Result<(Tensor<T, B, Ix2>, Tensor<T::Real, B, Ix1>, usize, Option<Tensor<T::Real, B, Ix1>>)>
+where
+    T: BlasFloat,
+    B: LapackDriverAPI<T>,
+{
+    let GELSD_ { a, b, rcond } = lstsq_args;
+    let device = a.device().clone();
+    let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
+    device.with_blas_num_threads(nthreads, || GELSD::default().a(a).b(b).rcond(rcond).build()?.run())
+}
+
+/* #endregion */

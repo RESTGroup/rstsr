@@ -5,6 +5,7 @@ pub use rstsr_core::prelude_dev::fingerprint;
 pub use rstsr_test_manifest::get_vec;
 
 pub mod geev;
+mod gelsd;
 mod geqrf;
 mod gesdd;
 mod gesv;

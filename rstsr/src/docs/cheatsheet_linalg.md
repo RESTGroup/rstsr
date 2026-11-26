@@ -18,7 +18,7 @@ let device = DeviceFaer::default(); // requires the `linalg` + `faer` features
   order: [`Lower`] under `RowMajor` (`[`Upper`]` under `ColMajor`). The enum is
   [`FlagUpLo`], with `FlagUpLo::U` / `FlagUpLo::L` aliased as `Upper` / `Lower`.
 - Multi-output functions return a named struct (`EighResult`, `SVDResult`,
-  `QrResult`, `SLogDetResult`, `PinvResult`, `EigResult`); each converts to a
+  `QrResult`, `SLogDetResult`, `PinvResult`, `EigResult`, `LstsqResult`); each converts to a
   plain tuple with `.into()`.
 - Every function has a fallible `_f` twin returning `rt::Result`.
 
@@ -87,6 +87,17 @@ Note `A` is the **first** argument (RSTSR solves `A x = B`), matching SciPy.
 
 ## `DeviceFaer` backend notes
 
+- **`lstsq`** is **BLAS-only** (LAPACK `GELSD`): there is no `DeviceFaer`
+  least-squares entry. `lstsq((&a, &b))` uses `rcond = eps·max(M, N)`;
+  `lstsq((&a, &b, rcond))` sets it explicitly (`rcond <= 0` or `>= 1` is
+  clamped to machine epsilon, where SciPy rejects negatives). The result is
+  `LstsqResult { x, residuals, rank, s }` (destructurable as a 4-tuple):
+  `x` is `(..., N, K)` (or `(..., N)` for a vector `b`), `rank` holds one
+  value per matrix slice, and `residuals` is real — `(..., K)` for a tall
+  full-rank slice, `NaN` where `rank < N`, empty where `M <= N` (the SciPy
+  convention). `b` is never modified; an owned or mutable `a` whose batch
+  needs no broadcast and whose layout is the call order is consumed in place
+  and destroyed by the factorization (use `a.view()` to keep it).
 - **`solve_symmetric`** has **no `DeviceFaer` implementation** (it is
   BLAS-only). Use `solve_general`, or an eigensolver-based approach.
 - **`eigvalsh`** on faer handles the **standard** problem only; generalized

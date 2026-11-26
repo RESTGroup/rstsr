@@ -24,6 +24,7 @@ mod eigvals;
 mod eigvalsh;
 mod generalized_eigh;
 mod inv;
+mod lstsq;
 mod pinv;
 mod qr;
 mod slogdet;

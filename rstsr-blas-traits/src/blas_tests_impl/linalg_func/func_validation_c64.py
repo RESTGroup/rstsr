@@ -414,3 +414,36 @@ assert np.isclose(fingerprint(np.abs(q[:, :512])), -0.7203599314373182)
 fingerprint(np.abs(q[:, :512]))
 assert np.isclose(fingerprint(r), -47.17594962775998+808.8519384383669j)
 fingerprint(r)
+
+# ### lstsq
+
+# the entry default rcond is eps * max(m, n); the driver returns no residuals
+# for wide matrices
+eps = np.finfo(np.float64).eps
+
+a = a_raw[:1024*512].copy().reshape(1024, 512)
+b = b_raw[:1024].copy().reshape(1024, 1)
+x, residuals, rank, s = scipy.linalg.lstsq(a, b, cond=eps*1024, lapack_driver="gelsd", check_finite=False)
+assert np.isclose(fingerprint(np.abs(x)), 0.46834637017620495)
+assert np.isclose(fingerprint(s), 46.603434059217975)
+assert np.isclose(fingerprint(residuals), 1062.17917639187)
+assert rank == 512
+fingerprint(np.abs(x)), fingerprint(s), fingerprint(residuals), rank
+
+a = a_raw[:1024*512].copy().reshape(1024, 512)
+b = b_raw[:1024*2].copy().reshape(1024, 2)
+x, residuals, rank, s = scipy.linalg.lstsq(a, b, cond=eps*1024, lapack_driver="gelsd", check_finite=False)
+assert np.isclose(fingerprint(np.abs(x)), 0.10730347392277714)
+assert np.isclose(fingerprint(s), 46.603434059217975)
+assert np.isclose(fingerprint(residuals), 1613.436740523908)
+assert rank == 512
+fingerprint(np.abs(x)), fingerprint(s), fingerprint(residuals), rank
+
+a = a_raw[:512*1024].copy().reshape(512, 1024)
+b = b_raw[:512].copy().reshape(512, 1)
+x, residuals, rank, s = scipy.linalg.lstsq(a, b, cond=eps*1024, lapack_driver="gelsd", check_finite=False)
+assert np.isclose(fingerprint(np.abs(x)), 0.7685570101997597)
+assert np.isclose(fingerprint(s), 47.59927483588676)
+assert residuals.size == 0
+assert rank == 512
+fingerprint(np.abs(x)), fingerprint(s), fingerprint(residuals), rank

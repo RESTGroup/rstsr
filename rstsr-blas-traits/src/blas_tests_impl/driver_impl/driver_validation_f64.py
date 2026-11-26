@@ -228,3 +228,67 @@ assert np.isclose(fingerprint(np.sort(w.imag)), -0.11210131721328423)
 assert np.isclose(_fp_vecs(vl), -1.3881039015638714)
 assert np.isclose(_fp_vecs(vr), -1.9454332085201405)
 fingerprint(np.sort(w.real)), fingerprint(np.sort(w.imag)), _fp_vecs(vl), _fp_vecs(vr)
+
+# ## lstsq driver tests
+
+# DGELSD with the rcond default of the entry layer (eps * max(m, n)); the
+# workspace sizes come from the same LWORK query the thunk performs. The
+# driver reports no residuals when rank < min(m, n), so the rank-deficient
+# case is fingerprinted as NaN even though LAPACK leaves values in B(n+1:m).
+
+
+def _gelsd(a, b, rcond):
+    m, n = a.shape
+    nrhs = b.shape[1]
+    b_buf = np.zeros((max(m, n), nrhs), order="F")
+    b_buf[:m] = b
+    work, iwork, _ = scipy.linalg.lapack.dgelsd_lwork(m, n, nrhs, cond=rcond)
+    x, s, rank, info = scipy.linalg.lapack.dgelsd(
+        a.copy(order="F"), b_buf, lwork=int(work), size_iwork=int(iwork), cond=rcond
+    )
+    assert info == 0
+    if m > n and rank == n:
+        residuals = np.sum(x[n:m] ** 2, axis=0)
+    elif m > n:
+        residuals = np.full(nrhs, np.nan)
+    else:
+        residuals = np.zeros(0)
+    return x[:n], s, rank, residuals
+
+
+a = a_raw.copy()[:1024 * 512].reshape(1024, 512)
+b = b_raw.copy()[:1024].reshape(1024, 1)
+x, s, rank, residuals = _gelsd(a, b, np.finfo(np.float64).eps * 1024)
+assert np.isclose(fingerprint(x), 0.6714195293796388)
+assert np.isclose(fingerprint(s), 33.96933907104208)
+assert np.isclose(fingerprint(residuals), 495.06381572902126)
+assert rank == 512
+fingerprint(x), fingerprint(s), rank, fingerprint(residuals)
+
+a = a_raw.copy()[:1024 * 512].reshape(1024, 512)
+b = b_raw.copy()[:1024 * 3].reshape(1024, 3)
+x, s, rank, residuals = _gelsd(a, b, np.finfo(np.float64).eps * 1024)
+assert np.isclose(fingerprint(x), -2.417996890572109)
+assert np.isclose(fingerprint(s), 33.96933907104208)
+assert np.isclose(fingerprint(residuals), 544.9834618414122)
+assert rank == 512
+fingerprint(x), fingerprint(s), rank, fingerprint(residuals)
+
+a = a_raw.copy()[:512 * 1024].reshape(512, 1024)
+b = b_raw.copy()[:512].reshape(512, 1)
+x, s, rank, residuals = _gelsd(a, b, np.finfo(np.float64).eps * 1024)
+assert np.isclose(fingerprint(x), 0.1316952775202293)
+assert np.isclose(fingerprint(s), 32.27742168207754)
+assert residuals.size == 0
+assert rank == 512
+fingerprint(x), fingerprint(s), rank
+
+a = a_raw.copy()[:1024 * 512].reshape(1024, 512)
+a[:, 2] = a[:, 0] + a[:, 1]
+b = b_raw.copy()[:1024].reshape(1024, 1)
+x, s, rank, residuals = _gelsd(a, b, np.finfo(np.float64).eps * 1024)
+assert np.isclose(fingerprint(x), 0.6203201140848792)
+assert np.isclose(fingerprint(s), 46.463897960241695)
+assert np.isnan(residuals).all()
+assert rank == 511
+fingerprint(x), fingerprint(s), rank, fingerprint(residuals)
