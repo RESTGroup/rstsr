@@ -283,7 +283,7 @@ fn test_dsytrf_singular() {
             let buf = layout_buffer(&device, "c-contig", &a, 3);
             // run: the singularity is an error
             let err = DSYTRF::default().a(buf.view()).uplo(uplo).build().unwrap().run().err().expect("run must error");
-            assert!(format!("{err}").contains("info = "), "run error message, {at}");
+            assert!(format!("{err}").contains("InvalidValue"), "run error message, {at}");
             // run_with_info: complete factors plus the index of the zero pivot
             let (lu, ipiv, info) = DSYTRF::default().a(buf.view()).uplo(uplo).build().unwrap().run_with_info().unwrap();
             assert!(info > 0 && info <= 3, "info = {info}, {at}");

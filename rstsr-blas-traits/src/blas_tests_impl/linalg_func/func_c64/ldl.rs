@@ -276,7 +276,11 @@ fn test_ldl_batch() {
                 }
             }
             // owned and reference inputs give the same result as the view call
-            for (at, candidate) in [("owned", rt::linalg::ldl(make())), ("reference", rt::linalg::ldl(&make()))] {
+            for (at, candidate) in [
+                ("owned", rt::linalg::ldl(make())),
+                ("reference", rt::linalg::ldl(&make())),
+                ("view_mut", rt::linalg::ldl(make().view_mut())),
+            ] {
                 assert!(rt::allclose(candidate.lu.view(), result.lu.view(), Some(1e-14)), "lu, {at}, {tag}");
                 assert_eq!(candidate.perm.raw().to_vec(), result.perm.raw().to_vec(), "perm, {at}, {tag}");
             }
@@ -387,12 +391,68 @@ fn test_ldl_zero_size() {
 }
 
 #[test]
+fn test_ldl_layouts() {
+    let device = DeviceBLAS::default();
+    let a_vec = get_vec::<c64>('a');
+    let n = 6;
+    let base = rt::asarray((&a_vec[..n * n], [n, n].c(), &device)).into_dim::<Ix2>();
+    let h = hermitize(base.view());
+    let reference: LdlOutC = rt::linalg::ldl(h.view());
+
+    // f-contig input of the same matrix
+    let buf_f = h.view().to_contig_f(ColMajor).unwrap().into_owned().into_dim::<Ix2>();
+    let result: LdlOutC = rt::linalg::ldl(buf_f.view());
+    assert_eq!(result.lu.raw().to_vec(), reference.lu.raw().to_vec(), "lu, f-contig");
+    assert_eq!(result.perm.raw().to_vec(), reference.perm.raw().to_vec(), "perm, f-contig");
+
+    // padded buffer (rows), the visible block is the matrix
+    let mut padded = rt::zeros_f(([n + 4, n + 4], &device)).unwrap().into_dim::<Ix2>();
+    padded.i_mut((0..n, 0..n)).assign_f(h.view()).unwrap();
+    let result: LdlOutC = rt::linalg::ldl(padded.i((0..n, 0..n)).into_dim::<Ix2>());
+    assert_eq!(result.lu.raw().to_vec(), reference.lu.raw().to_vec(), "lu, padded");
+
+    // strided view: every second row and column of a double-size buffer
+    let mut wide = rt::zeros_f(([2 * n, 2 * n], &device)).unwrap().into_dim::<Ix2>();
+    for i in 0..n {
+        for j in 0..n {
+            wide[[2 * i, 2 * j]] = h[[i, j]];
+        }
+    }
+    let result: LdlOutC = rt::linalg::ldl(wide.i((slice!(0, 2 * n, 2), slice!(0, 2 * n, 2))).into_dim::<Ix2>());
+    assert_eq!(result.lu.raw().to_vec(), reference.lu.raw().to_vec(), "lu, strided");
+    assert_eq!(result.perm.raw().to_vec(), reference.perm.raw().to_vec(), "perm, strided");
+}
+
+/// Only the selected triangle is read: garbage (NaN) in the other triangle
+/// changes nothing.
+#[test]
+fn test_ldl_unreferenced_triangle() {
+    let device = DeviceBLAS::default();
+    let a_vec = get_vec::<c64>('a');
+    let n = 5;
+    let base = rt::asarray((&a_vec[..n * n], [n, n].c(), &device)).into_dim::<Ix2>();
+    let h = hermitize(base.view());
+    let reference: LdlOutC = rt::linalg::ldl((h.view(), Lower));
+    // NaN in the strictly upper triangle (the diagonal is read in both)
+    let mut garbage = h.clone();
+    for i in 0..n {
+        for j in (i + 1)..n {
+            garbage[[i, j]] = c64!(f64::NAN, f64::NAN);
+        }
+    }
+    let result: LdlOutC = rt::linalg::ldl((garbage.view(), Lower));
+    assert_eq!(result.lu.raw().to_vec(), reference.lu.raw().to_vec(), "lu, NaN upper triangle");
+    assert_eq!(result.d.raw().to_vec(), reference.d.raw().to_vec(), "d, NaN upper triangle");
+    assert_eq!(result.perm.raw().to_vec(), reference.perm.raw().to_vec(), "perm, NaN upper triangle");
+}
+
+#[test]
 fn test_ldl_ndim_error() {
     let device = DeviceBLAS::default();
     let v = rt::asarray((get_vec::<c64>('a')[..4].to_vec(), [4usize], &device)).into_dim::<Ix1>();
     let msg = format!("{}", rt::linalg::ldl_f((v.view(),)).err().expect("1-D a must fail"));
-    assert!(!msg.is_empty(), "1-D must fail with a message");
+    assert!(msg.contains("InvalidLayout"), "1-D error message: {msg}");
     let a = rt::asarray((get_vec::<c64>('a')[..12].to_vec(), [3usize, 4].c(), &device)).into_dim::<Ix2>();
     let msg = format!("{}", rt::linalg::ldl_f((a.view(),)).err().expect("non-square a must fail"));
-    assert!(msg.contains("square"), "non-square error message: {msg}");
+    assert!(msg.contains("InvalidLayout") && msg.contains("square"), "non-square error message: {msg}");
 }

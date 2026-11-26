@@ -263,7 +263,11 @@ fn test_ldl_batch() {
                 }
             }
             // owned and reference inputs give the same result as the view call
-            for (at, candidate) in [("owned", rt::linalg::ldl(make())), ("reference", rt::linalg::ldl(&make()))] {
+            for (at, candidate) in [
+                ("owned", rt::linalg::ldl(make())),
+                ("reference", rt::linalg::ldl(&make())),
+                ("view_mut", rt::linalg::ldl(make().view_mut())),
+            ] {
                 assert!(rt::allclose(candidate.lu.view(), result.lu.view(), Some(1e-14)), "lu, {at}, {tag}");
                 assert!(rt::allclose(candidate.d.view(), result.d.view(), Some(1e-14)), "d, {at}, {tag}");
                 assert_eq!(candidate.perm.raw().to_vec(), result.perm.raw().to_vec(), "perm, {at}, {tag}");
@@ -438,8 +442,8 @@ fn test_ldl_ndim_error() {
     let device = DeviceBLAS::default();
     let v = rt::asarray((get_vec::<f64>('a')[..4].to_vec(), [4usize], &device)).into_dim::<Ix1>();
     let msg = format!("{}", rt::linalg::ldl_f((v.view(),)).err().expect("1-D a must fail"));
-    assert!(!msg.is_empty(), "1-D must fail with a message");
+    assert!(msg.contains("InvalidLayout"), "1-D error message: {msg}");
     let a = rt::asarray((get_vec::<f64>('a')[..12].to_vec(), [3usize, 4].c(), &device)).into_dim::<Ix2>();
     let msg = format!("{}", rt::linalg::ldl_f((a.view(),)).err().expect("non-square a must fail"));
-    assert!(msg.contains("square"), "non-square error message: {msg}");
+    assert!(msg.contains("InvalidLayout") && msg.contains("square"), "non-square error message: {msg}");
 }

@@ -1027,7 +1027,7 @@ pub fn ldl_sanitize_ipiv(ipiv: &[blas_int], lower: bool) -> Result<(Vec<usize>, 
     let mut pivots = vec![0u8; n];
     let mut skip_2x2 = false;
     // partner-row and block-start offsets; lower scans indices ascending, upper descending
-    let (x, y) = if lower { (1isize, 0isize) } else { (-1isize, -1isize) };
+    let (partner, start) = if lower { (1isize, 0isize) } else { (-1isize, -1isize) };
     let step = if lower { 1isize } else { -1isize };
     let mut ind = if lower { 0isize } else { n as isize - 1 };
     for _ in 0..n {
@@ -1038,16 +1038,31 @@ pub fn ldl_sanitize_ipiv(ipiv: &[blas_int], lower: bool) -> Result<(Vec<usize>, 
             let cur_val = ipiv[k];
             if cur_val > 0 {
                 if cur_val as usize != k + 1 {
+                    if cur_val > n as blas_int {
+                        return Err(rstsr_error!(
+                            InvalidValue,
+                            "ldl: invalid pivot array returned by the factorization"
+                        ));
+                    }
                     // index value != array value: permutation required
                     swap[k] = swap[cur_val as usize - 1];
                 }
                 pivots[k] = 1;
-            } else if cur_val < 0 && (0..n as isize).contains(&(ind + x)) && cur_val == ipiv[(ind + x) as usize] {
+            } else if cur_val < 0
+                && (0..n as isize).contains(&(ind + partner))
+                && cur_val == ipiv[(ind + partner) as usize]
+            {
                 // first row of a 2x2 block; the interchanged rows are (-cur-1, -cur)
                 if -cur_val != (ind + 2) as blas_int {
-                    swap[(ind + x) as usize] = swap[(-cur_val) as usize - 1];
+                    if -cur_val > n as blas_int {
+                        return Err(rstsr_error!(
+                            InvalidValue,
+                            "ldl: invalid pivot array returned by the factorization"
+                        ));
+                    }
+                    swap[(ind + partner) as usize] = swap[(-cur_val) as usize - 1];
                 }
-                pivots[(ind + y) as usize] = 2;
+                pivots[(ind + start) as usize] = 2;
                 skip_2x2 = true;
             } else {
                 return Err(rstsr_error!(InvalidValue, "ldl: invalid pivot array returned by the factorization"));
@@ -1108,15 +1123,15 @@ where
     }
     // 2x2 blocks: `d` gets both off-diagonal entries (conjugated for the
     // Hermitian form), `lu` clears the cross entry of the outer factor
-    let (x, y) = if lower { (1usize, 0usize) } else { (0usize, 1usize) };
+    let (r_off, c_off) = if lower { (1usize, 0usize) } else { (0usize, 1usize) };
     let mut blk_i = 0;
     for &p in pivots.iter().filter(|&&p| p != 0) {
         let inc = blk_i + p as usize;
         if p == 2 {
-            let v = ldu_v[[blk_i + x, blk_i + y]];
-            d[[blk_i + x, blk_i + y]] = v;
-            d[[blk_i + y, blk_i + x]] = if hermitian { v.conj() } else { v };
-            lu[[blk_i + x, blk_i + y]] = T::zero();
+            let v = ldu_v[[blk_i + r_off, blk_i + c_off]];
+            d[[blk_i + r_off, blk_i + c_off]] = v;
+            d[[blk_i + c_off, blk_i + r_off]] = if hermitian { v.conj() } else { v };
+            lu[[blk_i + r_off, blk_i + c_off]] = T::zero();
         }
         blk_i = inc;
     }
@@ -1213,7 +1228,7 @@ mod tests {
             assert_eq!(swap_got, swap, "swap, ipiv {ipiv:?}, lower {lower}");
             assert_eq!(pivots_got, pivots, "pivots, ipiv {ipiv:?}, lower {lower}");
         }
-        for bad in [vec![1, -2, 3], vec![1, 2, 0], vec![1, 0, 2]] {
+        for bad in [vec![1, -2, 3], vec![1, 2, 0], vec![1, 0, 2], vec![4, 2, 3], vec![-4, -4]] {
             assert!(ldl_sanitize_ipiv(&bad, true).is_err(), "invalid ipiv {bad:?}");
         }
     }
