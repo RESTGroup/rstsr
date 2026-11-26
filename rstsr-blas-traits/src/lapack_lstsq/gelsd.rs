@@ -178,9 +178,11 @@ where
 
 /// Map a raw `GELSD` info return to a rstsr error.
 ///
-/// Netlib LAPACK (3.12 and later) reports a NaN/Inf `A` as `info = -4` (its
-/// `A` argument; `B` is never checked), LAPACKE as `-5`/`-7`/`-10` (its
-/// `matrix_layout` shifts the Fortran indices). In the `lapack` configuration
+/// Netlib LAPACK master (`3d90a787f`, 2026-11; in no release up to 3.12.1)
+/// reports a NaN/Inf `A` as `info = -4` (its `A` argument; `B` is never
+/// checked); libraries without that check may fail to converge instead.
+/// LAPACKE reports it as `-5`/`-7`/`-10` (its `matrix_layout` shifts the
+/// Fortran indices). In the `lapack` configuration
 /// `-5`/`-7` are illegal-LDA/LDB codes, which the builder rules out before
 /// the call. A positive `info` means the underlying SVD did not converge.
 fn map_gelsd_info(info: blas_int) -> Result<()> {
