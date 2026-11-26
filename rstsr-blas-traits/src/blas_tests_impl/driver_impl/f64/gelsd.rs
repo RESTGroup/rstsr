@@ -111,6 +111,65 @@ fn test_dgelsd_layout() {
                 }
             }
         }
+
+        // fully non-contiguous (stride 2 in both axes) a and b, as views and
+        // as owned tensors keeping that layout (copied, not consumed in place)
+        let strided = |tag: char, rows: usize, cols: usize| {
+            let v = &get_vec::<f64>(tag)[..4 * rows * cols];
+            let buf = rt::asarray((v, [2 * rows, 2 * cols].c(), &device)).into_dim::<Ix2>().into_owned();
+            let view = buf.i((slice!(None, None, 2), slice!(None, None, 2))).into_dim::<Ix2>();
+            let view_ref = &view;
+            let gathered = (0..rows).flat_map(|i| (0..cols).map(move |j| view_ref[[i, j]])).collect::<Vec<_>>();
+            let contiguous = rt::asarray((gathered, [rows, cols].c(), &device)).into_dim::<Ix2>();
+            (view.into_owned_keep_layout().into_dim::<Ix2>(), contiguous)
+        };
+        let (mut a_strided, a_gathered) = strided('a', m, n);
+        let (mut b_strided, b_gathered) = strided('b', m, k);
+        let reference_strided = {
+            let (x, s, rank, residuals) = DGELSD::default()
+                .a(a_gathered.view())
+                .b(b_gathered.view())
+                .rcond(rcond)
+                .build()
+                .unwrap()
+                .run()
+                .unwrap();
+            (fingerprint(&x), fingerprint(&s), rank, residuals.map(|r| fingerprint(&r)))
+        };
+        let (x, s, rank, residuals) =
+            DGELSD::default().a(a_strided.view()).b(b_strided.view()).rcond(rcond).build().unwrap().run().unwrap();
+        assert!((fingerprint(&x) - reference_strided.0).abs() < 1e-8);
+        assert!((fingerprint(&s) - reference_strided.1).abs() < 1e-8);
+        assert_eq!(rank, reference_strided.2);
+        assert_eq!(residuals.map(|r| fingerprint(&r)), reference_strided.3);
+        let (x, s, rank, residuals) = DGELSD::default()
+            .a(a_strided.view_mut())
+            .b(b_strided.view_mut())
+            .rcond(rcond)
+            .build()
+            .unwrap()
+            .run()
+            .unwrap();
+        assert!((fingerprint(&x) - reference_strided.0).abs() < 1e-8);
+        assert!((fingerprint(&s) - reference_strided.1).abs() < 1e-8);
+        assert_eq!(rank, reference_strided.2);
+        assert_eq!(residuals.map(|r| fingerprint(&r)), reference_strided.3);
+
+        // padded row-major tensors passed as mutable: used in place with ld > n
+        let mut a_padded = make_mat(a_vec, m, n, &device, false, true);
+        let mut b_padded = make_mat(b_vec, m, k, &device, false, true);
+        let (x, s, rank, residuals) = DGELSD::default()
+            .a(a_padded.view_mut())
+            .b(b_padded.view_mut())
+            .rcond(rcond)
+            .build()
+            .unwrap()
+            .run()
+            .unwrap();
+        assert!((fingerprint(&x) - reference.0).abs() < 1e-8);
+        assert!((fingerprint(&s) - reference.1).abs() < 1e-8);
+        assert_eq!(rank, reference.2);
+        assert_eq!(residuals.map(|r| fingerprint(&r)), reference.3);
     }
 }
 
@@ -256,4 +315,24 @@ fn test_dgelsd_zero_size() {
     assert_eq!(s.shape(), &[4]);
     assert_eq!(rank, 4);
     assert_eq!(residuals.unwrap().shape(), &[0]);
+
+    // n == 0 with k == 0: no residual column, the result is still well-formed
+    let a: Tensor<f64, DeviceBLAS, Ix2> = rt::zeros_f(([5usize, 0], &device)).unwrap().into_dim::<Ix2>();
+    let b: Tensor<f64, DeviceBLAS, Ix2> = rt::zeros_f(([5usize, 0], &device)).unwrap().into_dim::<Ix2>();
+    let (x, s, rank, residuals) =
+        DGELSD::default().a(a.view()).b(b.view()).rcond(rcond).build().unwrap().run().unwrap();
+    assert_eq!(x.shape(), &[0, 0]);
+    assert_eq!(s.shape(), &[0]);
+    assert_eq!(rank, 0);
+    assert_eq!(residuals.unwrap().shape(), &[0]);
+
+    // m == 0 and n == 0: empty residuals (the NumPy rule)
+    let a: Tensor<f64, DeviceBLAS, Ix2> = rt::zeros_f(([0usize, 0], &device)).unwrap().into_dim::<Ix2>();
+    let b: Tensor<f64, DeviceBLAS, Ix2> = rt::zeros_f(([0usize, 3], &device)).unwrap().into_dim::<Ix2>();
+    let (x, s, rank, residuals) =
+        DGELSD::default().a(a.view()).b(b.view()).rcond(rcond).build().unwrap().run().unwrap();
+    assert_eq!(x.shape(), &[0, 3]);
+    assert_eq!(s.shape(), &[0]);
+    assert_eq!(rank, 0);
+    assert!(residuals.is_none());
 }

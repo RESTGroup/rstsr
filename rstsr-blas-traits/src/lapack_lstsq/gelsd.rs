@@ -71,25 +71,25 @@ where
             return Err(rstsr_error!(InvalidValue, "Lapack GELSD: rcond must not be NaN"));
         }
 
-        // zero-size: no driver call (LAPACK's internal DLALSD misreports them)
-        if n == 0 {
+        // zero-size: GELSD quick-returns before any work; synthesize the outputs
+        if n == 0 || m == 0 {
             let x = zeros_f(([n, k], order, &device))?.into_dim::<Ix2>();
             let s = zeros_f(([0], &device))?.into_dim::<Ix1>();
-            let mut b_work = zeros_f(([m, k], order, &device))?.into_dim::<Ix2>();
-            b_work.assign_f(b)?;
-            let residuals = residual_sums(&b_work, 0, m, k, order)?;
-            return Ok((x, s, 0, Some(residuals)));
-        }
-        if m == 0 {
-            let x = zeros_f(([n, k], order, &device))?.into_dim::<Ix2>();
-            let s = zeros_f(([0], &device))?.into_dim::<Ix1>();
-            return Ok((x, s, 0, None));
+            // n == 0 < m: residuals are the column sums of |b|^2; none otherwise
+            let residuals = if n == 0 && m > 0 {
+                let mut b_work = zeros_f(([m, k], order, &device))?.into_dim::<Ix2>();
+                b_work.assign_f(b)?;
+                Some(residual_sums(&b_work, 0, m, k, order)?)
+            } else {
+                None
+            };
+            return Ok((x, s, 0, residuals));
         }
 
         // GELSD destroys a; clone-or-consume it in the call order
         let mut a_work = overwritable_convert_with_order(a, order)?;
 
-        // b workspace: max(m, n) rows; pad nrhs to 1 when k == 0
+        // b workspace: max(m, n) rows; pad nrhs to 1 (DLALSD requires nrhs >= 1)
         let k_call = k.max(1);
         let mut b_work = zeros_f(([m.max(n), k_call], order, &device))?.into_dim::<Ix2>();
         if k > 0 {
@@ -123,12 +123,13 @@ where
         if k > 0 {
             x.assign_f(b_work.i((..n, ..)))?;
         }
+        // residuals only for an over-determined full-rank system (m > n)
         let residuals = if m > n && rank == n {
-            let mut residuals = residual_sums(&b_work, n, m, k_call, order)?;
             if k == 0 {
-                residuals = zeros_f(([0], &device))?.into_dim::<Ix1>();
+                Some(zeros_f(([0], &device))?.into_dim::<Ix1>())
+            } else {
+                Some(residual_sums(&b_work, n, m, k, order)?)
             }
-            Some(residuals)
         } else {
             None
         };
@@ -141,6 +142,7 @@ where
 }
 
 /// Sum of `|b[i, j]|^2` over the row range `start..end` for every column.
+/// An empty `b` has no leading dimension; the result is empty.
 fn residual_sums<T, B>(
     b_work: &Tensor<T, B, Ix2>,
     start: usize,
@@ -153,13 +155,16 @@ where
     B: BlasDriverBaseAPI<T> + DeviceCreationNumAPI<T::Real>,
 {
     let device = b_work.device().clone();
+    let mut out = zeros_f(([k], &device))?.into_dim::<Ix1>();
+    if k == 0 {
+        return Ok(out);
+    }
     let ld = b_work.testify_ld(order, "B")?;
     let (stride_i, stride_j) = match order {
         RowMajor => (ld as isize, 1isize),
         ColMajor => (1isize, ld as isize),
     };
     let raw = b_work.raw();
-    let mut out = zeros_f(([k], &device))?.into_dim::<Ix1>();
     for j in 0..k {
         let mut acc = T::Real::zero();
         for i in start..end {
@@ -173,13 +178,21 @@ where
 
 /// Map a raw `GELSD` info return to a rstsr error.
 ///
-/// LAPACK reports a NaN/Inf operand as `info = -4` (the `A` argument) and
-/// LAPACKE as `-5`/`-7`/`-10` (its `matrix_layout` shifts the Fortran
-/// indices); every other code keeps the generic mapping.
+/// Netlib LAPACK (3.12 and later) reports a NaN/Inf `A` as `info = -4` (its
+/// `A` argument; `B` is never checked), LAPACKE as `-5`/`-7`/`-10` (its
+/// `matrix_layout` shifts the Fortran indices). In the `lapack` configuration
+/// `-5`/`-7` are illegal-LDA/LDB codes, which the builder rules out before
+/// the call. A positive `info` means the underlying SVD did not converge.
 fn map_gelsd_info(info: blas_int) -> Result<()> {
     let code = blas_int_as_i32(info);
     if code == -4 || code == -5 || code == -7 || code == -10 {
         return Err(rstsr_error!(InvalidValue, "Lapack GELSD: A or B contains a NaN or infinity"));
+    }
+    if code > 0 {
+        return Err(rstsr_error!(
+            InvalidValue,
+            "Lapack GELSD: SVD failed to converge (info = {code} off-diagonal elements of an intermediate bidiagonal form did not converge to zero)"
+        ));
     }
     map_lapack_info(info, "Lapack GELSD")
 }

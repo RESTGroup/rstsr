@@ -89,9 +89,13 @@ Note `A` is the **first** argument (RSTSR solves `A x = B`), matching SciPy.
 
 - **`lstsq`** is **BLAS-only** (LAPACK `GELSD`): there is no `DeviceFaer`
   least-squares entry. `lstsq((&a, &b))` uses `rcond = eps·max(M, N)`;
-  `lstsq((&a, &b, rcond))` sets it explicitly. `a` is destroyed by the
-  factorization (an owned or mutable input whose layout already matches the
-  device order is consumed in place).
+  `lstsq((&a, &b, rcond))` sets it explicitly (`rcond <= 0` or `>= 1` is
+  clamped to machine epsilon, where SciPy rejects negatives). The result is
+  `LstsqResult { x, residuals, rank, s }` (destructurable as a 4-tuple):
+  `x` is `(..., N, K)` (or `(..., N)` for a vector `b`), `rank` holds one
+  value per matrix slice, and `residuals` is real — `(..., K)` for a tall
+  full-rank slice, `NaN` where `rank < N`, empty where `M <= N` (the SciPy
+  convention). Inputs are never modified.
 - **`solve_symmetric`** has **no `DeviceFaer` implementation** (it is
   BLAS-only). Use `solve_general`, or an eigensolver-based approach.
 - **`eigvalsh`** on faer handles the **standard** problem only; generalized

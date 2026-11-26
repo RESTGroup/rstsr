@@ -425,13 +425,17 @@ where
 /// sum-of-squares per right-hand side, the numerical rank and the singular
 /// values.
 ///
-/// The shapes follow NumPy and SciPy. With a matrix right-hand side `b` the
-/// solution is `(..., N, K)` and `residuals` is `(..., K)`; a vector `b`
-/// squeezes the last axis, so `residuals` takes the batch shape (0-d when
-/// unbatched). Residuals are real even for complex inputs, are `NaN` on
-/// slices whose rank is below `N`, and are empty when `M <= N`. `rank` keeps
-/// one value per matrix slice. The conversions below destructure the four
-/// fields.
+/// The shapes follow SciPy. With a matrix right-hand side `b` of shape
+/// `(..., M, K)` the solution is `(..., N, K)`, `s` is `(..., min(M, N))`,
+/// `rank` is `(...)` and `residuals` is `(..., K)`; a vector `b` of shape
+/// `(..., M)` squeezes the last axis of `x`, and its `residuals` take the
+/// batch shape (0-d when unbatched).
+///
+/// `residuals` are real even for complex inputs (the NumPy dtype rule). They
+/// are the column sums of squares of `b - a x` only for a tall full-rank
+/// slice (`M > N` and `rank == N`): a slice with `rank < N` gives `NaN`, a
+/// slice with `M <= N` an empty array (the SciPy rule; NumPy gives an empty
+/// array in both cases).
 ///
 /// See also [`lstsq`], [`LstsqAPI`].
 pub struct LstsqResult<X, Res, Rank, S> {

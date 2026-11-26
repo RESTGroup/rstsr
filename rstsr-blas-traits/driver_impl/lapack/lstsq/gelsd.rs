@@ -97,7 +97,9 @@ pub unsafe fn fn_work(
                 Err(_) => return -1011,
             };
 
-            let a_slice = from_raw_parts_mut(a, m.max(1) * lda);
+            // spans cover the logical elements only: (rows - 1) * ld + cols
+            let a_span = if m == 0 || n == 0 { 0 } else { (m - 1) * lda + n };
+            let a_slice = from_raw_parts_mut(a, a_span);
             let la = Layout::new_unchecked([m, n], [lda as isize, 1], 0);
             let la_t = Layout::new_unchecked([m, n], [1, lda_t as isize], 0);
             if orderchange_out_r2c_ix2_cpu_serial(&mut a_t, &la_t, a_slice, &la).is_err() {
@@ -105,7 +107,8 @@ pub unsafe fn fn_work(
             }
             // the solution of the wide case lives in rows 0..n of b
             let rows = m.max(n);
-            let b_slice = from_raw_parts_mut(b, rows * ldb);
+            let b_span = if rows == 0 || nrhs == 0 { 0 } else { (rows - 1) * ldb + nrhs };
+            let b_slice = from_raw_parts_mut(b, b_span);
             let lb = Layout::new_unchecked([rows, nrhs], [ldb as isize, 1], 0);
             let lb_t = Layout::new_unchecked([rows, nrhs], [1, ldb_t as isize], 0);
             if orderchange_out_r2c_ix2_cpu_serial(&mut b_t, &lb_t, b_slice, &lb).is_err() {
@@ -313,7 +316,9 @@ pub unsafe fn fn_work(
                 Err(_) => return -1011,
             };
 
-            let a_slice = from_raw_parts_mut(a, m.max(1) * lda);
+            // spans cover the logical elements only: (rows - 1) * ld + cols
+            let a_span = if m == 0 || n == 0 { 0 } else { (m - 1) * lda + n };
+            let a_slice = from_raw_parts_mut(a, a_span);
             let la = Layout::new_unchecked([m, n], [lda as isize, 1], 0);
             let la_t = Layout::new_unchecked([m, n], [1, lda_t as isize], 0);
             if orderchange_out_r2c_ix2_cpu_serial(&mut a_t, &la_t, a_slice, &la).is_err() {
@@ -321,7 +326,8 @@ pub unsafe fn fn_work(
             }
             // the solution of the wide case lives in rows 0..n of b
             let rows = m.max(n);
-            let b_slice = from_raw_parts_mut(b, rows * ldb);
+            let b_span = if rows == 0 || nrhs == 0 { 0 } else { (rows - 1) * ldb + nrhs };
+            let b_slice = from_raw_parts_mut(b, b_span);
             let lb = Layout::new_unchecked([rows, nrhs], [ldb as isize, 1], 0);
             let lb_t = Layout::new_unchecked([rows, nrhs], [1, ldb_t as isize], 0);
             if orderchange_out_r2c_ix2_cpu_serial(&mut b_t, &lb_t, b_slice, &lb).is_err() {

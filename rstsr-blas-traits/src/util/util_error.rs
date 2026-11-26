@@ -5,6 +5,9 @@ use rstsr_core::prelude_dev::*;
 
 /// Map a raw LAPACK `info` return to a rstsr error.
 ///
+/// `routine` is the full routine label as reported to the user, e.g.
+/// `"Lapack GELSD"`.
+///
 /// `info < 0`: illegal argument — an internal bug (builders validate all
 /// arguments before the FFI call), reported with the Fortran argument index.
 /// `info > 0`: algorithmic failure, semantics defined by the routine itself.
@@ -15,17 +18,17 @@ pub fn map_lapack_info(info: blas_int, routine: &str) -> Result<()> {
     }
     // tier-internal allocation sentinels (-1010/-1011)
     if info == -1010 || info == -1011 {
-        return Err(rstsr_error!(MemoryError, "Lapack {routine}: workspace allocation failed"));
+        return Err(rstsr_error!(MemoryError, "{routine}: workspace allocation failed"));
     }
     let info = blas_int_as_i32(info);
     let neg_info = -info;
     if info < 0 {
         Err(rstsr_error!(
             InvalidValue,
-            "Lapack {routine}: illegal argument in argument {neg_info} (internal bug, please report)"
+            "{routine}: illegal argument in argument {neg_info} (internal bug, please report)"
         ))
     } else {
-        Err(rstsr_error!(InvalidValue, "Lapack {routine} (info = {info})"))
+        Err(rstsr_error!(InvalidValue, "{routine} (info = {info})"))
     }
 }
 

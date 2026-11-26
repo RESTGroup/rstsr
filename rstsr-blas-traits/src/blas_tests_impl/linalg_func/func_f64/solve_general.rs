@@ -94,4 +94,12 @@ fn test_solve_general_nd() {
         rt::linalg::solve_general((a.view(), b_single_mut.view_mut()));
     }));
     assert!(result.is_err());
+
+    // b's rank is rank(a) or one less: a b that is too short is an error, not a panic
+    let a4 = rt::asarray(((0..36).map(|j| (j % 7) as f64 + 1.0).collect::<Vec<_>>(), [2usize, 2, 3, 3].c(), &device))
+        .into_dim::<Ix4>();
+    let b_short = rt::asarray((vec![1.0f64, 2.0, 3.0], [3usize].c(), &device)).into_dim::<Ix1>();
+    let err = rt::linalg::solve_general_f((a4.view(), b_short.view()));
+    let msg = format!("{}", err.expect_err("short b must fail"));
+    assert!(msg.contains("b must be (..., M, K) or (..., M) for a's rank"), "{msg}");
 }

@@ -151,10 +151,14 @@ fn split_rhs(b: &[usize], ndim_a: usize, m: usize, order: FlagOrder, op: &str) -
     let ndim_b = b.len();
     rstsr_assert!(ndim_b >= 1, InvalidLayout, "{op}: b must have at least 1 dimension")?;
     // the vector form is relative to a: b has one fewer inner axis than a
-    let inner_ndim_b = ndim_b + 2 - ndim_a;
-    rstsr_pattern!(inner_ndim_b, 1..=2, InvalidLayout, "{op}: b must be (..., M, K) or (..., M) for a's rank")?;
-    let is_vec = inner_ndim_b == 1;
-    let (batch_b, inner_b) = stack_split_shape(b, inner_ndim_b, order)?;
+    let inner_ndim_b = ndim_b.checked_add(2).and_then(|v| v.checked_sub(ndim_a));
+    rstsr_assert!(
+        matches!(inner_ndim_b, Some(1..=2)),
+        InvalidLayout,
+        "{op}: b must be (..., M, K) or (..., M) for a's rank, got b of rank {ndim_b} for a of rank {ndim_a}"
+    )?;
+    let is_vec = inner_ndim_b == Some(1);
+    let (batch_b, inner_b) = stack_split_shape(b, 2 - is_vec as usize, order)?;
     rstsr_assert_eq!(inner_b[0], m, InvalidLayout, "{op}: b's row dimension must match a, got {} vs {m}", inner_b[0])?;
     let k = if is_vec { 1 } else { inner_b[1] };
     Ok((batch_b, k, is_vec))
