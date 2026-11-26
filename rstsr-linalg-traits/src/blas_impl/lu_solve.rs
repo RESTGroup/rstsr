@@ -12,6 +12,10 @@
 //! - Packed form `(lu, piv)`: `lu` is `(batch, N, N)` and `piv` `(batch, N)` with the same batch (a
 //!   [`LuFactorResult`]); `b` is `(batch_b, N, K)` or the vector form `(batch_b, N)`; the solution
 //!   `x` has the broadcast shape of `b`, `(N, K)` or `(N,)` per slice.
+//! - The form of `b` is relative to the rank of the factors: `b` with one fewer axis than `lu` is
+//!   the vector form `(batch_b, N)`; with as many axes it is `(batch_b, N, K)`. Next to a stacked
+//!   factor a 2-D `b` is therefore a batch of vectors, not one matrix shared by every factor as
+//!   SciPy reads it; to share one matrix, give it a size-1 batch axis, `(1, N, K)`.
 //! - Factor form `(&LuResult, b)`: `p` `(batch, N)`, `l` and `u` `(batch, N, N)` with the same
 //!   batch. The factors must be unpermuted (`p` present): a result of `lu` with `permute_l` is an
 //!   `InvalidValue` error.
@@ -24,9 +28,9 @@
 //! - Explicit factors of [`lu`](crate::linalg_auto_impl::lu): `lu_solve((&factors, b))`.
 //! - Each form takes an optional last `FlagTrans`.
 //!
-//! The factors are only read: `lu` and `piv` are `&TensorAny`, `TensorView` or an owned `Tensor`
-//! with a read-only `b`, and any operand kind with a consumed `b`. `b` is read-only (`&TensorAny`,
-//! `TensorView`) for a fresh solution, or consumed (`TensorMut`, `Tensor`) to be solved in place.
+//! `lu` and `piv` are `&TensorAny`, `TensorView` or an owned `Tensor` with a read-only `b`, and
+//! any operand kind with a consumed `b`. `b` is read-only (`&TensorAny`, `TensorView`) for a fresh
+//! solution, or consumed (`TensorMut`, `Tensor`) to be solved in place.
 //!
 //! # Policy
 //!
