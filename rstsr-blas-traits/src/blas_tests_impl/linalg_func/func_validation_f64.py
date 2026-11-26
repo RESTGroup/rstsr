@@ -433,3 +433,21 @@ b = b_raw[:1024].copy()
 x = scipy.linalg.lu_solve((lu, piv), b, trans=1, check_finite=False)
 assert np.isclose(fingerprint(x), 11.360947052714014)
 fingerprint(x)
+
+# ### ldl
+
+a = a_raw[:1024*1024].copy().reshape(1024, 1024)
+a = a + a.T
+lu, d, perm = scipy.linalg.ldl(a, check_finite=False)
+assert np.isclose(fingerprint(lu), 278.035031382680529)
+assert np.isclose(fingerprint(d), -1206.931902682589453)
+assert np.isclose(fingerprint(perm.astype(np.float64)), -868.556995521615590)
+fingerprint(lu), fingerprint(d), fingerprint(perm.astype(np.float64))
+
+a = a_raw[:1024*1024].copy().reshape(1024, 1024)
+a = a + a.T
+lu, d, perm = scipy.linalg.ldl(a, lower=False, check_finite=False)
+assert np.isclose(fingerprint(lu), -40.674750563392962)
+assert np.isclose(fingerprint(d), 1613.307271287987533)
+assert np.isclose(fingerprint(perm.astype(np.float64)), -1842.922385966796355)
+fingerprint(lu), fingerprint(d), fingerprint(perm.astype(np.float64))

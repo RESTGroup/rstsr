@@ -24,6 +24,7 @@ mod eigvals;
 mod eigvalsh;
 mod generalized_eigh;
 mod inv;
+mod ldl;
 mod lstsq;
 mod lu;
 mod lu_factor;

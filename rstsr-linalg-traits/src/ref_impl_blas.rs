@@ -1081,8 +1081,10 @@ where
     let device = a.device().clone();
     let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
     let task = || match hermitian {
-        false => SYTRF::<_, _, false>::default().a(a.view()).uplo(uplo).build()?.run_with_info(),
-        true => SYTRF::<_, _, true>::default().a(a.view()).uplo(uplo).build()?.run_with_info(),
+        // `a` is handed over as-is so an in-order mutable slice is factored
+        // in place (a view here would copy and leave the caller's input)
+        false => SYTRF::<_, _, false>::default().a(a).uplo(uplo).build()?.run_with_info(),
+        true => SYTRF::<_, _, true>::default().a(a).uplo(uplo).build()?.run_with_info(),
     };
     let (ldu, ipiv, info) = device.with_blas_num_threads(nthreads, task)?;
     let lower = uplo == Lower;
@@ -1096,11 +1098,11 @@ where
     }
     // strict triangle
     if lower {
-        for j in 0..n - 1 {
+        for j in 0..n.saturating_sub(1) {
             lu.i_mut((j + 1..n, j)).assign_f(ldu_v.i((j + 1..n, j)))?;
         }
     } else {
-        for i in 0..n - 1 {
+        for i in 0..n.saturating_sub(1) {
             lu.i_mut((i, i + 1..n)).assign_f(ldu_v.i((i, i + 1..n)))?;
         }
     }

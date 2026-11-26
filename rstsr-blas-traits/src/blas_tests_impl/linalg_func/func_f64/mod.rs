@@ -11,6 +11,7 @@ mod eigh;
 mod eigvals;
 mod eigvalsh;
 mod inv;
+mod ldl;
 mod lstsq;
 mod lu;
 mod lu_factor;

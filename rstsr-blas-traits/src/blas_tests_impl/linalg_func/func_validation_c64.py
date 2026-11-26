@@ -498,3 +498,25 @@ fingerprint(np.abs(x))
 x = scipy.linalg.lu_solve((lu, piv), b, trans=2, check_finite=False)
 assert np.isclose(fingerprint(np.abs(x)), 1.9240075469181859)
 fingerprint(np.abs(x))
+
+# ### ldl
+
+ac = a_raw[:1024*1024].copy().reshape(1024, 1024)
+ah, asym = ac + ac.conj().T, ac + ac.T
+lu, d, perm = scipy.linalg.ldl(ah, check_finite=False)
+assert np.isclose(fingerprint(np.abs(lu)), -40.081477868486445)
+assert np.isclose(fingerprint(np.abs(d)), -755.721723672091912)
+assert np.isclose(fingerprint(perm.astype(np.float64)), -5295.552240978868213)
+fingerprint(np.abs(lu)), fingerprint(np.abs(d)), fingerprint(perm.astype(np.float64))
+
+lu, d, perm = scipy.linalg.ldl(ah, lower=False, check_finite=False)
+assert np.isclose(fingerprint(np.abs(lu)), 51.808720927208192)
+assert np.isclose(fingerprint(np.abs(d)), -180.086817996708049)
+assert np.isclose(fingerprint(perm.astype(np.float64)), 2583.421176397792806)
+fingerprint(np.abs(lu)), fingerprint(np.abs(d)), fingerprint(perm.astype(np.float64))
+
+lu, d, perm = scipy.linalg.ldl(asym, hermitian=False, check_finite=False)
+assert np.isclose(fingerprint(np.abs(lu)), 33.914606804494227)
+assert np.isclose(fingerprint(np.abs(d)), 184.865319971126183)
+assert np.isclose(fingerprint(perm.astype(np.float64)), 1695.094480873951852)
+fingerprint(np.abs(lu)), fingerprint(np.abs(d)), fingerprint(perm.astype(np.float64))
