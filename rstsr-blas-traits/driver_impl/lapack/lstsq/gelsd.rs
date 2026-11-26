@@ -131,7 +131,10 @@ pub unsafe fn fn_work(
             if *info != 0 {
                 return *info;
             }
-            // a is destroyed by GELSD; only the solution/residuals in b are live
+            // Transpose output matrices: the destroyed a, then the solution/residuals in b
+            if orderchange_out_c2r_ix2_cpu_serial(a_slice, &la, &a_t, &la_t).is_err() {
+                return -1011;
+            }
             if orderchange_out_c2r_ix2_cpu_serial(b_slice, &lb, &b_t, &lb_t).is_err() {
                 return -1011;
             }
@@ -348,7 +351,10 @@ pub unsafe fn fn_work(
             if *info != 0 {
                 return *info;
             }
-            // a is destroyed by GELSD; only the solution/residuals in b are live
+            // Transpose output matrices: the destroyed a, then the solution/residuals in b
+            if orderchange_out_c2r_ix2_cpu_serial(a_slice, &la, &a_t, &la_t).is_err() {
+                return -1011;
+            }
             if orderchange_out_c2r_ix2_cpu_serial(b_slice, &lb, &b_t, &lb_t).is_err() {
                 return -1011;
             }

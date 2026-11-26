@@ -27,8 +27,10 @@ use rstsr_linalg_traits::prelude_dev::*;
 /// - `residuals` are real (also for complex inputs): the column sums of squares of `b - a x` for a
 ///   tall full-rank slice, `NaN` where `rank < N`, empty where `M <= N`, and the column sums of
 ///   squares of `b` for an empty column space (`N == 0 < M`).
-/// - Both inputs are only read: every slice is copied into the driver workspace. NaN and Inf inputs
-///   are not pre-checked; whether LAPACK reports them depends on the BLAS build and backend.
+/// - An owned or mutable `a` whose batch needs no broadcast and whose layout is the call order is
+///   consumed in place and destroyed by the factorization; every other `a`, and `b`, is only read.
+///   NaN and Inf inputs are not pre-checked; whether LAPACK reports them depends on the BLAS build
+///   and backend.
 #[allow(clippy::type_complexity)]
 pub fn blas_impl_lstsq_f<T>(
     a: TensorReference<'_, T, DeviceBLAS, IxD>,
@@ -71,8 +73,8 @@ where
         return Err(rstsr_error!(InvalidValue, "lstsq: rcond must not be NaN"));
     }
 
-    // `a` is copied into a work buffer in the device order, broadcast to the
-    // plan's batch when its own batch is smaller
+    // consume `a` in place when its batch already matches the broadcast plan;
+    // a broadcast view cannot be destroyed, so it is copied
     let a_shape = plan.a_shape(order);
     let mut a_conv = if a.shape() == a_shape.as_slice() {
         overwritable_convert_with_order(a, order)?
@@ -134,23 +136,23 @@ where
 /* #region full-args */
 
 #[duplicate_item(
-    ImplTypes                                                            Tr1                                  Tr2;
-   [T, D1, D2, R1: DataAPI<Data = Vec<T>>, R2: DataAPI<Data = Vec<T>>,]  [&TensorAny<R1, T, DeviceBLAS, D1>]  [&TensorAny<R2, T, DeviceBLAS, D2>];
-   [T, D1, D2, R1: DataAPI<Data = Vec<T>>,                            ]  [&TensorAny<R1, T, DeviceBLAS, D1>]  [TensorView<'_, T, DeviceBLAS, D2>];
-   [T, D1, D2, R1: DataAPI<Data = Vec<T>>,                            ]  [&TensorAny<R1, T, DeviceBLAS, D1>]  [TensorMut<'_, T, DeviceBLAS, D2>];
-   [T, D1, D2, R1: DataAPI<Data = Vec<T>>,                            ]  [&TensorAny<R1, T, DeviceBLAS, D1>]  [Tensor<T, DeviceBLAS, D2>];
-   [T, D1, D2, R2: DataAPI<Data = Vec<T>>,                            ]  [TensorView<'_, T, DeviceBLAS, D1>]  [&TensorAny<R2, T, DeviceBLAS, D2>];
-   [T, D1, D2,                                                        ]  [TensorView<'_, T, DeviceBLAS, D1>]  [TensorView<'_, T, DeviceBLAS, D2>];
-   [T, D1, D2,                                                        ]  [TensorView<'_, T, DeviceBLAS, D1>]  [TensorMut<'_, T, DeviceBLAS, D2>];
-   [T, D1, D2,                                                        ]  [TensorView<'_, T, DeviceBLAS, D1>]  [Tensor<T, DeviceBLAS, D2>];
-   [T, D1, D2, R2: DataAPI<Data = Vec<T>>,                            ]  [TensorMut<'_, T, DeviceBLAS, D1>]   [&TensorAny<R2, T, DeviceBLAS, D2>];
-   [T, D1, D2,                                                        ]  [TensorMut<'_, T, DeviceBLAS, D1>]   [TensorView<'_, T, DeviceBLAS, D2>];
-   [T, D1, D2,                                                        ]  [TensorMut<'_, T, DeviceBLAS, D1>]   [TensorMut<'_, T, DeviceBLAS, D2>];
-   [T, D1, D2,                                                        ]  [TensorMut<'_, T, DeviceBLAS, D1>]   [Tensor<T, DeviceBLAS, D2>];
-   [T, D1, D2, R2: DataAPI<Data = Vec<T>>,                            ]  [Tensor<T, DeviceBLAS, D1>]          [&TensorAny<R2, T, DeviceBLAS, D2>];
-   [T, D1, D2,                                                        ]  [Tensor<T, DeviceBLAS, D1>]          [TensorView<'_, T, DeviceBLAS, D2>];
-   [T, D1, D2,                                                        ]  [Tensor<T, DeviceBLAS, D1>]          [TensorMut<'_, T, DeviceBLAS, D2>];
-   [T, D1, D2,                                                        ]  [Tensor<T, DeviceBLAS, D1>]          [Tensor<T, DeviceBLAS, D2>];
+    ImplTypes                                                            ToRefA                                   Tr1                                  Tr2;
+   [T, D1, D2, R1: DataAPI<Data = Vec<T>>, R2: DataAPI<Data = Vec<T>>,]  [a.view().to_dyn().into()]               [&TensorAny<R1, T, DeviceBLAS, D1>]  [&TensorAny<R2, T, DeviceBLAS, D2>];
+   [T, D1, D2, R1: DataAPI<Data = Vec<T>>,                            ]  [a.view().to_dyn().into()]               [&TensorAny<R1, T, DeviceBLAS, D1>]  [TensorView<'_, T, DeviceBLAS, D2>];
+   [T, D1, D2, R1: DataAPI<Data = Vec<T>>,                            ]  [a.view().to_dyn().into()]               [&TensorAny<R1, T, DeviceBLAS, D1>]  [TensorMut<'_, T, DeviceBLAS, D2>];
+   [T, D1, D2, R1: DataAPI<Data = Vec<T>>,                            ]  [a.view().to_dyn().into()]               [&TensorAny<R1, T, DeviceBLAS, D1>]  [Tensor<T, DeviceBLAS, D2>];
+   [T, D1, D2, R2: DataAPI<Data = Vec<T>>,                            ]  [a.view().to_dyn().into()]               [TensorView<'_, T, DeviceBLAS, D1>]  [&TensorAny<R2, T, DeviceBLAS, D2>];
+   [T, D1, D2,                                                        ]  [a.view().to_dyn().into()]               [TensorView<'_, T, DeviceBLAS, D1>]  [TensorView<'_, T, DeviceBLAS, D2>];
+   [T, D1, D2,                                                        ]  [a.view().to_dyn().into()]               [TensorView<'_, T, DeviceBLAS, D1>]  [TensorMut<'_, T, DeviceBLAS, D2>];
+   [T, D1, D2,                                                        ]  [a.view().to_dyn().into()]               [TensorView<'_, T, DeviceBLAS, D1>]  [Tensor<T, DeviceBLAS, D2>];
+   [T, D1, D2, R2: DataAPI<Data = Vec<T>>,                            ]  [a.view_mut().into_dim::<IxD>().into()]  [TensorMut<'_, T, DeviceBLAS, D1>]   [&TensorAny<R2, T, DeviceBLAS, D2>];
+   [T, D1, D2,                                                        ]  [a.view_mut().into_dim::<IxD>().into()]  [TensorMut<'_, T, DeviceBLAS, D1>]   [TensorView<'_, T, DeviceBLAS, D2>];
+   [T, D1, D2,                                                        ]  [a.view_mut().into_dim::<IxD>().into()]  [TensorMut<'_, T, DeviceBLAS, D1>]   [TensorMut<'_, T, DeviceBLAS, D2>];
+   [T, D1, D2,                                                        ]  [a.view_mut().into_dim::<IxD>().into()]  [TensorMut<'_, T, DeviceBLAS, D1>]   [Tensor<T, DeviceBLAS, D2>];
+   [T, D1, D2, R2: DataAPI<Data = Vec<T>>,                            ]  [a.view_mut().into_dim::<IxD>().into()]  [Tensor<T, DeviceBLAS, D1>]          [&TensorAny<R2, T, DeviceBLAS, D2>];
+   [T, D1, D2,                                                        ]  [a.view_mut().into_dim::<IxD>().into()]  [Tensor<T, DeviceBLAS, D1>]          [TensorView<'_, T, DeviceBLAS, D2>];
+   [T, D1, D2,                                                        ]  [a.view_mut().into_dim::<IxD>().into()]  [Tensor<T, DeviceBLAS, D1>]          [TensorMut<'_, T, DeviceBLAS, D2>];
+   [T, D1, D2,                                                        ]  [a.view_mut().into_dim::<IxD>().into()]  [Tensor<T, DeviceBLAS, D1>]          [Tensor<T, DeviceBLAS, D2>];
 )]
 impl<ImplTypes> LstsqAPI<DeviceBLAS> for (Tr1, Tr2)
 where
@@ -177,30 +179,31 @@ where
         Tensor<usize, DeviceBLAS, IxD>,
         Tensor<T::Real, DeviceBLAS, IxD>,
     >;
+    #[allow(unused_mut)]
     fn lstsq_f(self) -> Result<Self::Out> {
-        let (a, b) = self;
-        blas_impl_lstsq_f(a.view().to_dyn().into(), b.view().to_dyn().into(), None)
+        let (mut a, b) = self;
+        blas_impl_lstsq_f(ToRefA, b.view().to_dyn().into(), None)
     }
 }
 
 #[duplicate_item(
-    ImplTypes                                                            Tr1                                  Tr2;
-   [T, D1, D2, R1: DataAPI<Data = Vec<T>>, R2: DataAPI<Data = Vec<T>>,]  [&TensorAny<R1, T, DeviceBLAS, D1>]  [&TensorAny<R2, T, DeviceBLAS, D2>];
-   [T, D1, D2, R1: DataAPI<Data = Vec<T>>,                            ]  [&TensorAny<R1, T, DeviceBLAS, D1>]  [TensorView<'_, T, DeviceBLAS, D2>];
-   [T, D1, D2, R1: DataAPI<Data = Vec<T>>,                            ]  [&TensorAny<R1, T, DeviceBLAS, D1>]  [TensorMut<'_, T, DeviceBLAS, D2>];
-   [T, D1, D2, R1: DataAPI<Data = Vec<T>>,                            ]  [&TensorAny<R1, T, DeviceBLAS, D1>]  [Tensor<T, DeviceBLAS, D2>];
-   [T, D1, D2, R2: DataAPI<Data = Vec<T>>,                            ]  [TensorView<'_, T, DeviceBLAS, D1>]  [&TensorAny<R2, T, DeviceBLAS, D2>];
-   [T, D1, D2,                                                        ]  [TensorView<'_, T, DeviceBLAS, D1>]  [TensorView<'_, T, DeviceBLAS, D2>];
-   [T, D1, D2,                                                        ]  [TensorView<'_, T, DeviceBLAS, D1>]  [TensorMut<'_, T, DeviceBLAS, D2>];
-   [T, D1, D2,                                                        ]  [TensorView<'_, T, DeviceBLAS, D1>]  [Tensor<T, DeviceBLAS, D2>];
-   [T, D1, D2, R2: DataAPI<Data = Vec<T>>,                            ]  [TensorMut<'_, T, DeviceBLAS, D1>]   [&TensorAny<R2, T, DeviceBLAS, D2>];
-   [T, D1, D2,                                                        ]  [TensorMut<'_, T, DeviceBLAS, D1>]   [TensorView<'_, T, DeviceBLAS, D2>];
-   [T, D1, D2,                                                        ]  [TensorMut<'_, T, DeviceBLAS, D1>]   [TensorMut<'_, T, DeviceBLAS, D2>];
-   [T, D1, D2,                                                        ]  [TensorMut<'_, T, DeviceBLAS, D1>]   [Tensor<T, DeviceBLAS, D2>];
-   [T, D1, D2, R2: DataAPI<Data = Vec<T>>,                            ]  [Tensor<T, DeviceBLAS, D1>]          [&TensorAny<R2, T, DeviceBLAS, D2>];
-   [T, D1, D2,                                                        ]  [Tensor<T, DeviceBLAS, D1>]          [TensorView<'_, T, DeviceBLAS, D2>];
-   [T, D1, D2,                                                        ]  [Tensor<T, DeviceBLAS, D1>]          [TensorMut<'_, T, DeviceBLAS, D2>];
-   [T, D1, D2,                                                        ]  [Tensor<T, DeviceBLAS, D1>]          [Tensor<T, DeviceBLAS, D2>];
+    ImplTypes                                                            ToRefA                                   Tr1                                  Tr2;
+   [T, D1, D2, R1: DataAPI<Data = Vec<T>>, R2: DataAPI<Data = Vec<T>>,]  [a.view().to_dyn().into()]               [&TensorAny<R1, T, DeviceBLAS, D1>]  [&TensorAny<R2, T, DeviceBLAS, D2>];
+   [T, D1, D2, R1: DataAPI<Data = Vec<T>>,                            ]  [a.view().to_dyn().into()]               [&TensorAny<R1, T, DeviceBLAS, D1>]  [TensorView<'_, T, DeviceBLAS, D2>];
+   [T, D1, D2, R1: DataAPI<Data = Vec<T>>,                            ]  [a.view().to_dyn().into()]               [&TensorAny<R1, T, DeviceBLAS, D1>]  [TensorMut<'_, T, DeviceBLAS, D2>];
+   [T, D1, D2, R1: DataAPI<Data = Vec<T>>,                            ]  [a.view().to_dyn().into()]               [&TensorAny<R1, T, DeviceBLAS, D1>]  [Tensor<T, DeviceBLAS, D2>];
+   [T, D1, D2, R2: DataAPI<Data = Vec<T>>,                            ]  [a.view().to_dyn().into()]               [TensorView<'_, T, DeviceBLAS, D1>]  [&TensorAny<R2, T, DeviceBLAS, D2>];
+   [T, D1, D2,                                                        ]  [a.view().to_dyn().into()]               [TensorView<'_, T, DeviceBLAS, D1>]  [TensorView<'_, T, DeviceBLAS, D2>];
+   [T, D1, D2,                                                        ]  [a.view().to_dyn().into()]               [TensorView<'_, T, DeviceBLAS, D1>]  [TensorMut<'_, T, DeviceBLAS, D2>];
+   [T, D1, D2,                                                        ]  [a.view().to_dyn().into()]               [TensorView<'_, T, DeviceBLAS, D1>]  [Tensor<T, DeviceBLAS, D2>];
+   [T, D1, D2, R2: DataAPI<Data = Vec<T>>,                            ]  [a.view_mut().into_dim::<IxD>().into()]  [TensorMut<'_, T, DeviceBLAS, D1>]   [&TensorAny<R2, T, DeviceBLAS, D2>];
+   [T, D1, D2,                                                        ]  [a.view_mut().into_dim::<IxD>().into()]  [TensorMut<'_, T, DeviceBLAS, D1>]   [TensorView<'_, T, DeviceBLAS, D2>];
+   [T, D1, D2,                                                        ]  [a.view_mut().into_dim::<IxD>().into()]  [TensorMut<'_, T, DeviceBLAS, D1>]   [TensorMut<'_, T, DeviceBLAS, D2>];
+   [T, D1, D2,                                                        ]  [a.view_mut().into_dim::<IxD>().into()]  [TensorMut<'_, T, DeviceBLAS, D1>]   [Tensor<T, DeviceBLAS, D2>];
+   [T, D1, D2, R2: DataAPI<Data = Vec<T>>,                            ]  [a.view_mut().into_dim::<IxD>().into()]  [Tensor<T, DeviceBLAS, D1>]          [&TensorAny<R2, T, DeviceBLAS, D2>];
+   [T, D1, D2,                                                        ]  [a.view_mut().into_dim::<IxD>().into()]  [Tensor<T, DeviceBLAS, D1>]          [TensorView<'_, T, DeviceBLAS, D2>];
+   [T, D1, D2,                                                        ]  [a.view_mut().into_dim::<IxD>().into()]  [Tensor<T, DeviceBLAS, D1>]          [TensorMut<'_, T, DeviceBLAS, D2>];
+   [T, D1, D2,                                                        ]  [a.view_mut().into_dim::<IxD>().into()]  [Tensor<T, DeviceBLAS, D1>]          [Tensor<T, DeviceBLAS, D2>];
 )]
 impl<ImplTypes> LstsqAPI<DeviceBLAS> for (Tr1, Tr2, T::Real)
 where
@@ -227,9 +230,10 @@ where
         Tensor<usize, DeviceBLAS, IxD>,
         Tensor<T::Real, DeviceBLAS, IxD>,
     >;
+    #[allow(unused_mut)]
     fn lstsq_f(self) -> Result<Self::Out> {
-        let (a, b, rcond) = self;
-        blas_impl_lstsq_f(a.view().to_dyn().into(), b.view().to_dyn().into(), Some(rcond))
+        let (mut a, b, rcond) = self;
+        blas_impl_lstsq_f(ToRefA, b.view().to_dyn().into(), Some(rcond))
     }
 }
 

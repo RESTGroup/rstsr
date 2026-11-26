@@ -256,11 +256,121 @@ fn test_lstsq_overloads() {
     let (a, b) = make();
     check(&rt::linalg::lstsq((a, b, 1e-12)), &reference);
 
-    // mutable inputs are only read
+    // b is only read; a mutable a is consumed by the factorization
     let (mut a, mut b) = make();
     rt::linalg::lstsq((a.view_mut(), b.view_mut()));
-    assert_eq!(a.raw().to_vec(), a_data);
     assert_eq!(b.raw().to_vec(), b_data);
+}
+
+#[test]
+fn test_lstsq_inplace() {
+    // an owned or mutable a whose batch needs no broadcast is consumed by the
+    // factorization; every input route gives the result of the read-only call
+    let (m, n, k) = (6usize, 4usize, 2usize);
+    let a_data: Vec<f64> = (0..m * n).map(|j| ((j * 7 + 3) % 11) as f64 / 3.0 - 1.5).collect();
+    let b_data: Vec<f64> = (0..m * k).map(|j| ((j * 5 + 1) % 7) as f64 / 2.0 - 1.5).collect();
+
+    for order in [RowMajor, ColMajor] {
+        let mut device = DeviceBLAS::default();
+        device.set_default_order(order);
+        let mk = |v: &[f64], rows: usize, cols: usize, layout: FlagOrder| -> Tensor<f64, DeviceBLAS, Ix2> {
+            match layout {
+                RowMajor => rt::asarray((v.to_vec(), [rows, cols].c(), &device)).into_dim::<Ix2>(),
+                ColMajor => rt::asarray((v.to_vec(), [rows, cols].f(), &device)).into_dim::<Ix2>(),
+            }
+        };
+        // the same logical values of a row-major buffer, stored in Fortran order
+        let fortran = |v: &[f64], rows: usize, cols: usize| -> Vec<f64> {
+            let mut w = vec![0.0; v.len()];
+            for i in 0..rows {
+                for j in 0..cols {
+                    w[j * rows + i] = v[i * cols + j];
+                }
+            }
+            w
+        };
+        let a = mk(&a_data, m, n, order);
+        let b = mk(&b_data, m, k, order);
+        let reference = rt::linalg::lstsq((a.view(), b.view()));
+        let check = |result: &LstsqOut, at: &str| {
+            assert!(rt::allclose(result.x.view(), reference.x.view(), Some(1e-10)), "x, {at}, {order:?}");
+            assert!(rt::allclose(&result.s, &reference.s, Some(1e-10)), "s, {at}, {order:?}");
+            assert!(
+                rt::allclose(result.residuals.view(), reference.residuals.view(), Some(1e-10)),
+                "residuals, {at}, {order:?}"
+            );
+            assert_eq!(result.rank.raw()[0], reference.rank.raw()[0], "rank, {at}, {order:?}");
+        };
+
+        // contiguous in the device order: consumed in place
+        let mut a_mut = mk(&a_data, m, n, order);
+        check(&rt::linalg::lstsq((a_mut.view_mut(), b.view())), "mutable a");
+        assert_eq!(b.raw().to_vec(), b_data);
+
+        // owned a
+        let a_owned = mk(&a_data, m, n, order);
+        check(&rt::linalg::lstsq((a_owned, b.view())), "owned a");
+
+        // layout of the other order: factored from a work buffer, a is left untouched
+        let other = match order {
+            RowMajor => ColMajor,
+            ColMajor => RowMajor,
+        };
+        let mut a_off = a.to_contig_f(other).unwrap().into_owned().into_dim::<Ix2>();
+        let a_off_data = a_off.raw().to_vec();
+        check(&rt::linalg::lstsq((a_off.view_mut(), b.view())), "off-order a");
+        assert_eq!(a_off.raw().to_vec(), a_off_data, "off-order a, {order:?}");
+
+        // padded rows in the device order: consumed in place with ld > n
+        let mut buf = mk(&vec![0.0; (m + 4) * (n + 4)], m + 4, n + 4, order);
+        buf.i_mut((0..m, 0..n)).assign_f(mk(&a_data, m, n, order).view()).unwrap();
+        let mut a_padded = buf.i((0..m, 0..n)).into_owned_keep_layout().into_dim::<Ix2>();
+        check(&rt::linalg::lstsq((a_padded.view_mut(), b.view())), "padded a");
+
+        if order == RowMajor {
+            // the destroyed a put back by the row-major bridge is the LAPACK
+            // factorization in the caller's layout: it equals what a direct
+            // column-major call leaves in an f-contiguous a
+            let mut cm_device = DeviceBLAS::default();
+            cm_device.set_default_order(ColMajor);
+            // the same logical matrices, stored in Fortran order
+            let mut a_cm = rt::asarray((fortran(&a_data, m, n), [m, n].f(), &cm_device)).into_dim::<Ix2>();
+            let b_cm = rt::asarray((fortran(&b_data, m, k), [m, k].f(), &cm_device)).into_dim::<Ix2>();
+            rt::linalg::lstsq((a_cm.view_mut(), b_cm.view()));
+            // distinct device instances: compare values, not tensors
+            for i in 0..m {
+                for j in 0..n {
+                    assert!((a_padded[[i, j]] - a_cm[[i, j]]).abs() < 1e-10, "destroyed a ({i}, {j})");
+                }
+            }
+        }
+
+        // a batch of a smaller than the plan is broadcast: a cannot be consumed,
+        // and every slice still gets the full solution
+        let (mut a_b, b_b): (Tensor<f64, DeviceBLAS, Ix3>, Tensor<f64, DeviceBLAS, Ix3>) = match order {
+            RowMajor => (
+                rt::asarray((a_data.clone(), [1usize, m, n].c(), &device)).into_dim::<Ix3>(),
+                rt::asarray((b_data.repeat(2), [2usize, m, k].c(), &device)).into_dim::<Ix3>(),
+            ),
+            ColMajor => (
+                rt::asarray((a_data.clone(), [m, n, 1usize].f(), &device)).into_dim::<Ix3>(),
+                rt::asarray((b_data.repeat(2), [m, k, 2usize].f(), &device)).into_dim::<Ix3>(),
+            ),
+        };
+        let result = rt::linalg::lstsq((a_b.view_mut(), b_b.view()));
+        for i in 0..2 {
+            let (x_i, s_i, res_i) = match order {
+                RowMajor => (result.x.i((i, .., ..)), result.s.i((i, ..)), result.residuals.i((i, ..))),
+                ColMajor => (result.x.i((.., .., i)), result.s.i((.., i)), result.residuals.i((.., i))),
+            };
+            let at = format!("broadcast slice {i}");
+            assert!(rt::allclose(x_i, reference.x.view(), Some(1e-10)), "x, {at}, {order:?}");
+            assert!(rt::allclose(s_i, reference.s.view(), Some(1e-10)), "s, {at}, {order:?}");
+            assert!(rt::allclose(res_i, reference.residuals.view(), Some(1e-10)), "residuals, {at}, {order:?}");
+            assert_eq!(result.rank[[i]], reference.rank.raw()[0], "rank, {at}, {order:?}");
+        }
+        assert_eq!(a_b.raw().to_vec(), a_data, "broadcast a, {order:?}");
+    }
 }
 
 #[test]

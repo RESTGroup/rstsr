@@ -170,6 +170,30 @@ fn test_dgelsd_layout() {
         assert!((fingerprint(&s) - reference.1).abs() < 1e-8);
         assert_eq!(rank, reference.2);
         assert_eq!(residuals.map(|r| fingerprint(&r)), reference.3);
+
+        // the destroyed a written back by the row-major bridge is what a direct
+        // column-major call of the same logical matrices leaves in an f-contiguous
+        // a (LAPACKE parity)
+        let mut cm_device = DeviceBLAS::default();
+        cm_device.set_default_order(ColMajor);
+        let fortran = |v: &[f64], rows: usize, cols: usize| -> Vec<f64> {
+            let mut w = vec![0.0; v.len()];
+            for i in 0..rows {
+                for j in 0..cols {
+                    w[j * rows + i] = v[i * cols + j];
+                }
+            }
+            w
+        };
+        let mut a_cm = rt::asarray((fortran(&a_vec[..m * n], m, n), [m, n].f(), &cm_device)).into_dim::<Ix2>();
+        let mut b_cm = rt::asarray((fortran(&b_vec[..m * k], m, k), [m, k].f(), &cm_device)).into_dim::<Ix2>();
+        let _ = DGELSD::default().a(a_cm.view_mut()).b(b_cm.view_mut()).rcond(rcond).build().unwrap().run().unwrap();
+        // distinct device instances: compare values, not tensors
+        for i in 0..m {
+            for j in 0..n {
+                assert!((a_padded[[i, j]] - a_cm[[i, j]]).abs() < 1e-10, "destroyed a ({i}, {j})");
+            }
+        }
     }
 }
 

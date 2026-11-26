@@ -95,7 +95,9 @@ Note `A` is the **first** argument (RSTSR solves `A x = B`), matching SciPy.
   `x` is `(..., N, K)` (or `(..., N)` for a vector `b`), `rank` holds one
   value per matrix slice, and `residuals` is real — `(..., K)` for a tall
   full-rank slice, `NaN` where `rank < N`, empty where `M <= N` (the SciPy
-  convention). Inputs are never modified.
+  convention). `b` is never modified; an owned or mutable `a` whose batch
+  needs no broadcast and whose layout is the call order is consumed in place
+  and destroyed by the factorization (use `a.view()` to keep it).
 - **`solve_symmetric`** has **no `DeviceFaer` implementation** (it is
   BLAS-only). Use `solve_general`, or an eigensolver-based approach.
 - **`eigvalsh`** on faer handles the **standard** problem only; generalized
