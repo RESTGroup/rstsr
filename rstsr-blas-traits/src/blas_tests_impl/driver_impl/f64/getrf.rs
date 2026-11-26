@@ -11,6 +11,7 @@ use rstsr_blas_traits::lapack_solve::*;
 
 const ATOL: f64 = 1e-12;
 const CASES: [&str; 6] = ["f-contig", "f-padded", "c-contig", "c-padded", "non-contig", "transposed"];
+const SHAPES: [(usize, usize); 6] = [(1, 1), (6, 6), (8, 5), (5, 8), (4, 1), (1, 4)];
 
 /// Buffer of a layout case holding the row-major matrix `a` (`m x n`); padding
 /// and the skipped entries are `NaN`, so a wrong leading dimension shows up.
@@ -89,10 +90,29 @@ fn layout_view_mut<'a>(
     }
 }
 
+/// Assert that the `NaN` entries of the fresh layout buffer (padding and
+/// skipped entries) are still `NaN` in `buf`.
+fn check_padding(
+    buf: &Tensor<f64, DeviceBLAS, Ix2>,
+    device: &DeviceBLAS,
+    case: &str,
+    a: &[f64],
+    m: usize,
+    n: usize,
+    at: &str,
+) {
+    let fresh = layout_buffer(device, case, a, m, n);
+    for (idx, (&v, &f)) in buf.raw().iter().zip(fresh.raw().iter()).enumerate() {
+        if f.is_nan() {
+            assert!(v.is_nan(), "padding touched at {idx}, {at}");
+        }
+    }
+}
+
 /// Assert `lu` and `ipiv` are the LU factors of the row-major matrix `a`
 /// (`L` strictly below the diagonal with a unit diagonal, `U` on and above it,
 /// 0-based LAPACK pivots), by reconstructing `P A = L U`.
-fn check_factors(a: &[f64], m: usize, n: usize, lu: &Tensor<f64, DeviceBLAS, Ix2>, ipiv: &[blas_int], at: &str) {
+fn check_factors(a: &[f64], m: usize, n: usize, lu: TensorView<'_, f64, DeviceBLAS, Ix2>, ipiv: &[blas_int], at: &str) {
     let k = m.min(n);
     assert_eq!(lu.shape(), &[m, n], "lu shape, {at}");
     assert_eq!(ipiv.len(), k, "ipiv len, {at}");
@@ -122,10 +142,20 @@ fn check_factors(a: &[f64], m: usize, n: usize, lu: &Tensor<f64, DeviceBLAS, Ix2
     }
 }
 
+/// Singular matrices with the 1-based index of their first zero pivot.
+fn singular_cases() -> Vec<(Vec<f64>, usize, usize, blas_int)> {
+    vec![
+        (vec![0.0; 9], 3, 3, 1),
+        (vec![1.0, 2.0, 2.0, 4.0], 2, 2, 2),
+        (vec![0.0, 1.0, 0.0, 2.0], 2, 2, 1),
+        (vec![1.0, 2.0, 0.0, 0.0, 1.0, 2.0], 3, 2, 2),
+    ]
+}
+
 #[test]
 fn test_dgetrf_layouts() {
     let src = get_vec::<f64>('b');
-    for (m, n) in [(1usize, 1usize), (6, 6), (8, 5), (5, 8), (4, 1), (1, 4)] {
+    for (m, n) in SHAPES {
         // the same logical matrix for every case and device order
         let a: Vec<f64> = src[..m * n].to_vec();
         for order in [RowMajor, ColMajor] {
@@ -135,6 +165,7 @@ fn test_dgetrf_layouts() {
             for case in CASES {
                 let at = format!("{m}x{n}, {order:?}, {case}");
                 let buf = layout_buffer(&device, case, &a, m, n);
+                let buf_ptr = buf.raw().as_ptr();
                 let view = layout_view(&buf, case, m, n);
                 assert_eq!(view.shape(), &[m, n], "view shape, {at}");
                 // the view really is the logical matrix
@@ -145,9 +176,11 @@ fn test_dgetrf_layouts() {
                 }
                 let (lu, ipiv, info) = DGETRF::default().a(view).build().unwrap().run_with_info().unwrap();
                 assert_eq!(info, 0, "info, {at}");
+                // a read-only view is factored into a fresh buffer
+                assert_ne!(lu.view().raw().as_ptr(), buf_ptr, "fresh buffer, {at}");
                 let lu = lu.into_owned();
                 let ipiv: Vec<blas_int> = ipiv.to_vec();
-                check_factors(&a, m, n, &lu, &ipiv, &at);
+                check_factors(&a, m, n, lu.view(), &ipiv, &at);
                 let ipiv_ref = ipiv.clone();
                 // every layout gives the same factorization
                 let mut packed: Vec<f64> = Vec::with_capacity(m * n);
@@ -163,13 +196,15 @@ fn test_dgetrf_layouts() {
                         assert!(packed.iter().zip(r_lu.iter()).all(|(x, y)| (x - y).abs() < ATOL), "factors, {at}");
                     },
                 }
-                // a mutable view is factored in place: the factors land in the buffer and
-                // the padding is not touched
+                // a mutable view is written through: the returned factors are
+                // the input buffer itself (in place for an in-order layout,
+                // written back from a work buffer otherwise)
                 let mut buf = buf;
                 let view = layout_view_mut(&mut buf, case, m, n);
                 let (lu, ipiv_mut, info) = DGETRF::default().a(view).build().unwrap().run_with_info().unwrap();
                 assert_eq!(info, 0, "info, mutable {at}");
                 assert_eq!(ipiv_mut.to_vec(), ipiv_ref, "pivots, mutable {at}");
+                assert_eq!(lu.view().raw().as_ptr(), buf_ptr, "buffer identity, mutable {at}");
                 drop(lu);
                 let visible = layout_view(&buf, case, m, n);
                 for i in 0..m {
@@ -178,12 +213,49 @@ fn test_dgetrf_layouts() {
                         assert!((got - packed[i * n + j]).abs() < ATOL, "in-place factors ({i}, {j}), {at}");
                     }
                 }
-                let fresh = layout_buffer(&device, case, &a, m, n);
-                for (idx, (&v, &f)) in buf.raw().iter().zip(fresh.raw().iter()).enumerate() {
-                    if f.is_nan() {
-                        assert!(v.is_nan(), "padding touched at {idx}, {at}");
-                    }
-                }
+                // the padding is not touched
+                check_padding(&buf, &device, case, &a, m, n, &at);
+            }
+        }
+    }
+}
+
+/// The row-major bridge (transpose in, factor, transpose back) must leave
+/// exactly the factors a direct column-major call computes: bitwise, pivots
+/// included, also for a singular matrix whose `info > 0` factors are written
+/// back.
+#[test]
+fn test_dgetrf_bridge_parity() {
+    let src = get_vec::<f64>('b');
+    let mut cases: Vec<(Vec<f64>, usize, usize, blas_int)> =
+        SHAPES.iter().map(|&(m, n)| (src[..m * n].to_vec(), m, n, 0)).collect();
+    cases.extend(singular_cases());
+    for (a, m, n, expected) in cases {
+        let at = format!("{m}x{n}");
+        // the row-major in-place call, on a row-major device
+        let mut device_c = DeviceBLAS::default();
+        device_c.set_default_order(RowMajor);
+        let mut buf_c = rt::asarray((a.clone(), [m, n].c(), &device_c)).into_dim::<Ix2>();
+        // the direct column-major call, on a column-major device
+        let mut device_f = DeviceBLAS::default();
+        device_f.set_default_order(ColMajor);
+        let mut fortran = vec![0.0; m * n];
+        for i in 0..m {
+            for j in 0..n {
+                fortran[i + j * m] = a[i * n + j];
+            }
+        }
+        let mut buf_f = rt::asarray((fortran, [m, n].f(), &device_f)).into_dim::<Ix2>();
+
+        let (lu_c, ipiv_c, info_c) = DGETRF::default().a(buf_c.view_mut()).build().unwrap().run_with_info().unwrap();
+        let (lu_f, ipiv_f, info_f) = DGETRF::default().a(buf_f.view_mut()).build().unwrap().run_with_info().unwrap();
+        assert_eq!((info_c, info_f), (expected, expected), "info, {at}");
+        drop((lu_c, lu_f));
+        assert_eq!(ipiv_c.to_vec(), ipiv_f.to_vec(), "pivots, {at}");
+        // the destroyed a of the bridged call is the packed factor of the direct call
+        for i in 0..m {
+            for j in 0..n {
+                assert_eq!(buf_c[[i, j]].to_bits(), buf_f[[i, j]].to_bits(), "packed factor ({i}, {j}), {at}");
             }
         }
     }
@@ -191,20 +263,13 @@ fn test_dgetrf_layouts() {
 
 #[test]
 fn test_dgetrf_singular() {
-    // (row-major matrix, shape, expected info: the first zero pivot, 1-based)
-    let cases: Vec<(Vec<f64>, usize, usize, blas_int)> = vec![
-        (vec![0.0; 9], 3, 3, 1),
-        (vec![1.0, 2.0, 2.0, 4.0], 2, 2, 2),
-        (vec![0.0, 1.0, 0.0, 2.0], 2, 2, 1),
-        (vec![1.0, 2.0, 0.0, 0.0, 1.0, 2.0], 3, 2, 2),
-    ];
-    for (a, m, n, expected) in cases {
+    for (a, m, n, expected) in singular_cases() {
         for order in [RowMajor, ColMajor] {
             let mut device = DeviceBLAS::default();
             device.set_default_order(order);
-            for case in ["c-contig", "f-contig", "f-padded", "c-padded", "non-contig"] {
+            for case in CASES {
                 let at = format!("{m}x{n}, {order:?}, {case}");
-                let buf = layout_buffer(&device, case, &a, m, n);
+                let mut buf = layout_buffer(&device, case, &a, m, n);
                 // run: the singularity is an error
                 let err = DGETRF::default()
                     .a(layout_view(&buf, case, m, n))
@@ -218,7 +283,20 @@ fn test_dgetrf_singular() {
                 let (lu, ipiv, info) =
                     DGETRF::default().a(layout_view(&buf, case, m, n)).build().unwrap().run_with_info().unwrap();
                 assert_eq!(info, expected, "info, {at}");
-                check_factors(&a, m, n, &lu.into_owned(), &ipiv.to_vec(), &at);
+                check_factors(&a, m, n, lu.view(), &ipiv.to_vec(), &at);
+                drop(lu);
+                // a mutable view: the factors are written back for info > 0
+                // (through the row-major bridge too), the padding is not touched
+                let (lu, ipiv, info) = DGETRF::default()
+                    .a(layout_view_mut(&mut buf, case, m, n))
+                    .build()
+                    .unwrap()
+                    .run_with_info()
+                    .unwrap();
+                assert_eq!(info, expected, "info, mutable {at}");
+                check_factors(&a, m, n, lu.view(), &ipiv.to_vec(), &format!("mutable {at}"));
+                drop(lu);
+                check_padding(&buf, &device, case, &a, m, n, &at);
             }
         }
     }

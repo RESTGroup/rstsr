@@ -142,54 +142,72 @@ fn test_lu_relations() {
 fn test_lu_batch() {
     let a_vec = get_vec::<f64>('a');
     let (m, n) = (5usize, 4usize);
+    // the stack is stored in the memory order of the device (in order) or in
+    // the other one
     for order in [RowMajor, ColMajor] {
-        let mut device = DeviceBLAS::default();
-        device.set_default_order(order);
-        let shape: Vec<usize> = match order {
-            RowMajor => vec![2, 3, m, n],
-            ColMajor => vec![m, n, 2, 3],
-        };
-        let a = rt::asarray((&a_vec[..2 * 3 * m * n], shape.c(), &device)).into_owned().into_dyn();
+        for stored in [RowMajor, ColMajor] {
+            let mut device = DeviceBLAS::default();
+            device.set_default_order(order);
+            let tag = format!("{order:?} device, {stored:?} stack");
+            let data = &a_vec[..2 * 3 * m * n];
+            let a = stack_tensor(data, &[2, 3], &[m, n], order, stored, &device);
+            assert_eq!(a.f_contig(), stored == ColMajor, "stack layout, {tag}");
+            assert_eq!(a.c_contig(), stored == RowMajor, "stack layout, {tag}");
 
-        let result: LuOut = rt::linalg::lu(a.view());
-        let (pl_shape, u_shape): (Vec<usize>, Vec<usize>) = match order {
-            RowMajor => (vec![2, 3, m, m.min(n)], vec![2, 3, m.min(n), n]),
-            ColMajor => (vec![m, m.min(n), 2, 3], vec![m.min(n), n, 2, 3]),
-        };
-        assert_eq!(result.p.as_ref().unwrap().shape(), &match order {
-            RowMajor => vec![2, 3, m],
-            ColMajor => vec![m, 2, 3],
-        });
-        assert_eq!(result.l.shape(), &pl_shape[..], "l shape, {order:?}");
-        assert_eq!(result.u.shape(), &u_shape[..], "u shape, {order:?}");
-        for i in 0..2 {
-            for j in 0..3 {
-                let at = format!("slot ({i}, {j}), {order:?}");
-                let (a_ij, p_ij, l_ij, u_ij) = match order {
-                    RowMajor => (
-                        a.i((i, j, .., ..)),
-                        result.p.as_ref().unwrap().i((i, j, ..)),
-                        result.l.i((i, j, .., ..)),
-                        result.u.i((i, j, .., ..)),
-                    ),
-                    ColMajor => (
-                        a.i((.., .., i, j)),
-                        result.p.as_ref().unwrap().i((.., i, j)),
-                        result.l.i((.., .., i, j)),
-                        result.u.i((.., .., i, j)),
-                    ),
-                };
-                let a_ij = a_ij.into_dim::<Ix2>();
-                let single: LuOut2 = rt::linalg::lu(a_ij.view());
-                check_lu(&single, &a_ij, &at);
-                assert_eq!(p_ij.to_vec(), single.p.as_ref().unwrap().raw().to_vec(), "p, {at}");
-                assert!(rt::allclose(l_ij, single.l.view(), Some(1e-14)), "l, {at}");
-                assert!(rt::allclose(u_ij, single.u.view(), Some(1e-14)), "u, {at}");
+            let result: LuOut = rt::linalg::lu(a.view());
+            let (pl_shape, u_shape): (Vec<usize>, Vec<usize>) = match order {
+                RowMajor => (vec![2, 3, m, m.min(n)], vec![2, 3, m.min(n), n]),
+                ColMajor => (vec![m, m.min(n), 2, 3], vec![m.min(n), n, 2, 3]),
+            };
+            assert_eq!(result.p.as_ref().unwrap().shape(), &match order {
+                RowMajor => vec![2, 3, m],
+                ColMajor => vec![m, 2, 3],
+            });
+            assert_eq!(result.l.shape(), &pl_shape[..], "l shape, {tag}");
+            assert_eq!(result.u.shape(), &u_shape[..], "u shape, {tag}");
+            for i in 0..2 {
+                for j in 0..3 {
+                    let at = format!("slot ({i}, {j}), {tag}");
+                    let (a_ij, p_ij, l_ij, u_ij) = match order {
+                        RowMajor => (
+                            a.i((i, j, .., ..)),
+                            result.p.as_ref().unwrap().i((i, j, ..)),
+                            result.l.i((i, j, .., ..)),
+                            result.u.i((i, j, .., ..)),
+                        ),
+                        ColMajor => (
+                            a.i((.., .., i, j)),
+                            result.p.as_ref().unwrap().i((.., i, j)),
+                            result.l.i((.., .., i, j)),
+                            result.u.i((.., .., i, j)),
+                        ),
+                    };
+                    let a_ij = a_ij.into_dim::<Ix2>();
+                    let single: LuOut2 = rt::linalg::lu(a_ij.view());
+                    check_lu(&single, &a_ij, &at);
+                    assert_eq!(p_ij.to_vec(), single.p.as_ref().unwrap().raw().to_vec(), "p, {at}");
+                    assert!(rt::allclose(l_ij, single.l.view(), Some(1e-14)), "l, {at}");
+                    assert!(rt::allclose(u_ij, single.u.view(), Some(1e-14)), "u, {at}");
+                }
             }
+            let permuted: LuOut = rt::linalg::lu((a.view(), true));
+            assert!(permuted.p.is_none());
+            assert_eq!(permuted.l.shape(), &pl_shape[..], "PL shape, {tag}");
+
+            // a mutable stack gives the same factors; it is destroyed in place
+            // when stored in the device order, and left untouched otherwise
+            let mut a_mut = stack_tensor(data, &[2, 3], &[m, n], order, stored, &device);
+            let before = a_mut.raw().to_vec();
+            let from_mut: LuOut = rt::linalg::lu(a_mut.view_mut());
+            assert_eq!(
+                from_mut.p.as_ref().unwrap().raw().to_vec(),
+                result.p.as_ref().unwrap().raw().to_vec(),
+                "p, mutable {tag}"
+            );
+            assert!(rt::allclose(from_mut.l.view(), result.l.view(), Some(1e-14)), "l, mutable {tag}");
+            assert!(rt::allclose(from_mut.u.view(), result.u.view(), Some(1e-14)), "u, mutable {tag}");
+            assert_eq!(a_mut.raw() != &before, stored == order, "destructive rule, {tag}");
         }
-        let permuted: LuOut = rt::linalg::lu((a.view(), true));
-        assert!(permuted.p.is_none());
-        assert_eq!(permuted.l.shape(), &pl_shape[..], "PL shape, {order:?}");
     }
 }
 
@@ -284,23 +302,19 @@ fn test_lu_inplace() {
         check(&from_off, "off-order");
         assert_eq!(a_off.raw().to_vec(), a_off_data, "off-order a untouched, {order:?}");
 
-        // padded in-order input: consumed in place with ld > n
+        // padded in-order input (a mutable view of a buffer with ld > n):
+        // consumed in place, the padding is not touched
         let (pm, pn) = (m + 4, n + 4);
         let mut buf = mk(&vec![f64::NAN; pm * pn], pm, pn, order);
         buf.i_mut((0..m, 0..n)).assign_f(a.view()).unwrap();
-        let mut a_padded = buf.i((0..m, 0..n)).into_owned_keep_layout().into_dim::<Ix2>();
-        let from_padded: LuOut2 = rt::linalg::lu(a_padded.view_mut());
+        let from_padded: LuOut2 = rt::linalg::lu(buf.i_mut((0..m, 0..n)).into_dim::<Ix2>());
         check(&from_padded, "padded");
-        for i in 0..m {
-            for j in 0..n {
-                assert!((a_padded[[i, j]] - packed[[i, j]]).abs() < 1e-13, "destroyed padded a ({i}, {j}), {order:?}");
-            }
-        }
-        // the padding is not touched
         for i in 0..pm {
             for j in 0..pn {
                 if i >= m || j >= n {
                     assert!(buf[[i, j]].is_nan(), "padding ({i}, {j}), {order:?}");
+                } else {
+                    assert!((buf[[i, j]] - packed[[i, j]]).abs() < 1e-13, "destroyed padded a ({i}, {j}), {order:?}");
                 }
             }
         }
@@ -361,13 +375,26 @@ fn test_lu_overloads() {
     let l: Tensor<f64, DeviceBLAS, Ix2> = result.l;
     assert_eq!(p.shape(), &[m]);
     assert_eq!(l.shape(), &[m, n]);
+}
 
-    // a permuted result has no p to convert
-    let permuted: LuOut2 = rt::linalg::lu((&make(), true));
-    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        let _dropped: LuTuple2 = permuted.into();
-    }));
-    assert!(result.is_err(), "converting a permuted result to (p, l, u) must panic");
+// the two rejected tuple conversions (see `test_lu_overloads`)
+
+#[test]
+#[should_panic(expected = "LuResult: the factors are permuted (permute_l); convert to (L, U) instead")]
+fn test_lu_result_rejects_triple_when_permuted() {
+    let device = DeviceBLAS::default();
+    let a = rt::asarray((vec![2.0, 1.0, 1.0, 3.0], [2usize, 2].c(), &device)).into_dim::<Ix2>();
+    let permuted: LuOut2 = rt::linalg::lu((a.view(), true));
+    let _: LuTuple2 = permuted.into();
+}
+
+#[test]
+#[should_panic(expected = "LuResult: the factors are not permuted; convert to (P, L, U) instead")]
+fn test_lu_result_rejects_pair_when_unpermuted() {
+    let device = DeviceBLAS::default();
+    let a = rt::asarray((vec![2.0, 1.0, 1.0, 3.0], [2usize, 2].c(), &device)).into_dim::<Ix2>();
+    let factors: LuOut2 = rt::linalg::lu(a.view());
+    let _: (Tensor<f64, DeviceBLAS, Ix2>, Tensor<f64, DeviceBLAS, Ix2>) = factors.into();
 }
 
 #[test]

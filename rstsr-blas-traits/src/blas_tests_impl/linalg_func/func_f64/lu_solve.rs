@@ -5,15 +5,6 @@ type LuOut =
     LuResult<Option<Tensor<usize, DeviceBLAS, Ix1>>, Tensor<f64, DeviceBLAS, Ix2>, Tensor<f64, DeviceBLAS, Ix2>>;
 type LuFactorOut = LuFactorResult<Tensor<f64, DeviceBLAS, Ix2>, Tensor<usize, DeviceBLAS, Ix1>>;
 
-/// Shape of a stack in the device's axis convention (matrix axes last under
-/// `RowMajor`, first under `ColMajor`).
-fn stacked(batch: &[usize], inner: &[usize], order: FlagOrder) -> Vec<usize> {
-    match order {
-        RowMajor => [batch, inner].concat(),
-        ColMajor => [inner, batch].concat(),
-    }
-}
-
 /// Assert that `x` solves `op(A) x = b` within `tol`.
 fn check_solution(
     a: &Tensor<f64, DeviceBLAS, Ix2>,
@@ -27,7 +18,7 @@ fn check_solution(
     assert!(residual < tol, "residual {residual}, {at}");
 }
 
-/// Assert that `x` equals the `reference` solution.
+/// `op(A)`: `a`, `aᵀ` or `aᴴ` as a view of `a`.
 fn op_a(a: &Tensor<f64, DeviceBLAS, Ix2>, trans: FlagTrans) -> TensorView<'_, f64, DeviceBLAS, Ix2> {
     match trans {
         NoTrans => a.view(),
@@ -35,6 +26,7 @@ fn op_a(a: &Tensor<f64, DeviceBLAS, Ix2>, trans: FlagTrans) -> TensorView<'_, f6
     }
 }
 
+/// Assert that `x` equals the `reference` solution.
 fn check_x(x: TensorView<'_, f64, DeviceBLAS, IxD>, reference: TensorView<'_, f64, DeviceBLAS, IxD>, at: &str) {
     assert!(rt::allclose(x, reference, Some(1e-13)), "{at}");
 }
@@ -124,77 +116,95 @@ fn test_lu_solve_batch() {
     let a_vec = get_vec::<f64>('a');
     let b_vec = get_vec::<f64>('b');
     let (n, k) = (4usize, 2usize);
+    // the stacks are stored in the memory order of the device (in order) or in
+    // the other one
     for order in [RowMajor, ColMajor] {
-        let mut device = DeviceBLAS::default();
-        device.set_default_order(order);
-        let mk = |v: &[f64], batch: &[usize], inner: &[usize]| -> Tensor<f64, DeviceBLAS, IxD> {
-            rt::asarray((v.to_vec(), stacked(batch, inner, order).c(), &device)).into_owned().into_dyn()
-        };
-        // factors of batch 3, right-hand sides of batch 3
-        let a = mk(&a_vec[..3 * n * n], &[3], &[n, n]);
-        let packed = rt::linalg::lu_factor(a.view());
-        let b3 = mk(&b_vec[..3 * n * k], &[3], &[n, k]);
-        // one right-hand side for every factor, and one factor for every
-        // right-hand side (a batch axis of size 1 broadcasts)
-        let b1 = mk(&b_vec[..n * k], &[1], &[n, k]);
-        let a1 = mk(&a_vec[..n * n], &[1], &[n, n]);
-        let packed1 = rt::linalg::lu_factor(a1.view());
-        // broadcast on both sides: factors (3, 1) against right-hand sides (1, 3)
-        let a31 = mk(&a_vec[..3 * n * n], &[3, 1], &[n, n]);
-        let b13 = mk(&b_vec[..3 * n * k], &[1, 3], &[n, k]);
-        let packed31 = rt::linalg::lu_factor(a31.view());
-        let factors31 = rt::linalg::lu(a31.view());
-
-        // shapes follow the broadcast
-        let x = rt::linalg::lu_solve((&packed.lu, &packed.piv, &b1));
-        assert_eq!(x.shape(), stacked(&[3], &[n, k], order).as_slice(), "b broadcast, {order:?}");
-        let x = rt::linalg::lu_solve((&packed1.lu, &packed1.piv, &b3));
-        assert_eq!(x.shape(), b3.shape(), "factor broadcast, {order:?}");
-        let x = rt::linalg::lu_solve((&packed31.lu, &packed31.piv, &b13));
-        assert_eq!(x.shape(), stacked(&[3, 3], &[n, k], order).as_slice(), "two-way broadcast, {order:?}");
-        let x_f = rt::linalg::lu_solve((&factors31, &b13));
-        // a 2-D factor broadcast against 2-D right-hand sides of batch 3
-        let factors1 = rt::linalg::lu(a1.view());
-        let x_f1 = rt::linalg::lu_solve((&factors1, &b3));
-        assert_eq!(x_f1.shape(), b3.shape(), "factor form, factor broadcast, {order:?}");
-
-        // per-slot parity with the 2-D calls, for every pairing (i, j)
-        for i in 0..3 {
-            for j in 0..3 {
-                let at = format!("pair ({i}, {j}), {order:?}");
-                let slot = |t: &Tensor<f64, DeviceBLAS, IxD>, axes: (usize, usize)| -> Tensor<f64, DeviceBLAS, Ix2> {
-                    let v = match order {
-                        RowMajor => t.i((axes.0, axes.1, .., ..)),
-                        ColMajor => t.i((.., .., axes.0, axes.1)),
-                    };
-                    v.into_owned().into_dim::<Ix2>()
-                };
-                let a_ij = slot(&a31, (i, 0));
-                let b_ij = slot(&b13, (0, j));
-                let x_ij = slot(&x, (i, j));
-                let x_f_ij = slot(&x_f, (i, j));
-                let reference = rt::linalg::solve_general((&a_ij, &b_ij));
-                assert!(rt::allclose(x_ij.view(), reference.view(), Some(1e-12)), "solution, {at}");
-                assert!(rt::allclose(x_f_ij.view(), reference.view(), Some(1e-12)), "factor form, {at}");
-            }
-        }
-
-        // batched vector form: b (batch_b, N) gives x (batch_b, N)
-        let b_vec3 = mk(&b_vec[..3 * n], &[3], &[n]);
-        let x = rt::linalg::lu_solve((&packed.lu, &packed.piv, &b_vec3));
-        assert_eq!(x.shape(), b_vec3.shape(), "vector batch shape, {order:?}");
-        for i in 0..3 {
-            let pick = |t: &Tensor<f64, DeviceBLAS, IxD>| -> Tensor<f64, DeviceBLAS, Ix1> {
-                let v = match order {
-                    RowMajor => t.i((i, ..)),
-                    ColMajor => t.i((.., i)),
-                };
-                v.into_owned().into_dim::<Ix1>()
+        for stored in [RowMajor, ColMajor] {
+            let mut device = DeviceBLAS::default();
+            device.set_default_order(order);
+            let tag = format!("{order:?} device, {stored:?} stack");
+            let mk = |v: &[f64], batch: &[usize], inner: &[usize]| -> Tensor<f64, DeviceBLAS, IxD> {
+                stack_tensor(v, batch, inner, order, stored, &device)
             };
-            let a_i = pick2(&a, i, order);
-            let packed_i = rt::linalg::lu_factor(a_i.view());
-            let reference = rt::linalg::lu_solve((&packed_i.lu, &packed_i.piv, &pick(&b_vec3)));
-            assert!(rt::allclose(pick(&x).view(), reference.view(), Some(1e-13)), "vector slot {i}, {order:?}");
+            // factors of batch 3, right-hand sides of batch 3
+            let a = mk(&a_vec[..3 * n * n], &[3], &[n, n]);
+            let packed = rt::linalg::lu_factor(a.view());
+            let b3 = mk(&b_vec[..3 * n * k], &[3], &[n, k]);
+            // one right-hand side for every factor, and one factor for every
+            // right-hand side (a batch axis of size 1 broadcasts)
+            let b1 = mk(&b_vec[..n * k], &[1], &[n, k]);
+            let a1 = mk(&a_vec[..n * n], &[1], &[n, n]);
+            let packed1 = rt::linalg::lu_factor(a1.view());
+            // broadcast on both sides: factors (3, 1) against right-hand sides (1, 3)
+            let a31 = mk(&a_vec[..3 * n * n], &[3, 1], &[n, n]);
+            let b13 = mk(&b_vec[..3 * n * k], &[1, 3], &[n, k]);
+            let packed31 = rt::linalg::lu_factor(a31.view());
+            let factors31 = rt::linalg::lu(a31.view());
+
+            // shapes follow the broadcast
+            let x = rt::linalg::lu_solve((&packed.lu, &packed.piv, &b1));
+            assert_eq!(x.shape(), stacked(&[3], &[n, k], order).as_slice(), "b broadcast, {tag}");
+            let x = rt::linalg::lu_solve((&packed1.lu, &packed1.piv, &b3));
+            assert_eq!(x.shape(), b3.shape(), "factor broadcast, {tag}");
+            let x = rt::linalg::lu_solve((&packed31.lu, &packed31.piv, &b13));
+            assert_eq!(x.shape(), stacked(&[3, 3], &[n, k], order).as_slice(), "two-way broadcast, {tag}");
+            let x_f = rt::linalg::lu_solve((&factors31, &b13));
+            // a 2-D factor broadcast against 2-D right-hand sides of batch 3
+            let factors1 = rt::linalg::lu(a1.view());
+            let x_f1 = rt::linalg::lu_solve((&factors1, &b3));
+            assert_eq!(x_f1.shape(), b3.shape(), "factor form, factor broadcast, {tag}");
+
+            // per-slot parity with the 2-D calls, for every pairing (i, j)
+            for i in 0..3 {
+                for j in 0..3 {
+                    let at = format!("pair ({i}, {j}), {tag}");
+                    let slot =
+                        |t: &Tensor<f64, DeviceBLAS, IxD>, axes: (usize, usize)| -> Tensor<f64, DeviceBLAS, Ix2> {
+                            let v = match order {
+                                RowMajor => t.i((axes.0, axes.1, .., ..)),
+                                ColMajor => t.i((.., .., axes.0, axes.1)),
+                            };
+                            v.into_owned().into_dim::<Ix2>()
+                        };
+                    let a_ij = slot(&a31, (i, 0));
+                    let b_ij = slot(&b13, (0, j));
+                    let x_ij = slot(&x, (i, j));
+                    let x_f_ij = slot(&x_f, (i, j));
+                    let reference = rt::linalg::solve_general((&a_ij, &b_ij));
+                    assert!(rt::allclose(x_ij.view(), reference.view(), Some(1e-12)), "solution, {at}");
+                    assert!(rt::allclose(x_f_ij.view(), reference.view(), Some(1e-12)), "factor form, {at}");
+                }
+            }
+
+            // batched vector form: b (batch_b, N) gives x (batch_b, N)
+            let b_vec3 = mk(&b_vec[..3 * n], &[3], &[n]);
+            let x = rt::linalg::lu_solve((&packed.lu, &packed.piv, &b_vec3));
+            assert_eq!(x.shape(), b_vec3.shape(), "vector batch shape, {tag}");
+            for i in 0..3 {
+                let pick = |t: &Tensor<f64, DeviceBLAS, IxD>| -> Tensor<f64, DeviceBLAS, Ix1> {
+                    let v = match order {
+                        RowMajor => t.i((i, ..)),
+                        ColMajor => t.i((.., i)),
+                    };
+                    v.into_owned().into_dim::<Ix1>()
+                };
+                let a_i = pick2(&a, i, order);
+                let packed_i = rt::linalg::lu_factor(a_i.view());
+                let reference = rt::linalg::lu_solve((&packed_i.lu, &packed_i.piv, &pick(&b_vec3)));
+                assert!(rt::allclose(pick(&x).view(), reference.view(), Some(1e-13)), "vector slot {i}, {tag}");
+            }
+
+            // a mutable b stack is solved in its own buffer when stored in the
+            // device order, and in a work buffer written back otherwise; the
+            // result is b either way
+            let mut b_mut = mk(&b_vec[..3 * n * k], &[3], &[n, k]);
+            let ptr = b_mut.raw().as_ptr();
+            let x_m = rt::linalg::lu_solve((&packed.lu, &packed.piv, b_mut.view_mut()));
+            let x_ref = rt::linalg::lu_solve((&packed.lu, &packed.piv, &b3));
+            assert_eq!(x_m.raw().as_ptr(), ptr, "the result is the b stack, {tag}");
+            assert!(rt::allclose(x_m.view(), x_ref.view(), Some(1e-13)), "mutable b stack, {tag}");
+            drop(x_m);
+            assert!(rt::allclose(b_mut.view(), x_ref.view(), Some(1e-13)), "the b stack holds the solution, {tag}");
         }
     }
 }
@@ -250,13 +260,17 @@ fn test_lu_solve_inplace() {
         assert!(rt::allclose(x.view(), reference.view(), Some(1e-13)), "off-order b, {order:?}");
         assert!(rt::allclose(b_off.view(), reference.view(), Some(1e-13)), "off-order b written back, {order:?}");
 
-        // padded b (ld > k) in the device order: in place, padding untouched
+        // padded b (a mutable view of a buffer with ld > k) in the device
+        // order: solved in place, the result is that buffer, the padding is
+        // untouched
         let (pn, pk) = (n + 2, k + 3);
         let mut buf = mk(&vec![f64::NAN; pn * pk], pn, pk, order);
         buf.i_mut((0..n, 0..k)).assign_f(b.view()).unwrap();
-        let mut b_padded = buf.i((0..n, 0..k)).into_owned_keep_layout().into_dim::<Ix2>();
-        let x = rt::linalg::lu_solve((&packed.lu, &packed.piv, b_padded.view_mut()));
+        let ptr = buf.raw().as_ptr();
+        let x = rt::linalg::lu_solve((&packed.lu, &packed.piv, buf.i_mut((0..n, 0..k)).into_dim::<Ix2>()));
+        assert_eq!(x.raw().as_ptr(), ptr, "the solution is the padded b buffer, {order:?}");
         assert!(rt::allclose(x.view(), reference.view(), Some(1e-13)), "padded b, {order:?}");
+        drop(x);
         for i in 0..pn {
             for j in 0..pk {
                 if i >= n || j >= k {
@@ -265,8 +279,7 @@ fn test_lu_solve_inplace() {
             }
         }
 
-        // factors of the other order, padded factors and fully strided factors
-        // (a slot of a batch stack) give the same solution
+        // factors of the other order and padded factors give the same solution
         let packed_off = rt::linalg::lu_factor(a.to_contig_f(other).unwrap().into_owned().into_dim::<Ix2>().view());
         let x = rt::linalg::lu_solve((&packed_off.lu, &packed_off.piv, &b));
         assert!(rt::allclose(x.view(), reference.view(), Some(1e-13)), "off-order factors, {order:?}");
@@ -276,18 +289,38 @@ fn test_lu_solve_inplace() {
         let lu_padded = fbuf.i((0..n, 0..n)).into_owned_keep_layout().into_dim::<Ix2>();
         let x = rt::linalg::lu_solve((lu_padded.view(), &packed.piv, &b));
         assert!(rt::allclose(x.view(), reference.view(), Some(1e-13)), "padded factors, {order:?}");
+
+        // a slot of a batch stack (a contiguous view at an offset)
         let (rows, cols) = match order {
             RowMajor => (2 * n, n),
             ColMajor => (n, 2 * n),
         };
         let stack = mk(&packed.lu.raw().to_vec().repeat(2), rows, cols, order);
-        let lu_strided = match order {
+        let lu_slot = match order {
             RowMajor => stack.i((n..2 * n, ..)),
             ColMajor => stack.i((.., n..2 * n)),
         }
         .into_owned_keep_layout()
         .into_dim::<Ix2>();
-        let x = rt::linalg::lu_solve((lu_strided.view(), &packed.piv, &b));
+        let x = rt::linalg::lu_solve((lu_slot.view(), &packed.piv, &b));
+        assert!(rt::allclose(x.view(), reference.view(), Some(1e-13)), "batch slot factors, {order:?}");
+
+        // fully non-contiguous factors and pivots: every second row and column
+        // of a larger buffer, in the device order
+        let q = 2 * n;
+        let strided = (slice!(0, 2 * n, 2), slice!(0, 2 * n, 2));
+        let mut fbuf = mk(&vec![0.0; q * q], q, q, order);
+        fbuf.i_mut(strided).assign_f(packed.lu.view()).unwrap();
+        let lu_strided = fbuf.i(strided).into_owned_keep_layout().into_dim::<Ix2>();
+        assert!(lu_strided.stride().iter().all(|&s| s != 1), "the factors are fully strided, {order:?}");
+        let mut piv_data = vec![usize::MAX; 2 * n];
+        for (i, &p) in packed.piv.raw().iter().enumerate() {
+            piv_data[2 * i] = p;
+        }
+        let piv_buf = rt::asarray((piv_data, [2 * n].c(), &device)).into_dim::<Ix1>();
+        let piv_strided = piv_buf.i(slice!(0, 2 * n, 2)).into_owned_keep_layout().into_dim::<Ix1>();
+        assert_eq!(piv_strided.stride()[0], 2, "the pivots are strided, {order:?}");
+        let x = rt::linalg::lu_solve((lu_strided.view(), piv_strided.view(), &b));
         assert!(rt::allclose(x.view(), reference.view(), Some(1e-13)), "strided factors, {order:?}");
     }
 }

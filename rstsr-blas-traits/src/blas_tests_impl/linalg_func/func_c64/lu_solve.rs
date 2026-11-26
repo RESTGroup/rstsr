@@ -50,11 +50,11 @@ fn test_lu_solve_relations() {
             };
             let residual = (rt::matmul(op_a.view(), x.view()) - b.view()).abs().max_f().unwrap();
             assert!(residual < 1e-12, "residual {residual}, {tag}");
-            // the explicit factor form agrees
+            // the explicit factor form agrees, for a reference to b and a view of b
             let x_f = rt::linalg::lu_solve((&factors, &b, trans));
             assert!(((x_f.view() - x.view()).abs().max_f().unwrap()) < 1e-13, "factor form, {tag}");
             let x_f = rt::linalg::lu_solve((&factors, &b.view(), trans));
-            let _ = x_f;
+            assert!(((x_f.view() - x.view()).abs().max_f().unwrap()) < 1e-13, "factor form, TensorView of b, {tag}");
         }
         // no flag: A x = b; and the general solve agrees
         let x = rt::linalg::lu_solve((&packed.lu, &packed.piv, &b));
@@ -64,46 +64,177 @@ fn test_lu_solve_relations() {
         assert!(((x.view() - x_g.view()).abs().max_f().unwrap()) < 1e-12, "solve_general parity, {n}x{n}");
     }
 
-    // a batch stack on both device orders: parity with the 2-D calls, and the
+    // a batch stack on both device orders, stored in the device order (in
+    // order) or in the other memory order: parity with the 2-D calls, and the
     // in-place rule
     let (n, k) = (4usize, 2usize);
     for order in [RowMajor, ColMajor] {
+        for stored in [RowMajor, ColMajor] {
+            let mut device = DeviceBLAS::default();
+            device.set_default_order(order);
+            let tag = format!("{order:?} device, {stored:?} stack");
+            let mk = |v: &[c64], batch: &[usize], inner: &[usize]| -> Tensor<c64, DeviceBLAS, IxD> {
+                stack_tensor(v, batch, inner, order, stored, &device)
+            };
+            let a_data = a_vec[..3 * n * n].to_vec();
+            let b_data = b_vec[..3 * n * k].to_vec();
+            let a = mk(&a_data, &[3], &[n, n]);
+            let b = mk(&b_data, &[3], &[n, k]);
+            let packed = rt::linalg::lu_factor(a.view());
+            let x = rt::linalg::lu_solve((&packed.lu, &packed.piv, &b));
+            assert_eq!(x.shape(), b.shape(), "{tag}");
+            for i in 0..3 {
+                let pick = |t: &Tensor<c64, DeviceBLAS, IxD>| -> Tensor<c64, DeviceBLAS, Ix2> {
+                    let v = match order {
+                        RowMajor => t.i((i, ..)),
+                        ColMajor => t.i((.., .., i)),
+                    };
+                    v.into_owned_keep_layout().into_dim::<Ix2>()
+                };
+                let reference = rt::linalg::solve_general((&pick(&a), &pick(&b)));
+                let x_i = pick(&x);
+                assert!(((x_i.view() - reference.view()).abs().max_f().unwrap()) < 1e-12, "slot {i}, {tag}");
+            }
+            // a mutable b stack is solved in its own buffer when stored in the
+            // device order, and in a work buffer written back otherwise; the
+            // result is b either way
+            let mut b_mut = mk(&b_data, &[3], &[n, k]);
+            let ptr = b_mut.raw().as_ptr();
+            let x_m = rt::linalg::lu_solve((&packed.lu, &packed.piv, b_mut.view_mut()));
+            assert_eq!(x_m.raw().as_ptr(), ptr, "in place, {tag}");
+            assert!(((x_m.view() - x.view()).abs().max_f().unwrap()) < 1e-14, "mutable b stack, {tag}");
+            drop(x_m);
+            assert!(
+                ((b_mut.view() - x.view()).abs().max_f().unwrap()) < 1e-14,
+                "the b stack holds the solution, {tag}"
+            );
+        }
+    }
+}
+
+#[test]
+fn test_lu_solve_layouts() {
+    let a_vec = get_vec::<c64>('a');
+    let b_vec = get_vec::<c64>('b');
+    let (n, k) = (5usize, 2usize);
+    for order in [RowMajor, ColMajor] {
         let mut device = DeviceBLAS::default();
         device.set_default_order(order);
-        let stacked = |batch: &[usize], inner: &[usize]| -> Vec<usize> {
-            match order {
-                RowMajor => [batch, inner].concat(),
-                ColMajor => [inner, batch].concat(),
-            }
+        let a = rt::asarray((a_vec[..n * n].to_vec(), [n, n].c(), &device)).into_dim::<Ix2>();
+        let b = rt::asarray((b_vec[..n * k].to_vec(), [n, k].c(), &device)).into_dim::<Ix2>();
+        let packed: LuFactorOut = rt::linalg::lu_factor(a.view());
+        let reference = rt::linalg::lu_solve((&packed.lu, &packed.piv, &b));
+        let check = |x: Tensor<c64, DeviceBLAS, IxD>, at: &str| {
+            assert!(((x.view() - reference.view()).abs().max_f().unwrap()) < 1e-12, "{at}, {order:?}");
         };
-        let a_data = a_vec[..3 * n * n].to_vec();
-        let b_data = b_vec[..3 * n * k].to_vec();
-        let a = rt::asarray((a_data.clone(), stacked(&[3], &[n, n]).c(), &device)).into_owned().into_dyn();
-        let b = rt::asarray((b_data.clone(), stacked(&[3], &[n, k]).c(), &device)).into_owned().into_dyn();
-        let packed = rt::linalg::lu_factor(a.view());
-        let x = rt::linalg::lu_solve((&packed.lu, &packed.piv, &b));
-        assert_eq!(x.shape(), b.shape(), "{order:?}");
-        for i in 0..3 {
-            let pick = |t: &Tensor<c64, DeviceBLAS, IxD>| -> Tensor<c64, DeviceBLAS, Ix2> {
-                let v = match order {
-                    RowMajor => t.i((i, ..)),
-                    ColMajor => t.i((.., .., i)),
-                };
-                v.into_owned_keep_layout().into_dim::<Ix2>()
-            };
-            let reference = rt::linalg::solve_general((&pick(&a), &pick(&b)));
-            let x_i = pick(&x);
-            assert!(((x_i.view() - reference.view()).abs().max_f().unwrap()) < 1e-12, "slot {i}, {order:?}");
+        // factors of the other memory order
+        let a_f = a.to_contig_f(ColMajor).unwrap().into_owned().into_dim::<Ix2>();
+        let packed_f: LuFactorOut = rt::linalg::lu_factor(a_f.view());
+        check(rt::linalg::lu_solve((packed_f.lu.view(), &packed_f.piv, &b)), "f-contiguous factors");
+        // right-hand side of the other memory order
+        let b_f = b.to_contig_f(ColMajor).unwrap().into_owned().into_dim::<Ix2>();
+        check(rt::linalg::lu_solve((&packed.lu, &packed.piv, &b_f)), "f-contiguous b");
+        // fully non-contiguous factors (every second row and column of a larger
+        // buffer) and pivots (every second entry)
+        let strided = (slice!(0, 2 * n, 2), slice!(0, 2 * n, 2));
+        let mut fbuf = rt::zeros_f(([2 * n, 2 * n], &device)).unwrap().into_dim::<Ix2>();
+        fbuf.i_mut(strided).assign_f(packed.lu.view()).unwrap();
+        let lu_s = fbuf.i(strided).into_dim::<Ix2>();
+        assert!(lu_s.stride().iter().all(|&s| s != 1), "the factors are fully strided, {order:?}");
+        let mut piv_data = vec![usize::MAX; 2 * n];
+        for (i, &p) in packed.piv.raw().iter().enumerate() {
+            piv_data[2 * i] = p;
         }
-        // mutable b: solved in place
-        let mut b_mut = rt::asarray((b_data, stacked(&[3], &[n, k]).c(), &device)).into_owned().into_dyn();
-        let ptr = b_mut.raw().as_ptr();
-        let x = rt::linalg::lu_solve((&packed.lu, &packed.piv, b_mut.view_mut()));
-        assert_eq!(x.raw().as_ptr(), ptr, "in place, {order:?}");
-        assert!(
-            ((x.view() - rt::linalg::lu_solve((&packed.lu, &packed.piv, &b)).view()).abs().max_f().unwrap()) < 1e-14
-        );
+        let piv_buf = rt::asarray((piv_data, [2 * n].c(), &device)).into_dim::<Ix1>();
+        let piv_s = piv_buf.i(slice!(0, 2 * n, 2)).into_dim::<Ix1>();
+        assert_eq!(piv_s.stride()[0], 2, "the pivots are strided, {order:?}");
+        check(rt::linalg::lu_solve((lu_s, piv_s, &b)), "strided factors and pivots");
     }
+}
+
+#[test]
+fn test_lu_solve_overloads() {
+    let device = DeviceBLAS::default();
+    let (n, k) = (4usize, 2usize);
+    let a_data: Vec<c64> = (0..n * n)
+        .map(|j| c64::new(((j * 7 + 3) % 11) as f64 / 3.0 - 1.5, ((j * 5 + 1) % 7) as f64 / 2.0 - 1.5))
+        .collect();
+    let b_data: Vec<c64> = (0..n * k)
+        .map(|j| c64::new(((j * 5 + 1) % 7) as f64 / 2.0 - 1.5, ((j * 3 + 2) % 5) as f64 / 2.0 - 1.0))
+        .collect();
+    let make_a = || rt::asarray((a_data.clone(), [n, n].c(), &device)).into_dim::<Ix2>();
+    let make_b = || rt::asarray((b_data.clone(), [n, k].c(), &device)).into_dim::<Ix2>();
+    let packed: LuFactorOut = rt::linalg::lu_factor(&make_a());
+    let factors: LuOut = rt::linalg::lu(make_a());
+    for trans in [NoTrans, Trans, ConjTrans] {
+        let reference = rt::linalg::lu_solve((&packed.lu, &packed.piv, &make_b(), trans));
+        let check = |x: TensorView<'_, c64, DeviceBLAS, IxD>, at: &str| {
+            assert!(((x - reference.view()).abs().max_f().unwrap()) < 1e-13, "{at}, {trans:?}");
+        };
+        // the packed form, flat
+        check(
+            rt::linalg::lu_solve((&packed.lu, &packed.piv, make_b().view(), trans)).view().to_dyn(),
+            "(TensorView of b, flag)",
+        );
+        check(
+            rt::linalg::lu_solve((packed.lu.view(), packed.piv.view(), make_b(), trans)).view().to_dyn(),
+            "(owned b, flag)",
+        );
+        // SciPy's nested form
+        check(
+            rt::linalg::lu_solve(((&packed.lu, &packed.piv), make_b().view(), trans)).view().to_dyn(),
+            "((lu, piv), view, flag)",
+        );
+        // the factor form of lu
+        check(rt::linalg::lu_solve((&factors, &make_b(), trans)).view(), "(&LuResult, &Tensor, flag)");
+        // the result of lu_factor, by value and by reference
+        check(
+            rt::linalg::lu_solve((rt::linalg::lu_factor(make_a()), &make_b(), trans)).view().to_dyn(),
+            "(LuFactorResult, &Tensor, flag)",
+        );
+        check(rt::linalg::lu_solve((&packed, make_b().view(), trans)).view().to_dyn(), "(&LuFactorResult, view, flag)");
+    }
+    // consumed b is solved in place; the fallible variants
+    let reference = rt::linalg::lu_solve((&packed.lu, &packed.piv, &make_b()));
+    let mut b_m = make_b();
+    let ptr = b_m.raw().as_ptr();
+    let x = rt::linalg::lu_solve((&packed.lu, &packed.piv, b_m.view_mut()));
+    assert_eq!(x.raw().as_ptr(), ptr, "mutable b is solved in place");
+    assert!(((x.view().to_dyn() - reference.view()).abs().max_f().unwrap()) < 1e-13);
+    // fallible variants
+    let x = rt::linalg::lu_solve_f((&packed.lu, &packed.piv, &make_b())).unwrap();
+    assert_eq!(x.shape(), &[n, k]);
+    assert!(((x.view().to_dyn() - reference.view()).abs().max_f().unwrap()) < 1e-13);
+    let x = rt::linalg::lu_solve_f((&factors, &make_b(), ConjTrans)).unwrap();
+    assert_eq!(x.shape(), &[n, k]);
+}
+
+#[test]
+fn test_lu_solve_errors() {
+    let device = DeviceBLAS::default();
+    let a_data: Vec<c64> = (0..16).map(|j| c64::new((j % 7) as f64 + 1.0, (j % 5) as f64)).collect();
+    let b_data: Vec<c64> = (0..12).map(|j| c64::new((j % 5) as f64, (j % 3) as f64)).collect();
+    let a = rt::asarray((a_data.clone(), [4usize, 4].c(), &device)).into_dim::<Ix2>();
+    let b = rt::asarray((b_data.clone(), [4usize, 3].c(), &device)).into_dim::<Ix2>();
+    let packed = rt::linalg::lu_factor(a.view());
+
+    // a permuted factorization (lu with permute_l) has no p to solve from
+    let permuted: LuOut = rt::linalg::lu((a.view(), true));
+    let msg = format!("{}", rt::linalg::lu_solve_f((&permuted, &b)).expect_err("permuted factors must fail"));
+    assert!(msg.contains("permuted"), "{msg}");
+    // the factorization must be square ...
+    let a_rect = rt::asarray((a_data[..12].to_vec(), [4usize, 3].c(), &device)).into_dim::<Ix2>();
+    let msg = format!("{}", rt::linalg::lu_solve_f((&a_rect, &packed.piv, &b)).expect_err("non-square must fail"));
+    assert!(msg.contains("must be square"), "{msg}");
+    // ... piv must hold exactly N entries ...
+    let piv_short = packed.piv.i(..3).into_owned().into_dim::<Ix1>();
+    let msg = format!("{}", rt::linalg::lu_solve_f((&packed.lu, &piv_short, &b)).expect_err("short piv must fail"));
+    assert!(msg.contains("piv must have"), "{msg}");
+    // ... and b's rows must match
+    let b_short = rt::asarray((b_data[..2].to_vec(), [2usize].c(), &device)).into_dim::<Ix1>();
+    let msg =
+        format!("{}", rt::linalg::lu_solve_f((&packed.lu, &packed.piv, &b_short)).expect_err("row mismatch must fail"));
+    assert!(msg.contains("row dimension must match"), "{msg}");
 }
 
 #[test]

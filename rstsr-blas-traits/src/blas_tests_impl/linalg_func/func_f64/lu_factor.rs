@@ -86,44 +86,58 @@ fn test_lu_factor_relations() {
 fn test_lu_factor_batch() {
     let a_vec = get_vec::<f64>('a');
     let (m, n) = (5usize, 4usize);
+    // the stack is stored in the memory order of the device (in order) or in
+    // the other one
     for order in [RowMajor, ColMajor] {
-        let mut device = DeviceBLAS::default();
-        device.set_default_order(order);
-        let shape: Vec<usize> = match order {
-            RowMajor => vec![2, 3, m, n],
-            ColMajor => vec![m, n, 2, 3],
-        };
-        let a = rt::asarray((a_vec[..2 * 3 * m * n].to_vec(), shape.c(), &device)).into_owned().into_dyn();
-        let result: LuFactorResult<Tensor<f64, DeviceBLAS, IxD>, Tensor<usize, DeviceBLAS, IxD>> =
-            rt::linalg::lu_factor(a.view());
-        assert_eq!(result.lu.shape(), a.shape(), "lu shape, {order:?}");
-        let piv_shape: Vec<usize> = match order {
-            RowMajor => vec![2, 3, m.min(n)],
-            ColMajor => vec![m.min(n), 2, 3],
-        };
-        assert_eq!(result.piv.shape(), &piv_shape[..], "piv shape, {order:?}");
-        for i in 0..2 {
-            for j in 0..3 {
-                let at = format!("slot ({i}, {j}), {order:?}");
-                let (a_ij, lu_ij, piv_ij) = match order {
-                    RowMajor => (a.i((i, j, .., ..)), result.lu.i((i, j, .., ..)), result.piv.i((i, j, ..))),
-                    ColMajor => (a.i((.., .., i, j)), result.lu.i((.., .., i, j)), result.piv.i((.., i, j))),
-                };
-                let a_ij = a_ij.into_owned().into_dim::<Ix2>();
-                let single: LuFactorOut = rt::linalg::lu_factor(a_ij.view());
-                check_lu_factor(&single.lu.view(), &single.piv, &a_ij, &at);
-                assert!(rt::allclose(lu_ij, single.lu.view(), Some(1e-14)), "lu, {at}");
-                assert_eq!(piv_ij.to_vec(), single.piv.raw().to_vec(), "piv, {at}");
+        for stored in [RowMajor, ColMajor] {
+            let mut device = DeviceBLAS::default();
+            device.set_default_order(order);
+            let tag = format!("{order:?} device, {stored:?} stack");
+            let data = &a_vec[..2 * 3 * m * n];
+            let make = || stack_tensor(data, &[2, 3], &[m, n], order, stored, &device);
+            let a = make();
+            let result: LuFactorResult<Tensor<f64, DeviceBLAS, IxD>, Tensor<usize, DeviceBLAS, IxD>> =
+                rt::linalg::lu_factor(a.view());
+            assert_eq!(result.lu.shape(), a.shape(), "lu shape, {tag}");
+            let piv_shape = stacked(&[2, 3], &[m.min(n)], order);
+            assert_eq!(result.piv.shape(), &piv_shape[..], "piv shape, {tag}");
+            for i in 0..2 {
+                for j in 0..3 {
+                    let at = format!("slot ({i}, {j}), {tag}");
+                    let (a_ij, lu_ij, piv_ij) = match order {
+                        RowMajor => (a.i((i, j, .., ..)), result.lu.i((i, j, .., ..)), result.piv.i((i, j, ..))),
+                        ColMajor => (a.i((.., .., i, j)), result.lu.i((.., .., i, j)), result.piv.i((.., i, j))),
+                    };
+                    let a_ij = a_ij.into_owned().into_dim::<Ix2>();
+                    let single: LuFactorOut = rt::linalg::lu_factor(a_ij.view());
+                    check_lu_factor(&single.lu.view(), &single.piv, &a_ij, &at);
+                    assert!(rt::allclose(lu_ij, single.lu.view(), Some(1e-14)), "lu, {at}");
+                    assert_eq!(piv_ij.to_vec(), single.piv.raw().to_vec(), "piv, {at}");
+                }
             }
-        }
 
-        // owned and reference inputs give the same factors as the view call
-        let make =
-            || rt::asarray((a_vec[..2 * 3 * m * n].to_vec(), shape.clone().c(), &device)).into_owned().into_dyn();
-        for (at, candidate) in [("owned", rt::linalg::lu_factor(make())), ("reference", rt::linalg::lu_factor(&make()))]
-        {
-            assert!(rt::allclose(candidate.lu.view(), result.lu.view(), Some(1e-14)), "lu, {at}, {order:?}");
-            assert_eq!(candidate.piv.raw().to_vec(), result.piv.raw().to_vec(), "piv, {at}, {order:?}");
+            // owned and reference inputs give the same factors as the view call
+            for (at, candidate) in
+                [("owned", rt::linalg::lu_factor(make())), ("reference", rt::linalg::lu_factor(&make()))]
+            {
+                assert!(rt::allclose(candidate.lu.view(), result.lu.view(), Some(1e-14)), "lu, {at}, {tag}");
+                assert_eq!(candidate.piv.raw().to_vec(), result.piv.raw().to_vec(), "piv, {at}, {tag}");
+            }
+
+            // a mutable stack is factored in its own buffer when stored in the
+            // device order, and in a work buffer written back otherwise; the
+            // result is the input either way, which then holds the factors
+            let mut a_mut = make();
+            let ptr = a_mut.raw().as_ptr();
+            let from_mut = rt::linalg::lu_factor(a_mut.view_mut());
+            assert_eq!(from_mut.lu.raw().as_ptr(), ptr, "the result is the input stack, {tag}");
+            assert!(rt::allclose(from_mut.lu.view(), result.lu.view(), Some(1e-14)), "lu, mutable {tag}");
+            assert_eq!(from_mut.piv.raw().to_vec(), result.piv.raw().to_vec(), "piv, mutable {tag}");
+            drop(from_mut);
+            assert!(
+                rt::allclose(a_mut.view(), result.lu.view(), Some(1e-14)),
+                "the input stack holds the factors, {tag}"
+            );
         }
     }
 }
@@ -222,13 +236,16 @@ fn test_lu_factor_inplace() {
             }
         }
 
-        // padded in-order input: factored in place with ld > n, padding untouched
+        // padded in-order input (a mutable view of a buffer with ld > n):
+        // factored in place, the result is that buffer, the padding is untouched
         let (pm, pn) = (m + 4, n + 4);
         let mut buf = mk(&vec![f64::NAN; pm * pn], pm, pn, order);
         buf.i_mut((0..m, 0..n)).assign_f(a.view()).unwrap();
-        let mut a_padded = buf.i((0..m, 0..n)).into_owned_keep_layout().into_dim::<Ix2>();
-        let from_padded: LuFactorOutMut = rt::linalg::lu_factor(a_padded.view_mut());
+        let ptr = buf.raw().as_ptr();
+        let from_padded: LuFactorOutMut = rt::linalg::lu_factor(buf.i_mut((0..m, 0..n)).into_dim::<Ix2>());
+        assert_eq!(from_padded.lu.raw().as_ptr(), ptr, "the result is the padded buffer, {order:?}");
         check(&from_padded.lu.view(), &from_padded.piv, "padded");
+        drop(from_padded);
         for i in 0..pm {
             for j in 0..pn {
                 if i >= m || j >= n {

@@ -36,3 +36,31 @@ mod solve_symmetric;
 mod solve_triangular;
 mod svd;
 mod svdvals;
+
+/// Shape of a stack in the axis convention of the device order `order`
+/// (matrix axes last under `RowMajor`, first under `ColMajor`).
+pub(crate) fn stacked(batch: &[usize], inner: &[usize], order: FlagOrder) -> Vec<usize> {
+    match order {
+        RowMajor => [batch, inner].concat(),
+        ColMajor => [inner, batch].concat(),
+    }
+}
+
+/// A stack of logical shape [`stacked`]`(..)` holding the C-ordered data `v`,
+/// stored contiguously in the memory order `stored` (`RowMajor`: C-contiguous,
+/// `ColMajor`: Fortran-contiguous). The matrix slices are in order for a
+/// device exactly when `stored` is the device order.
+pub(crate) fn stack_tensor(
+    v: &[c64],
+    batch: &[usize],
+    inner: &[usize],
+    order: FlagOrder,
+    stored: FlagOrder,
+    device: &DeviceBLAS,
+) -> Tensor<c64, DeviceBLAS, IxD> {
+    let stack = rt::asarray((v.to_vec(), stacked(batch, inner, order).c(), device)).into_owned().into_dyn();
+    match stored {
+        RowMajor => stack,
+        ColMajor => stack.to_contig_f(ColMajor).unwrap().into_owned().into_dyn(),
+    }
+}
