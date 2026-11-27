@@ -25,8 +25,9 @@ use super::svdvals::blas_impl_svdvals_f;
 /// The matrix axes are the last two shape axes under a row-major device and
 /// the first two under a column-major one; the rest is the batch, and an
 /// array tolerance is broadcast against it in that same device order. The
-/// tolerance is validated (device match, broadcast) before the empty-input
-/// short-circuit, so a bad tolerance errors on an empty input too.
+/// tolerance is validated up front (device match, and a shape that broadcasts
+/// to the batch shape) before the empty-input short-circuit and the SVD, so a
+/// bad tolerance errors on an empty input too.
 pub fn blas_impl_matrix_rank_f<T>(
     a: TensorView<'_, T, DeviceBLAS, IxD>,
     rtol: MatrixRankRtol<T::Real, DeviceBLAS>,
@@ -59,7 +60,15 @@ where
     // the SVD) can skip it: a bad tolerance errors on an empty input too
     if let MatrixRankRtol::Array(t) = &rtol {
         rstsr_assert!(t.device().same_device(&device), DeviceMismatch, "matrix_rank: rtol is on a different device")?;
-        broadcast_shapes_f(&[t.shape().to_vec(), batch_shape.clone()], order)?;
+        let shape = broadcast_shapes_f(&[t.shape().to_vec(), batch_shape.clone()], order)?;
+        rstsr_assert_eq!(
+            shape.as_slice(),
+            batch_shape.as_slice(),
+            InvalidLayout,
+            "matrix_rank: rtol shape {:?} must broadcast to the batch shape {:?}",
+            t.shape(),
+            batch_shape
+        )?;
     }
 
     // zero-size matrix axes give rank 0; an empty batch stays empty
