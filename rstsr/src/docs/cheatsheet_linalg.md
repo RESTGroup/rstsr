@@ -152,6 +152,15 @@ Note `A` is the **first** argument (RSTSR solves `A x = B`), matching SciPy.
     copying it.
   - `b` is read-only (`&b`) for a fresh solution; an owned or mutable `b` is
     solved in place when its batch needs no broadcast.
+- **`matrix_norm` / `vector_norm` / `matrix_rank` / `matrix_power`** are on
+  the BLAS devices too (same array-API semantics as the faer entries above;
+  the SVD-based orders and the rank run GESDD without `U`/`Vᵀ`). One
+  divergence in `matrix_power`: an owned or mutable input is raised **in
+  place** (pass `a.view()` to keep it), and a singular base with a negative
+  exponent **errors** (the `GETRF` factorization behind `inv` reports it),
+  where the faer device returns `inf`/`NaN` entries and NumPy raises. After
+  that error an in-place input is left unspecified (earlier slices already
+  inverted, the singular one holding its `LU` factors).
 - **`eigvalsh`** on faer handles the **standard** problem only; generalized
   eigenvalues go through `eigh((&a, &b, uplo, type))`.
 - **`eig` / `eigvals`** on faer handle the **standard** problem only

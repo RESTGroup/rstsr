@@ -9,8 +9,8 @@
 //! no device. Singular values come from [`faer_impl_svdvals_f`]. Unlike NumPy
 //! there is no Hermitian fast path: every matrix is ranked from its SVD.
 //!
-//! The two matrix axes are the input's **leading** axes under a row-major device
-//! and its **trailing** axes under a column-major one; the batch is the rest, and
+//! The two matrix axes are the input's **trailing** axes under a row-major device
+//! and its **leading** axes under a column-major one; the batch is the rest, and
 //! an `Array` tolerance is broadcast against it in that same device order (so
 //! under row-major the alignment matches NumPy's trailing rule, under
 //! column-major it mirrors it).
