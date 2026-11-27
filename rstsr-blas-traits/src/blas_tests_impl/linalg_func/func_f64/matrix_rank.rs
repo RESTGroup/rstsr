@@ -1,4 +1,5 @@
 use super::*;
+use rstsr_core::prelude_dev::RSTSRError;
 
 #[test]
 fn test_matrix_rank() {
@@ -287,4 +288,46 @@ fn test_matrix_rank_fingerprint() {
     let a = rt::asarray((a_vec, [1024, 512].c(), &device)).into_dim::<Ix2>();
     let r = rt::linalg::matrix_rank(a.view()).to_scalar();
     assert_eq!(r, 512);
+}
+
+// every overload form on a small input; the result is `usize`-typed and
+// dynamic-dim (the two matrix axes are dropped)
+#[test]
+fn test_matrix_rank_overloads() {
+    let device = DeviceBLAS::default();
+    let a = rt::asarray((vec![1.0f64, 2.0, 3.0, 4.0], [2, 2].c(), &device));
+
+    // read-only kinds: bare, `()`, `None`, the args default
+    let r: Tensor<usize, DeviceBLAS, IxD> = rt::linalg::matrix_rank(&a);
+    assert_eq!((r.ndim(), r.to_scalar()), (0, 2));
+    assert_eq!(rt::linalg::matrix_rank(a.view()).to_scalar(), 2);
+    assert_eq!(rt::linalg::matrix_rank((a.view(), ())).to_scalar(), 2);
+    assert_eq!(rt::linalg::matrix_rank((a.view(), None)).to_scalar(), 2);
+    let default = rt::linalg::MatrixRankRtol::<f64, DeviceBLAS>::default();
+    assert_eq!(rt::linalg::matrix_rank((a.view(), default)).to_scalar(), 2);
+
+    // owned inputs are consumed, bare and with a tolerance
+    let singular = || rt::asarray((vec![1.0f64, 2.0, 2.0, 4.0], [2, 2].c(), &device));
+    let r: Tensor<usize, DeviceBLAS, IxD> = rt::linalg::matrix_rank(singular());
+    assert_eq!(r.to_scalar(), 1);
+    let r: Tensor<usize, DeviceBLAS, IxD> = rt::linalg::matrix_rank((singular(), 1e-8));
+    assert_eq!(r.to_scalar(), 1);
+}
+
+// an `Array` tolerance is validated up front: it must broadcast to the batch
+// shape exactly (one tolerance per matrix)
+#[test]
+fn test_matrix_rank_rtol_shape() {
+    let device = DeviceBLAS::default();
+    let stacked = rt::asarray((vec![1.0f64, 2.0, 3.0, 4.0, 1.0, 2.0, 2.0, 4.0], [2, 2, 2].c(), &device));
+
+    // a scalar-shaped tolerance broadcasts to the batch
+    let r = rt::linalg::matrix_rank((stacked.view(), rt::from_scalar(1e-8f64, &device)));
+    assert_eq!((r.shape().as_slice(), r[[0]], r[[1]]), (&[2][..], 2, 1));
+
+    // a leading axis the batch lacks is rejected before the SVD (NumPy would
+    // return shape [1, 2])
+    let rtol = rt::asarray((vec![1e-8f64, 1e-8], [1, 2].c(), &device));
+    let err = rt::linalg::matrix_rank_f((stacked.view(), rtol)).unwrap_err();
+    assert!(matches!(err.inner, RSTSRError::InvalidLayout(_)), "{err}");
 }

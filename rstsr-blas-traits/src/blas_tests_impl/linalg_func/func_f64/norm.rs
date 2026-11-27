@@ -139,6 +139,8 @@ fn test_matrix_norm_layouts() {
             rt::linalg::NormOrd::P(-1.0),
             rt::linalg::NormOrd::P(2.0),
             rt::linalg::NormOrd::P(-2.0),
+            rt::linalg::NormOrd::Inf,
+            rt::linalg::NormOrd::NegInf,
         ];
         for nrm in orders {
             let nd = rt::linalg::matrix_norm((stacked.view(), nrm));
@@ -148,17 +150,20 @@ fn test_matrix_norm_layouts() {
             assert!((nd[[1]] - d1).abs() <= 1e-12 + 1e-12 * d1.abs(), "{nrm:?} slot 1");
         }
 
-        // off-order storage: same logical stack, the other memory order
+        // off-order storage: same logical stack, the other memory order, every
+        // order (the SVD-based ones must gather the off-order slots)
         let other = match order {
             RowMajor => ColMajor,
             ColMajor => RowMajor,
         };
         let stacked_off = stack_tensor(&v, &[2], &[2, 2], order, other, &device);
-        let nd = rt::linalg::matrix_norm((stacked_off.view(), "fro"));
-        let d0: f64 = rt::linalg::matrix_norm((s0.view(), "fro")).to_scalar();
-        let d1: f64 = rt::linalg::matrix_norm((s1.view(), "fro")).to_scalar();
-        assert!((nd[[0]] - d0).abs() <= 1e-12 + 1e-12 * d0.abs(), "off slot 0");
-        assert!((nd[[1]] - d1).abs() <= 1e-12 + 1e-12 * d1.abs(), "off slot 1");
+        for nrm in orders {
+            let nd = rt::linalg::matrix_norm((stacked_off.view(), nrm));
+            let d0: f64 = rt::linalg::matrix_norm((s0.view(), nrm)).to_scalar();
+            let d1: f64 = rt::linalg::matrix_norm((s1.view(), nrm)).to_scalar();
+            assert!((nd[[0]] - d0).abs() <= 1e-12 + 1e-12 * d0.abs(), "off-order {nrm:?} slot 0");
+            assert!((nd[[1]] - d1).abs() <= 1e-12 + 1e-12 * d1.abs(), "off-order {nrm:?} slot 1");
+        }
 
         // a strided stack: every second slot of a 4-slot buffer (slots {0, 2}
         // hold slot 0 scaled by 1 and 3; the data sits at the C-order positions
@@ -294,8 +299,8 @@ fn test_vector_norm_layouts() {
     }
 }
 
-// NumPy: every order of an empty matrix / vector is 0 (rstsr returns 0 under
-// every order; NumPy itself is inconsistent on the min-based ones)
+// rstsr returns 0 for every order of an empty matrix / vector, where NumPy
+// raises or returns inf on its min-based orders (see the module doc)
 #[test]
 fn test_norm_empty() {
     let device = DeviceBLAS::default();
@@ -356,7 +361,12 @@ fn test_norm_overloads() {
     assert!(rt::linalg::vector_norm_f((vv.view(), (2, AxesIndex::Val(5)))).is_err());
     assert!(rt::linalg::vector_norm_f((vv.view(), "fro")).is_err());
 
-    // rank rules: a 1-D input has no matrix norm, a 0-D input no vector norm
+    // rank rules: a 1-D input has no matrix norm; a 0-D input is a one-element
+    // vector, so its vector norm is |x| (as NumPy)
     let v1 = rt::asarray((vec![1.0f64, 2.0], [2].c(), &device));
     assert!(rt::linalg::matrix_norm_f(v1.view()).is_err());
+    let x0 = rt::from_scalar(-3.0f64, &device);
+    let n0 = rt::linalg::vector_norm(x0.view());
+    assert_eq!(n0.shape(), &[]);
+    assert!((n0.to_scalar() - 3.0).abs() < 1e-12);
 }

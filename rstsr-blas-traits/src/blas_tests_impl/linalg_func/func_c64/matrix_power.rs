@@ -1,4 +1,5 @@
 use super::*;
+use rstsr_core::prelude_dev::RSTSRError;
 
 // NumPy golden values from `func_validation_c64.py` (`# ### matrix_power`);
 // they equal the constants of the faer entry's tests (same manifest data)
@@ -125,21 +126,20 @@ fn test_matrix_power_inplace() {
     rt::linalg::matrix_power((b.view_mut(), 2));
     assert!(rt::allclose(b.view(), &expected, (1e-12, 1e-12)));
 
-    // an off-order mutable input: computed in a work buffer, written back
-    let mut device_col = DeviceBLAS::default();
-    device_col.set_default_order(ColMajor);
+    // an off-order mutable input (column-major storage on the row-major
+    // device): computed in a work buffer, written back into the input
     let mut a_col_vec = Vec::with_capacity(16);
     for j in 0..4 {
         for i in 0..4 {
             a_col_vec.push(a_vec[i * 4 + j]);
         }
     }
-    let mut c = rt::asarray((a_col_vec.clone(), [4, 4].f(), &device_col));
+    let mut c = rt::asarray((a_col_vec, [4, 4].f(), &device));
+    assert!(c.f_contig() && !c.c_contig(), "the fixture must not be in-place-eligible");
     let ptr_c = c.raw().as_ptr();
     rt::linalg::matrix_power((c.view_mut(), 2));
     assert_eq!(c.raw().as_ptr(), ptr_c, "off-order write-back stays in the input buffer");
-    let c_expected = rt::linalg::matrix_power((rt::asarray((a_col_vec.clone(), [4, 4].f(), &device_col)).view(), 2));
-    assert!(rt::allclose(c.view(), &c_expected, (1e-12, 1e-12)));
+    assert!(rt::allclose(c.view(), &expected, (1e-12, 1e-12)));
 }
 
 // a singular base with n < 0 errors (GETRF info > 0) where faer returns NaN
@@ -148,7 +148,8 @@ fn test_matrix_power_singular_negative() {
     let device = DeviceBLAS::default();
     // a real exactly singular matrix embedded in the complex dtype
     let a = rt::asarray((vec![c64!(1.0), c64!(2.0), c64!(2.0), c64!(4.0)], [2, 2].c(), &device));
-    assert!(rt::linalg::matrix_power_f((a.view(), -1)).is_err());
+    let err = rt::linalg::matrix_power_f((a.view(), -1)).unwrap_err();
+    assert!(matches!(err.inner, RSTSRError::InvalidValue(_)), "{err}");
     assert!(rt::linalg::matrix_power_f((a.view(), -2)).is_err());
 
     // a complex singular matrix: the second row is 2 times the first
@@ -173,7 +174,8 @@ fn test_matrix_power_errors_zero() {
     let device = DeviceBLAS::default();
     // non-square input
     let a = rt::asarray((vec![c64!(1.0), c64!(2.0), c64!(3.0), c64!(4.0), c64!(5.0), c64!(6.0)], [2, 3].c(), &device));
-    assert!(rt::linalg::matrix_power_f((a.view(), 2)).is_err());
+    let err = rt::linalg::matrix_power_f((a.view(), 2)).unwrap_err();
+    assert!(matches!(err.inner, RSTSRError::InvalidLayout(_)), "{err}");
 
     // (0, 0) input: the identity of shape (0, 0); an empty batch stays empty
     let z = rt::asarray((Vec::<c64>::new(), [0, 0].c(), &device));
