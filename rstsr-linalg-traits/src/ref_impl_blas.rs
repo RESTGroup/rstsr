@@ -2,6 +2,7 @@ use crate::stack::{stack_shape, stack_slice_at, stack_slice_at_mut, StackLayout}
 use crate::traits_def::{EigSide, EighArgs_, PinvResult, QrMode, SVDArgs_};
 use num::{Complex, Float, FromPrimitive, One, Zero};
 use rstsr_blas_traits::prelude::*;
+use rstsr_blas_traits::util::util_layout::get_output_order;
 use rstsr_core::prelude::rt;
 use rstsr_core::prelude_dev::*;
 
@@ -28,6 +29,81 @@ where
         Lower => tril(result.view_mut()),
     };
     Ok(result.clone_to_mut())
+}
+
+/* #endregion */
+
+/* #region cholesky_factor */
+
+/// Factor from the Cholesky decomposition of one slice: the `uplo` triangle
+/// of `a` is overwritten with the factor in place when `a` is mutable and
+/// matches the device order, or in a contiguous work buffer written back into
+/// `a`; an immutable `a` is factored into a fresh buffer. With `clean`, the
+/// other triangle is zeroed.
+pub fn ref_impl_cho_factor_f<T, B>(
+    a: TensorReference<T, B, Ix2>,
+    uplo: FlagUpLo,
+    clean: bool,
+) -> Result<TensorMutable<T, B, Ix2>>
+where
+    T: BlasFloat,
+    B: LapackDriverAPI<T>,
+{
+    let device = a.device().clone();
+    let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
+    let task = || POTRF::default().a(a).uplo(uplo).build()?.run();
+    let mut result = device.with_blas_num_threads(nthreads, task)?;
+    if clean {
+        match uplo {
+            Upper => triu(result.view_mut()),
+            Lower => tril(result.view_mut()),
+        };
+    }
+    Ok(result.clone_to_mut())
+}
+
+/// Solve from the Cholesky factors of one slice: the `uplo` triangle of `c`
+/// holds the factor (one triangle is read, the rest may hold anything), `b`
+/// the `(N, K)` right-hand side — overwritten in place when mutable and in
+/// the device order, or in a contiguous work buffer written back into `b`.
+/// Two triangular solves per slice: `Lower` reads `L z = b`, `Lᴴ x = z`;
+/// `Upper` reads `Uᴴ z = b`, `U x = z`.
+pub fn ref_impl_cho_solve_f<'b, T, B>(
+    c: TensorView<'_, T, B, Ix2>,
+    uplo: FlagUpLo,
+    b: TensorReference<'b, T, B, Ix2>,
+) -> Result<TensorMutable<'b, T, B, Ix2>>
+where
+    T: BlasFloat,
+    B: LapackDriverAPI<T>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignArbitaryAPI<T, Ix2, Ix2>
+        + OpAssignAPI<T, Ix2>
+        + Op_MutA_API<T, Ix2, fn(&mut MaybeUninit<T>)>,
+{
+    let device = b.device().clone();
+    rstsr_assert!(
+        device.same_device(c.device()),
+        DeviceMismatch,
+        "cho_solve: the factor and b are on different devices"
+    )?;
+    if b.view().shape()[0] == 0 || b.view().shape()[1] == 0 {
+        return overwritable_convert(b);
+    }
+    let order = device.default_order();
+    let mut y = overwritable_convert_with_order(b, order)?;
+    match uplo {
+        Lower => {
+            trsm_in_place(c.view(), Lower, NoTrans, NonUnit, y.view_mut())?;
+            trsm_in_place(c.view(), Lower, ConjTrans, NonUnit, y.view_mut())?;
+        },
+        Upper => {
+            trsm_in_place(c.view(), Upper, ConjTrans, NonUnit, y.view_mut())?;
+            trsm_in_place(c.view(), Upper, NoTrans, NonUnit, y.view_mut())?;
+        },
+    }
+    // a mutable off-order b gets the solution written back
+    Ok(y.clone_to_mut())
 }
 
 /* #endregion */
@@ -927,6 +1003,53 @@ where
     }
 }
 
+/// One triangular solve in place on the contiguous `y`: `tri` is taken as it
+/// is (one triangle is read), the system selected by `uplo`, `transa` and
+/// `diag`. The call order follows `y`, as the `TRSM` builder computes it. An
+/// off-order `tri` with the `ConjTrans` step runs as the conjugated `Trans`
+/// solve instead — exact, and it saves the conj-transposed `tri` copy the
+/// builder would materialize.
+fn trsm_in_place<T, B>(
+    tri: TensorView<'_, T, B, Ix2>,
+    uplo: FlagUpLo,
+    transa: FlagTrans,
+    diag: FlagDiag,
+    mut y: TensorViewMut<'_, T, B, Ix2>,
+) -> Result<()>
+where
+    T: BlasFloat,
+    B: BlasDriverBaseAPI<T> + TRSMDriverAPI<T> + Op_MutA_API<T, Ix2, fn(&mut MaybeUninit<T>)>,
+{
+    fn conj_elem<T: BlasFloat>(x: &mut MaybeUninit<T>) {
+        unsafe { *x.assume_init_mut() = x.assume_init().conj() };
+    }
+    let device = y.device().clone();
+    let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
+    // the TRSM builder picks the call order from b's preference
+    let order = get_output_order(&[None, Some((y.c_prefer(), y.f_prefer()))], &[], device.default_order());
+    let tri_in_order = match order {
+        ColMajor => tri.f_prefer(),
+        RowMajor => tri.c_prefer(),
+    };
+    let step = |transa: FlagTrans, y: TensorViewMut<'_, T, B, Ix2>| -> Result<()> {
+        let task =
+            || TRSM::default().a(tri).b(TensorReference::from(y)).uplo(uplo).diag(diag).transa(transa).build()?.run();
+        device.with_blas_num_threads(nthreads, task)?.clone_to_mut();
+        Ok(())
+    };
+    match transa {
+        ConjTrans if !tri_in_order => {
+            // Aᴴ x = y as x = conj((Aᵀ)⁻¹ conj(y)); the conjugation is exact
+            let mut conj = conj_elem::<T> as fn(&mut MaybeUninit<T>);
+            op_muta_func(y.view_mut(), &mut conj)?;
+            step(Trans, y.view_mut())?;
+            op_muta_func(y.view_mut(), &mut conj)?;
+        },
+        _ => step(transa, y)?,
+    }
+    Ok(())
+}
+
 /// The row swaps and the two triangular solves of one `lu_solve`, in the
 /// storage of the contiguous `y` (in the device order).
 fn lu_solve_in_place<T, B>(
@@ -939,33 +1062,17 @@ fn lu_solve_in_place<T, B>(
 ) -> Result<()>
 where
     T: BlasFloat,
-    B: LapackDriverAPI<T>,
+    B: LapackDriverAPI<T> + Op_MutA_API<T, Ix2, fn(&mut MaybeUninit<T>)>,
 {
-    let device = y.device().clone();
-    let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
     if swaps_first {
         lu_swap_rows(y.view_mut(), ipiv, true);
     }
-    let mut step = |tri: TensorView<'_, T, B, Ix2>, uplo: FlagUpLo, diag: FlagDiag| -> Result<()> {
-        let task = || {
-            TRSM::default()
-                .a(tri)
-                .b(TensorReference::from(y.view_mut()))
-                .uplo(uplo)
-                .diag(diag)
-                .transa(trans)
-                .build()?
-                .run()
-        };
-        device.with_blas_num_threads(nthreads, task)?.clone_to_mut();
-        Ok(())
-    };
     if swaps_first {
-        step(l, Lower, Unit)?;
-        step(u, Upper, NonUnit)?;
+        trsm_in_place(l, Lower, trans, Unit, y.view_mut())?;
+        trsm_in_place(u, Upper, trans, NonUnit, y.view_mut())?;
     } else {
-        step(u, Upper, NonUnit)?;
-        step(l, Lower, Unit)?;
+        trsm_in_place(u, Upper, trans, NonUnit, y.view_mut())?;
+        trsm_in_place(l, Lower, trans, Unit, y.view_mut())?;
     }
     if !swaps_first {
         lu_swap_rows(y, ipiv, false);
@@ -988,7 +1095,11 @@ pub fn ref_impl_lu_solve_f<'b, T, B>(
 ) -> Result<TensorMutable<'b, T, B, Ix2>>
 where
     T: BlasFloat,
-    B: LapackDriverAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, Ix2, Ix2> + OpAssignAPI<T, Ix2>,
+    B: LapackDriverAPI<T>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignArbitaryAPI<T, Ix2, Ix2>
+        + OpAssignAPI<T, Ix2>
+        + Op_MutA_API<T, Ix2, fn(&mut MaybeUninit<T>)>,
 {
     let device = b.device().clone();
     rstsr_assert!(
