@@ -50,10 +50,7 @@ where
             return Ok(a);
         }
 
-        // the transposed view of a c-prefer buffer is the same Hermitian
-        // matrix; ?POTRF on it with the flipped uplo writes the factor into
-        // the requested triangle of the buffer, so no row-major bridge is
-        // needed
+        // a c-prefer buffer is factored through its transposed view (see the docstring)
         let uplo_call = match layout_order {
             ColMajor => uplo,
             RowMajor => uplo.flip(),

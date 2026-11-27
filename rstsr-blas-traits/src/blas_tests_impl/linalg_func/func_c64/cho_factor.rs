@@ -91,9 +91,8 @@ fn check_factor_triangle(
 #[test]
 fn test_cho_factor() {
     let device = DeviceBLAS::default();
-    let a_vec = get_vec::<c64>('a');
-    let b_vec = get_vec::<c64>('b');
     // the factor's manifest is `b` (as for cholesky)
+    let b_vec = get_vec::<c64>('b');
     let a = rt::asarray((&b_vec[..1024 * 1024], [1024, 1024].c(), &device)).into_dim::<Ix2>();
 
     // default (the device order's triangle: Lower on a row-major device)
@@ -113,7 +112,7 @@ fn test_cho_factor() {
     let lc = l.view().conj();
     let lh = lc.t();
     let llh = &l % lh;
-    assert!(rt::allclose(llh.view(), a.view(), Some(1e-8)), "L Lᴴ = A");
+    assert!(rt::allclose(llh.view(), a.view(), (1e-8, 1e-8)), "L Lᴴ = A");
 
     // upper
     let factors = rt::linalg::cho_factor((&a, Upper));
@@ -123,8 +122,7 @@ fn test_cho_factor() {
     let uc = u.view().conj();
     let uh = uc.t();
     let uhu = &uh % u.view();
-    assert!(rt::allclose(uhu.view(), a.view(), Some(1e-8)), "Uᴴ U = A");
-    let _ = a_vec;
+    assert!(rt::allclose(uhu.view(), a.view(), (1e-8, 1e-8)), "Uᴴ U = A");
 }
 
 /// The other triangle and the padding of the input kinds, over device order
@@ -138,6 +136,16 @@ fn test_cho_factor_relations() {
     for order in [RowMajor, ColMajor] {
         let mut device = DeviceBLAS::default();
         device.set_default_order(order);
+        // a matrix (row-major `v`) of shape `(rows, cols)` stored in `storage`
+        // (`rt::asarray` consumes `v` in memory order, so convert the layout)
+        let mk = |v: &[c64], rows: usize, cols: usize, storage: FlagOrder| -> Tensor<c64, DeviceBLAS, Ix2> {
+            rt::asarray((v.to_vec(), [rows, cols].c(), &device))
+                .into_dim::<Ix2>()
+                .to_contig_f(storage)
+                .unwrap()
+                .into_owned()
+                .into_dim::<Ix2>()
+        };
         for uplo in [Lower, Upper] {
             let tag = format!("{order:?}, {uplo:?}");
             let reference =
@@ -148,7 +156,7 @@ fn test_cho_factor_relations() {
             };
 
             // read-only input: fresh buffer, cleaned
-            let buf = rt::asarray((a.clone(), [n, n].c(), &device)).into_dim::<Ix2>();
+            let buf = mk(&a, n, n, order);
             let factors = rt::linalg::cho_factor((buf.view(), uplo));
             assert_eq!(factors.uplo, uplo, "flag, {tag}");
             check_factor_triangle(factors.c.view(), reference.view(), uplo, 1e-11, &format!("factor, {tag}"));
@@ -160,9 +168,9 @@ fn test_cho_factor_relations() {
                 }
             }
 
-            // owned input: consumed in place, the other triangle keeps the
-            // input's values
-            let owned = rt::asarray((a.clone(), [n, n].c(), &device)).into_dim::<Ix2>();
+            // owned input in the device order: consumed in place, the other
+            // triangle keeps the input's values
+            let owned = mk(&a, n, n, order);
             let factors = rt::linalg::cho_factor((owned, uplo));
             check_factor_triangle(factors.c.view(), reference.view(), uplo, 1e-11, &format!("owned factor, {tag}"));
             for i in 0..n {
@@ -173,29 +181,40 @@ fn test_cho_factor_relations() {
                 }
             }
 
-            // mutable input in the device order: factored in place
-            let mut buf = rt::asarray((a.clone(), [n, n].c(), &device)).into_dim::<Ix2>();
+            // mutable input in the device order: factored in place, the result
+            // aliases the input buffer, the other triangle keeps the input's
+            // values
+            let mut buf = mk(&a, n, n, order);
             let ptr = buf.raw().as_ptr();
             let factors = rt::linalg::cho_factor((buf.view_mut(), uplo));
             assert_eq!(factors.c.raw().as_ptr(), ptr, "in place, {tag}");
             check_factor_triangle(factors.c.view(), reference.view(), uplo, 1e-11, &format!("in-place factor, {tag}"));
+            drop(factors);
+            for i in 0..n {
+                for j in 0..n {
+                    if other(i, j) {
+                        assert_eq!(buf[[i, j]], a[i * n + j], "in-place other triangle ({i}, {j}), {tag}");
+                    }
+                }
+            }
 
             // padded mutable view in the device order: factored in place, the
             // NaN padding is untouched
             let p = n + 3;
             let nan = c64::new(f64::NAN, f64::NAN);
-            let mut padded = rt::asarray((vec![nan; p * p], [p, p].c(), &device)).into_dim::<Ix2>();
-            padded.i_mut((0..n, 0..n)).assign_f(rt::asarray((a.clone(), [n, n].c(), &device)).view()).unwrap();
+            let mut padded = mk(&vec![nan; p * p], p, p, order);
+            padded.i_mut((0..n, 0..n)).assign_f(mk(&a, n, n, order).view()).unwrap();
             let ptr = padded.raw().as_ptr();
             let view = padded.i_mut((0..n, 0..n)).into_dim::<Ix2>();
             let factors = rt::linalg::cho_factor((view, uplo));
             assert_eq!(factors.c.raw().as_ptr(), ptr, "padded in place, {tag}");
             check_factor_triangle(factors.c.view(), reference.view(), uplo, 1e-11, &format!("padded factor, {tag}"));
             drop(factors);
-            for idx in 0..p * p {
-                let (i, j) = (idx / p, idx % p);
-                if i >= n || j >= n {
-                    assert!(padded.raw()[idx].is_nan(), "padding {idx}, {tag}");
+            for i in 0..p {
+                for j in 0..p {
+                    if i >= n || j >= n {
+                        assert!(padded[[i, j]].is_nan(), "padding ({i}, {j}), {tag}");
+                    }
                 }
             }
         }
@@ -284,9 +303,9 @@ fn test_cho_factor_overloads() {
 
     // read-only kinds (cleaned)
     let r = rt::linalg::cho_factor(a.view());
-    assert!(rt::allclose(r.c.view(), reference.c.view(), Some(1e-11)), "view");
+    assert!(rt::allclose(r.c.view(), reference.c.view(), (1e-11, 1e-11)), "view");
     let r = rt::linalg::cho_factor(&a);
-    assert!(rt::allclose(r.c.view(), reference.c.view(), Some(1e-11)), "&");
+    assert!(rt::allclose(r.c.view(), reference.c.view(), (1e-11, 1e-11)), "&");
     let r = rt::linalg::cho_factor((a.view(), Upper));
     assert_eq!(r.uplo, Upper, "view + flag");
 
@@ -302,11 +321,11 @@ fn test_cho_factor_overloads() {
     // the result destructures as (c, uplo)
     let (c, uplo): (Tensor<c64, DeviceBLAS, Ix2>, FlagUpLo) = rt::linalg::cho_factor(&a).into();
     assert_eq!(uplo, reference.uplo);
-    assert!(rt::allclose(c.view(), reference.c.view(), Some(1e-11)), "tuple");
+    assert!(rt::allclose(c.view(), reference.c.view(), (1e-11, 1e-11)), "tuple");
 
     // fallible variant
     let r = rt::linalg::cho_factor_f(&a).unwrap();
-    assert!(rt::allclose(r.c.view(), reference.c.view(), Some(1e-11)), "cho_factor_f");
+    assert!(rt::allclose(r.c.view(), reference.c.view(), (1e-11, 1e-11)), "cho_factor_f");
 }
 
 #[test]

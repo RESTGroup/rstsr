@@ -115,7 +115,7 @@ fn test_cho_solve_relations() {
             assert_eq!(x.shape(), &[n, k], "shape, {tag}");
             check_solution(a.view(), x.view(), b.view(), &tag);
             let x_g = rt::linalg::solve_general((a.view(), b.view()));
-            assert!(rt::allclose(x.view(), x_g.view(), Some(1e-12)), "solve_general parity, {tag}");
+            assert!(rt::allclose(x.view(), x_g.view(), (1e-12, 1e-12)), "solve_general parity, {tag}");
 
             // vector b gives the single column
             let x_v = rt::linalg::cho_solve((&factors, &b_vec_rhs));
@@ -125,10 +125,10 @@ fn test_cho_solve_relations() {
 
             // the nested form and a cholesky result with a manual flag agree
             let x_n = rt::linalg::cho_solve(((factors.c.view(), uplo), &b));
-            assert!(rt::allclose(x_n.view(), x.view(), Some(1e-13)), "nested form, {tag}");
+            assert!(rt::allclose(x_n.view(), x.view(), (1e-13, 1e-13)), "nested form, {tag}");
             let chol = rt::linalg::cholesky((a.view(), uplo));
             let x_c = rt::linalg::cho_solve(((chol.view(), uplo), &b));
-            assert!(rt::allclose(x_c.view(), x.view(), Some(1e-13)), "cholesky factors, {tag}");
+            assert!(rt::allclose(x_c.view(), x.view(), (1e-13, 1e-13)), "cholesky factors, {tag}");
 
             // garbage in the other triangle changes nothing
             let mut dirty = factors.c.clone();
@@ -149,7 +149,7 @@ fn test_cho_solve_relations() {
         let factors = rt::linalg::cho_factor(a.view());
         let x = rt::linalg::cho_solve((&factors, &b));
         let x_g = rt::linalg::solve_general((a.view(), b.view()));
-        assert!(rt::allclose(x.view(), x_g.view(), Some(1e-12)), "default flag, {n}x{n}");
+        assert!(rt::allclose(x.view(), x_g.view(), (1e-12, 1e-12)), "default flag, {n}x{n}");
     }
 }
 
@@ -183,7 +183,7 @@ fn test_cho_solve_situations() {
                     assert_eq!(x.shape(), b.shape(), "shape, {tag}");
                     check_solution(a_t.view(), x.view(), b.view().into_dyn(), &tag);
                     let x_g = rt::linalg::solve_general((a_t.view(), b.view()));
-                    assert!(rt::allclose(x.view(), x_g.view(), Some(1e-12)), "solve_general, {tag}");
+                    assert!(rt::allclose(x.view(), x_g.view(), (1e-12, 1e-12)), "solve_general, {tag}");
                     // an off-order factor is solved bit-equal to the in-order
                     // call (the conjugated-step rewrite is exact)
                     if stored != order {
@@ -268,8 +268,8 @@ fn test_cho_solve_nd() {
                     RowMajor => x3.i((i, .., ..)),
                     ColMajor => x3.i((.., .., i)),
                 };
-                assert!(rt::allclose(x_slot, x_i1.view(), Some(1e-11)), "slot parity, {at}");
-                assert!(rt::allclose(x3_slot, x_i.view(), Some(1e-11)), "slot parity (b3), {at}");
+                assert!(rt::allclose(x_slot, x_i1.view(), (1e-11, 1e-11)), "slot parity, {at}");
+                assert!(rt::allclose(x3_slot, x_i.view(), (1e-11, 1e-11)), "slot parity (b3), {at}");
             }
 
             // batched vector form
@@ -293,7 +293,7 @@ fn test_cho_solve_nd() {
                 .into_dim::<Ix2>();
                 let factors_i = rt::linalg::cho_factor(a_i.view());
                 let reference = rt::linalg::cho_solve((&factors_i, &pick(&b_vec3)));
-                assert!(rt::allclose(pick(&x).view(), reference.view(), Some(1e-11)), "vector slot {i}, {tag}");
+                assert!(rt::allclose(pick(&x).view(), reference.view(), (1e-11, 1e-11)), "vector slot {i}, {tag}");
             }
 
             // factor of batch 1 broadcasts over the b batch of 3
@@ -333,11 +333,11 @@ fn test_cho_solve_inplace() {
         let ptr = b_mut.raw().as_ptr();
         let x = rt::linalg::cho_solve((&factors, b_mut.view_mut()));
         assert_eq!(x.raw().as_ptr(), ptr, "in-place alias, {tag}");
-        assert!(rt::allclose(x.view(), reference.view(), Some(1e-11)), "in-place, {tag}");
+        assert!(rt::allclose(x.view(), reference.view(), (1e-11, 1e-11)), "in-place, {tag}");
 
         // owned b: consumed
         let x = rt::linalg::cho_solve((&factors, mk(&b_vec[..n * k], n, k, order)));
-        assert!(rt::allclose(x.view(), reference.view(), Some(1e-11)), "owned b, {tag}");
+        assert!(rt::allclose(x.view(), reference.view(), (1e-11, 1e-11)), "owned b, {tag}");
 
         // a mutable b of the other order is solved in a work buffer, written
         // back into b
@@ -349,9 +349,9 @@ fn test_cho_solve_inplace() {
         let ptr = b_off.raw().as_ptr();
         let x = rt::linalg::cho_solve((&factors, b_off.view_mut()));
         assert_eq!(x.raw().as_ptr(), ptr, "off-order b alias, {tag}");
-        assert!(rt::allclose(x.view(), reference.view(), Some(1e-11)), "off-order b, {tag}");
+        assert!(rt::allclose(x.view(), reference.view(), (1e-11, 1e-11)), "off-order b, {tag}");
         drop(x);
-        assert!(rt::allclose(b_off.view(), reference.view(), Some(1e-11)), "off-order b written back, {tag}");
+        assert!(rt::allclose(b_off.view(), reference.view(), (1e-11, 1e-11)), "off-order b written back, {tag}");
 
         // padded b in the device order: solved in place, the padding untouched
         let (pn, pk) = (n + 2, k + 3);
@@ -361,7 +361,7 @@ fn test_cho_solve_inplace() {
         let ptr = buf.raw().as_ptr();
         let x = rt::linalg::cho_solve((&factors, buf.i_mut((0..n, 0..k)).into_dim::<Ix2>()));
         assert_eq!(x.raw().as_ptr(), ptr, "the solution is the padded b buffer, {tag}");
-        assert!(rt::allclose(x.view(), reference.view(), Some(1e-11)), "padded b, {tag}");
+        assert!(rt::allclose(x.view(), reference.view(), (1e-11, 1e-11)), "padded b, {tag}");
         drop(x);
         for i in 0..pn {
             for j in 0..pk {
@@ -388,28 +388,28 @@ fn test_cho_solve_overloads() {
 
     // read-only b, with every kind of factor
     let r = rt::linalg::cho_solve((factors.c.view(), factors.uplo, &b));
-    assert!(rt::allclose(r.view(), reference.view(), Some(1e-11)), "(view, flag, &)");
+    assert!(rt::allclose(r.view(), reference.view(), (1e-11, 1e-11)), "(view, flag, &)");
     let r = rt::linalg::cho_solve((&factors.c, factors.uplo, &b));
-    assert!(rt::allclose(r.view(), reference.view(), Some(1e-11)), "(&, flag, &)");
+    assert!(rt::allclose(r.view(), reference.view(), (1e-11, 1e-11)), "(&, flag, &)");
     let r = rt::linalg::cho_solve((factors.c.clone(), factors.uplo, &b));
-    assert!(rt::allclose(r.view(), reference.view(), Some(1e-11)), "(owned, flag, &)");
+    assert!(rt::allclose(r.view(), reference.view(), (1e-11, 1e-11)), "(owned, flag, &)");
     let r = rt::linalg::cho_solve((factors.c.view(), factors.uplo, b.view()));
-    assert!(rt::allclose(r.view(), reference.view(), Some(1e-11)), "(view, flag, view)");
+    assert!(rt::allclose(r.view(), reference.view(), (1e-11, 1e-11)), "(view, flag, view)");
 
     // consumed b: the result is b's buffer
     let mut b_m = b.clone();
     let ptr = b_m.raw().as_ptr();
     let r = rt::linalg::cho_solve((&factors.c, factors.uplo, b_m.view_mut()));
     assert_eq!(r.raw().as_ptr(), ptr, "view_mut b is solved in place");
-    assert!(rt::allclose(r.view().to_dyn(), reference.view(), Some(1e-11)), "(&, flag, view_mut)");
+    assert!(rt::allclose(r.view().to_dyn(), reference.view(), (1e-11, 1e-11)), "(&, flag, view_mut)");
 
     // the SciPy nested form and the result struct, by value and by reference
     let r = rt::linalg::cho_solve(((factors.c.view(), factors.uplo), &b));
-    assert!(rt::allclose(r.view(), reference.view(), Some(1e-11)), "((view, flag), &)");
+    assert!(rt::allclose(r.view(), reference.view(), (1e-11, 1e-11)), "((view, flag), &)");
     let r = rt::linalg::cho_solve((rt::linalg::cho_factor(a.view()), &b));
-    assert!(rt::allclose(r.view(), reference.view(), Some(1e-11)), "(ChoFactorResult, &)");
+    assert!(rt::allclose(r.view(), reference.view(), (1e-11, 1e-11)), "(ChoFactorResult, &)");
     let r = rt::linalg::cho_solve((&factors, &b));
-    assert!(rt::allclose(r.view(), reference.view(), Some(1e-11)), "(&ChoFactorResult, &)");
+    assert!(rt::allclose(r.view(), reference.view(), (1e-11, 1e-11)), "(&ChoFactorResult, &)");
     let mut b_m = b.clone();
     let ptr = b_m.raw().as_ptr();
     let r = rt::linalg::cho_solve((&factors, b_m.view_mut()));
@@ -419,11 +419,11 @@ fn test_cho_solve_overloads() {
     let factors_u = rt::linalg::cho_factor((a.view(), Upper));
     let r = rt::linalg::cho_solve((&factors_u, &b));
     let reference_u = rt::linalg::cho_solve((factors_u.c.view(), factors_u.uplo, &b));
-    assert!(rt::allclose(r.view(), reference_u.view(), Some(1e-11)), "upper result struct");
+    assert!(rt::allclose(r.view(), reference_u.view(), (1e-11, 1e-11)), "upper result struct");
 
     // fallible variant; the factor is only read
     let r = rt::linalg::cho_solve_f((&factors.c, factors.uplo, &b)).unwrap();
-    assert!(rt::allclose(r.view(), reference.view(), Some(1e-11)), "cho_solve_f");
+    assert!(rt::allclose(r.view(), reference.view(), (1e-11, 1e-11)), "cho_solve_f");
     assert_eq!(factors.c.raw().to_vec(), rt::linalg::cho_factor(a.view()).c.raw().to_vec());
 }
 

@@ -51,9 +51,18 @@ fn layout_buffer(device: &DeviceBLAS, case: &str, a: &[f64], n: usize) -> Tensor
             }
             at(v, 2 * n, RowMajor)
         },
-        // the matrix stored as its transpose (a column-major (N, N) buffer has
-        // the memory of a row-major (N, N) one)
-        "transposed" => at(a.to_vec(), n, ColMajor),
+        // the matrix stored as its transpose in an offset window of a padded
+        // Fortran-ordered buffer, read through a reversed-axes view
+        "transposed" => {
+            let size = n + 4;
+            let mut v = vec![f64::NAN; size * size];
+            for i in 0..n {
+                for j in 0..n {
+                    v[(1 + j) + (2 + i) * size] = a[i * n + j];
+                }
+            }
+            at(v, size, ColMajor)
+        },
         _ => panic!("unknown layout case {case}"),
     }
 }
@@ -68,7 +77,7 @@ fn layout_view<'a>(
         "f-contig" | "c-contig" => buf.view(),
         "f-padded" | "c-padded" => buf.i((0..n, 0..n)).into_dim::<Ix2>(),
         "non-contig" => buf.i((slice!(0, 2 * n, 2), slice!(0, 2 * n, 2))).into_dim::<Ix2>(),
-        "transposed" => buf.t(),
+        "transposed" => buf.i((1..n + 1, 2..n + 2)).into_dim::<Ix2>().into_reverse_axes(),
         _ => panic!("unknown layout case {case}"),
     }
 }
@@ -83,7 +92,7 @@ fn layout_view_mut<'a>(
         "f-contig" | "c-contig" => buf.view_mut().into_dim::<Ix2>(),
         "f-padded" | "c-padded" => buf.i_mut((0..n, 0..n)).into_dim::<Ix2>(),
         "non-contig" => buf.i_mut((slice!(0, 2 * n, 2), slice!(0, 2 * n, 2))).into_dim::<Ix2>(),
-        "transposed" => buf.view_mut().into_reverse_axes().into_dim::<Ix2>(),
+        "transposed" => buf.i_mut((1..n + 1, 2..n + 2)).into_dim::<Ix2>().into_reverse_axes(),
         _ => panic!("unknown layout case {case}"),
     }
 }
@@ -123,11 +132,9 @@ fn test_dpotrf() {
 fn test_dpotrf_layout() {
     let src = get_vec::<f64>('b');
     for n in NS {
-        // two distinct triangular factors: the lower triangle holds an
-        // invertible L (positive diagonal, arbitrary entries below), the
-        // upper triangle a different U, so both triangles define a
-        // positive-definite matrix (L Lᵀ resp. Uᵀ U) with different values,
-        // and a wrong-triangle read shows up
+        // the lower triangle holds an invertible L (positive diagonal), the
+        // upper triangle a different U: both triangles are PD factors with
+        // different values, so a wrong-triangle read shows up
         let b: Vec<f64> = src[..n * n].to_vec();
         let mut a = vec![0.0; n * n];
         for i in 0..n {
