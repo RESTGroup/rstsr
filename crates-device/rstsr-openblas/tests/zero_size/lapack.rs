@@ -156,6 +156,16 @@ fn potrf_empty() {
     assert_eq!(a.shape(), &[0, 0]);
 }
 
+#[test]
+fn sytrf_empty() {
+    let a: Tensor<f64, DeviceOpenBLAS, Ix2> = rt::zeros(([0usize, 0].f(), &device())).into_dim::<Ix2>();
+    let (a, ipiv, info) = DSYTRF::default().a(a.view()).build().unwrap().run_with_info().unwrap();
+    let a = a.into_owned();
+    assert_eq!(info, 0);
+    assert_eq!(a.shape(), &[0, 0]);
+    assert_eq!(ipiv.size(), 0);
+}
+
 /* #endregion */
 
 /* #region EIGH */

@@ -795,3 +795,441 @@ where
 }
 
 /* #endregion */
+
+/* #region lu */
+
+/// Row indices of the permutation `A = L[P] @ U` from the 0-based `?GETRF`
+/// pivots of a matrix with `m` rows: the pivot swaps applied in reverse
+/// order to `0..m`.
+pub fn lu_ipiv_to_perm(ipiv: &[usize], m: usize) -> Vec<usize> {
+    let mut perm: Vec<usize> = (0..m).collect();
+    for i in (0..ipiv.len()).rev() {
+        perm.swap(i, ipiv[i]);
+    }
+    perm
+}
+
+/// The inverse of [`lu_ipiv_to_perm`]: the 0-based `?GETRF` pivot sequence
+/// that produces the row indices `p` of `A = L[P] @ U`.
+pub fn lu_perm_to_ipiv(p: &[usize]) -> Vec<usize> {
+    let n = p.len();
+    let mut arr = p.to_vec();
+    // position of every row in `arr`
+    let mut pos = vec![0usize; n];
+    for (i, &v) in arr.iter().enumerate() {
+        pos[v] = i;
+    }
+    let mut ipiv = vec![0usize; n];
+    for i in 0..n {
+        let j = pos[i];
+        ipiv[i] = j;
+        arr.swap(i, j);
+        pos[arr[i]] = i;
+        pos[arr[j]] = j;
+    }
+    ipiv
+}
+
+/// LU factorization of one 2-D slice under the device BLAS thread policy:
+/// the packed factors, the 0-based pivots as `usize`, and LAPACK's `info`
+/// (`info = i > 0`: `U(i, i)` is exactly zero; the factors are complete).
+pub fn ref_impl_lu_factor_f<'a, T, B>(
+    a: TensorReference<'a, T, B, Ix2>,
+) -> Result<(TensorMutable<'a, T, B, Ix2>, Vec<usize>, usize)>
+where
+    T: BlasFloat,
+    B: LapackDriverAPI<T>,
+{
+    let device = a.device().clone();
+    let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
+    let task = || GETRF::default().a(a).build()?.run_with_info();
+    let (lu, ipiv, info) = device.with_blas_num_threads(nthreads, task)?;
+    let ipiv = ipiv.raw().iter().map(|&v| v as usize).collect();
+    let info = usize::try_from(info).unwrap_or(0);
+    Ok((lu, ipiv, info))
+}
+
+/// `lu` factors of one slice, written into pre-zeroed buffers: factor the
+/// scratch `a` in place, store the row indices in `p: (M,)`, `U` in
+/// `u: (K, N)` and `L` in `l: (M, K)` — or the permuted `P L` when
+/// `permute_l` is set.
+pub fn ref_impl_lu_into_f<T, B>(
+    a: TensorReference<'_, T, B, Ix2>,
+    mut p: TensorMut<'_, usize, B, Ix1>,
+    mut l: TensorMut<'_, T, B, Ix2>,
+    mut u: TensorMut<'_, T, B, Ix2>,
+    permute_l: bool,
+) -> Result<()>
+where
+    T: BlasFloat,
+    B: LapackDriverAPI<T>
+        + DeviceAPI<usize, Raw = Vec<usize>>
+        + DeviceCreationAnyAPI<T>
+        + OpAssignArbitaryAPI<T, IxD, IxD>
+        + OpAssignAPI<T, IxD>,
+{
+    let (lu, ipiv, _info) = ref_impl_lu_factor_f(a)?;
+    let perm = lu_ipiv_to_perm(&ipiv, l.shape()[0]);
+    let offsets: Vec<usize> = IterLayout::new(p.layout(), TensorIterOrder::C)?.collect();
+    let raw = p.raw_mut();
+    for (dst, &src) in offsets.iter().zip(perm.iter()) {
+        raw[*dst] = src;
+    }
+
+    let [m, k] = *l.shape();
+    let n = u.shape()[1];
+    let lu = lu.view();
+    for i in 0..k {
+        u.i_mut((i, i..n)).assign_f(lu.i((i, i..n)))?;
+    }
+    if permute_l {
+        for i in 0..m {
+            let r = perm[i];
+            let c = r.min(k);
+            if c > 0 {
+                l.i_mut((i, 0..c)).assign_f(lu.i((r, 0..c)))?;
+            }
+            if r < k {
+                l[[i, r]] = T::one();
+            }
+        }
+    } else {
+        for j in 0..k {
+            l.i_mut((j + 1..m, j)).assign_f(lu.i((j + 1..m, j)))?;
+        }
+        for i in 0..k {
+            l[[i, i]] = T::one();
+        }
+    }
+    Ok(())
+}
+
+/// Apply the 0-based `?GETRF` pivots to the rows of `b` in place (`?LASWP`:
+/// forward through the pivots for `A x = b`, backward for `Aᵀ x = b`).
+pub fn lu_swap_rows<T, B>(mut b: TensorViewMut<'_, T, B, Ix2>, ipiv: &[usize], forward: bool)
+where
+    T: Clone,
+    B: DeviceAPI<T, Raw = Vec<T>>,
+{
+    let (s0, s1) = (b.layout().stride()[0] as usize, b.layout().stride()[1] as usize);
+    let offset = b.layout().offset();
+    let nrhs = b.shape()[1];
+    let raw = b.raw_mut();
+    for i in 0..ipiv.len() {
+        let i = if forward { i } else { ipiv.len() - 1 - i };
+        let p = ipiv[i];
+        if p == i {
+            continue;
+        }
+        for j in 0..nrhs {
+            raw.swap(offset + i * s0 + j * s1, offset + p * s0 + j * s1);
+        }
+    }
+}
+
+/// The row swaps and the two triangular solves of one `lu_solve`, in the
+/// storage of the contiguous `y` (in the device order).
+fn lu_solve_in_place<T, B>(
+    l: TensorView<'_, T, B, Ix2>,
+    u: TensorView<'_, T, B, Ix2>,
+    ipiv: &[usize],
+    trans: FlagTrans,
+    swaps_first: bool,
+    mut y: TensorViewMut<'_, T, B, Ix2>,
+) -> Result<()>
+where
+    T: BlasFloat,
+    B: LapackDriverAPI<T>,
+{
+    let device = y.device().clone();
+    let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
+    if swaps_first {
+        lu_swap_rows(y.view_mut(), ipiv, true);
+    }
+    let mut step = |tri: TensorView<'_, T, B, Ix2>, uplo: FlagUpLo, diag: FlagDiag| -> Result<()> {
+        let task = || {
+            TRSM::default()
+                .a(tri)
+                .b(TensorReference::from(y.view_mut()))
+                .uplo(uplo)
+                .diag(diag)
+                .transa(trans)
+                .build()?
+                .run()
+        };
+        device.with_blas_num_threads(nthreads, task)?.clone_to_mut();
+        Ok(())
+    };
+    if swaps_first {
+        step(l, Lower, Unit)?;
+        step(u, Upper, NonUnit)?;
+    } else {
+        step(u, Upper, NonUnit)?;
+        step(l, Lower, Unit)?;
+    }
+    if !swaps_first {
+        lu_swap_rows(y, ipiv, false);
+    }
+    Ok(())
+}
+
+/// Solve from the LU factors of one slice: `l` unit lower triangular and `u`
+/// upper triangular (`(N, N)` each, or the two triangles of one packed factor
+/// buffer), `ipiv` the 0-based `?GETRF` pivots, `b` the `(N, K)` right-hand
+/// side — overwritten in place when mutable and in the device order, or in a
+/// contiguous work buffer written back into `b`. `trans` selects `A x = b`,
+/// `Aᵀ x = b` or `Aᴴ x = b`; a singular `U` gives `inf` / `NaN`.
+pub fn ref_impl_lu_solve_f<'b, T, B>(
+    l: TensorView<'_, T, B, Ix2>,
+    u: TensorView<'_, T, B, Ix2>,
+    ipiv: &[usize],
+    b: TensorReference<'b, T, B, Ix2>,
+    trans: FlagTrans,
+) -> Result<TensorMutable<'b, T, B, Ix2>>
+where
+    T: BlasFloat,
+    B: LapackDriverAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, Ix2, Ix2> + OpAssignAPI<T, Ix2>,
+{
+    let device = b.device().clone();
+    rstsr_assert!(
+        device.same_device(l.device()) && device.same_device(u.device()),
+        DeviceMismatch,
+        "lu_solve: the factors and b are on different devices"
+    )?;
+    let swaps_first = match trans {
+        NoTrans => true,
+        Trans | ConjTrans => false,
+        _ => rstsr_invalid!(trans)?,
+    };
+    if b.view().shape()[0] == 0 || b.view().shape()[1] == 0 {
+        return overwritable_convert(b);
+    }
+    let order = device.default_order();
+    let mut y = overwritable_convert_with_order(b, order)?;
+    lu_solve_in_place(l, u, ipiv, trans, swaps_first, y.view_mut())?;
+    // a mutable off-order b gets the solution written back
+    Ok(y.clone_to_mut())
+}
+
+/* #endregion */
+
+/* #region ldl */
+
+/// LAPACK `?SYTRF` / `?HETRF` pivot array → the row-swap sequence and the
+/// block sizes of `D` (the port of SciPy's `_ldl_sanitize_ipiv`): `swap` is
+/// the row-interchange sequence read in block order, `pivots[k]` is the size
+/// of the pivot block starting at row `k` (0 marks the second row of a 2x2
+/// block). The scan direction is part of the contract because `swap` is read
+/// sequentially.
+pub fn ldl_sanitize_ipiv(ipiv: &[blas_int], lower: bool) -> Result<(Vec<usize>, Vec<u8>)> {
+    let n = ipiv.len();
+    let mut swap: Vec<usize> = (0..n).collect();
+    let mut pivots = vec![0u8; n];
+    let mut skip_2x2 = false;
+    // partner-row and block-start offsets; lower scans indices ascending, upper descending
+    let (partner, start) = if lower { (1isize, 0isize) } else { (-1isize, -1isize) };
+    let step = if lower { 1isize } else { -1isize };
+    let mut ind = if lower { 0isize } else { n as isize - 1 };
+    for _ in 0..n {
+        if skip_2x2 {
+            skip_2x2 = false;
+        } else {
+            let k = ind as usize;
+            let cur_val = ipiv[k];
+            if cur_val > 0 {
+                if cur_val as usize != k + 1 {
+                    if cur_val > n as blas_int {
+                        return Err(rstsr_error!(
+                            InvalidValue,
+                            "ldl: invalid pivot array returned by the factorization"
+                        ));
+                    }
+                    // index value != array value: permutation required
+                    swap[k] = swap[cur_val as usize - 1];
+                }
+                pivots[k] = 1;
+            } else if cur_val < 0
+                && (0..n as isize).contains(&(ind + partner))
+                && cur_val == ipiv[(ind + partner) as usize]
+            {
+                // first row of a 2x2 block; the interchanged rows are (-cur-1, -cur)
+                if -cur_val != (ind + 2) as blas_int {
+                    if -cur_val > n as blas_int {
+                        return Err(rstsr_error!(
+                            InvalidValue,
+                            "ldl: invalid pivot array returned by the factorization"
+                        ));
+                    }
+                    swap[(ind + partner) as usize] = swap[(-cur_val) as usize - 1];
+                }
+                pivots[(ind + start) as usize] = 2;
+                skip_2x2 = true;
+            } else {
+                return Err(rstsr_error!(InvalidValue, "ldl: invalid pivot array returned by the factorization"));
+            }
+        }
+        ind += step;
+    }
+    Ok((swap, pivots))
+}
+
+/// SciPy `ldl` of one 2-D slice, written into the pre-zeroed `lu` and `d`
+/// (`N`, `N`) and `perm` (`N,`): the compact `?SYTRF` / `?HETRF` output is
+/// expanded to the explicit block-diagonal `d` and the permuted unit
+/// triangular `lu`, with `A = lu @ d @ luᴴ` (or `luᵀ` for the symmetric
+/// form) and `lu[perm, :]` triangular. Returns LAPACK's `info` (`i > 0`:
+/// `D(i,i)` is exactly zero, the factors are complete).
+#[allow(clippy::too_many_arguments)]
+pub fn ref_impl_ldl_into_f<T, B>(
+    a: TensorReference<'_, T, B, Ix2>,
+    hermitian: bool,
+    uplo: FlagUpLo,
+    mut lu: TensorMut<'_, T, B, Ix2>,
+    mut d: TensorMut<'_, T, B, Ix2>,
+    mut perm: TensorMut<'_, usize, B, Ix1>,
+) -> Result<usize>
+where
+    T: BlasFloat,
+    B: LapackDriverAPI<T> + DeviceAPI<usize, Raw = Vec<usize>>,
+{
+    let n = a.shape()[0];
+    let device = a.device().clone();
+    let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
+    let task = || match hermitian {
+        // `a` is handed over as-is so an in-order mutable slice is factored
+        // in place (a view here would copy and leave the caller's input)
+        false => SYTRF::<_, _, false>::default().a(a).uplo(uplo).build()?.run_with_info(),
+        true => SYTRF::<_, _, true>::default().a(a).uplo(uplo).build()?.run_with_info(),
+    };
+    let (ldu, ipiv, info) = device.with_blas_num_threads(nthreads, task)?;
+    let lower = uplo == Lower;
+    let (swap, pivots) = ldl_sanitize_ipiv(ipiv.raw(), lower)?;
+    let ldu_v = ldu.view();
+
+    // diagonal of `d`, unit diagonal of `lu`
+    for k in 0..n {
+        d[[k, k]] = ldu_v[[k, k]];
+        lu[[k, k]] = T::one();
+    }
+    // strict triangle
+    if lower {
+        for j in 0..n.saturating_sub(1) {
+            lu.i_mut((j + 1..n, j)).assign_f(ldu_v.i((j + 1..n, j)))?;
+        }
+    } else {
+        for i in 0..n.saturating_sub(1) {
+            lu.i_mut((i, i + 1..n)).assign_f(ldu_v.i((i, i + 1..n)))?;
+        }
+    }
+    // 2x2 blocks: `d` gets both off-diagonal entries (conjugated for the
+    // Hermitian form), `lu` clears the cross entry of the outer factor
+    let (r_off, c_off) = if lower { (1usize, 0usize) } else { (0usize, 1usize) };
+    let mut blk_i = 0;
+    for &p in pivots.iter().filter(|&&p| p != 0) {
+        let inc = blk_i + p as usize;
+        if p == 2 {
+            let v = ldu_v[[blk_i + r_off, blk_i + c_off]];
+            d[[blk_i + r_off, blk_i + c_off]] = v;
+            d[[blk_i + c_off, blk_i + r_off]] = if hermitian { v.conj() } else { v };
+            lu[[blk_i + r_off, blk_i + c_off]] = T::zero();
+        }
+        blk_i = inc;
+    }
+    // row interchanges of the outer factor, and the permutation that
+    // restores the triangular order (SciPy `_ldl_construct_tri_factor`)
+    let mut perm_v: Vec<usize> = (0..n).collect();
+    let inds: Vec<usize> = if lower { (0..n).rev().collect() } else { (0..n).collect() };
+    for ind in inds {
+        let s_ind = swap[ind];
+        if s_ind != ind {
+            let (col_s, col_e) = match (lower, pivots[ind]) {
+                (true, 0) => (ind - 1, n),
+                (true, _) => (ind, n),
+                (false, 2) => (0, ind + 2),
+                (false, _) => (0, ind + 1),
+            };
+            let offs_a: Vec<usize> =
+                IterLayout::new(lu.i((s_ind, col_s..col_e)).layout(), TensorIterOrder::C)?.collect();
+            let offs_b: Vec<usize> = IterLayout::new(lu.i((ind, col_s..col_e)).layout(), TensorIterOrder::C)?.collect();
+            let raw = lu.raw_mut();
+            for (ka, &oa) in offs_a.iter().enumerate() {
+                raw.swap(oa, offs_b[ka]);
+            }
+            perm_v.swap(s_ind, ind);
+        }
+    }
+    // `perm` = argsort of the applied permutation, written through the output view
+    let mut idx: Vec<usize> = (0..n).collect();
+    idx.sort_by_key(|&i| perm_v[i]);
+    let offsets: Vec<usize> = IterLayout::new(perm.layout(), TensorIterOrder::C)?.collect();
+    let raw = perm.raw_mut();
+    for (dst, &src) in offsets.iter().zip(idx.iter()) {
+        raw[*dst] = src;
+    }
+    Ok(usize::try_from(info).unwrap_or(0))
+}
+
+/* #endregion */
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn lu_pivot_helpers_are_inverse() {
+        // SciPy `lu_factor` docstring example, made 0-based
+        assert_eq!(lu_ipiv_to_perm(&[2, 2, 3, 3], 4), vec![1, 3, 0, 2]);
+        assert_eq!(lu_perm_to_ipiv(&[1, 3, 0, 2]), vec![2, 2, 3, 3]);
+        // tall matrix: rows K..M keep their place
+        assert_eq!(lu_ipiv_to_perm(&[2, 2, 3], 5), vec![1, 3, 0, 2, 4]);
+        assert_eq!(lu_perm_to_ipiv(&[1, 3, 0, 2, 4]), vec![2, 2, 3, 3, 4]);
+        assert_eq!(lu_ipiv_to_perm(&[], 3), vec![0, 1, 2]);
+        assert_eq!(lu_perm_to_ipiv(&[0, 1, 2]), vec![0, 1, 2]);
+
+        // every valid pivot sequence (`ipiv[i] >= i`) round-trips
+        let mut state = 0x2545_f491_4f6c_dd1d_u64;
+        let mut next = move |n: usize| {
+            state = state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            (state >> 33) as usize % n
+        };
+        for m in [1usize, 2, 3, 5, 8, 13] {
+            for n in [1usize, 2, 4, 7] {
+                let k = m.min(n);
+                let ipiv: Vec<usize> = (0..k).map(|i| i + next(m - i)).collect();
+                let perm = lu_ipiv_to_perm(&ipiv, m);
+                let mut sorted = perm.clone();
+                sorted.sort_unstable();
+                assert_eq!(sorted, (0..m).collect::<Vec<_>>());
+                // rows K..M are never pivoted: the tail of the sequence is identity
+                let round = lu_perm_to_ipiv(&perm);
+                assert_eq!(&round[..k], ipiv.as_slice());
+                assert!(round[k..].iter().enumerate().all(|(i, &v)| v == k + i));
+            }
+        }
+    }
+
+    #[test]
+    fn ldl_sanitize_ipiv_matches_scipy() {
+        // ground truth generated with SciPy 1.18.1 `_ldl_sanitize_ipiv`
+        let cases: Vec<(bool, Vec<blas_int>, Vec<usize>, Vec<u8>)> = vec![
+            (true, vec![1, 2, 3], vec![0, 1, 2], vec![1, 1, 1]),
+            (true, vec![3, 2, 3], vec![2, 1, 2], vec![1, 1, 1]),
+            (true, vec![-2, -2, 3], vec![0, 1, 2], vec![2, 0, 1]),
+            (true, vec![1, -3, -3, 4], vec![0, 1, 2, 3], vec![1, 2, 0, 1]),
+            (true, vec![2, 2, -3, -3], vec![1, 1, 2, 2], vec![1, 1, 2, 0]),
+            (false, vec![1, 2, 3], vec![0, 1, 2], vec![1, 1, 1]),
+            (false, vec![3, 2, 3], vec![2, 1, 2], vec![1, 1, 1]),
+            (false, vec![1, -2, -2], vec![0, 1, 2], vec![1, 2, 0]),
+            (false, vec![1, -3, -3, 4], vec![0, 2, 2, 3], vec![1, 2, 0, 1]),
+            (false, vec![3, 3, 1, 4], vec![0, 0, 0, 3], vec![1, 1, 1, 1]),
+        ];
+        for (lower, ipiv, swap, pivots) in cases {
+            let (swap_got, pivots_got) = ldl_sanitize_ipiv(&ipiv, lower).unwrap();
+            assert_eq!(swap_got, swap, "swap, ipiv {ipiv:?}, lower {lower}");
+            assert_eq!(pivots_got, pivots, "pivots, ipiv {ipiv:?}, lower {lower}");
+        }
+        for bad in [vec![1, -2, 3], vec![1, 2, 0], vec![1, 0, 2], vec![4, 2, 3], vec![-4, -4]] {
+            assert!(ldl_sanitize_ipiv(&bad, true).is_err(), "invalid ipiv {bad:?}");
+        }
+    }
+}

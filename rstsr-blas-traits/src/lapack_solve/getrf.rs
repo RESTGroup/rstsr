@@ -28,7 +28,13 @@ where
     T: BlasFloat,
     B: BlasDriverBaseAPI<T> + GETRFDriverAPI<T>,
 {
-    pub fn internal_run(self) -> Result<(TensorMutable2<'a, T, B>, Tensor<blas_int, B, Ix1>)> {
+    /// LU factorization without the singularity check: the factorized matrix
+    /// (`L` below the diagonal, unit diagonal not stored, `U` on and above it),
+    /// the 0-based pivots and LAPACK's `info`.
+    ///
+    /// `info > 0` reports `U(info, info)` exactly zero: the factorization is
+    /// complete and the factors are valid, `U` is singular.
+    pub fn run_with_info(self) -> Result<(TensorMutable2<'a, T, B>, Tensor<blas_int, B, Ix1>, blas_int)> {
         let Self { a } = self;
 
         let device = a.device().clone();
@@ -41,7 +47,7 @@ where
         // empty A: no pivots
         if k == 0 {
             let ipiv = unsafe { empty_f(([k].c(), &device))?.into_dim::<Ix1>() };
-            return Ok((a.clone_to_mut(), ipiv));
+            return Ok((a.clone_to_mut(), ipiv, 0));
         }
 
         let lda = a.view().testify_ld(order, "A")?;
@@ -51,12 +57,22 @@ where
 
         // run driver
         let info = unsafe { B::driver_getrf(order, m, n, ptr_a, lda, ptr_ipiv) };
-        map_lapack_info(info, "Lapack GETRF")?;
+        // an illegal argument or a failed row-major bridge leaves no usable factors
+        if info < 0 {
+            map_lapack_info(info, "Lapack GETRF")?;
+        }
 
         // rust is 0-indexed
         ipiv -= 1;
 
-        Ok((a.clone_to_mut(), ipiv))
+        Ok((a.clone_to_mut(), ipiv, info))
+    }
+
+    /// LU factorization; an exactly-zero pivot (`info > 0`) is an error.
+    pub fn internal_run(self) -> Result<(TensorMutable2<'a, T, B>, Tensor<blas_int, B, Ix1>)> {
+        let (a, ipiv, info) = self.run_with_info()?;
+        map_lapack_info(info, "Lapack GETRF")?;
+        Ok((a, ipiv))
     }
 
     pub fn run(self) -> Result<(TensorMutable2<'a, T, B>, Tensor<blas_int, B, Ix1>)> {

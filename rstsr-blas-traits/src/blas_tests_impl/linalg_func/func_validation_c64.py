@@ -447,3 +447,76 @@ assert np.isclose(fingerprint(s), 47.59927483588676)
 assert residuals.size == 0
 assert rank == 512
 fingerprint(np.abs(x)), fingerprint(s), fingerprint(residuals), rank
+
+# ### lu
+
+a = a_raw[:1024*1024].copy().reshape(1024, 1024)
+p, l, u = scipy.linalg.lu(a, p_indices=True, check_finite=False)
+assert np.isclose(fingerprint(p), 10021.799952379515)
+assert np.isclose(fingerprint(np.abs(l)), 101.3884312729007)
+assert np.isclose(fingerprint(np.abs(u)), -2781.9082366770954)
+fingerprint(p), fingerprint(np.abs(l)), fingerprint(np.abs(u))
+
+a = a_raw[:1024*512].copy().reshape(1024, 512)
+p, l, u = scipy.linalg.lu(a, p_indices=True, check_finite=False)
+assert np.isclose(fingerprint(p), -358.16906335896806)
+assert np.isclose(fingerprint(np.abs(l)), 93.90580050538996)
+assert np.isclose(fingerprint(np.abs(u)), -350.42517036956383)
+fingerprint(p), fingerprint(np.abs(l)), fingerprint(np.abs(u))
+
+# permute_l=True: (P L, U) without P
+
+a = a_raw[:1024*1024].copy().reshape(1024, 1024)
+pl, u = scipy.linalg.lu(a, permute_l=True, check_finite=False)
+assert np.isclose(fingerprint(np.abs(pl)), -78.03219179967243)
+assert np.isclose(fingerprint(np.abs(u)), -2781.9082366770954)
+fingerprint(np.abs(pl)), fingerprint(np.abs(u))
+
+# ### lu_factor
+
+a = a_raw[:1024*1024].copy().reshape(1024, 1024)
+lu, piv = scipy.linalg.lu_factor(a, check_finite=False)
+assert np.isclose(fingerprint(np.abs(lu)), -2680.7252882699167)
+assert np.isclose(fingerprint(piv.astype(np.float64)), 1553.3051188216255)
+fingerprint(np.abs(lu)), fingerprint(piv.astype(np.float64))
+
+a = a_raw[:1024*512].copy().reshape(1024, 512)
+lu, piv = scipy.linalg.lu_factor(a, check_finite=False)
+assert np.isclose(fingerprint(np.abs(lu)), -256.51823408143457)
+assert np.isclose(fingerprint(piv.astype(np.float64)), -562.1343902757835)
+fingerprint(np.abs(lu)), fingerprint(piv.astype(np.float64))
+
+# ### lu_solve
+
+lu, piv = scipy.linalg.lu_factor(a_raw[:1024*1024].copy().reshape(1024, 1024), check_finite=False)
+
+b = b_raw[:1024].copy()
+x = scipy.linalg.lu_solve((lu, piv), b, trans=0, check_finite=False)
+assert np.isclose(fingerprint(np.abs(x)), 22.15319665971149)
+fingerprint(np.abs(x))
+
+x = scipy.linalg.lu_solve((lu, piv), b, trans=2, check_finite=False)
+assert np.isclose(fingerprint(np.abs(x)), 1.9240075469181859)
+fingerprint(np.abs(x))
+
+# ### ldl
+
+ac = a_raw[:1024*1024].copy().reshape(1024, 1024)
+ah, asym = ac + ac.conj().T, ac + ac.T
+lu, d, perm = scipy.linalg.ldl(ah, check_finite=False)
+assert np.isclose(fingerprint(np.abs(lu)), -40.081477868486445)
+assert np.isclose(fingerprint(np.abs(d)), -755.721723672091912)
+assert np.isclose(fingerprint(perm.astype(np.float64)), -5295.552240978868213)
+fingerprint(np.abs(lu)), fingerprint(np.abs(d)), fingerprint(perm.astype(np.float64))
+
+lu, d, perm = scipy.linalg.ldl(ah, lower=False, check_finite=False)
+assert np.isclose(fingerprint(np.abs(lu)), 51.808720927208192)
+assert np.isclose(fingerprint(np.abs(d)), -180.086817996708049)
+assert np.isclose(fingerprint(perm.astype(np.float64)), 2583.421176397792806)
+fingerprint(np.abs(lu)), fingerprint(np.abs(d)), fingerprint(perm.astype(np.float64))
+
+lu, d, perm = scipy.linalg.ldl(asym, hermitian=False, check_finite=False)
+assert np.isclose(fingerprint(np.abs(lu)), 33.914606804494227)
+assert np.isclose(fingerprint(np.abs(d)), 184.865319971126183)
+assert np.isclose(fingerprint(perm.astype(np.float64)), 1695.094480873951852)
+fingerprint(np.abs(lu)), fingerprint(np.abs(d)), fingerprint(perm.astype(np.float64))

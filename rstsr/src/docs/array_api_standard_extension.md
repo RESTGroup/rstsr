@@ -46,6 +46,13 @@
 - `rt::linalg::lstsq` (NumPy/SciPy least squares, returning `(x, residuals, rank, s)`)
   is an RSTSR extension outside the standard; it is implemented by the BLAS
   devices only.
+- `rt::linalg::lu` (SciPy `lu` with `p_indices=True`, `A = L[P] @ U`) and the
+  factor-reuse pair `rt::linalg::lu_factor` / `rt::linalg::lu_solve` (SciPy
+  `lu_factor` / `lu_solve`) are RSTSR extensions beyond the Array API and
+  NumPy; they are implemented by the BLAS devices only.
+- `rt::linalg::ldl` (SciPy `ldl`, the pivoted block `L D Lᴴ` factorization)
+  is an RSTSR extension beyond the Array API and NumPy; it is implemented by
+  the BLAS devices only.
 - The `rt::linalg::*` functions require the `linalg` cargo feature.
 
 ## Fast Fourier Transform (extensions)

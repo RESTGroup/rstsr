@@ -300,6 +300,28 @@ where
         + OpAssignAPI<T, IxD>,
     F: FnMut(TensorView<'_, T, B, Ix2>, TensorMut<'_, T, B, Ix2>) -> Result<()>,
 {
+    solve_stack_enumerated_f(a, b, plan, order, |_, a_slice, b_slice| kernel(a_slice, b_slice))
+}
+
+/// [`solve_stack_f`] with the batch index of the slice handed to `kernel`,
+/// for solves that read further per-slice operands (e.g. the factors of
+/// `lu_solve`).
+pub fn solve_stack_enumerated_f<'b, T, B, F>(
+    a: TensorView<'_, T, B, IxD>,
+    b: TensorReference<'b, T, B, IxD>,
+    plan: &SolvePlan,
+    order: FlagOrder,
+    mut kernel: F,
+) -> Result<TensorMutable<'b, T, B, IxD>>
+where
+    T: Num + Clone,
+    B: DeviceAPI<T, Raw = Vec<T>>
+        + DeviceCreationAnyAPI<T>
+        + DeviceCreationNumAPI<T>
+        + OpAssignArbitaryAPI<T, IxD, IxD>
+        + OpAssignAPI<T, IxD>,
+    F: FnMut(usize, TensorView<'_, T, B, Ix2>, TensorMut<'_, T, B, Ix2>) -> Result<()>,
+{
     rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch, "solve: a and b are on different devices")?;
 
     let a_full = a.broadcast_to(plan.a_shape(order));
@@ -317,9 +339,9 @@ where
             let a_slice = stack_slice_at(a_full.view(), &a_stack, i)?.into_dim::<Ix2>();
             let mut b_slice = stack_slice_at_mut(out.view_mut(), &out_stack, i)?;
             if plan.is_vec {
-                kernel(a_slice, b_slice.i_mut((.., None)).into_dim::<Ix2>())?;
+                kernel(i, a_slice, b_slice.i_mut((.., None)).into_dim::<Ix2>())?;
             } else {
-                kernel(a_slice, b_slice.into_dim::<Ix2>())?;
+                kernel(i, a_slice, b_slice.into_dim::<Ix2>())?;
             }
         }
         Ok(TensorMutable::Owned(out))
@@ -339,9 +361,9 @@ where
             let a_slice = stack_slice_at(a_full.view(), &a_stack, i)?.into_dim::<Ix2>();
             let mut b_slice = stack_slice_at_mut(converted_b.view_mut(), &b_stack, i)?;
             if plan.is_vec {
-                kernel(a_slice, b_slice.i_mut((.., None)).into_dim::<Ix2>())?;
+                kernel(i, a_slice, b_slice.i_mut((.., None)).into_dim::<Ix2>())?;
             } else {
-                kernel(a_slice, b_slice.into_dim::<Ix2>())?;
+                kernel(i, a_slice, b_slice.into_dim::<Ix2>())?;
             }
         }
         Ok(converted_b)
