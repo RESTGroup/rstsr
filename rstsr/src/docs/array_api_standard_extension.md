@@ -53,6 +53,10 @@
 - `rt::linalg::ldl` (SciPy `ldl`, the pivoted block `L D Lᴴ` factorization)
   is an RSTSR extension beyond the Array API and NumPy; it is implemented by
   the BLAS devices only.
+- `rt::linalg::cho_factor` / `rt::linalg::cho_solve` (SciPy `cho_factor` /
+  `cho_solve`, the packed Cholesky factor and its triangular solves) are
+  RSTSR extensions beyond the Array API and NumPy; they are implemented by
+  the BLAS devices only.
 - The `rt::linalg::*` functions require the `linalg` cargo feature.
 
 ## Fast Fourier Transform (extensions)

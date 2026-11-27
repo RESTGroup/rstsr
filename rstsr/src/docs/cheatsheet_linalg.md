@@ -132,6 +132,26 @@ Note `A` is the **first** argument (RSTSR solves `A x = B`), matching SciPy.
   (`A = lu @ d @ luᵀ`). Only the selected triangle is read; a singular `d`
   (`info > 0`) is no error; an in-order owned or mutable input is consumed
   and destroyed (pass `a.view()` to keep it).
+- **`cho_factor` / `cho_solve`** (SciPy `cho_factor` / `cho_solve`, LAPACK
+  `POTRF` + two triangular solves) are **BLAS-only**: there are no
+  `DeviceFaer` entries.
+  - `cho_factor(&a)` returns `ChoFactorResult { c, uplo }` (destructurable
+    as a 2-tuple): the factor sits in the `uplo` triangle, and `uplo`
+    defaults to the device order's own triangle (`Lower` row-major, `Upper`
+    column-major), so `cho_factor(&a).c` and `cholesky(&a)` carry the same
+    triangle. The other triangle is zero for a read-only input (the SciPy
+    default) and keeps the input's values when an in-order owned or mutable
+    input was factored in place and destroyed (pass `a.view()` to keep it).
+  - `cho_solve((&factors, &b))` solves `A x = b` from them. SciPy's
+    `cho_solve((c, lower), b)` is `cho_solve(((c, Lower), b))` or
+    `cho_solve(((c.view(), Lower), &b))`; the result of `cho_factor` may be
+    passed as it is, as may the explicit factor of `cholesky`:
+    `cho_solve(((l.view(), Lower), &b))`. Only the `uplo` triangle of the
+    factor is read; a factor in either storage order is solved without
+    copying it.
+  - `b` is read-only (`&b`) for a fresh solution; an owned or mutable `b` is
+    solved in place when its batch needs no broadcast. A non-positive-
+    definite matrix raises the `POTRF` error (`info = i`).
 - **`eigvalsh`** on faer handles the **standard** problem only; generalized
   eigenvalues go through `eigh((&a, &b, uplo, type))`.
 - **`eig` / `eigvals`** on faer handle the **standard** problem only
