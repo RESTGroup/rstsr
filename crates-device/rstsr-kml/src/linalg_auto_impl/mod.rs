@@ -1,3 +1,5 @@
+pub mod cho_factor;
+pub mod cho_solve;
 pub mod cholesky;
 pub mod det;
 pub mod eig;

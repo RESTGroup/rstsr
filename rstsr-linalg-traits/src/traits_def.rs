@@ -7,6 +7,8 @@ use rstsr_core::prelude_dev::*;
 
 #[duplicate_item(
     LinalgAPI            func               func_f             ;
+   [ChoFactorAPI      ] [cho_factor      ] [cho_factor_f      ];
+   [ChoSolveAPI       ] [cho_solve       ] [cho_solve_f       ];
    [CholeskyAPI       ] [cholesky        ] [cholesky_f        ];
    [DetAPI            ] [det             ] [det_f             ];
    [EigAPI            ] [eig             ] [eig_f             ];
@@ -45,6 +47,8 @@ pub trait LinalgAPI<Inp> {
 
 #[duplicate_item(
     LinalgAPI            func               func_f             ;
+   [ChoFactorAPI      ] [cho_factor      ] [cho_factor_f      ];
+   [ChoSolveAPI       ] [cho_solve       ] [cho_solve_f       ];
    [CholeskyAPI       ] [cholesky        ] [cholesky_f        ];
    [DetAPI            ] [det             ] [det_f             ];
    [EigAPI            ] [eig             ] [eig_f             ];
@@ -79,6 +83,8 @@ where
 
 #[duplicate_item(
     LinalgAPI            func               func_f             ;
+   [ChoFactorAPI      ] [cho_factor      ] [cho_factor_f      ];
+   [ChoSolveAPI       ] [cho_solve       ] [cho_solve_f       ];
    [CholeskyAPI       ] [cholesky        ] [cholesky_f        ];
    [DetAPI            ] [det             ] [det_f             ];
    [EigAPI            ] [eig             ] [eig_f             ];
@@ -601,6 +607,39 @@ impl<LU, Piv> From<(LU, Piv)> for LuFactorResult<LU, Piv> {
 impl<LU, Piv> From<LuFactorResult<LU, Piv>> for (LU, Piv) {
     fn from(lu_factor_result: LuFactorResult<LU, Piv>) -> Self {
         (lu_factor_result.lu, lu_factor_result.piv)
+    }
+}
+
+/* #endregion */
+
+/* #region cholesky_factor */
+
+/// The packed result of [`cho_factor`], the SciPy `cho_factor` object.
+///
+/// `c` has shape `(..., N, N)` (row-major device) or `(N, N, ...)`
+/// (column-major device); the Cholesky factor of each square slice sits in
+/// its `uplo` triangle, and `uplo` says which. The other triangle is zero for
+/// an immutable input (the SciPy default), and keeps the input's values when
+/// an owned or mutable input was factored in place. [`cho_solve`] reads only
+/// the `uplo` triangle of `c`.
+///
+/// The fields are public; `(C, FlagUpLo)` converts both ways.
+///
+/// See also [`cho_factor`], [`cho_solve`].
+pub struct ChoFactorResult<C> {
+    pub c: C,
+    pub uplo: FlagUpLo,
+}
+
+impl<C> From<(C, FlagUpLo)> for ChoFactorResult<C> {
+    fn from((c, uplo): (C, FlagUpLo)) -> Self {
+        Self { c, uplo }
+    }
+}
+
+impl<C> From<ChoFactorResult<C>> for (C, FlagUpLo) {
+    fn from(cho_factor_result: ChoFactorResult<C>) -> Self {
+        (cho_factor_result.c, cho_factor_result.uplo)
     }
 }
 

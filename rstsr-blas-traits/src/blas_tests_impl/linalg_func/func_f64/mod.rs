@@ -4,6 +4,8 @@ pub use rstsr::prelude::*;
 pub use rstsr_core::prelude_dev::fingerprint;
 pub use rstsr_test_manifest::get_vec;
 
+mod cho_factor;
+mod cho_solve;
 mod cholesky;
 mod det;
 mod eig;

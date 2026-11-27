@@ -71,7 +71,8 @@ where
         + DeviceCreationAnyAPI<T>
         + DeviceCreationNumAPI<T>
         + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+        + OpAssignAPI<T, IxD>
+        + Op_MutA_API<T, Ix2, fn(&mut MaybeUninit<T>)>,
 {
     lu_solve_stack_f(lu, None, piv, b, trans, true)
 }
@@ -92,7 +93,8 @@ where
         + DeviceCreationAnyAPI<T>
         + DeviceCreationNumAPI<T>
         + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+        + OpAssignAPI<T, IxD>
+        + Op_MutA_API<T, Ix2, fn(&mut MaybeUninit<T>)>,
 {
     let p = lu.p.as_ref().ok_or_else(|| {
         rstsr_error!(
@@ -122,7 +124,8 @@ where
         + DeviceCreationAnyAPI<T>
         + DeviceCreationNumAPI<T>
         + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+        + OpAssignAPI<T, IxD>
+        + Op_MutA_API<T, Ix2, fn(&mut MaybeUninit<T>)>,
 {
     let device = b.device().clone();
     rstsr_assert!(
@@ -223,7 +226,8 @@ where
         + DeviceCreationAnyAPI<T>
         + DeviceCreationNumAPI<T>
         + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+        + OpAssignAPI<T, IxD>
+        + Op_MutA_API<T, Ix2, fn(&mut MaybeUninit<T>)>,
 {
     type Out = Tensor<T, DeviceBLAS, IxD>;
     fn lu_solve_f(self) -> Result<Self::Out> {
@@ -282,7 +286,8 @@ where
         + DeviceCreationAnyAPI<T>
         + DeviceCreationNumAPI<T>
         + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+        + OpAssignAPI<T, IxD>
+        + Op_MutA_API<T, Ix2, fn(&mut MaybeUninit<T>)>,
 {
     type Out = TrB;
     fn lu_solve_f(self) -> Result<Self::Out> {
@@ -333,7 +338,8 @@ where
         + DeviceCreationAnyAPI<T>
         + DeviceCreationNumAPI<T>
         + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+        + OpAssignAPI<T, IxD>
+        + Op_MutA_API<T, Ix2, fn(&mut MaybeUninit<T>)>,
 {
     type Out = Tensor<T, DeviceBLAS, IxD>;
     fn lu_solve_f(self) -> Result<Self::Out> {
@@ -358,7 +364,8 @@ where
         + DeviceCreationAnyAPI<T>
         + DeviceCreationNumAPI<T>
         + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+        + OpAssignAPI<T, IxD>
+        + Op_MutA_API<T, Ix2, fn(&mut MaybeUninit<T>)>,
 {
     type Out = TrB;
     fn lu_solve_f(self) -> Result<Self::Out> {
