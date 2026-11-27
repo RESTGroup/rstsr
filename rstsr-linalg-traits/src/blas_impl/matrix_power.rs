@@ -21,7 +21,9 @@ use super::inv::blas_impl_inv_f;
 
 /// Raise one stack to a nonnegative power `e >= 2` by exponentiation by
 /// squaring (`e` = 0 and 1 are handled by the caller, `e < 0` via `inv`).
-fn power_of<T>(base: Tensor<T, DeviceBLAS, IxD>, e: usize) -> Result<Tensor<T, DeviceBLAS, IxD>>
+/// The base is read through a view; it is copied only when the result starts
+/// from it (odd `e >= 5`).
+fn power_of<T>(base: TensorView<'_, T, DeviceBLAS, IxD>, e: usize) -> Result<Tensor<T, DeviceBLAS, IxD>>
 where
     T: BlasFloat,
     DeviceBLAS: DeviceCreationAnyAPI<T>
@@ -36,11 +38,12 @@ where
             matmul_f(&base2, &base)
         },
         _ => {
-            // binary exponentiation over the bits of `e`, LSB to MSB: `z` holds
-            // the running square, the set bits accumulate into `result`
-            let mut z = base;
-            let mut result: Option<Tensor<T, DeviceBLAS, IxD>> = None;
-            let mut e = e;
+            // binary exponentiation over the bits of `e`, LSB to MSB: the first
+            // set bit makes the result start from the base, the later ones
+            // accumulate the running square `z`
+            let mut z = matmul_f(&base, &base)?;
+            let mut result = if e & 1 == 1 { Some(base.into_owned()) } else { None };
+            let mut e = e >> 1;
             while e > 0 {
                 if e & 1 == 1 {
                     result = Some(match result {
@@ -55,7 +58,7 @@ where
             }
             match result {
                 Some(result) => Ok(result),
-                // `e >= 4` has at least one set bit, so the loop always assigns `result`
+                // `e >= 4` keeps at least one bit after the first shift
                 None => unreachable!("matrix_power: exponentiation loop set no result"),
             }
         },
@@ -126,9 +129,9 @@ where
         return Ok(converted);
     }
 
-    // the squaring body reads the converted buffer; the result is written back
-    // into it, so every input kind ends up in the same storage
-    let result = power_of(converted.view().into_owned(), e)?;
+    // the squaring body reads the converted buffer through a view; the result
+    // is written back into it, so every input kind ends up in the same storage
+    let result = power_of(converted.view(), e)?;
     converted.view_mut().assign_f(result.view())?;
     Ok(converted)
 }
