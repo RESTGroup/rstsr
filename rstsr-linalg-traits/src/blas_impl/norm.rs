@@ -7,13 +7,16 @@
 //! the max/min/sum of the singular values (via [`super::svdvals::
 //! blas_impl_svdvals_f`]). `vector_norm` reduces `|x|` over the requested axes
 //! with the L2 reduction for `p = 2`, a plain sum for `p = 1`, a count of
-//! nonzeros for `p = 0`, and the general `(sum |x|^p)^(1/p)` otherwise.
+//! nonzeros for `p = 0`, max/min for `p = ±inf`, and the general
+//! `(sum |x|^p)^(1/p)` otherwise.
 //!
 //! A normed region with a zero-size dimension yields `0` under **every** order.
-//! That is a deliberate divergence from NumPy, which is inconsistent for an
-//! empty input: it returns `0` for `fro`/`1`/`2`/`inf`/`nuc` and the matrix
-//! `-1`, raises for the matrix `-2` and for `-inf` (matrix and vector), and
-//! returns `inf` for the vector `-1`.
+//! That is a deliberate divergence from NumPy, which is shape-dependent on the
+//! min-based orders of an empty matrix: for a `(0, N)` matrix it returns `0`
+//! for `-1` and raises for `-2` and `-inf`, for an `(M, 0)` matrix it returns
+//! `0` for `-inf` and raises for `-1` and `-2`; the other matrix orders return
+//! `0`. For an empty vector it returns `0` except for `-inf` (raises) and the
+//! other negative orders (`inf`).
 
 use crate::DeviceBLAS;
 use num::Float;

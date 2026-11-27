@@ -1,8 +1,8 @@
 //! Matrix power on a stack of square matrices (BLAS devices).
 //!
-//! A direct port of the faer entry, following NumPy's `matrix_power`: `n = 0`
-//! yields the identity, `n < 0` inverts the base once, then the base is raised
-//! to `|n|` by exponentiation-by-squaring over the bits of `|n|` (LSB to MSB).
+//! NumPy's `matrix_power` with the faer entry's exponentiation: `n = 0` yields
+//! the identity, `n < 0` inverts the base once, then the base is raised to
+//! `|n|` by exponentiation-by-squaring over the bits of `|n|` (LSB to MSB).
 //!
 //! An owned or mutable input is raised **in place** (the `inv` rule): the
 //! power is written into the input's own storage when its layout matches the
@@ -10,7 +10,10 @@
 //! `clone_to_mut` at the call site otherwise; pass `a.view()` to keep the
 //! input. A singular base with `n < 0` **errors** (`InvalidValue` from the
 //! `GETRF` factorization behind `inv`) — the faer device returns `inf`/`NaN`
-//! entries there instead, and NumPy raises.
+//! entries there instead, and NumPy raises. That error leaves an in-place
+//! input **unspecified**: the slices before the singular one are already
+//! inverted and the singular one holds its `LU` factors (a work-buffer input
+//! is not written back); pass a view when the input must survive.
 
 use crate::DeviceBLAS;
 use rstsr_blas_traits::prelude::*;
