@@ -12,6 +12,7 @@ pub mod lstsq;
 pub mod lu;
 pub mod lu_factor;
 pub mod lu_solve;
+pub mod norm;
 pub mod pinv;
 pub mod qr;
 pub mod slogdet;
