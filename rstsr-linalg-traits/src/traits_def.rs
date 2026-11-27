@@ -1033,12 +1033,12 @@ impl FromStr for VectorNormArgs {
 /// representation, and the array's device is checked against the input's before
 /// the rank is computed. `None` selects the default `max(M, N) * eps`.
 ///
-/// **Order notice.** The input's two matrix axes are its *leading* axes under a
-/// row-major device but its *trailing* axes under a column-major one; the batch
+/// **Order notice.** The input's two matrix axes are its *trailing* axes under a
+/// row-major device but its *leading* axes under a column-major one; the batch
 /// is whatever remains, and an [`Array`](MatrixRankRtol::Array) tolerance is
 /// broadcast against the batch in that same device order. On a row-major device
 /// this is NumPy's trailing alignment against `shape(x)[:-2]`; on a
-/// column-major device the matrix axes are the right-most and the tolerance
+/// column-major device the matrix axes are the left-most and the tolerance
 /// aligns from the opposite end.
 ///
 /// `TR` is the input's real scalar type (`T::Real`) and `B` its device. `From`
