@@ -220,3 +220,30 @@ fn test_matrix_power_overloads() {
     let eye4: Tensor<c64, DeviceBLAS, Ix2> = rt::eye((4, &device)).into_dim::<Ix2>();
     assert!(rt::allclose(&p0, &eye4, None));
 }
+
+// a scalar matrix with an exact power ladder: ((1+i) I)^n = (1+i)^n I
+#[test]
+fn test_matrix_power_scalar_eye() {
+    let device = DeviceBLAS::default();
+    let scalar_eye = |x: c64| -> Tensor<c64, DeviceBLAS, Ix2> {
+        let mut data = vec![c64!(0.0); 9];
+        for i in 0..3 {
+            data[i * 4] = x;
+        }
+        rt::asarray((data, [3, 3].c(), &device)).into_dim::<Ix2>()
+    };
+    let a = scalar_eye(c64!(1.0, 1.0));
+    for (n, expected) in [
+        (2isize, c64!(0.0, 2.0)),
+        (3, c64!(-2.0, 2.0)),
+        (4, c64!(-4.0)),
+        // 7 = 0b111 runs the full bit loop
+        (7, c64!(8.0, -8.0)),
+        (-1, c64!(0.5, -0.5)),
+        (-2, c64!(0.0, -0.5)),
+    ] {
+        let p = rt::linalg::matrix_power((a.view(), n));
+        let want = scalar_eye(expected);
+        assert!(rt::allclose(&p, &want, (1e-12, 1e-12)), "n = {n}");
+    }
+}

@@ -11,6 +11,15 @@ fn test_matrix_rank() {
     let b = rt::asarray((vec![c64!(1.0), c64!(2.0, 1.0), c64!(2.0), c64!(4.0, 2.0)], [2, 2].c(), &device));
     assert_eq!(rt::linalg::matrix_rank(b.view()).to_scalar(), 1);
 
+    // Hermitian inputs (NumPy takes its eigvalsh fast path, the SVD the long
+    // way): [[2, i], [-i, 2]] has spectrum 3, 1, so rtol decides between
+    // rank 2 and rank 1; [[1, i], [-i, 1]] is the rank-1 projector v v^H
+    let h = rt::asarray((vec![c64!(2.0), c64!(0.0, 1.0), c64!(0.0, -1.0), c64!(2.0)], [2, 2].c(), &device));
+    assert_eq!(rt::linalg::matrix_rank(h.view()).to_scalar(), 2);
+    assert_eq!(rt::linalg::matrix_rank((h.view(), rt::from_scalar(0.6f64, &device))).to_scalar(), 1);
+    let proj = rt::asarray((vec![c64!(1.0), c64!(0.0, 1.0), c64!(0.0, -1.0), c64!(1.0)], [2, 2].c(), &device));
+    assert_eq!(rt::linalg::matrix_rank(proj.view()).to_scalar(), 1);
+
     // the rtol is a real tensor (or a bare scalar) even for a complex input
     let tight = rt::from_scalar(1e-8f64, &device);
     assert_eq!(rt::linalg::matrix_rank((a.view(), tight)).to_scalar(), 2);
