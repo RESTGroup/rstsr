@@ -33,13 +33,13 @@ where
 
 /* #endregion */
 
-/* #region cholesky_factor */
+/* #region cho_factor */
 
 /// Factor from the Cholesky decomposition of one slice: the `uplo` triangle
 /// of `a` is overwritten with the factor in place when `a` is mutable and
-/// matches the device order, or in a contiguous work buffer written back into
-/// `a`; an immutable `a` is factored into a fresh buffer. With `clean`, the
-/// other triangle is zeroed.
+/// c- or f-prefer (either storage order), or in a contiguous work buffer
+/// written back into `a` when `a` is strided; an immutable `a` is factored
+/// into a fresh buffer. With `clean`, the other triangle is zeroed.
 pub fn ref_impl_cho_factor_f<T, B>(
     a: TensorReference<T, B, Ix2>,
     uplo: FlagUpLo,

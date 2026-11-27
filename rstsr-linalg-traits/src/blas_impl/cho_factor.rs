@@ -10,7 +10,9 @@
 //! factor of each slice in its `uplo` triangle. `uplo` is the requested
 //! triangle, and by default the device order's own (`Lower` under a row-major
 //! device, `Upper` under a column-major one), so `cho_factor(a).c` and
-//! `cholesky(a)` carry the same triangle on one device.
+//! `cholesky(a)` carry the same triangle on one device. The result converts
+//! to and from the `(c, uplo)` pair:
+//! `let (c, uplo): (_, FlagUpLo) = cho_factor(&a).into();`.
 //!
 //! The other triangle of `c` is zero for an immutable input (the SciPy
 //! default), and keeps the input's values when an owned or mutable input was
