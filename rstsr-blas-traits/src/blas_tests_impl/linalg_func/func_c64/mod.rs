@@ -16,6 +16,8 @@ macro_rules! c64 {
     };
 }
 
+mod cho_factor;
+mod cho_solve;
 mod cholesky;
 mod det;
 mod eig;

@@ -520,3 +520,28 @@ assert np.isclose(fingerprint(np.abs(lu)), 33.914606804494227)
 assert np.isclose(fingerprint(np.abs(d)), 184.865319971126183)
 assert np.isclose(fingerprint(perm.astype(np.float64)), 1695.094480873951852)
 fingerprint(np.abs(lu)), fingerprint(np.abs(d)), fingerprint(perm.astype(np.float64))
+
+# ### cho_factor
+
+b = b_raw[:1024*1024].copy().reshape(1024, 1024)
+c, lower = scipy.linalg.cho_factor(b, lower=True, check_finite=False)
+assert np.isclose(fingerprint(c), 62.894940653939656-73.4705544337455j)
+fingerprint(c)
+
+c, lower = scipy.linalg.cho_factor(b, lower=False, check_finite=False)
+assert np.isclose(fingerprint(c), 13.720509103164034-1.8066465348487615j)
+fingerprint(c)
+
+# ### cho_solve
+
+c, _ = scipy.linalg.cho_factor(b, lower=True, check_finite=False)
+b_rhs = a_raw[:1024].copy()
+x = scipy.linalg.cho_solve((c, True), b_rhs, check_finite=False)
+assert np.isclose(fingerprint(np.abs(x)), 5.093725636509232)
+fingerprint(np.abs(x))
+
+c, _ = scipy.linalg.cho_factor(b, lower=False, check_finite=False)
+b_rhs = a_raw[:1024].copy()
+x = scipy.linalg.cho_solve((c, False), b_rhs, check_finite=False)
+assert np.isclose(fingerprint(np.abs(x)), 5.093725636509143)
+fingerprint(np.abs(x))
