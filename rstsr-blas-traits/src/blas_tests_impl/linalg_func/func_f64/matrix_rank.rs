@@ -90,21 +90,21 @@ fn test_matrix_rank_numpy() {
 fn test_matrix_rank_empty() {
     let device = DeviceBLAS::default();
     // a zero-size matrix axis gives rank 0
-    assert_eq!(rt::linalg::matrix_rank(rt::asarray((vec![0.0f64; 0], [0, 0].c(), &device)).view()).to_scalar(), 0);
-    assert_eq!(rt::linalg::matrix_rank(rt::asarray((vec![0.0f64; 0], [0, 5].c(), &device)).view()).to_scalar(), 0);
-    assert_eq!(rt::linalg::matrix_rank(rt::asarray((vec![0.0f64; 0], [5, 0].c(), &device)).view()).to_scalar(), 0);
+    assert_eq!(rt::linalg::matrix_rank(rt::asarray((Vec::<f64>::new(), [0, 0].c(), &device)).view()).to_scalar(), 0);
+    assert_eq!(rt::linalg::matrix_rank(rt::asarray((Vec::<f64>::new(), [0, 5].c(), &device)).view()).to_scalar(), 0);
+    assert_eq!(rt::linalg::matrix_rank(rt::asarray((Vec::<f64>::new(), [5, 0].c(), &device)).view()).to_scalar(), 0);
 
     // an empty batch stays empty
-    let empty = rt::linalg::matrix_rank(rt::asarray((vec![0.0f64; 0], [0, 5, 5].c(), &device)).view());
+    let empty = rt::linalg::matrix_rank(rt::asarray((Vec::<f64>::new(), [0, 5, 5].c(), &device)).view());
     assert_eq!(empty.shape(), &[0]);
     // a zero matrix axis collapses to rank 0 per matrix
-    let r = rt::linalg::matrix_rank(rt::asarray((vec![0.0f64; 0], [3, 0, 5].c(), &device)).view());
+    let r = rt::linalg::matrix_rank(rt::asarray((Vec::<f64>::new(), [3, 0, 5].c(), &device)).view());
     assert_eq!(r.shape(), &[3]);
     assert_eq!((r[[0]], r[[1]], r[[2]]), (0, 0, 0));
-    let r = rt::linalg::matrix_rank(rt::asarray((vec![0.0f64; 0], [2, 5, 0].c(), &device)).view());
+    let r = rt::linalg::matrix_rank(rt::asarray((Vec::<f64>::new(), [2, 5, 0].c(), &device)).view());
     assert_eq!(r.shape(), &[2]);
     assert_eq!((r[[0]], r[[1]]), (0, 0));
-    let r = rt::linalg::matrix_rank(rt::asarray((vec![0.0f64; 0], [2, 3, 0, 4].c(), &device)).view());
+    let r = rt::linalg::matrix_rank(rt::asarray((Vec::<f64>::new(), [2, 3, 0, 4].c(), &device)).view());
     assert_eq!(r.shape(), &[2, 3]);
 }
 
@@ -112,7 +112,7 @@ fn test_matrix_rank_empty() {
 fn test_matrix_rank_empty_validates_rtol() {
     let device = DeviceBLAS::default();
     // a zero-size matrix axis: rank 0 for each matrix
-    let empty = rt::asarray((vec![0.0f64; 0], [3, 0, 2].c(), &device));
+    let empty = rt::asarray((Vec::<f64>::new(), [3, 0, 2].c(), &device));
     let r = rt::linalg::matrix_rank(empty.view());
     assert_eq!(r.shape(), &[3]);
     assert_eq!((r[[0]], r[[1]], r[[2]]), (0, 0, 0));

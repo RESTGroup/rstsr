@@ -176,14 +176,14 @@ fn test_matrix_power_errors_zero() {
     assert!(rt::linalg::matrix_power_f((a.view(), 2)).is_err());
 
     // (0, 0) input: the identity of shape (0, 0); an empty batch stays empty
-    let z = rt::asarray((vec![c64!(0.0); 0], [0, 0].c(), &device));
+    let z = rt::asarray((Vec::<c64>::new(), [0, 0].c(), &device));
     let p = rt::linalg::matrix_power((z.view(), 3));
     assert_eq!(p.shape(), &[0, 0]);
-    let eb = rt::asarray((vec![c64!(0.0); 0], [0, 2, 2].c(), &device));
+    let eb = rt::asarray((Vec::<c64>::new(), [0, 2, 2].c(), &device));
     let p = rt::linalg::matrix_power((eb.view(), -1));
     assert_eq!(p.shape(), &[0, 2, 2]);
     // a zero-size square axis with n < 0: the empty 0x0 inverse
-    let za = rt::asarray((vec![c64!(0.0); 0], [2, 0, 0].c(), &device));
+    let za = rt::asarray((Vec::<c64>::new(), [2, 0, 0].c(), &device));
     let p = rt::linalg::matrix_power((za.view(), -1));
     assert_eq!(p.shape(), &[2, 0, 0]);
 }

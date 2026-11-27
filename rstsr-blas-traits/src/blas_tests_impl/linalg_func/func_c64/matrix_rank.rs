@@ -79,8 +79,8 @@ fn test_matrix_rank_layouts() {
         match order {
             RowMajor => {
                 for k in 0..4 {
-                    for j in 0..4 {
-                        wide.push(s0[j] * (k as f64 + 1.0));
+                    for x in &s0 {
+                        wide.push(*x * (k as f64 + 1.0));
                     }
                 }
             },
@@ -125,9 +125,9 @@ fn test_matrix_rank_nd_colmajor() {
 
     // an empty batch stays empty (the batch axis trails under ColMajor); a
     // zero-size matrix axis gives rank 0
-    let empty = rt::asarray((vec![c64!(0.0); 0], [3, 3, 0].c(), &device));
+    let empty = rt::asarray((Vec::<c64>::new(), [3, 3, 0].c(), &device));
     assert_eq!(rt::linalg::matrix_rank(empty.view()).shape(), &[0]);
-    let za = rt::asarray((vec![c64!(0.0); 0], [0, 2, 3].c(), &device));
+    let za = rt::asarray((Vec::<c64>::new(), [0, 2, 3].c(), &device));
     let r = rt::linalg::matrix_rank(za.view());
     assert_eq!(r.shape(), &[3]);
     assert_eq!((r[[0]], r[[1]], r[[2]]), (0, 0, 0));

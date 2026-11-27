@@ -174,13 +174,13 @@ fn test_vector_norm_fingerprint() {
 #[test]
 fn test_norm_empty() {
     let device = DeviceBLAS::default();
-    let z = rt::asarray((vec![c64!(0.0); 0], [0, 2].c(), &device));
+    let z = rt::asarray((Vec::<c64>::new(), [0, 2].c(), &device));
     for ord in ["fro", "nuc"] {
         assert_eq!(rt::linalg::matrix_norm((z.view(), ord)).to_scalar(), 0.0);
     }
     for ord in [1.0f64, 2.0, f64::INFINITY, -2.0, f64::NEG_INFINITY] {
         assert_eq!(rt::linalg::matrix_norm((z.view(), ord)).to_scalar(), 0.0);
     }
-    let zv = rt::asarray((vec![c64!(0.0); 0], [0].c(), &device));
+    let zv = rt::asarray((Vec::<c64>::new(), [0].c(), &device));
     assert_eq!(rt::linalg::vector_norm(zv.view()).to_scalar(), 0.0);
 }

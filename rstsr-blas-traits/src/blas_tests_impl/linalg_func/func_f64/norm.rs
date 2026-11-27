@@ -286,9 +286,9 @@ fn test_vector_norm_layouts() {
             RowMajor => ColMajor,
             ColMajor => RowMajor,
         };
-        let off = stack_tensor(&v[..16].to_vec(), &[2], &[4, 2], order, other, &device);
+        let off = stack_tensor(&v[..16], &[2], &[4, 2], order, other, &device);
         let n_off = rt::linalg::vector_norm(off.view());
-        let in_order = stack_tensor(&v[..16].to_vec(), &[2], &[4, 2], order, order, &device);
+        let in_order = stack_tensor(&v[..16], &[2], &[4, 2], order, order, &device);
         let n_in = rt::linalg::vector_norm(in_order.view());
         assert!((n_off.to_scalar() - n_in.to_scalar()).abs() < 1e-12);
     }
@@ -299,7 +299,7 @@ fn test_vector_norm_layouts() {
 #[test]
 fn test_norm_empty() {
     let device = DeviceBLAS::default();
-    let z = rt::asarray((vec![0.0f64; 0], [0, 2].c(), &device));
+    let z = rt::asarray((Vec::<f64>::new(), [0, 2].c(), &device));
     for ord in ["fro", "nuc"] {
         assert_eq!(rt::linalg::matrix_norm((z.view(), ord)).to_scalar(), 0.0);
     }
@@ -310,7 +310,7 @@ fn test_norm_empty() {
         assert_eq!(rt::linalg::matrix_norm((z.view(), ord)).to_scalar(), 0.0);
     }
 
-    let zv = rt::asarray((vec![0.0f64; 0], [0].c(), &device));
+    let zv = rt::asarray((Vec::<f64>::new(), [0].c(), &device));
     for ord in [1.0f64, 2.0, f64::INFINITY] {
         assert_eq!(rt::linalg::vector_norm((zv.view(), ord)).to_scalar(), 0.0);
     }
@@ -319,9 +319,9 @@ fn test_norm_empty() {
     }
 
     // an empty batch is empty (NumPy: shape (0,)), not an error
-    let eb = rt::asarray((vec![0.0f64; 0], [0, 1, 1].c(), &device));
+    let eb = rt::asarray((Vec::<f64>::new(), [0, 1, 1].c(), &device));
     assert_eq!(rt::linalg::matrix_norm((eb.view(), f64::NEG_INFINITY)).shape(), &[0]);
-    let eb2 = rt::asarray((vec![0.0f64; 0], [0, 3].c(), &device));
+    let eb2 = rt::asarray((Vec::<f64>::new(), [0, 3].c(), &device));
     assert_eq!(rt::linalg::vector_norm((eb2.view(), (2, AxesIndex::Val(1)))).shape(), &[0]);
 }
 

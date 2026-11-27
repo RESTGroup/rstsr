@@ -187,7 +187,7 @@ fn test_matrix_power_layouts() {
             ColMajor => wide_t.i((.., .., slice!(None, None, 2))).into_dyn(),
         };
         let nd = rt::linalg::matrix_power((picked.view(), 2));
-        let wide0 = rt::asarray((slot(0).iter().map(|x| *x).collect::<Vec<f64>>(), [3, 3].c(), &device));
+        let wide0 = rt::asarray((slot(0).clone(), [3, 3].c(), &device));
         let wide2 = rt::asarray((slot(0).iter().map(|x| 3.0 * x).collect::<Vec<f64>>(), [3, 3].c(), &device));
         let d0 = rt::linalg::matrix_power((wide0.view(), 2));
         let d1 = rt::linalg::matrix_power((wide2.view(), 2));
@@ -282,18 +282,18 @@ fn test_matrix_power_errors_zero() {
     assert!(rt::linalg::matrix_power_f((v.view(), 2)).is_err());
 
     // (0, 0) input: the identity of shape (0, 0)
-    let z = rt::asarray((vec![0.0f64; 0], [0, 0].c(), &device));
+    let z = rt::asarray((Vec::<f64>::new(), [0, 0].c(), &device));
     let p = rt::linalg::matrix_power((z.view(), 3));
     assert_eq!(p.shape(), &[0, 0]);
 
     // an empty batch stays empty
-    let eb = rt::asarray((vec![0.0f64; 0], [0, 2, 2].c(), &device));
+    let eb = rt::asarray((Vec::<f64>::new(), [0, 2, 2].c(), &device));
     let p = rt::linalg::matrix_power((eb.view(), -1));
     assert_eq!(p.shape(), &[0, 2, 2]);
 
     // a zero-size square axis with n < 0 skips the inversion (the empty
     // 0x0 inverse is the 0x0 identity)
-    let za = rt::asarray((vec![0.0f64; 0], [2, 0, 0].c(), &device));
+    let za = rt::asarray((Vec::<f64>::new(), [2, 0, 0].c(), &device));
     let p = rt::linalg::matrix_power((za.view(), -1));
     assert_eq!(p.shape(), &[2, 0, 0]);
 }
