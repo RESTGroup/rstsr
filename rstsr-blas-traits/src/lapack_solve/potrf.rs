@@ -24,6 +24,11 @@ where
     T: BlasFloat,
     B: BlasDriverBaseAPI<T> + POTRFDriverAPI<T>,
 {
+    /// Factor the Hermitian matrix `a` in place.
+    ///
+    /// A c-prefer input is factored through its transposed view (with `uplo`
+    /// flipped), so the driver call is column-major in both storage orders and
+    /// the factor lands in the requested triangle of the buffer.
     pub fn internal_run(self) -> Result<TensorMutable2<'a, T, B>> {
         let Self { a, uplo } = self;
 
@@ -33,7 +38,7 @@ where
             ColMajor => Upper,
         });
         let mut a = overwritable_convert(a)?;
-        let order = get_output_order(&[], &[(a.c_prefer(), a.f_prefer())], device.default_order());
+        let layout_order = get_output_order(&[], &[(a.c_prefer(), a.f_prefer())], device.default_order());
 
         // perform check
         rstsr_assert_eq!(a.view().nrow(), a.view().ncol(), InvalidLayout, "Lapack POTRF: A must be square")?;
@@ -45,16 +50,26 @@ where
             return Ok(a);
         }
 
-        let lda = a.view().testify_ld(order, "A")?;
+        // the transposed view of a c-prefer buffer is the same Hermitian
+        // matrix; ?POTRF on it with the flipped uplo writes the factor into
+        // the requested triangle of the buffer, so no row-major bridge is
+        // needed
+        let uplo_call = match layout_order {
+            ColMajor => uplo,
+            RowMajor => uplo.flip(),
+        };
+        let lda = a.view().testify_ld(layout_order, "A")?;
         let ptr_a = a.view_mut().as_mut_ptr();
 
         // run driver
-        let info = unsafe { B::driver_potrf(order, uplo, n, ptr_a, lda) };
+        let info = unsafe { B::driver_potrf(ColMajor, uplo_call, n, ptr_a, lda) };
         map_lapack_info(info, "Lapack POTRF")?;
 
         Ok(a)
     }
 
+    /// Factor the Hermitian matrix `a` in place; a c-prefer input is factored
+    /// through its transposed view (see [`POTRF_::internal_run`]).
     pub fn run(self) -> Result<TensorMutable2<'a, T, B>> {
         self.internal_run()
     }
