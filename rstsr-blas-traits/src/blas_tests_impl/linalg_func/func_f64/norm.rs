@@ -351,7 +351,7 @@ fn test_norm_overloads() {
     // vector_norm: bare, isize, (ord, axes), (ord, axes, keepdims), bad axis
     assert!((rt::linalg::vector_norm(&v).to_scalar() - 30f64.sqrt()).abs() < 1e-12);
     assert!((rt::linalg::vector_norm((v.view(), 1)).to_scalar() - 10.0).abs() < 1e-12);
-    assert_eq!(rt::linalg::vector_norm((v.view(), (2, AxesIndex::Val(0)))).shape(), &[]);
+    assert_eq!(rt::linalg::vector_norm((v.view(), (2, AxesIndex::Val(0)))).shape(), &[] as &[usize]);
     let vv = rt::asarray((vec![1.0f64, 2.0, 3.0, 4.0], [2, 2].c(), &device));
     assert_eq!(rt::linalg::vector_norm((vv.view(), (2, AxesIndex::Val(1)))).shape(), &[2]);
     assert_eq!(rt::linalg::vector_norm((vv.view(), (2, AxesIndex::Val(1), true))).shape(), &[2, 1]);
@@ -367,6 +367,6 @@ fn test_norm_overloads() {
     assert!(rt::linalg::matrix_norm_f(v1.view()).is_err());
     let x0 = rt::from_scalar(-3.0f64, &device);
     let n0 = rt::linalg::vector_norm(x0.view());
-    assert_eq!(n0.shape(), &[]);
+    assert_eq!(n0.shape(), &[] as &[usize]);
     assert!((n0.to_scalar() - 3.0).abs() < 1e-12);
 }
