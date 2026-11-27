@@ -545,3 +545,37 @@ b_rhs = a_raw[:1024].copy()
 x = scipy.linalg.cho_solve((c, False), b_rhs, check_finite=False)
 assert np.isclose(fingerprint(np.abs(x)), 5.093725636509143)
 fingerprint(np.abs(x))
+
+# ### matrix_norm / vector_norm / matrix_rank / matrix_power (c64)
+
+a = a_raw.copy().reshape(1024, 1024)
+print("c64 matrix_norm fro  ", fingerprint(np.asarray(np.linalg.norm(a, ord="fro"))))
+print("c64 matrix_norm 1    ", fingerprint(np.asarray(np.linalg.norm(a, ord=1))))
+print("c64 matrix_norm -1   ", fingerprint(np.asarray(np.linalg.norm(a, ord=-1))))
+print("c64 matrix_norm inf  ", fingerprint(np.asarray(np.linalg.norm(a, ord=np.inf))))
+print("c64 matrix_norm -inf ", fingerprint(np.asarray(np.linalg.norm(a, ord=-np.inf))))
+
+a256 = a_raw.copy().reshape(-1)[: 256 * 256].reshape(256, 256)
+print("c64 matrix_norm nuc  ", fingerprint(np.asarray(np.linalg.norm(a256, ord="nuc"))))
+print("c64 matrix_norm 2    ", fingerprint(np.asarray(np.linalg.norm(a256, ord=2))))
+print("c64 matrix_norm -2   ", fingerprint(np.asarray(np.linalg.norm(a256, ord=-2))))
+
+v = a_raw.copy().reshape(-1)
+print("c64 vector_norm 2    ", fingerprint(np.asarray(np.linalg.norm(v, ord=2))))
+print("c64 vector_norm 1    ", fingerprint(np.asarray(np.linalg.norm(v, ord=1))))
+print("c64 vector_norm inf  ", fingerprint(np.asarray(np.linalg.norm(v, ord=np.inf))))
+print("c64 vector_norm -inf ", fingerprint(np.asarray(np.linalg.norm(v, ord=-np.inf))))
+print("c64 vector_norm 3    ", fingerprint(np.asarray(np.linalg.norm(v, ord=3))))
+
+a512 = a_raw.copy().reshape(-1)[: 1024 * 512].reshape(1024, 512)
+print("c64 matrix_rank 1024x512 rank:", np.linalg.matrix_rank(a512))
+
+a4 = a_raw.copy().reshape(-1)[:16].reshape(4, 4)
+for n in [0, 1, 2, 3, 5, -1, -2]:
+    print(f"c64 matrix_power 4x4 n={n:<3}", fingerprint(np.asarray(np.linalg.matrix_power(a4, n))))
+
+a = a_raw.copy().reshape(1024, 1024)
+print("c64 matrix_power 1024 n=0 ", fingerprint(np.eye(1024, dtype=complex)))
+print("c64 matrix_power 1024 n=1 ", fingerprint(np.asarray(a)))
+print("c64 matrix_power 1024 n=2 ", fingerprint(a @ a))
+print("c64 matrix_power 1024 n=-1", fingerprint(np.linalg.inv(a)))

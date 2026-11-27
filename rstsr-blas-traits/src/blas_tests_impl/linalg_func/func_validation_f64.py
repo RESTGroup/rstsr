@@ -481,3 +481,43 @@ b_rhs = a_raw[:1024].copy()
 x = scipy.linalg.cho_solve((c, False), b_rhs, check_finite=False)
 assert np.isclose(fingerprint(x), 19.90125411229034)
 fingerprint(x)
+
+# ### matrix_norm
+
+a = a_raw.copy().reshape(1024, 1024)
+print("matrix_norm fro  ", fingerprint(np.asarray(np.linalg.norm(a, ord="fro"))))
+print("matrix_norm 1    ", fingerprint(np.asarray(np.linalg.norm(a, ord=1))))
+print("matrix_norm -1   ", fingerprint(np.asarray(np.linalg.norm(a, ord=-1))))
+print("matrix_norm inf  ", fingerprint(np.asarray(np.linalg.norm(a, ord=np.inf))))
+print("matrix_norm -inf ", fingerprint(np.asarray(np.linalg.norm(a, ord=-np.inf))))
+
+a256 = a_raw.copy().reshape(-1)[: 256 * 256].reshape(256, 256)
+print("matrix_norm nuc  ", fingerprint(np.asarray(np.linalg.norm(a256, ord="nuc"))))
+print("matrix_norm 2    ", fingerprint(np.asarray(np.linalg.norm(a256, ord=2))))
+print("matrix_norm -2   ", fingerprint(np.asarray(np.linalg.norm(a256, ord=-2))))
+
+# ### vector_norm
+
+v = a_raw.copy().reshape(-1)
+print("vector_norm 2    ", fingerprint(np.asarray(np.linalg.norm(v, ord=2))))
+print("vector_norm 1    ", fingerprint(np.asarray(np.linalg.norm(v, ord=1))))
+print("vector_norm inf  ", fingerprint(np.asarray(np.linalg.norm(v, ord=np.inf))))
+print("vector_norm -inf ", fingerprint(np.asarray(np.linalg.norm(v, ord=-np.inf))))
+print("vector_norm 3    ", fingerprint(np.asarray(np.linalg.norm(v, ord=3))))
+
+# ### matrix_rank
+
+a512 = a_raw.copy().reshape(-1)[: 1024 * 512].reshape(1024, 512)
+print("matrix_rank 1024x512 rank:", np.linalg.matrix_rank(a512))
+
+# ### matrix_power
+
+a4 = a_raw.copy().reshape(-1)[:16].reshape(4, 4)
+for n in [0, 1, 2, 3, 5, -1, -2]:
+    print(f"matrix_power 4x4 n={n:<3}", fingerprint(np.asarray(np.linalg.matrix_power(a4, n))))
+
+a = a_raw.copy().reshape(1024, 1024)
+print("matrix_power 1024 n=0 ", fingerprint(np.eye(1024)))
+print("matrix_power 1024 n=1 ", fingerprint(np.asarray(a)))
+print("matrix_power 1024 n=2 ", fingerprint(a @ a))
+print("matrix_power 1024 n=-1", fingerprint(np.linalg.inv(a)))
