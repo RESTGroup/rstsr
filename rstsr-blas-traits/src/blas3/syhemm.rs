@@ -47,7 +47,7 @@ where
 
 impl<'c, B, T, const HERMI: bool> SYHEMM_<'_, '_, 'c, B, T, HERMI>
 where
-    T: BlasFloat + Num,
+    T: BlasFloat,
     B: BlasDriverBaseAPI<T> + SYHEMMDriverAPI<T, HERMI>,
 {
     pub fn run(self) -> Result<TensorMutable2<'c, T, B>> {

@@ -34,22 +34,7 @@ pub fn blas_impl_matrix_rank_f<T>(
 ) -> Result<Tensor<usize, DeviceBLAS, IxD>>
 where
     T: BlasFloat,
-    T::Real: Float + FromPrimitive,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T::Real>
-        + DeviceCreationAnyAPI<usize>
-        + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<T::Real, Raw = Vec<T::Real>>
-        + DeviceAPI<usize, Raw = Vec<usize>>
-        + DeviceAPI<bool, Raw = Vec<bool>>
-        + OpAssignArbitaryAPI<T::Real, Ix1, Ix1>
-        + OpAssignAPI<T::Real, Ix1>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>
-        + OpMaxAPI<T::Real, IxD, TOut = T::Real>
-        + OpMulAPI<T::Real, T::Real, T::Real, IxD>
-        + OpGreaterAPI<T::Real, T::Real, IxD, TOut = bool>
-        + OpSumBoolAPI<IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     let device = a.device().clone();
     let order = device.default_order();
@@ -114,23 +99,8 @@ where
 impl<ImplType> MatrixRankAPI<DeviceBLAS> for Tr
 where
     T: BlasFloat,
-    T::Real: Float + FromPrimitive,
     D: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T::Real>
-        + DeviceCreationAnyAPI<usize>
-        + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<T::Real, Raw = Vec<T::Real>>
-        + DeviceAPI<usize, Raw = Vec<usize>>
-        + DeviceAPI<bool, Raw = Vec<bool>>
-        + OpAssignArbitaryAPI<T::Real, Ix1, Ix1>
-        + OpAssignAPI<T::Real, Ix1>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>
-        + OpMaxAPI<T::Real, IxD, TOut = T::Real>
-        + OpMulAPI<T::Real, T::Real, T::Real, IxD>
-        + OpGreaterAPI<T::Real, T::Real, IxD, TOut = bool>
-        + OpSumBoolAPI<IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<usize, DeviceBLAS, IxD>;
     fn matrix_rank_f(self) -> Result<Self::Out> {
@@ -147,23 +117,8 @@ where
 impl<ImplType, A> MatrixRankAPI<DeviceBLAS> for (Tr, A)
 where
     T: BlasFloat,
-    T::Real: Float + FromPrimitive,
     D: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T::Real>
-        + DeviceCreationAnyAPI<usize>
-        + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<T::Real, Raw = Vec<T::Real>>
-        + DeviceAPI<usize, Raw = Vec<usize>>
-        + DeviceAPI<bool, Raw = Vec<bool>>
-        + OpAssignArbitaryAPI<T::Real, Ix1, Ix1>
-        + OpAssignAPI<T::Real, Ix1>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>
-        + OpMaxAPI<T::Real, IxD, TOut = T::Real>
-        + OpMulAPI<T::Real, T::Real, T::Real, IxD>
-        + OpGreaterAPI<T::Real, T::Real, IxD, TOut = bool>
-        + OpSumBoolAPI<IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
     A: TryInto<MatrixRankRtol<T::Real, DeviceBLAS>>,
     A::Error: Into<Error>,
 {

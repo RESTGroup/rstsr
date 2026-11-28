@@ -66,13 +66,7 @@ pub fn blas_impl_lu_solve_f<'b, T>(
 ) -> Result<TensorMutable<'b, T, DeviceBLAS, IxD>>
 where
     T: BlasFloat,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceAPI<usize, Raw = Vec<usize>>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationNumAPI<T>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>
-        + Op_MutA_API<T, Ix2, fn(&mut MaybeUninit<T>)>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     lu_solve_stack_f(lu, None, piv, b, trans, true)
 }
@@ -88,13 +82,7 @@ where
     T: BlasFloat,
     DP: DimAPI,
     DA: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceAPI<usize, Raw = Vec<usize>>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationNumAPI<T>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>
-        + Op_MutA_API<T, Ix2, fn(&mut MaybeUninit<T>)>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     let p = lu.p.as_ref().ok_or_else(|| {
         rstsr_error!(
@@ -119,13 +107,7 @@ fn lu_solve_stack_f<'b, T>(
 ) -> Result<TensorMutable<'b, T, DeviceBLAS, IxD>>
 where
     T: BlasFloat,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceAPI<usize, Raw = Vec<usize>>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationNumAPI<T>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>
-        + Op_MutA_API<T, Ix2, fn(&mut MaybeUninit<T>)>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     let device = b.device().clone();
     rstsr_assert!(
@@ -221,13 +203,7 @@ where
     DA: DimAPI,
     DP: DimAPI,
     DB: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceAPI<usize, Raw = Vec<usize>>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationNumAPI<T>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>
-        + Op_MutA_API<T, Ix2, fn(&mut MaybeUninit<T>)>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, IxD>;
     fn lu_solve_f(self) -> Result<Self::Out> {
@@ -281,13 +257,7 @@ where
     DA: DimAPI,
     DP: DimAPI,
     DB: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceAPI<usize, Raw = Vec<usize>>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationNumAPI<T>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>
-        + Op_MutA_API<T, Ix2, fn(&mut MaybeUninit<T>)>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = TrB;
     fn lu_solve_f(self) -> Result<Self::Out> {
@@ -333,13 +303,7 @@ where
     DP: DimAPI,
     DA: DimAPI,
     DB: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceAPI<usize, Raw = Vec<usize>>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationNumAPI<T>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>
-        + Op_MutA_API<T, Ix2, fn(&mut MaybeUninit<T>)>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, IxD>;
     fn lu_solve_f(self) -> Result<Self::Out> {
@@ -359,13 +323,7 @@ where
     DP: DimAPI,
     DA: DimAPI,
     DB: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceAPI<usize, Raw = Vec<usize>>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationNumAPI<T>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>
-        + Op_MutA_API<T, Ix2, fn(&mut MaybeUninit<T>)>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = TrB;
     fn lu_solve_f(self) -> Result<Self::Out> {

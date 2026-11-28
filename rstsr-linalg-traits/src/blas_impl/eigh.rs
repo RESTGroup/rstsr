@@ -21,12 +21,7 @@ pub fn blas_impl_eigh_f<T>(
 ) -> Result<(Tensor<T::Real, DeviceBLAS, IxD>, TensorMutable<'_, T, DeviceBLAS, IxD>)>
 where
     T: BlasFloat,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T::Real>
-        + OpAssignArbitaryAPI<T::Real, Ix1, Ix1>
-        + OpAssignAPI<T::Real, Ix1>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     let device = a.device().clone();
     let order = device.default_order();
@@ -72,13 +67,7 @@ pub fn blas_impl_eigh_generalized_f<T>(
 ) -> Result<(Tensor<T::Real, DeviceBLAS, IxD>, Tensor<T, DeviceBLAS, IxD>)>
 where
     T: BlasFloat,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationAnyAPI<T::Real>
-        + OpAssignArbitaryAPI<T::Real, Ix1, Ix1>
-        + OpAssignAPI<T::Real, Ix1>
-        + OpAssignArbitaryAPI<T, Ix2, Ix2>
-        + OpAssignAPI<T, Ix2>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     rstsr_pattern!(itype, 1..=3, InvalidValue, "eigh: only eig_type = 1, 2, or 3 allowed.")?;
     rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch)?;
@@ -145,12 +134,7 @@ where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T::Real>
-        + OpAssignArbitaryAPI<T::Real, Ix1, Ix1>
-        + OpAssignAPI<T::Real, Ix1>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
     fn eigh_f(self) -> Result<Self::Out> {
@@ -172,12 +156,7 @@ where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T::Real>
-        + OpAssignArbitaryAPI<T::Real, Ix1, Ix1>
-        + OpAssignAPI<T::Real, Ix1>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
     fn eigh_f(self) -> Result<Self::Out> {
@@ -200,12 +179,7 @@ where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T::Real>
-        + OpAssignArbitaryAPI<T::Real, Ix1, Ix1>
-        + OpAssignAPI<T::Real, Ix1>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tr>;
     fn eigh_f(self) -> Result<Self::Out> {
@@ -226,12 +200,7 @@ where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T::Real>
-        + OpAssignArbitaryAPI<T::Real, Ix1, Ix1>
-        + OpAssignAPI<T::Real, Ix1>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tr>;
     fn eigh_f(self) -> Result<Self::Out> {
@@ -260,12 +229,7 @@ where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T::Real>
-        + OpAssignArbitaryAPI<T::Real, Ix1, Ix1>
-        + OpAssignAPI<T::Real, Ix1>
-        + OpAssignArbitaryAPI<T, Ix2, Ix2>
-        + OpAssignAPI<T, Ix2>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
     fn eigh_f(self) -> Result<Self::Out> {
@@ -293,12 +257,7 @@ where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T::Real>
-        + OpAssignArbitaryAPI<T::Real, Ix1, Ix1>
-        + OpAssignAPI<T::Real, Ix1>
-        + OpAssignArbitaryAPI<T, Ix2, Ix2>
-        + OpAssignAPI<T, Ix2>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
     fn eigh_f(self) -> Result<Self::Out> {
@@ -318,12 +277,7 @@ where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T::Real>
-        + OpAssignArbitaryAPI<T::Real, Ix1, Ix1>
-        + OpAssignAPI<T::Real, Ix1>
-        + OpAssignArbitaryAPI<T, Ix2, Ix2>
-        + OpAssignAPI<T, Ix2>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = EighResult<Tensor<T::Real, DeviceBLAS, D::SmallerOne>, Tensor<T, DeviceBLAS, D>>;
     fn eigh_f(self) -> Result<Self::Out> {

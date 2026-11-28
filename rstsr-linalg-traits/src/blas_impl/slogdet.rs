@@ -14,7 +14,7 @@ impl<ImplType> SLogDetAPI<DeviceBLAS> for Tr
 where
     T: BlasFloat,
     D: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T> + DeviceCreationAnyAPI<T> + DeviceCreationAnyAPI<T::Real>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = SLogDetResult<Tensor<T, DeviceBLAS, IxD>, Tensor<T::Real, DeviceBLAS, IxD>>;
     fn slogdet_f(self) -> Result<Self::Out> {

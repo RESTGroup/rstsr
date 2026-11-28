@@ -44,7 +44,7 @@ pub fn blas_impl_cho_factor_f<T>(
 ) -> Result<(TensorMutable<'_, T, DeviceBLAS, IxD>, FlagUpLo)>
 where
     T: BlasFloat,
-    DeviceBLAS: LapackDriverAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, IxD> + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     let device = a.device().clone();
     let order = device.default_order();
@@ -93,7 +93,7 @@ impl<ImplType> ChoFactorAPI<DeviceBLAS> for (Tr, Option<FlagUpLo>)
 where
     T: BlasFloat,
     D: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, IxD> + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = ChoFactorResult<Tensor<T, DeviceBLAS, D>>;
     fn cho_factor_f(self) -> Result<Self::Out> {
@@ -117,7 +117,7 @@ impl<ImplType> ChoFactorAPI<DeviceBLAS> for (Tr, Option<FlagUpLo>)
 where
     T: BlasFloat,
     D: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, IxD> + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = ChoFactorResult<Tr>;
     fn cho_factor_f(self) -> Result<Self::Out> {

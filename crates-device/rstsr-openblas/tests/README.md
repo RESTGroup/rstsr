@@ -10,7 +10,7 @@ Entry binaries (ADR-0012, entry-binary test matrix):
 | `tests_issues` | `issues/` (real files) | backend-specific regression tests (issues found on OpenBLAS) |
 | `tests_zero_size` | `zero_size/` (real files) | zero-size BLAS/LAPACK operand coverage (issue #161, PR #162) |
 | `test_workable` | real file | smoke test: threaded matmul via OpenBLAS |
-| `trait_bound` | real file | device trait-bound surface check |
+| `trait_bound` | real file | trait-bundle sufficiency: generic code bounded only by `LapackDriverAPI<T>` can call the core matmul entry points and the linalg-tier members of `BlasDriverBaseAPI` (complex counterpart, vector assignment, index dtypes, in-place mutation, n-dim norm ops) |
 
 ## Divergences from the shared bodies
 

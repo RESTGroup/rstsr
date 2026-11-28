@@ -47,12 +47,7 @@ pub fn blas_impl_ldl_f<T>(
 ) -> Result<(Tensor<T, DeviceBLAS, IxD>, Tensor<T, DeviceBLAS, IxD>, Tensor<usize, DeviceBLAS, IxD>)>
 where
     T: BlasFloat,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceAPI<usize, Raw = Vec<usize>>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationNumAPI<usize>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     let device = a.device().clone();
     let order = device.default_order();
@@ -109,12 +104,7 @@ where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceAPI<usize, Raw = Vec<usize>>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationNumAPI<usize>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = LdlResult<Tensor<T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>, Tensor<usize, DeviceBLAS, D::SmallerOne>>;
     // the mutable rows hand the scratch to the factorization in place

@@ -44,11 +44,7 @@ where
 impl<'a, B, T> GEEV_<'a, B, T>
 where
     T: BlasFloat,
-    B: BlasDriverBaseAPI<T>
-        + GEEVDriverAPI<T>
-        + DeviceAPI<Complex<T::Real>, Raw = Vec<Complex<T::Real>>>
-        + DeviceCreationAnyAPI<Complex<T::Real>>
-        + DeviceCreationNumAPI<Complex<T::Real>>,
+    B: BlasDriverBaseAPI<T> + GEEVDriverAPI<T>,
 {
     /// Run `?GEEV`: the spectrum and the requested eigenvector blocks, all in
     /// the call order. An owned or `view_mut()` input whose layout is in the

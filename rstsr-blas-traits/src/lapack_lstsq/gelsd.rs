@@ -38,12 +38,7 @@ where
 impl<'a, B, T> GELSD_<'a, B, T>
 where
     T: BlasFloat,
-    B: BlasDriverBaseAPI<T>
-        + GELSDDriverAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationAnyAPI<T::Real>
-        + OpAssignArbitaryAPI<T, Ix2, Ix2>
-        + OpAssignAPI<T, Ix2>,
+    B: BlasDriverBaseAPI<T> + GELSDDriverAPI<T>,
 {
     pub fn internal_run(
         self,
@@ -152,7 +147,7 @@ fn residual_sums<T, B>(
 ) -> Result<Tensor<T::Real, B, Ix1>>
 where
     T: BlasFloat,
-    B: BlasDriverBaseAPI<T> + DeviceCreationNumAPI<T::Real>,
+    B: BlasDriverBaseAPI<T>,
 {
     let device = b_work.device().clone();
     let mut out = zeros_f(([k], &device))?.into_dim::<Ix1>();

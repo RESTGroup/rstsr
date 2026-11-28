@@ -15,7 +15,7 @@ use rstsr_linalg_traits::prelude_dev::*;
 pub fn blas_impl_det_f<T>(a: TensorReference<'_, T, DeviceBLAS, IxD>) -> Result<Tensor<T, DeviceBLAS, IxD>>
 where
     T: BlasFloat,
-    DeviceBLAS: LapackDriverAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, IxD> + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     let device = a.device().clone();
     let order = device.default_order();
@@ -52,7 +52,7 @@ impl<ImplType> DetAPI<DeviceBLAS> for Tr
 where
     T: BlasFloat,
     D: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, IxD> + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, IxD>;
     fn det_f(self) -> Result<Self::Out> {
@@ -69,7 +69,7 @@ impl<ImplType> DetAPI<DeviceBLAS> for Tr
 where
     T: BlasFloat,
     D: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, IxD> + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, IxD>;
     fn det_f(self) -> Result<Self::Out> {
