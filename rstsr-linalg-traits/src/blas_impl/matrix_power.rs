@@ -29,10 +29,7 @@ use super::inv::blas_impl_inv_f;
 fn power_of<T>(base: TensorView<'_, T, DeviceBLAS, IxD>, e: usize) -> Result<Tensor<T, DeviceBLAS, IxD>>
 where
     T: BlasFloat,
-    DeviceBLAS: DeviceCreationAnyAPI<T>
-        + DeviceRawAPI<MaybeUninit<T>>
-        + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceMatMulAPI<T, T, T, IxD, IxD, IxD>,
+    DeviceBLAS: BlasDriverBaseAPI<T>,
 {
     match e {
         2 => matmul_f(&base, &base),
@@ -82,18 +79,7 @@ pub fn blas_impl_matrix_power_f<T>(
 ) -> Result<TensorMutable<'_, T, DeviceBLAS, IxD>>
 where
     T: BlasFloat,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationNumAPI<T>
-        + DeviceCreationTriAPI<T>
-        + DeviceRawAPI<MaybeUninit<T>>
-        + DeviceAPI<T, Raw = Vec<T>>
-        + OpAssignArbitaryAPI<T, Ix2, Ix2>
-        + OpAssignAPI<T, Ix2>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>
-        + OpAssignAPI<T, Ix1>
-        + DeviceMatMulAPI<T, T, T, IxD, IxD, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     let device = a.device().clone();
     let order = device.default_order();
@@ -148,18 +134,7 @@ impl<ImplType> MatrixPowerAPI<DeviceBLAS> for (Tr, isize)
 where
     T: BlasFloat,
     D: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationNumAPI<T>
-        + DeviceCreationTriAPI<T>
-        + DeviceRawAPI<MaybeUninit<T>>
-        + DeviceAPI<T, Raw = Vec<T>>
-        + OpAssignArbitaryAPI<T, Ix2, Ix2>
-        + OpAssignAPI<T, Ix2>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>
-        + OpAssignAPI<T, Ix1>
-        + DeviceMatMulAPI<T, T, T, IxD, IxD, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
     fn matrix_power_f(self) -> Result<Self::Out> {
@@ -180,18 +155,7 @@ impl<ImplType> MatrixPowerAPI<DeviceBLAS> for (Tr, isize)
 where
     T: BlasFloat,
     D: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationNumAPI<T>
-        + DeviceCreationTriAPI<T>
-        + DeviceRawAPI<MaybeUninit<T>>
-        + DeviceAPI<T, Raw = Vec<T>>
-        + OpAssignArbitaryAPI<T, Ix2, Ix2>
-        + OpAssignAPI<T, Ix2>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>
-        + OpAssignAPI<T, Ix1>
-        + DeviceMatMulAPI<T, T, T, IxD, IxD, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tr;
     fn matrix_power_f(self) -> Result<Self::Out> {

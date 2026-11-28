@@ -21,12 +21,7 @@ pub fn blas_impl_pinv_f<T>(
 where
     T: BlasFloat,
     T::Real: FromPrimitive,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + OpAssignArbitaryAPI<T, Ix2, Ix2>
-        + OpAssignAPI<T, Ix2>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     let device = a.device().clone();
     let order = device.default_order();
@@ -65,12 +60,7 @@ where
     T::Real: FromPrimitive,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + OpAssignArbitaryAPI<T, Ix2, Ix2>
-        + OpAssignAPI<T, Ix2>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = PinvResult<Tensor<T, DeviceBLAS, D>>;
     fn pinv_f(self) -> Result<Self::Out> {
@@ -87,12 +77,7 @@ where
     T::Real: FromPrimitive,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + OpAssignArbitaryAPI<T, Ix2, Ix2>
-        + OpAssignAPI<T, Ix2>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = PinvResult<Tensor<T, DeviceBLAS, D>>;
     fn pinv_f(self) -> Result<Self::Out> {
@@ -113,12 +98,7 @@ where
     T::Real: FromPrimitive,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + OpAssignArbitaryAPI<T, Ix2, Ix2>
-        + OpAssignAPI<T, Ix2>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = PinvResult<Tensor<T, DeviceBLAS, D>>;
     fn pinv_f(self) -> Result<Self::Out> {
@@ -138,12 +118,7 @@ where
     T::Real: FromPrimitive,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + OpAssignArbitaryAPI<T, Ix2, Ix2>
-        + OpAssignAPI<T, Ix2>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = PinvResult<Tensor<T, DeviceBLAS, D>>;
     fn pinv_f(self) -> Result<Self::Out> {

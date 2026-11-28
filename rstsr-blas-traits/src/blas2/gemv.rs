@@ -47,7 +47,7 @@ where
 impl<'c, B, T> GEMV_<'_, '_, 'c, B, T>
 where
     T: BlasFloat,
-    B: BlasDriverBaseAPI<T> + GEMVDriverAPI<T> + OpAssignArbitaryAPI<T, Ix1, Ix1>,
+    B: BlasDriverBaseAPI<T> + GEMVDriverAPI<T>,
 {
     /// Run `y := alpha * op(A) x + beta * y`, returning the output vector.
     ///

@@ -43,12 +43,7 @@ pub fn blas_impl_lu_f<T>(
 ) -> Result<LuResult<Option<Tensor<usize, DeviceBLAS, IxD>>, Tensor<T, DeviceBLAS, IxD>, Tensor<T, DeviceBLAS, IxD>>>
 where
     T: BlasFloat,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationNumAPI<T>
-        + DeviceCreationNumAPI<usize>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     let device = a.device().clone();
     let order = device.default_order();
@@ -99,12 +94,7 @@ where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationNumAPI<T>
-        + DeviceCreationNumAPI<usize>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out =
         LuResult<Option<Tensor<usize, DeviceBLAS, D::SmallerOne>>, Tensor<T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>>;

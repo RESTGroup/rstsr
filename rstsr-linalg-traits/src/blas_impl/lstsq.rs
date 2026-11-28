@@ -47,18 +47,7 @@ pub fn blas_impl_lstsq_f<T>(
 where
     T: BlasFloat,
     T::Real: FromPrimitive,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationAnyAPI<T::Real>
-        + DeviceCreationNumAPI<usize>
-        + OpAssignArbitaryAPI<T, Ix2, Ix2>
-        + OpAssignAPI<T, Ix2>
-        + OpAssignArbitaryAPI<T::Real, Ix1, Ix1>
-        + OpAssignAPI<T::Real, Ix1>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>
-        + OpAssignArbitaryAPI<T::Real, IxD, IxD>
-        + OpAssignAPI<T::Real, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     let device = a.device().clone();
     rstsr_assert!(a.device().same_device(b.device()), DeviceMismatch, "lstsq: a and b are on different devices")?;
@@ -160,18 +149,7 @@ where
     T::Real: FromPrimitive,
     D1: DimAPI,
     D2: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationAnyAPI<T::Real>
-        + DeviceCreationNumAPI<usize>
-        + OpAssignArbitaryAPI<T, Ix2, Ix2>
-        + OpAssignAPI<T, Ix2>
-        + OpAssignArbitaryAPI<T::Real, Ix1, Ix1>
-        + OpAssignAPI<T::Real, Ix1>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>
-        + OpAssignArbitaryAPI<T::Real, IxD, IxD>
-        + OpAssignAPI<T::Real, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = LstsqResult<
         Tensor<T, DeviceBLAS, IxD>,
@@ -211,18 +189,7 @@ where
     T::Real: FromPrimitive,
     D1: DimAPI,
     D2: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationAnyAPI<T::Real>
-        + DeviceCreationNumAPI<usize>
-        + OpAssignArbitaryAPI<T, Ix2, Ix2>
-        + OpAssignAPI<T, Ix2>
-        + OpAssignArbitaryAPI<T::Real, Ix1, Ix1>
-        + OpAssignAPI<T::Real, Ix1>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>
-        + OpAssignArbitaryAPI<T::Real, IxD, IxD>
-        + OpAssignAPI<T::Real, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = LstsqResult<
         Tensor<T, DeviceBLAS, IxD>,

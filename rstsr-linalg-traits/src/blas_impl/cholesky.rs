@@ -21,7 +21,7 @@ pub fn blas_impl_cholesky_f<T>(
 ) -> Result<TensorMutable<'_, T, DeviceBLAS, IxD>>
 where
     T: BlasFloat,
-    DeviceBLAS: LapackDriverAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, IxD> + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     let device = a.device().clone();
     let order = device.default_order();
@@ -56,7 +56,7 @@ impl<ImplType> CholeskyAPI<DeviceBLAS> for (Tr, Option<FlagUpLo>)
 where
     T: BlasFloat,
     D: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, IxD> + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
     fn cholesky_f(self) -> Result<Self::Out> {
@@ -74,7 +74,7 @@ impl<ImplType> CholeskyAPI<DeviceBLAS> for (Tr, Option<FlagUpLo>)
 where
     T: BlasFloat,
     D: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, IxD> + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tr;
     fn cholesky_f(self) -> Result<Self::Out> {

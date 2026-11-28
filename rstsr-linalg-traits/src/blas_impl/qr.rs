@@ -18,14 +18,7 @@ pub fn blas_impl_qr_f<T>(
 ) -> Result<(Tensor<T, DeviceBLAS, IxD>, Tensor<T, DeviceBLAS, IxD>)>
 where
     T: BlasFloat,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + OpAssignArbitaryAPI<T, Ix1, Ix1>
-        + OpAssignAPI<T, Ix1>
-        + OpAssignArbitaryAPI<T, Ix2, Ix2>
-        + OpAssignAPI<T, Ix2>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     let device = a.device().clone();
     let order = device.default_order();
@@ -64,14 +57,7 @@ where
     R: DataAPI<Data = Vec<T>>,
     T: BlasFloat,
     D: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + OpAssignArbitaryAPI<T, Ix1, Ix1>
-        + OpAssignAPI<T, Ix1>
-        + OpAssignArbitaryAPI<T, Ix2, Ix2>
-        + OpAssignAPI<T, Ix2>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = QrResult<Tensor<T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>>;
     fn qr_f(self) -> Result<Self::Out> {
@@ -91,14 +77,7 @@ impl<ImplType> QrAPI<DeviceBLAS> for (Tr, QrMode)
 where
     T: BlasFloat,
     D: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + OpAssignArbitaryAPI<T, Ix1, Ix1>
-        + OpAssignAPI<T, Ix1>
-        + OpAssignArbitaryAPI<T, Ix2, Ix2>
-        + OpAssignAPI<T, Ix2>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = QrResult<Tensor<T, DeviceBLAS, D>, Tensor<T, DeviceBLAS, D>>;
     // the owned row never mutates `a`

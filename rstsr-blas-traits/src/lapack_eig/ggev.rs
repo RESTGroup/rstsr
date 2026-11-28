@@ -52,11 +52,7 @@ where
 impl<'a, 'b, B, T> GGEV_<'a, 'b, B, T>
 where
     T: BlasFloat,
-    B: BlasDriverBaseAPI<T>
-        + GGEVDriverAPI<T>
-        + DeviceAPI<Complex<T::Real>, Raw = Vec<Complex<T::Real>>>
-        + DeviceCreationAnyAPI<Complex<T::Real>>
-        + DeviceCreationNumAPI<Complex<T::Real>>,
+    B: BlasDriverBaseAPI<T> + GGEVDriverAPI<T>,
 {
     /// Run `?GGEV` for `A v = λ B v`: the `(alpha, beta)` pair with
     /// `lambda = alpha / beta` and the requested eigenvector blocks, all in

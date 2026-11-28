@@ -62,14 +62,7 @@ pub fn blas_impl_eig_f<T>(
 >
 where
     T: BlasFloat,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceAPI<Complex<T::Real>, Raw = Vec<Complex<T::Real>>>
-        + DeviceCreationAnyAPI<Complex<T::Real>>
-        + DeviceCreationNumAPI<Complex<T::Real>>
-        + OpAssignArbitaryAPI<Complex<T::Real>, Ix1, Ix1>
-        + OpAssignAPI<Complex<T::Real>, Ix1>
-        + OpAssignArbitaryAPI<Complex<T::Real>, Ix2, Ix2>
-        + OpAssignAPI<Complex<T::Real>, Ix2>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     let (eigenvalues, left, right) = ref_impl_eig_nd_f(a, b, side, homogeneous, "eig")?;
     Ok(EigResult { eigenvalues, left, right })
@@ -90,14 +83,7 @@ where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceAPI<Complex<T::Real>, Raw = Vec<Complex<T::Real>>>
-        + DeviceCreationAnyAPI<Complex<T::Real>>
-        + DeviceCreationNumAPI<Complex<T::Real>>
-        + OpAssignArbitaryAPI<Complex<T::Real>, Ix1, Ix1>
-        + OpAssignAPI<Complex<T::Real>, Ix1>
-        + OpAssignArbitaryAPI<Complex<T::Real>, Ix2, Ix2>
-        + OpAssignAPI<Complex<T::Real>, Ix2>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = EigResult<
         Tensor<Complex<T::Real>, DeviceBLAS, D::SmallerOne>,
@@ -128,14 +114,7 @@ where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceAPI<Complex<T::Real>, Raw = Vec<Complex<T::Real>>>
-        + DeviceCreationAnyAPI<Complex<T::Real>>
-        + DeviceCreationNumAPI<Complex<T::Real>>
-        + OpAssignArbitaryAPI<Complex<T::Real>, Ix1, Ix1>
-        + OpAssignAPI<Complex<T::Real>, Ix1>
-        + OpAssignArbitaryAPI<Complex<T::Real>, Ix2, Ix2>
-        + OpAssignAPI<Complex<T::Real>, Ix2>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = EigResult<
         Tensor<Complex<T::Real>, DeviceBLAS, D>,
@@ -300,14 +279,7 @@ where
     DA: DimAPI + DimSmallerOneAPI,
     DA::SmallerOne: DimAPI,
     DB: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceAPI<Complex<T::Real>, Raw = Vec<Complex<T::Real>>>
-        + DeviceCreationAnyAPI<Complex<T::Real>>
-        + DeviceCreationNumAPI<Complex<T::Real>>
-        + OpAssignArbitaryAPI<Complex<T::Real>, Ix1, Ix1>
-        + OpAssignAPI<Complex<T::Real>, Ix1>
-        + OpAssignArbitaryAPI<Complex<T::Real>, Ix2, Ix2>
-        + OpAssignAPI<Complex<T::Real>, Ix2>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = EigResult<
         Tensor<Complex<T::Real>, DeviceBLAS, DA::SmallerOne>,
@@ -351,14 +323,7 @@ where
     DA: DimAPI + DimSmallerOneAPI,
     DA::SmallerOne: DimAPI,
     DB: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceAPI<Complex<T::Real>, Raw = Vec<Complex<T::Real>>>
-        + DeviceCreationAnyAPI<Complex<T::Real>>
-        + DeviceCreationNumAPI<Complex<T::Real>>
-        + OpAssignArbitaryAPI<Complex<T::Real>, Ix1, Ix1>
-        + OpAssignAPI<Complex<T::Real>, Ix1>
-        + OpAssignArbitaryAPI<Complex<T::Real>, Ix2, Ix2>
-        + OpAssignAPI<Complex<T::Real>, Ix2>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = EigResult<
         Tensor<Complex<T::Real>, DeviceBLAS, DA>,

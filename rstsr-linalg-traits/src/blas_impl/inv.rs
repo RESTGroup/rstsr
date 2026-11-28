@@ -16,7 +16,7 @@ use rstsr_linalg_traits::prelude_dev::*;
 pub fn blas_impl_inv_f<T>(a: TensorReference<'_, T, DeviceBLAS, IxD>) -> Result<TensorMutable<'_, T, DeviceBLAS, IxD>>
 where
     T: BlasFloat,
-    DeviceBLAS: LapackDriverAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, IxD> + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     let device = a.device().clone();
     let order = device.default_order();
@@ -56,7 +56,7 @@ impl<ImplType> InvAPI<DeviceBLAS> for Tr
 where
     T: BlasFloat,
     D: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, IxD> + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, D>;
     fn inv_f(self) -> Result<Self::Out> {
@@ -73,7 +73,7 @@ impl<ImplType> InvAPI<DeviceBLAS> for Tr
 where
     T: BlasFloat,
     D: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T> + DeviceCreationAnyAPI<T> + OpAssignArbitaryAPI<T, IxD, IxD> + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tr;
     fn inv_f(self) -> Result<Self::Out> {

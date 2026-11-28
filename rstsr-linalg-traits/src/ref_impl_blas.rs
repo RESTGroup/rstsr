@@ -75,11 +75,7 @@ pub fn ref_impl_cho_solve_f<'b, T, B>(
 ) -> Result<TensorMutable<'b, T, B, Ix2>>
 where
     T: BlasFloat,
-    B: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + OpAssignArbitaryAPI<T, Ix2, Ix2>
-        + OpAssignAPI<T, Ix2>
-        + Op_MutA_API<T, Ix2, fn(&mut MaybeUninit<T>)>,
+    B: LapackDriverAPI<T>,
 {
     let device = b.device().clone();
     rstsr_assert!(
@@ -176,10 +172,7 @@ pub fn ref_impl_eig_simple_f<T, B>(
 )>
 where
     T: BlasFloat,
-    B: LapackDriverAPI<T>
-        + DeviceAPI<Complex<T::Real>, Raw = Vec<Complex<T::Real>>>
-        + DeviceCreationAnyAPI<Complex<T::Real>>
-        + DeviceCreationNumAPI<Complex<T::Real>>,
+    B: LapackDriverAPI<T>,
 {
     let device = a.device().clone();
     let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
@@ -226,10 +219,7 @@ pub fn ref_impl_eig_generalized_simple_f<'b, T, B>(
 )>
 where
     T: BlasFloat,
-    B: LapackDriverAPI<T>
-        + DeviceAPI<Complex<T::Real>, Raw = Vec<Complex<T::Real>>>
-        + DeviceCreationAnyAPI<Complex<T::Real>>
-        + DeviceCreationNumAPI<Complex<T::Real>>,
+    B: LapackDriverAPI<T>,
 {
     let device = a.device().clone();
     let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
@@ -337,7 +327,7 @@ fn eig_outputs<T, B>(
 )>
 where
     T: BlasFloat,
-    B: DeviceAPI<Complex<T::Real>, Raw = Vec<Complex<T::Real>>> + DeviceCreationNumAPI<Complex<T::Real>>,
+    B: BlasDriverBaseAPI<T>,
 {
     let w_inner = if homogeneous { vec![2, n] } else { vec![n] };
     let w = zeros_f((stack_shape(batch_shape, &w_inner, order), device))?;
@@ -396,14 +386,7 @@ pub fn ref_impl_eig_nd_f<T, B>(
 )>
 where
     T: BlasFloat,
-    B: LapackDriverAPI<T>
-        + DeviceAPI<Complex<T::Real>, Raw = Vec<Complex<T::Real>>>
-        + DeviceCreationAnyAPI<Complex<T::Real>>
-        + DeviceCreationNumAPI<Complex<T::Real>>
-        + OpAssignArbitaryAPI<Complex<T::Real>, Ix1, Ix1>
-        + OpAssignAPI<Complex<T::Real>, Ix1>
-        + OpAssignArbitaryAPI<Complex<T::Real>, Ix2, Ix2>
-        + OpAssignAPI<Complex<T::Real>, Ix2>,
+    B: LapackDriverAPI<T>,
 {
     let (left, right) = (side.wants_left(), side.wants_right());
     let device = a.device().clone();
@@ -544,7 +527,7 @@ fn orgqr_2d<'a, 'tau, T, B>(
 ) -> Result<TensorMutable2<'a, T, B>>
 where
     T: BlasFloat,
-    B: BlasDriverBaseAPI<T> + ORGQRDriverAPI<T> + OpAssignArbitaryAPI<T, Ix1, Ix1> + OpAssignAPI<T, Ix1>,
+    B: BlasDriverBaseAPI<T> + ORGQRDriverAPI<T>,
 {
     ORGQR::default().a(a).tau(tau).k(k).build()?.run()
 }
@@ -561,7 +544,7 @@ pub fn ref_impl_qr_simple_f<T, B>(
 ) -> Result<(Tensor<T, B, Ix2>, Tensor<T, B, Ix2>)>
 where
     T: BlasFloat,
-    B: LapackDriverAPI<T> + OpAssignArbitaryAPI<T, Ix1, Ix1> + OpAssignAPI<T, Ix1>,
+    B: LapackDriverAPI<T>,
 {
     let device = a.device().clone();
     let nthreads = device.get_current_pool().map_or(1, |pool| pool.current_num_threads());
@@ -781,7 +764,7 @@ where
 pub fn ref_impl_slogdet_nd_f<T, B>(a: TensorView<'_, T, B, IxD>) -> Result<(Tensor<T, B, IxD>, Tensor<T::Real, B, IxD>)>
 where
     T: BlasFloat,
-    B: LapackDriverAPI<T> + DeviceCreationAnyAPI<T> + DeviceCreationAnyAPI<T::Real>,
+    B: LapackDriverAPI<T>,
 {
     use crate::stack::{stack_slice_at, StackLayout};
 
@@ -938,11 +921,7 @@ pub fn ref_impl_lu_into_f<T, B>(
 ) -> Result<()>
 where
     T: BlasFloat,
-    B: LapackDriverAPI<T>
-        + DeviceAPI<usize, Raw = Vec<usize>>
-        + DeviceCreationAnyAPI<T>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    B: LapackDriverAPI<T>,
 {
     let (lu, ipiv, _info) = ref_impl_lu_factor_f(a)?;
     let perm = lu_ipiv_to_perm(&ipiv, l.shape()[0]);
@@ -1018,7 +997,7 @@ fn trsm_in_place<T, B>(
 ) -> Result<()>
 where
     T: BlasFloat,
-    B: BlasDriverBaseAPI<T> + TRSMDriverAPI<T> + Op_MutA_API<T, Ix2, fn(&mut MaybeUninit<T>)>,
+    B: BlasDriverBaseAPI<T> + TRSMDriverAPI<T>,
 {
     fn conj_elem<T: BlasFloat>(x: &mut MaybeUninit<T>) {
         unsafe { *x.assume_init_mut() = x.assume_init().conj() };
@@ -1062,7 +1041,7 @@ fn lu_solve_in_place<T, B>(
 ) -> Result<()>
 where
     T: BlasFloat,
-    B: LapackDriverAPI<T> + Op_MutA_API<T, Ix2, fn(&mut MaybeUninit<T>)>,
+    B: LapackDriverAPI<T>,
 {
     if swaps_first {
         lu_swap_rows(y.view_mut(), ipiv, true);
@@ -1095,11 +1074,7 @@ pub fn ref_impl_lu_solve_f<'b, T, B>(
 ) -> Result<TensorMutable<'b, T, B, Ix2>>
 where
     T: BlasFloat,
-    B: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + OpAssignArbitaryAPI<T, Ix2, Ix2>
-        + OpAssignAPI<T, Ix2>
-        + Op_MutA_API<T, Ix2, fn(&mut MaybeUninit<T>)>,
+    B: LapackDriverAPI<T>,
 {
     let device = b.device().clone();
     rstsr_assert!(
@@ -1201,7 +1176,7 @@ pub fn ref_impl_ldl_into_f<T, B>(
 ) -> Result<usize>
 where
     T: BlasFloat,
-    B: LapackDriverAPI<T> + DeviceAPI<usize, Raw = Vec<usize>>,
+    B: LapackDriverAPI<T>,
 {
     let n = a.shape()[0];
     let device = a.device().clone();

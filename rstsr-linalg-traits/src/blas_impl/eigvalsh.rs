@@ -19,12 +19,7 @@ pub fn blas_impl_eigvalsh_f<T>(
 ) -> Result<Tensor<T::Real, DeviceBLAS, IxD>>
 where
     T: BlasFloat,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T::Real>
-        + OpAssignArbitaryAPI<T::Real, Ix1, Ix1>
-        + OpAssignAPI<T::Real, Ix1>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     let device = a.device().clone();
     let order = device.default_order();
@@ -67,12 +62,7 @@ where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T::Real>
-        + OpAssignArbitaryAPI<T::Real, Ix1, Ix1>
-        + OpAssignAPI<T::Real, Ix1>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T::Real, DeviceBLAS, D::SmallerOne>;
     fn eigvalsh_f(self) -> Result<Self::Out> {
@@ -91,12 +81,7 @@ where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T::Real>
-        + OpAssignArbitaryAPI<T::Real, Ix1, Ix1>
-        + OpAssignAPI<T::Real, Ix1>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T::Real, DeviceBLAS, D::SmallerOne>;
     fn eigvalsh_f(self) -> Result<Self::Out> {
@@ -119,12 +104,7 @@ where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T::Real>
-        + OpAssignArbitaryAPI<T::Real, Ix1, Ix1>
-        + OpAssignAPI<T::Real, Ix1>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T::Real, DeviceBLAS, D::SmallerOne>;
     fn eigvalsh_f(self) -> Result<Self::Out> {
@@ -145,12 +125,7 @@ where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T::Real>
-        + OpAssignArbitaryAPI<T::Real, Ix1, Ix1>
-        + OpAssignAPI<T::Real, Ix1>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T::Real, DeviceBLAS, D::SmallerOne>;
     fn eigvalsh_f(self) -> Result<Self::Out> {

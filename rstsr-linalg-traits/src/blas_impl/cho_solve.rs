@@ -59,12 +59,7 @@ pub fn blas_impl_cho_solve_f<'b, T>(
 ) -> Result<TensorMutable<'b, T, DeviceBLAS, IxD>>
 where
     T: BlasFloat,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationNumAPI<T>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>
-        + Op_MutA_API<T, Ix2, fn(&mut MaybeUninit<T>)>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     let order = c.device().default_order();
     rstsr_assert!(
@@ -105,12 +100,7 @@ where
     T: BlasFloat,
     DA: DimAPI,
     DB: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationNumAPI<T>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>
-        + Op_MutA_API<T, Ix2, fn(&mut MaybeUninit<T>)>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, IxD>;
     fn cho_solve_f(self) -> Result<Self::Out> {
@@ -139,12 +129,7 @@ where
     T: BlasFloat,
     DA: DimAPI,
     DB: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationNumAPI<T>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>
-        + Op_MutA_API<T, Ix2, fn(&mut MaybeUninit<T>)>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = TrB;
     fn cho_solve_f(self) -> Result<Self::Out> {

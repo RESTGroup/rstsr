@@ -33,7 +33,7 @@ where
 impl<'a, 'tau, B, T> ORGQR_<'a, 'tau, B, T>
 where
     T: BlasFloat,
-    B: BlasDriverBaseAPI<T> + ORGQRDriverAPI<T> + OpAssignArbitaryAPI<T, Ix1, Ix1> + OpAssignAPI<T, Ix1>,
+    B: BlasDriverBaseAPI<T> + ORGQRDriverAPI<T>,
 {
     /// Generate the first `k` columns of `Q` from the output of [`GEQRF_`]; the
     /// result overwrites `a`.

@@ -1,6 +1,6 @@
 use half::{bf16, f16};
 use num::complex::ComplexFloat;
-use num::{Complex, Num};
+use num::{Complex, FromPrimitive, Num};
 use rstsr_dtype_traits::{DTypeIntoFloatAPI, ExtNum, ExtReal};
 use std::ffi::c_void;
 use std::ops::*;
@@ -43,7 +43,8 @@ impl BlasScalar for bf16 {
 pub trait BlasFloat:
     BlasScalar
     + DTypeIntoFloatAPI<FloatType = Self>
-    + ComplexFloat<Real: ExtReal + DTypeIntoFloatAPI<FloatType = Self::Real>>
+    + ComplexFloat<Real: ExtReal + DTypeIntoFloatAPI<FloatType = Self::Real> + FromPrimitive>
+    + FromPrimitive
     + Send
     + Sync
     + Div<Self::Real, Output = Self>

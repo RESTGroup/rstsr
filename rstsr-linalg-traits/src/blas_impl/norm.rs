@@ -19,7 +19,6 @@
 //! other negative orders (`inf`).
 
 use crate::DeviceBLAS;
-use num::Float;
 use num::FromPrimitive;
 use rstsr_blas_traits::prelude::*;
 use rstsr_core::prelude_dev::*;
@@ -53,21 +52,7 @@ pub fn blas_impl_matrix_norm_f<T>(
 ) -> Result<Tensor<T::Real, DeviceBLAS, IxD>>
 where
     T: BlasFloat,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T::Real>
-        + OpAssignArbitaryAPI<T::Real, Ix1, Ix1>
-        + OpAssignAPI<T::Real, Ix1>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>
-        + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<T::Real, Raw = Vec<T::Real>>
-        + OpAbsAPI<T, IxD, TOut = T::Real>
-        + OpL2NormAPI<T, IxD, TOut = T::Real>
-        + OpSumAPI<T::Real, IxD, TOut = T::Real>
-        + OpMaxAPI<T::Real, IxD, TOut = T::Real>
-        + OpMinAPI<T::Real, IxD, TOut = T::Real>
-        + OpSignAPI<T::Real, IxD, TOut = T::Real>
-        + OpPowAPI<T::Real, T::Real, IxD, TOut = T::Real>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     let ord = ord.resolve_matrix()?;
     let device = a.device().clone();
@@ -144,22 +129,7 @@ pub fn blas_impl_vector_norm_f<T>(
 ) -> Result<Tensor<T::Real, DeviceBLAS, IxD>>
 where
     T: BlasFloat,
-    T::Real: Float + FromPrimitive,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T::Real>
-        + OpAssignArbitaryAPI<T::Real, Ix1, Ix1>
-        + OpAssignAPI<T::Real, Ix1>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>
-        + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<T::Real, Raw = Vec<T::Real>>
-        + OpAbsAPI<T, IxD, TOut = T::Real>
-        + OpL2NormAPI<T, IxD, TOut = T::Real>
-        + OpSumAPI<T::Real, IxD, TOut = T::Real>
-        + OpMaxAPI<T::Real, IxD, TOut = T::Real>
-        + OpMinAPI<T::Real, IxD, TOut = T::Real>
-        + OpSignAPI<T::Real, IxD, TOut = T::Real>
-        + OpPowAPI<T::Real, T::Real, IxD, TOut = T::Real>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     let ord = ord.resolve_vector()?;
     let device = a.device().clone();
@@ -225,21 +195,7 @@ impl<ImplType> MatrixNormAPI<DeviceBLAS> for Tr
 where
     T: BlasFloat,
     D: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T::Real>
-        + OpAssignArbitaryAPI<T::Real, Ix1, Ix1>
-        + OpAssignAPI<T::Real, Ix1>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>
-        + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<T::Real, Raw = Vec<T::Real>>
-        + OpAbsAPI<T, IxD, TOut = T::Real>
-        + OpL2NormAPI<T, IxD, TOut = T::Real>
-        + OpSumAPI<T::Real, IxD, TOut = T::Real>
-        + OpMaxAPI<T::Real, IxD, TOut = T::Real>
-        + OpMinAPI<T::Real, IxD, TOut = T::Real>
-        + OpSignAPI<T::Real, IxD, TOut = T::Real>
-        + OpPowAPI<T::Real, T::Real, IxD, TOut = T::Real>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T::Real, DeviceBLAS, IxD>;
     fn matrix_norm_f(self) -> Result<Self::Out> {
@@ -257,21 +213,7 @@ impl<ImplType, A> MatrixNormAPI<DeviceBLAS> for (Tr, A)
 where
     T: BlasFloat,
     D: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T::Real>
-        + OpAssignArbitaryAPI<T::Real, Ix1, Ix1>
-        + OpAssignAPI<T::Real, Ix1>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>
-        + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<T::Real, Raw = Vec<T::Real>>
-        + OpAbsAPI<T, IxD, TOut = T::Real>
-        + OpL2NormAPI<T, IxD, TOut = T::Real>
-        + OpSumAPI<T::Real, IxD, TOut = T::Real>
-        + OpMaxAPI<T::Real, IxD, TOut = T::Real>
-        + OpMinAPI<T::Real, IxD, TOut = T::Real>
-        + OpSignAPI<T::Real, IxD, TOut = T::Real>
-        + OpPowAPI<T::Real, T::Real, IxD, TOut = T::Real>,
+    DeviceBLAS: LapackDriverAPI<T>,
     A: TryInto<MatrixNormArgs>,
     A::Error: Into<Error>,
 {
@@ -292,23 +234,8 @@ where
 impl<ImplType> VectorNormAPI<DeviceBLAS> for Tr
 where
     T: BlasFloat,
-    T::Real: Float + FromPrimitive,
     D: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T::Real>
-        + OpAssignArbitaryAPI<T::Real, Ix1, Ix1>
-        + OpAssignAPI<T::Real, Ix1>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>
-        + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<T::Real, Raw = Vec<T::Real>>
-        + OpAbsAPI<T, IxD, TOut = T::Real>
-        + OpL2NormAPI<T, IxD, TOut = T::Real>
-        + OpSumAPI<T::Real, IxD, TOut = T::Real>
-        + OpMaxAPI<T::Real, IxD, TOut = T::Real>
-        + OpMinAPI<T::Real, IxD, TOut = T::Real>
-        + OpSignAPI<T::Real, IxD, TOut = T::Real>
-        + OpPowAPI<T::Real, T::Real, IxD, TOut = T::Real>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T::Real, DeviceBLAS, IxD>;
     fn vector_norm_f(self) -> Result<Self::Out> {
@@ -325,23 +252,8 @@ where
 impl<ImplType, A> VectorNormAPI<DeviceBLAS> for (Tr, A)
 where
     T: BlasFloat,
-    T::Real: Float + FromPrimitive,
     D: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T::Real>
-        + OpAssignArbitaryAPI<T::Real, Ix1, Ix1>
-        + OpAssignAPI<T::Real, Ix1>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>
-        + DeviceAPI<T, Raw = Vec<T>>
-        + DeviceAPI<T::Real, Raw = Vec<T::Real>>
-        + OpAbsAPI<T, IxD, TOut = T::Real>
-        + OpL2NormAPI<T, IxD, TOut = T::Real>
-        + OpSumAPI<T::Real, IxD, TOut = T::Real>
-        + OpMaxAPI<T::Real, IxD, TOut = T::Real>
-        + OpMinAPI<T::Real, IxD, TOut = T::Real>
-        + OpSignAPI<T::Real, IxD, TOut = T::Real>
-        + OpPowAPI<T::Real, T::Real, IxD, TOut = T::Real>,
+    DeviceBLAS: LapackDriverAPI<T>,
     A: TryInto<VectorNormArgs>,
     A::Error: Into<Error>,
 {

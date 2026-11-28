@@ -26,11 +26,7 @@ pub fn blas_impl_solve_symmetric_f<'b, T>(
 ) -> Result<TensorMutable<'b, T, DeviceBLAS, IxD>>
 where
     T: BlasFloat,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationNumAPI<T>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     let order = a.device().default_order();
     let plan = solve_plan(a.shape(), b.shape(), order, "solve_symmetric")?;
@@ -76,11 +72,7 @@ where
     T: BlasFloat,
     DA: DimAPI,
     DB: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationNumAPI<T>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, IxD>;
     fn solve_symmetric_f(self) -> Result<Self::Out> {
@@ -105,11 +97,7 @@ where
     T: BlasFloat,
     DA: DimAPI,
     DB: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationNumAPI<T>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = TrB;
     fn solve_symmetric_f(self) -> Result<Self::Out> {
@@ -135,11 +123,7 @@ where
     T: BlasFloat,
     DA: DimAPI,
     DB: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationNumAPI<T>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = Tensor<T, DeviceBLAS, IxD>;
     fn solve_symmetric_f(self) -> Result<Self::Out> {
@@ -163,11 +147,7 @@ where
     T: BlasFloat,
     DA: DimAPI,
     DB: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationNumAPI<T>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = TrB;
     fn solve_symmetric_f(self) -> Result<Self::Out> {

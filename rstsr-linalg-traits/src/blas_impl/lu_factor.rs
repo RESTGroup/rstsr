@@ -38,12 +38,7 @@ pub fn blas_impl_lu_factor_f<T>(
 ) -> Result<(TensorMutable<'_, T, DeviceBLAS, IxD>, Tensor<usize, DeviceBLAS, IxD>)>
 where
     T: BlasFloat,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceAPI<usize, Raw = Vec<usize>>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationNumAPI<usize>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     let device = a.device().clone();
     let order = device.default_order();
@@ -86,12 +81,7 @@ where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceAPI<usize, Raw = Vec<usize>>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationNumAPI<usize>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = LuFactorResult<Tensor<T, DeviceBLAS, D>, Tensor<usize, DeviceBLAS, D::SmallerOne>>;
     fn lu_factor_f(self) -> Result<Self::Out> {
@@ -111,12 +101,7 @@ where
     T: BlasFloat,
     D: DimAPI + DimSmallerOneAPI,
     D::SmallerOne: DimAPI,
-    DeviceBLAS: LapackDriverAPI<T>
-        + DeviceAPI<usize, Raw = Vec<usize>>
-        + DeviceCreationAnyAPI<T>
-        + DeviceCreationNumAPI<usize>
-        + OpAssignArbitaryAPI<T, IxD, IxD>
-        + OpAssignAPI<T, IxD>,
+    DeviceBLAS: LapackDriverAPI<T>,
 {
     type Out = LuFactorResult<Tr, Tensor<usize, DeviceBLAS, D::SmallerOne>>;
     fn lu_factor_f(self) -> Result<Self::Out> {
